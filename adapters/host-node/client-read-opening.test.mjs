@@ -104,3 +104,79 @@ for (const entrance of ['local', 'https']) {
     });
   }
 }
+
+// The same actual published Program and physical Store exercise receipt
+// durability. These two-row cases do not establish the later 121-row Run.
+for (const entrance of ['local', 'https']) {
+  for (const completion of ['commit', 'fail']) {
+    test(`${entrance}: published Run read waits for durable receipt record (${completion})`,
+      {timeout: 20000}, async () => {
+        const scratch = await createOwnedScratch({parent: tmpdir(),
+          prefix: 'actql-read-completion-', label: `${entrance} ${completion}`});
+        const directory = scratch.path;
+        execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+          '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
+          '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+        {cwd: directory, stdio: 'ignore'});
+        const fixture = await openReadOpeningFixture(directory);
+        const host = await connectOpeningHost(fixture, entrance, directory);
+        let entered, release, ref, attemptId, observed;
+        const reached = new Promise(resolve => {entered = resolve;});
+        const gate = new Promise(resolve => {release = resolve;});
+        fixture.beforeSuccessRecord(async () => {
+          entered(); await gate;
+          if (completion === 'fail') throw new Error('InjectedReceiptRecordFailure');
+        });
+        try {
+          const run = await host.client.start(openingProgram, {requestId: 'completion-run'});
+          ref = run.ref;
+          assert.equal((await run.status()).status, 'succeeded');
+          const result = run.result('answer');
+          const reader = result.rows();
+          attemptId = reader.attemptId;
+          const iterator = reader[Symbol.asyncIterator]();
+          try {
+            assert.deepEqual(await iterator.next(), {done: false, value: {id: 1}});
+            assert.deepEqual(await iterator.next(), {done: false, value: {id: 2}});
+            await reached;
+            const pending = await result.deliveryAttempt(attemptId);
+            assert.equal(pending.kind, 'found');
+            assert.equal(pending.record.state, 'streaming');
+            assert.equal(pending.hostReleaseReceipt, null);
+            assert.equal(reader.state(), 'prefix');
+            const final = iterator.next();
+            release();
+            if (completion === 'commit') {
+              assert.deepEqual(await final, {done: true, value: undefined});
+              assert.equal(reader.state(), 'complete');
+            } else {
+              await assert.rejects(final, error => error.attemptId === attemptId && error.rowsYielded === 2);
+              assert.equal(reader.state(), 'prefix');
+            }
+          } finally {release(); await iterator.return();}
+          await host.settled();
+          observed = await result.deliveryAttempt(attemptId);
+          assert.equal(observed.record.state, completion === 'commit' ? 'succeeded' : 'streaming');
+          assert.equal(observed.hostReleaseReceipt === null, completion === 'fail');
+          assert.deepEqual(await result.deliveryAttempt(attemptId), observed);
+          assert.deepEqual(fixture.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});
+          assert.equal((await attempts(directory)).length, 1);
+          assert.equal((await run.status()).status, 'succeeded');
+        } finally {release(); await host.close(); await fixture.close();}
+        const output = join(directory, 'restart.json');
+        execFileSync(process.execPath, [fileURLToPath(new URL('./client-read-opening-restart.fixture.mjs', import.meta.url)),
+          JSON.stringify({directory, entrance, ref, attemptId, output})], {timeout: 15000, stdio: 'pipe'});
+        const restored = JSON.parse(await readFile(output, 'utf8'));
+        assert.deepEqual(restored.ref, ref);
+        assert.equal(restored.status, 'succeeded');
+        assert.deepEqual(restored.first, observed);
+        assert.deepEqual(restored.second, observed);
+        assert.deepEqual(restored.counts, {admissions: 0, readers: 0, computes: 0, definitions: 0});
+        assert.equal((await attempts(directory)).length, 1);
+        console.log('READ_COMPLETION_EVIDENCE', JSON.stringify({entrance, completion, ref, attemptId,
+          recordState: observed.record.state, receiptCid: observed.hostReleaseReceipt?.result_delivery_receipt_cid,
+          restartCounts: restored.counts}));
+        scratch.passed();
+      });
+  }
+}

@@ -3,6 +3,7 @@ priv enum BoundedBindingRowsPhase {
   PrepareInputNames
   PrepareOutputNames
   PrepareRowSources
+  PrepareOperationMetadata
   PrepareDistinctTerms
   PrepareDedupeTerms
   InitializeDistinctKeep
@@ -58,7 +59,11 @@ priv enum BoundedOutputCell {
 priv enum BindingRowSource {
   InputColumn(Int)
   BindingColumn(Int)
-  GeneratedColumn
+  PickedJsonColumn
+  WatermarkTimeColumn
+  WatermarkLateColumn
+  WatermarkDecisionColumn
+  LagColumn
 }
 
 ///|
@@ -530,10 +535,10 @@ fn bounded_row_comparison_step(
 priv struct BoundedBindingRowsState {
   input : BoundedBindingInput
   available : () -> Bool
-  bindings : Array[(String, @lower.Expression)]
+  bindings : @lower.PreparedBindings?
   predicate : @lower.Expression?
   assertion : Bool
-  unique_keys : Array[@schema.FieldName]?
+  unique_keys : @lower.PreparedUniqueKeys?
   distinct : Bool
   dedupe : Bool
   dedupe_kernel : @lower.PreparedKernel?
@@ -555,13 +560,16 @@ priv struct BoundedBindingRowsState {
   mut metadata_binding : Int
   mut metadata_offset : Int
   mut metadata_lookup : RowMetadataLookup?
+  mut metadata_source : @schema.FieldName?
+  mut metadata_generated_field : Int
+  mut metadata_generated_seen : Int
   mut term_column : Int?
   mut name_charge : RowNameCharge?
   projection_ordinals : Map[String, Int]?
-  json_path : Array[String]?
-  json_source_column : Int
+  json_path : @lower.PreparedJsonPick?
+  mut json_source_column : Int
   json_output_name : String
-  watermark : (
+  mut watermark : (
     Int,
     Bool,
     @relation.LatePolicy,
@@ -573,7 +581,7 @@ priv struct BoundedBindingRowsState {
   mut watermark_checked : Bool
   mut watermark_current : Double
   mut watermark_late : Bool
-  lag : (Int, String, Int64)?
+  mut lag : (Int, String, Int64)?
   mut lag_values : Array[Value]
   mut lag_values_reserved : Bool
   mut lag_position : Int
@@ -606,7 +614,6 @@ priv struct BoundedBindingRowsState {
   mut unique_key : Int
   mut unique_row : Int
   mut unique_pair : Int
-  ordered : Bool
   output_schema : @schema.Schema
   preserve_presence : Bool
   admitted_limits : @admitted.Limits
@@ -841,6 +848,12 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
     close_row_metadata_lookup(cursor)
   }
   state.metadata_lookup = None
+  if state.metadata_source is Some(_) {
+    release_slots(state.workspace, 1)
+    state.metadata_source = None
+  }
+  state.metadata_generated_field = -1
+  state.metadata_generated_seen = 0
   state.term_column = None
   if state.stepped_metadata {
     state.input_names.clear()
@@ -923,7 +936,10 @@ fn bounded_binding_rows_step(
       PrepareOutputNames => {
         if state.column == @schema.field_count(state.output_schema) {
           state.column = 0
-          state.metadata_binding = state.bindings.length() - 1
+          state.metadata_binding = state.bindings
+            .map(@lower.bindings_count)
+            .unwrap_or(0) -
+            1
           state.phase = PrepareRowSources
           continue
         }
@@ -938,7 +954,14 @@ fn bounded_binding_rows_step(
       PrepareRowSources => {
         if state.column == state.output_names.length() {
           state.column = 0
-          state.phase = if state.dedupe {
+          if state.metadata_source is Some(_) &&
+            state.metadata_generated_seen !=
+            (if state.watermark is Some(_) { 7 } else { 1 }) {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          state.phase = if state.metadata_source is Some(_) {
+            PrepareOperationMetadata
+          } else if state.dedupe {
             PrepareDedupeTerms
           } else if state.distinct {
             PrepareDistinctTerms
@@ -951,6 +974,23 @@ fn bounded_binding_rows_step(
         }
         guard @schema.field_at(state.output_schema, state.column) is Some(field) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if state.metadata_generated_field >= 0 {
+          match advance_generated_row_source(state, field.name) {
+            Err(_) =>
+              return fail_bounded_binding_rows(
+                InvalidExecution,
+                progress,
+                used + 1,
+              )
+            Ok(None) => ()
+            Ok(Some(source)) => {
+              state.row_sources.push(source)
+              state.column += 1
+            }
+          }
+          used += 1
+          continue
         }
         let mut source_name = field.name
         if state.metadata_projection is Some(projection) {
@@ -987,7 +1027,9 @@ fn bounded_binding_rows_step(
         // The last ordered binding wins, exactly as the former ordinal Map.
         if state.metadata_projection is None && state.metadata_binding >= 0 {
           let (order, offset, _) = @schema.compare_reference_fragment(
-            @schema.Unqualified(state.bindings[state.metadata_binding].0),
+            @schema.Unqualified(
+              @lower.binding_at(state.bindings.unwrap(), state.metadata_binding).unwrap().0,
+            ),
             field.name,
             state.metadata_offset,
             64,
@@ -998,7 +1040,10 @@ fn bounded_binding_rows_step(
             Some(0) => {
               state.row_sources.push(BindingColumn(state.metadata_binding))
               state.column += 1
-              state.metadata_binding = state.bindings.length() - 1
+              state.metadata_binding = state.bindings
+                .map(@lower.bindings_count)
+                .unwrap_or(0) -
+                1
             }
             Some(_) => state.metadata_binding -= 1
           }
@@ -1021,6 +1066,11 @@ fn bounded_binding_rows_step(
           Some(column) => {
             state.metadata_lookup = None
             if column < 0 {
+              if state.metadata_source is Some(_) {
+                state.metadata_generated_field = 0
+                used += 1
+                continue
+              }
               return fail_bounded_binding_rows(
                 InvalidExecution,
                 progress,
@@ -1029,8 +1079,57 @@ fn bounded_binding_rows_step(
             }
             state.row_sources.push(InputColumn(column))
             state.column += 1
-            state.metadata_binding = state.bindings.length() - 1
+            state.metadata_binding = state.bindings
+              .map(@lower.bindings_count)
+              .unwrap_or(0) -
+              1
             state.metadata_projection_field = 0
+          }
+        }
+        used += 1
+      }
+      PrepareOperationMetadata => {
+        guard state.metadata_source is Some(field) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if state.metadata_lookup is None {
+          guard start_row_metadata_lookup(
+              bounded_binding_input_schema(state.input),
+              field,
+              state.workspace,
+            )
+            is Some(cursor) else {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          state.metadata_lookup = Some(cursor)
+        }
+        match advance_row_metadata_lookup(state.metadata_lookup.unwrap()) {
+          None => ()
+          Some(column) => {
+            state.metadata_lookup = None
+            if column < 0 {
+              return fail_bounded_binding_rows(
+                InvalidExecution,
+                progress,
+                used + 1,
+              )
+            }
+            if state.json_path is Some(_) {
+              state.json_source_column = column
+            } else if state.watermark is Some((_, timestamp, policy, threshold)) {
+              state.watermark = Some((column, timestamp, policy, threshold))
+            } else if state.lag is Some((_, output, offset)) {
+              state.lag = Some((column, output, offset))
+            } else {
+              return fail_bounded_binding_rows(
+                InvalidExecution,
+                progress,
+                used + 1,
+              )
+            }
+            release_slots(state.workspace, 1)
+            state.metadata_source = None
+            state.phase = ChargeInput
           }
         }
         used += 1
@@ -1253,13 +1352,17 @@ fn bounded_binding_rows_step(
         guard state.unique_keys is Some(keys) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
-        if state.unique_key == keys.length() {
+        if state.unique_key == @lower.unique_key_count(keys) {
           state.phase = StartSort
           continue
         }
         if state.unique_row < 0 {
           let column = match
-            advance_row_term_preparation(state, keys[state.unique_key], 1) {
+            advance_row_term_preparation(
+              state,
+              @lower.unique_key_at(keys, state.unique_key).unwrap(),
+              1,
+            ) {
             Err(issue) =>
               return fail_bounded_binding_rows(Rows(issue), progress, used + 1)
             Ok(None) => {
@@ -2078,7 +2181,7 @@ fn bounded_binding_rows_step(
           used += 1
           continue
         }
-        if state.json_segment == path.length() {
+        if state.json_segment == @lower.json_pick_path_count(path) {
           state.json_picked = Some(
             match state.json_current {
               None => Null
@@ -2129,7 +2232,14 @@ fn bounded_binding_rows_step(
                     used,
                   )
               }
-              let segment = path[state.json_segment]
+              guard @lower.json_pick_path_at(path, state.json_segment)
+                is Some(segment) else {
+                return fail_bounded_binding_rows(
+                  InvalidExecution,
+                  progress,
+                  used,
+                )
+              }
               if next > segment.length() ||
                 name[offset] != segment[offset] ||
                 (next == offset + 2 && name[offset + 1] != segment[offset + 1]) {
@@ -2139,8 +2249,11 @@ fn bounded_binding_rows_step(
               used += 1
               continue
             }
-            if state.json_name_matches &&
-              name.length() == path[state.json_segment].length() {
+            guard @lower.json_pick_path_at(path, state.json_segment)
+              is Some(segment) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            if state.json_name_matches && name.length() == segment.length() {
               state.json_current = Some(value)
               state.json_segment += 1
               state.json_field = 0
@@ -2197,15 +2310,21 @@ fn bounded_binding_rows_step(
                   used,
                 )
               }
+              guard state.bindings is Some(bindings) else {
+                return fail_bounded_binding_rows(
+                  InvalidExecution,
+                  progress,
+                  used,
+                )
+              }
               state.binding_execution = Some(
-                start_bindings_with_input(
-                  state.bindings,
+                start_prepared_bindings_with_input(
+                  bindings,
                   indexed_expression_input(state.snapshot),
                   state.control,
                   state.workspace,
                   scope,
                   state.row,
-                  state.ordered,
                 ),
               )
               state.phase = EvaluateBindings
@@ -2525,7 +2644,6 @@ fn bounded_binding_rows_step(
             Ok(true) => state.name_charge = None
           }
         }
-        let name = state.output_names[state.column]
         let source_row = match state.sorted_indices {
           Some(indices) => indices[state.row]
           None => state.row
@@ -2537,22 +2655,12 @@ fn bounded_binding_rows_step(
           InputColumn(index) =>
             bounded_binding_input_cell(state.input, source_row, index)
           BindingColumn(index) => state.values.get(index)
-          GeneratedColumn =>
-            if name == state.json_output_name {
-              state.json_picked
-            } else if state.watermark is Some(_) {
-              match name {
-                "watermark_ms" => Some(Number(state.watermark_current))
-                "watermark_late" => Some(Boolean(state.watermark_late))
-                "watermark_decision" =>
-                  Some(Text(if state.watermark_late { "mark" } else { "keep" }))
-                _ => None
-              }
-            } else if state.lag is Some((_, output, _)) && name == output {
-              state.lag_values.get(source_row)
-            } else {
-              None
-            }
+          PickedJsonColumn => state.json_picked
+          WatermarkTimeColumn => Some(Number(state.watermark_current))
+          WatermarkLateColumn => Some(Boolean(state.watermark_late))
+          WatermarkDecisionColumn =>
+            Some(Text(if state.watermark_late { "mark" } else { "keep" }))
+          LagColumn => state.lag_values.get(source_row)
         }
         guard value is Some(value) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
@@ -3340,67 +3448,72 @@ fn start_bounded_binding_rows_with_input(
       true
     }
   }
-  // Admit the copied typed view before reading it. Name arrays and ordinal
-  // maps are admitted below using their actual sizes before construction.
+  // Preserve the prepared-view admission before reading it, even when its
+  // path is borrowed. Name arrays/maps are admitted before construction.
   if !admit_metadata(binding_count) {
     return Err(InvalidExecution)
   }
-  let body = @lower.kernel_body(kernel)
+  // Borrow immutable metadata before any defensive array export. The scalar
+  // variants retain their existing view and each borrowed kind stays explicit.
+  let json_pick = @lower.kernel_json_pick(kernel)
+  let bindings = @lower.kernel_bindings(kernel)
+  let unique_keys = @lower.kernel_unique_keys(kernel)
+  let projection = @lower.kernel_projection(kernel)
+  let body = if json_pick is Some(_) ||
+    bindings is Some(_) ||
+    unique_keys is Some(_) ||
+    projection is Some(_) {
+    None
+  } else {
+    Some(@lower.kernel_body(kernel))
+  }
   // Keyed DISTINCT already owns projection followed by full-row comparison.
   // Only its Required projected columns are read by the comparator/output;
   // ChargeInput still admits every original cell, including omitted columns.
-  let keyed_distinct = body is @lower.DistinctRows &&
+  let keyed_distinct = body is Some(@lower.DistinctRows) &&
     @lower.kernel_distinct_projection(kernel) is Some(_) &&
     @schema.all_fields_required(output_schema)
   let preserve_presence = !@schema.all_fields_required(input_schema) &&
     (
-      body is @lower.Filter(_) ||
-      body is @lower.SnapshotMap(_) ||
-      body is @lower.OrderedBindings(_) ||
-      body is @lower.StableSort(_) ||
-      body is @lower.Limit(_, _, _) ||
+      body is Some(@lower.Filter(_)) ||
+      bindings is Some(_) ||
+      body is Some(@lower.StableSort(_)) ||
+      body is Some(@lower.Limit(_, _, _)) ||
       (
-        body is @lower.DistinctRows &&
+        body is Some(@lower.DistinctRows) &&
         @lower.kernel_distinct_projection(kernel) is None
       )
     )
   if !@schema.all_fields_required(input_schema) &&
     !preserve_presence &&
-    !(body is @lower.Select(_)) &&
+    projection is None &&
     !keyed_distinct {
     return Err(InvalidExecution)
   }
   if preserve_presence &&
-    !(body is @lower.SnapshotMap(_) || body is @lower.OrderedBindings(_)) &&
+    bindings is None &&
     !physical_equal(input_schema, output_schema) {
     return Err(InvalidExecution)
   }
-  let (bindings, ordered, predicate, select_mode, take_range, sort_kernel) = match
-    body {
-    @lower.OrderedBindings(bindings) =>
-      (bindings, true, None, false, None, None)
-    @lower.SnapshotMap(bindings) => (bindings, false, None, false, None, None)
-    @lower.Filter(expression) =>
-      ([], false, Some(expression), false, None, None)
-    @lower.AssertAll(expression) =>
-      ([], false, Some(expression), false, None, None)
-    @lower.AssertUnique(_) => ([], false, None, false, None, None)
-    @lower.JsonPick(_, _, _) => ([], false, None, false, None, None)
-    @lower.Watermark(_, _, _, _) => ([], false, None, false, None, None)
-    @lower.Lag(_, _) => ([], false, None, false, None, Some(kernel))
-    @lower.Select(_) => ([], false, None, true, None, None)
-    @lower.DistinctRows => ([], false, None, false, None, None)
-    @lower.DedupeRows => ([], false, None, false, None, None)
-    @lower.StableSort(_) =>
+  let (predicate, select_mode, take_range, sort_kernel) = match body {
+    None if bindings is Some(_) || unique_keys is Some(_) =>
+      (None, false, None, None)
+    None if projection is Some(_) => (None, true, None, None)
+    Some(@lower.Filter(expression)) => (Some(expression), false, None, None)
+    Some(@lower.AssertAll(expression)) => (Some(expression), false, None, None)
+    None if json_pick is Some(_) => (None, false, None, None)
+    Some(@lower.Watermark(_, _, _, _)) => (None, false, None, None)
+    Some(@lower.Lag(_, _)) => (None, false, None, Some(kernel))
+    Some(@lower.DistinctRows) => (None, false, None, None)
+    Some(@lower.DedupeRows) => (None, false, None, None)
+    Some(@lower.StableSort(_)) =>
       (
-        [],
-        false,
         None,
         false,
         Some((0, bounded_binding_input_row_count(input))),
         Some(kernel),
       )
-    @lower.TopK(top_count, _) => {
+    Some(@lower.TopK(top_count, _)) => {
       if top_count < 1L {
         return Err(InvalidExecution)
       }
@@ -3410,22 +3523,20 @@ fn start_bounded_binding_rows_with_input(
       } else {
         top_count.to_int()
       }
-      ([], false, None, false, Some((0, selected)), Some(kernel))
+      (None, false, Some((0, selected)), Some(kernel))
     }
-    @lower.PartitionedTopK(top_count, _) => {
+    Some(@lower.PartitionedTopK(top_count, _)) => {
       if top_count < 1L {
         return Err(InvalidExecution)
       }
       (
-        [],
-        false,
         None,
         false,
         Some((0, bounded_binding_input_row_count(input))),
         Some(kernel),
       )
     }
-    @lower.Limit(take_count, offset, _) => {
+    Some(@lower.Limit(take_count, offset, _)) => {
       let prepared = @lower.bound_preparation(owner)
       guard @lower.node_at(prepared, step) is Some(node) &&
         take_count > 0L &&
@@ -3445,19 +3556,19 @@ fn start_bounded_binding_rows_with_input(
       } else {
         None
       }
-      ([], false, None, false, Some((start, start + selected)), sort_kernel)
+      (None, false, Some((start, start + selected)), sort_kernel)
     }
     _ => return Err(InvalidExecution)
   }
   if !admit_metadata(input_width) ||
     !admit_metadata(output_width) ||
     !admit_metadata(input_width) ||
-    !admit_metadata(bindings.length()) {
+    !admit_metadata(bindings.map(@lower.bindings_count).unwrap_or(0)) {
     return Err(InvalidExecution)
   }
-  let sort_only = body is @lower.StableSort(_) ||
-    body is @lower.TopK(_, _) ||
-    body is @lower.PartitionedTopK(_, _)
+  let sort_only = body is Some(@lower.StableSort(_)) ||
+    body is Some(@lower.TopK(_, _)) ||
+    body is Some(@lower.PartitionedTopK(_, _))
   if !@schema.all_fields_required(input_schema) &&
     !select_mode &&
     !preserve_presence &&
@@ -3465,18 +3576,18 @@ fn start_bounded_binding_rows_with_input(
     return Err(InvalidExecution)
   }
   let partition_limit = match body {
-    @lower.PartitionedTopK(count, _) => Some(count)
+    Some(@lower.PartitionedTopK(count, _)) => Some(count)
     _ => None
   }
-  let partition_terms = if body is @lower.Lag(_, _) {
+  let partition_terms = if body is Some(@lower.Lag(_, _)) {
     @lower.kernel_lag_partition_count(kernel)
   } else if partition_limit is Some(_) {
     @lower.kernel_top_k_partition_count(kernel)
   } else {
     0
   }
-  let dedupe = body is @lower.DedupeRows
-  let distinct = body is @lower.DistinctRows || dedupe
+  let dedupe = body is Some(@lower.DedupeRows)
+  let distinct = body is Some(@lower.DistinctRows) || dedupe
   let dedupe_key_terms = if dedupe {
     @lower.kernel_dedupe_key_count(kernel)
   } else {
@@ -3490,29 +3601,20 @@ fn start_bounded_binding_rows_with_input(
   if dedupe && dedupe_order_terms == 0 {
     return Err(InvalidExecution)
   }
-  let assertion = body is @lower.AssertAll(_)
-  let unique_keys = match body {
-    @lower.AssertUnique(keys) => Some(keys)
-    _ => None
-  }
-  let json_pick = match body {
-    @lower.JsonPick(column, path, output) =>
-      Some((@schema.reference_name(column), path, output))
-    _ => None
-  }
-  let watermark_kind = body is @lower.Watermark(_, _, _, _)
-  let lag_kind = body is @lower.Lag(_, _)
+  let assertion = body is Some(@lower.AssertAll(_))
+  let watermark_kind = body is Some(@lower.Watermark(_, _, _, _))
+  let lag_kind = body is Some(@lower.Lag(_, _))
   if watermark_kind && output_width != input_width + 3 {
     return Err(InvalidExecution)
   }
   if lag_kind && output_width != input_width + 1 {
     return Err(InvalidExecution)
   }
-  if json_pick is Some((_, path, _)) &&
-    (path.is_empty() || output_width != input_width + 1) {
+  if json_pick is Some(view) &&
+    (@lower.json_pick_path_count(view) == 0 || output_width != input_width + 1) {
     return Err(InvalidExecution)
   }
-  if unique_keys is Some(keys) && keys.is_empty() {
+  if unique_keys is Some(keys) && @lower.unique_key_count(keys) == 0 {
     return Err(InvalidExecution)
   }
   if take_range is None &&
@@ -3522,7 +3624,7 @@ fn start_bounded_binding_rows_with_input(
     json_pick is None &&
     !watermark_kind &&
     !lag_kind &&
-    bindings.length() != binding_count {
+    bindings.map(@lower.bindings_count).unwrap_or(0) != binding_count {
     return Err(InvalidExecution)
   }
   if (
@@ -3572,27 +3674,24 @@ fn start_bounded_binding_rows_with_input(
       Ok(_) => ()
     }
   }
+  let binding_slots = bindings.map(@lower.bindings_count).unwrap_or(0)
+  let mut small_binding_names = binding_slots <= 8
+  if small_binding_names && bindings is Some(view) {
+    for index in 0..<binding_slots {
+      if @lower.binding_at(view, index).unwrap().0.length() > 64 {
+        small_binding_names = false
+        break
+      }
+    }
+  }
   let small_metadata = input_width <= 8 &&
     output_width <= 8 &&
-    bindings.length() <= 8 &&
+    small_binding_names &&
     bounded_small_schema_names(input_schema) &&
-    bounded_small_schema_names(output_schema) &&
-    bindings.all(binding => binding.0.length() <= 64)
-  let stepped_metadata = !small_metadata &&
-    (
-      body is @lower.SnapshotMap(_) ||
-      body is @lower.OrderedBindings(_) ||
-      body is @lower.Filter(_) ||
-      body is @lower.AssertAll(_) ||
-      body is @lower.Select(_) ||
-      body is @lower.DistinctRows ||
-      body is @lower.DedupeRows ||
-      body is @lower.StableSort(_) ||
-      body is @lower.TopK(_, _) ||
-      body is @lower.PartitionedTopK(_, _) ||
-      body is @lower.Limit(_, _, _) ||
-      body is @lower.AssertUnique(_)
-    )
+    bounded_small_schema_names(output_schema)
+  // The body match above already limits this owner to its supported kernels.
+  // Every accepted wide/long-name shape prepares metadata inside resume.
+  let stepped_metadata = !small_metadata
   let input_names = if stepped_metadata {
     []
   } else {
@@ -3615,34 +3714,59 @@ fn start_bounded_binding_rows_with_input(
     input_ordinals[name] = index
   }
   let watermark = match body {
-    @lower.Watermark(time, timestamp, policy, threshold) => {
-      guard input_ordinals.get(@schema.reference_name(time)) is Some(column) else {
-        return Err(InvalidExecution)
+    Some(@lower.Watermark(time, timestamp, policy, threshold)) => {
+      let column = if stepped_metadata {
+        -1
+      } else {
+        guard input_ordinals.get(@schema.reference_name(time)) is Some(column) else {
+          return Err(InvalidExecution)
+        }
+        column
       }
       Some((column, timestamp, policy, threshold))
     }
     _ => None
   }
   let lag = if lag_kind {
-    guard @lower.kernel_lag(kernel) is Some((field, output, offset)) &&
-      input_ordinals.get(@schema.reference_name(field)) is Some(column) &&
-      !input_ordinals.contains(output) &&
-      output_names.contains(output) else {
+    guard @lower.kernel_lag(kernel) is Some((field, output, offset)) else {
       return Err(InvalidExecution)
+    }
+    let column = if stepped_metadata {
+      -1
+    } else {
+      guard input_ordinals.get(@schema.reference_name(field)) is Some(column) &&
+        !input_ordinals.contains(output) &&
+        output_names.contains(output) else {
+        return Err(InvalidExecution)
+      }
+      column
     }
     Some((column, output, offset))
   } else {
     None
   }
+  let metadata_source = if stepped_metadata {
+    match body {
+      None => json_pick.map(@lower.json_pick_column)
+      Some(@lower.Watermark(time, _, _, _)) => Some(time)
+      Some(@lower.Lag(_, _)) => @lower.kernel_lag(kernel).map(view => view.0)
+      _ => None
+    }
+  } else {
+    None
+  }
+  if metadata_source is Some(_) && !admit_metadata(1) {
+    return Err(InvalidExecution)
+  }
   let binding_ordinals : Map[String, Int] = Map([])
-  if !stepped_metadata {
-    for index, binding in bindings {
+  if !stepped_metadata && bindings is Some(view) {
+    for index in 0..<binding_slots {
+      let binding = @lower.binding_at(view, index).unwrap()
       binding_ordinals[binding.0] = index
     }
   }
-  let metadata_projection = if stepped_metadata && body is @lower.Select(_) {
-    guard @lower.prepare_projection(@lower.kernel_checked(kernel)) is Some(view) &&
-      @lower.projection_field_count(view) == output_width else {
+  let metadata_projection = if stepped_metadata && projection is Some(view) {
+    guard @lower.projection_field_count(view) == output_width else {
       return Err(InvalidExecution)
     }
     Some(view)
@@ -3652,29 +3776,47 @@ fn start_bounded_binding_rows_with_input(
     None
   }
   let projection_ordinals : Map[String, Int]? = if stepped_metadata &&
-    (select_mode || distinct || unique_keys is Some(_) || take_range is Some(_)) {
+    (
+      select_mode ||
+      distinct ||
+      unique_keys is Some(_) ||
+      take_range is Some(_) ||
+      metadata_source is Some(_)
+    ) {
     // The discriminant selects projection semantics; indexed sources are filled
     // before any row is read. Never hash large output names during start.
     Some(Map([]))
+  } else if projection is Some(view) {
+    let projection : Map[String, Int] = Map([])
+    for index in 0..<@lower.projection_field_count(view) {
+      let field = @lower.projection_field_at(view, index).unwrap()
+      let output_name = @schema.reference_name(field.output)
+      guard input_ordinals.get(@schema.reference_name(field.input))
+        is Some(index) &&
+        !projection.contains(output_name) else {
+        return Err(InvalidExecution)
+      }
+      projection[output_name] = index
+    }
+    if projection.length() != output_width {
+      return Err(InvalidExecution)
+    }
+    Some(projection)
+  } else if unique_keys is Some(_) {
+    let projection : Map[String, Int] = Map([])
+    for name in output_names {
+      guard input_ordinals.get(name) is Some(index) else {
+        return Err(InvalidExecution)
+      }
+      projection[name] = index
+    }
+    if projection.length() != output_width || input_width != output_width {
+      return Err(InvalidExecution)
+    }
+    Some(projection)
   } else {
     match body {
-      @lower.Select(fields) => {
-        let projection : Map[String, Int] = Map([])
-        for field in fields {
-          let output_name = @schema.reference_name(field.output)
-          guard input_ordinals.get(@schema.reference_name(field.input))
-            is Some(index) &&
-            !projection.contains(output_name) else {
-            return Err(InvalidExecution)
-          }
-          projection[output_name] = index
-        }
-        if projection.length() != output_width {
-          return Err(InvalidExecution)
-        }
-        Some(projection)
-      }
-      @lower.DistinctRows => {
+      Some(@lower.DistinctRows) => {
         let projection : Map[String, Int] = Map([])
         match @lower.kernel_distinct_projection(kernel) {
           Some(view) =>
@@ -3700,12 +3842,11 @@ fn start_bounded_binding_rows_with_input(
         }
         Some(projection)
       }
-      @lower.StableSort(_)
-      | @lower.TopK(_, _)
-      | @lower.PartitionedTopK(_, _)
-      | @lower.Limit(_, _, _)
-      | @lower.DedupeRows
-      | @lower.AssertUnique(_) => {
+      Some(@lower.StableSort(_))
+      | Some(@lower.TopK(_, _))
+      | Some(@lower.PartitionedTopK(_, _))
+      | Some(@lower.Limit(_, _, _))
+      | Some(@lower.DedupeRows) => {
         let projection : Map[String, Int] = Map([])
         for name in output_names {
           guard input_ordinals.get(name) is Some(index) else {
@@ -3718,12 +3859,14 @@ fn start_bounded_binding_rows_with_input(
         }
         Some(projection)
       }
-      @lower.JsonPick(source, _, output) => {
+      None if json_pick is Some(view) => {
         let projection : Map[String, Int] = Map([])
+        let source = @lower.json_pick_column(view)
+        let output = @lower.json_pick_output(view)
         let source_name = @schema.reference_name(source)
         if input_ordinals.get(source_name) is None ||
           input_ordinals.contains(output) ||
-          output_names[output_width - 1] != output {
+          !output_names.contains(output) {
           return Err(InvalidExecution)
         }
         for name in input_names {
@@ -3734,7 +3877,7 @@ fn start_bounded_binding_rows_with_input(
         }
         Some(projection)
       }
-      @lower.Watermark(_, _, _, _) => {
+      Some(@lower.Watermark(_, _, _, _)) => {
         let projection : Map[String, Int] = Map([])
         for name in input_names {
           guard input_ordinals.get(name) is Some(index) else {
@@ -3749,7 +3892,7 @@ fn start_bounded_binding_rows_with_input(
         }
         Some(projection)
       }
-      @lower.Lag(_, _) => {
+      Some(@lower.Lag(_, _)) => {
         let projection : Map[String, Int] = Map([])
         for name in input_names {
           guard input_ordinals.get(name) is Some(index) else {
@@ -3766,25 +3909,6 @@ fn start_bounded_binding_rows_with_input(
   if !small_metadata {
     if !admit_metadata(output_width) {
       return Err(InvalidExecution)
-    }
-    for name in output_names {
-      let source = match projection_ordinals {
-        Some(projection) =>
-          match projection.get(name) {
-            Some(index) => InputColumn(index)
-            None => GeneratedColumn
-          }
-        None =>
-          match binding_ordinals.get(name) {
-            Some(index) => BindingColumn(index)
-            None =>
-              match input_ordinals.get(name) {
-                Some(index) => InputColumn(index)
-                None => return Err(InvalidExecution)
-              }
-          }
-      }
-      row_sources.push(source)
     }
   }
   let output = match
@@ -3866,19 +3990,26 @@ fn start_bounded_binding_rows_with_input(
     metadata_binding: -1,
     metadata_offset: 0,
     metadata_lookup: None,
+    metadata_source,
+    metadata_generated_field: -1,
+    metadata_generated_seen: 0,
     term_column: None,
     name_charge: None,
     projection_ordinals,
-    json_path: match json_pick {
-      Some((_, path, _)) => Some(path)
-      None => None
-    },
+    json_path: json_pick,
     json_source_column: match json_pick {
-      Some((source, _, _)) => input_ordinals.get(source).unwrap_or(-1)
+      Some(view) =>
+        if stepped_metadata {
+          -1
+        } else {
+          input_ordinals
+          .get(@schema.reference_name(@lower.json_pick_column(view)))
+          .unwrap_or(-1)
+        }
       None => -1
     },
     json_output_name: match json_pick {
-      Some((_, _, output)) => output
+      Some(view) => @lower.json_pick_output(view)
       None => ""
     },
     watermark,
@@ -3930,7 +4061,6 @@ fn start_bounded_binding_rows_with_input(
     unique_key: 0,
     unique_row: -1,
     unique_pair: 1,
-    ordered,
     output_schema,
     preserve_presence,
     admitted_limits: {

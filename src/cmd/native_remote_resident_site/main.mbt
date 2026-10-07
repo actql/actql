@@ -175,6 +175,31 @@ fn refusal_code(refusal : @resident.ResidentDispatchRefusal) -> String {
 }
 
 ///|
+/// Fixed diagnostic stages only: evidence names, Program text and nested
+/// error payloads must not enter maintenance progress records.
+fn saved_output_materials_stage(
+  issue : @host.ClientTaskRunMaterialsIssue,
+) -> String {
+  match issue {
+    Input(MaterialsMalformed) => "input-malformed"
+    Input(MaterialsEnvironment) => "input-environment"
+    Input(MaterialsParameters) => "input-parameters"
+    Input(MaterialsProgram(_)) => "input-program"
+    Input(MaterialsCompilation(_)) => "input-compilation"
+    Input(MaterialsEvidence(_)) => "input-evidence"
+    Input(MaterialsAdmission(_)) => "input-admission"
+    Input(MaterialsDefinition(_)) => "input-definition"
+    Input(MaterialsRunMismatch) => "input-run-mismatch"
+    Input(MaterialsBinding(_)) => "input-binding"
+    Compilation(_) => "compilation"
+    Admission(_) => "admission"
+    Definition(_) => "definition"
+    RunMismatch => "run-mismatch"
+    Binding(_) => "binding"
+  }
+}
+
+///|
 fn client_code(issue : @client.NativeRemoteClientIssue) -> String {
   match issue {
     NotAuthorized => "not-authorized"
@@ -3915,6 +3940,13 @@ fn recover_output_command(
             current,
           ) {
           Ok(value) => value
+          Err(Refused(TaskMaterialsRejected(issue))) => {
+            report("output-recovery-materials-refused", [
+              ("stage", saved_output_materials_stage(issue)),
+              ("request_cid", expected),
+            ])
+            stop("refused-task-materials-rejected")
+          }
           Err(issue) => stop(host_code(issue))
         }
         let delivered = saved.recover(

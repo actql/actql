@@ -1,6 +1,6 @@
 {
   "version": "actql-native-parent-allocation-census/0.1",
-  "scope": "existing numeric/NULL unqualified unary serial Relation pilot; source census preserves the complete original parent and uncovered-edge scope",
+  "scope": "current aggregated chain state and resumable input preparation in the existing numeric/NULL unqualified unary serial Relation pilot; typed source census is not a native physical upper bound",
   "sourceFields": [
     {
       "path": "src/connectors/local/managed_provider.mbt",
@@ -209,14 +209,183 @@
           "type": "Int"
         }
       ]
+    },
+    {
+      "path": "src/connectors/local/selected_relation_provider.mbt",
+      "struct": "RelationChainExecutionState",
+      "fields": [
+        {
+          "name": "children",
+          "type": "Array[ManagedProviderExecution]"
+        },
+        {
+          "name": "current",
+          "type": "ManagedProviderExecution?"
+        },
+        {
+          "name": "completed",
+          "type": "Array[@execution.CompletedOutput?]"
+        },
+        {
+          "name": "position",
+          "type": "Int"
+        },
+        {
+          "name": "pending",
+          "type": "Bool"
+        },
+        {
+          "name": "reclaiming",
+          "type": "Bool"
+        },
+        {
+          "name": "input_preparation",
+          "type": "RelationChainInputPreparation?"
+        }
+      ]
+    },
+    {
+      "path": "src/connectors/local/relation_chain_input_preparation.mbt",
+      "struct": "RelationChainInputPreparation",
+      "fields": [
+        {
+          "name": "sequence",
+          "type": "@execution.GeneratedSequence"
+        },
+        {
+          "name": "position",
+          "type": "Int"
+        },
+        {
+          "name": "inputs",
+          "type": "Array[ManagedProviderInput]"
+        },
+        {
+          "name": "completed",
+          "type": "Array[@execution.CompletedOutput?]"
+        },
+        {
+          "name": "selected",
+          "type": "Array[ManagedProviderInput]"
+        },
+        {
+          "name": "owner",
+          "type": "@lower.BoundPrepared"
+        },
+        {
+          "name": "node",
+          "type": "@lower.PreparedNode"
+        },
+        {
+          "name": "first_step",
+          "type": "Int"
+        },
+        {
+          "name": "step",
+          "type": "Int"
+        },
+        {
+          "name": "max_entries",
+          "type": "Int"
+        },
+        {
+          "name": "max_value_bytes",
+          "type": "Int"
+        },
+        {
+          "name": "port",
+          "type": "Int"
+        },
+        {
+          "name": "probe",
+          "type": "Int"
+        },
+        {
+          "name": "matched",
+          "type": "ManagedProviderInput?"
+        },
+        {
+          "name": "read",
+          "type": "@execution.ProducerReadPreparation?"
+        },
+        {
+          "name": "phase",
+          "type": "RelationChainInputPhase"
+        }
+      ]
+    },
+    {
+      "path": "src/execution_relation/producer_read_preparation.mbt",
+      "struct": "ProducerReadPreparation",
+      "fields": [
+        {
+          "name": "bound",
+          "type": "BoundProducerInput"
+        },
+        {
+          "name": "schema",
+          "type": "@schema.Schema"
+        },
+        {
+          "name": "columns",
+          "type": "Array[Int]"
+        },
+        {
+          "name": "max_entries",
+          "type": "Int"
+        },
+        {
+          "name": "max_name_bytes",
+          "type": "Int"
+        },
+        {
+          "name": "projection_count",
+          "type": "Int"
+        },
+        {
+          "name": "entries",
+          "type": "Int"
+        },
+        {
+          "name": "bytes",
+          "type": "Int"
+        },
+        {
+          "name": "field",
+          "type": "Int"
+        },
+        {
+          "name": "projection",
+          "type": "Int"
+        },
+        {
+          "name": "column",
+          "type": "Int"
+        },
+        {
+          "name": "offset",
+          "type": "Int"
+        },
+        {
+          "name": "name",
+          "type": "@schema.FieldName"
+        },
+        {
+          "name": "actual",
+          "type": "String"
+        },
+        {
+          "name": "phase",
+          "type": "ProducerReadPreparationPhase"
+        },
+        {
+          "name": "terminal",
+          "type": "Bool"
+        }
+      ]
     }
   ],
   "chainReferences": [
-    "completed",
-    "children",
-    "current",
-    "position",
-    "pending",
     "used",
     "cancelled",
     "terminal",
@@ -239,7 +408,7 @@
   "included": [
     {
       "id": "retained-parent-core",
-      "objects": "ten Refs, execution record, five callbacks and start_next environment; mutable reported_work records; children array and backing; completed Array owner and fixed count-slot backing; nullable output references",
+      "objects": "aggregated RelationChainExecutionState; five scalar Refs; execution record and five callbacks; start_next environment; mutable reported_work; children and completed Array owners/backings; pending input/producer-read preparation and nullable output references",
       "phases": [
         "startup",
         "advance",
@@ -250,7 +419,7 @@
         "retained-owner-after-cleanup"
       ],
       "basis": "source/ABI core recipe with explicit Ref layout premise; backing slots from the input step-count contract; completed backing is fixed at the input step count, shares child-owned output payloads, and is reset only after all reverse child cleanup succeeds",
-      "status": "current-source core-only conditional upper model; completed-output Native identity/generation and all-phase implementation correspondence pending"
+      "status": "current typed source census; historical ten-Ref Native layout is not applicable; current Native capture/lifetime correspondence is independently required"
     },
     {
       "id": "selected-step-context",
@@ -265,7 +434,7 @@
     },
     {
       "id": "step-input-selection",
-      "objects": "new Array[ManagedProviderInput] owner/backing; each new RelationInput variant; external inputs are shared",
+      "objects": "new Array[ManagedProviderInput] owner/backing; each new RelationInput variant; pending RelationChainInputPreparation record and probe/port state; external inputs and completed-output arrays are shared",
       "phases": [
         "startup",
         "handoff",
@@ -276,12 +445,12 @@
     },
     {
       "id": "internal-edge-binding",
-      "objects": "ProducerBindingIdentity and BoundProducerInput records, consumer-step option and result wrappers; ProducerRead record and new column index array; temporary projection/metadata lookup wrappers",
+      "objects": "ProducerBindingIdentity and BoundProducerInput records, consumer-step option and result wrappers; ProducerRead record and new column index array; pending ProducerReadPreparation record, borrowed name/offset state and temporary projection/metadata lookup wrappers; the index array is transferred rather than copied",
       "phases": [
         "handoff",
         "cleanup-pending"
       ],
-      "basis": "unqualified receiving schema width, array growth and exact predecessor binding; output payload stays shared",
+      "basis": "receiving schema width, array growth and exact predecessor binding; output payload stays shared; long metadata remains owned through stop and cleanup; declared extra 512 bytes is not a proved Native bound",
       "status": "native size/lifetime bound pending"
     },
     {
@@ -327,11 +496,6 @@
   ],
   "admission": "a core-only model never discharges the entire parent premise, child bounds or total pipeline upper bound",
   "chainReferenceDeclarations": [
-    "let completed : Ref[Array[@execution.CompletedOutput?]] = Ref( Array::make(count, None), )",
-    "let children : Ref[Array[ManagedProviderExecution]] = Ref([initial])",
-    "let current : Ref[ManagedProviderExecution?] = Ref(Some(initial))",
-    "let position = Ref(0)",
-    "let pending = Ref(false)",
     "let used = Ref(0L)",
     "let cancelled = Ref(false)",
     "let terminal = Ref(false)",

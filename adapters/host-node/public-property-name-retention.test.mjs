@@ -122,6 +122,66 @@ function orderedMetadataProgram(id) {
   return value;
 }
 
+function generatedMetadataProgram(id,kind) {
+  const value=fieldProgram(id),source=value.stages[0],producer=value.stages[1];
+  const output='a'.repeat(513);
+  let operation;
+  if(kind==='json'){
+    source.steps[0].values={schema:{id:{type:'number',nullable:false},
+      [member]:{type:'object',nullable:true,fields:{leaf:{type:'number',nullable:false}}}},
+      rows:[{id:1,[member]:{leaf:7}},{id:2,[member]:null}]};
+    // The generated output precedes id and the source in canonical schema order.
+    operation={json_pick:{column:member,path:['leaf'],output},as:'generated'};
+  }else{
+    source.steps[0].values={schema:{id:{type:'number',nullable:false},
+      [member]:{type:'number',nullable:false}},
+      rows:[{id:1,[member]:100},{id:2,[member]:80},{id:3,[member]:95}]};
+    if(kind==='watermark'){
+      operation={watermark_rows:{time:member,watermark_ms:90,late_policy:'mark'},as:'generated'};
+    }else{
+      source.steps.push({assert_rows:{unique_by:['id']},as:'keyed'});
+      source.results.rows.from='keyed';
+      operation={lag:{partition_by:[],order_by:[{[member]:'desc'}],
+        field:member,output,offset:1},as:'generated'};
+    }
+  }
+  producer.steps=[operation,
+    {derive:{value:{field:kind==='watermark'?'watermark_late':output}},as:'derived'},
+    {select:['id','value'],as:'out'}];
+  return value;
+}
+
+function borrowedJsonPathProgram(id) {
+  const value=generatedMetadataProgram(id,'json');
+  const path=['part','a'.repeat(128)+'😀é','leaf'];
+  let contract={type:'number',nullable:false},payload=7;
+  for(let index=path.length-1;index>=0;index--){
+    contract={type:'object',nullable:index===0,fields:{[path[index]]:contract}};
+    payload={[path[index]]:payload};
+  }
+  const source=value.stages[0].steps[0].values;
+  source.schema[member]=contract;
+  source.rows=[{id:1,[member]:payload},{id:2,[member]:null}];
+  value.stages[1].steps[0].json_pick.path=path;
+  return value;
+}
+
+function borrowedBindingsProgram(id,ordered=false) {
+  const value=fieldProgram(id);
+  // More than eight authored occurrences use the resumable metadata lane.
+  // The first occurrence shadows the input column; relay binds that slot.
+  // New output names remain unique, as required by the common checker.
+  const bindings=[{[member]:{field:member}},{relay:{field:member}},
+    {value:{field:'relay'}}];
+  for(let index=0;index<7;index++)bindings.push({[`unused${index}`]:{literal:index}});
+  // Keep the ordered form as the independent public compilation reproducer.
+  // The existing public Plan emitter explicitly refuses OrderedBindings.
+  value.stages[1].steps[0].derive=ordered ? bindings : Object.fromEntries(
+    bindings.slice(1).map(binding=>{const [name,expression]=Object.entries(binding)[0];
+      return [name,name==='relay' || name==='value' ? {field:member} : expression];}));
+  return value;
+}
+
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
   valueContract={type:'number',nullable:true},producerTask=1){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
@@ -204,3 +264,19 @@ test('public retained wide indexed snapshots preserve rows and post-progress cus
 test('public retained ordered metadata preserves ties NULL and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'ordered-metadata',orderedMetadataProgram,
     [{id:1,value:7},{id:3,value:7},{id:2,value:null}]));
+test('public retained json metadata preserves generated roles and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'json-metadata',
+    id=>generatedMetadataProgram(id,'json'),expected));
+test('public retained watermark metadata preserves generated roles and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'watermark-metadata',
+    id=>generatedMetadataProgram(id,'watermark'),
+    [{id:1,value:false},{id:2,value:true},{id:3,value:false}],
+    {type:'boolean',nullable:false}));
+test('public retained lag metadata preserves generated roles and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'lag-metadata',
+    id=>generatedMetadataProgram(id,'lag'),
+    [{id:1,value:null},{id:2,value:95},{id:3,value:100}]));
+test('public retained borrowed JSON path preserves Unicode NULL and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'borrowed-json-path',borrowedJsonPathProgram));
+test('public retained borrowed bindings preserve map values NULL and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'borrowed-bindings',borrowedBindingsProgram));

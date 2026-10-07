@@ -33,6 +33,9 @@
         "metadata_binding",
         "metadata_offset",
         "metadata_lookup",
+        "metadata_source",
+        "metadata_generated_field",
+        "metadata_generated_seen",
         "term_column",
         "name_charge",
         "projection_ordinals",
@@ -79,7 +82,6 @@
         "unique_key",
         "unique_row",
         "unique_pair",
-        "ordered",
         "output_schema",
         "preserve_presence",
         "admitted_limits",
@@ -134,7 +136,13 @@
         "metadata_offset": "Int",
         "metadata_lookup": "RowMetadataLookup?",
         "name_charge": "RowNameCharge?",
-        "term_column": "Int?"
+        "term_column": "Int?",
+        "json_path": "@lower.PreparedJsonPick?",
+        "metadata_source": "@schema.FieldName?",
+        "metadata_generated_field": "Int",
+        "metadata_generated_seen": "Int",
+        "bindings": "@lower.PreparedBindings?",
+        "unique_keys": "@lower.PreparedUniqueKeys?"
       }
     },
     {

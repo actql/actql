@@ -57,6 +57,7 @@ fn bounded_binding_rows_source(
 fn bounded_binding_rows_receiver(
   source_owner : @lower.BoundPrepared,
   metadata_operation? : String? = None,
+  metadata_max_depth? : Int = 100,
   source_step? : Int = 0,
   following_step? : Bool = false,
   filter? : Bool = false,
@@ -165,7 +166,7 @@ fn bounded_binding_rows_receiver(
       max_text_bytes: 10000,
       max_nodes: 1000,
       max_tokens: 1000,
-      max_depth: 100,
+      max_depth: metadata_max_depth,
     },
   ).unwrap()
   @lower.bind_parameters(
