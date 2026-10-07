@@ -44,7 +44,7 @@ priv enum ComputationEvidencePhase {
 /// The existing chain validator's context hash and Result-row checks. Metadata
 /// leaf checks still use their original validators; no CID-only shortcut grants
 /// validity to a row inventory. Borrowed contracts remain with the caller.
-priv struct ComputationEvidenceCheck {
+struct ComputationEvidenceCheck {
   mut inputs : ComputationEvidenceInputs?
   max_workspace : Int
   mut prelude : ComputationEvidencePrelude?
@@ -251,7 +251,7 @@ fn ComputationEvidenceCheck::step(
 }
 
 ///|
-fn ComputationEvidenceCheck::advance(
+pub fn ComputationEvidenceCheck::advance(
   self : ComputationEvidenceCheck,
   quantum : Int,
 ) -> Result[(Bool, Int), RunEvidenceChainIssue] {
@@ -272,7 +272,7 @@ fn ComputationEvidenceCheck::advance(
 }
 
 ///|
-fn ComputationEvidenceCheck::finish(
+pub fn ComputationEvidenceCheck::finish(
   self : ComputationEvidenceCheck,
 ) -> Result[Unit, RunEvidenceChainIssue] {
   if self.closed || !(self.phase is Done) {
@@ -283,7 +283,9 @@ fn ComputationEvidenceCheck::finish(
 }
 
 ///|
-fn ComputationEvidenceCheck::cancel(self : ComputationEvidenceCheck) -> Unit {
+pub fn ComputationEvidenceCheck::cancel(
+  self : ComputationEvidenceCheck,
+) -> Unit {
   if self.closed {
     return
   }
