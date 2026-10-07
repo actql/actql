@@ -12,6 +12,7 @@ fn bounded_nest_fixture(
   output_values? : ValueLimits = run_limits().output_values,
   input_nodes? : Int = 1000,
   max_rows? : Int = 10,
+  name_bytes? : Int = 1000,
 ) -> (
   @bounded.Control,
   Result[BoundedNestExecution, BoundedNestIssue],
@@ -112,7 +113,7 @@ fn bounded_nest_fixture(
     max_work,
     100,
     max_entries,
-    1000,
+    name_bytes,
   )
   (control, execution, [left, right])
 }
@@ -527,6 +528,7 @@ test "bounded nest charges a copied raw text through recheck and output" {
 ///|
 fn nest_phase_id(phase : BoundedNestPhase) -> Int {
   match phase {
+    PrepareCompletionPort => 20
     ChargeInput => 0
     ResolveKey => 1
     ResolveOrder => 2

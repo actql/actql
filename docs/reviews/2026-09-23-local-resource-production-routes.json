@@ -4869,6 +4869,39 @@
       },
       "boundary_tests": [
         {
+          "role": "join_compound_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound join completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "join_compound_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound join completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "join_compound_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound completion preparation cancels inside every name phase"
+        },
+        {
           "role": "bounded_join_empty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5058,6 +5091,16 @@
       ],
       "environment_tests": [
         {
+          "role": "join_compound_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained join compound completion names preserve result and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
+        {
           "role": "bounded_join_chain_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": [
@@ -5233,6 +5276,39 @@
       },
       "boundary_tests": [
         {
+          "role": "nest_compound_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound nest completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "nest_compound_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound nest completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "nest_compound_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound completion preparation cancels inside every name phase"
+        },
+        {
           "role": "nest_retained_linear_task_shape",
           "suite": "moon:query_integration",
           "targets": [
@@ -5289,6 +5365,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "nest_compound_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained nest compound completion names preserve result and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
         {
           "role": "nest_retained_chain_publication",
           "suite": "node:duckdb_standard_host",
@@ -12001,6 +12087,39 @@
       },
       "boundary_tests": [
         {
+          "role": "interval_compound_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound interval completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "interval_compound_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound interval completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "interval_compound_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound completion preparation cancels inside every name phase"
+        },
+        {
           "role": "interval_join_temporal_output_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -12145,6 +12264,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "interval_compound_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained interval compound completion names preserve result and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
         {
           "role": "interval_join_long_text_retained_publication",
           "suite": "node:duckdb_standard_host",
@@ -12357,6 +12486,39 @@
       },
       "boundary_tests": [
         {
+          "role": "asof_compound_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound asof completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "asof_compound_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound asof completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "asof_compound_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound completion preparation cancels inside every name phase"
+        },
+        {
           "role": "asof_join_temporal_output_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -12513,6 +12675,16 @@
       ],
       "environment_tests": [
         {
+          "role": "asof_compound_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained asof compound completion names preserve result and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
+        {
           "role": "asof_join_long_text_retained_publication",
           "suite": "node:duckdb_standard_host",
           "targets": [
@@ -12618,6 +12790,39 @@
         "symbol": "start_bounded_sequence_match"
       },
       "boundary_tests": [
+        {
+          "role": "sequence_compound_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound sequence completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "sequence_compound_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound sequence completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "sequence_compound_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound completion preparation cancels inside every name phase"
+        },
         {
           "role": "sequence_temporal_output_exact_one_short",
           "suite": "moon:execution_relation",
@@ -12796,6 +13001,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "sequence_compound_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained sequence compound completion names preserve result and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
         {
           "role": "sequence_long_text_retained_publication",
           "suite": "node:duckdb_standard_host",

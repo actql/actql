@@ -39,6 +39,7 @@ fn bounded_interval_fixture_result(
   max_work : Int,
   max_entries? : Int = 10000,
   text_key? : Bool = false,
+  name_bytes? : Int = 10000,
 ) -> Result[
   (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]),
   BoundedIntervalJoinIssue,
@@ -146,7 +147,7 @@ fn bounded_interval_fixture_result(
       max_work,
       100,
       max_entries,
-      10000,
+      name_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

@@ -1,5 +1,6 @@
 ///|
 priv enum BoundedJoinPhase {
+  PrepareCompletionPort
   ChargeInput
   ResolveKey
   ResolveKeySource
@@ -30,7 +31,8 @@ priv struct BoundedJoinState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut names : Array[String]
   mut columns : Array[(Bool, Int)]
   mut phase : BoundedJoinPhase
@@ -95,6 +97,10 @@ fn bounded_join_failure(
 
 ///|
 fn cleanup_bounded_join_state(state : BoundedJoinState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   cleanup_binary_input_scan(state.input_scan)
   cleanup_bounded_join_pairs(state.pairs)
   if state.output_recheck is Some(cursor) {
@@ -160,6 +166,31 @@ fn bounded_join_step(
       return bounded_join_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return bounded_join_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return bounded_join_failure(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val { rows.val } else { None }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return bounded_join_failure(Completion(issue), progress, used + 1)
+            }
+            state.port_preparation = None
+            state.phase = ChargeInput
+          }
+        }
+        used += 1
+      }
       ChargeInput => {
         match advance_binary_input_scan(state.input_scan) {
           Ok(true) => state.phase = ResolveKey
@@ -447,6 +478,9 @@ fn bounded_join_step(
         used += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return bounded_join_failure(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return bounded_join_failure(InvalidExecution, progress, used)
         }
@@ -459,7 +493,7 @@ fn bounded_join_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) => bounded_join_failure(Completion(issue), progress, used)
         }
@@ -612,17 +646,13 @@ pub fn start_bounded_join(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port_with_inputs(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[
-        bounded_binding_trusted_input(left),
-        bounded_binding_trusted_input(right),
-      ],
+      Some([bounded_binding_trusted_input(left), bounded_binding_trusted_input(right)]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -649,10 +679,11 @@ pub fn start_bounded_join(
     rows,
     live,
     accepted,
-    port,
+    port: None,
+    port_preparation: Some(port_preparation),
     names: [],
     columns: [],
-    phase: ChargeInput,
+    phase: PrepareCompletionPort,
     field: 0,
     source_column: 0,
     source_name: "",

@@ -217,6 +217,49 @@ function unaryCompletionProgram(id, kind) {
   return value;
 }
 
+function compoundCompletionProgram(id, kind) {
+  const value=program(id),source=value.stages[0],producer=value.stages[1];
+  source.steps[0].values={schema:{id:{type:'number',nullable:false},
+    payload:{type:'number',nullable:true},clock:{type:'number',nullable:false},
+    start:{type:'number',nullable:false},end:{type:'number',nullable:false}},
+    rows:[{id:1,payload:7,clock:1,start:0,end:2},
+      {id:2,payload:null,clock:3,start:2,end:4}]};
+  source.results.rows.fields=['id','payload','clock','start','end'];
+  producer.inputs={l:{result:{stage:'source',result:'rows'}},
+    r:{result:{stage:'source',result:'rows'}}};
+  const select={id:'left.id',[member]:'right.payload'};
+  let operation;
+  if(kind==='join'){
+    operation={join:{with:'r',kind:'inner',on:[{left:'id',right:'id'}],select}};
+  }else if(kind==='nest'){
+    operation={nest:{with:'r',on:[{left:'id',right:'id'}],
+      into:member,fields:[{amount:'payload'}],max_items:1}};
+  }else if(kind==='interval'){
+    operation={interval_join:{with:'r',kind:'left',mode:'point_in_interval',
+      on:[{left:'id',right:'id'}],left:{time:'clock'},
+      right:{start:'start',end:'end'},select}};
+  }else if(kind==='asof'){
+    operation={asof_join:{with:'r',kind:'left',by:[{left:'id',right:'id'}],
+      left_id:'id',left_time:'clock',right_time:'clock',direction:'backward',
+      tolerance:20,right_tie_break:['id'],select}};
+  }else if(kind==='sequence'){
+    producer.inputs={l:producer.inputs.l};
+    operation={sequence:{by:[],id:'id',time:'clock',
+      pattern:[{as:'start',where:'id = 1'},{as:member,where:'id = 2'}],
+      within:10,overlap:'allow',contiguity:'subsequence'}};
+  }else{
+    throw new Error(`Unknown compound completion fixture: ${kind}`);
+  }
+  producer.steps=[{from:'l',...operation,as:'generated'}];
+  if(kind==='sequence'){
+    producer.steps.push({select:[{id:'start_id'},{value:`${member}_id`}],as:'out'});
+  }else{
+    producer.steps.push({derive:{value:{field:member}},as:'derived'},
+      {select:['id','value'],as:'out'});
+  }
+  return value;
+}
+
 const completionColumn='x'.repeat(256)+'😀';
 function completionProgram(id,kind='values',duplicates='all') {
   const schema={id:{type:'number',nullable:false},
@@ -285,7 +328,12 @@ async function verifyRetainedNames(t,label,makeProgram,rows=expected,
         },
       }}});
     const source=JSON.stringify(makeProgram(`${label}-name-success`));
-    const run=await client.aql(source,{format:'json',requestId:'property-name-success'});
+    let run;
+    try {
+      run=await client.aql(source,{format:'json',requestId:'property-name-success'});
+    } catch(error) {
+      assert.fail(`Public preparation failed: ${JSON.stringify(error.cause, null, 2)}`);
+    }
     const status=await run.wait({signal:AbortSignal.timeout(45_000)});
     assert.equal(status.status,'succeeded',JSON.stringify(status));
     assert.deepEqual(Object.keys(status.result_availability).sort(),names.toSorted());
@@ -373,6 +421,24 @@ test('public retained unpivot completion names preserve NULL and post-progress c
 test('public retained unnest completion names preserve NULL and post-progress custody',
   {timeout:90_000}, t=>verifyRetainedNames(t,'unary-unnest',
     id=>unaryCompletionProgram(id,'unnest')));
+
+for(const [kind,title] of [
+  ['join','public retained join compound completion names preserve result and post-progress custody'],
+  ['nest','public retained nest compound completion names preserve result and post-progress custody'],
+  ['interval','public retained interval compound completion names preserve result and post-progress custody'],
+  ['asof','public retained asof compound completion names preserve result and post-progress custody'],
+  ['sequence','public retained sequence compound completion names preserve result and post-progress custody'],
+]){
+  const rows=kind==='nest'?[{id:1,value:[{amount:7}]},{id:2,value:[{amount:null}]}]:
+    kind==='sequence'?[{id:1,value:2}]:expected;
+  const contract=kind==='nest'?{type:'array',nullable:false,
+    items:{type:'object',nullable:false,additional_properties:false,
+      fields:{amount:{type:'number',nullable:true}}}}:
+    {type:'number',nullable:kind!=='sequence'};
+  test(title,
+    {timeout:90_000},t=>verifyRetainedNames(t,`${kind}-compound-completion`,
+      id=>compoundCompletionProgram(id,kind),rows,contract));
+}
 
 test('public retained Values completion names preserve Unicode and preparation custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'values-completion',completionProgram,
