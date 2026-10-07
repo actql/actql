@@ -5,6 +5,7 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import test from 'node:test';
+import {graphPublicHostCases} from './fixtures/graph-host-cases.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {graphPresenceOracle, deltaApplicationScenario as deltaScenario,
   deltaRelationCompositionScenario, deltaDiffScenario} from
@@ -455,34 +456,8 @@ function deltaApplicationScenario(projection, failure) {
   return deltaScenario(presenceFixture, projection, failure);
 }
 
-// A stable executable registration for the resource evidence index. Other
-// profiles keep their existing generated names; this adds no duplicate test.
-const namedProfiles = [{mode:'local',profile:'presence-selection',
-  name: 'presence selection sort and take survives Relation Store and public Named Results through local'}];
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application','delta-relation-composition','delta-diff','graph-union','graph-subtraction']) {
-  const name = namedProfiles.find(item => item.mode === mode && item.profile === profile)?.name ?? (profile === 'graph'
-    ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
-    : profile === 'graph-union'
-      ? `Graph union preserves occurrences and sparse rows through Store reload and public ${mode}`
-    : profile === 'graph-subtraction'
-      ? `Graph subtraction preserves typed records through Store reload and public ${mode}`
-    : profile === 'delta-diff'
-      ? `Graph diff Delta survives Relation Store reload and reapplication through ${mode}`
-    : profile === 'delta-relation-composition'
-      ? `Delta Relation DISTINCT and GROUP survive Store reload through ${mode}`
-    : profile === 'delta-application'
-      ? `complete Delta application survives Graph and Relation Store reload through ${mode}`
-    : profile === 'relation-subgraph'
-      ? `external Relation-selected subgraph survives Store reload and public Named Results through ${mode}`
-    : profile === 'presence-group'
-      ? `presence group survives Relation Store and public Named Results through ${mode}`
-    : profile === 'presence-keyed-distinct'
-      ? `presence keyed distinct survives Relation Store and public Named Results through ${mode}`
-    : profile === 'presence-whole-distinct'
-      ? `presence whole-row distinct survives Relation Store and public Named Results through ${mode}`
-    : profile === 'selector-derive'
-      ? `selector property derive survives Relation Store and public Named Results through ${mode}`
-      : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`);
+// The shared registration retains scientific names and drives packed selection.
+for (const {mode,profile,name} of graphPublicHostCases) {
   test(name, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
@@ -946,7 +921,7 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       }
       return;
     }
-    if (profile !== 'graph') {
+    if (profile === 'presence-filter' || profile === 'presence-selection') {
       for (const empty of [false,true]) {
         const {document,snapshots:expectedSnapshots,expected} = presenceFilterScenario(empty, profile === 'presence-selection');
         const run = await client.aql(canonicalText(document),
@@ -969,203 +944,217 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       }
       return;
     }
-    // Both public transports must refuse before durable Run acceptance,
-    // acquisition I/O or dispatch. A checker-only verdict is not enough.
-    for (const entry of unsupported) for (const externalInput of [false,true]) {
-      const requestId = `unsupported-${entry.operation}-${mode}-${externalInput}`;
-      const rejected = structuredClone(fixture);
-      rejected.id = requestId;
-      // An unavailable external binding must not turn an unsupported
-      // consumer into a Source acquisition or obscure the typed refusal.
-      if (externalInput) rejected.stages[0].inputs = {
-        unopened:{connector:'unavailable/graph-source',resource:'never-read'},
-      };
-      rejected.stages[0].steps[3] = {
-        from:'g', [entry.operation]:true, as:'matched',
-      };
-      const before = physicalSteps.length;
-      await assert.rejects(client.aql(canonicalText(rejected),
-        {format:'json',requestId}), error =>
-        error instanceof ClientError && error.code === 'ClientProgramUnsupported');
-      assert.deepEqual(await client.lookupRequest(requestId), {kind:'not_found'});
-      assert.deepEqual(physicalSteps.slice(before), [],
-        `${entry.operation} reached Run admission, acquisition or dispatch`);
-      assert.equal(snapshots.size, 0);
-    }
-    t.diagnostic(`${unsupported.length} inventory-classified unsupported consumers refused with and without external input; no Run or physical work`);
-    const run = await client.aql(canonicalText(fixture), {format:'json',requestId:`property-match-${mode}`});
-    const state = await run.wait();
-    assert.equal(state.status,'succeeded',JSON.stringify(state));
-    const result = run.result('answer');
-    const description = await result.describe();
-    assert.deepEqual(description.columns,[{name:'key',contract:{type:'number',nullable:false}}]);
-    assert.deepEqual(await result.all(),[{key:10},{key:11}]);
-    await assertSnapshot(run);
-    assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),[{key:10},{key:11}]);
-
-    const trail = structuredClone(fixture);
-    trail.id = 'graph-trail';
-    trail.stages[0].steps.splice(3,1,
-      {from:'g',match_nodes:{definition:'N',label:'Node',bindings:{identity:'element'},where:'true',fields:['element']},as:'seeds'},
-      {from:'g',traverse:{start:{from:'seeds',id:'element'},direction:'out',min_hops:2,max_hops:2,path_mode:'trail',emit:'paths'},as:'paths'});
-    trail.stages[0].results.out = {from:'paths',fields:['start_id','end_id','hop_count','node_ids','edge_ids']};
-    const paths = await client.aql(canonicalText(trail), {format:'json',requestId:`property-trail-${mode}`});
-    const pathsState = await paths.wait();
-    assert.equal(pathsState.status,'succeeded',JSON.stringify(pathsState));
-    const rows = await paths.result('answer').all();
-    // Independent TRAIL oracle: two different self-loop keys can each be used
-    // once; the two ordered two-hop permutations survive. No order is invented.
-    const expected = [[10,11],[11,10]].map(keys => ({start_id:identity('N',1),end_id:identity('N',1),
-      hop_count:2,node_ids:[identity('N',1),identity('N',1),identity('N',1)],edge_ids:keys.map(key=>identity('E',key))}));
-    assert.deepEqual(rows.map(canonicalText).sort(),graphIdentityRowWire(expected).map(canonicalText).sort());
-    await assertSnapshot(paths);
-
-    // Definitions, not sample values or IS NOT NULL, determine row presence.
-    // Refusal precedes durable Run acceptance and every physical step.
-    for (const selector of ['select','filter','dead-filter']) {
-      const rejected = structuredClone(presenceFixture);
-      const requestId = `conditional-property-${selector}-${mode}`;
-      rejected.stages[0].steps[5] = selector === 'select'
-        ? {select:['p'],as:'projected'}
-        : {filter:selector === 'dead-filter' ? 'if(false, p > 0, true)' : 'p IS NOT NULL',as:'projected'};
-      rejected.stages[0].results.out.fields = selector === 'select' ? ['p'] : ['id'];
-      const before = physicalSteps.length;
-      await assert.rejects(client.aql(canonicalText(rejected),{format:'json',requestId}),
-        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
-      assert.deepEqual(physicalSteps.slice(before),[]);
-    }
-    for (const projection of ['node_rows','edge_rows']) {
-      const document = structuredClone(presenceFixture);
-      document.id = `property-${projection}`;
-      document.stages[0].steps[4] = {from:'g',[projection]:true,as:'rows'};
-      const projected = await client.aql(canonicalText(document),
-        {format:'json',requestId:`property-${projection}-${mode}`});
-      const projectedState = await projected.wait();
-      assert.equal(projectedState.status,'succeeded',JSON.stringify(projectedState));
-      const actual = await projected.result('answer').all();
-      const expected = projection === 'node_rows'
-        ? [{id:presenceIdentity('M',[3],['number']),labels:[]},
-          ...[1,2].map(key=>({id:nodeIdentity(key),labels:['Owner','Person']}))]
-        : [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),labels:['Link']}));
-      // node_rows/edge_rows preserve canonical Graph identity order. Compare
-      // the ordered oracle directly; sorting would hide a transport regression.
-      assert.deepEqual(actual,graphIdentityRowWire(expected));
-      assert.deepEqual((await projected.result('answer').describe()).columns.map(column=>column.name),['id','labels']);
-      // The installed route saves the Graph, revokes its source, reloads it,
-      // and feeds ordinary Relation projection before public publication.
-      await assertSnapshot(projected,3,presenceSnapshotCid,presenceSnapshot);
-      // This is Relation retention, not the preceding Graph snapshot. The
-      // exact full stream is saved, original cell access is refused, then the
-      // same completion is imported and only guaranteed columns are projected.
-      const stream = canonicalText(graphIdentityRowWire(presenceRows[projection]));
-      assert.deepEqual(relationSnapshots.get(projected.ref.runDefinitionCid),[
-        {task:4,cid:cid(graphIdentityRowWire(presenceRows[projection])),bytes:Buffer.byteLength(stream),
-          verifiedReadBytes:Buffer.byteLength(stream),rows:presenceRows[projection].length,
-          sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
-      ]);
-      assert.deepEqual(await (await client.attach(projected.ref)).result('answer').all(),graphIdentityRowWire(expected));
-    }
-    for (const projection of ['node_rows','edge_rows']) for (const [empty,alternate] of [[false,false],[true,false],[false,true]]) {
-      const {document,retained,expected,snapshot,key} = definitionScenario(projection,empty,alternate);
-      const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${alternate}-${mode}`});
+    if (profile === 'graph') {
+      // Both public transports must refuse before durable Run acceptance,
+      // acquisition I/O or dispatch. A checker-only verdict is not enough.
+      for (const entry of unsupported) for (const externalInput of [false,true]) {
+        const requestId = `unsupported-${entry.operation}-${mode}-${externalInput}`;
+        const rejected = structuredClone(fixture);
+        rejected.id = requestId;
+        // An unavailable external binding must not turn an unsupported
+        // consumer into a Source acquisition or obscure the typed refusal.
+        if (externalInput) rejected.stages[0].inputs = {
+          unopened:{connector:'unavailable/graph-source',resource:'never-read'},
+        };
+        rejected.stages[0].steps[3] = {
+          from:'g', [entry.operation]:true, as:'matched',
+        };
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(rejected),
+          {format:'json',requestId}), error =>
+          error instanceof ClientError && error.code === 'ClientProgramUnsupported');
+        assert.deepEqual(await client.lookupRequest(requestId), {kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before), [],
+          `${entry.operation} reached Run admission, acquisition or dispatch`);
+        assert.equal(snapshots.size, 0);
+      }
+      t.diagnostic(`${unsupported.length} inventory-classified unsupported consumers refused with and without external input; no Run or physical work`);
+      const run = await client.aql(canonicalText(fixture), {format:'json',requestId:`property-match-${mode}`});
       const state = await run.wait();
       assert.equal(state.status,'succeeded',JSON.stringify(state));
-      assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
-      assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
-      const columns = (await run.result('answer').describe()).columns;
-      assert.deepEqual(columns.map(column=>column.name),['id',key,'value']);
-      assert.deepEqual(columns[2].contract,projection==='node_rows' && !alternate ? {type:'number',nullable:true} : number);
-      await assertSnapshot(run,3,'sha256:'+createHash('sha256').update(snapshot).digest('hex'),snapshot);
-      const stream = canonicalText(graphIdentityRowWire(retained));
-      assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),[
-        {task:4,cid:cid(graphIdentityRowWire(retained)),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
-          rows:retained.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
-      ]);
+      const result = run.result('answer');
+      const description = await result.describe();
+      assert.deepEqual(description.columns,[{name:'key',contract:{type:'number',nullable:false}}]);
+      assert.deepEqual(await result.all(),[{key:10},{key:11}]);
+      await assertSnapshot(run);
+      assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),[{key:10},{key:11}]);
+
+      const trail = structuredClone(fixture);
+      trail.id = 'graph-trail';
+      trail.stages[0].steps.splice(3,1,
+        {from:'g',match_nodes:{definition:'N',label:'Node',bindings:{identity:'element'},where:'true',fields:['element']},as:'seeds'},
+        {from:'g',traverse:{start:{from:'seeds',id:'element'},direction:'out',min_hops:2,max_hops:2,path_mode:'trail',emit:'paths'},as:'paths'});
+      trail.stages[0].results.out = {from:'paths',fields:['start_id','end_id','hop_count','node_ids','edge_ids']};
+      const paths = await client.aql(canonicalText(trail), {format:'json',requestId:`property-trail-${mode}`});
+      const pathsState = await paths.wait();
+      assert.equal(pathsState.status,'succeeded',JSON.stringify(pathsState));
+      const rows = await paths.result('answer').all();
+      // Independent TRAIL oracle: two different self-loop keys can each be used
+      // once; the two ordered two-hop permutations survive. No order is invented.
+      const expected = [[10,11],[11,10]].map(keys => ({start_id:identity('N',1),end_id:identity('N',1),
+        hop_count:2,node_ids:[identity('N',1),identity('N',1),identity('N',1)],edge_ids:keys.map(key=>identity('E',key))}));
+      assert.deepEqual(rows.map(canonicalText).sort(),graphIdentityRowWire(expected).map(canonicalText).sort());
+      await assertSnapshot(paths);
+      return;
     }
-    for (const body of [{definition:'Unknown'},{definition:'E'},{definition:'N',label:'Person'},{}]) {
-      const {document} = definitionScenario('node_rows',false);
-      document.stages[0].steps[4].node_rows = body;
-      const requestId = `invalid-definition-${JSON.stringify(body)}-${mode}`;
-      const before = physicalSteps.length;
-      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
-        error=>error instanceof ClientError && error.code==='ClientProgramRejected');
-      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
-      assert.deepEqual(physicalSteps.slice(before),[]);
+    if (profile === 'graph-projections') {
+      // Definitions, not sample values or IS NOT NULL, determine row presence.
+      // Refusal precedes durable Run acceptance and every physical step.
+      for (const selector of ['select','filter','dead-filter']) {
+        const rejected = structuredClone(presenceFixture);
+        const requestId = `conditional-property-${selector}-${mode}`;
+        rejected.stages[0].steps[5] = selector === 'select'
+          ? {select:['p'],as:'projected'}
+          : {filter:selector === 'dead-filter' ? 'if(false, p > 0, true)' : 'p IS NOT NULL',as:'projected'};
+        rejected.stages[0].results.out.fields = selector === 'select' ? ['p'] : ['id'];
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(rejected),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      for (const projection of ['node_rows','edge_rows']) {
+        const document = structuredClone(presenceFixture);
+        document.id = `property-${projection}`;
+        document.stages[0].steps[4] = {from:'g',[projection]:true,as:'rows'};
+        const projected = await client.aql(canonicalText(document),
+          {format:'json',requestId:`property-${projection}-${mode}`});
+        const projectedState = await projected.wait();
+        assert.equal(projectedState.status,'succeeded',JSON.stringify(projectedState));
+        const actual = await projected.result('answer').all();
+        const expected = projection === 'node_rows'
+          ? [{id:presenceIdentity('M',[3],['number']),labels:[]},
+            ...[1,2].map(key=>({id:nodeIdentity(key),labels:['Owner','Person']}))]
+          : [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),labels:['Link']}));
+        // node_rows/edge_rows preserve canonical Graph identity order. Compare
+        // the ordered oracle directly; sorting would hide a transport regression.
+        assert.deepEqual(actual,graphIdentityRowWire(expected));
+        assert.deepEqual((await projected.result('answer').describe()).columns.map(column=>column.name),['id','labels']);
+        // The installed route saves the Graph, revokes its source, reloads it,
+        // and feeds ordinary Relation projection before public publication.
+        await assertSnapshot(projected,3,presenceSnapshotCid,presenceSnapshot);
+        // This is Relation retention, not the preceding Graph snapshot. The
+        // exact full stream is saved, original cell access is refused, then the
+        // same completion is imported and only guaranteed columns are projected.
+        const stream = canonicalText(graphIdentityRowWire(presenceRows[projection]));
+        assert.deepEqual(relationSnapshots.get(projected.ref.runDefinitionCid),[
+          {task:4,cid:cid(graphIdentityRowWire(presenceRows[projection])),bytes:Buffer.byteLength(stream),
+            verifiedReadBytes:Buffer.byteLength(stream),rows:presenceRows[projection].length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
+        ]);
+        assert.deepEqual(await (await client.attach(projected.ref)).result('answer').all(),graphIdentityRowWire(expected));
+      }
+      return;
     }
-    for (const projection of ['node_rows','edge_rows']) for (const empty of [false,true]) {
-      const {document,retained,snapshot,expected} = labelScenario(projection,empty);
-      const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
-      const state = await run.wait();
-      assert.equal(state.status,'succeeded',JSON.stringify(state));
-      assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
-      assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
-      const columns = (await run.result('answer').describe()).columns;
-      assert.deepEqual(columns.map(column=>column.name),['id','value']);
-      assert.deepEqual(columns[1].contract,projection==='node_rows' ? {type:'number',nullable:true} : number);
-      await assertSnapshot(run,3,'sha256:'+createHash('sha256').update(snapshot).digest('hex'),snapshot);
-      const stream = canonicalText(graphIdentityRowWire(retained));
-      assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),[
-        {task:4,cid:cid(graphIdentityRowWire(retained)),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
-          rows:retained.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
-      ]);
-    }
-    for (const projection of ['node_rows','edge_rows']) {
-      const invalid = [{label:'Unknown'},
-        {label:projection==='node_rows' ? 'Link' : 'Person'},
-        {label:'Person',definition:'N'}, {label:'Person',extra:true}, {label:7}];
-      for (const body of invalid) {
-        const {document} = labelScenario(projection,false);
-        document.stages[0].steps[4][projection] = body;
-        const requestId = `invalid-label-${projection}-${JSON.stringify(body)}-${mode}`;
+    if (profile === 'graph-definitions') {
+      for (const projection of ['node_rows','edge_rows']) for (const [empty,alternate] of [[false,false],[true,false],[false,true]]) {
+        const {document,retained,expected,snapshot,key} = definitionScenario(projection,empty,alternate);
+        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${alternate}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
+        const columns = (await run.result('answer').describe()).columns;
+        assert.deepEqual(columns.map(column=>column.name),['id',key,'value']);
+        assert.deepEqual(columns[2].contract,projection==='node_rows' && !alternate ? {type:'number',nullable:true} : number);
+        await assertSnapshot(run,3,'sha256:'+createHash('sha256').update(snapshot).digest('hex'),snapshot);
+        const stream = canonicalText(graphIdentityRowWire(retained));
+        assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),[
+          {task:4,cid:cid(graphIdentityRowWire(retained)),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
+            rows:retained.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
+        ]);
+      }
+      for (const body of [{definition:'Unknown'},{definition:'E'},{definition:'N',label:'Person'},{}]) {
+        const {document} = definitionScenario('node_rows',false);
+        document.stages[0].steps[4].node_rows = body;
+        const requestId = `invalid-definition-${JSON.stringify(body)}-${mode}`;
         const before = physicalSteps.length;
         await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code==='ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
-      // Actual non-NULL sample data cannot prove Conditional presence. Both
-      // populated and empty selection must reject before Run/I/O/dispatch.
-      for (const empty of [false,true]) for (const reference of ['projection','predicate']) {
-        const {document} = labelScenario(projection,empty);
-        const field = projection==='node_rows' ? 'q' : 'score';
-        document.stages[0].steps[5] = reference==='projection'
-          ? {select:['id',field],as:'guaranteed'}
-          : {filter:`${field} IS NOT NULL`,as:'guaranteed'};
-        const requestId = `conditional-label-${projection}-${empty}-${reference}-${mode}`;
+      for (const collision of ['id','person_key']) {
+        const {document} = definitionScenario('node_rows',false);
+        for (const label of document.stages[0].steps[3].graph.nodes[0].labels)
+          label.properties.columns[0].to = collision;
+        const requestId = `selected-collision-${collision}-${mode}`;
         const before = physicalSteps.length;
         await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code==='ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
+      const minimal = await client.aql(canonicalText(definitionFixture),
+        {format:'json',requestId:`minimal-definition-${mode}`});
+      const minimalState = await minimal.wait();
+      assert.equal(minimalState.status,'succeeded',JSON.stringify(minimalState));
+      assert.deepEqual(await minimal.result('answer').all(),[{value:7},{value:null}]);
+      assert.deepEqual((await minimal.result('answer').describe()).columns,
+        [{name:'value',contract:{type:'number',nullable:true}}]);
+      return;
     }
-    for (const collision of ['id','person_key']) {
-      const {document} = definitionScenario('node_rows',false);
-      for (const label of document.stages[0].steps[3].graph.nodes[0].labels)
-        label.properties.columns[0].to = collision;
-      const requestId = `selected-collision-${collision}-${mode}`;
-      const before = physicalSteps.length;
-      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
-        error=>error instanceof ClientError && error.code==='ClientProgramRejected');
-      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
-      assert.deepEqual(physicalSteps.slice(before),[]);
+    if (profile === 'graph-labels') {
+      for (const projection of ['node_rows','edge_rows']) for (const empty of [false,true]) {
+        const {document,retained,snapshot,expected} = labelScenario(projection,empty);
+        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
+        const columns = (await run.result('answer').describe()).columns;
+        assert.deepEqual(columns.map(column=>column.name),['id','value']);
+        assert.deepEqual(columns[1].contract,projection==='node_rows' ? {type:'number',nullable:true} : number);
+        await assertSnapshot(run,3,'sha256:'+createHash('sha256').update(snapshot).digest('hex'),snapshot);
+        const stream = canonicalText(graphIdentityRowWire(retained));
+        assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),[
+          {task:4,cid:cid(graphIdentityRowWire(retained)),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
+            rows:retained.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
+        ]);
+      }
+      for (const projection of ['node_rows','edge_rows']) {
+        const invalid = [{label:'Unknown'},
+          {label:projection==='node_rows' ? 'Link' : 'Person'},
+          {label:'Person',definition:'N'}, {label:'Person',extra:true}, {label:7}];
+        for (const body of invalid) {
+          const {document} = labelScenario(projection,false);
+          document.stages[0].steps[4][projection] = body;
+          const requestId = `invalid-label-${projection}-${JSON.stringify(body)}-${mode}`;
+          const before = physicalSteps.length;
+          await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+            error=>error instanceof ClientError && error.code==='ClientProgramRejected');
+          assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+          assert.deepEqual(physicalSteps.slice(before),[]);
+        }
+        // Actual non-NULL sample data cannot prove Conditional presence. Both
+        // populated and empty selection must reject before Run/I/O/dispatch.
+        for (const empty of [false,true]) for (const reference of ['projection','predicate']) {
+          const {document} = labelScenario(projection,empty);
+          const field = projection==='node_rows' ? 'q' : 'score';
+          document.stages[0].steps[5] = reference==='projection'
+            ? {select:['id',field],as:'guaranteed'}
+            : {filter:`${field} IS NOT NULL`,as:'guaranteed'};
+          const requestId = `conditional-label-${projection}-${empty}-${reference}-${mode}`;
+          const before = physicalSteps.length;
+          await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+            error=>error instanceof ClientError && error.code==='ClientProgramRejected');
+          assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+          assert.deepEqual(physicalSteps.slice(before),[]);
+        }
+      }
+      const labelMinimal = await client.aql(canonicalText(labelFixture),
+        {format:'json',requestId:`minimal-label-${mode}`});
+      const labelMinimalState = await labelMinimal.wait();
+      assert.equal(labelMinimalState.status,'succeeded',JSON.stringify(labelMinimalState));
+      assert.deepEqual(await labelMinimal.result('answer').all(),[{value:9},{value:7},{value:null}]);
+      assert.deepEqual((await labelMinimal.result('answer').describe()).columns,
+        [{name:'value',contract:{type:'number',nullable:true}}]);
+      return;
     }
-    const minimal = await client.aql(canonicalText(definitionFixture),
-      {format:'json',requestId:`minimal-definition-${mode}`});
-    const minimalState = await minimal.wait();
-    assert.equal(minimalState.status,'succeeded',JSON.stringify(minimalState));
-    assert.deepEqual(await minimal.result('answer').all(),[{value:7},{value:null}]);
-    assert.deepEqual((await minimal.result('answer').describe()).columns,
-      [{name:'value',contract:{type:'number',nullable:true}}]);
-    const labelMinimal = await client.aql(canonicalText(labelFixture),
-      {format:'json',requestId:`minimal-label-${mode}`});
-    const labelMinimalState = await labelMinimal.wait();
-    assert.equal(labelMinimalState.status,'succeeded',JSON.stringify(labelMinimalState));
-    assert.deepEqual(await labelMinimal.result('answer').all(),[{value:9},{value:7},{value:null}]);
-    assert.deepEqual((await labelMinimal.result('answer').describe()).columns,
-      [{name:'value',contract:{type:'number',nullable:true}}]);
+    assert.ok(['graph-traversal-modes','graph-traversal-selectors'].includes(profile));
     for (const [index,scenario] of traversalFixture.cases.entries()) {
+      const selector = scenario.conditions !== undefined || scenario.hops !== undefined || scenario.relation_start === true;
+      if (selector !== (profile === 'graph-traversal-selectors')) continue;
       const document = structuredClone(traversalProgram);
       document.id = `property-traverse-nodes-${index}`;
       const start = scenario.relation_start ? {from:'seeds',id:'element'}
