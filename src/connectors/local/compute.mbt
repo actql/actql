@@ -255,31 +255,35 @@ pub fn local_managed_sequence_supported(
       @lower.TimeSeriesStep(_) => false
       @lower.WindowStep(_) => true
       @lower.RowStep(kernel) =>
-        match @lower.kernel_body(kernel) {
-          SnapshotMap(_)
-          | OrderedBindings(_)
-          | Filter(_)
-          | AssertAll(_)
-          | AssertUnique(_)
-          | JsonPick(_, _, _)
-          | Select(_)
-          | Limit(_, _, _)
-          | TopK(_, _)
-          | PartitionedTopK(_, _)
-          | Unnest(_, _, _, _, _)
-          | Unpivot(_, _, _, _)
-          | StableSort(_)
-          | Lag(_, _)
-          | Watermark(_, _, _, _)
-          | DistinctRows
-          | DedupeRows
-          | CountGroups(_) => true
-          Groups(group) =>
-            @execution.group_execution_supported_with_numeric(group)
-          AnalyticRows(analytic) =>
-            @execution.analytic_execution_supported_with_numeric(analytic)
-          Pivot(pivot) =>
-            @execution.pivot_execution_supported_with_numeric(pivot)
+        if @lower.kernel_json_pick(kernel) is Some(_) {
+          true
+        } else {
+          match @lower.kernel_body(kernel) {
+            SnapshotMap(_)
+            | OrderedBindings(_)
+            | Filter(_)
+            | AssertAll(_)
+            | AssertUnique(_)
+            | JsonPick(_, _, _)
+            | Select(_)
+            | Limit(_, _, _)
+            | TopK(_, _)
+            | PartitionedTopK(_, _)
+            | Unnest(_, _, _, _, _)
+            | Unpivot(_, _, _, _)
+            | StableSort(_)
+            | Lag(_, _)
+            | Watermark(_, _, _, _)
+            | DistinctRows
+            | DedupeRows
+            | CountGroups(_) => true
+            Groups(group) =>
+              @execution.group_execution_supported_with_numeric(group)
+            AnalyticRows(analytic) =>
+              @execution.analytic_execution_supported_with_numeric(analytic)
+            Pivot(pivot) =>
+              @execution.pivot_execution_supported_with_numeric(pivot)
+          }
         }
       @lower.AppendStep(_) => true
       @lower.SetStep(_) => true
