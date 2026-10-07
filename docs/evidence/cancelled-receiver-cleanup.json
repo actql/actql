@@ -35,6 +35,15 @@
     "generated": true,
     "receipt": "preconsumer-cleanup-callers-W3dr53"
   },
+  "normalNativeExecutablePreparation": {
+    "source": "016f79fa7bdbaa5e8402616ff79bc5ae596e7e0a",
+    "sourceClean": true,
+    "command": "moon build --target native --strip src/cmd/native_remote_resident_site",
+    "preparationLimitSeconds": 180,
+    "failure": "ETIMEDOUT",
+    "receipt": "preconsumer-cleanup-runtime-1dhh1y",
+    "acceptanceExecuted": false
+  },
   "originalRun": {
     "definitionCid": "sha256:dd7ce10f045dc03dfb9132360a165bf46d5ea97f71031e3280e31ff18b77bcc6",
     "receiverAllocationsBeforeFix": 3,

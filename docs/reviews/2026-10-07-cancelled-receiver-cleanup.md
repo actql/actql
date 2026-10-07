@@ -48,7 +48,9 @@ Cloud's durable acceptance or the original Run's formal cancellation terminal.
 See [the evidence record](../evidence/cancelled-receiver-cleanup.json) for exact
 executed and unexecuted scopes. The final Native test build exceeded its bounded
 preparation deadline; the previous executable was not reused. Caller compilation
-and portable Owner tests passed. The original Run's journals, original issued
+and portable Owner tests passed. A clean-source normal Native executable build
+also exceeded its 180-second preparation bound; no recovery was executed with it.
+The original Run's journals, original issued
 bytes and three sealed receiver allocations remain preserved.
 
 After reviewed main adoption, run this exact recovery through existing Owners,
