@@ -1966,7 +1966,7 @@ for (const kind of ['proxy', 'date']) {
       return received;
     }});
     const outcome = await client.check('SELECT', {format: 'sql'});
-    assert.equal(outcome.kind, 'completed');
+    assert.equal(outcome.outcome, 'completed');
     assert.equal(outcome.report.verdict, 'invalid');
     assert.equal(Object.getPrototypeOf(outcome), Object.prototype);
     assert.equal(getCheckInput(outcome, 'source').text, 'SELECT');
