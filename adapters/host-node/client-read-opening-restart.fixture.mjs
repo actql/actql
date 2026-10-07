@@ -24,7 +24,7 @@ try {
     readAttempt = await result.deliveryAttempt(reader.attemptId);
     if (reader.state() !== 'complete') throw new Error('RestoredReadIncomplete');
   }
-  await writeFile(output, JSON.stringify({ref: run.ref, status: status.status,
+  await writeFile(output, JSON.stringify({pid: process.pid, ref: run.ref, status: status.status,
     first, second, request, lookupCounts, rows, readAttempt,
     valuesHostPolicyOriginal: retained?.valuesHostPolicyOriginal,
     counts: fixture.counts}));
