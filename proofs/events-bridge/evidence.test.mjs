@@ -36,7 +36,7 @@ function fixture() {
   const base = {exit: 0, passed: true, sourceDigest: current.digest, count: 1, target: 'js', artifacts: {[path]: 'a'.repeat(64)}};
   const report = {target: 'js', source: current, claims: graph([], 'js'),
     bridge: {source: proofSource, claim: bridgeClaim('js')}, runs: {
-      lean: {...base, target: 'model', artifacts: {}, command: ['node', 'proofs/bounded-session/check.mjs']},
+      lean: {...base, target: 'model', count: 14, artifacts: {}, command: ['node', 'proofs/bounded-session/check.mjs']},
       'session-js': {...base, command: ['moon', 'test', 'src/bounded_execution', '--target', 'js', '--deny-warn']},
       'adapter-js': {...base, command: ['moon', 'test', 'src/connectors/local', '--target', 'js', '--deny-warn']},
       'events-model': {...base, target: 'model', artifacts: {}, count: 16,
@@ -86,4 +86,15 @@ for (const [name, change] of [
   const before = JSON.stringify(f.report);
   assert.throws(() => validateBridgeEvidence(f.report, f.current, f.proofSource, 'js'));
   assert.equal(JSON.stringify(f.report), before);
+});
+
+for (const [label, change] of [
+  ['zero common laws', run => { run.count = 0; }],
+  ['partial common laws', run => { run.count = 13; }],
+  ['runtime common target', run => { run.target = 'js'; }],
+  ['other common executor', run => { run.command[0] = 'python'; }],
+]) test(`Events cannot inherit ${label} through its valid bridge model`, () => {
+  const {report, current, proofSource} = fixture();
+  change(report.runs.lean);
+  assert.throws(() => validateBridgeEvidence(report, current, proofSource, 'js'), /Wrong proof artifact/);
 });
