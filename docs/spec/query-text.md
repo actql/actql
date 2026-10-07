@@ -838,8 +838,13 @@ retain the same scope and bounds in each direction. An any-direction pattern
 uses the existing logical `traverse` direction `both`; it does not construct
 reverse edges or change definition-scoped edge identities. Exact duplicate
 paths follow the common traversal contract, including a single self-loop
-occurrence rather than two synthetic directional edges. Abbreviated edge
-patterns remain outside the currently implemented text profile.
+occurrence rather than two synthetic directional edges. Abbreviated `->`,
+`<-`, and `-` have the same meaning as the corresponding full empty edges,
+with no variable, label, or local constraint. They use the same finite bounds
+and path modes. Use a full edge when a filler is needed. `--` remains a SQL
+line-comment introducer, not an alternative any-direction edge spelling.
+This selected spelling follows the [GoogleSQL element-pattern reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/graph-patterns#element_pattern)
+(consulted 2026-10-07); it adds no new Graph execution contract.
 
 A fixed path retains each authored node and edge occurrence. Its
 local predicates are evaluated at their demanded prefix: the starting node

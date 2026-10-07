@@ -89,3 +89,13 @@ Managed publication buffers, actual snapshot-reload cancellation acceptance,
 availability/Carrier walks, other scratch and Native physical-byte correspondence
 remain separate boundaries. This PR does not claim all obsolete API removal or
 completion of the full retained Local goal.
+
+## Subsequent main integration
+
+Main `ae1f273bc1174e50598d86ab932daa0bc28c5f4d` was normally merged after the
+published Draft became unmergeable against newer main. The actual merge had no
+content conflicts. Current Graph syntax, Table/Values identity fixture changes,
+Native release observation and pipeline CI configuration were preserved.
+The Local materializing and Node cleanup implementation had no incoming overlap.
+This integration is not a new runtime or public-Host execution receipt; the
+existing preparation evidence remains tied to its original source.
