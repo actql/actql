@@ -73,9 +73,15 @@ updates the grammar manifest and MoonBit pins. The new grammar manifest is
 `sha256:e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3`.
 An independently assembled canonical Values Run preimage gives
 `sha256:21982c4ae013552cb120f9e32e35c672b6c23092e8fa47323d4fabbe5ca00033`.
-The ordinary Values Unit, proof, ResultPlan and Program bodies remain unchanged.
-Historical full-edge grammar and Run vectors remain frozen with their original
-pins; saved Runs are not relabeled.
+At that predecessor, ordinary Values Unit, proof, ResultPlan and Program
+bodies were unchanged. Adopting Table-private Source declarations changes the
+registered SourceRules body, including the closure of an ordinary Values Unit.
+The existing catalog generator now derives that current pin. Independent
+preimages give current Unit `sha256:54f5a2da3c5f2439a13630dec8a8098ef550d9befcca8ac298ac22aac3cecd8f`,
+ResultPlan `sha256:6286d2d4d7603a61da71d464c0043b98647e94b1997ae9b1dc94bda51fa34a3a`
+and Run `sha256:d16ec26dbce7f1c96129d0810e11e437583e31560e3ad7b3e5bf681b0599107a`.
+Historical full-edge and abbreviated-edge grammar/Run vectors retain their
+original dependency closures and pins; saved Runs are not relabeled.
 
 Distribution acceptance must use normal prepack of five packages at a clean
 fixed HEAD and record their SHA-256 manifest. Public Local and HTTPS results,
