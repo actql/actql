@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "client-read-opening-packed-registration",
+  "kind": "change",
+  "revision": "64472762414048218995f0919f304ca7717828ec",
+  "parents": [
+    "402dbea306885dffd3106c571ceddf95f136c1f2"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "402dbea306885dffd3106c571ceddf95f136c1f2",
+          "digest": "583ee703aa9f465a08aa96050a8c16f9a34d5d9b77856c7e687deccb36bb7942",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "cdcb8eff328dcafce098146cb7b5e76443b00135cd7c4e1ce6e5f81f7a1bb165",
+      "afterMode": "100644",
+      "reason": "Run the same original-attempt Local and TLS HTTPS opening-loss acceptance from exact Client tarballs in the existing distribution job. Reuse the shared artifact and nonzero-execution guard, preserving all prior checks, resource limits and immutable declarations."
+    }
+  ]
+}
