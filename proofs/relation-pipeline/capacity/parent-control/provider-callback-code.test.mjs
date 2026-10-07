@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {inspectScalarCode, scalarSites} from './provider-callback-code.mjs';
+import {inspectScalarCode, scalarSites, providerSymbolText} from './provider-callback-code.mjs';
 // Independent tiny ARM64 object/link pair. Addresses deliberately differ;
 // allocation offsets and callback identity must survive linking and ASLR.
 const object = `0000000000000100 <factory>:
@@ -69,4 +69,11 @@ test('a matching object with a different executed allocation is rejected',()=>{
 test('relocation attached to another instruction and duplicate symbols are rejected',()=>{
   assert.throws(()=>scalarSites(object.replace('104: ARM64','108: ARM64')),/Detached/);
   assert.throws(()=>check(facts(),object,linked,symbols+'3020 T callback\n'),/Duplicate Native symbol/);
+});
+
+test('unrelated C translation-unit symbols do not become provider identity collisions',()=>{
+  const selected=providerSymbolText('1000 t unrelated\n1100 t unrelated\n2000 T _moonbit_malloc\n3000 T _actql_proof_provider_construction\n4000 t __M0connectors5local_callback\n');
+  assert(!selected.includes('unrelated'));
+  assert(selected.includes('_moonbit_malloc'));
+  assert(selected.includes('__M0connectors5local_callback'));
 });

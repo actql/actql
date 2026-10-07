@@ -115,8 +115,14 @@ export function inspectScalarCode(facts, symbolText, disassembly, linkedDisassem
     scalarPayloadBytesMeasured:false,scalarAllocationRequestsEstablished:true,
     completeConstructorLifetimeUpper:false,completeParentUpper:false,completePipelineUpper:false};
 }
+export function providerSymbolText(text) {
+  return text.split('\n').filter(line=>/\s(?:_actql_proof_provider_construction|_moonbit_malloc)$/.test(line) ||
+    /\s\S*connectors5local\S*$/.test(line)).join('\n')+'\n';
+}
 function generatedCode(root, object, exe, providerNames) {
-  const names=codeSymbols(run(nm,['-n',exe]));
+  // Different C translation units legitimately have identically named local
+  // functions. They are outside this provider/code-anchor correspondence.
+  const names=codeSymbols(providerSymbolText(run(nm,['-n',exe])));
   const constructors=[...names.keys()].filter(name=>providerNames.some(p=>name.endsWith(`${p.replaceAll('_','__')}`)) ||
     /(?:managed__provider(?:__with__inputs|__with__numeric)?|selected__relation__provider_2einner)$/.test(name));
   assert(constructors.length>=providerNames.length,'Missing generated provider constructors');
@@ -157,12 +163,16 @@ export function auditScalarCode(report, facts, root, read, providerNames) {
     return {status:'unresolved',completeConstructorLifetimeUpper:false};
   }
   assert.equal(proof.status,'established'); assert.equal(proof.platform,report.runtime.platform); assert.equal(proof.platform,'darwin-arm64');
+  assert.match(proof.objectDigest,/^[0-9a-f]{64}$/);
+  assert.equal(proof.archive,`.artifacts/relation-pipeline/current-chain-native/code/${proof.objectDigest}.o`);
   assert.equal(hash(read(proof.archive)),proof.objectDigest,'Generated provider object changed');
   const exe=report.archives[exePath]; assert(exe,'Missing executed Native executable');
   assert.deepEqual(proof.tools,{nm:hash(readFileSync(nm)),objdump:hash(readFileSync(objdump))},'Code inspection tool changed');
   const regenerated=generatedCode(root,join(root,proof.archive),join(root,exe),providerNames);
   assert.deepEqual(proof.constructors,regenerated.constructors,'Changed generated constructor selection');
   for(const key of ['symbols','disassembly','linkedDisassembly']) {
+    assert.match(proof.logs[key].digest,/^[0-9a-f]{64}$/);
+    assert.equal(proof.logs[key].path,`.artifacts/relation-pipeline/current-chain-native/code/${proof.logs[key].digest}.${key}`);
     const text=read(proof.logs[key].path).toString(); assert.equal(hash(text),proof.logs[key].digest);
     assert.equal(text,regenerated[key],'Code observations do not match archived Native bytes');
   }
