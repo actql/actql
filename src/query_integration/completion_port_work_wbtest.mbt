@@ -3,7 +3,10 @@
 /// The owner scans the ID twice, compares it once, then scans each name.
 /// Three ID phase boundaries, one end per name and final completion are work.
 /// This is not a general Unicode formula or a reading of execution counters.
-fn expected_ascii_completion_port_work(id : String, names : Array[String]) -> Int {
+fn expected_ascii_completion_port_work(
+  id : String,
+  names : Array[String],
+) -> Int {
   let mut characters = 0
   for name in names {
     characters += name.length()
@@ -34,25 +37,39 @@ fn assert_source_free_child_work(
       defaults.candidate_work,
       1,
     ).unwrap()
-    let provider = @local_connector.local_module_managed_provider(installed, selected).unwrap()
+    let provider = @local_connector.local_module_managed_provider(
+      installed, selected,
+    ).unwrap()
     let inputs = match previous {
       None => []
-      Some(output) => [@local_connector.managed_provider_relation_input(
-        @execution.prepare_producer_read(
-          owner,
-          @execution.bind_completed_operation_input(owner, step, 0, owner, output).unwrap(),
-          10000,
-          10000,
-        ).unwrap(),
-      )]
+      Some(output) =>
+        [
+          @local_connector.managed_provider_relation_input(
+            @execution.prepare_producer_read(
+              owner,
+              @execution.bind_completed_operation_input(
+                owner, step, 0, owner, output,
+              ).unwrap(),
+              10000,
+              10000,
+            ).unwrap(),
+          ),
+        ]
     }
     let active = @local_connector.start_managed_provider_with_inputs_and_execution(
-      provider, selected, inputs, 100, 10000, defaults.local_execution,
+      provider,
+      selected,
+      inputs,
+      100,
+      10000,
+      defaults.local_execution,
     ).unwrap()
     let mut completed : @execution.CompletedOutput? = None
     let mut charged = 0L
     for _ in 0..<(work + 2) {
-      if completed is Some(_) { break }
+      if completed is Some(_) {
+        break
+      }
       match @local_connector.advance_managed_provider(active, 1).unwrap() {
         @local_connector.Continue(work~, ..) => charged += work
         @local_connector.Complete(output, work~, ..) => {
@@ -62,7 +79,11 @@ fn assert_source_free_child_work(
         _ => fail("selected child did not complete")
       }
     }
-    assert_eq(charged, work.to_int64(), msg="selected child " + position.to_string())
+    assert_eq(
+      charged,
+      work.to_int64(),
+      msg="selected child " + position.to_string(),
+    )
     assert_true(completed is Some(_))
     assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
     previous = completed
