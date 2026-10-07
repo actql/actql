@@ -116,7 +116,10 @@ export function inspectScalarCode(facts, symbolText, disassembly, linkedDisassem
       const site=sites.get(matches[0]); callbacks.push({identity:c.identity,...site}); bytes+=site.requestedBytes;
     }
     maximum=Math.max(maximum,f.indexedBytes+bytes);
-    observations.push({scalarRequestedBytes:bytes,indexedRequestedBytes:f.indexedBytes,pointRequestedBytes:f.indexedBytes+bytes,callbacks});
+    // The consumer composing this result with the indexed census must match
+    // the same raw observation, not merely an equal callback count or maximum.
+    observations.push({observationDigest:hash(JSON.stringify(f)),scalarRequestedBytes:bytes,
+      indexedRequestedBytes:f.indexedBytes,pointRequestedBytes:f.indexedBytes+bytes,callbacks});
   }
   assert(observations.length>0,'Missing provider observations');
   return {scope:`dynamic scalar callbacks reachable at the eleven-candidate construction observation on ${platform}`,observations,maxPointRequestedBytes:maximum,

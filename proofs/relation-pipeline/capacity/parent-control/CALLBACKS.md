@@ -65,6 +65,22 @@ scheduling, not the verification scope or reuse qualification.
 
 ## Scope and remaining obligations
 
+The final current-chain consumer composes the indexed census and audited scalar
+sites per observation. The code result carries the digest of the complete raw
+constructor observation; observation order, callback allocation identities,
+indexed/scalar subtotals and the recomputed combined maximum must match. Equal
+counts or equal maxima cannot substitute a different point. The original
+source-derived recipe remains conditional and cannot supply the missing compiled
+evidence by itself. Unsupported code correspondence retains the indexed-only
+result, with no established combined point.
+
+`providerConstruction.points` records this finite combined requested-byte union
+separately from the structural envelope and `maxObservedIndexedBytes`.
+`pointRequestedBytesEstablished` does not assert measured scalar payloads,
+transient construction allocations, a constructor lifetime bound or allocator
+footprint. The existing actual-code audit remains mandatory before composition;
+the composition helper does not authenticate a caller-supplied code result.
+
 The new result is a finite point-in-time **requested allocation extent** for the
 observed candidate identity union. It is separate from GC descriptor measurements,
 the structural 44-callback bound and the conditional 2344-byte construction

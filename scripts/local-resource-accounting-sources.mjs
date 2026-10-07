@@ -28,6 +28,16 @@ const fixedSources = [
   'src/program_check/check.mbt',
   'src/managed_record_storage/append_steps.mbt',
   'src/managed_record_runtime/output.mbt',
+  'src/execution_relation/bounded_group.mbt',
+  'src/execution_relation/bounded_global_count.mbt',
+  'src/execution_relation/bounded_row_window.mbt',
+  'src/execution_relation/bounded_unpivot.mbt',
+  'src/execution_relation/bounded_unnest.mbt',
+  'src/execution_relation/bounded_join.mbt',
+  'src/execution_relation/bounded_nest.mbt',
+  'src/execution_relation/bounded_interval_join.mbt',
+  'src/execution_relation/bounded_asof_join.mbt',
+  'src/execution_relation/bounded_sequence_match.mbt',
 ];
 
 // Capture input paths, including mutated foreign entrypoints/evidence. Reuse

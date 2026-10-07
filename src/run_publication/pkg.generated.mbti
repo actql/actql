@@ -552,7 +552,11 @@ pub fn record_result_access_resolution(ResultAccessProgress, Bool) -> Result[Uni
 
 pub fn recorded_run_publication_current(RecordedRunPublication, String) -> Bool
 
+pub fn recorded_run_publication_has_original_context(RecordedRunPublication, String, String, String, String) -> Bool
+
 pub fn recorded_run_publication_has_original_evidence(RecordedRunPublication, String, String) -> Bool
+
+pub fn recorded_run_publication_matches_cleanup_graph(RecordedRunPublication, String, String, String, String, String, String) -> Bool
 
 pub fn recorded_run_publication_result_cid(RecordedRunPublication) -> String
 
