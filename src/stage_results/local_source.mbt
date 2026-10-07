@@ -135,6 +135,7 @@ fn finish_local_source(
   }
   let stages = []
   let publications = []
+  let table_inputs = []
   let mut shared_work = 0
   let mut result_work = 0
   let mut input_join_work = 0
@@ -151,6 +152,11 @@ fn finish_local_source(
     )
     result_work += @results.usage(result).work
     publications.push(result)
+    let private_inputs = stage_port_table_inputs(port)
+    if private_inputs is Some(inputs) {
+      result_work += @results.table_inputs_usage(inputs).work
+    }
+    table_inputs.push(private_inputs)
     if inputs is Some(registration) {
       let attached = wiring_reconciled_input_at(wiring, i).unwrap()
       let evidence = @local.program_environment_stage(registration, i).unwrap()
@@ -184,12 +190,17 @@ fn finish_local_source(
     (@parameters.bindings_usage(operations).work - shared_work)
   let result_prefix = @parameters.operations_usage(collected).work + result_work
   let results = match
-    collect_checked(collected, publications, {
-      max_results: used.results,
-      max_work: result_prefix + (limits.max_work - spent),
-      max_nodes: used.nodes,
-      max_text_bytes: used.text_bytes,
-    }) {
+    collect_checked(
+      collected,
+      publications,
+      {
+        max_results: used.results,
+        max_work: result_prefix + (limits.max_work - spent),
+        max_nodes: used.nodes,
+        max_text_bytes: used.text_bytes,
+      },
+      table_inputs=Some(table_inputs),
+    ) {
     Ok(v) => v
     Err(e) => return Err(ResultCollection(e))
   }
