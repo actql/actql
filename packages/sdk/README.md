@@ -1149,3 +1149,21 @@ Lookup failures use fresh SDK errors for each call. Reused credential or
 transport exceptions cannot replace an earlier call's lookup target. Only the
 existing SDK error code and a bounded HTTP status are copied; borrowed exception
 causes and fields receive no explanation custody or outcome authority.
+
+`explainRequestCancellation(result)` and `formatRequestCancellation(result, options)`
+retain the admitted `cancelRequest` branch and original request ID. They keep
+recorded cancellation separate from physical stop, Effects and release. With a
+Run reference they offer a current `status`; otherwise they offer the original
+request lookup under current authorization. Already-terminal does not identify
+the terminal Run outcome. The lookup candidate is not a cancellation receipt or
+an immutable cancellation-operation identity.
+
+A failed exchange or rejected response retains only an unresolved observation
+and the original read-only target. Existing error code/status metadata does not
+select an Owner outcome. Successful replies are detached, revalidated, checked
+for unchanged identity/branch/revision and recursively frozen. Failure wrappers
+are per call; copied responses/errors receive no explanation or input custody.
+The existing error recovery fields remain available, but formatters never render
+raw causes. Recovery causes retain only public Client code/status metadata,
+not borrowed messages, locators, cleanup handles or nested causes. English/default and approved Japanese localization preserve the same
+facts, and formatting performs no lookup, retry, execution or release.
