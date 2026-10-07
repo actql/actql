@@ -121,6 +121,17 @@ test "Result port projection follows canonical output fields, not author order" 
     0,
   ).unwrap()
   let schema = @relation_results.port_schema(port)
+  assert_eq(@relation_results.port_projection_count(port), 2)
+  assert_eq(
+    @relation_results.port_projection_field_at(port, 0).unwrap().input,
+    Unqualified("total"),
+  )
+  assert_eq(
+    @relation_results.port_projection_field_at(port, 1).unwrap().output,
+    Unqualified("id"),
+  )
+  assert_true(@relation_results.port_projection_field_at(port, -1) is None)
+  assert_true(@relation_results.port_projection_field_at(port, 2) is None)
   assert_eq(@schema.field_at(schema, 0).unwrap().name, Unqualified("id"))
   assert_eq(
     @relation_results.port_projection_input_at(port, 0),

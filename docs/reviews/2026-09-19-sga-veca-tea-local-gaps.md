@@ -6852,3 +6852,27 @@ reuse are recorded in the
 Publication schema hashing/Result-view preparation, snapshot getters, blocking
 Native consumers, physical chunk admission and trusted callback latency remain
 separate boundaries. This is not packed/all-target or whole-Local completion.
+
+### Bounded Named Result preparation follow-up (2026-10-08)
+
+The common Result-view owner now resumes typed projection/source-name lookup,
+Text charging/comparison and stable merge emission, then polls the existing
+export metadata owner under the same preparation quantum. Private maps and
+pending Result borrows are transferred or retired once; revocation and reentry
+checks remain at the ownership boundaries. Logical work, stable ordering and
+wire/CID contracts are unchanged.
+
+Independent exact/one-short mapping, order and row-map workspace cases pass
+alongside cancellation inside both Text charging and comparison. The actual
+retained Host reads all three Named Results in independent expected order;
+cancellation during Result comparison preserves the exact abort cause, prevents
+publication and releases existing reservations without additional Compute.
+See the [Result preparation record](2026-10-08-local-bounded-result-preparation.md)
+for source-specific JS 38/38, Host 10/10 and integration Host 2/2 evidence.
+
+Schema identity emission remains synchronous. Direct convenience publication
+callers can still drain preparation; snapshot copies, physical chunk admission,
+blocking Native consumers and trusted callbacks remain separate boundaries.
+A narrower projected producer Result still fails checked inter-task contract
+matching before Compute and is not claimed as supported by this unit.
+This is not packed/all-target or whole-Local completion.
