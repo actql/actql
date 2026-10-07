@@ -128,7 +128,7 @@ export function checkTableOperation(body) {
   assert.ok(Array.isArray(body.namespace) && body.namespace.length > 0 &&
     body.namespace.length <= 16);
   for (const part of [...body.namespace, body.table_name]) {
-    assert.ok(typeof part === 'string' && part.length > 0 && part.length <= 256);
+    assert.ok(typeof part === 'string' && part.length > 0 && [...part].length <= 256);
     assert.ok(part.isWellFormed() && part === part.normalize('NFC') &&
       !/[\r\n\0]/u.test(part));
   }
