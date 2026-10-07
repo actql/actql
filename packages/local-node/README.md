@@ -2,8 +2,20 @@
 
 `@actql/node` includes this package in its standard installation. Embedded
 `connect({mode: 'local', owner: 'local'})` lazily loads the checked MoonBit
-compiler and runtime, the built-in Local Host adapters, and DuckDB assets.
+compiler and runtime, and the built-in Local Host adapters.
 Connected Remote mode imports only the lightweight SDK path.
+
+Source-free Local Values execution does not install or load DuckDB. DuckDB is
+an optional peer dependency. Before explicitly selecting a DuckDB Source or
+Compute installation, install the pinned native package in the consuming app:
+
+```sh
+npm install @duckdb/node-api@1.5.5-r.4
+```
+
+A selected DuckDB installation without that dependency rejects with
+`DuckDBDependencyUnavailable`. The Host never installs dependencies at runtime
+or falls back to another execution method when the selected provider is missing.
 
 The installed source-free profile accepts supported SQL/Pipe query text and
 Effect-free JSON or YAML AQL Programs with Values computation and named

@@ -1,11 +1,71 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, mkdir, rm, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
+
+async function peerFixture(t, {optional = true, declared = true} = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'packed-package-peer-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const entry = join(root, 'node_modules/@actql/entry');
+  await mkdir(entry, {recursive: true});
+  await writeFile(join(entry, 'package.json'), JSON.stringify({name: '@actql/entry',
+    type: 'module', exports: './index.mjs',
+    ...(declared ? {peerDependencies: {'@fixture/optional': '1.0.0'}} : {}),
+    ...(optional ? {peerDependenciesMeta: {'@fixture/optional': {optional: true}}} : {}),
+  }));
+  await writeFile(join(entry, 'index.mjs'),
+    "export const load = () => import('@fixture/optional');\n");
+  const install = async (directory = join(root, 'node_modules/@fixture/optional')) => {
+    await mkdir(directory, {recursive: true});
+    await writeFile(join(directory, 'package.json'), JSON.stringify({name: '@fixture/optional',
+      type: 'module', exports: './index.mjs'}));
+    await writeFile(join(directory, 'index.mjs'), 'export const value = 1;\n');
+    return directory;
+  };
+  return {root, entry, install};
+}
+
+test('installed graph permits an absent declared optional peer', async t => {
+  const {root} = await peerFixture(t);
+  auditPackedPackages(root, ['entry']);
+});
+
+test('installed graph verifies a privately installed optional peer', async t => {
+  const {root, install} = await peerFixture(t);
+  await install();
+  auditPackedPackages(root, ['entry']);
+});
+
+test('installed graph refuses a missing required peer', async t => {
+  const {root} = await peerFixture(t, {optional: false});
+  assert.throws(() => auditPackedPackages(root, ['entry']), {code: 'MODULE_NOT_FOUND'});
+});
+
+test('installed graph requires a peer declaration as well as optional metadata', async t => {
+  const {root} = await peerFixture(t, {declared: false});
+  assert.throws(() => auditPackedPackages(root, ['entry']), /Undeclared dependency/u);
+});
+
+test('installed graph refuses an optional peer with a missing exported file', async t => {
+  const {root, install} = await peerFixture(t);
+  const peer = await install();
+  await rm(join(peer, 'index.mjs'));
+  assert.throws(() => auditPackedPackages(root, ['entry']), {code: 'MODULE_NOT_FOUND'});
+});
+
+test('installed graph refuses optional peers resolved outside the consumer', async t => {
+  const {root, install} = await peerFixture(t);
+  const outside = await mkdtemp(join(tmpdir(), 'packed-peer-outside-'));
+  t.after(() => rm(outside, {recursive: true, force: true}));
+  await install(outside);
+  await mkdir(join(root, 'node_modules/@fixture'), {recursive: true});
+  await symlink(outside, join(root, 'node_modules/@fixture/optional'), 'dir');
+  assert.throws(() => auditPackedPackages(root, ['entry']), /Dependency outside consumer/u);
+});
 
 test('installed graph refuses undeclared dependencies even when separately installed', async () => {
   const root = await mkdtemp(join(tmpdir(), 'packed-package-audit-'));
