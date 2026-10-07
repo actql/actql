@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {checkDriverRetirementSource, driverPath, strategyPath,blockAfter} from './driver-retirement-source.mjs';
+import {checkDriverRetirementSource, driverPath, scratchRetirementPath, inputStopPath, bridgeReclamationPath, importReclamationPath, strategyPath,blockAfter} from './driver-retirement-source.mjs';
 import {retirementOverlay,retirementExecutable,retirementExecutionArtifacts} from './driver-retirement-overlay.mjs';
 import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
 import {snapshot,hash} from '../../inventory.mjs';
@@ -11,8 +11,11 @@ const root = fileURLToPath(new URL('../../../../',import.meta.url));
 const read = p => readFileSync(root+p);
 const changed = (path, from, to) => {
   const original = read(path).toString();
-  assert.equal(original.split(from).length,2,'Mutation must reach unique actual boundary');
-  return p => p === path ? original.replace(from,to) : read(p);
+  const pattern = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
+    .replace(/\s+/g,'\\s+'),'g');
+  assert.equal([...original.matchAll(pattern)].length,1,
+    'Mutation must reach unique actual boundary');
+  return p => p === path ? original.replace(pattern,to) : read(p);
 };
 test('executed Native artifact excludes same-basename Darwin debug data and missing executable',()=>{
   const debug=retirementExecutable+'.dSYM/Contents/Resources/DWARF/query_integration.whitebox_test.exe';
@@ -81,9 +84,36 @@ for (const [name,path,from,to] of [
   ['retain provider forever',driverPath,'        provider_execution.val = None','        provider_execution.val = Some(active)'],
   ['drop root before pending return',driverPath,'          return false\n        }\n        final_provider_work.val','          provider_execution.val = None\n          return false\n        }\n        final_provider_work.val'],
   ['scratch witness accepts live root',driverPath,'scratch_uses.val == 0 && provider_execution.val is None','scratch_uses.val == 0'],
+  ['scratch witness skips partial retirement',driverPath,'scratch_retirement.phase == Retired &&','true &&'],
+  ['driver starts with retired cursor',driverPath,'let scratch_retirement = local_managed_scratch_retirement()','let scratch_retirement = {phase: Retired, index: 0}'],
+  ['retirement skips active callback check',driverPath,'      scratch_uses.val != 0 ||','      false ||'],
+  ['retirement skips physical provider custody',driverPath,'      provider_execution.val is Some(_) ||','      false ||'],
+  ['retirement skips pending input revocation',driverPath,'(!live.val && input_stop.phase != Stopped)','false'],
+  ['scratch witness skips pending input revocation',driverPath,'(live.val || input_stop.phase == Stopped) &&','true &&'],
+  ['input revocation bulk closes',inputStopPath,'while steps < 64','while steps < 64000'],
+  ['input revocation allows reentrancy',inputStopPath,'if cursor.advancing {','if false {'],
+  ['input revocation skips import cancellation',inputStopPath,'!cancel_import(importer)','false'],
+  ['input revocation skips pending bridge',inputStopPath,'!close_bridge(bridge)','false'],
+  ['input revocation drops bridge root',inputStopPath,'let input = bridges[cursor.index].val','let input = bridges[cursor.index].val\nbridges[cursor.index].val = None'],
+  ['cleanup skips pending input revocation',driverPath,'if !stop_owned_inputs() {','if false {'],
+  ['driver bulk-reclaims one bridge',driverPath,'advance_close_managed_producer_bridge(bridge, 1)','advance_close_managed_producer_bridge(bridge, 64000)'],
+  ['driver drops pending snapshot importer',driverPath,'retained_imports.push(importing)','ignore(importing)'],
+  ['bridge mutates handed-off rows',bridgeReclamationPath,'if bridge.handed_off {','if false {'],
+  ['bridge skips active reader',bridgeReclamationPath,'quantum <= 0 || bridge.admitted.buffer.reading','quantum <= 0'],
+  ['import mutates completed rows',importReclamationPath,'if value.completed {','if false {'],
+  ['import skips partial buffer',importReclamationPath,'if !advance_admitted_buffer_reclamation(value.admitted.buffer, quantum) {','if false {'],
+  ['retirement starts complete',scratchRetirementPath,'{ phase: Bridges, index: 0, }','{ phase: Retired, index: 0, }'],
+  ['retirement clears too many roots',scratchRetirementPath,'while steps < 64','while steps < 64000'],
+  ['retirement skips read roots',scratchRetirementPath,'reads[cursor.index] = None','ignore(reads[cursor.index])'],
+  ['retirement bulk-clears issuers',scratchRetirementPath,'issuers.pop() |> ignore','issuers.clear()'],
+  ['late import writes reopen settled roots',scratchRetirementPath,'live && !settled && !disposed','live && !disposed'],
   ['reservation returned before scratch',strategyPath,'remaining_execution=if scratch_released { 0L } else { execution.scratch }','remaining_execution=0L'],
   ['ignore retention release',strategyPath,'if !scratch_released || !task_execution_retention_released(execution) {','if !scratch_released {'],
-]) test('source rejects '+name,()=>assert.throws(()=>checkDriverRetirementSource(changed(path,from,to))));
+]) test('source rejects '+name,()=>{
+  // A missing mutation target is a failed fixture, not a rejected mutation.
+  const mutated = changed(path,from,to);
+  assert.throws(()=>checkDriverRetirementSource(mutated));
+});
 
 function records() {
   return ['current_filter','current_edge_filter'].flatMap((variant,i)=> {

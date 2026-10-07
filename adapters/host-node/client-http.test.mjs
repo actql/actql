@@ -575,12 +575,12 @@ test('known status refusal and unknown faults classify equally on both ports',
         {code: 'ClientRunCancellationDenied'});
       const denied = await fetch(`${base}/actql/client/0.1/cancel`, {
         method: 'POST', headers: {'content-type': 'application/json'},
-        body: JSON.stringify({connection, ref}),
+        body: JSON.stringify({connection, ref, cancelId: 'original-cancel', expectedRevision: 6}),
       });
       assert.equal(denied.status, 403);
       assert.deepEqual(await denied.json(),
         {code: 'ClientRunCancellationDenied'});
-      await assert.rejects(port.perform('cancel', {connection, ref}),
+      await assert.rejects(port.perform('cancel', {connection, ref, cancelId: 'original-cancel', expectedRevision: 6}),
         {code: 'ClientRunCancellationDenied'});
     });
   });
@@ -603,6 +603,8 @@ test('cancel and reconcile classify synchronous and asynchronous Host faults',
     const port = createNodeInProcessClientHost(options);
     await withServer(createClientHttpHandler(options), async base => {
       for (const operation of ['cancel', 'reconcile']) {
+        const body = {connection, ref, ...(operation === 'cancel'
+          ? {cancelId: 'original-cancel', expectedRevision: 6} : {})};
         for (const ErrorType of [Error, ClientError]) {
           for (const asynchronous of [false, true]) {
             for (const [sourceCode, publicCode, status] of [
@@ -618,12 +620,12 @@ test('cancel and reconcile classify synchronous and asynchronous Host faults',
                 `${base}/actql/client/0.1/${operation}`, {
                   method: 'POST',
                   headers: {'content-type': 'application/json'},
-                  body: JSON.stringify({connection, ref}),
+                  body: JSON.stringify(body),
                 });
               assert.equal(response.status, status);
               assert.deepEqual(await response.json(), {code: publicCode});
               await assert.rejects(
-                port.perform(operation, {connection, ref}), error => {
+                port.perform(operation, body), error => {
                   assert.ok(error instanceof ClientError);
                   assert.equal(error.code, publicCode);
                   assert.equal(error.message, publicCode);

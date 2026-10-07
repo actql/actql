@@ -1,12 +1,13 @@
 import tempfile
 import unittest
 import sqlite3
+import hashlib
 from contextlib import closing
 from pathlib import Path
 
 from catalog import CatalogRefusal, TableCatalog
 from physical import seal, PhysicalRefusal
-from physical_test import mapping
+from physical_test import mapping, schema_wire
 
 
 def request(action, name, suffix, expected=None):
@@ -39,7 +40,7 @@ class CatalogTests(unittest.TestCase):
 
     def write(self, catalog, operation, rows, reservation=None):
         return catalog.write_claimed(operation, mapping(), rows,
-                                     reservation or {"bytes": 1048576, "files": 16})
+                                     reservation or {"bytes": 1048576, "files": 16}, schema_wire())
 
     def test_create_replace_and_original_operation_after_later_commit(self):
         rows = [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2, "p": None}, {"id": 3}, {"id": 3}]
@@ -60,8 +61,11 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(reopened.read_generation(receipt, mapping()), rows)
             with self.assertRaisesRegex(CatalogRefusal, "AlreadyCommittedReconcileOnly"):
                 self.write(reopened, first, rows)
-            with self.assertRaisesRegex(CatalogRefusal, "ExpectedGenerationConflict"):
-                self.write(reopened, request("replace", "rows", "9", expected(receipt)), [])
+            conflict = request("replace", "rows", "9", expected(receipt))
+            refused = self.write(reopened, conflict, [])
+            self.assertEqual(refused["version"], "actql-table-noncommit-receipt/0.1")
+            self.assertEqual(refused["reason"], "ExpectedGenerationConflict")
+            self.assertEqual(reopened.reconcile(conflict), refused)
             reopened.engine.dispose()
 
     def test_commit_response_loss_reconciles_after_restart(self):
@@ -77,6 +81,55 @@ class CatalogTests(unittest.TestCase):
             self.assertIsNotNone(receipt)
             self.assertEqual(reopened.read_generation(receipt, mapping()), [{"id": 1}])
             reopened.engine.dispose()
+
+    def test_new_read_resolves_one_generation_and_preserves_presence_after_replace(self):
+        rows = [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2, "p": None}, {"id": 3}, {"id": 3}]
+        with tempfile.TemporaryDirectory(prefix="actql-table-reader-") as root:
+            writer = self.open(root)
+            writer.create_namespace("test")
+            receipt = self.write(writer, request("create", "rows", "a"), rows)
+            selector = {"catalog_identity_cid": writer.catalog_cid, "namespace": ["test"],
+                        "table_name": "rows", "table_uuid": receipt["table_uuid"],
+                        "schema_cid": mapping()["schema_cid"]}
+            writer.engine.dispose()
+            reader = self.open(root)
+            frozen = reader.resolve_generation(selector)
+            self.assertEqual(frozen, {"receipt": receipt, "mapping": mapping(), "schema_wire": schema_wire()})
+            reader.engine.dispose()
+            writer = self.open(root)
+            replacement = self.write(writer, request("replace", "rows", "b", expected(receipt)), [{"id": 9}])
+            writer.engine.dispose()
+            reopened = self.open(root)
+            self.assertEqual(reopened.read_generation(frozen["receipt"], frozen["mapping"]), rows)
+            self.assertEqual(reopened.resolve_generation(selector)["receipt"], replacement)
+            for field, value, reason in (
+                    ("table_uuid", "00000000-0000-0000-0000-000000000000", "TableReadPublicationBinding"),
+                    ("schema_cid", "sha256:" + "9" * 64, "TableReadPublicationBinding"),
+                    ("catalog_identity_cid", "sha256:" + "9" * 64, "ForeignReadCatalog"),
+                    ("table_name", "missing", "TableReadNotFound")):
+                with self.subTest(field=field), self.assertRaisesRegex(CatalogRefusal, reason):
+                    reopened.resolve_generation({**selector, field: value})
+            reopened.engine.dispose()
+
+    def test_empty_generation_and_missing_original_publication_record_are_not_inferred(self):
+        with tempfile.TemporaryDirectory(prefix="actql-table-reader-empty-") as root:
+            catalog = self.open(root)
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "c"), [])
+            selector = {"catalog_identity_cid": catalog.catalog_cid, "namespace": ["test"],
+                        "table_name": "rows", "table_uuid": receipt["table_uuid"],
+                        "schema_cid": mapping()["schema_cid"]}
+            frozen = catalog.resolve_generation(selector)
+            self.assertEqual(frozen["mapping"], mapping())
+            self.assertEqual(catalog.read_generation(frozen["receipt"], frozen["mapping"]), [])
+            # A head is not a substitute for the original atomic publication
+            # record. Model record corruption without modifying physical files.
+            with closing(catalog.connection()) as db:
+                db.execute("DELETE FROM actql_table_commits WHERE request_cid=?", (receipt["request_cid"],))
+                db.commit()
+            with self.assertRaisesRegex(CatalogRefusal, "TableReadPublicationRecord"):
+                catalog.resolve_generation(selector)
+            catalog.engine.dispose()
 
     def test_record_failure_rolls_back_catalog_head_not_only_receipt(self):
         with tempfile.TemporaryDirectory(prefix="actql-table-atomic-") as root:
@@ -105,8 +158,68 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(receipt["row_count"], 0)
             self.assertIsNone(receipt["snapshot_id"])
             self.assertEqual(catalog.read_generation(receipt, mapping()), [])
-            with self.assertRaisesRegex(CatalogRefusal, "CreateNameConflict"):
-                self.write(catalog, request("create", "rows", "d"), [])
+            conflict = request("create", "rows", "d")
+            refused = self.write(catalog, conflict, [])
+            self.assertEqual(refused["reason"], "CreateNameConflict")
+            self.assertEqual(catalog.reconcile(conflict), refused)
+            catalog.engine.dispose()
+
+    def test_noncommit_record_and_fence_are_atomic_and_survive_restart_cleanup(self):
+        with tempfile.TemporaryDirectory(prefix="actql-table-noncommit-") as root:
+            catalog = self.open(root)
+            catalog.create_namespace("test")
+            committed = self.write(catalog, request("create", "rows", "7"), [{"id": 1}])
+            operation = request("replace", "rows", "8", expected(committed))
+            self.write(catalog, request("replace", "rows", "9", expected(committed)), [{"id": 2}])
+            # Failed record persistence must roll back the fence too, and must
+            # never manufacture a confirmed failure from the resulting absence.
+            with closing(catalog.connection()) as db:
+                db.execute("""CREATE TRIGGER fail_noncommit BEFORE INSERT ON actql_table_noncommits
+                    BEGIN SELECT RAISE(ABORT, 'NoncommitSaveRefused'); END""")
+                db.commit()
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "NoncommitSaveRefused"):
+                self.write(catalog, operation, [{"id": 3}])
+            self.assertIsNone(catalog.reconcile(operation))
+            with closing(catalog.connection()) as db:
+                self.assertIsNone(db.execute("SELECT 1 FROM actql_table_publication_fences WHERE request_cid=?",
+                                            (operation["request_cid"],)).fetchone())
+                db.execute("DROP TRIGGER fail_noncommit")
+                db.commit()
+            # The trusted writer has observed its conflict; recording that
+            # fact is not permission to rerun write_claimed or inspect a head.
+            receipt = catalog.confirm_noncommit(operation, "ExpectedGenerationConflict")
+            self.assertEqual(receipt, seal({"version": "actql-table-noncommit-receipt/0.1",
+                "request_cid": operation["request_cid"], "effect_identity_cid": operation["effect_identity_cid"],
+                "catalog_identity_cid": operation["catalog_identity_cid"], "schema_cid": operation["schema_cid"],
+                "storage_mapping_cid": operation["storage_mapping_cid"], "reason": "ExpectedGenerationConflict"},
+                "receipt_cid"))
+            catalog.engine.dispose()
+            reopened = self.open(root)
+            self.assertEqual(reopened.reconcile(operation), receipt)
+            self.assertEqual(reopened.cleanup_after_stop(operation)["pending"], False)
+            self.assertEqual(reopened.reconcile(operation), receipt)
+            with self.assertRaisesRegex(CatalogRefusal, "AlreadyCommittedReconcileOnly"):
+                self.write(reopened, operation, [{"id": 3}])
+            self.assertEqual(reopened.read_generation(committed, mapping()), [{"id": 1}])
+            reopened.engine.dispose()
+
+    def test_noncommit_never_overrides_a_committed_original_or_unallocated_absence(self):
+        with tempfile.TemporaryDirectory(prefix="actql-table-noncommit-binding-") as root:
+            class MisleadingReturn(TableCatalog):
+                def after_publication(self):
+                    raise CatalogRefusal("CreateNameConflict")
+            catalog = self.open(root, MisleadingReturn)
+            catalog.create_namespace("test")
+            operation = request("create", "rows", "7")
+            committed = self.write(catalog, operation, [{"id": 1}])
+            self.assertEqual(committed["version"], "actql-table-receipt/0.1")
+            self.assertEqual(catalog.reconcile(operation), committed)
+            absent = request("create", "missing", "8")
+            with self.assertRaisesRegex(CatalogRefusal, "NoncommitAllocationBinding"):
+                catalog.confirm_noncommit(absent, "CreateNameConflict")
+            self.assertIsNone(catalog.reconcile(absent))
+            with closing(catalog.connection()) as db:
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM actql_table_noncommits").fetchone(), (0,))
             catalog.engine.dispose()
 
     def test_capacity_refuses_before_publication_and_keeps_failed_reservation(self):
@@ -126,6 +239,55 @@ class CatalogTests(unittest.TestCase):
                 self.assertEqual(allocated, (1,))
             with self.assertRaisesRegex(PhysicalRefusal, "ExistingAllocationReconcileOnly"):
                 self.write(catalog, operation, [])
+            catalog.engine.dispose()
+
+    def test_logical_schema_is_saved_with_extents_through_replace_and_restart(self):
+        # Independently authored complete logical contract, not derived from
+        # the physical string discriminator or a schema inferred from rows.
+        wire = schema_wire().replace('"nullable":true,"type":"string"',
+                                     '"max_utf8_bytes":32,"nullable":true,"type":"string"')
+        schema = hashlib.sha256(wire.encode('utf-8')).hexdigest()
+        physical = seal({**{k: v for k, v in mapping().items() if k != 'mapping_cid'},
+                         'schema_cid': 'sha256:' + schema}, 'mapping_cid')
+        def operation(action, suffix, old=None):
+            base = request(action, 'rows', suffix, old)
+            return seal({**{k: v for k, v in base.items() if k != 'request_cid'},
+                         'schema_cid': physical['schema_cid'],
+                         'storage_mapping_cid': physical['mapping_cid']}, 'request_cid')
+        with tempfile.TemporaryDirectory(prefix='actql-table-schema-') as root:
+            catalog = self.open(root)
+            catalog.create_namespace('test')
+            first = operation('create', '1')
+            receipt = catalog.write_claimed(first, physical, [], {'bytes':1048576, 'files':16}, wire)
+            selector = {'catalog_identity_cid': first['catalog_identity_cid'], 'namespace':['test'],
+                        'table_name':'rows', 'table_uuid':receipt['table_uuid'],
+                        'schema_cid':physical['schema_cid']}
+            frozen = catalog.resolve_generation(selector)
+            self.assertEqual(frozen['schema_wire'], wire)
+            self.assertEqual(catalog.read_generation(receipt, physical), [])
+            second = operation('replace', '2', expected(receipt))
+            catalog.write_claimed(second, physical, [{'id':1}, {'id':2, 'p':None}],
+                                  {'bytes':1048576, 'files':16}, wire)
+            catalog.engine.dispose()
+            reopened = self.open(root)
+            self.assertEqual(reopened.resolve_generation(selector)['schema_wire'], wire)
+            self.assertEqual(reopened.read_generation(frozen['receipt'], frozen['mapping']), [])
+            self.assertEqual(reopened.reconcile(first), receipt)
+            reopened.engine.dispose()
+
+    def test_missing_or_foreign_logical_schema_refuses_before_staging(self):
+        with tempfile.TemporaryDirectory(prefix='actql-table-schema-refusal-') as root:
+            catalog = self.open(root)
+            catalog.create_namespace('test')
+            operation = request('create', 'rows', '1')
+            for wire, reason in [(None, 'MissingTableLogicalSchema'),
+                                 ('{}', 'TableLogicalSchemaIdentity'),
+                                 (schema_wire() + ' ', 'TableLogicalSchemaIdentity')]:
+                with self.assertRaisesRegex(CatalogRefusal, reason):
+                    catalog.write_claimed(operation, mapping(), [], {'bytes':1048576, 'files':16}, wire)
+                self.assertFalse(catalog.table_exists(('test', 'rows')))
+                self.assertIsNone(catalog.reconcile(operation))
+                self.assertFalse((Path(root) / 'warehouse').exists())
             catalog.engine.dispose()
 
 

@@ -63,6 +63,102 @@ fn advance_row_metadata_lookup(cursor : RowMetadataLookup) -> Int? {
 }
 
 ///|
+/// Preserve the original per-candidate lookup charge without scanning a whole
+/// spelling between stop observations. The underlying lookup owns one slot;
+/// the wrapper borrows the schema and virtual qualification, never an array.
+priv struct ChargedRowMetadataLookup {
+  lookup : RowMetadataLookup
+  charge_candidate : Bool
+  mut phase : Int
+  mut offset : Int
+}
+
+///|
+fn start_charged_row_metadata_lookup(
+  schema : @schema.Schema,
+  field : @schema.FieldName,
+  workspace : RowWorkspace,
+  charge_candidate : Bool,
+) -> ChargedRowMetadataLookup? {
+  start_row_metadata_lookup(schema, field, workspace).map(lookup => {
+    lookup,
+    charge_candidate,
+    phase: 0,
+    offset: 0,
+  })
+}
+
+///|
+fn advance_charged_row_metadata_lookup(
+  cursor : ChargedRowMetadataLookup,
+  control : ControlBudget,
+) -> Result[Int?, RowIssue] {
+  let lookup = cursor.lookup
+  if lookup.closed {
+    return Err(InvalidRows)
+  }
+  guard @schema.field_reference_name_at(lookup.schema, lookup.column)
+    is Some(candidate) else {
+    close_row_metadata_lookup(lookup)
+    return Ok(Some(-1))
+  }
+  match cursor.phase {
+    0 => {
+      if !spend_control(control, 1) {
+        return Err(RowLimit)
+      }
+      cursor.phase = 1
+    }
+    1 => {
+      let (prefix, text) = match lookup.name {
+        @schema.Unqualified(text) => (0, text)
+        @schema.Qualified(@schema.Left, text) => (5, text)
+        @schema.Qualified(@schema.Right, text) => (6, text)
+      }
+      if cursor.offset < prefix {
+        if !spend_control(control, 1) {
+          return Err(RowLimit)
+        }
+        cursor.offset += 1
+      } else if cursor.offset - prefix < text.length() {
+        guard text_function_scalar(text, cursor.offset - prefix)
+          is Some((_, next, width, _)) &&
+          spend_control(control, width) else {
+          return Err(RowLimit)
+        }
+        cursor.offset = prefix + next
+      } else {
+        cursor.offset = 0
+        cursor.phase = if cursor.charge_candidate { 2 } else { 3 }
+      }
+    }
+    2 =>
+      if cursor.offset < candidate.length() {
+        guard text_function_scalar(candidate, cursor.offset)
+          is Some((_, next, width, _)) &&
+          spend_control(control, width) else {
+          return Err(RowLimit)
+        }
+        cursor.offset = next
+      } else {
+        cursor.offset = 0
+        cursor.phase = 3
+      }
+    _ => {
+      let before = lookup.column
+      let result = advance_row_metadata_lookup(lookup)
+      if result is Some(_) {
+        return Ok(result)
+      }
+      if lookup.column != before {
+        cursor.phase = 0
+      }
+    }
+  }
+  Ok(None)
+}
+
+///|
 fn bounded_small_schema_names(schema : @schema.Schema) -> Bool {
   let count = @schema.field_count(schema)
   if count > 8 {

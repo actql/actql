@@ -55,7 +55,9 @@ graph_match   = "MATCH", [ identifier, "=" ],
 graph_node    = "(", [ identifier ], [ ":", identifier ],
                 [ graph_constraint ], ")" ;
 graph_edge    = ( "-[", graph_filler, "]->"
-                | "<-[", graph_filler, "]-" ),
+                | "<-[", graph_filler, "]-"
+                | "-[", graph_filler, "]-"
+                | "-" | "<-" | "->" ),
                 [ graph_quantifier ] ;
 graph_filler  = [ identifier ], [ ":", identifier ],
                 [ graph_constraint ] ;

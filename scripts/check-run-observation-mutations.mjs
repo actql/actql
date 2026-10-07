@@ -12,7 +12,98 @@ const unitTargets = id => ['status', 'wait', 'reconcile'].map(operation => targe
   `${operation}: rejected Run observations distinguish unknown state from malformed known facts`, id, 'deepStrictEqual'));
 const publicTargets = ['in-process', 'https'].map(entrance => target(
   `${entrance}: uninterpretable Run observations retain only the original authorized lookup`, 'run-protocol-public-rejection'));
+const validationCopyFaults = [
+  [['status', 'wait', 'reconcile'], 'response-capture-run', 'strictEqual',
+    'return retainEffectUncertainty(observation, ref);', 'return retainEffectUncertainty(state, ref);'],
+  [['lookupRequest'], 'response-capture-lookup', 'deepStrictEqual',
+    'return retainRequestLookupExplanation(freezeInput(observation), context);',
+    'return retainRequestLookupExplanation(freezeInput(answer), context);'],
+  [['held submit'], 'response-capture-held', 'deepStrictEqual',
+    '      admitted = observation;\n      const held', '      const held'],
+  [['cancel'], 'response-capture-cancel', 'deepStrictEqual',
+    '  return value;\n};\n\nconst unordered',
+    '  return copy;\n};\n\nconst unordered'],
+  [['deliveryAttempt'], 'response-capture-delivery', 'deepStrictEqual',
+    'return retainDeliveryExplanation(freezeInput(observation), {',
+    'return retainDeliveryExplanation(freezeInput(answer), {'],
+  [['check'], 'response-capture-check', 'deepStrictEqual',
+    '        outcome = observation;', ''],
+  [['cancelRequest'], 'response-capture-request-cancel', 'deepStrictEqual',
+    'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
+    'return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);'],
+];
+const originalSnapshotFaults = [
+  [['status', 'wait', 'reconcile'], "        if (structuralKey(observation) !== observedKey) {\n          throw rejectedRunObservation(ref, operation, 'malformed_response');\n        }"],
+  [['lookupRequest'], "      if (structuralKey(observation) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');"],
+  [['held submit'], "        if (structuralKey(observation) !== observedKey) fail('InvalidHostAdmission');"],
+  [['cancel'], 'structuralKey(value) !== observedKey', 'false'],
+  [['deliveryAttempt'], "            if (structuralKey(observation) !== observedKey) fail('InvalidHostAttemptLookup');"],
+  [['check'], '        if (structuralKey(observation) !== observedKey) reject();'],
+  [['cancelRequest'], "        if (structuralKey(observation) !== observedKey) throw new ClientError('InvalidHostRequestCancellation');"],
+];
 const mutations = [
+  {name: 'delivery lookup failure drops original custody', path,
+    file: 'adapters/host-node/client-delivery-lookup-failure.test.mjs',
+    from: '  deliveryExplanations.set(error, freezeInput({observation,',
+    to: '  new WeakMap().set(error, freezeInput({observation,',
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: rejected Delivery lookups preserve original read custody and published Run`,
+      'delivery-lookup-public-facts', 'deepStrictEqual'))},
+  {name: 'delivery lookup failure substitutes a foreign read operation', path,
+    file: 'packages/sdk/delivery-lookup-failure.test.mjs',
+    from: '  deliveryExplanations.set(error, freezeInput({observation,',
+    to: "  next = {...next, attemptId: 'foreign-read'};\n  deliveryExplanations.set(error, freezeInput({observation,",
+    targets: [target('delivery lookup reused errors and subsequent success preserve earlier uncertainty',
+      'delivery-lookup-original-target', 'deepStrictEqual')]},
+  {name: 'delivery lookup failure retains a private transport cause', path,
+    file: 'packages/sdk/delivery-lookup-failure.test.mjs',
+    from: '  const error = requestCancellationCause(cause);',
+    to: '  const error = Object.assign(requestCancellationCause(cause), {cause});',
+    targets: [target('delivery lookup exchange failures retain only original authorized lookup advice',
+      'delivery-lookup-failure-disclosure', 'doesNotMatch')]},
+  {name: 'cancellation lookup drops the admitted explanation', path,
+    file: 'adapters/host-node/client-cancellation-public.test.mjs',
+    from: "return retainCancellationExplanation(freezeInput(owned), context,\n            owned.kind === 'found' ? owned.cancellation.kind : 'outcome_unknown',\n            owned.kind === 'found' ? owned.cancellation.revision : undefined);",
+    to: 'return freezeInput(owned);',
+    targets: ['local', 'https'].flatMap(entrance => ['before-commit', 'after-commit'].map(loss => target(
+      `${entrance}: original cancellation lookup after ${loss} loss and process restart uses a successful Run`,
+      'cancel-lookup-public', 'deepStrictEqual')))},
+  {name: 'cancellation lookup turns unknown custody into a terminal observation', path,
+    file: 'adapters/host-node/client-cancellation-public.test.mjs',
+    from: "owned.kind === 'found' ? owned.cancellation.kind : 'outcome_unknown'",
+    to: "owned.kind === 'found' ? owned.cancellation.kind : 'already_terminal'",
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: original cancellation lookup after before-commit loss and process restart uses a successful Run`,
+      'cancel-lookup-public', 'deepStrictEqual'))},
+  {name: 'cancellation lookup input reobserves the original operation identity', path,
+    file: 'packages/sdk/cancellation-lookup-explanation.test.mjs',
+    from: 'const capturedReference = captureResponse(reference);', to: 'const capturedReference = reference;',
+    targets: [target('cancellation lookup captures the first cancelId before admission',
+      'cancel-lookup-input-once', 'deepStrictEqual')]},
+  {name: 'cancellation lookup input clone substitutes the original operation', path,
+    file: 'packages/sdk/cancellation-lookup-explanation.test.mjs',
+    from: 'cancelRef = freezeInput(detachResponse(capturedReference));',
+    to: 'cancelRef = freezeInput(structuredClone(capturedReference));',
+    targets: ['replacement', 'mutation'].map(fault => target(
+      `cancellation lookup rejects input clone ${fault} before dispatch`, 'cancel-lookup-input-copy'))},
+  {name: 'connection profile capture reobserves borrowed context', path,
+    file: 'packages/sdk/profile-observation.test.mjs',
+    from: '    profile = captureResponse(profile);', to: '',
+    targets: [target('connection: profile fields are captured once before admission', 'profile-capture-once')]},
+  ...['replacement', 'mutation'].map(fault => ({
+    name: `connection profile verification admits ${fault} of the captured context`, path,
+    file: 'adapters/host-node/client-profile-observation.test.mjs',
+    from: fault === 'replacement'
+      ? "    if (structuralKey(profile) !== observedKey) fail('InvalidHostProfile');"
+      : "    if (structuralKey(observation) !== observedKey) fail('InvalidHostProfile');",
+    to: '', targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: rejected profile ${fault} cannot start checking or issue a verdict`, `profile-public-${fault}`)),
+  })),
+  ...originalSnapshotFaults.map(([operations, from, to = '']) => ({
+    name: `verification conversion changes the captured ${operations.join('/')} snapshot`,
+    path, file: unit, from, to, targets: operations.map(operation => target(
+      `${operation}: verification conversion cannot mutate the admitted snapshot`, 'response-capture-original')),
+  })),
   {name: 'response capture reobserves borrowed getters during admission', path,
     file: 'packages/sdk/response-capture.test.mjs',
     from: 'const captureResponse = (value, captured = new Map()) => {',
@@ -20,6 +111,31 @@ const mutations = [
     targets: ['status', 'wait', 'reconcile', 'lookup-request', 'submit', 'cancel', 'delivery-attempt']
       .map(operation => target(`${operation}: capture observes response getters once before admission`,
         'response-capture-once'))},
+  {name: 'borrowed cancellation reference getters replace the first captured facts', path, file: publicTests,
+    from: 'const captureResponse = (value, captured = new Map()) => {',
+    to: 'const captureResponse = (value, captured = new Map()) => { return value;',
+    targets: ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => target(
+      `in-process: cancellation captures the first getter-backed ${field} association`,
+      'cancel-reference-capture'))},
+  ...validationCopyFaults.map(([operations, id, operator, from, to]) => ({
+    name: `validation copy replaces the captured ${operations.join('/')} observation`, path, file: unit, from, to,
+    targets: operations.map(operation => target(
+      `${operation}: validation-copy getters cannot rebind admitted facts`, id, operator)),
+  })),
+  {name: 'borrowed response getters replace the first captured facts', path, file: unit,
+    from: 'const captureResponse = (value, captured = new Map()) => {',
+    to: 'const captureResponse = (value, captured = new Map()) => { return value;',
+    targets: ['status', 'wait', 'reconcile', 'lookupRequest', 'held submit', 'cancel', 'deliveryAttempt'].map(operation => target(
+      `${operation}: response fields are captured once before admission`,
+      {status: 'response-capture-run', wait: 'response-capture-run', reconcile: 'response-capture-run',
+        lookupRequest: 'response-capture-lookup', 'held submit': 'response-capture-held',
+        cancel: 'response-capture-cancel', deliveryAttempt: 'response-capture-delivery'}[operation],
+      ['status', 'wait', 'reconcile'].includes(operation) ? 'strictEqual' : 'deepStrictEqual'))},
+  {name: 'first response capture uses a redirected clone', path, file: unit,
+    from: 'const captureResponse = (value, captured = new Map()) => {',
+    to: 'const captureResponse = (value, captured = new Map()) => { return globalThis.structuredClone(value);',
+    targets: ['lookupRequest', 'held submit', 'cancel', 'deliveryAttempt', 'check'].map(operation => target(
+      `${operation}: a well-shaped clone cannot replace captured facts`, 'response-capture-copy'))},
   {name: 'unknown state classified as a known failure', path, file: unit,
     from: "kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',",
     to: "kind: 'protocol_failure',", targets: unitTargets('run-protocol-kind')},

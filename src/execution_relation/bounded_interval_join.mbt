@@ -1,5 +1,7 @@
 ///|
 priv enum BoundedIntervalPhase {
+  PrepareCompletionPort
+  ResolveMetadata
   ReadLeftClocks
   ReadRightClocks
   BeginPair
@@ -23,10 +25,14 @@ priv enum IntervalEmitContinuation {
 priv struct BoundedIntervalState {
   left : ProducerRead
   right : ProducerRead
+  kernel : @lower.PreparedIntervalJoin
   keys : Array[(Int, Int)]
-  left_operand : (Int, Int?)
-  right_operand : (Int, Int)
+  mut left_operand : (Int, Int?)
+  mut right_operand : (Int, Int)
   columns : Array[(Bool, Int)]
+  mut metadata_index : Int64
+  mut metadata_left : Int
+  mut metadata_lookup : ChargedRowMetadataLookup?
   output_schema : @schema.Schema
   kind : @join.Kind
   overlap : Bool
@@ -40,7 +46,8 @@ priv struct BoundedIntervalState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut left_starts : Array[Int64]
   mut left_ends : Array[Int64]
   mut right_starts : Array[Int64]
@@ -110,6 +117,14 @@ fn bounded_interval_failure(
 
 ///|
 fn cleanup_bounded_interval_state(state : BoundedIntervalState) -> Bool {
+  if state.metadata_lookup is Some(cursor) {
+    close_row_metadata_lookup(cursor.lookup)
+    state.metadata_lookup = None
+  }
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   state.comparison = None
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
@@ -120,13 +135,17 @@ fn cleanup_bounded_interval_state(state : BoundedIntervalState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.left_starts = []
   state.left_ends = []
   state.right_starts = []
   state.right_ends = []
+  state.keys.clear()
+  state.columns.clear()
   state.output_row = []
   state.checked_row = []
   state.workspace.live = 0
@@ -214,6 +233,157 @@ fn bounded_interval_step(
       return bounded_interval_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return bounded_interval_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return bounded_interval_failure(
+              Completion(issue),
+              progress,
+              used + 1,
+            )
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return bounded_interval_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
+            }
+            state.port_preparation = None
+            state.phase = ResolveMetadata
+          }
+        }
+        used += 1
+      }
+      ResolveMetadata => {
+        let key_count = @lower.interval_join_key_count(state.kernel).to_int64()
+        let column_count = @lower.interval_join_field_count(state.kernel).to_int64()
+        let left_operand = @lower.interval_join_operand(state.kernel, true)
+        let operand_count = if left_operand is @join.Point(_) { 3L } else { 4L }
+        let index = state.metadata_index
+        if index >= key_count * 2 + operand_count + column_count {
+          state.phase = ReadLeftClocks
+          continue
+        }
+        let (on_left, field) = if index < key_count * 2 {
+          let pair = @lower.interval_join_key_at(
+            state.kernel,
+            (index / 2).to_int(),
+          ).unwrap()
+          (index % 2 == 0, if index % 2 == 0 { pair.0 } else { pair.1 })
+        } else if index < key_count * 2 + operand_count {
+          let at = index - key_count * 2
+          match (left_operand, at) {
+            (@join.Point(time), 0L) => (true, time)
+            (@join.Interval(start, _), 0L) => (true, start)
+            (@join.Interval(_, end), 1L) => (true, end)
+            _ => {
+              guard @lower.interval_join_operand(state.kernel, false)
+                is @join.Interval(start, end) else {
+                return bounded_interval_failure(
+                  InvalidExecution,
+                  progress,
+                  used,
+                )
+              }
+              (false, if at == operand_count - 2 { start } else { end })
+            }
+          }
+        } else {
+          let output = @lower.interval_join_field_at(
+            state.kernel,
+            (index - key_count * 2 - operand_count).to_int(),
+          ).unwrap()
+          guard output.input is @schema.Qualified(side, name) else {
+            return bounded_interval_failure(InvalidExecution, progress, used)
+          }
+          (side == @schema.Left, @schema.Unqualified(name))
+        }
+        if state.metadata_lookup is None {
+          guard start_charged_row_metadata_lookup(
+              producer_read_schema(
+                if on_left {
+                  state.left
+                } else {
+                  state.right
+                },
+              ),
+              field,
+              state.workspace,
+              false,
+            )
+            is Some(cursor) else {
+            return bounded_interval_failure(Rows(RowLimit), progress, used + 1)
+          }
+          state.metadata_lookup = Some(cursor)
+        }
+        match
+          advance_charged_row_metadata_lookup(
+            state.metadata_lookup.unwrap(),
+            state.control,
+          ) {
+          Err(_) =>
+            return bounded_interval_failure(
+              InvalidExecution,
+              progress,
+              used + 1,
+            )
+          Ok(None) => ()
+          Ok(Some(column)) => {
+            state.metadata_lookup = None
+            if column < 0 {
+              return bounded_interval_failure(
+                InvalidExecution,
+                progress,
+                used + 1,
+              )
+            }
+            if index < key_count * 2 {
+              if index % 2 == 0 {
+                state.metadata_left = column
+              } else {
+                state.keys.push((state.metadata_left, column))
+              }
+            } else if index < key_count * 2 + operand_count {
+              let at = index - key_count * 2
+              if on_left {
+                if at == 0 {
+                  state.left_operand = (column, None)
+                } else {
+                  state.left_operand = (state.left_operand.0, Some(column))
+                }
+              } else if at == operand_count - 2 {
+                state.right_operand = (column, -1)
+              } else {
+                state.right_operand = (state.right_operand.0, column)
+              }
+            } else {
+              state.columns.push((on_left, column))
+            }
+            state.metadata_index += 1
+            if state.metadata_index ==
+              key_count * 2 + operand_count + column_count {
+              state.phase = ReadLeftClocks
+            }
+          }
+        }
+        used += 1
+      }
       ReadLeftClocks => {
         if state.left_row == left_count {
           state.left_row = 0
@@ -549,10 +719,12 @@ fn bounded_interval_step(
         progress += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return bounded_interval_failure(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return bounded_interval_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -561,7 +733,7 @@ fn bounded_interval_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) =>
             bounded_interval_failure(Completion(issue), progress, used)
@@ -659,77 +831,10 @@ pub fn start_bounded_interval_join(
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let workspace = row_workspace(max_entries)
-  let resolve = fn(input : ProducerRead, field : @schema.FieldName) -> Int? {
-    let schema = producer_read_schema(input)
-    let name = @schema.reference_name(field)
-    for index in 0..<@schema.field_count(schema) {
-      if !spend_control(control, 1) || !spend_control_text(control, name) {
-        return None
-      }
-      guard @schema.field_at(schema, index) is Some(candidate) else {
-        return None
-      }
-      if @schema.reference_name(candidate.name) == name {
-        return Some(index)
-      }
-    }
-    None
-  }
-  let keys : Array[(Int, Int)] = []
-  for index in 0..<key_count {
-    guard @lower.interval_join_key_at(kernel, index) is Some(pair) &&
-      resolve(left, pair.0) is Some(left_column) &&
-      resolve(right, pair.1) is Some(right_column) else {
-      return Err(InvalidExecution)
-    }
-    keys.push((left_column, right_column))
-  }
-  let resolve_operand = fn(
-    input : ProducerRead,
-    operand : @join.TemporalOperand,
-  ) -> (Int, Int?)? {
-    match operand {
-      @join.Point(time) => resolve(input, time).map(column => (column, None))
-      @join.Interval(start, end) => {
-        guard resolve(input, start) is Some(start_column) &&
-          resolve(input, end) is Some(end_column) else {
-          return None
-        }
-        Some((start_column, Some(end_column)))
-      }
-    }
-  }
-  guard resolve_operand(left, @lower.interval_join_operand(kernel, true))
-    is Some(left_operand) &&
-    resolve_operand(right, @lower.interval_join_operand(kernel, false))
-    is Some((right_start, Some(right_end))) else {
-    return Err(InvalidExecution)
-  }
-  let columns : Array[(Bool, Int)] = []
-  for index in 0..<column_count {
-    guard @lower.interval_join_field_at(kernel, index) is Some(field) else {
-      return Err(InvalidExecution)
-    }
-    let (on_left, source) = match field.input {
-      @schema.Qualified(side, name) =>
-        (side == @schema.Left, @schema.Unqualified(name))
-      _ => return Err(InvalidExecution)
-    }
-    guard resolve(if on_left { left } else { right }, source) is Some(column) else {
-      return Err(InvalidExecution)
-    }
-    columns.push((on_left, column))
-  }
-  if left_count > max_entries / 2 ||
-    right_count > max_entries / 2 ||
-    keys.length() > max_entries / 2 ||
-    columns.length() > max_entries / 2 {
-    return Err(Rows(RowLimit))
-  }
   let left_slots = left_count * 2
   let right_slots = right_count * 2
-  let key_slots = keys.length() * 2
-  let column_slots = columns.length() * 2
+  let key_slots = key_count * 2
+  let column_slots = column_count * 2
   if key_slots > max_entries - column_slots {
     return Err(Rows(RowLimit))
   }
@@ -740,21 +845,28 @@ pub fn start_bounded_interval_join(
     return Err(Rows(RowLimit))
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(step), output_ceiling, values) {
+    prepare_bounded_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      output_ceiling,
+      values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[left, right],
+      Some([
+        trusted_output_relation_input(left),
+        trusted_output_relation_input(right),
+      ]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -765,10 +877,14 @@ pub fn start_bounded_interval_join(
   let state : BoundedIntervalState = {
     left,
     right,
-    keys,
-    left_operand,
-    right_operand: (right_start, right_end),
-    columns,
+    kernel,
+    keys: [],
+    left_operand: (-1, None),
+    right_operand: (-1, -1),
+    columns: [],
+    metadata_index: 0L,
+    metadata_left: -1,
+    metadata_lookup: None,
     output_schema,
     kind: @lower.interval_join_kind(kernel),
     overlap: @lower.interval_join_mode(kernel) == @join.Overlap,
@@ -786,12 +902,13 @@ pub fn start_bounded_interval_join(
     rows,
     live,
     accepted,
-    port,
+    port: None,
+    port_preparation: Some(port_preparation),
     left_starts: [],
     left_ends: [],
     right_starts: [],
     right_ends: [],
-    phase: ReadLeftClocks,
+    phase: PrepareCompletionPort,
     left_row: 0,
     right_row: 0,
     key_index: 0,

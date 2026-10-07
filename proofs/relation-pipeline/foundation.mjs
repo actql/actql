@@ -101,24 +101,44 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   assert(!git(['for-each-ref', '--format=%(refname)', 'refs/replace']).stdout.length, 'Replaced foundation Git history');
   const head = git(['rev-parse', '--verify', 'HEAD^{commit}']).stdout.toString().trim();
   assert.match(head, sha);
-  // Walk the complete ancestry once: deleting a shallow marker must not turn
-  // missing parent objects into an apparently complete declaration interval.
-  git(['rev-list', '--parents', head]);
+  // Walk the complete unsimplified ancestry once. These are Git-derived parent
+  // facts, not receipt labels. Missing objects still fail before any declaration
+  // is accepted; retain parent order and reject incomplete/ambiguous output.
+  const completeParents = new Map();
+  for (const line of git(['rev-list', '--parents', head]).stdout.toString().trim().split('\n')) {
+    const [revision, ...actualParents] = line.split(' ');
+    assert(sha.test(revision) && actualParents.every(value => sha.test(value))
+      && !completeParents.has(revision), 'Invalid complete foundation ancestry');
+    completeParents.set(revision, actualParents);
+  }
+  assert(completeParents.has(head), 'Missing foundation head ancestry');
+  for (const actualParents of completeParents.values()) {
+    assert(actualParents.every(parent => completeParents.has(parent)), 'Incomplete foundation parent ancestry');
+  }
   const ancestorCache = new Map();
   function ancestor(a, b) {
     const key = `${a}:${b}`;
-    if (!ancestorCache.has(key)) ancestorCache.set(key, git(['merge-base', '--is-ancestor', a, b], { allowedFailure: true }).status === 0);
+    if (!ancestorCache.has(key)) {
+      // Every query target is inside the complete head graph. An outside source
+      // cannot be its ancestor. Keep the traversal iterative and cycle-safe.
+      const pending = completeParents.has(a) && completeParents.has(b) ? [b] : [];
+      const seen = new Set(); let found = false;
+      while (pending.length) {
+        const current = pending.pop();
+        if (current === a) { found = true; break; }
+        if (seen.has(current)) continue;
+        seen.add(current); pending.push(...completeParents.get(current));
+      }
+      ancestorCache.set(key, found);
+    }
     return ancestorCache.get(key);
   }
   assert(ancestor(checkpoint, head), 'Foundation checkpoint is not an ancestor of HEAD');
   const revisions = git(['rev-list', '--reverse', '--topo-order', `${checkpoint}..${head}`]).stdout.toString().trim().split('\n').filter(Boolean);
-  const revisionSet = new Set(revisions), commits = new Map(), trees = new Map(), blobs = new Map(), verifiedObjects = new Set();
+  const revisionSet = new Set(revisions), trees = new Map(), blobs = new Map(), verifiedObjects = new Set();
   function parents(revision) {
-    if (!commits.has(revision)) {
-      const raw = git(['cat-file', 'commit', revision]).stdout.toString();
-      commits.set(revision, raw.split('\n\n')[0].split('\n').filter(line => line.startsWith('parent ')).map(line => line.slice(7)));
-    }
-    return commits.get(revision);
+    assert(completeParents.has(revision), `Missing foundation parent facts ${revision}`);
+    return completeParents.get(revision);
   }
   const mergeBaseCache = new Map();
   function mergeBases(revision) {

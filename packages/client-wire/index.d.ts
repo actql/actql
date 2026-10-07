@@ -1,4 +1,5 @@
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
+  WireCancellationRefShape, WireCancellationLookupShape,
   WireCheckpointReviewShape, WireCheckpointSummaryShape,
   WireConnectionShape, WireHeldShape, WireLookupFoundShape,
   WireLookupNotFoundShape, WireLookupUnknownShape, WireProfileShape,
@@ -76,7 +77,8 @@ export type WireClientBodyByOperation = Readonly<{
   'lookup-request': WireBodyBase & Readonly<{requestId: string}>;
   status: WireRefBody;
   wait: WireRefBody & Readonly<{until: string | null}>;
-  cancel: WireRefBody;
+  cancel: WireRefBody & Readonly<{cancelId: string; expectedRevision: number}>;
+  'lookup-cancellation': WireRefBody & Readonly<{cancelId: string; expectedRevision: number}>;
   reconcile: WireRefBody;
   'result-describe': WireRefBody & Readonly<{
     resultName: string; format: 'json' | 'jsonl' | 'csv'; attemptId: string;
@@ -199,7 +201,13 @@ export declare function validDeliveryAttemptLookup(value: unknown,
     resultName: string}>): value is WireDeliveryAttemptLookup;
 
 export type WireCancellation = WireCancellationShape;
-export declare function validCancellation(value: unknown): value is WireCancellation;
+export type WireCancellationRef = WireCancellationRefShape;
+export type WireCancellationLookup = WireCancellationLookupShape;
+export declare function validCancellationRef(value: unknown): value is WireCancellationRef;
+export declare function validCancellation(value: unknown,
+  expected?: WireCancellationRef): value is WireCancellation;
+export declare function validCancellationLookup(value: unknown,
+  expected: WireCancellationRef): value is WireCancellationLookup;
 
 export type WireRequestCancellation = WireRequestCancellationShape;
 export declare function validRequestCancellation(value: unknown,

@@ -40,6 +40,8 @@ fn bounded_asof_input_cell(
 
 ///|
 priv enum BoundedAsOfPhase {
+  PrepareCompletionPort
+  ResolveMetadata
   ValidateIdentity
   StartIdentitySort
   IdentitySort
@@ -63,12 +65,17 @@ priv enum BoundedAsOfPhase {
 priv struct BoundedAsOfState {
   left : BoundedAsOfInput
   right : ProducerRead
-  left_time : Int
-  right_time : Int
+  kernel : @lower.PreparedAsOfJoin
+  left_schema : @schema.Schema
+  mut left_time : Int
+  mut right_time : Int
   keys : Array[(Int, Int)]
   identities : Array[Int]
   ties : Array[Int]
   columns : Array[(Bool, Int)]
+  mut metadata_index : Int64
+  mut metadata_left : Int
+  mut metadata_lookup : ChargedRowMetadataLookup?
   output_schema : @schema.Schema
   kind : @join.Kind
   direction : @asof.AsOfDirection
@@ -85,7 +92,8 @@ priv struct BoundedAsOfState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut phase : BoundedAsOfPhase
   mut identity_field : Int
   mut identity_row : Int
@@ -158,6 +166,14 @@ fn bounded_asof_failure(
 
 ///|
 fn cleanup_bounded_asof_state(state : BoundedAsOfState) -> Bool {
+  if state.metadata_lookup is Some(cursor) {
+    close_row_metadata_lookup(cursor.lookup)
+    state.metadata_lookup = None
+  }
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
     state.output_recheck = None
@@ -167,17 +183,34 @@ fn cleanup_bounded_asof_state(state : BoundedAsOfState) -> Bool {
     state.output_charge = None
   }
   if state.sort is Some(active) {
-    cleanup_bounded_index_sort(active) |> ignore
+    // Parent stop does not confirm the child's physical stop. Keep its
+    // callback state and borrowed cells until stop and reclamation succeed.
+    if !bounded_index_sort_stopped(active) {
+      @bounded.request_cancel(state.engine) |> ignore
+      match advance_bounded_index_sort(active, 1) {
+        Ok(BoundedIndexSortStopped(_)) => ()
+        _ => return false
+      }
+    }
+    if !cleanup_bounded_index_sort(active) {
+      return false
+    }
     state.sort = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.identity_order = []
   state.ordered_left = []
   state.left_clocks = []
   state.right_clocks = []
+  state.keys.clear()
+  state.identities.clear()
+  state.ties.clear()
+  state.columns.clear()
   state.output_row = []
   state.checked_row = []
   state.comparison.phase = -1
@@ -313,6 +346,139 @@ fn bounded_asof_step(
       return bounded_asof_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return bounded_asof_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return bounded_asof_failure(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return bounded_asof_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
+            }
+            state.port_preparation = None
+            state.phase = ResolveMetadata
+          }
+        }
+        used += 1
+      }
+      ResolveMetadata => {
+        let key_end = 2L +
+          @lower.asof_join_key_count(state.kernel).to_int64() * 2L
+        let identity_end = key_end +
+          @lower.asof_join_identity_count(state.kernel).to_int64()
+        let tie_end = identity_end +
+          @lower.asof_join_tie_break_count(state.kernel).to_int64()
+        let end = tie_end +
+          @lower.asof_join_field_count(state.kernel).to_int64()
+        let index = state.metadata_index
+        if index >= end {
+          state.phase = ValidateIdentity
+          continue
+        }
+        let (on_left, field) = if index < 2 {
+          (index == 0, @lower.asof_join_time(state.kernel, index == 0))
+        } else if index < key_end {
+          let at = index - 2
+          let pair = @lower.asof_join_key_at(state.kernel, (at / 2).to_int()).unwrap()
+          (at % 2 == 0, if at % 2 == 0 { pair.0 } else { pair.1 })
+        } else if index < identity_end {
+          (
+            true,
+            @lower.asof_join_identity_at(
+              state.kernel,
+              (index - key_end).to_int(),
+            ).unwrap(),
+          )
+        } else if index < tie_end {
+          (
+            false,
+            @lower.asof_join_tie_break_at(
+              state.kernel,
+              (index - identity_end).to_int(),
+            ).unwrap(),
+          )
+        } else {
+          let output = @lower.asof_join_field_at(
+            state.kernel,
+            (index - tie_end).to_int(),
+          ).unwrap()
+          guard output.input is @schema.Qualified(side, name) else {
+            return bounded_asof_failure(InvalidExecution, progress, used)
+          }
+          (side == @schema.Left, @schema.Unqualified(name))
+        }
+        if state.metadata_lookup is None {
+          guard start_charged_row_metadata_lookup(
+              if on_left {
+                state.left_schema
+              } else {
+                producer_read_schema(state.right)
+              },
+              field,
+              state.workspace,
+              false,
+            )
+            is Some(cursor) else {
+            return bounded_asof_failure(Rows(RowLimit), progress, used + 1)
+          }
+          state.metadata_lookup = Some(cursor)
+        }
+        match
+          advance_charged_row_metadata_lookup(
+            state.metadata_lookup.unwrap(),
+            state.control,
+          ) {
+          Err(_) =>
+            return bounded_asof_failure(InvalidExecution, progress, used + 1)
+          Ok(None) => ()
+          Ok(Some(column)) => {
+            state.metadata_lookup = None
+            if column < 0 {
+              return bounded_asof_failure(InvalidExecution, progress, used + 1)
+            }
+            if index == 0 {
+              state.left_time = column
+            } else if index == 1 {
+              state.right_time = column
+            } else if index < key_end {
+              if index % 2 == 0 {
+                state.metadata_left = column
+              } else {
+                state.keys.push((state.metadata_left, column))
+              }
+            } else if index < identity_end {
+              state.identities.push(column)
+            } else if index < tie_end {
+              state.ties.push(column)
+            } else {
+              state.columns.push((on_left, column))
+            }
+            state.metadata_index += 1
+            if state.metadata_index == end {
+              state.phase = ValidateIdentity
+            }
+          }
+        }
+        used += 1
+      }
       ValidateIdentity => {
         if state.identity_field == state.identities.length() {
           state.phase = StartIdentitySort
@@ -809,10 +975,12 @@ fn bounded_asof_step(
         progress += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return bounded_asof_failure(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return bounded_asof_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -821,7 +989,7 @@ fn bounded_asof_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) => bounded_asof_failure(Completion(issue), progress, used)
         }
@@ -1010,109 +1178,37 @@ fn start_bounded_asof_join_input(
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let workspace = row_workspace(max_entries)
-  let right_schema = producer_read_schema(right)
-  let resolve = fn(schema : @schema.Schema, field : @schema.FieldName) -> Int? {
-    let name = @schema.reference_name(field)
-    for index in 0..<@schema.field_count(schema) {
-      if !spend_control(control, 1) || !spend_control_text(control, name) {
-        return None
-      }
-      guard @schema.field_at(schema, index) is Some(candidate) else {
-        return None
-      }
-      if @schema.reference_name(candidate.name) == name {
-        return Some(index)
-      }
-    }
-    None
-  }
-  guard resolve(left_schema, @lower.asof_join_time(kernel, true))
-    is Some(left_time) &&
-    resolve(right_schema, @lower.asof_join_time(kernel, false))
-    is Some(right_time) else {
+  if identity_count == 0 {
     return Err(InvalidExecution)
   }
-  let keys : Array[(Int, Int)] = []
-  for index in 0..<key_count {
-    guard @lower.asof_join_key_at(kernel, index) is Some(pair) &&
-      resolve(left_schema, pair.0) is Some(left_column) &&
-      resolve(right_schema, pair.1) is Some(right_column) else {
-      return Err(InvalidExecution)
-    }
-    keys.push((left_column, right_column))
-  }
-  let identities : Array[Int] = []
-  for index in 0..<identity_count {
-    guard @lower.asof_join_identity_at(kernel, index) is Some(field) &&
-      resolve(left_schema, field) is Some(column) else {
-      return Err(InvalidExecution)
-    }
-    identities.push(column)
-  }
-  if identities.is_empty() {
-    return Err(InvalidExecution)
-  }
-  let ties : Array[Int] = []
-  for index in 0..<tie_count {
-    guard @lower.asof_join_tie_break_at(kernel, index) is Some(field) &&
-      resolve(right_schema, field) is Some(column) else {
-      return Err(InvalidExecution)
-    }
-    ties.push(column)
-  }
-  let columns : Array[(Bool, Int)] = []
-  for index in 0..<column_count {
-    guard @lower.asof_join_field_at(kernel, index) is Some(field) else {
-      return Err(InvalidExecution)
-    }
-    let (on_left, source) = match field.input {
-      @schema.Qualified(side, name) =>
-        (side == @schema.Left, @schema.Unqualified(name))
-      _ => return Err(InvalidExecution)
-    }
-    guard resolve(if on_left { left_schema } else { right_schema }, source)
-      is Some(column) else {
-      return Err(InvalidExecution)
-    }
-    columns.push((on_left, column))
-  }
-  if keys.length() > max_entries / 2 ||
-    columns.length() > max_entries / 2 ||
-    identities.length() > max_entries ||
-    ties.length() > max_entries {
-    return Err(Rows(RowLimit))
-  }
-  let key_slots = keys.length() * 2
-  let column_slots = columns.length() * 2
-  if key_slots > max_entries - column_slots ||
-    identities.length() > max_entries - key_slots - column_slots ||
-    ties.length() > max_entries - key_slots - column_slots - identities.length() {
-    return Err(Rows(RowLimit))
-  }
-  let metadata = key_slots + column_slots + identities.length() + ties.length()
-  if left_count > max_entries - metadata ||
-    right_count > max_entries - metadata - left_count ||
-    !reserve_slots(workspace, metadata) ||
+  let key_slots = key_count * 2
+  let column_slots = column_count * 2
+  let metadata = key_slots + column_slots + identity_count + tie_count
+  if !reserve_slots(workspace, metadata) ||
     !reserve_slots(workspace, left_count) ||
     !reserve_slots(workspace, right_count) {
     return Err(Rows(RowLimit))
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(step), output_ceiling, values) {
+    prepare_bounded_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      output_ceiling,
+      values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port_with_inputs(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=trusted_inputs,
+      Some(trusted_inputs),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -1123,12 +1219,17 @@ fn start_bounded_asof_join_input(
   let state : BoundedAsOfState = {
     left,
     right,
-    left_time,
-    right_time,
-    keys,
-    identities,
-    ties,
-    columns,
+    kernel,
+    left_schema,
+    left_time: -1,
+    right_time: -1,
+    keys: [],
+    identities: [],
+    ties: [],
+    columns: [],
+    metadata_index: 0L,
+    metadata_left: -1,
+    metadata_lookup: None,
     output_schema,
     kind: @lower.asof_join_kind(kernel),
     direction: @lower.asof_join_direction(kernel),
@@ -1149,8 +1250,9 @@ fn start_bounded_asof_join_input(
     rows,
     live,
     accepted,
-    port,
-    phase: ValidateIdentity,
+    port: None,
+    port_preparation: Some(port_preparation),
+    phase: PrepareCompletionPort,
     identity_field: 0,
     identity_row: 0,
     sort: None,

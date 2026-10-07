@@ -13,6 +13,8 @@ fn bounded_global_count_fixture(
   max_work? : Int = 100,
   max_entries? : Int = 100,
   name_bytes? : Int = 10000,
+  input_name? : String = "id",
+  count_name? : String = "n",
 ) -> (@bounded.Control, BoundedGlobalCountExecution, CompletedOutput) raise {
   let schema = if count_if {
     "{\"flag\":{\"type\":\"boolean\",\"nullable\":true}}"
@@ -25,11 +27,11 @@ fn bounded_global_count_fixture(
   } else {
     "{\"id\":{\"type\":\"number\",\"nullable\":true}}"
   }
-  let source_text = "[{\"values\":{\"schema\":" +
-    schema +
-    ",\"rows\":" +
-    rows +
-    "},\"as\":\"seed\"}]"
+  let source_text = ("[{\"values\":{\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  rows +
+  "},\"as\":\"seed\"}]").replace_all(old="\"id\"", new="\"" + input_name + "\"")
   let source_owner = bound_pipeline(source_text)
   let source_generated = prepare_generated_sequence(
     registered_relation_contracts(),
@@ -88,6 +90,9 @@ fn bounded_global_count_fixture(
   } else {
     "[{\"from\":\"seed\",\"group\":{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}}}]"
   }
+  let group_text = group_text
+    .replace_all(old="\"id\"", new="\"" + input_name + "\"")
+    .replace_all(old="\"n\"", new="\"" + count_name + "\"")
   let checked = @pipeline.check_with_evidence(
     input_cursor(group_text),
     [("seed", @pipeline.ProducedInput(producer))],
@@ -226,7 +231,10 @@ test "bounded keyed count sorts and groups at quantum one" {
   // Resumed preparation adds two target scans, one equality scan, three
   // phase transitions, ten schema characters, three names and one finish.
   let completion_steps = 3L * 7L + 3L + (2L + 1L + 7L) + 3L + 1L
-  assert_eq(previous_work, 70L + completion_steps)
+  // Metadata: input=4, key=4, aggregates=4+13, outputs=7+4+11.
+  // Other algorithm transitions retain their previous 63-step count.
+  let metadata_steps = 4L + 4L + 4L + 13L + 7L + 4L + 11L
+  assert_eq(previous_work, 63L + metadata_steps + completion_steps)
   assert_true(polls > 20)
   assert_eq(completed_row_count(output), 2)
   assert_true(completed_cell(output, 0, 0) is Some(Null))
@@ -246,18 +254,45 @@ test "bounded keyed count cancels during key ordering" {
     keyed=true,
     max_work=1000,
   )
-  for _ in 0..<30 {
-    assert_true(
-      advance_bounded_global_count(execution, 1).unwrap()
-      is BoundedGlobalCountContinue(..),
-    )
+  let mut comparing = false
+  let mut work = 0L
+  for _ in 0..<200 {
+    if !comparing {
+      match advance_bounded_global_count(execution, 1).unwrap() {
+        BoundedGlobalCountContinue(work=next, ..) => {
+          assert_true(next > work && next - work <= 1L)
+          work = next
+          comparing = execution.state.phase is SortRows &&
+            execution.state.sort_execution is Some(_) &&
+            execution.state.comparison.phase >= 0
+        }
+        _ => fail("keyed count ended before a child comparison")
+      }
+    }
   }
+  assert_true(comparing)
+  assert_true(execution.state.port_preparation is None)
+  let sort = execution.state.sort_execution.unwrap()
+  assert_false(bounded_index_sort_stopped(sort))
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     advance_bounded_global_count(execution, 1).unwrap()
-    is BoundedGlobalCountStopped(_, ..),
+    is BoundedGlobalCountStopped(@bounded.Cancelled, work=stopped, ..) &&
+    stopped == work,
   )
+  assert_false(bounded_index_sort_stopped(sort))
   assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_false(cleanup_bounded_global_count(execution).unwrap())
+  assert_true(bounded_index_sort_stopped(sort))
+  assert_false(cleanup_bounded_index_sort(sort))
+  assert_true(execution.state.sort_execution is None)
+  assert_eq(execution.state.workspace.live, 0)
+  assert_true(execution.state.output is None)
+  assert_true(execution.state.rows.val is None)
+  assert_false(execution.state.live.val)
+  assert_false(execution.accepted.val)
   assert_true(completed_output_available(source))
 }
 

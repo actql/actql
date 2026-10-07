@@ -969,6 +969,8 @@ priv struct StoppedReleaseRecovery {
   mut physical_cleanup : (() -> Bool)?
   mut physical_cleanup_done : Bool
   mut retained_input : Bool
+  mut recorded_source : @publication.RecordedRunPublication?
+  mut recorded_consumer : (String, String)?
 }
 
 ///|
@@ -1034,6 +1036,8 @@ fn open_release_recovery(
     physical_cleanup: None,
     physical_cleanup_done: false,
     retained_input: false,
+    recorded_source: None,
+    recorded_consumer: None,
   }
 }
 
@@ -1150,6 +1154,7 @@ fn recover_stopped_release(
           run_admission(matches),
           attempt,
           value,
+          recorded_source=owner.recorded_source,
         ) {
         Ok(hold) => holds.push(hold)
         Err(_) => return false
@@ -2004,8 +2009,17 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("release-recovered", [("request_cid", identity)])
           }
         }
+        // Recovery commits through a separate journal Owner. The pre-recovery
+        // view has already restored this dispatch and cannot admit its newer
+        // cleanup revision. Report only from a new exact durable view, as the
+        // cancellation recovery path does; do not relax reconstruction.
+        guard fresh_journal(environment) is Some(current) else {
+          report("release-failed", [("reason", "journal")])
+          ignore(journal.close())
+          continue
+        }
         match
-          @client.acknowledge_status(journal, client, observation_url, request) {
+          @client.acknowledge_status(current, client, observation_url, request) {
           Ok(_) =>
             report("release-observed", [
               ("request_cid", @remote.dispatch_request_identity(request)),
@@ -2013,6 +2027,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Err(issue) =>
             report("release-failed", [("reason", client_code(issue))])
         }
+        ignore(current.close())
       }
       Ok(Some(@remote.RetainedPlan(input))) => {
         backoff_ms = 0
@@ -2599,8 +2614,7 @@ fn serve_holder_output(
                       @bundle.native_active_runtime_target_triple(
                         execution.active_runtime,
                       ),
-                      "consumer:" +
-                      @remote.dispatch_request_identity(
+                      consumer_process_hold_identity(
                         @resident_host.resident_retained_consumer_request(owner),
                       ),
                     ) {
@@ -3785,6 +3799,20 @@ fn recover_release_command(
     is Err(_) {
     stop("release recovery current scope refused")
   }
+  // Read bounded original evidence before taking physical cleanup ownership.
+  let recorded_source = optional(child, "publication-custody-root").map(
+    load_recorded_publication,
+  )
+  let recorded_consumer = if recorded_source is Some(_) {
+    Some(
+      (
+        required(child, "consumer-attempt"),
+        required(child, "expect-consumer-dispatch"),
+      ),
+    )
+  } else {
+    None
+  }
   let slot = match
     @slot.open_native_executor_slot(required(matches, "executor-slot")) {
     Ok(value) => value
@@ -3795,6 +3823,8 @@ fn recover_release_command(
     stop("release recovery slot busy")
   }
   let owner = open_release_recovery(matches, slot, identity)
+  owner.recorded_source = recorded_source
+  owner.recorded_consumer = recorded_consumer
   match owner.journal.pending_output_intents() {
     Ok(values) if values.is_empty() => ()
     _ => stop("release recovery Output custody pending")
@@ -4183,9 +4213,19 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("consumer-attempt", required=true),
         @argparse.OptionArg("expect-consumer-dispatch", required=true),
       ]),
+      @argparse.Command("recover-source-output", options=[
+        @argparse.OptionArg("producer-attempt", required=true),
+        @argparse.OptionArg("expect-producer-dispatch", required=true),
+        @argparse.OptionArg("consumer-attempt", required=true),
+        @argparse.OptionArg("expect-consumer-dispatch", required=true),
+        @argparse.OptionArg("publication-custody-root"),
+      ]),
       @argparse.Command("recover-release", options=[
         @argparse.OptionArg("attempt", required=true),
         @argparse.OptionArg("expect-dispatch", required=true),
+        @argparse.OptionArg("publication-custody-root"),
+        @argparse.OptionArg("consumer-attempt"),
+        @argparse.OptionArg("expect-consumer-dispatch"),
       ]),
       @argparse.Command("retry-output-report", options=[
         @argparse.OptionArg("intent-cid", required=true),
@@ -4206,6 +4246,8 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
     Some(("recover-output", child)) => recover_output_command(matches, child)
     Some(("recover-retained-input", child)) =>
       recover_retained_input_command(matches, child)
+    Some(("recover-source-output", child)) =>
+      recover_retained_input_command(matches, child, source_output=true)
     Some(("recover-release", child)) => recover_release_command(matches, child)
     Some(("output-reports", _)) => {
       let environment = open_control_environment(matches)

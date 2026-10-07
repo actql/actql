@@ -16,6 +16,60 @@ export function validateResourceAccounting({
   const fail = message => errors.push(message);
   let summaryReplacement;
 
+  // Shared implementation evidence is reusable only while every installed
+  // kernel and provider still reaches the same reclamation/completion owner.
+  const reclamationProviders = {
+    "values": "connectors/local/values_provider",
+    "append": "connectors/local/append_provider",
+    "set": "connectors/local/set_provider",
+    "cross_join": "connectors/local/cross_join_provider",
+    "global_count": "connectors/local/global_count_provider",
+    "group": "connectors/local/group_provider",
+    "asof_join": "local_tea_provider/asof_join",
+    "interval_join": "local_tea_provider/interval_join",
+    "join": "connectors/local/selected_join_execution",
+    "binding_rows": "connectors/local/selected_relation_provider",
+    "sequence_match": "local_tea_provider/sequence_match",
+    "nest": "connectors/local/nest_provider",
+    "unpivot": "connectors/local/unpivot_provider",
+    "row_window": "connectors/local/row_window_provider",
+    "unnest": "connectors/local/unnest_provider"
+  };
+  const reclamationSource = relative => {
+    const file = path.join(root, relative);
+    return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  };
+  for (const [kernel, provider] of Object.entries(reclamationProviders)) {
+    const source = reclamationSource(`src/execution_relation/bounded_${kernel}.mbt`);
+    const caller = reclamationSource(`src/${provider}.mbt`);
+    if (!source.includes('reclaim_bounded_admitted_output(output, state.accepted.val)') ||
+      !caller.includes(`@execution.bounded_${kernel}_cleanup_pending(`)) {
+      fail(`${kernel}: shared output reclamation custody connection is missing`);
+    }
+  }
+  const bufferSource = reclamationSource('src/execution_relation/admitted_input.mbt');
+  const outputSource = reclamationSource('src/execution_relation/admitted_output.mbt');
+  if (['for _ in 0..<quantum', 'row[row.length() - 1] = @admitted.null_value()',
+    'row.cells[row.cells.length() - 1] = None', 'input.rows = []',
+    'input.presence_rows = []', 'input.deferred_reclamation'].some(marker =>
+    !bufferSource.includes(marker)) || !outputSource.includes('if accepted {') ||
+    !outputSource.includes('advance_admitted_buffer_reclamation(output.buffer, 64)')) {
+    fail('shared output reclamation primitive connection is missing');
+  }
+  const reclamationFixture = reclamationSource(
+    'src/execution_relation/admitted_output_reclamation_wbtest.mbt');
+  for (const name of [
+    'bounded Values retains output reclamation custody across cleanup slices',
+    'bounded output append failure keeps private rows until sliced cleanup',
+    'sliced reclamation never mutates sealed output or presence source cells',
+    'failed completion retains sealed unaccepted output for sliced cleanup',
+    'cleanup change does not imply completion after an unaccepted kernel result',
+  ]) {
+    if (!reclamationFixture.includes(`test "${name}"`)) {
+      fail(`shared output reclamation fixture is missing: ${name}`);
+    }
+  }
+
   if (manifest.version !== 'actql-local-resource-accounting-audit/0.1') {
     fail(`unexpected manifest version: ${manifest.version}`);
   }
@@ -1837,6 +1891,84 @@ export function validateResourceAccounting({
       (!environmentRoles.has('same_stage_values_derive_timer_cancel_cleanup') ||
         !boundaryRoles.has('same_stage_values_derive_two_consumers'))) {
       fail(`${label}: same-stage values derive evidence is missing`);
+    }
+    const compoundPortKinds = {join:'join', nest:'nest', interval_join:'interval',
+      asof_join:'asof', sequence:'sequence'};
+    if (compoundPortKinds[route.operation] && ['RelA', 'TEA'].includes(route.family)) {
+      const kind = compoundPortKinds[route.operation];
+      const kernel = {interval:'interval_join', asof:'asof_join',
+        sequence:'sequence_match'}[kind] ?? kind;
+      const file = path.join(root, `src/execution_relation/bounded_${kernel}.mbt`);
+      const source = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+      if (['start_trusted_output_preparation(', 'advance_trusted_output_preparation(',
+        'finish_trusted_output_preparation(', 'cancel_trusted_output_preparation(']
+        .some(marker => !source.includes(marker)) ||
+        /prepare_trusted_output_port(?:_with_inputs)?\s*\(/u.test(source)) {
+        fail(`${label}: ${kind} compound output port production cursor connection is missing`);
+      }
+      for (const part of ['limit', 'quantum', 'stop']) {
+        const role = `${kind}_compound_output_port_${part}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      const role = `${kind}_compound_output_port_public`;
+      if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+    }
+    const metadataKinds = {join:'join', nest:'nest', interval_join:'interval',
+      asof_join:'asof', group:'count', sequence:'sequence'};
+    if (route.family === 'TEA' && route.operation === 'sequence') {
+      const file = path.join(root,'src/execution_relation/bounded_sequence_match.mbt');
+      const source = fs.existsSync(file) ? fs.readFileSync(file,'utf8') : '';
+      const providerFile = path.join(root,'src/local_tea_provider/sequence_match.mbt');
+      const provider = fs.existsSync(providerFile) ? fs.readFileSync(providerFile,'utf8') : '';
+      if (['CopyPositions =>', 'ReleaseSelected =>', 'ReleaseGroup =>',
+        'ReleaseMatches =>', 'ReleasePredicateInput =>',
+        'bounded_sequence_pop_partial(', 'bounded_sequence_pop_match(',
+        'state.copy_positions.push(source[state.copy_index])',
+        'for _ in 0..<64', 'state.copy_reserved'].some(marker=>!source.includes(marker)) ||
+        /positions\.copy\s*\(|for (?:predicate|patterns|partial|match_) in state\./u.test(source) ||
+        !provider.includes('@execution.bounded_sequence_match_cleanup_pending(')) {
+        fail(`${label}: sequence position copying or cleanup connection is missing`);
+      }
+      for (const part of ['quantum','workspace','stop','cleanup']) {
+        const role = `sequence_position_${part}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('sequence_position_public')) {
+        fail(`${label}: sequence_position_public fixture is missing`);
+      }
+    }
+    if (metadataKinds[route.operation] && ['RelA','TEA'].includes(route.family)) {
+      const kind = metadataKinds[route.operation];
+      const kernel = {group:'global_count', sequence:'sequence_match'}[route.operation] ?? route.operation;
+      const file = path.join(root, `src/execution_relation/bounded_${kernel}.mbt`);
+      const source = fs.existsSync(file) ? fs.readFileSync(file,'utf8') : '';
+      const cursorFile = path.join(root,'src/execution_relation/row_metadata_cursor.mbt');
+      const cursor = fs.existsSync(cursorFile) ? fs.readFileSync(cursorFile,'utf8') : '';
+      const lookup = kind === 'count' ? 'row_metadata_lookup' : 'charged_row_metadata_lookup';
+      if ([`start_${lookup}(`, `advance_${lookup}(`,
+        'close_row_metadata_lookup('].some(marker=>!source.includes(marker)) ||
+        ['start_row_metadata_lookup(', 'advance_row_metadata_lookup(',
+          'text_function_scalar(', 'spend_control('].some(marker=>!cursor.includes(marker)) ||
+        /let names_of\s*=|let resolve\s*=\s*fn/u.test(source)) {
+        fail(`${label}: ${kind} compound metadata production cursor connection is missing`);
+      }
+      if (['join','count','sequence'].includes(kind) && (['start_row_name_charge(', 'advance_row_name_charge(',
+        'close_row_name_charge('].some(marker=>!source.includes(marker)) ||
+        /spend_control_text\s*\(|@schema\.reference_name\s*\(/u.test(source))) {
+        fail(`${label}: ${kind} compound metadata production cursor connection is missing`);
+      }
+      if (kind === 'sequence' && (['indexed_expression_input(',
+        'start_predicate_expression_with_input(', 'bounded_sequence_pattern_name(',
+        'advance_bounded_text_charge('].some(marker=>!source.includes(marker)) ||
+        /charge_text_append\s*\(|Map\[String,\s*Value\]/u.test(source))) {
+        fail(`${label}: sequence compound metadata production cursor connection is missing`);
+      }
+      for (const part of ['limit','workspace','quantum','stop']) {
+        const role = `${kind}_compound_metadata_${part}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      const role = `${kind}_compound_metadata_public`;
+      if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
     }
     const unaryPortKinds = {group:['group','count'], analytic:['analytic'],
       pivot:['pivot'], row_window:['window'], unpivot:['unpivot'], unnest:['unnest']};

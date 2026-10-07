@@ -251,24 +251,40 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: 'eaf5f1daf3c35ac62831f2ba92010aa047700bfef5435b1dcecec30818f6696a',
     query_text_rules_sha256: '4e05cc33de7da0c3d38727908d969a015db00acfbc5ffbbc7df0fe5b54c27678'}),
     'sha256:6788acd1b4d3d2771311442d3ddbf881680d319c79cb0ebe46e4f333341c2835');
-  // Preserve the predecessor's normative bytes, independent of the new ARRAY
-  // grammar and specification section.
-  assert.equal(cid({...currentBody,
-    query_text_grammar_sha256: '0b961eacd150b63d3abb62fb974eda40310ed39e0406faf73e18f52a0bf01eb5',
+  // Retain complete predecessor bytes rather than reusing the new edge grammar.
+  const beforeAnyDirection = {...currentBody,
+    query_text_grammar_sha256: '0b961eacd150b63d3abb62fb974eda40310ed39e0406faf73e18f52a0bf01eb5'};
+  assert.equal(cid({...beforeAnyDirection,
     query_text_rules_sha256: 'cdaef72756f3e36f2e1603ba8c02b6fb16772be1a1cbcdc19bfd5df837135e39'}),
     'sha256:1995b1527e69dfc30daff86098b01d0fcef393d703c58e4fbf4f6fa980bf890c');
-  assert.equal(cid({...currentBody,
-    query_text_grammar_sha256: '0b961eacd150b63d3abb62fb974eda40310ed39e0406faf73e18f52a0bf01eb5',
+  assert.equal(cid({...beforeAnyDirection,
     query_text_rules_sha256: '3b07aa84502eaf96081dbadc38eaa73324e7fa648d4d056c8d69adc19c52b0e2'}),
     'sha256:a395e9d881fd75019ff99db18016a4cf72f19f14f52856b8f313462e0489c09a');
+  assert.equal(cid({...beforeAnyDirection,
+    query_text_rules_sha256: 'c0c91e6b436646fb05e0e22d29ae3e05dbe6f7be451cf069cc807f479177ca3c'}),
+    'sha256:675ce07e2792ad6736f526ffb894e987463ff1eee7f94dfd8e391bcfbfc3dd20');
+  // Freeze the complete full-edge predecessor before adding abbreviations.
+  assert.equal(cid({...currentBody,
+    query_text_grammar_sha256: 'c7f9802419d92bf1f53ee28edf277d9ed8b5f628733d78355d54c448fc106c98',
+    query_text_rules_sha256: 'f0b099fa9773e872b430f691cfe54523e74f5ef8bd1da352d9ab41acd763fb50'}),
+    'sha256:3766a009afd7d8e22904ace1507becb871c62c5fb0dd969f7ee0886c17892c55');
   // Keep the ARRAY constructor profile's exact normative predecessor.
   assert.equal(cid({...currentBody,
+    query_text_grammar_sha256: '2023c8b252f362a5233ba8a9eb08c1765e9770e70249e52dde81e826654abb58',
     query_text_rules_sha256: 'd7c0e3eb9184cb53c37ea0640dffb1492d07baa184c2f255a4ea5e72d77013ee'}),
     'sha256:eb7c8d7239e90b612a3bca095d29d74a828e47187609a893ff4d7406ac6512a6');
-  const currentExpected = 'sha256:4ce6abb00008cc0752dda4797487ef815287e30d21bc6e1ae5fca3941f7005a9';
+  assert.equal(cid({...currentBody,
+    query_text_grammar_sha256: '2023c8b252f362a5233ba8a9eb08c1765e9770e70249e52dde81e826654abb58',
+    query_text_rules_sha256: 'd89b03d3746695b09c641b9200458e9c352c1b34138b3a4adf198ba366f7604f'}),
+    'sha256:4ce6abb00008cc0752dda4797487ef815287e30d21bc6e1ae5fca3941f7005a9');
+  assert.equal(cid({...currentBody,
+    query_text_grammar_sha256: '5f0a569b54a83d942d0e9f686a1f58881f91f007a024edb20ceab14890ab1941',
+    query_text_rules_sha256: 'bd2c35846681c920ee1d402566aa53e38d6372d20d9cbffa585003ad3eda9b74'}),
+    'sha256:e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3');
+  const currentExpected = 'sha256:3fe077253a1f7ec230316eb1d6cca21d464c5292ea63f95f19ca53052b03ee9f';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
-  assert.equal(currentBody.query_text_grammar_sha256, '2023c8b252f362a5233ba8a9eb08c1765e9770e70249e52dde81e826654abb58');
-  assert.equal(currentBody.query_text_rules_sha256, 'd89b03d3746695b09c641b9200458e9c352c1b34138b3a4adf198ba366f7604f');
+  assert.equal(currentBody.query_text_grammar_sha256, '6b4d8903da723dbb5cc57f9d7a472701d853393771c995fbb84a05b2feb553a9');
+  assert.equal(currentBody.query_text_rules_sha256, '21b55f49ca04705e30d2c3d0600e3d2f4c14c7dec534b7dfa85350c8def3e789');
   assert.equal(cid(currentBody), currentExpected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);

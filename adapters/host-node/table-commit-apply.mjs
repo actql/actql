@@ -59,7 +59,8 @@ export async function prepareCapturedTableCommit({control, store, holding,
   const mapping = JSON.parse(control.localEffectTableStorageMapping(
     holding.localResultArtifact, limits).wire);
   // Pure bounded preparation, before any durable send claim. No Catalog I/O.
-  const physical = bridge.prepareWrite({operation, mapping, rows, reservation});
+  const schemaWire = control.tableInputSchemaWire(tableInput);
+  const physical = bridge.prepareWrite({operation, mapping, rows, reservation, schemaWire});
   return retainMaterial({control, bridge, physical, tablePreview, binding,
     operation, assertAvailable: () => {
       if (control.tablePreviewInputAvailable(tablePreview) !== true) {
@@ -74,14 +75,14 @@ export async function prepareCapturedTableCommit({control, store, holding,
 export async function prepareRecoveredTableCommit({control, recoveredInput,
   bridge, reservation, maxBytes, signal}) {
   assertRecoveredTableInputAvailable(recoveredInput);
-  const {tablePreview, operationWire, mappingWire} = recoveredInput;
+  const {tablePreview, operationWire, mappingWire, schemaWire} = recoveredInput;
   const binding = control.tablePreviewLedgerBinding(tablePreview);
   if (binding.operationWire !== operationWire) fail('ForeignTableCommitInput');
   const rows = await readRecoveredTableInput({prepared: recoveredInput, maxBytes, signal});
   signal?.throwIfAborted();
   assertRecoveredTableInputAvailable(recoveredInput);
   const operation = JSON.parse(operationWire), mapping = JSON.parse(mappingWire);
-  const physical = bridge.prepareWrite({operation, mapping, rows, reservation});
+  const physical = bridge.prepareWrite({operation, mapping, rows, reservation, schemaWire});
   return retainMaterial({control, bridge, physical, tablePreview, binding, operation,
     assertAvailable: () => assertRecoveredTableInputAvailable(recoveredInput)});
 }
@@ -153,6 +154,10 @@ export function bindApprovedTableCommitDispatch({control, ledger, prepared,
         decision.tuple.operation !== 'effect' || decision.subjectCid !== subjectCid ||
         decision.basis !== 'resumed' || !cid(decision.checkpointCid) ||
         !cid(decision.resolutionCid)) fail('TableCommitApprovalRequired');
+    // Semantic Preview/request CIDs cannot distinguish legitimate copies
+    // authored under different scopes. Admit the actual claim against the
+    // exact typed Preview before any durable send claim or provider call.
+    control.admitTablePreviewClaim(material.tablePreview, members[index].claims[0]);
     return material;
   });
   return async ({memberIndex, rowIndex, claim}) => {
@@ -161,6 +166,7 @@ export function bindApprovedTableCommitDispatch({control, ledger, prepared,
         material === undefined) fail('ForeignTableCommitDispatch');
     signal?.throwIfAborted();
     material.assertAvailable();
+    control.admitTablePreviewClaim(material.tablePreview, claim);
     await captureClaimedEffectResponse({ledger, claim,
       requestCid: material.requestCid,
       execute: () => material.bridge.execute(material.physical,

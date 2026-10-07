@@ -1,6 +1,6 @@
 import {request as httpsRequest} from 'node:https';
-import {observeResponseHeaders, ownRequestHeaders, ownResponseHeaderNames} from
-  '../host-common/http-exchange.mjs';
+import {checkHttpRequestMethodBody, observeResponseHeaders, ownRequestHeaders,
+  ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -37,14 +37,19 @@ function operationFor(operations, scope, maxRequestBytes) {
   const operation = operations.get(scope.operation);
   if (operation === undefined || operation === null ||
       typeof operation !== 'object' ||
-      !['GET', 'POST', 'PATCH'].includes(operation.method) ||
       !text(operation.path)) {
     fail('UnsupportedRemoteCredentialOperation');
   }
-  const mutation = operation.method !== 'GET';
-  if ((mutation && (typeof operation.body !== 'string' ||
-      Buffer.byteLength(operation.body) > maxRequestBytes)) ||
-      (!mutation && operation.body !== undefined)) {
+  const {method, body} = operation;
+  try {
+    checkHttpRequestMethodBody(method, body, {requireBody: true});
+  } catch (error) {
+    fail(error?.code === 'InvalidHttpRequestMethod'
+      ? 'UnsupportedRemoteCredentialOperation'
+      : 'InvalidRemoteCredentialOperation', error);
+  }
+  const requestBytes = body === undefined ? 0 : Buffer.byteLength(body);
+  if (requestBytes > maxRequestBytes) {
     fail('InvalidRemoteCredentialOperation');
   }
   // Allowed non-secret request headers and the declared response header
@@ -63,12 +68,12 @@ function operationFor(operations, scope, maxRequestBytes) {
     fail('InvalidRemoteCredentialOperation');
   }
   return Object.freeze({
-    method: operation.method,
+    method,
     hostname: origin.hostname,
     port: origin.port || undefined,
     path: exactRequestTarget(operation.path),
-    body: mutation ? operation.body : undefined,
-    requestBytes: mutation ? Buffer.byteLength(operation.body) : 0,
+    body,
+    requestBytes,
     headers,
     responseHeaders,
   });

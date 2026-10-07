@@ -6,6 +6,9 @@ import {createRequire} from 'node:module';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+// Installed Source configuration is bounded before JSON buffering.
+import './source-profile-json.test.mjs';
+import './installed-source-bounds.test.mjs';
 // The installed connector table runs with the installation tests.
 import './installed-connectors.test.mjs';
 // The neutral row source's Site boundary runs with the installation tests.
@@ -123,9 +126,6 @@ test('embedded Host reuses equivalent installation options, not object identity'
     const second = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory}});
     assert.equal(first.profile.version, second.profile.version);
-    await first.close();
-    await second.close();
-
     await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true}}),
     {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
@@ -139,6 +139,11 @@ test('embedded Host reuses equivalent installation options, not object identity'
     await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, sourceProfilePath: foreign}}),
     {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
+    await first.close();
+    await second.close();
+    const reopened = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory, retainedRelationOutput: true}});
+    await reopened.close();
   });
 
 test('public source-free Program uses installed retained Relation output',

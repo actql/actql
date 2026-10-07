@@ -9,17 +9,18 @@ fn retained_fixture(
   owner : @lower.BoundPrepared,
   live : Ref[Bool],
   capture_value_measurement? : Bool = false,
+  row_count? : Int = 2,
 ) -> (CompletedOutput, RetainedOutputHandle[String]) raise {
   let stream = prepare_admitted_output_stream(
     owner,
     Step(1),
-    2,
+    row_count,
     stream_value_limits(),
     row_wire_limits(),
     64,
     capture_value_measurement~,
   ).unwrap()
-  for row in 0..<2 {
+  for row in 0..<row_count {
     let supplied = output_fixture_row(owner, row)
     append_admitted_output_stream(stream, supplied.length(), column => {
       supplied.get(column)

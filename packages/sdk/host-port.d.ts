@@ -19,6 +19,8 @@ export type LocalResultFrame = Readonly<{
 export type LocalResultRows = Readonly<{
   kind: 'rows';
   frames: AsyncIterable<LocalResultFrame>;
+  /** Retry this delivery's retained cleanup; never opens another read. */
+  close?: () => Promise<void>;
 }>;
 
 export type InProcessHostRequest =
@@ -30,6 +32,10 @@ export type InProcessHostRequest =
 export interface InProcessHostPort {
   perform(operation: ClientHostOperation, request: InProcessHostRequest,
     signal?: AbortSignal): Promise<unknown | LocalResultRows>;
+  /** Release only this Client's lease after its reads settle. */
+  close?(): Promise<void>;
+  /** Synchronously revoke this lease's ingress before reader cleanup. */
+  seal?(): void;
 }
 
 export declare function connectInProcess(options: EmbeddedLocalOptions,

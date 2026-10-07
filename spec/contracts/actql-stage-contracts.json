@@ -23,8 +23,36 @@
       "meta",
       "from",
       "effects",
-      "after"
+      "after",
+      "table_inputs"
     ],
+    "table_inputs": {
+      "declaration": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "from": {"type": "string", "minLength": 1},
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            }
+          },
+          "required": ["from", "fields"],
+          "additionalProperties": false
+        }
+      },
+      "effect_source": "store.from={table_input:name}; exclusive_with_result",
+      "scope": "same_stage_private_table_operation_input_not_result_import_or_export",
+      "schema": "finite_selected_fields_preserve_value_contract_nullable_and_presence",
+      "identity": "authored_declaration_and_private_source_bind_stage_program_and_operation",
+      "capture": "existing_completed_relation_store_and_effect_input_owners",
+      "ordinary_results": "all_selected_columns_required_unchanged",
+      "support": "structural_or_type_acceptance_not_executable_capture_authority"
+    },
     "import_forms": [
       "{result:{stage,result}}",
       "{receipt:{stage,effect}}"

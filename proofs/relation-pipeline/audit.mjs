@@ -15,6 +15,7 @@ import { hash, snapshot, checkBaseline } from './inventory.mjs';
 import { validate, compareSemantics } from './evidence.mjs';
 import { auditFixture, payload, inputVariable } from './fixture.mjs';
 import { applyMutation } from './sites.mjs';
+import { checkMutationActions } from './mutation-actions.mjs';
 const defaultRoot = fileURLToPath(new URL('../../', import.meta.url));
 function freeze(value) {
   if (value && typeof value === 'object') {
@@ -49,7 +50,7 @@ export function createAudit(root = defaultRoot) {
       return join(directory, relative);
     };
     const read = path => JSON.parse(readFileSync(path, 'utf8'));
-    const receiptPaths = new Set(), observedIds = new Set();
+    const receiptPaths = new Set(), observedIds = new Set(), auditedReceipts = new Map();
     function auditExecution(execution, selected, expectedTarget = execution.receipt.target, workspace = null) {
       assert(!receiptPaths.has(execution.path), 'Execution receipt reused across obligations');
       receiptPaths.add(execution.path);
@@ -101,6 +102,8 @@ export function createAudit(root = defaultRoot) {
         }
       }
       assert.deepEqual(run.cases.map(c => c.observation), observations, 'Archived execution observations differ from log');
+      auditedReceipts.set(execution.path, {receiptDigest: execution.digest,
+        bytesDigest: hash(readFileSync(artifact(execution.path)))});
       return source;
     }
     function auditModels(report) {
@@ -261,6 +264,9 @@ export function createAudit(root = defaultRoot) {
     const extension = checkTakeHistory(root);
     assert.equal(extension.handwrittenCombinationAdditions, 0);
     log('Historical take measurement preserved; current foundation changes are counted separately');
+    const actions = checkMutationActions({root, directory, source: current, decision: expectedImpact, auditedReceipts});
+    log(`ACTQL_PIPELINE_ACTIONS:${JSON.stringify(actions)}`);
+    return actions;
   };
   return Object.freeze(Object.assign(audit, { preparation: Object.freeze(preparation) }));
 }

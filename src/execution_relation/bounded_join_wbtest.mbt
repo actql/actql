@@ -10,12 +10,24 @@ fn bounded_join_fixture(
   max_entries? : Int = 1000,
   output_nodes? : Int = 1000,
   output_values? : ValueLimits = run_limits().output_values,
+  name_bytes? : Int = 10000,
+  right_name? : String = "r",
+  key_name? : String = "id",
 ) -> (@bounded.Control, BoundedJoinExecution, Array[ProducerRead]) raise {
   let schema = "{\"id\":{\"type\":\"" +
     key_type +
     "\",\"nullable\":true},\"v\":{\"type\":\"" +
     value_type +
     "\",\"nullable\":false}}"
+  let schema = schema.replace_all(old="\"id\"", new="\"" + key_name + "\"")
+  let left_rows = left_rows.replace_all(
+    old="\"id\"",
+    new="\"" + key_name + "\"",
+  )
+  let right_rows = right_rows.replace_all(
+    old="\"id\"",
+    new="\"" + key_name + "\"",
+  )
   let (left_owner, left_output) = bounded_cross_source(schema, left_rows)
   let (right_owner, right_output) = bounded_cross_source(schema, right_rows)
   let producer = fn(owner) {
@@ -27,17 +39,20 @@ fn bounded_join_fixture(
   let projection = if kind == "semi" || kind == "anti" {
     "{\"k\":\"left.id\",\"l\":\"left.v\"}"
   } else {
-    "{\"k\":\"left.id\",\"l\":\"left.v\",\"r\":\"right.v\"}"
+    "{\"k\":\"left.id\",\"l\":\"left.v\",\"" + right_name + "\":\"right.v\"}"
   }
+  let pipeline_wire = "[{\"from\":\"l\",\"join\":{\"with\":\"r\",\"kind\":\"" +
+    kind +
+    "\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}]," +
+    "\"select\":" +
+    projection +
+    options +
+    "}}]"
   let checked = @pipeline.check_with_evidence(
     input_cursor(
-      "[{\"from\":\"l\",\"join\":{\"with\":\"r\",\"kind\":\"" +
-      kind +
-      "\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}]," +
-      "\"select\":" +
-      projection +
-      options +
-      "}}]",
+      pipeline_wire
+      .replace_all(old="\"id\"", new="\"" + key_name + "\"")
+      .replace_all(old="left.id", new="left." + key_name),
     ),
     [
       ("l", @pipeline.ProducedInput(producer(left_owner))),
@@ -97,7 +112,7 @@ fn bounded_join_fixture(
     max_work,
     100,
     max_entries,
-    10000,
+    name_bytes,
   ).unwrap()
   (control, execution, [left, right])
 }

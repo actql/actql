@@ -75,6 +75,45 @@ ActQL's missing-versus-NULL semantics.
 
 ## Binding a captured Relation
 
+### Table-only closed input boundary
+
+An ordinary Named Result continues to require every published column to be
+Required. Its field projection closes both delivery and ordinary Result-backed
+Effect consumption. Table materialization must not weaken that rule or silently
+publish a Conditional column as nullable.
+
+A Table operation instead needs a closed, checked Relation input which can
+retain Conditional columns. Its authored binding and finite selected column set
+must be resolved by the common checker. The complete input schema includes each
+column's value contract, nullability and independent presence guarantee, even
+for empty input. Sample values, `IS NOT NULL`, and a physical mapping cannot
+issue that schema or promote a Conditional column to Required.
+
+The structured declaration is stage-local
+`table_inputs: {name: {from: binding, fields: [column, ...]}}`; a Table `store`
+selects it using `from: {table_input: name}`. Its namespace and checked type are
+separate from ordinary Results, even when names coincide. The closed declaration
+has no order override, publication metadata or authored presence assertion.
+Stage/Program semantics include both the declaration and the private source
+choice. The common declaration-count, work, nodes and text limits include its
+admission and exact source-owned retention; no second accounting owner is added.
+
+This input is private operation material, not another public Named Result. Its
+completed export and capture use the existing Relation, Store, Effect input and
+Table binding owners. The exact source occurrence, closed projection, logical
+schema, content and effective Data Policy must bind the operation and approval;
+an adapter cannot replace them with an equal but foreign export or a fabricated
+Result Artifact. The ordinary Result-derived input remains valid for all-Required
+Tables, but is not a compatibility fallback for the private input.
+
+Omitted cells remain absent, explicit NULL remains present and nullable, and
+actual values retain their checked type. These facts survive capture, durable
+recovery, physical field-ID mapping and a later Table Source read. Unknown commit
+and cleanup custody do not change. A Table-only input capability must not make
+arbitrary row Effects, downstream stage imports or public delivery consumers
+accept sparse Results. Structural Program admission and executable capture must
+both implement this distinction before sparse public materialization is claimed.
+
 Storage mapping issuance consumes the existing completed Relation export
 receipt, not adapter-authored schema JSON or an asserted schema CID. It uses
 the complete checked schema, including conditional columns that no actual row
@@ -82,6 +121,43 @@ contains. The same schema yields the same mapping for empty and nonempty input.
 Unsupported declarations and physical-name collisions are refused before
 staging. The schema identity preserves logical constraints that are not part of
 the physical boolean/double/string discriminator.
+
+A new Table Source must use that complete logical schema, not infer one from
+the physical mapping or sample rows. Publication must retain the common owner's
+canonical field-contract map under its schema CID in the durable Table metadata.
+On a later read, the common owner must re-admit that map and check its identity,
+column names, value contracts and presence against the selected generation.
+Missing logical metadata is a refusal, not permission to synthesize unconstrained
+primitive types from Iceberg fields. The Source declaration and the runtime input
+must agree even for an empty generation.
+
+The live export supplies its exact canonical schema wire; recovery retains the
+same wire with the original mapping and operation. The common owner checks it
+against the approved schema CID before dispatch. The physical writer requires
+this material and stores it as `actql.logical-schema` in immutable Iceberg
+metadata. It checks correspondence with the sealed field-ID/presence mapping,
+but does not issue logical contracts or infer value constraints. Replace requires
+the same saved schema wire. A reader receives those exact bytes and must still
+admit the complete logical contract through the common Source owner.
+
+The Source declaration carries the saved field map in the closed
+`actql-relation-schema/0.1` carrier-schema body. Required fields retain their
+complete value contracts; Conditional fields retain their separate presence
+wrapper. The declaration producer and Check Environment use the same bounded
+field-map reader, rather than separate primitive-type approximations. The
+logical field-map CID, carrier body CID and Contract Envelope CID identify
+different preimages. Existing object value contracts remain all-fields-required;
+this form serializes the existing Relation presence contract, not optional
+ordinary objects. Physical generation resolution alone supplies no read grant.
+
+Row acquisition uses the existing exact checked-input owner for both required
+and conditional columns. An omitted conditional cell enters presence-aware row
+admission; explicit NULL still goes through the column's nullable value contract.
+Required omissions, undeclared fields and type violations refuse the acquisition.
+The existing cumulative capture bounds include presence containers, and failed
+input admission cannot hand off earlier rows as a completed partial Source.
+This does not relax required fields of ordinary object value contracts or make
+conditional columns available to ordinary expressions without a schema guarantee.
 
 The common Host binds a Table request to the exact checked `store` member,
 captured local Result Artifact, issued Effect identity and logical request
@@ -128,6 +204,23 @@ Durable source holdings retain both through the existing result-aware capture
 owner. Installations must not obtain their requests from per-row write mapping
 or invent a row to represent an empty Table.
 
+The installed Table hooks project the completed computation and recovered
+capture into the existing installed Effect Site. Installation metadata binds
+each checked Effect member and Mapping to one Catalog/name and create or
+expected-generation replace action. Capability identity also binds the runtime,
+installation and these exact targets; a changed capability cannot resume a
+saved Preview. Member ordering comes from checked ordinals, not installation
+array order. Source-free authoring does not fabricate Model provenance.
+
+Capture prepares bounded physical material but performs no Catalog observation
+or write. Recovery reads the original Catalog operation under current authority
+before using the common durable frontier. Only Ready members refresh current
+target guards; a committed create is not rejected merely because its name now
+exists. Dispatching/Unknown members reconcile rather than claim another send.
+The same Site cleanup custody serializes concurrent retries, retains pending
+physical handles, and closes the Ledger only after verified cleanup. Immutable
+Table generations remain Catalog-owned after temporary Run handles are released.
+
 The Table input binding is paired with the existing checked captured Preview,
 including its exact live source occurrence. A different member, substituted
 operation, row-oriented inventory, missing approval requirement or different
@@ -137,7 +230,10 @@ approval grant: current installed target validation, permission and approval
 decisions, source availability and durable claims remain required at apply.
 
 For process recovery, the same private capture record retains the original
-sealed storage mapping and operation for each Table member. A recovered typed
+sealed storage mapping, operation and canonical schema wire for each Table
+member. The closed material record contains `mapping_wire`, `operation_wire`
+and `schema_wire`; omitted schema material is refused without reconstruction.
+A recovered typed
 Table view derives the operation from that member's sealed Preview, re-admits
 the exact mapping, and matches the original request scope, semantic Result
 Artifact, schema, logical Relation, policy and physical source occurrence.
@@ -183,6 +279,19 @@ Concurrent or delayed observers cannot overwrite the first saved response or
 create a second terminal revision. Saved malformed evidence is retained rather
 than replaced by a lookup; that case remains a separate recovery obligation.
 
+The installed Host connects public `Run.reconcile()` to this observation of
+the original Effect continuation. It reopens the retained capture through the
+same Store owner, leaves the completed approval/resume intent unchanged, and
+uses common recovered apply, receipt aggregation and Result publication.
+The observation-only apply path rejects a remaining Ready member before any
+target refresh, approval or dispatch binder. It never turns reconciliation
+into permission to send an unattempted member. A still-unknown response keeps
+the capture and reconciliation state; observation failures do not reclassify
+the Run. Successful aggregation uses the journal's existing compare-and-swap
+transition from `needs_reconciliation`, not a new `resuming` state or intent.
+An unknown execution without an Effect continuation is not handled by this
+Table observation path.
+
 Catalog head publication, the original operation's immutable commit record and
 storage reservation transfer form one durable Catalog transaction. The record
 binds request CID, old/new generation, schema, mapping and the complete owned
@@ -209,6 +318,74 @@ not change an acquired reader. Run/Result release releases only temporary input
 and read ownership, never the Table or its live files. Original commit records
 remain available after later commits and Run release within the configured
 durable storage installation.
+
+The optional local I/O bridge resolves a read selector containing the installed
+Catalog, namespace/name, Table UUID and schema CID. It reads the Catalog head
+and original publication record in one database snapshot, validates the
+immutable metadata and saved storage mapping, and returns that generation's
+receipt, mapping and canonical logical schema wire. Subsequent reads use this
+frozen generation, not a later
+head. Unknown tables, mismatched UUID/schema and missing publication records
+are refusals, not empty tables or reconstructed records. This read resolution
+is not reconciliation of an uncertain Effect: the original-operation lookup
+remains separate. The installed Source caller must check current read authority
+before and after I/O and admit decoded rows through the common presence-aware
+Relation owner; this physical primitive alone is not public Source acceptance.
+
+The installed Table row adapter restores SourceViews from the exact saved
+logical schema and an explicit Table selector, without Catalog I/O during
+installation or Check. Selector identity preserves namespace/name data bytes;
+configuration text normalization cannot alias different physical Tables. The
+existing installed row Source owner checks current authority before acquisition
+and again after metadata and data I/O, admits the entire decoded input through
+its presence-aware row contract, and owns page/capture accounting and cleanup.
+A read freezes one generation before subsequent data access. Its close releases
+only temporary acquisition custody, never Catalog-owned files. The optional Host
+installation loader supplies its trusted local Site/read-approval boundary;
+this adapter does not issue authority or implement another scheduler.
+
+The closed `actql-installed-table-source/0.1` and
+`actql-installed-table-effect/0.1` profiles enter the existing generic Host
+installation tables. Host configuration, never Program input, selects the
+absolute Python path, bounded physical Catalog configuration, logical
+connection, account configuration, finite targets and runtime limits. Loading
+performs no physical Catalog I/O. Effect installation independently admits its
+Check Environment and requires the exact installed Mapping CID and target with
+mandatory approval. The existing capture, approval, Effect Ledger and receipt
+owners remain the runtime path. Source installation derives its schema from
+the saved contract and only admits opaque current read decisions or a
+Checkpoint decision for its exact physical target, field subset and principal.
+
+The adapter package carries only the reviewed Python worker modules and pinned
+requirements. It carries no virtualenv, Catalog, credential, fixture data or
+automatic dependency installer. Python libraries remain an explicit dependency
+only of the Host opting into Table I/O. Installing either role is distinct from
+completing the packed public create/replace and different-Run read path. The
+existing managed identity policy still refuses direct acquisition Result
+publication; the initial read path uses acquisition followed by a Compute task
+and ordinary Named Result publication rather than weakening that policy.
+
+## Definitive publication conflicts
+
+The physical writer records a validated create-name or expected-generation
+conflict as `actql-table-noncommit-receipt/0.1`. The Catalog transaction checks
+the exact original operation's committed record first; a return-path error
+cannot replace an existing commit with failure. If no commit exists, the
+transaction requires that operation's retained allocation, atomically fences
+future publication and saves its sealed noncommit receipt. There is at most
+one such record per allocation, bounded by the existing operation limit.
+Receipt/fence persistence failure remains uncertain. A missing record or an
+arbitrary physical error is not a definitive refusal.
+
+The installed bridge retains these physical bytes under the original dispatch.
+The common Table projection admits the exact request, Effect, Catalog, schema,
+mapping and action-specific reason before the existing row outcome/Receipt
+owner can select `failed`. A readonly original-operation lookup can restore a
+lost noncommit reply under current evidence authority without sending again.
+Cleanup still requires observed physical stop and retains its own fallible
+manifest/deletion/reservation responsibility; recording noncommit neither
+deletes files nor releases capacity early. Original facts survive cleanup and
+later commits independently of current Table head.
 
 ## Implementation boundary
 

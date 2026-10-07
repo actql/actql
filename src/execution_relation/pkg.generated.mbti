@@ -85,6 +85,10 @@ pub fn advance_bounded_unpivot(BoundedUnpivotExecution, Int) -> Result[BoundedUn
 
 pub fn advance_bounded_values(BoundedValuesExecution, Int) -> Result[BoundedValuesPoll, BoundedValuesIssue]
 
+pub fn advance_cancel_completed_output_import(CompletedOutputImport, Int) -> Bool
+
+pub fn[T] advance_close_managed_producer_bridge(ManagedProducerBridge[T], Int) -> Bool
+
 pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
@@ -195,9 +199,17 @@ pub fn bind_managed_result_occurrence(@lowering_relation.BoundPrepared, String, 
 
 pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
 
+pub fn bounded_append_cleanup_pending(BoundedAppendExecution) -> Bool
+
 pub fn bounded_asof_join_cleanup_pending(BoundedAsOfJoinExecution) -> Bool
 
 pub fn bounded_binding_rows_cleanup_pending(BoundedBindingRowsExecution) -> Bool
+
+pub fn bounded_cross_join_cleanup_pending(BoundedCrossJoinExecution) -> Bool
+
+pub fn bounded_global_count_cleanup_pending(BoundedGlobalCountExecution) -> Bool
+
+pub fn bounded_group_cleanup_pending(BoundedGroupExecution) -> Bool
 
 pub fn bounded_group_step_supported(GeneratedSequence, @lowering_relation.PreparedKernel) -> Bool
 
@@ -207,7 +219,21 @@ pub fn bounded_independent_row_copy_stopped(BoundedIndependentRowCopy) -> Bool
 
 pub fn bounded_interval_join_cleanup_pending(BoundedIntervalJoinExecution) -> Bool
 
+pub fn bounded_join_cleanup_pending(BoundedJoinExecution) -> Bool
+
+pub fn bounded_nest_cleanup_pending(BoundedNestExecution) -> Bool
+
+pub fn bounded_row_window_cleanup_pending(BoundedRowWindowExecution) -> Bool
+
 pub fn bounded_sequence_match_cleanup_pending(BoundedSequenceMatchExecution) -> Bool
+
+pub fn bounded_set_cleanup_pending(BoundedSetExecution) -> Bool
+
+pub fn bounded_unnest_cleanup_pending(BoundedUnnestExecution) -> Bool
+
+pub fn bounded_unpivot_cleanup_pending(BoundedUnpivotExecution) -> Bool
+
+pub fn bounded_values_cleanup_pending(BoundedValuesExecution) -> Bool
 
 pub fn cancel_admitted_input(AdmittedInput) -> Bool
 
@@ -857,7 +883,7 @@ pub fn prepare_carrier_managed_producer_read(@lowering_relation.BoundPrepared, I
 
 pub fn prepare_completed_output_export(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
-pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]
+pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int, deferred_reclamation? : Bool) -> Result[CompletedOutputImport, CompletedImportIssue]
 
 pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
@@ -891,7 +917,7 @@ pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (
 
 pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
 
-pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimits, Int, Int) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue]
+pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimits, Int, Int, deferred_reclamation? : Bool) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue]
 
 pub fn[T] prepare_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, ManagedCompletedOutput[T], Int, Int) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue]
 
@@ -911,7 +937,7 @@ pub fn[T] prepare_managed_view_slice(ManagedViewPlan[T], Int, Int, Int, Int) -> 
 
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
-pub fn prepare_producer_output_import(ProducerRead, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]
+pub fn prepare_producer_output_import(ProducerRead, Int, ValueLimits, RowWireLimits, Int, deferred_reclamation? : Bool) -> Result[CompletedOutputImport, CompletedImportIssue]
 
 pub fn prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerRead, ProducerReadIssue]
 

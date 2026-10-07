@@ -15,7 +15,7 @@ import catalog_test
 from catalog_test import expected, request
 from custody import reserve
 from physical import PhysicalRefusal, canonical_envelope
-from physical_test import mapping
+from physical_test import mapping, schema_wire
 
 
 class ConcurrentCatalog(TableCatalog):
@@ -153,15 +153,15 @@ class CustodyTests(unittest.TestCase):
                            for catalog, operation, number in zip([left, right], operations, [1, 2])]
                 outcomes = []
                 for future in futures:
-                    try:
-                        outcomes.append(future.result(timeout=15))
-                    except CatalogRefusal as error:
-                        self.assertEqual(str(error), "ExpectedGenerationConflict")
-                        outcomes.append(None)
-            self.assertEqual(sum(result is not None for result in outcomes), 1)
+                    outcomes.append(future.result(timeout=15))
+            self.assertEqual(sum(result["version"] == "actql-table-receipt/0.1" for result in outcomes), 1)
             for operation, result in zip(operations, outcomes):
                 cleanup = initial.cleanup_after_stop(operation)
-                self.assertEqual(cleanup["retained"], result is not None)
+                committed = result["version"] == "actql-table-receipt/0.1"
+                self.assertEqual(cleanup["retained"], committed)
+                if not committed:
+                    self.assertEqual(result["reason"], "ExpectedGenerationConflict")
+                    self.assertEqual(initial.reconcile(operation), result)
                 self.assertFalse(cleanup["pending"])
             self.assertEqual(initial.read_generation(receipt, mapping()), [{"id": 0}])
             for catalog in [initial, left, right]:
@@ -176,7 +176,7 @@ class CustodyTests(unittest.TestCase):
 import faulthandler, json, select, sys
 faulthandler.dump_traceback_later(10)
 from catalog import TableCatalog
-from physical_test import mapping
+from physical_test import mapping, schema_wire
 class Staged(TableCatalog):
     def before_publication(self):
         faulthandler.cancel_dump_traceback_later()
@@ -186,7 +186,7 @@ class Staged(TableCatalog):
 root, wire = sys.argv[1:]
 c = Staged(root + '/catalog.db', root + '/warehouse', 'sha256:' + '3'*64,
            {'bytes':16777216, 'files':256, 'operations':32})
-c.write_claimed(json.loads(wire), mapping(), [{'id':1}], {'bytes':1048576, 'files':16})
+c.write_claimed(json.loads(wire), mapping(), [{'id':1}], {'bytes':1048576, 'files':16}, schema_wire())
 """
             child = subprocess.Popen([sys.executable, "-c", script, root, canonical_envelope(operation)],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)

@@ -42,6 +42,90 @@ fn record_body() -> Json raise {
 }
 
 ///|
+fn relation_presence_body() -> Json raise {
+  @json.parse(
+    (
+      #|{"fields":{"id":{"nullable":false,"type":"number"},"p":{"contract":{"max_utf8_bytes":32,"nullable":true,"type":"string"},"presence":"conditional"},"q":{"nullable":true,"type":"number"}},"version":"actql-relation-schema/0.1"}
+    ),
+  )
+}
+
+///|
+test "Relation schema declaration preserves presence independently from nullable and extents" {
+  let modes = carrier_modes(relation_presence_body(), "relation")
+  let admitted = check_carrier_schemas(modes, carrier_limits()).unwrap()
+  let carrier = carrier_schema_value(carrier_schema_at(admitted, 0).unwrap())
+  let schema = @carrier.complete_schema(
+    @carrier.relation_rows(carrier).unwrap(),
+  ).unwrap()
+  assert_eq(@row.field_count(schema), 3)
+  let id = @row.lookup_reference(schema, "id").unwrap()
+  let p = @row.lookup_reference(schema, "p").unwrap()
+  let q = @row.lookup_reference(schema, "q").unwrap()
+  assert_eq(id.presence, @row.Required)
+  assert_false(id.contract.nullable)
+  assert_eq(p.presence, @row.Conditional)
+  assert_true(p.contract.nullable)
+  assert_true(
+    p.contract.shape is @value_contract.Text(extent) &&
+    extent.max_utf8_bytes == Some(32L),
+  )
+  assert_eq(q.presence, @row.Required)
+  assert_true(q.contract.nullable)
+  assert_true(@row.as_object(schema) is None)
+  assert_true(@row.lookup_reference(schema, "extra") is None)
+}
+
+///|
+test "Relation schema declaration shares work and body bounds including unused inputs" {
+  let body = relation_presence_body()
+  let modes = carrier_modes(body, "relation")
+  let (bytes, nodes, work, count) = carrier_schema_usage(
+    check_carrier_schemas(modes, carrier_limits()).unwrap(),
+  )
+  assert_eq(count, 1)
+  let exact : CarrierSchemaLimits = {
+    max_schemas: 1,
+    max_work: work,
+    bodies: { max_bytes: bytes, max_nodes: nodes, max_depth: 100, },
+  }
+  assert_true(check_carrier_schemas(modes, exact) is Ok(_))
+  assert_true(
+    check_carrier_schemas(modes, { ..exact, max_work: work - 1, }) is Err(_),
+  )
+  assert_true(
+    check_carrier_schemas(modes, {
+      ..exact,
+      bodies: { ..exact.bodies, max_bytes: bytes - 1, },
+    })
+    is Err(_),
+  )
+  assert_true(
+    check_carrier_schemas(modes, {
+      ..exact,
+      bodies: { ..exact.bodies, max_nodes: nodes - 1, },
+    })
+    is Err(_),
+  )
+  let doubled = carrier_modes(body, "relation", unused=Some(body))
+  let (double_bytes, double_nodes, double_work, double_count) = carrier_schema_usage(
+    check_carrier_schemas(doubled, carrier_limits()).unwrap(),
+  )
+  assert_eq(
+    (double_bytes, double_nodes, double_count),
+    (bytes * 2, nodes * 2, 2),
+  )
+  assert_true(double_work > work)
+  assert_true(
+    check_carrier_schemas(doubled, {
+      ..carrier_limits(),
+      max_work: double_work - 1,
+    })
+    is Err(_),
+  )
+}
+
+///|
 test "Graph schema comparisons share the enclosing work owner, not its structural node count" {
   let body = @json.parse(
     (

@@ -8,8 +8,42 @@ Run observations, and published Result reads. Supported Program shapes and
 connectors depend on the installation; this is not a claim that every Host
 supports every Program. See the [current implementation status](../../docs/reviews/current-product-status.md).
 
+## Client lifetime
+
+Always `await client.close()` in a `finally` block. Close seals new Client
+operations immediately, stops its active row and batch readers, and waits for
+their cleanup. `await using client = await connect(options)` uses the same
+asynchronous disposal where the language supports it. Returned rows and batches
+remain the application's values.
+
+Embedded Local connections share one compatible Host installation per directory.
+Closing one Client does not close its siblings. The last Client waits for the
+existing Host's graceful shutdown, including already accepted computation and
+physical cleanup. A successful close permits a fresh connection to that directory;
+durable request and Result retention still follows the Host's retained policies.
+Close does not cancel Runs, answer Checkpoints, reconcile Effects or delete
+saved Results. Remote close waits for disposal of this Client's local response
+readers; it sends no Host shutdown operation and confirms no remote Delivery
+settlement or receipt. Observed cancellation uncertainty stays on the original
+read's error and attempt.
+
+`ClientCleanupPending` with `cleanupPending: true` means release was not
+confirmed. Keep this Client and retry `await client.close()`; new use stays
+sealed. Private provider errors and cleanup handles are not exposed. Do not
+replace a retained Local cleanup owner by
+opening another Host. This development API changes `close(): void` to
+`close(): Promise<void>`; update typed implementations and await cleanup rather
+than ignoring a possible rejection.
+
+## Connections
+
 `connect(options)` authenticates with the selected Host and returns its
-confirmed owner, durability and capability snapshot. `aql(text,
+confirmed owner, durability and capability snapshot. The SDK captures the
+profile's scope, limits and capabilities once, validates their unchanged
+observation, and retains detached immutable data. Capture or verification
+failure rejects the connection with `InvalidHostProfile`; it establishes no
+check verdict. The negotiated `scopeRef` identifies connection scope, separately
+from a check report's `context_ref` and input revisions. `aql(text,
 {format: "json" | "yaml"})` and `start(program)` send one admission request
 immediately and resolve only after an acceptance response. Both accept
 `requestId`. An omitted ID is generated before send; an uncertain submission
@@ -228,24 +262,34 @@ are `SubmissionUnknown` with the original request ID and lookup context, even
 when the in-process exception is a `ClientError`. A public-looking error code
 is not by itself a refusal contract. Neither transport retries submission.
 
-`execution.cancel()` retains the existing `execution.ref` and sends one Run
-cancellation request. A transport error or Host failure does not establish
-whether cancellation was recorded; the SDK does not automatically resend it
-or start another Run. Keep the original Host connection and Run reference.
-After access is restored, `status()` on that handle, or `attach(ref)` followed
-by `status()`, can observe the same Run. A Host that supplies `control` reports
-its retained `revision`, `cancellation_requested` and `physical_stop`; absence
-of `control` supplies no cancellation observation. Accepted cancellation alone
-never proves physical stop. Current authorization applies to these operations.
+`execution.cancel({cancelId, expectedRevision})` submits one cancellation
+operation bound to the existing Run. The Host compares the expected Run-control
+revision atomically on first admission. An omitted ID is generated once for
+this call; an omitted revision is observed through `status()` before dispatch.
+Without a control revision the SDK refuses with `CancellationRevisionUnavailable`.
+For durable caller custody, choose and save both fields before sending.
 
-This existing Run observation is not a lookup of a distinct cancellation
-operation. `Execution.cancel()` currently has no cancellation-operation ID,
-operation-scoped lookup or dedicated unknown-outcome error carrying recovery
-context. In particular, a later `cancellation_requested: true` does not identify
-which caller's cancellation was recorded. Do not infer automatic retry or
-operation-specific reconciliation from it. The separate `cancelRequest` and
-Checkpoint recovery contracts below remain unchanged. See the
-[bounded write-response-loss inventory](../../docs/reviews/2026-10-02-sdk-write-response-loss.md).
+A lost, malformed or foreign response raises `CancellationUnknown` carrying
+the immutable original `cancelRef`: the Run reference, cancellation ID and
+expected revision. Retain the original Host selection and use
+`execution.lookupCancellation(error.cancelRef)` after reconnecting and
+attaching that same Run. Lookup does not issue another cancellation, fence,
+dispatch or Compute request. Neither submission nor lookup retries automatically.
+
+The existing request journal retains the operation before the Model fence.
+Pending custody is `unknown`; it is not accepted and absence does not establish
+non-acceptance. The final operation result and Run cancellation request commit
+together. A `found` lookup returns that original result even after later Run
+revisions. Reusing the same ID in the same namespace and authority scope with
+another target or expected revision is refused. The bounded journal refuses
+new admission at capacity and does not evict operation custody to admit it.
+
+After a recorded outcome, `status()` separately observes the Run's
+`cancellation_requested`, `physical_stop` and retained control revision.
+Cancellation acceptance alone establishes no physical stop, Effect outcome or
+release. A later Run flag alone does not identify the original operation.
+Current authorization applies to cancellation, exact lookup and Run observation.
+The separate `cancelRequest` and Checkpoint contracts below are unchanged.
 
 The read limits use separate byte measures:
 
@@ -500,12 +544,22 @@ execute or authority to write supplements. Per-call Owner analysis/reporting
 budgets still apply; the session does not measure total server work. It creates
 no submission lifecycle, Host input storage, public hash or new wire contract.
 
-The SDK detaches each validated check response before binding input snapshots
-and freezing the received observation. A Local Host can reuse its response
-objects; later replies cannot replace an earlier outcome, context, input or
+The SDK captures response fields once before checking their branch or contract.
+Validation, copied-value comparison and input binding use the same owned facts;
+a getter cannot replace its first value between admission and copying. The
+first capture supplies the returned observation and its explanation; the later
+verification copy cannot change them after validation. A conversion that changes the original captured data is also refused before binding or return.
+This also applies to submission, request lookup/cancellation, Run observations and
+cancellation, and DeliveryAttempt lookup. Throwing getters produce the safe
+operation-specific failure without retaining the exception. Request serialization
+remains separate. Run responses remain mutable while private explanations retain
+immutable admitted facts.
+
+The SDK then binds input snapshots and freezes the check observation. A Local
+Host can reuse its response objects; later replies cannot replace an earlier outcome, context, input or
 location association. Completed and failed partial reports keep their own
 submitted inputs. Unavailable responses provide no bound report or snapshot.
-Uncloneable replies or replies whose copied shape violates the wire contract
+Uncapturable response data or replies whose verification copy fails or violates the wire contract
 fail with `InvalidHostCheckOutcome` before acquiring an input association.
 
 Locations use the immutable original input snapshot, not the latest editor buffer.
@@ -730,13 +784,14 @@ existing contract validation; there is no compatibility adapter.
 ### Run cancellation explanations
 
 `explainCancellation(result)` returns immutable read-only advice for the exact
-response or uncertain error produced by this SDK's `Execution.cancel()` call.
+response or uncertain error produced by this SDK's `Execution.cancel()` or
+`Execution.lookupCancellation()` call.
 The SDK detaches each validated cancellation response, so a Local port reusing
 its response object cannot change an earlier result's Run, kind, revision or
 explanation.
-The detached value is revalidated against the response schema and all three
-original Run fields. Clone failures or changed fields raise
-`InvalidHostCancellation` with the original Run's `outcome_unknown` advice;
+The detached value is revalidated against the response schema, original Run,
+cancellation ID and expected revision. Clone failures or changed fields raise
+`CancellationUnknown` with the original operation's `outcome_unknown` advice;
 they never trigger another cancellation request.
 Validated `accepted`, `already_requested` and `already_terminal` observations
 retain the Host's control revision. The summary distinguishes recording a
@@ -746,16 +801,27 @@ reference. Cancellation acceptance establishes no physical-stop, external
 Effect outcome or resource-release fact.
 
 Transport loss, malformed replies and differently bound replies retain an
-`outcome_unknown` explanation without a fabricated recorded revision. An HTTP
-`Response` object returned through Local is also an invalid representation with
-an unknown cancellation outcome; its existing SDK error is preserved. Changing
+`outcome_unknown` explanation without a fabricated recorded revision. Its
+`next` names `lookupCancellation` and the immutable original `cancelRef`.
+An HTTP `Response` object returned through Local is also an invalid
+representation with an unknown cancellation outcome. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
-association. Local failures before the send boundary and typed Host refusals
+association. For the cancellation write, local failures before the send boundary and typed Host refusals
 retain their existing errors without a fabricated cancellation observation.
 The accessor performs no I/O or automatic retry and retains no provider cause.
-The association lasts only while its SDK result is retained; no timeout or
-persistent Host custody is added.
+The presentation association lasts only while its SDK result is retained.
+
+An exact lookup captures all five original reference fields before validation,
+copy verification or asynchronous transport. Changed copies are rejected before
+lookup dispatch. A validated `found` lookup explains its retained cancellation
+kind and recorded control revision, independently of today's Run status. An
+`unknown` lookup, lost reply, denied lookup or malformed reply retains only the
+original read-only `lookupCancellation` target; none establishes nonacceptance
+or physical stop. `formatCancellation(lookup)` uses that same owned observation.
+Editing the caller's reference or reusing a Host reply cannot rewrite an earlier
+explanation. Looking up or formatting never sends another cancellation.
+The Host's separate durable operation custody is owned by its existing journal.
 
 This is presentation over the existing Client–Host cancellation contract.
 No wire/schema/CID, cancellation ledger or execution semantics is replaced.
@@ -1177,3 +1243,10 @@ The existing error recovery fields remain available, but formatters never render
 raw causes. Recovery causes retain only public Client code/status metadata,
 not borrowed messages, locators, cleanup handles or nested causes. English/default and approved Japanese localization preserve the same
 facts, and formatting performs no lookup, retry, execution or release.
+
+A failed `result.deliveryAttempt(attemptId)` lookup keeps safe read-only advice
+for that same attempt through `explainDeliveryAttempt(error)` and
+`formatDeliveryAttempt(error)`. `lookup_unavailable` means the exchange did not
+complete; `lookup_uninterpretable` means no response facts were admitted. Neither
+establishes whether the read opened or delivered, permits another opening, or
+changes the Run. Explicit lookup still checks current Host authorization.

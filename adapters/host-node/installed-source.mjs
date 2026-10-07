@@ -32,12 +32,15 @@ import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
+import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {readSourceProfileJson} from './source-profile-json.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
+import {tableInstallation} from './installed-table-installation.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
   capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
@@ -65,7 +68,7 @@ const duckdbInstallation = Object.freeze({
     }),
   }),
 });
-const installations = installedConnectorTable([duckdbInstallation,
+const installations = installedConnectorTable([duckdbInstallation, tableInstallation,
   ...installedConnectors]);
 
 // Select the installed connector of a Host profile and load its
@@ -96,13 +99,7 @@ export async function installedSourceIdentity(path) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  const read = async name => {
-    const bytes = await readFile(name);
-    if (bytes.byteLength > 8 * 1024 * 1024) {
-      throw new TypeError('InvalidInstalledSourceProfile');
-    }
-    return JSON.parse(bytes.toString('utf8'));
-  };
+  const read = readSourceProfileJson;
   const profile = await read(path);
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   // Omission and an explicitly empty alias publication have the same meaning.
@@ -122,7 +119,8 @@ export async function installedSourceIdentity(path) {
   return `sha256:${hash.digest('hex')}`;
 }
 
-function duckdbAdapter(profile, moon, {root, principalId}) {
+async function duckdbAdapter(profile, moon, {root, principalId}) {
+  await loadDuckDBNativeRuntime();
   const common = {moon, database: profile.database, schema: profile.schema,
     table: profile.table, acquisitionPlanning: profile.acquisitionPlanning};
   const catalogIds = JSON.parse(profile.environmentWire).connector_catalogs
@@ -173,7 +171,7 @@ async function readProfile(path) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  try { return JSON.parse(await readFile(path, 'utf8')); }
+  try { return await readSourceProfileJson(path); }
   catch (cause) {
     throw Object.assign(new TypeError('InvalidInstalledSourceProfile',
       {cause}), {code: 'InvalidInstalledSourceProfile'});

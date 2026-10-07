@@ -3906,6 +3906,168 @@ test('ordered bindings assurance requires its public Plan connection evidence', 
   }), /ordered bindings public fixture is missing/u);
 });
 
+test('compound output ports require operation-specific limit quantum stop and public evidence', () => {
+  for (const [operation, kind] of [['join','join'], ['nest','nest'],
+    ['interval_join','interval'], ['asof_join','asof'], ['sequence','sequence']]) {
+    for (const part of ['limit','quantum','stop','public']) {
+      const role = `${kind}_compound_output_port_${part}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.operation === operation);
+        const collection = part === 'public' ? 'environment_tests' : 'boundary_tests';
+        route[collection] = route[collection].filter(entry => entry.role !== role);
+      }), new RegExp(`${role} fixture is missing`, 'u'));
+    }
+  }
+});
+
+test('shared output reclamation requires installed custody and independent fixtures', () => {
+  const baseline = validateResourceAccounting({root,manifest:manifestTemplate,
+    routes:routesTemplate,sources:sourceTemplate});
+  assert.deepEqual(baseline.errors.filter(error=>error.includes('shared output reclamation')),[]);
+  for (const [relative,marker] of [
+    ['src/execution_relation/bounded_values.mbt',
+      'reclaim_bounded_admitted_output(output, state.accepted.val)'],
+    ['src/connectors/local/values_provider.mbt',
+      '@execution.bounded_values_cleanup_pending('],
+    ['src/execution_relation/admitted_input.mbt',
+      'row[row.length() - 1] = @admitted.null_value()'],
+    ['src/execution_relation/admitted_input.mbt',
+      'row.cells[row.cells.length() - 1] = None'],
+    ['src/execution_relation/admitted_output.mbt', 'if accepted {'],
+    ...[
+      'bounded Values retains output reclamation custody across cleanup slices',
+      'bounded output append failure keeps private rows until sliced cleanup',
+      'sliced reclamation never mutates sealed output or presence source cells',
+      'failed completion retains sealed unaccepted output for sliced cleanup',
+      'cleanup change does not imply completion after an unaccepted kernel result',
+    ].map(name=>['src/execution_relation/admitted_output_reclamation_wbtest.mbt',
+      `test "${name}"`]),
+  ]) {
+    const file=join(root,relative),source=sourceTemplate[file];
+    assert.ok(source?.exists && source.text.includes(marker));
+    const sources=Object.freeze({...sourceTemplate,
+      [file]:Object.freeze({...source,text:source.text.replaceAll(marker,'missing_reclamation')})});
+    const result=validateResourceAccounting({root,manifest:manifestTemplate,
+      routes:routesTemplate,sources});
+    assert.match(result.errors.join('\n'),/shared output reclamation/u);
+  }
+});
+
+test('sequence position assurance requires boundary and retained public evidence', () => {
+  for (const part of ['quantum','workspace','stop','cleanup','public']) {
+    const role=`sequence_position_${part}`;
+    assert.match(run(undefined,routes=>{
+      const route=routes.routes.find(entry=>entry.operation==='sequence');
+      const collection=part==='public'?'environment_tests':'boundary_tests';
+      route[collection]=route[collection].filter(entry=>entry.role!==role);
+    }),new RegExp(`${role} fixture is missing`,'u'));
+  }
+});
+
+test('sequence position assurance rejects missing copy release and pending connections', () => {
+  const baseline=validateResourceAccounting({root,manifest:manifestTemplate,
+    routes:routesTemplate,sources:sourceTemplate});
+  assert.deepEqual(baseline.errors.filter(error=>error.includes('sequence position')),[]);
+  for (const [relative,markers] of [
+    ['src/execution_relation/bounded_sequence_match.mbt',
+      ['CopyPositions =>','ReleaseGroup =>','ReleaseMatches =>',
+        'ReleasePredicateInput =>','state.copy_positions.push(source[state.copy_index])',
+        'for _ in 0..<64']],
+    ['src/local_tea_provider/sequence_match.mbt',
+      ['@execution.bounded_sequence_match_cleanup_pending(']],
+  ]) {
+    const file=join(root,relative);
+    for (const marker of markers) {
+      const text=sourceTemplate[file].text;
+      assert.ok(text.includes(marker));
+      const sources=Object.freeze({...sourceTemplate,
+        [file]:Object.freeze({...sourceTemplate[file],
+          text:text.replaceAll(marker,'missing_position_connection(')})});
+      const result=validateResourceAccounting({root,manifest:manifestTemplate,
+        routes:routesTemplate,sources});
+      assert.match(result.errors.join('\n'),
+        /sequence position copying or cleanup connection is missing/u);
+    }
+  }
+});
+
+test('compound metadata requires operation-connected boundary and public evidence', () => {
+  for (const [operation,kind] of [['join','join'], ['nest','nest'], ['interval_join','interval'],
+    ['asof_join','asof'], ['group','count'], ['sequence','sequence']]) {
+    for (const part of ['limit','workspace','quantum','stop','public']) {
+      const role=`${kind}_compound_metadata_${part}`;
+      assert.match(run(undefined,routes=>{
+        const route=routes.routes.find(entry=>entry.operation===operation);
+        const collection=part==='public'?'environment_tests':'boundary_tests';
+        route[collection]=route[collection].filter(entry=>entry.role!==role);
+      }),new RegExp(`${role} fixture is missing`,'u'));
+    }
+  }
+});
+
+test('compound metadata rejects missing production lookup charge and cleanup', () => {
+  const baseline=validateResourceAccounting({root,manifest:manifestTemplate,
+    routes:routesTemplate,sources:sourceTemplate});
+  assert.deepEqual(baseline.errors.filter(error=>error.includes('compound metadata')),[]);
+  const cases=['join','nest','interval_join','asof_join'].map(kernel=>[
+    `src/execution_relation/bounded_${kernel}.mbt`,
+    ['start_charged_row_metadata_lookup(', 'advance_charged_row_metadata_lookup(',
+      'close_row_metadata_lookup('],
+  ]);
+  cases.push(['src/execution_relation/row_metadata_cursor.mbt',
+    ['advance_row_metadata_lookup(', 'text_function_scalar(', 'spend_control(']]);
+  cases.push(['src/execution_relation/bounded_join.mbt',
+    ['start_row_name_charge(', 'advance_row_name_charge(', 'close_row_name_charge(']]);
+  cases.push(['src/execution_relation/bounded_global_count.mbt',
+    ['start_row_metadata_lookup(', 'advance_row_metadata_lookup(',
+      'close_row_metadata_lookup(', 'start_row_name_charge(',
+      'advance_row_name_charge(', 'close_row_name_charge(']]);
+  cases.push(['src/execution_relation/bounded_sequence_match.mbt',
+    ['start_charged_row_metadata_lookup(', 'advance_charged_row_metadata_lookup(',
+      'close_row_metadata_lookup(', 'start_row_name_charge(',
+      'advance_row_name_charge(', 'close_row_name_charge(',
+      'indexed_expression_input(', 'start_predicate_expression_with_input(',
+      'bounded_sequence_pattern_name(', 'advance_bounded_text_charge(']]);
+  for (const [relative,markers] of cases) {
+    const file=join(root,relative);
+    for (const marker of markers) {
+      const text=sourceTemplate[file].text;
+      assert.ok(text.includes(marker));
+      const sources=Object.freeze({...sourceTemplate,
+        [file]:Object.freeze({...sourceTemplate[file],
+          text:text.replaceAll(marker,'missing_metadata_connection(')}),
+      });
+      const result=validateResourceAccounting({root,manifest:manifestTemplate,
+        routes:routesTemplate,sources});
+      assert.match(result.errors.join('\n'),
+        /compound metadata production cursor connection is missing/u);
+    }
+  }
+});
+
+test('compound output ports reject missing production cursor and cleanup connections', () => {
+  const baseline = validateResourceAccounting({root, manifest:manifestTemplate,
+    routes:routesTemplate, sources:sourceTemplate});
+  assert.deepEqual(baseline.errors.filter(error => error.includes('compound output port')), []);
+  for (const kernel of ['join','nest','interval_join','asof_join','sequence_match']) {
+    const file = join(root, `src/execution_relation/bounded_${kernel}.mbt`);
+    for (const marker of ['start_trusted_output_preparation(',
+      'advance_trusted_output_preparation(', 'finish_trusted_output_preparation(',
+      'cancel_trusted_output_preparation(']) {
+      const text = sourceTemplate[file].text;
+      assert.ok(text.includes(marker));
+      const sources = Object.freeze({...sourceTemplate,
+        [file]: Object.freeze({...sourceTemplate[file],
+          text:text.replaceAll(marker, 'missing_cursor_connection(')}),
+      });
+      const result = validateResourceAccounting({root, manifest:manifestTemplate,
+        routes:routesTemplate, sources});
+      assert.match(result.errors.join('\n'),
+        /compound output port production cursor connection is missing/u);
+    }
+  }
+});
+
 test('unary output ports require operation-specific limit quantum stop and public evidence', () => {
   for (const [operation, kinds] of [['group', ['group','count']],
     ['analytic', ['analytic']], ['pivot', ['pivot']], ['row_window', ['window']],

@@ -58,6 +58,12 @@ pub fn client_broad_residual_prepare(@actql/actql/connectors/duckdb/host.BroadHo
 
 pub fn client_broad_residual_stopped(@client_local_host.ClientBroadResidual) -> Bool
 
+pub fn client_cancellation_admit_record(String, String, String, @run_publication.PublicationContract, Int) -> @run_publication_host.ClientCancellationIdentity?
+
+pub fn client_cancellation_intent_cid(@run_publication_host.ClientCancellationIdentity) -> String
+
+pub fn client_cancellation_operation_action(@run_publication_host.ClientCancellationIdentity, @run_publication_host.ClientCancellationIdentity, Bool, @run_publication.PublicationContract, Int, Bool, Bool, Bool) -> Int
+
 pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCallSettlement) -> Bool
 
 pub fn client_program_acquire_infer_capture(@client_infer_host.Execution) -> @model_execution.VerifiedModelCapture?
@@ -259,6 +265,8 @@ pub fn client_program_check_environment_with_numeric_profile(String, String, Boo
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.EffectPreviewIdentity, @effect_application.RecoveredEffectTargetGuards, Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
+
+pub fn client_program_check_recovered_table_schema_wire(@run_publication_host.RecoveredClientTablePreview, String, Int, Int, Int) -> Result[Unit, @run_publication_host.ClientTableInputIssue]
 
 pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
 
@@ -1186,6 +1194,8 @@ pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDecl
 
 pub fn client_program_row_source_restore_declaration(String, String, String, String, String?) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_restore_relation_declaration(String, String, String, String, String?) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_retain_captured_task(@client_row_source_host.RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
@@ -1301,6 +1311,8 @@ pub fn client_program_start_scoped_infer_execution(@run_publication_host.Prepare
 pub fn client_program_table_input_matches_source(@run_publication_host.ClientTableInput, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity) -> Bool
 
 pub fn client_program_table_input_operation_json(@run_publication_host.ClientTableInput) -> String
+
+pub fn client_program_table_input_schema_wire(@run_publication_host.ClientTableInput) -> String
 
 pub fn client_program_table_input_storage_mapping_json(@run_publication_host.ClientTableInput) -> String
 

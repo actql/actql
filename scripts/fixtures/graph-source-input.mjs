@@ -14,6 +14,28 @@ const scopedNodes = label => "DATA p = SELECT 1 AS id, 'Person' AS tag; DATA c =
 const scopedEndpoint = 'DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS P KEY (id) LABEL Person NO PROPERTIES, n AS C KEY (id) LABEL Company NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES P DESTINATION KEY (dst) REFERENCES C LABEL R NO PROPERTIES)); ';
 const labelSpelling = 'DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (id AS id))); ';
 const scopedColumns = [number('id'), {name: 'tag', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}}];
+// This ordinary JSON control is written directly from the Graph/traverse
+// contracts, independently of the text compiler and its physical slot names.
+const boundedControl = {
+  version: 'actql/0.1', id: 'fixture.bounded_graph_walk',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: {type: 'number', nullable: false}}, rows: [{id: 1}]}, as: 'n'},
+    {values: {schema: Object.fromEntries(['key', 'src', 'dst'].map(field => [field, {type: 'number', nullable: false}])),
+      rows: [{key: 10, src: 1, dst: 1}, {key: 11, src: 1, dst: 1}]}, as: 'e'},
+    {graph: {version: 'actql-graph-constructor/0.1',
+      nodes: [{name: 'N', from: 'n', key: ['id'], labels: [{name: 'Node', properties: {mode: 'no_properties'}}]}],
+      edges: [{name: 'E', from: 'e', key: ['key'],
+        source: {definition: 'N', key: ['src'], references_key: ['id']},
+        target: {definition: 'N', key: ['dst'], references_key: ['id']},
+        labels: [{name: 'R', properties: {mode: 'no_properties'}}]}]}, as: 'g'},
+    {from: 'g', match_nodes: {definition: 'N', label: 'Node', where: {literal: true},
+      bindings: {identity: 'identity'}, fields: ['identity']}, as: 'seeds'},
+    {from: 'g', traverse: {start: {from: 'seeds', id: 'identity'}, direction: 'out',
+      min_hops: 2, max_hops: 2, path_mode: 'walk', edge_types: ['R'], emit: 'paths'}, as: 'paths'},
+    {from: 'paths', select: [{depth: 'hop_count'}], as: 'depths'},
+  ], results: {paths: {from: 'depths', fields: ['depth']}}}],
+  results: {paths: {from: {stage: 'main', result: 'paths'}}},
+};
 export const graphSourceSuccesses = [
   {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
     text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
@@ -25,6 +47,21 @@ export const graphSourceSuccesses = [
     text: 'DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active',
     results: {original: {rows: [{id: 2}], columns: [number('id')]},
       active: {rows: [{id: 2}], columns: [number('id')]}}, sourceReadCount: 0},
+  {name: 'keyed-bounded-independent-json', format: 'json', text: JSON.stringify(boundedControl),
+    results: {paths: {rows: [{depth: 2}, {depth: 2}, {depth: 2}, {depth: 2}],
+      columns: [number('depth')]}}, sourceReadCount: 0},
+  ...[['WALK', 4], ['', 4], ['TRAIL', 2], ['ACYCLIC', 0]].flatMap(([mode, count]) => [
+    {name: 'keyed-bounded-two-hop-' + (mode ? mode.toLowerCase() : 'default-walk'), format: 'aql-text',
+      text: parallel + 'FROM GRAPH g |> MATCH p = ' + mode +
+        ' (:Node)-[:R]->{2,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths',
+      results: {paths: {rows: Array.from({length: count}, () => ({depth: 2})),
+        columns: [number('depth')]}}, sourceReadCount: 0},
+    {name: 'keyed-bounded-zero-through-two-' + (mode ? mode.toLowerCase() : 'default-walk'), format: 'aql-text',
+      text: parallel + 'FROM GRAPH g |> MATCH p = ' + mode +
+        ' (:Node)-[:R]->{0,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> ORDER BY depth |> RESULT paths',
+      results: {paths: {rows: [{depth: 0}, ...(mode === 'ACYCLIC' ? [] : [{depth: 1}, {depth: 1}]),
+        ...Array.from({length: count}, () => ({depth: 2}))], columns: [number('depth')]}}, sourceReadCount: 0},
+  ]),
   {name: 'keyed-static-label', format: 'aql-text',
     text: nodes + 'FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id AS id, a.entity_type AS category |> RESULT people',
     results: {people: {rows: [{id: 1, category: 'Company'}], columns: [number('id'),
@@ -115,6 +152,12 @@ export const graphSourceExecutionFailures = [
       'FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths', resultNames: ['paths'], sourceReadCount: 0},
 ];
 export const graphSourceRefusals = [
+  ...['WALK', 'TRAIL', 'ACYCLIC'].flatMap(mode => [
+    ['named-edge', '-[e:R]->{1,2}'], ['missing-edge-property', '-[:R WHERE key > 0]->{1,2}'],
+    ['reversed-bounds', '-[:R]->{2,1}'], ['zero-upper-bound', '-[:R]->{0,0}'],
+  ].map(([name, edge]) => ({name: 'keyed-bounded-invalid-' + mode.toLowerCase() + '-' + name,
+    format: 'aql-text', text: parallel + 'FROM GRAPH g |> MATCH p = ' + mode +
+      ' (:Node)' + edge + '(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths'}))),
   {name: 'keyed-property-spelling-source-collision', format: 'aql-text',
     text: 'DATA n = SELECT 1 AS id, 2 AS other; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (other AS id))); FROM GRAPH g |> MATCH WALK (a:secondary) |> SELECT a.id AS id'},
   {name: 'keyed-unadapted-endpoint-label', format: 'aql-text', text: scopedEndpoint + 'FROM GRAPH g |> MATCH p = ACYCLIC (:Person)-[:R]->(:Person) |> SELECT PATH_LENGTH(p) AS depth'},

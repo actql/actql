@@ -4,8 +4,14 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {copyFile, mkdir} from 'node:fs/promises';
+import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import test from 'node:test';
-import {valuesDependencyOracle, valuesProgramOracle} from './client-values-dependency-oracle.mjs';
+import {valuesDependencyOracle, valuesProgramOracle, valuesPublicationOracle} from './client-values-dependency-oracle.mjs';
+import {valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
+  './fixtures/string-contract-identities.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
 
 const canonical = value => JSON.stringify(normalize(value));
 function normalize(value) {
@@ -134,6 +140,47 @@ const program = {version: 'actql/0.1', id: 'client-values',
   stages: [{id: 'source', inputs: {}, steps: [{as: 'selected', values: {schema, rows}}],
     results: {rows: {fields: ['id'], from: 'selected'}}}],
   results: {answer: {from: {stage: 'source', result: 'rows'}}}};
+
+test('Values bridge identities retain the pre-String closure and follow current contracts separately', () => {
+  const historical = valuesPublicationOracle({legacy: true});
+  const oldUnit = valuesUnitIdentity(program, true);
+  assert.equal(oldUnit,
+    pin('63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9'));
+  assert.equal(oldUnit, historical.unit);
+  assert.equal(valuesResultPlan(oldUnit).result_plan_logical_cid,
+    pin('8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38'));
+  assert.deepEqual(['rows', 'bytes'].map(measure =>
+    valuesPublicationRowsBinding(oldUnit, 'rows', measure)), historical.bindings);
+  const current = valuesPublicationOracle();
+  const currentUnit = valuesUnitIdentity(program);
+  assert.equal(currentUnit, current.unit);
+  assert.notEqual(currentUnit, oldUnit);
+  assert.equal(valuesResultPlan(currentUnit).result_plan_logical_cid,
+    current.resultPlan);
+  assert.deepEqual(['rows', 'bytes'].map(measure =>
+    valuesPublicationRowsBinding(currentUnit, 'rows', measure)), current.bindings);
+});
+
+test('pre-String Values identities need no installed contract files', async () => {
+  const scratch = await createOwnedScratch({parent: '_build/values-history-tests',
+    prefix: 'isolated-', label: 'pre-String Values identity'});
+  const fixtureRoot = join(scratch.path, 'scripts/fixtures');
+  await mkdir(fixtureRoot, {recursive: true});
+  for (const name of ['string-contract-identities.mjs', 'pre-string-values-contracts.json']) {
+    await copyFile(new URL('./fixtures/' + name, import.meta.url), join(fixtureRoot, name));
+  }
+  const isolated = await import(pathToFileURL(join(fixtureRoot, 'string-contract-identities.mjs')));
+  assert.equal(isolated.valuesUnitIdentity(program, true),
+    pin('63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9'));
+  const renamed = structuredClone(program);
+  renamed.stages[0].results = {'a~/b': renamed.stages[0].results.rows};
+  assert.equal(isolated.valuesUnitIdentity(renamed, true),
+    pin('87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0'));
+  // The current oracle still requires actual installed normative inputs.
+  assert.throws(() => isolated.valuesUnitIdentity(program), {code: 'ENOENT'});
+  scratch.passed();
+});
+
 const ceiling = measure => seal({version: 'actql-bound-witness/0.1',
   dependencies: [policy], derivation: {op: 'source'},
   law_id: `actql.host.artifact-${measure}`, role: 'host_ceiling',
@@ -614,41 +661,68 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
     beforeSchemaClosure, barrierCid, currentIdentity).run.run_definition_cid,
     pin('53df3a5cf53905e1f34890c6a078ad1a59efb035b6d44c602006f44be2290e8b'));
+  // Freeze the closure before saved Relation schema declarations changed the
+  // Check Environment body. Historical Runs must not inherit current inputs.
+  const beforeSavedSchemaDependencies = {
+    unit: pin('0561273ab8c70a496f1013d6984da39ce2da7138d1bd912bbf5c3042b61a78ca'),
+    proof: pin('1678c0611223e04e8cfcdda054ae370b2d40033706eedc16cae080511f770650'),
+    resultPlan: pin('6c75c3eb2ca8dd0e06247cbec633bf787bd3f90882fde43268abcac88f30fce8'),
+  };
+  // Freeze the source-contract closure before Table-private inputs. Adding a
+  // source field changes its registered contract even for this Values-only Unit.
+  const beforeTableDependencies = {
+    unit: pin('8005b84110e571bd881c8f153f104b6a35e476a7ef6302dc53224d086492b471'),
+    proof: pin('0a5ee06cede8dbd3fbefeb008249b49b39d07c694a50c433cd201cb9be9adad2'),
+    resultPlan: pin('d6b68f1a47ee1c233db5d072fe8210d89bf942b97236a37dae7acd491882994e'),
+  };
   assert.equal(currentDependencies.unit,
-    pin('0561273ab8c70a496f1013d6984da39ce2da7138d1bd912bbf5c3042b61a78ca'));
+    pin('54f5a2da3c5f2439a13630dec8a8098ef550d9befcca8ac298ac22aac3cecd8f'));
   assert.equal(currentDependencies.proof,
-    pin('1678c0611223e04e8cfcdda054ae370b2d40033706eedc16cae080511f770650'));
+    pin('b9b589e8f084c3ba2b8abaf6d888f037d76e56c2ceb23a0120ffe8c027912e8e'));
   assert.equal(currentDependencies.resultPlan,
-    pin('6c75c3eb2ca8dd0e06247cbec633bf787bd3f90882fde43268abcac88f30fce8'));
+    pin('6286d2d4d7603a61da71d464c0043b98647e94b1997ae9b1dc94bda51fa34a3a'));
   // Preserve the schema-closure predecessor before qualified-star text routing.
   assert.equal(vector(pin('1b837dfa56c76782890525a6a4d39239a5675d719223c7de0c70231f89efd7d7'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('38827de4f4b56e91af5bdaa6bf3597602ebe53f2ed6947553bc329b08a7e260e'));
   // Freeze the qualified-star predecessor before adding REPLACE grammar.
   assert.equal(vector(pin('efa41daa81570153a600aa1459bf498135d4ac67b1df4555651d6ff879229062'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('7b2ee1d01a0ffe34498c4fc5b5e9d37a4835f139f81125c21728282d7c90b8a2'));
-  // Freeze the preceding normative closure before ARRAY construction. Only
-  // grammar-bound compilation and Run identities change; Values roles do not.
   assert.equal(vector(pin('1995b1527e69dfc30daff86098b01d0fcef393d703c58e4fbf4f6fa980bf890c'),
-    pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('e8ccbde9474f668615917422ae4c63081144a1a82ab4ae0f14d2d647aa872f56'));
-  // Retain the merged UNNEST documentation closure under its original grammar.
   assert.equal(vector(pin('a395e9d881fd75019ff99db18016a4cf72f19f14f52856b8f313462e0489c09a'),
-    pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('31dc7d61b6fe40c4662a836eecc194ef96aa50548b8327a49b4d95dd0d32f896'));
+  // Preserve the fixed-hop predecessor before adding any-direction edge syntax.
+  assert.equal(vector(pin('675ce07e2792ad6736f526ffb894e987463ff1eee7f94dfd8e391bcfbfc3dd20'),
+    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('35c252c2f80d29f142d35879ca8fb1f828e218266faf062494db1f21f4ace648'));
+  // Retain the any-direction full-edge Run preimage under its grammar pin.
+  assert.equal(vector(pin('3766a009afd7d8e22904ace1507becb871c62c5fb0dd969f7ee0886c17892c55'),
+    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('f17353ea4d0b6c8c65a30a3069582c42b396dfebf24bbbe7231423c59e4f5e9f'));
+  // Retain the abbreviated-edge predecessor without rebinding its saved Run.
+  assert.equal(vector(pin('e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3'),
+    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('21982c4ae013552cb120f9e32e35c672b6c23092e8fa47323d4fabbe5ca00033'));
   // Preserve the constructor-only ARRAY profile before closing reference and
   // aggregate type bypasses. Rehash the complete independent Run preimage.
   assert.equal(vector(pin('eb7c8d7239e90b612a3bca095d29d74a828e47187609a893ff4d7406ac6512a6'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('c46844e63f6f33150c8312b057491f00a6ab775d62ae36bba779c929cdcbae2d'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(pin('4ce6abb00008cc0752dda4797487ef815287e30d21bc6e1ae5fca3941f7005a9'),
+    cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('26501230bde03bc47e0e4e772e4971b048de85af47b9626771a1904375eddd92'));
+  assert.equal(vector(pin('e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('d16ec26dbce7f1c96129d0810e11e437583e31560e3ad7b3e5bf681b0599107a'));
+  assert.equal(current.run.run_definition_cid,
+    pin('d7a36674c603fb1d3a1b9216e9284222315552dc40d8660b942c308af4c24f48'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
