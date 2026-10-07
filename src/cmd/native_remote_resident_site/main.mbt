@@ -1140,7 +1140,7 @@ fn recover_stopped_release(
       Ok(value) => value
       Err(_) => return false
     }
-    if !owner.slot.verify_current_hold().is_ok() ||
+    if !(owner.slot.verify_current_hold() is Ok(_)) ||
       !(cleanup.confirm_missing_release() is Ok(true)) {
       return false
     }
