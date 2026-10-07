@@ -1,0 +1,52 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import test from 'node:test';
+import {inUnnestLiteralArraySuccesses, inUnnestLiteralArrayRefusals}
+  from './fixtures/in-unnest-literal-array-source-input.mjs';
+
+test('literal membership controls distinguish matching, unknown and empty sets', () => {
+  const cases = new Map(inUnnestLiteralArraySuccesses.map(value => [value.name, value]));
+  const control = cases.get('in-unnest-literal-array-json-control');
+  const program = JSON.parse(control.text);
+  assert.deepEqual(program.stages[0].steps[1].derive, {
+    included: {in: [{literal: 2}, {literal: [null, 2, 2]}]},
+    excluded: {not_in: [{literal: 2}, {literal: [null, 2, 2]}]},
+    unknown: {in: [{literal: 1}, {literal: [2, null, {$param: 'p'}]}]},
+    null_left: {not_in: [{cast: {value: {literal: null}, target: {type: 'number'}}},
+      {literal: [2, 3]}]},
+  });
+  assert.deepEqual(control.expected,
+    [{included: true, excluded: false, unknown: null, null_left: null}]);
+  assert.deepEqual(program.stages[0].results.rows.fields,
+    control.columns.map(column => column.name));
+  assert.deepEqual(cases.get('in-unnest-literal-array-empty-set-with-null-left').expected,
+    [{included: false, excluded: true}]);
+  assert.ok(cases.get('in-unnest-literal-array-empty-set-with-null-left').columns
+    .every(column => column.contract.nullable === false));
+  assert.deepEqual(cases.get('in-unnest-literal-array-empty-input').expected, []);
+  const source = cases.get('in-unnest-literal-array-where-source-once');
+  assert.deepEqual(source.expected, [{id: 2}, {id: 3}, {id: 3}]);
+  assert.equal(source.sourceReadCount, 1);
+  assert.equal(source.sourceReadSessionCount, 1);
+  const all = [...inUnnestLiteralArraySuccesses, ...inUnnestLiteralArrayRefusals];
+  assert.equal(inUnnestLiteralArraySuccesses.length, 10);
+  assert.equal(inUnnestLiteralArrayRefusals.length, 7);
+  assert.equal(new Set(all.map(value => value.name)).size, all.length);
+});
+
+test('normal packed acceptance and its narrow selector register the same literal membership corpus', async () => {
+  const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  for (const [kind, group] of [['successes', 'inUnnestLiteralArraySuccesses'],
+    ['refusals', 'inUnnestLiteralArrayRefusals']]) {
+    const registration = `scopeInputs.${kind}.push(...${group})`;
+    assert.equal(fixture.split(registration).length - 1, 1);
+  }
+  assert.ok(fixture.includes('const scopeOnly = inUnnestLiteralArrayOnly ||'));
+  assert.ok(fixture.includes('const scopeInputs = inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArraySuccesses'));
+  assert.ok(fixture.includes(': arrayLiteralOnly ? {successes: arrayLiteralSuccesses'));
+  assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_IN_UNNEST_LITERAL_ARRAY_ONLY = '1'"));
+  assert.ok(driver.includes("['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs']"));
+  assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--in-unnest-literal-array-only'/u);
+  assert.ok(driver.includes("if (process.argv.includes('--in-unnest-literal-array-only')) return;"));
+});

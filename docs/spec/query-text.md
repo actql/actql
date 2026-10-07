@@ -396,6 +396,22 @@ separate profile gap; authored examples give their output expressions aliases.
 
 ## ARRAY constructors
 
+For `[NOT] IN UNNEST`, an unannotated literal ARRAY of scalar literals and
+immediate scalar parameter references uses the existing `in`/`not_in` literal
+list contract. Both `[item, ...]` and `ARRAY[item, ...]` are supported, including
+parentheses and signed numeric literals. Order, duplicates, NULL atoms and
+parameter references are preserved; the Frontend does not evaluate general
+expressions to build the list. A matching value takes precedence over a NULL
+item. An empty list yields FALSE for IN and TRUE for NOT IN, including a
+typed nullable left operand, under the common empty-set rule. These rules follow
+the selected [GoogleSQL IN operator](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/operators#in_operator).
+
+Array parameters retain their existing membership contract. General element
+expressions and annotated ARRAY constructors retain ordinary common admission;
+they are not rewritten into literal lists or stripped of their annotations.
+Those forms remain unsupported by the current membership expression profile,
+not invalid GoogleSQL. An ordinary SELECT ARRAY remains an `array` expression.
+
 `[expression, ...]` and `ARRAY[expression, ...]` preserve the authored element
 order and duplicates through the ordinary finite `array` expression. Elements
 use the common checker for compatible types, NULL context, parameters and
