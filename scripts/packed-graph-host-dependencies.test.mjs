@@ -124,3 +124,31 @@ test('any-direction Graph controls are staged and exercised in normal and focuse
   assert.equal(controls[1].stages[0].steps[4].traverse.direction, 'both');
   assert.equal(controls[1].stages[0].steps[4].traverse.path_mode, 'trail');
 });
+
+test('abbreviated edge controls preserve unfiltered keyed multiplicity and normal acceptance', async () => {
+  const {graphAbbreviatedSuccesses: successes, graphAbbreviatedRefusals: refusals}
+    = await import('./fixtures/graph-abbreviated-edge-source-input.mjs');
+  assert.equal(successes.length, 17);
+  assert.equal(refusals.length, 8);
+  assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size, 25);
+  for (const [direction, count] of [['out', 4], ['in', 2], ['both', 5]]) {
+    const control = successes.find(item => item.name === 'graph-abbreviated-json-' + direction);
+    const program = JSON.parse(control.text);
+    const hop = program.stages[0].steps[5].traverse.hops[0];
+    assert.deepEqual(hop, {direction});
+    assert.deepEqual(program.stages[0].steps[3].graph.edges.map(edge => edge.labels[0].name), ['R', 'S']);
+    assert.deepEqual(control.results.matched.rows, Array.from({length: count}, () => ({depth: 1})));
+    for (const form of [direction, 'full-' + direction]) {
+      assert.deepEqual(successes.find(item => item.name === 'graph-abbreviated-' + form).results,
+        control.results);
+    }
+  }
+  const scripts = fileURLToPath(new URL('./', import.meta.url));
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  assert.ok(driver.includes("['scripts/fixtures/graph-abbreviated-edge-source-input.mjs', 'graph-abbreviated-edge-source-input.mjs']"));
+  assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_ABBREVIATED_ONLY = '1'"));
+  const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
+  assert.ok(consumer.includes('scopeInputs.successes.push(...graphAbbreviatedSuccesses)'));
+  assert.ok(consumer.includes('scopeInputs.refusals.push(...graphAbbreviatedRefusals)'));
+  assert.ok(consumer.includes('graphAbbreviatedOnly ? {successes: graphAbbreviatedSuccesses, refusals: graphAbbreviatedRefusals}'));
+});
