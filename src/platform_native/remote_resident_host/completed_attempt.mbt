@@ -10,6 +10,7 @@ pub struct ResidentCompletedAttempt {
   max_bytes : Int64
   current : () -> Bool
   cleanup_current : () -> Bool
+  release_input : () -> Bool
 }
 
 ///|
@@ -54,12 +55,14 @@ fn admit_resident_completed_envelope(
     Ok(_) => ()
     Err(issue) => return Err(Refused(issue))
   }
-  let materials = match admit_materials(admission, request, body, binding, at) {
+  let materials = match
+    admit_resident_chain_materials(admission, request, body, binding, at) {
     Ok(value) => value
     Err(issue) => return Err(Refused(issue))
   }
-  if !(resident_source_dispatch_role(materials, request)
-    is Ok(InternalSourceProducer)) {
+  if resident_linear_task_index(materials, request) == Some(0) &&
+    @strategy.graph_task_count(@host.prepared_client_graph(materials.prepared)) ==
+    1 {
     return Err(Refused(@resident.UnsupportedTask))
   }
   Ok((request, binding, materials))
@@ -143,6 +146,7 @@ pub fn prepare_resident_completed_attempt(
   attempt_identity : String,
   current_time : () -> String,
   exclusive_current : () -> Bool,
+  retained_cleanup? : (@transfer_journal.Journal, @filesystem.Root?, Int64)? = None,
 ) -> Result[ResidentCompletedAttempt, ResidentExecutionFailure] {
   if !exclusive_current() {
     return Err(failed(Refused(@resident.NotCurrent)))
@@ -217,15 +221,31 @@ pub fn prepare_resident_completed_attempt(
     is Err(issue) {
     return Err(failed(Protocol(issue)))
   }
+  let release_input = match resident_linear_task_index(materials, request) {
+    Some(0) => () => true
+    Some(_) => {
+      guard retained_cleanup is Some((transfers, input_root, input_max_bytes)) else {
+        return Err(failed(Refused(@resident.UnsupportedTask)))
+      }
+      match
+        prepare_resident_saved_input_cleanup(
+          journal, transfers, input_root, admission, request, input_max_bytes, cleanup_current,
+        ) {
+        Ok(Some(cleanup)) => cleanup
+        _ => return Err(failed(Refused(@resident.ForeignSource)))
+      }
+    }
+    None => return Err(failed(Refused(@resident.UnsupportedTask)))
+  }
   let (runtime, result_definition_cid) = match
-    open_resident_attempt_runtime(
+    open_resident_completed_runtime(
       journal,
       execution,
       materials,
       binding,
       request,
       current_time,
-      None,
+      retained_cleanup.map(value => value.2).unwrap_or(0L),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -239,6 +259,7 @@ pub fn prepare_resident_completed_attempt(
     max_bytes: execution.limits.output.max_retained_bytes,
     current,
     cleanup_current,
+    release_input,
   })
 }
 
@@ -257,6 +278,7 @@ pub fn ResidentCompletedAttempt::advance(
       self.max_bytes,
       self.current,
       cleanup_current=Some(self.cleanup_current),
+      release_input=self.release_input,
     ) {
     @runtime.CompletedRuntimeReady(completion) =>
       ResidentCompletedReady({

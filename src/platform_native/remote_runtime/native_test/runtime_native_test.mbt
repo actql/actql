@@ -103,12 +103,14 @@ test "native remote runtime owns success failure and cleanup progression" {
   let stopped = [0]
   let observed_budget = [(0L, 0L)]
   let oversized_reads = [false]
+  let file_handoffs = Ref(0)
+  let handoff_was_durable = Ref(false)
   let executor = @runtime.install_native_remote_task_executor(
     runtime_test_cid(
       "0000000000000000000000000000000000000000000000000000000000000000",
     ),
     "task-a",
-    (_request, binding, admitted_budget) => {
+    (execution_request, binding, admitted_budget) => {
       observed_budget[0] = @remote.remote_dispatch_budget_capacity(
         admitted_budget,
       )
@@ -235,6 +237,34 @@ test "native remote runtime owns success failure and cleanup progression" {
           released[0] += 1
           output_release_attempts[0] += 1
           output_release_attempts[0] > 1
+        },
+        file_custody=if executions[0] == 1 {
+          Some(
+            @journal.prepare_native_output_file_custody(
+              execution_request,
+              "runtime-handoff-fixture",
+              { device: 1UL, inode: 2UL, size: retained_bytes, },
+              "sha256:" + @sha.hex(physical_bytes),
+              "native-material-a",
+              physical_manifest,
+            ).unwrap(),
+          )
+        } else {
+          None
+        },
+        file_handoff_committed=if executions[0] == 1 {
+          Some(() => {
+            file_handoffs.val += 1
+            handoff_was_durable.val = match
+              journal.observation(execution_request) {
+              Ok(saved) =>
+                @journal.recovered_site_dispatch_file_custody(saved) is Some(_) &&
+                @journal.recovered_site_dispatch_evidence(saved) is Some(_)
+              Err(_) => false
+            }
+          })
+        } else {
+          None
         },
       ).unwrap()
     },
@@ -455,6 +485,8 @@ test "native remote runtime owns success failure and cleanup progression" {
   )
   assert_eq(accepted[0], 2)
   assert_eq(executions[0], 1)
+  assert_eq(file_handoffs.val, 1)
+  assert_true(handoff_was_durable.val)
   assert_eq(entries, [@remote.remote_dispatch_attempt_key(first)])
   assert_true(runtime.retains_dispatch_resources())
   assert_eq(observed_budget[0], (128L, 128L))
@@ -473,6 +505,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   )
   assert_eq(accepted[0], 3)
   assert_eq(executions[0], 1)
+  assert_eq(file_handoffs.val, 1)
   assert_true(
     runtime.open_output_reader(first, "foreign-material", 1)
     is Err(@runtime.OutputReaderUnavailable),

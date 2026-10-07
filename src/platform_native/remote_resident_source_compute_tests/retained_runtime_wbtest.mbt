@@ -35,6 +35,13 @@ fn retained_compute_through_runtime(
     @output.NativeRemoteRetainedTaskInputIssue,
   ],
 ) -> Unit raise {
+  // Native completion requires an independent file. This direct caller does
+  // not transfer receiver retirement, so its existing borrow lifetime stays
+  // with Runtime cleanup rather than the optional early handoff.
+  let configuration = {
+    ..configuration,
+    source: { ..configuration.source, retained_output_root: Some(root_path), },
+  }
   let (bundles, active, journal) = retained_runtime_owners(
     sqlite, site, root_path, name,
   )
@@ -385,6 +392,9 @@ fn retained_compute_through_runtime(
   )
   assert_eq(entries.val, 1)
   let observed = journal.observation(dispatch).unwrap()
+  assert_true(
+    @dispatch_journal.recovered_site_dispatch_file_custody(observed) is Some(_),
+  )
   let evidence = @dispatch_journal.recovered_site_dispatch_evidence(observed).unwrap()
   let subject = @dispatch_journal.recovered_site_dispatch_subject(observed).unwrap()
   assert_eq(

@@ -298,17 +298,10 @@ pub fn client_retained_task_input_binding(
 /// Recover the saved destination-use identity through the existing physical
 /// binding decoder, then perform ordinary exact retained-input admission.
 /// Parsing this identity issues no borrow or current material authority.
-pub fn restore_client_retained_task_input(
+fn retained_task_binding_fields(
   saved : @remote.RemoteInputBinding,
-  producer : ClientRetainedInputProducer,
-  transfer_record : @transfer.RemoteTransferRecord,
-  receipt : @transfer.RemoteTransferDestinationReceipt,
-  current : ClientRetainedInputCurrent,
   max_binding_bytes : Int,
-  max_chunks : Int,
-  max_manifest_bytes : Int,
-  max_referenced_bytes : Int64,
-) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue] {
+) -> Result[@decode.ObjectView, ClientRetainedTaskInputIssue] {
   let node = match
     @source.parse_json_bytes(
       @utf8.encode(@remote.remote_input_binding_body(saved)),
@@ -327,14 +320,32 @@ pub fn restore_client_retained_task_input(
     Ok(value) => value
     Err(_) => return Err(InvalidBinding)
   }
-  let fields = match
+  match
     @decode.closed_object(cursor, [
       "consumer_input_port", "consumer_logical_cid", "consumer_task_key", "destination_receipt_json",
       "physical_input_json", "producer_evidence_json", "producer_logical_cid", "producer_output_port",
       "producer_request_json", "producer_subject_json", "run_definition_cid", "version",
     ]) {
+    Ok(value) => Ok(value)
+    Err(_) => Err(InvalidBinding)
+  }
+}
+
+///|
+pub fn restore_client_retained_task_input(
+  saved : @remote.RemoteInputBinding,
+  producer : ClientRetainedInputProducer,
+  transfer_record : @transfer.RemoteTransferRecord,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  current : ClientRetainedInputCurrent,
+  max_binding_bytes : Int,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue] {
+  let fields = match retained_task_binding_fields(saved, max_binding_bytes) {
     Ok(value) => value
-    Err(_) => return Err(InvalidBinding)
+    Err(issue) => return Err(issue)
   }
   guard client_transfer_input_text(fields, "version") is Some(version) &&
     version == "actql-remote-retained-task-input/0.1" &&
