@@ -374,6 +374,26 @@ owners remain the runtime path. Source installation derives its schema from
 the saved contract and only admits opaque current read decisions or a
 Checkpoint decision for its exact physical target, field subset and principal.
 
+The selected Local installation also binds its reviewed implementation bytes,
+not only a Python executable path or a revision label. The existing adapter
+import graph and checked Connector asset declaration produce one finite file
+inventory shared with packaging. Local observes at most 128 regular files and
+16 MiB in total, including its host modules, worker, dependency lock and physical
+machine contract. Its installation and target Capability identities include the
+content observation CID. The generic Host passes this selected declaration to
+the Connector; it does not interpret Iceberg mappings or issue physical proof.
+
+Before preparation, dispatch, original-operation observation, read and cleanup,
+the Local bridge verifies that this installed content still matches. Recovered
+continuations must match the exact installation binding and approved target
+Capability. Changes do not select a replacement candidate, send a new request,
+or erase the original Ledger/capture and potential published-file responsibility.
+The Host must keep installed package files and its Python environment trusted
+and immutable while operations run: a content observation is not a sandbox or
+an atomic filesystem/executable attestation. Changes to external Python library
+bytes behind the same executable path are outside this package inventory; the
+Host installs the supplied hashed lock explicitly and governs that environment.
+
 The adapter package carries only the reviewed Python worker modules and pinned
 requirements. It carries no virtualenv, Catalog, credential, fixture data or
 automatic dependency installer. Python libraries remain an explicit dependency

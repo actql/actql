@@ -16,7 +16,8 @@ import {installRowSourceAuthorization} from './installed-row-source.mjs';
 import {installedSourceIdentity, loadInstalledSource} from './installed-source.mjs';
 import {installedEffectIdentity, loadInstalledEffect} from './installed-effect.mjs';
 import {checkInstalledTableSourceProfile, checkInstalledTableEffectProfile,
-  installedTableReadSite} from '../connectors/local/host/installed-local-table.mjs';
+  installedTableReadSite, loadInstalledTableSource, loadInstalledTableEffect}
+  from '../connectors/local/host/installed-local-table.mjs';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 
@@ -93,6 +94,22 @@ test('Table Source loads through the generic Host without physical I/O', async t
     assert.deepEqual((await readdir(f.root)).sort(), ['profile.json']);
     assert.equal(await installedSourceIdentity(f.path), identity);
   } finally { await adapter.close(); }
+});
+
+test('Local Table cannot load without the selected Connector implementation declaration', async t => {
+  const f = await installedProfile(t, sourceProfile);
+  await assert.rejects(loadInstalledTableSource(f.profile, f.options),
+    {code: 'InstalledConnectorRegistrationMismatch'});
+  const effect = effectProfile(f.root);
+  await assert.rejects(loadInstalledTableEffect(effect, {...f.options, ledgerRoot: join(f.root, 'ledger')}),
+    {code: 'InstalledConnectorRegistrationMismatch'});
+  for (const installation of [{registration: 'local', revision: 'local/0.1'},
+    {registration: 'local', revision: 'local/0.1', implementationFiles: []}]) {
+    await assert.rejects(loadInstalledTableSource(f.profile, {...f.options, installation}),
+      {code: 'InvalidConnectorImplementationInventory'});
+  }
+  assert.deepEqual((await readdir(f.root)).sort(), ['profile.json'],
+    'Missing implementation binding cannot create a Catalog, Ledger or authorization store');
 });
 
 test('Table Effect loads its admitted Mapping and existing runtime hooks without publication', async t => {

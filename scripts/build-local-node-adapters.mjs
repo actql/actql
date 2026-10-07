@@ -1,7 +1,7 @@
 import {lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {buildSync} from 'esbuild';
+import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
@@ -34,16 +34,7 @@ if (dataParent && !dataParent.isDirectory()) {
 }
 checkConnectorData();
 const entries = inputs.adapterEntries;
-const graph = buildSync({entryPoints: entries, bundle: true,
-  packages: 'external', platform: 'node', format: 'esm', target: 'node22',
-  metafile: true, write: false, absWorkingDir: root,
-  outdir: join(root, '_build/local-node-adapter-graph')});
-const sourcePaths = Object.keys(graph.metafile.inputs)
-  .filter(path => path.startsWith('adapters/')).sort();
-if (sourcePaths.length < entries.length ||
-    entries.some(path => !sourcePaths.includes(path))) {
-  throw new Error('IncompleteLocalNodeAdapterGraph');
-}
+const sourcePaths = adapterModuleGraph(root, entries);
 // URL-referenced physical I/O is not an esbuild JS import. Its finite asset
 // inventory comes from the same checked Connector manifests as installation.
 sourcePaths.push(...inputs.dataFiles.filter(path => path.startsWith('adapters/')));

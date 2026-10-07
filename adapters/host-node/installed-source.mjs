@@ -103,8 +103,8 @@ export async function installedSourceIdentity(path) {
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   // Omission and an explicitly empty alias publication have the same meaning.
   if (queryAliases.length === 0) delete profile.queryAliases;
-  const {module} = await selectInstallation(profile);
-  const parts = await module.identityParts(profile, providerProfile, read);
+  const {entry, module} = await selectInstallation(profile);
+  const parts = await module.identityParts(profile, providerProfile, read, entry);
   if (!Array.isArray(parts) || parts.length === 0) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }

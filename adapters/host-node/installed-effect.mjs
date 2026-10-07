@@ -64,7 +64,7 @@ async function providerRuntime(entry, runtimeUrl) {
 // never an access token; no profile contents are returned to the caller.
 export async function installedEffectIdentity(path) {
   const profile = await readProfile(path);
-  const {module} = await selectInstallation(profile);
+  const {entry, module} = await selectInstallation(profile);
   module.check(profile);
   const read = async name => {
     const bytes = await readFile(name);
@@ -73,7 +73,7 @@ export async function installedEffectIdentity(path) {
     }
     return JSON.parse(bytes.toString('utf8'));
   };
-  const parts = await module.identityParts(profile, read);
+  const parts = await module.identityParts(profile, read, entry);
   if (!Array.isArray(parts) || parts.length === 0) {
     refuse('InvalidInstalledEffectProfile');
   }

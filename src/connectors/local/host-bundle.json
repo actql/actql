@@ -4,6 +4,7 @@
     "revision": "local/0.1",
     "responseHeaders": [],
     "assets": [
+      "spec/contracts/actql-local-table-iceberg.json",
       "adapters/connectors/local/iceberg/catalog.py",
       "adapters/connectors/local/iceberg/custody.py",
       "adapters/connectors/local/iceberg/physical.py",

@@ -7,7 +7,9 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
-import {tableFixturePublicationPlan} from './fixtures/table-completed-capture.mjs';
+import {tableFixturePublicationPlan, tableFixtureWriteFootprint} from './fixtures/table-completed-capture.mjs';
+import {issueIcebergStorageMapping, admitIcebergStorageMapping, projectIcebergCommitResponse}
+  from '../connectors/local/host/iceberg-process.mjs';
 import {recoverCompletedEffectfulComputation, suspendCompletedEffectfulComputation,
   releaseCompletedRunPreparedPayloads, retireCompletedEffectfulCapture}
   from '../host-common/completed-run-publication.mjs';
@@ -19,7 +21,7 @@ const mappingRef = 'mapping:table.catalog.v1';
 for (const kind of ['frozen', 'nested', 'primitive']) {
   test(`installed Table preparation retains ${kind} failure and cleanup custody`,
     async t => exerciseEffectSourceSet(t, {target: targetRef, mappingRef,
-      minimumApproval: 'required', onTablePreview: async f => {
+      minimumApproval: 'required', onCompletedTableRun: async f => {
         const {moon, sourceControl: control} = f;
         let innerPending = true, innerRetries = 0;
         const inner = Object.freeze({status: () => ({pending: innerPending}),
@@ -31,6 +33,9 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
         const cleanupFailure = new Error('FirstTableCleanupFailure');
         let preparations = 0, cleanupCalls = 0;
         const bridge = {
+          issueStorageMapping: issueIcebergStorageMapping,
+          admitStorageMapping: admitIcebergStorageMapping,
+          projectCommitResponse: projectIcebergCommitResponse,
           prepareWrite() { if (++preparations === 2) throw original; return Object.freeze({}); },
           status: () => ({attempted: true, stopped: true}),
           async cleanup() {
@@ -49,7 +54,7 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
             resource: 'catalog', targetRef, mappingRef, mappingCid: f.fixture.mappingCid,
             action: 'create', catalogCid: cid('3'), namespace: ['analytics'], tableName: `rows_${index}`,
             expectedTable: null, permissions: ['scope:store'],
-            footprint: f.template.effects[index].write_footprint})), bridge,
+            footprint: tableFixtureWriteFootprint(index)})), bridge,
           authorization: {authorize() { assert.fail('Preparation cannot authorize a provider read'); }},
           ledgerRoot: join(f.directory, 'installed-table-failure-ledger'),
           limits: {maxMembers: 2, maxInputBytes: 100000,
@@ -89,13 +94,16 @@ for (const sparseTableInput of [false, true]) for (const empty of [false,true]) 
   test(`installed Table hooks ${sparseTableInput ? 'sparse private ' : ''}${empty ? 'empty' : 'nonempty'} preserve original capture and claims`,
     async t => exerciseEffectSourceSet(t, {empty, sparseTableInput,
       privateTableInput: sparseTableInput, target: targetRef, mappingRef,
-      minimumApproval: 'required', onTablePreview: async f => {
+      minimumApproval: 'required', onCompletedTableRun: async f => {
         const {moon,sourceControl: control} = f;
         const originalCompleted = f.execution.completed.slice();
         const writes = [], inspections = [];
         const materials = new WeakMap();
         let cleanupCalls = 0, testCleanup = false, finishCleanup = false;
         const bridge = {
+          issueStorageMapping: issueIcebergStorageMapping,
+          admitStorageMapping: admitIcebergStorageMapping,
+          projectCommitResponse: projectIcebergCommitResponse,
           prepareWrite(value) {
             const token = Object.freeze({}); materials.set(token,value); return token;
           },
@@ -117,7 +125,7 @@ for (const sparseTableInput of [false, true]) for (const empty of [false,true]) 
             resource: 'catalog', targetRef, mappingRef, mappingCid: f.fixture.mappingCid,
             action: 'create', catalogCid: cid('3'), namespace: ['analytics'], tableName: `rows_${index}`,
             expectedTable: null, permissions: ['scope:store'],
-            footprint: f.template.effects[index].write_footprint})), bridge,
+            footprint: tableFixtureWriteFootprint(index)})), bridge,
           authorization: {authorize() { assert.fail('No provider read during preparation'); }},
           ledgerRoot: join(f.directory,'installed-table-ledger'),
           limits: {maxMembers: 2, maxInputBytes: 100000,

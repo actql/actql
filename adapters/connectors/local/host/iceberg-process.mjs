@@ -37,6 +37,7 @@ export function admitIcebergStorageMapping({control, mappingWire, limits}) {
 }
 
 export function createIcebergPhysicalBridge({python, run, catalog,
+  implementation,
   entry = new URL('../iceberg/process_worker.py', import.meta.url)}) {
   const config = snapshot(catalog);
   if (!(python instanceof URL) || python.protocol !== 'file:' ||
@@ -46,6 +47,14 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       Object.values(config.limits).some(value => !Number.isSafeInteger(value) || value < 1)) {
     fail('InvalidTablePhysicalConfiguration');
   }
+  if (implementation !== undefined && (!cid(implementation.identity) ||
+      typeof implementation.assertCurrent !== 'function')) fail('InvalidTableImplementationBinding');
+  const assertImplementation = () => {
+    if (implementation !== undefined && implementation.assertCurrent() !== undefined) {
+      fail('InvalidTableImplementationBinding');
+    }
+  };
+  assertImplementation();
   // Validate and snapshot interpreter/entry/run synchronously, before a durable
   // Effect send claim. Each invocation creates one fresh process preparation.
   prepareManagedExecution({runtime: python, entry, run, frames, maxRequests: 1,
@@ -57,6 +66,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     session: '00000000-0000-0000-0000-000000000000', run,
     kind: 'execute', sequence: 1, body: {catalog: config, command, payload}});
   const invoke = async (command, payload, signal, stopped) => {
+    assertImplementation();
     let channel, error;
     // A bounded physical I/O wait does not certify cancellation/noncommit.
     // Deadline failure still waits for actual exit and requires reconciliation.
@@ -89,9 +99,9 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     return invoke('reconcile', payload, signal);
   };
   const bridge = Object.freeze({
-    issueStorageMapping: issueIcebergStorageMapping,
-    admitStorageMapping: admitIcebergStorageMapping,
-    projectCommitResponse: projectIcebergCommitResponse,
+    issueStorageMapping(values) { assertImplementation(); return issueIcebergStorageMapping(values); },
+    admitStorageMapping(values) { assertImplementation(); return admitIcebergStorageMapping(values); },
+    projectCommitResponse(values) { assertImplementation(); return projectIcebergCommitResponse(values); },
     // Pure installed-target validation. A selector binds a Table, not a read
     // grant or a generation; only the authorized resolver freezes a head.
     checkReadSelector(selector) {
@@ -111,6 +121,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       return Object.freeze(payload.selector);
     },
     prepareWrite({operation, mapping, rows, reservation, schemaWire}) {
+      assertImplementation();
       if (typeof schemaWire !== 'string') fail('InvalidTableLogicalSchema');
       const payload = snapshot({operation, mapping, rows, reservation, schema_wire: schemaWire});
       if (!cid(payload.operation?.request_cid) || !Array.isArray(payload.rows)) {
@@ -132,6 +143,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       const owned = own(prepared);
       if (!cid(useCid)) fail('InvalidTableCredentialUse');
       signal?.throwIfAborted();
+      assertImplementation();
       if (owned.attempted) fail('TablePhysicalReconcileOnly');
       owned.attempted = true;
       const result = await invoke('write', owned.payload, signal, () => { owned.stopped = true; });

@@ -5716,7 +5716,9 @@ test('Effect source set shares exact owners and retains failed cleanup',
 // Python for the ordinary Host suite.
 export async function exerciseEffectSourceSet(t, {distinctResults = false,
   writeKind = 'store', empty = false, privateTableInput = false, sparseTableInput = false, onTablePreview, target,
-  mappingRef, minimumApproval, prepareCaptureResults = false} = {}) {
+  mappingRef, minimumApproval, prepareCaptureResults = false, onCompletedTableRun} = {}) {
+        assert.ok(onTablePreview === undefined || onCompletedTableRun === undefined,
+          'Select a captured Preview or an unpinned completed Run, not both');
         const fixture = await effectFixture({writeKind, target, mappingRef,
           minimumApproval, graphProfile: sparseTableInput,
           mappingSource: sparseTableInput ? 'k' : 'id',
@@ -5806,7 +5808,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           storeAuthorityCid: cid('7'), capacityBytes: 1024 * 1024,
           maxObjectBytes: 100000, maxObjects: 10,
           maxContractNodes: 10000, maxContractDepth: 64,
-          ...(onTablePreview === undefined ? {} : {
+          ...(onTablePreview === undefined && onCompletedTableRun === undefined ? {} : {
             privateEvidenceKey: Buffer.alloc(32, 4)}),
         };
         let physical = await openLocalPublicationStore(storeConfiguration, control);
@@ -5876,6 +5878,17 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
         };
         let sources, capturedResults;
         try {
+          if (onCompletedTableRun !== undefined) {
+            // The installed connection owns Result publication and Effect pins
+            // in that order. Do not lend it pins from this lower-level binding
+            // fixture or increase its live-holding ceiling to hide an overlap.
+            return await onCompletedTableRun({moon, sourceControl: issuerControl,
+              prepared, checkedHost: owned, execution, fixture, options, definition,
+              invocation, evidence, observation, outputLimits, directory,
+              tableLimits: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 16, maxWork: 1000},
+              storeConfiguration, physicalStore: physical,
+              replaceStoreForCleanup(value) { physical = value; }});
+          }
           if (prepareCaptureResults) {
             // Match the installed Table connection: publish ordinary Results
             // before acquiring Effect input pins. Never increase the pin

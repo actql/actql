@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
-import {tableFixturePublicationPlan} from './fixtures/table-completed-capture.mjs';
+import {tableFixturePublicationPlan, tableFixtureWriteFootprint} from './fixtures/table-completed-capture.mjs';
 import {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
 import {recoverCompletedEffectfulComputation, suspendCompletedEffectfulComputation,
@@ -33,7 +33,7 @@ for (const empty of [false,true]) {
 for (const partial of [false,true]) {
   test(`installed Table runtime ${empty ? 'empty' : 'nonempty'} commits original operations after approval and recovery${partial ? ' with partial apply restart' : ''}`,
     async t => exerciseEffectSourceSet(t, {empty, target: targetRef, mappingRef,
-      minimumApproval: 'required', onTablePreview: async f => {
+      minimumApproval: 'required', onCompletedTableRun: async f => {
         ensureCheckpointRuntime();
         const {moon,sourceControl: control} = f;
         const plan = tableFixturePublicationPlan(f);
@@ -54,11 +54,12 @@ for (const partial of [false,true]) {
         };
         const bridge = createIcebergPhysicalBridge({python, run: 'installed-table', catalog});
         const physicalOperations = new WeakMap();
-        const inspected = [], sent = [];
+        const inspected = [], sent = [], mappings = new Map();
         const observedBridge = Object.freeze({...bridge,
           prepareWrite(options) {
             const prepared = bridge.prepareWrite(options);
             physicalOperations.set(prepared, options.operation);
+            mappings.set(options.operation.request_cid, options.mapping);
             return prepared;
           },
           inspect(prepared, signal) {
@@ -78,7 +79,7 @@ for (const partial of [false,true]) {
           targets: ['first','second'].map((effectId,index) => ({effectId, resource: 'catalog',
             targetRef, mappingRef, mappingCid: f.fixture.mappingCid,
             action: 'create', catalogCid: cid('3'), namespace: ['analytics'], tableName: `rows_${index}`,
-            expectedTable: null, permissions: ['scope:store'], footprint: f.template.effects[index].write_footprint})),
+            expectedTable: null, permissions: ['scope:store'], footprint: tableFixtureWriteFootprint(index)})),
           bridge: observedBridge, authorization: readAuthorization, ledgerRoot: join(f.directory,'installed-table-ledger'),
           limits: {maxMembers: 2, maxInputBytes: 100000, material: f.tableLimits,
             reservation: {bytes: 1048576, files: 16}}};
@@ -133,6 +134,30 @@ for (const partial of [false,true]) {
           durable = await recoverCompletedEffectfulComputation({store,control,
             runDefinition:plan.runDefinition,contractLimits:plan.contractLimits});
           const recovered = {requestIdentity:identity,requestScope:moon.clientRequestLogicalScope(identity),computation:durable};
+          // These are real saved Preview/capture owners. A changed installation
+          // cannot reinterpret the approved operation or destroy its original
+          // recovery facts; the original factory must still recover below.
+          for (const changed of [
+            {bindingCid: cid('a')},
+            {connectorRevision: 'table/0.2'},
+            {runtimeBundleCid: cid('a')},
+            {targets: options.targets.map(target => ({...target, tableName: 'other_target'}))},
+            {targets: options.targets.map(target => ({...target, mappingCid: cid('a')}))},
+            {catalogCid: cid('a'), targets: options.targets.map(target => ({...target, catalogCid: cid('a')}))},
+          ]) {
+            const changedFactory = await createInstalledTableEffect({...options, ...changed});
+            await assert.rejects(changedFactory.prepareRecovered({moon, control, store, recovered,
+              continuation: {provider: saved}}), error =>
+              ['InstalledTableInstallationChanged', 'InstalledTableMappingNotInstalled'].includes(error.code));
+            changedFactory.close();
+            assert.deepEqual(sent, []);
+            assert.equal(commits(), 0, 'Changed installation must not write');
+            assert.equal(control.effectComputationPreviewWire(durable.preview),
+              control.effectComputationPreviewWire(stage.preview));
+          }
+          await assert.rejects(factory.prepareRecovered({moon, control, store, recovered,
+            continuation: {provider: {...saved, binding_cid: cid('a')}}}),
+          {code: 'InstalledTableInstallationChanged'});
           recoveredStage = await factory.prepareRecovered({moon,control,store,recovered,continuation:{provider:saved}});
           assert.deepEqual(recoveredStage.receipt.members.map(member => member.rowOwners[0].claim.canonicalRequestCid),originalRequests);
           await assert.rejects(applyRecoveredEffectSet({...recoveredStage.apply,
@@ -212,7 +237,7 @@ for (const partial of [false,true]) {
             return original.result;
           }));
           const expected = empty ? [] : [{id:1},{id:2}];
-          for (const receipt of physicalReceipts) assert.deepEqual(plain((await bridge.read(receipt,JSON.parse(f.storage.wire))).result),expected);
+          for (const receipt of physicalReceipts) assert.deepEqual(plain((await bridge.read(receipt,mappings.get(receipt.request_cid))).result),expected);
           const replay = await applyRecoveredEffectSet({...recoveredStage.apply,authorization:undefined,
             bindDispatch:()=>assert.fail('Settled Table operation resent')});
           assert.equal(replay.dispatched,0); assert.equal(commits(),2);
@@ -227,7 +252,7 @@ for (const partial of [false,true]) {
           await retireCompletedEffectfulCapture({store,control,runDefinition:plan.runDefinition,
             contractLimits:plan.contractLimits});
           assert.equal(store.status().reservedBytes,0);
-          for (const receipt of physicalReceipts) assert.deepEqual(plain((await bridge.read(receipt,JSON.parse(f.storage.wire))).result),expected);
+          for (const receipt of physicalReceipts) assert.deepEqual(plain((await bridge.read(receipt,mappings.get(receipt.request_cid))).result),expected);
         } finally {
           gate?.close(); await checkpoint?.close(); readAuthorization.close();
           await recoveredStage?.dispose(); await stage?.dispose();

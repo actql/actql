@@ -386,6 +386,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
     if (provider?.version !== 'actql-installed-table-continuation/0.1' ||
       !cid(provider.binding_cid) || !text(provider.program_id) || !text(provider.stage_id) ||
       !Array.isArray(provider.members)) fail('InstalledTableContinuationMismatch');
+    if (provider.binding_cid !== bindingCid) fail('InstalledTableInstallationChanged');
     const {requestIdentity, requestScope, computation: durable} = recovered;
     const {preview, computation, storedResults} = durable;
     const previewWire = control.effectComputationPreviewWire(preview);

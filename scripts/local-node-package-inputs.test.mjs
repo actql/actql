@@ -53,6 +53,7 @@ test('real declared providers supply runtime, adapter and static asset inventory
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/github/host/installed-github-effect.mjs'));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/local/host/installed-local-table.mjs'));
   assert.ok(inputs.dataFiles.includes('adapters/connectors/local/iceberg/process_worker.py'));
+  assert.ok(inputs.dataFiles.includes('spec/contracts/actql-local-table-iceberg.json'));
   assert.ok(inputs.dataFiles.includes('src/connectors/github/source-views.json'));
   assert.ok(inputs.dataFiles.includes('src/connectors/github/writes.json'));
   assert.equal(new Set(inputs.runtimeFiles).size, inputs.runtimeFiles.length);
@@ -72,6 +73,26 @@ test('a physical Host installation needs no artificial MoonBit provider bundle',
   assert.ok(!inputs.runtimePackages.includes(undefined));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/example/host/effect.mjs'));
   assert.ok(inputs.dataFiles.includes('adapters/connectors/example/io/worker.py'));
+});
+
+test('implementation inventory includes owned transitive imports and physical contracts', t => {
+  const {root, manifest, write, generate} = fixture(t);
+  put(root, 'adapters/connectors/example/host/helper.mjs', 'export const helper = 1;\n');
+  put(root, 'adapters/connectors/example/host/source.mjs',
+    'import {helper} from "./helper.mjs";\n' +
+    'export function check() {return helper;}\nexport function identity() {}\nexport function load() {}\n');
+  const contract = 'spec/contracts/actql-example-storage.json';
+  put(root, contract, '{"physical":"independent"}\n');
+  manifest.installation.assets.push(contract);
+  write(); generate();
+  assert.ok(localNodePackageInputs(root).dataFiles.includes(contract));
+  const generated = readFileSync(join(root, 'adapters/connectors-builtin/installations.generated.mjs'), 'utf8');
+  assert.match(generated, /path: "adapters\/connectors\/example\/host\/helper\.mjs"/);
+  assert.match(generated, /path: "spec\/contracts\/actql-example-storage\.json"/);
+  // The actual import graph, not an independently maintained module list,
+  // refuses a missing transitive implementation before packaging.
+  renameSync(join(root, 'adapters/connectors/example/host/helper.mjs'), join(root, 'helper-backup.mjs'));
+  assert.throws(generate, /Could not resolve/);
 });
 
 test('physical assets refuse foreign paths, missing files, duplicates and symlink targets', t => {
