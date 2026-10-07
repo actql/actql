@@ -54,7 +54,12 @@ test "capacity evidence declared child sums match the actual registered chain" {
     assert_eq(actual.retained_bytes, base.retained_bytes)
     assert_eq(
       actual.execution_bytes,
-      Int64::max(base.execution_bytes, children + count.to_int64() * 256L),
+      // Multi-step input selection and producer read retain two metadata handles.
+      // This checks the declared reservation, not a physical sizing theorem.
+      Int64::max(
+        base.execution_bytes,
+        children + count.to_int64() * 256L + 512L,
+      ),
     )
     // A max(child) mutation must not substitute a serial execution argument
     // for the actual overlap of retained children.
@@ -70,7 +75,8 @@ test "capacity evidence actual Int64 guards reject child sum and handle overflow
     @execution.execution_capacity(0L, 0L).unwrap(),
   )
   let suffix = capacity_evidence_child_sum(sequence, zero)
-  let handles = 512L
+  let handles = 2L * 256L
+  let preparation = 512L
   let maximum = 9223372036854775807L
   let get = fn(retained : Int64, execution : Int64) {
     let family = capacity_evidence_family(
@@ -88,10 +94,12 @@ test "capacity evidence actual Int64 guards reject child sum and handle overflow
   assert_true(get(0L, maximum) is None)
   // Child accumulation fits exactly; adding actual parent handles cannot.
   assert_true(get(0L, maximum - suffix) is None)
-  // All sums fit exactly, and the next byte is rejected before wrapping.
-  let exact = get(0L, maximum - suffix - handles).unwrap()
+  // Child and handle sums fit exactly, but metadata preparation cannot.
+  assert_true(get(0L, maximum - suffix - handles) is None)
+  // Every declared term fits exactly; one additional byte must be refused.
+  let exact = get(0L, maximum - suffix - handles - preparation).unwrap()
   assert_eq(exact.execution_bytes, maximum)
-  assert_true(get(0L, maximum - suffix - handles + 1L) is None)
+  assert_true(get(0L, maximum - suffix - handles - preparation + 1L) is None)
   assert_true(@execution.execution_capacity(-1L, 0L) is None)
   assert_true(@execution.execution_capacity(1L, 0L) is None)
 }

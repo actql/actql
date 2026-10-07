@@ -125,11 +125,11 @@ function makeDirectory(name, duplicateObservation = false) {
     const run = execution(directory, target, slot,
       duplicateObservation && slot === 'js' ? 'base-js:observation' : undefined);
     const models = Object.fromEntries([['session', 14, 'proofs/bounded-session/check.mjs'],
-      ['chain', 36, 'proofs/relation-chain/check.mjs']].map(([id, count, file]) => {
+      ['chain', 54, 'proofs/relation-chain/check.mjs']].map(([id, count, file]) => {
       const log = `Checked ${count} theorems, expected claim types and axiom dependencies\n`;
       write(join(directory, `${id}.log`), log);
       return [id, { logPath: `${prefix}${id}.log`, logDigest: hash(log), passed: true,
-        exit: 0, sourceDigest: expectedCurrent.digest, command: ['node', file] }];
+        exit: 0, target: 'model', count, sourceDigest: expectedCurrent.digest, command: [process.execPath, file] }];
     }));
     json(join(directory, `${slot}.json`), { version: 'actql-relation-pipeline-evidence/0.1',
       profile: evidence.profile, source: expectedCurrent, inherited: evidence.inherited,
@@ -251,6 +251,18 @@ if (scenario.startsWith('cli-')) {
       assert.equal(calls.history, 2);
       assert.equal(calls.validate, 10);
       assert.equal(calls.fixture, 10);
+    } else if (scenario === 'model-old-inventory' || scenario === 'model-duplicate-summary') {
+      run(healthy);
+      const reportPath = join(healthy, 'base-js.json');
+      const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+      const model = report.models.chain;
+      const path = join(healthy, model.logPath.slice(prefix.length)), original = readFileSync(path, 'utf8');
+      const changed = scenario === 'model-old-inventory' ? original.replace('54', '36') : original + original;
+      write(path, changed); model.logDigest = hash(changed); json(reportPath, report);
+      checkError(() => run(healthy), 'Missing or incomplete typed model observation');
+      write(path, original); model.logDigest = hash(original); json(reportPath, report);
+      run(healthy);
+      assert.equal(calls.history, 2);
     } else throw new Error(`Unknown synthetic scenario ${scenario}`);
     assertPreparation();
   }

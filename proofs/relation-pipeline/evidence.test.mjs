@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { generate, oracle, program, clone } from './engine.mjs';
 import { baseRegistry } from './registry.mjs';
-import { profile, inherited, premises, validate, expectedContracts } from './evidence.mjs';
+import { profile, inherited, premises, validate, expectedContracts, auditModelLogs, observeModel } from './evidence.mjs';
 import { hash } from './inventory.mjs';
 import { connectionAnchor, connectionMismatch, orderMismatch } from './mismatch.mjs';
 
@@ -47,8 +47,8 @@ function fixture() {
   const report = { version: 'actql-relation-pipeline-evidence/0.1', profile, source, target: 'js',
     registry: baseRegistry.map(d => d.name), inherited, premises,
     models: Object.fromEntries(['session', 'chain'].map(id => [id, {
-      passed: true, exit: 0, sourceDigest: source.digest,
-      command: ['node', `proofs/${id === 'session' ? 'bounded-session' : 'relation-chain'}/check.mjs`],
+      passed: true, exit: 0, sourceDigest: source.digest, target: 'model', count: id === 'session' ? 14 : 54,
+      command: [process.execPath, `proofs/${id === 'session' ? 'bounded-session' : 'relation-chain'}/check.mjs`],
     }])), toolchain: { moonc: 'unit-test-only' },
     evidenceKinds: ['formal-model', 'tested-refinement', 'independent-semantic-check'],
     residual: ['No arbitrary registry/length implementation refinement; capacity remains conditional'],
@@ -120,4 +120,46 @@ test('order mismatch requires the same distinguishable equal-key occurrence pair
   assert(!orderMismatch(c, actual, { ...anchor, sort: 'another sort' }, baseRegistry));
   const changed = clone(c); changed.rows[1].values.k = 1;
   assert(!orderMismatch(changed, actual, anchor, baseRegistry));
+});
+
+for (const id of ['session', 'chain']) {
+  for (const [label, change] of [
+    ['zero laws', r => { r.count = 0; }],
+    ['missing count', r => { delete r.count; }],
+    ['null count', r => { r.count = null; }],
+    ['wrong count', r => { r.count = 36; }],
+    ['runtime target', r => { r.target = 'js'; }],
+    ['missing target', r => { delete r.target; }],
+    ['other executor', r => { r.command[0] = 'python'; }],
+    ['extra arguments', r => { r.command.push('--skip-audit'); }],
+  ]) test(`pipeline refuses ${id} ${label} with unchanged semantic observations`, () => {
+    const {report, source} = fixture(); change(report.models[id]);
+    assert.throws(() => validate(report, source, baseRegistry));
+  });
+}
+function modelLogsFixture() {
+  const {report} = fixture(), logs = {};
+  for (const [id, count] of [['session', 14], ['chain', 54]]) {
+    const log = `Checked ${count} theorems, expected claim types and axiom dependencies\n`;
+    report.models[id].logPath = `${id}.log`;
+    report.models[id].logDigest = hash(log); logs[`${id}.log`] = log;
+  }
+  return {report, logs};
+}
+test('archived model consumer rechecks bytes and actual summary independently of labels', () => {
+  const {report, logs} = modelLogsFixture();
+  auditModelLogs(report, path => logs[path]);
+  assert.equal(observeModel('chain', logs['chain.log'], 0), 54);
+  for (const changed of [
+    logs['chain.log'].replace('54', '36'),
+    `quoted: ${logs['chain.log']}`,
+    logs['chain.log'] + logs['chain.log'],
+    'sorryAx\n' + logs['chain.log'],
+  ]) {
+    const candidate = structuredClone(report);
+    candidate.models.chain.logDigest = hash(changed);
+    assert.throws(() => auditModelLogs(candidate, path => path === 'chain.log' ? changed : logs[path]), /typed model observation/);
+  }
+  assert.throws(() => auditModelLogs(report, path => logs[path] + 'changed'), /Changed model observation bytes/);
+  assert.throws(() => observeModel('unknown', logs['chain.log'], 0), /Unknown pipeline model/);
 });
