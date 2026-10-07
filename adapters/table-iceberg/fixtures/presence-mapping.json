@@ -1,0 +1,10 @@
+{
+  "version": "actql-table-storage-mapping/0.1",
+  "schema_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "iceberg_format_version": 2,
+  "columns": [
+    {"name": "id", "value_field_id": 1, "presence_field_id": null, "physical_type": "double", "nullable": false, "presence": "required"},
+    {"name": "p", "value_field_id": 2, "presence_field_id": 3, "physical_type": "string", "nullable": true, "presence": "conditional"}
+  ],
+  "mapping_cid": "sha256:f226857b2e62cdc2af43685ec43695ed24032d1ce7e10cf58ce89210f04231ab"
+}

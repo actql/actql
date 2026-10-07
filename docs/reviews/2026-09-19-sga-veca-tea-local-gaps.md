@@ -6306,3 +6306,19 @@ all-start boundedness. KernelBody copies, other kernel metadata, availability
 validation and the installed projected-read ceiling remain. See the
 [metadata cursor record](2026-10-07-local-row-metadata-cursor.md) for the
 counterexample, implemented shapes, shared evidence and unverified coverage.
+
+### Resumable order and key metadata (2026-10-07)
+
+Sort, take, distinct, dedupe, unique assertion and top-k now reach the same
+wide/long-name metadata preparation owner. Term lookup and schema-name
+charging retain cursors across resumes; reservation and entry charges occur
+once. The bounded small lane, typed ordering and cumulative work are preserved.
+Independent temporary limits, Unicode/NULL/duplicate rows, resume quanta and
+stopped cleanup supplement the existing operation-wide evidence.
+
+A normal retained-Store sort -> take -> derive -> select Program publishes
+three fixed ordered Named Results, feeds two consumers, reuses a repeated
+request and delivers cancellation after positive progress. This does not
+close initial preparation, availability, JSON/window metadata or Native
+physical capacity correspondence. The unmerged #704 owner remains a
+dependency. See the [order metadata record](2026-10-07-local-row-order-metadata.md).

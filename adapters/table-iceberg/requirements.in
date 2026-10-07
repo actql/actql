@@ -1,0 +1,4 @@
+# Optional physical I/O dependencies for Hosts that install Table support.
+# Not a Core, SDK, or ordinary row connector dependency.
+pyiceberg[sql-sqlite]==0.10.0
+pyarrow==21.0.0
