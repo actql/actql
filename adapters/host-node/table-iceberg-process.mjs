@@ -61,6 +61,12 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     if (!owned || owned.bridge !== bridge) fail('ForeignTablePhysicalPreparation');
     return owned;
   };
+  const reconcileOperation = (operation, signal) => {
+    const payload = snapshot({operation});
+    if (!cid(payload.operation?.request_cid)) fail('InvalidTablePhysicalPreparation');
+    preflight('reconcile', payload);
+    return invoke('reconcile', payload, signal);
+  };
   const bridge = Object.freeze({
     prepareWrite({operation, mapping, rows, reservation}) {
       const payload = snapshot({operation, mapping, rows, reservation});
@@ -90,10 +96,11 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     },
     async reconcile(prepared, signal) {
       const owned = own(prepared);
-      const payload = {operation: owned.payload.operation};
-      preflight('reconcile', payload);
-      return invoke('reconcile', payload, signal);
+      return reconcileOperation(owned.payload.operation, signal);
     },
+    // Recovery needs the original sealed operation, not live input, a new
+    // writer preparation or recreated payload. Caller owns evidence authority.
+    reconcileOperation,
     async inspect(prepared, signal) {
       const owned = own(prepared);
       const payload = {operation: owned.payload.operation};
