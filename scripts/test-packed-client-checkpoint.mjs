@@ -11,7 +11,7 @@ import {createRequire} from 'node:module';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
-import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const recoveryOnly = process.argv.includes('--recovery-only');
@@ -44,7 +44,7 @@ for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node',
 }
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');
-run('npm', ['install', '--ignore-scripts', '--no-save', ...[
+run('npm', ['install', '--ignore-scripts', '--no-save', await pinnedDuckDBPackage(repository), ...[
   'client-wire', 'sdk', 'run-host-core', 'local-node', 'node'].map(name =>
   join(root, `actql-${name}-0.0.0-development.tgz`))]);
 assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),

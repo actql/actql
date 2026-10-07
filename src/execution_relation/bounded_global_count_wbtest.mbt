@@ -254,18 +254,45 @@ test "bounded keyed count cancels during key ordering" {
     keyed=true,
     max_work=1000,
   )
-  for _ in 0..<30 {
-    assert_true(
-      advance_bounded_global_count(execution, 1).unwrap()
-      is BoundedGlobalCountContinue(..),
-    )
+  let mut comparing = false
+  let mut work = 0L
+  for _ in 0..<200 {
+    if !comparing {
+      match advance_bounded_global_count(execution, 1).unwrap() {
+        BoundedGlobalCountContinue(work=next, ..) => {
+          assert_true(next > work && next - work <= 1L)
+          work = next
+          comparing = execution.state.phase is SortRows &&
+            execution.state.sort_execution is Some(_) &&
+            execution.state.comparison.phase >= 0
+        }
+        _ => fail("keyed count ended before a child comparison")
+      }
+    }
   }
+  assert_true(comparing)
+  assert_true(execution.state.port_preparation is None)
+  let sort = execution.state.sort_execution.unwrap()
+  assert_false(bounded_index_sort_stopped(sort))
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     advance_bounded_global_count(execution, 1).unwrap()
-    is BoundedGlobalCountStopped(_, ..),
+    is BoundedGlobalCountStopped(@bounded.Cancelled, work=stopped, ..) &&
+    stopped == work,
   )
+  assert_false(bounded_index_sort_stopped(sort))
   assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_false(cleanup_bounded_global_count(execution).unwrap())
+  assert_true(bounded_index_sort_stopped(sort))
+  assert_false(cleanup_bounded_index_sort(sort))
+  assert_true(execution.state.sort_execution is None)
+  assert_eq(execution.state.workspace.live, 0)
+  assert_true(execution.state.output is None)
+  assert_true(execution.state.rows.val is None)
+  assert_false(execution.state.live.val)
+  assert_false(execution.accepted.val)
   assert_true(completed_output_available(source))
 }
 

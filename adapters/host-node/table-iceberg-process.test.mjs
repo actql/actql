@@ -102,7 +102,10 @@ test('real whole-Relation commit is captured once, frozen generations survive la
   const second = f.prepare(replacement, [{id: 9}]);
   const replaced = await f.bridge.execute(second, {useCid: cid('7')});
   assert.equal(JSON.parse(replaced.observation.body).ok, true);
-  const reconciled = await f.bridge.reconcile(prepared);
+  // A reconstructed reader has no writer preparation, input rows or physical
+  // stop token. It still resolves the original commit after a later head.
+  const restarted = createIcebergPhysicalBridge({python, run: 'table-run', catalog: f.catalog});
+  const reconciled = await restarted.reconcileOperation({...operation, table_name: 'rows'});
   assert.deepEqual(wireValue(reconciled), first);
   const old = await f.bridge.read(first.result, f.mapping);
   assert.deepEqual(wireValue(old.result), [{id: 1, p: 'e\u0301\r\n'}, {id: 2, p: null}, {id: 3}, {id: 3}]);
@@ -128,6 +131,38 @@ test('typed empty input performs one operation rather than zero row dispatches',
   assert.deepEqual((await f.bridge.read(receipt, f.mapping)).result, []);
 });
 
+test('Table generation resolution freezes a new reader before later head replacement', async t => {
+  const f = await fixture(t);
+  const rows = [{id: 1, p: 'e\u0301\r\n'}, {id: 2, p: null}, {id: 3}, {id: 3}];
+  const prepared = f.prepare(f.operation(), rows);
+  const committed = await f.bridge.execute(prepared, {useCid: cid('7')});
+  const receipt = JSON.parse(committed.observation.body).result;
+  const reader = createIcebergPhysicalBridge({python, run: 'independent-read-run', catalog: f.catalog});
+  const selector = {catalog_identity_cid: f.catalog.catalogCid, namespace: ['test'],
+    table_name: 'rows', table_uuid: receipt.table_uuid, schema_cid: f.mapping.schema_cid};
+  const resolved = wireValue(await reader.resolveGeneration(selector));
+  assert.deepEqual(resolved, {ok: true, result: {receipt, mapping: f.mapping}});
+  const replacement = f.prepare(f.operation('replace', {table_uuid: receipt.table_uuid,
+    generation_cid: receipt.generation_cid}), [{id: 9}]);
+  const replaced = await f.bridge.execute(replacement, {useCid: cid('7')});
+  const nextReceipt = JSON.parse(replaced.observation.body).result;
+  const restarted = createIcebergPhysicalBridge({python, run: 'restarted-read-run', catalog: f.catalog});
+  assert.deepEqual(wireValue(await restarted.read(resolved.result.receipt, resolved.result.mapping)),
+    {ok: true, result: rows});
+  assert.deepEqual(wireValue(await restarted.resolveGeneration(selector)),
+    {ok: true, result: {receipt: nextReceipt, mapping: f.mapping}});
+  for (const changed of [{table_uuid: '00000000-0000-0000-0000-000000000000'},
+    {schema_cid: cid('9')}]) {
+    assert.deepEqual(wireValue(await restarted.resolveGeneration({...selector, ...changed})),
+      {ok: false, code: 'TableReadPublicationBinding'});
+  }
+  await assert.rejects(reader.resolveGeneration({...selector, extra: true}), {code: 'InvalidTableReadSelector'});
+  await assert.rejects(reader.resolveGeneration({...selector, namespace: ['test.other']}),
+    {code: 'InvalidTableReadSelector'});
+  assert.deepEqual(wireValue(await f.bridge.cleanup(prepared)),
+    {ok: true, result: {retained: true, pending: false, removed: 0}});
+});
+
 test('real commit followed by process loss stays possible-dispatch after Ledger restart', async t => {
   const f = await fixture(t, new URL('../table-iceberg/fixtures/lost-reply-process.py', import.meta.url));
   const operation = f.operation(), prepared = f.prepare(operation, [{id: 1}]), claim = f.claim(operation);
@@ -142,7 +177,8 @@ test('real commit followed by process loss stays possible-dispatch after Ledger 
   const replay = await captureClaimedEffectResponse({ledger: reopened, claim, requestCid: operation.request_cid,
     execute: () => { assert.fail('Unknown physical commit cannot be resent'); }});
   assert.equal(replay.claimed, false);
-  const recovered = await f.bridge.reconcile(prepared);
+  const restarted = createIcebergPhysicalBridge({python, run: 'table-run', catalog: f.catalog});
+  const recovered = await restarted.reconcileOperation(operation);
   assert.equal(recovered.ok, true);
   assert.equal(recovered.result.request_cid, operation.request_cid);
   assert.deepEqual(wireValue((await f.bridge.read(recovered.result, f.mapping)).result), [{id: 1}]);

@@ -10,11 +10,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {acquisitionFailure, acquisitionOutcome} from '../host-common/acquisition-outcome.mjs';
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
-import {authorizeLocalDatabase} from
-  '../connectors/duckdb/node/session.mjs';
-import {runNativeHostQuery, runBroadHostQuery, runStrategyNativeHostQuery,
-  nativeSourceIdentityMatches, issueNativeSourceEvidence} from
-  '../connectors/duckdb/node/host.mjs';
+import {loadDuckDBNativeRuntime} from
+  '../connectors/duckdb/node/native-runtime.mjs';
 
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 const contractFiles = [
@@ -181,6 +178,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   let owner;
   let prepared;
   let grant;
+  let native;
   let authorizedSelection;
   try {
     prepared = preparedSource ?? await prepareCapturedDuckDBSource({moon,
@@ -218,13 +216,16 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         throw new Error('InstalledSourceCapacityEnvelopeMismatch');
       }
     }
-    grant = await authorizeLocalDatabase(database, sourceAccess);
+    native = await loadDuckDBNativeRuntime();
+    grant = await native.session.authorizeLocalDatabase(database, sourceAccess);
   } catch (cause) {
     failAcquisition(cause, 'not_started');
   }
   const {checkedSource} = prepared;
   const {requirement, evidenceContext} = owner;
   const {acquisition, broad, selection} = authorizedSelection ?? owner;
+  const {runNativeHostQuery, runBroadHostQuery, runStrategyNativeHostQuery,
+    nativeSourceIdentityMatches, issueNativeSourceEvidence} = native.host;
   let capture;
   try {
     capture = broad

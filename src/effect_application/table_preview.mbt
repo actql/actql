@@ -7,6 +7,8 @@ pub(all) enum TablePreviewIssue {
   ForeignRequest
   ForeignGuard
   ForeignState
+  ForeignScope
+  ForeignKey
 } derive(Eq, Debug)
 
 ///|
@@ -18,6 +20,7 @@ pub fn check_table_operation_preview(
   operation : TableOperation,
   preview : @publication.EffectPreviewIdentity,
   member_index : Int,
+  scope : LogicalRequestScope,
 ) -> Result[Unit, TablePreviewIssue] {
   if @publication.effect_preview_member_kind(preview, member_index) !=
     Some("store") {
@@ -51,6 +54,28 @@ pub fn check_table_operation_preview(
     ) !=
     Some(operation.wire) {
     return Err(ForeignRequest)
+  }
+  if operation.scope_cid != logical_request_scope_cid(scope) {
+    return Err(ForeignScope)
+  }
+  // The whole-operation correlation is exactly one quoted SHA-256 CID:
+  // 73 UTF-8 bytes, one scalar node, depth one. Reuse the bounded key issuer;
+  // semantic Preview identity deliberately excludes this scope-derived key.
+  let key = match
+    prepare_effect_dispatch_key(
+      scope,
+      @publication.effect_preview_semantic_identity(preview),
+      "\"" + operation.cid + "\"",
+      73,
+      1,
+      1,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignKey)
+  }
+  if @publication.effect_preview_row_key(preview, member_index, 0) !=
+    Some(effect_dispatch_key_cid(key)) {
+    return Err(ForeignKey)
   }
   if @publication.effect_preview_row_guard_version_cid(preview, member_index, 0) !=
     operation.expected_generation_cid {
