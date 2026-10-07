@@ -304,6 +304,10 @@ try {
       assert.equal(review.displayed_scope.model_invocation_scope_cid, summary.requiredArtifact.cid);
       assert.equal(review.displayed_scope.model_call_slot_cids.length, count);
     }
+    if (expectedKind === 'model_invocation' && options.assertModelInputReleased) {
+      await until(() => observations.filter(value => value.name === 'model_input_custody_changed')
+        .at(-1)?.detail.retainedInputs === 0);
+    }
     const state = run === undefined ? undefined : await run.status();
     if (state !== undefined) assert.equal(state.run_id, summary.subject.runId);
     output({summary, review, runId: state?.run_id, status: state?.status ?? 'held'});
@@ -337,6 +341,10 @@ try {
         const current = await run.status();
         return current.status === 'needs_reconciliation' ? current : undefined;
       });
+      if (options.assertModelInputReleased) {
+        await until(() => observations.filter(value => value.name === 'model_input_custody_changed')
+          .at(-1)?.detail.retainedInputs === 0);
+      }
       output({runId: state.run_id, status: state.status});
     } else if (phase === 'probe' || phase.endsWith('-probe')) {
       await new Promise(resolve => setTimeout(resolve, 250));

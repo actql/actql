@@ -1,0 +1,114 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {checkDriverRetirementSource, driverPath, strategyPath,blockAfter} from './driver-retirement-source.mjs';
+import {retirementOverlay,retirementExecutable,retirementExecutionArtifacts} from './driver-retirement-overlay.mjs';
+import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
+import {snapshot,hash} from '../../inventory.mjs';
+import {omitUnselectedTests,helperCompilation,helperImports} from './driver-retirement-compilation.mjs';
+const root = fileURLToPath(new URL('../../../../',import.meta.url));
+const read = p => readFileSync(root+p);
+const changed = (path, from, to) => {
+  const original = read(path).toString();
+  assert.equal(original.split(from).length,2,'Mutation must reach unique actual boundary');
+  return p => p === path ? original.replace(from,to) : read(p);
+};
+test('executed Native artifact excludes same-basename Darwin debug data and missing executable',()=>{
+  const debug=retirementExecutable+'.dSYM/Contents/Resources/DWARF/query_integration.whitebox_test.exe';
+  assert.deepEqual(retirementExecutionArtifacts({[retirementExecutable]:'a'.repeat(64),[debug]:'b'.repeat(64)}),
+    {[retirementExecutable]:'a'.repeat(64)});
+  assert.throws(()=>retirementExecutionArtifacts({[debug]:'b'.repeat(64)}));
+});
+test('current driver/common owner source and additive Native overlay are admitted', () => {
+  assert.equal(checkDriverRetirementSource(read).clearsProviderAfterCleanupSuccess,true);
+  const {overlay,boundary} = retirementOverlay(read,snapshot(root));
+  assert(boundary.compilation.omittedTests > 0);
+  assert.equal(boundary.compilation.repositoryTestsRemoved,false);
+  assert.match(overlay[driverPath],/println\(driver_retirement_probe\(provider_execution, 0, 3\)\)/);
+  assert.equal((overlay[driverPath].match(/cleanup_managed_provider\(active\)/g)??[]).length,
+    (read(driverPath).toString().match(/cleanup_managed_provider\(active\)/g)??[]).length);
+  assert.equal(overlay['src/query_integration/moon.pkg'].split('options(').length,2, 'Reuse existing package options');
+  assert.match(overlay['src/query_integration/moon.pkg'], /cc-link-flags/);
+  // Cleanup observers reuse the existing provider Ref and add no setup capture.
+  assert(!overlay[driverPath].match(/driver_retirement_probe\(provider_execution, setup.task, [234]\)/));
+  const host = 'src/query_integration/graph_host_custody_wbtest.mbt';
+  for(const name of ['run_current_host_graph_relation_path','retry_graph_host_match_cleanup','assert_graph_host_match_rows']) {
+    assert(boundary.compilation.inputs[host].keptDeclarations.some(d=>d.name===name));
+    assert.equal((blockAfter(overlay[host],'fn '+name+'(').match(/assert_(?:true|eq)\(/g)??[]).length,
+      (blockAfter(read(host).toString(),'fn '+name+'(').match(/assert_(?:true|eq)\(/g)??[]).length);
+  }
+});
+
+test('selected Host helper retains transitive declarations and enum variants without weakening warning checks',()=>{
+  const sources={a:'fn run_current_host_graph_relation_path() { leaf() }\nfn leaf() { accept(Second) }\nfn unused() { leaf() }',
+    b:'enum Kind {\n First\n Second\n}\nfn accept(x : Kind) { ignore(x) }'};
+  const r=helperCompilation(sources,'test { run_current_host_graph_relation_path() }');
+  assert(!r.overlay.a.includes('fn unused'));
+  assert(r.overlay.b.includes('enum Kind'));
+  for(const [path,s] of Object.entries(sources))for(const d of r.inputs[path].keptDeclarations) {
+    assert.equal(r.overlay[path].slice(d.begin,d.end),s.slice(d.begin,d.end));
+  }
+  const pkg='supported_targets = "+native"\nimport {\n "x/used" @used,\n "x/unused" @unused,\n} for "wbtest"\noptions(link: {})\n';
+  const imports=helperImports(pkg,'fn f() { @used.f() }');
+  assert(!imports.text.includes('x/unused'));assert(imports.text.includes('options(link: {})'));
+  assert.deepEqual(imports.omitted,[{path:'x/unused',alias:'unused'}]);
+  assert.throws(()=>helperImports(pkg.replace('"x/used" @used,','dynamic_import()'),r.referencedText));
+});
+
+test('local compilation preserves helpers and ignores braces in literals, interpolation and comments',()=>{
+  const helper = 'fn helper() { assert_eq("}", "}") }\n';
+  const first = 'test "omit { name }" { let x = "\\{if true { "}" } else { "{" }}"\n /* { /* } */ } */\n let y = \'{\'\n // }\n helper() }';
+  const second = 'test {\n  let raw =\n    #|{ "test": "}" }\n  helper()\n}';
+  const after = '\nfn last() { helper() }\n';
+  const input = helper+first+'\n'+second+after;
+  const result = omitUnselectedTests(input);
+  assert.equal(result.omitted.length,2);
+  assert(result.text.startsWith(helper)); assert(result.text.endsWith(after));
+  assert.deepEqual(result.omitted.map(r=>r.digest),[hash(first),hash(second)]);
+  for (let i=0;i<input.length;i++) {
+    if (!result.omitted.some(r=>i>=r.begin&&i<r.end) || /[\r\n]/.test(input[i])) assert.equal(result.text[i],input[i]);
+  }
+});
+for (const source of ['test "bad" {', 'test fn x() {}', 'fn x() { "unterminated }', 'test { /* never ends }', 'test {\n $|\\{x}\n}', '#[ignore]\ntest { }']) {
+  test('compilation refuses ambiguous input '+JSON.stringify(source),()=>{
+    assert.throws(()=>omitUnselectedTests(source));
+  });
+}
+for (const [name,path,from,to] of [
+  ['ignore cleanup error',driverPath,'!@local.cleanup_managed_provider(active).unwrap_or(false)','false'],
+  ['ignore physical stop',driverPath,'!@local.managed_provider_stopped(active) ||','false ||'],
+  ['retain provider forever',driverPath,'        provider_execution.val = None','        provider_execution.val = Some(active)'],
+  ['drop root before pending return',driverPath,'          return false\n        }\n        final_provider_work.val','          provider_execution.val = None\n          return false\n        }\n        final_provider_work.val'],
+  ['scratch witness accepts live root',driverPath,'scratch_uses.val == 0 && provider_execution.val is None','scratch_uses.val == 0'],
+  ['reservation returned before scratch',strategyPath,'remaining_execution=if scratch_released { 0L } else { execution.scratch }','remaining_execution=0L'],
+  ['ignore retention release',strategyPath,'if !scratch_released || !task_execution_retention_released(execution) {','if !scratch_released {'],
+]) test('source rejects '+name,()=>assert.throws(()=>checkDriverRetirementSource(changed(path,from,to))));
+
+function records() {
+  return ['current_filter','current_edge_filter'].flatMap((variant,i)=> {
+    const root=String(100+i),provider=String(900+i);
+    const rootRecord=(phase,p)=>'ACTQL_DRIVER_ROOT:'+JSON.stringify({task:phase >= 2 ? 0 : 3,phase,root,rootRequestedBytes:16,provider:p});
+    const ledger=(phase,execution)=>'ACTQL_DRIVER_LEDGER:'+JSON.stringify({phase,execution,retention:20,held:40,transfer:0});
+    return ['ACTQL_DRIVER_CASE:'+variant,rootRecord(0,null),rootRecord(1,provider),
+      rootRecord(2,provider),rootRecord(2,provider),ledger('pending',100),rootRecord(3,null),
+      ledger('cleaned',60),rootRecord(4,null),ledger('repeated',60),'ACTQL_DRIVER_CASE_DONE:'+variant];
+  });
+}
+test('two complete finite Host traces retain pending root and return scratch once',()=>{
+  const result=inspectDriverRetirement(records().join('\n'));
+  assert.equal(result.cases.length,2);assert.equal(result.physicalGCDestruction,false);
+});
+for (const [name,mutate] of [
+  ['early root release',a=>{a[3]=a[3].replace('"provider":"900"','"provider":null');}],
+  ['replacement provider identity',a=>{a[4]=a[4].replace('"900"','"901"');}],
+  ['missing pending error',a=>{a.splice(4,1);}],
+  ['missing successful clear',a=>{a.splice(6,1);}],
+  ['same-size replacement root',a=>{a[6]=a[6].replace('"root":"100"','"root":"101"');}],
+  ['duplicate scratch credit',a=>{a[9]=a[9].replace('"execution":60','"execution":59');}],
+  ['unrelated holding release',a=>{a[7]=a[7].replace('"held":40','"held":39');}],
+  ['missing second Host completion',a=>{a.pop();}],
+  ['wrong ABI extent',a=>{a[1]=a[1].replace('"rootRequestedBytes":16','"rootRequestedBytes":24');}],
+]) test('observation rejects '+name,()=>{
+  const a=records();mutate(a);assert.throws(()=>inspectDriverRetirement(a.join('\n')));
+});

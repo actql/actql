@@ -80,7 +80,7 @@ pub fn prepare_checked_task_reference(
       }
       inputs.push({
         input: edge.input,
-        producer: edge.producer,
+        producer: graph.original_tasks[edge.producer],
         producer_target_is_input: is_input,
         producer_target_index: index,
       })
@@ -92,7 +92,7 @@ pub fn prepare_checked_task_reference(
         return Err(ReferenceLimit)
       }
       remaining -= 1
-      controls.push(edge.predecessor)
+      controls.push(graph.original_tasks[edge.predecessor])
     }
   }
   let mut source_stage = None
@@ -114,7 +114,7 @@ pub fn prepare_checked_task_reference(
     task,
     target: Step(output_step),
     identity: {
-      task,
+      task: graph.original_tasks[task],
       program_definition_cid: @context.program_identity_definition_cid(identity),
       program_parameters_cid: @context.program_identity_parameter_values_cid(
         identity,

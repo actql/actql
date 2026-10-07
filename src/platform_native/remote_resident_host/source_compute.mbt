@@ -1,5 +1,5 @@
 ///|
-/// Trusted Native configuration for the existing one-acquisition/two-task
+/// Trusted Native configuration for a checked single-input linear task
 /// graph. Source paths never come from Program inputs. The common standard
 /// Host selects and executes the suffix; this adapter does not parse a plan.
 pub(all) struct ResidentSourceComputeConfiguration {
@@ -51,7 +51,7 @@ pub(all) enum ResidentSourceComputeEvent {
 /// Native computation, reservations and cleanup stay with the existing Owners.
 struct ResidentSourceCompute {
   close_source : () -> Bool
-  capture : @query.CapturedInputSource
+  capture : @query.CapturedInputSource?
   run : @strategy.CapturedDAG
   compute : @duckdb_native.NativeStandardStrategyRun
   mut stopping : Bool
@@ -85,13 +85,9 @@ pub fn open_resident_source_compute(
     )
   }
   let graph = @host.prepared_client_graph(prepared)
-  if @strategy.graph_program_has_effects(graph) ||
-    @strategy.graph_task_count(graph) != 2 ||
+  if !resident_linear_graph(graph) ||
     @host.prepared_client_acquisition_count(prepared) != 1 ||
-    @host.prepared_client_result_count(prepared) != 1 ||
-    @strategy.graph_result_task(graph, 0) != Some(1) ||
-    @strategy.graph_task_target(graph, 0) is Some(_) ||
-    @strategy.graph_task_target(graph, 1) is None {
+    @host.prepared_client_result_count(prepared) != 1 {
     return reject(UnsupportedGraph, () => true)
   }
   let source = configuration.source
@@ -146,7 +142,7 @@ pub fn open_resident_source_compute(
       None,
     )
     is Some(generated) &&
-    generated.length() == 2 else {
+    generated.length() == @strategy.graph_task_count(graph) else {
     return reject(UnsupportedGraph, () => true)
   }
   let ledger = match @resources.create_ledger(source.ledger) {
@@ -209,7 +205,13 @@ pub fn open_resident_source_compute(
   }
   let owner = match
     open_resident_captured_compute(
-      prepared, configuration, captured, ledger, holding, generated, close_source,
+      prepared,
+      configuration,
+      Some(captured),
+      ledger,
+      holding,
+      generated,
+      close_source,
       observe,
     ) {
     Ok(value) => value
@@ -231,7 +233,13 @@ pub fn ResidentSourceCompute::execute_task(
   @duckdb_native.NativeStandardStrategyTaskCompletion,
   ResidentSourceComputeIssue,
 ] {
-  if self.stopping || @strategy.next_captured_task(self.run) != Some(task) {
+  guard !self.stopping &&
+    @strategy.next_captured_task(self.run) is Some(local_task) &&
+    @strategy.graph_task_original_index(
+      @strategy.captured_dag_graph(self.run),
+      local_task,
+    ) ==
+    Some(task) else {
     return Err(Unavailable)
   }
   if self.observe is Some(record) && !record(ConsumerEntered(task)) {
@@ -240,12 +248,12 @@ pub fn ResidentSourceCompute::execute_task(
   }
   match
     @duckdb_native.execute_next_native_standard_strategy_task(self.compute) {
-    Ok(Some(completion)) if completion.task == task => {
+    Ok(Some(completion)) if completion.task == local_task => {
       if self.observe is Some(record) && !record(ConsumerCompleted(task)) {
         self.stopping = true
         return Err(ObservationUnrecorded(ConsumerCompleted(task)))
       }
-      Ok(completion)
+      Ok({ ..completion, task, })
     }
     Ok(_) => {
       self.stopping = true
@@ -369,12 +377,17 @@ pub fn ResidentSourceCompute::close(self : ResidentSourceCompute) -> Bool {
 fn open_resident_captured_compute(
   prepared : @host.PreparedClientProgram,
   configuration : ResidentSourceComputeConfiguration,
-  captured : @query.CapturedInputSource,
+  captured : @query.CapturedInputSource?,
   ledger : @resources.Ledger,
   holding : @resources.Holding,
   generated : Array[@execution.GeneratedSequence],
   close_source : () -> Bool,
   observe : ((ResidentSourceComputeEvent) -> Bool)?,
+  retained_input? : (
+    @strategy.RetainedTaskProjection,
+    @execution.CompletedOutput,
+    Int,
+  )? = None,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -403,7 +416,24 @@ fn open_resident_captured_compute(
       @resources.release_allocation(ledger, holding) is Ok(_)
     )
   }
-  let run = match @strategy.open_captured_dag(graph, captured, ledger) {
+  // A single trusted profile applies uniformly; otherwise each original
+  // Compute task must have exactly its own profile, with none silently ignored.
+  if configuration.estimates.length() != 1 &&
+    configuration.estimates.length() != @strategy.graph_task_count(graph) - 1 {
+    return reject(UnsupportedGraph, close_unbound)
+  }
+  let opened = match (captured, retained_input) {
+    (Some(source), None) => @strategy.open_captured_dag(graph, source, ledger)
+    (None, Some((projection, output, wire_bytes))) =>
+      @strategy.open_retained_task_dag(
+        projection,
+        output,
+        ledger,
+        canonical_wire_bytes=wire_bytes,
+      )
+    _ => return reject(UnsupportedGraph, close_unbound)
+  }
+  let run = match opened {
     Ok(value) => value
     Err(issue) =>
       return reject(Run(@host.ClientRunOpenIssue::Run(issue)), close_unbound)
@@ -417,8 +447,10 @@ fn open_resident_captured_compute(
   }
   let close_run = () => {
     @strategy.stop_captured_dag(run)
-    @strategy.close_captured_task_output(run, 0)
-    @strategy.close_captured_task_output(run, 1)
+    for
+      task in 0..<@strategy.graph_task_count(@strategy.captured_dag_graph(run)) {
+      @strategy.close_captured_task_output(run, task)
+    }
     if !close_source() {
       return false
     }
@@ -439,13 +471,32 @@ fn open_resident_captured_compute(
     2,
     100,
   ).unwrap()
+  let view = @strategy.captured_dag_graph(run)
+  let selected : Array[@execution.GeneratedSequence] = []
+  let estimates : Array[@standard.DispatchEstimateProfile] = []
+  for task in 1..<@strategy.graph_task_count(view) {
+    guard @strategy.graph_task_original_index(view, task) is Some(original) &&
+      generated.get(original) is Some(sequence) else {
+      return reject(UnsupportedGraph, close_run)
+    }
+    let estimate = if configuration.estimates.length() == 1 {
+      configuration.estimates.get(0)
+    } else {
+      configuration.estimates.get(original - 1)
+    }
+    guard estimate is Some(profile) else {
+      return reject(UnsupportedGraph, close_run)
+    }
+    selected.push(sequence)
+    estimates.push(profile)
+  }
   let dispatch = match
     @standard.configure_strategy_dispatch(
       run,
       registry,
       @connector.capability_registration_at(registry, 0).unwrap(),
       @connector.capability_registration_at(registry, 1).unwrap(),
-      [generated[1]],
+      selected,
       configuration.dispatch,
     ) {
     Ok(value) => value
@@ -454,7 +505,7 @@ fn open_resident_captured_compute(
   match
     @standard.configure_dispatch_estimates(
       dispatch,
-      configuration.estimates,
+      estimates,
       configuration.search,
     ) {
     Ok(_) => ()
@@ -492,11 +543,13 @@ pub fn ResidentSourceCompute::prepare_source_export(
   self : ResidentSourceCompute,
   limits : @host.PublicationOutputExportLimits,
 ) -> Result[@execution.CompletedOutputExport, ResidentSourceComputeIssue] {
-  if self.stopping || self.source_closed.val {
+  guard !self.stopping &&
+    !self.source_closed.val &&
+    self.capture is Some(capture) else {
     return Err(Unavailable)
   }
   @query.prepare_captured_source_relation_export(
-    self.capture,
+    capture,
     limits.max_rows,
     limits.values,
     limits.payload_wire,

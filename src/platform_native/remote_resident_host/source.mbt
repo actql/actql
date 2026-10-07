@@ -103,13 +103,11 @@ fn resident_source_dispatch_role(
   }
   let graph = @host.prepared_client_graph(prepared)
   let count = @strategy.graph_task_count(graph)
-  if (count != 1 && count != 2) ||
-    @strategy.graph_program_has_effects(graph) ||
+  if !resident_linear_graph(graph) ||
     @host.prepared_client_acquisition_count(prepared) != 1 ||
     @host.prepared_client_result_count(prepared) != 1 ||
     @strategy.graph_result_task(graph, 0) != Some(count - 1) ||
     @strategy.graph_task_target(graph, 0) is Some(_) ||
-    (count == 2 && @strategy.graph_task_target(graph, 1) is None) ||
     @host.bind_client_task_run(
       prepared,
       compilation,
@@ -219,11 +217,10 @@ pub fn install_resident_acquisition_task_executor(
   let prepared = materials.prepared
   let graph = @host.prepared_client_graph(prepared)
   let count = @strategy.graph_task_count(graph)
-  if (count != 1 && count != 2) ||
+  if !resident_linear_graph(graph) ||
     @host.prepared_client_acquisition_count(prepared) != 1 ||
     @host.prepared_client_result_count(prepared) != 1 ||
     @strategy.graph_result_task(graph, 0) != Some(count - 1) ||
-    (count == 2 && @strategy.graph_task_target(graph, 1) is None) ||
     @strategy.graph_task_target(graph, 0) is Some(_) ||
     @host.bind_client_task_run(
       prepared,
@@ -236,7 +233,7 @@ pub fn install_resident_acquisition_task_executor(
   }
   // A dependent consumer must not rely on a process-local capture surviving
   // holder recreation. This is trusted Site configuration, not Run materials.
-  if count == 2 && source.retained_output_root is None {
+  if count > 1 && source.retained_output_root is None {
     return Err(UnsupportedSource)
   }
   let output_storage = source.retained_output_root.map(root => {
