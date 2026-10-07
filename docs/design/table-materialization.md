@@ -280,6 +280,19 @@ remains separate. The installed Source caller must check current read authority
 before and after I/O and admit decoded rows through the common presence-aware
 Relation owner; this physical primitive alone is not public Source acceptance.
 
+The installed Table row adapter restores SourceViews from the exact saved
+logical schema and an explicit Table selector, without Catalog I/O during
+installation or Check. Selector identity preserves namespace/name data bytes;
+configuration text normalization cannot alias different physical Tables. The
+existing installed row Source owner checks current authority before acquisition
+and again after metadata and data I/O, admits the entire decoded input through
+its presence-aware row contract, and owns page/capture accounting and cleanup.
+A read freezes one generation before subsequent data access. Its close releases
+only temporary acquisition custody, never Catalog-owned files. A Host loader
+must supply its trusted Site/read-approval boundary; this adapter does not issue
+authority or implement another scheduler. Installing this adapter is distinct
+from completing the packed public create/replace and different-Run read path.
+
 ## Implementation boundary
 
 The narrow machine contract and bounded common admission below specify the
