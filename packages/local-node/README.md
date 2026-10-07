@@ -81,6 +81,33 @@ execution context. Restart/attach reads the original successful Run without
 recompiling under the current defaults. A new read uses a new attempt and grant;
 lookup of an interrupted attempt opens no payload and consumes no new grant.
 
+## Authored Connector Node adapters
+
+An externally authored Connector Host or Site module can import the common
+installation helpers from `@actql/local-node/connector-installation`. This
+subpath directly re-exports the existing installed row Source and Effect
+owners: `createInstalledRowSource`, `rowSourceCheckEnvironment`,
+`rowSourceMapping`, `installRowSourceAuthorization`,
+`openRowSourceCredentialSite`, `createInstalledRowEffect`, and
+`retainInstalledHostInitializationFailure`. It also exports `checked` for
+the pinned runtime's raised-result representation and
+`invokeScopedCredentialOperation` for a declared physical credential call.
+Use `canonicalJson` from `@actql/sdk/host-port` when needed.
+
+These helpers consume the installed Host's common runtime, regenerated
+declarations, account gate, credential Site, and registered installation
+entry. Keep the supplied common and provider runtime objects, decisions,
+grants, and other runtime handles intact. Their identity belongs to their
+original owners; the declaration types do not describe the complete generated
+MoonBit ABI. Connector code supplies its provider meaning and physical driver,
+while the common owners retain authorization, credential use, capture,
+Effect Ledger claims, recovery, and retryable cleanup. The helper subpath does
+not register an installation or grant permission to perform provider I/O.
+
+The package contains the helper implementations and their dependencies after
+normal prepack. Authored packages import this public subpath, without depending
+on a repository checkout or importing private `adapters` paths.
+
 ## HTTP Host
 
 `import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host'`

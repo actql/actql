@@ -4,6 +4,7 @@
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {tokens} from './portable-core.mjs';
+import {checkHostBundle, checkHostProfiles} from './connector-host-bundles.mjs';
 
 const coreNamespace = 'actql/actql';
 const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
@@ -257,7 +258,7 @@ export function resolveConnectorBuildInputs(configuration) {
     }
     return join(host.root, path);
   };
-  const entries = [], computeEntries = [], nodeEntries = [], names = new Set();
+  const entries = [], computeEntries = [], nodeEntries = [], hostEntries = [], names = new Set();
   for (const selected of configuration.connectors) {
     if (!shape(selected, ['name', 'module', 'directory'], ['revision']) ||
         !identifier(selected.name) || names.has(selected.name) || !modules.has(selected.module)) {
@@ -287,14 +288,22 @@ export function resolveConnectorBuildInputs(configuration) {
     }
     if (!Object.keys(entry.manifests).length) throw new Error('Missing selected Connector manifest');
     if (entry.manifests.host !== undefined) {
-      const installation = entry.manifests.host.installation;
-      if (!record(installation) || installation.registration !== selected.name ||
-          typeof installation.revision !== 'string' ||
-          !new RegExp(`^${selected.name}/\\d+\\.\\d+$`).test(installation.revision) ||
-          (selected.revision !== undefined && selected.revision !== installation.revision)) {
+      let providerPackagePath;
+      const checkedHost = checkHostBundle(module.root, selected.name, entry.host, {
+        manifest: entry.manifests.host,
+        resolveProviderPackage: bundle => {
+          providerPackagePath = resolvePackage(`${module.namespace}/${bundle}`);
+          return providerPackagePath;
+        },
+        resolveFile: path => resolveFile(module.namespace, path),
+      });
+      if (selected.revision !== undefined && selected.revision !== checkedHost.revision) {
         throw new Error('Host Connector identity mismatch');
       }
-      entry.revision = installation.revision;
+      hostEntries.push({...checkedHost, namespace: module.namespace, root: module.root,
+        sourceRoot: module.sourceRoot,
+        providerPackage: `${module.namespace}/${checkedHost.providerBundle}`, providerPackagePath});
+      entry.revision = checkedHost.revision;
     } else if (selected.revision !== undefined) {
       throw new Error('Connector revision requires an existing Host declaration');
     }
@@ -336,7 +345,8 @@ export function resolveConnectorBuildInputs(configuration) {
     }
     entries.push(entry);
   }
+  checkHostProfiles(hostEntries);
   return freeze({target: 'js', host, coreRoot: core.root,
-    modules: [...modules.values()], entries, computeEntries, nodeEntries,
+    modules: [...modules.values()], entries, computeEntries, nodeEntries, hostEntries,
     resolvePackage, packagePath: resolvePackage, resolveFile, outputPath});
 }

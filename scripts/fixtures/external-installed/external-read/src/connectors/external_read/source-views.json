@@ -1,0 +1,1 @@
+{"views":[{"resource":"records","resource_kind":"record","fields":[{"name":"id","type":"string","nullable":false},{"name":"amount","type":"number","nullable":false}]}]}
