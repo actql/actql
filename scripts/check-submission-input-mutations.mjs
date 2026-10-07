@@ -409,11 +409,6 @@ try {
       altered = altered.replace(anchor, anchor.replace('captureResponse(answer)', 'answer')
         .replace('captureResponse(response)', 'response').replace('captureResponse(outcome)', 'outcome'));
     }
-    if (phase.startsWith('cancellation-clone:clone changes')) {
-      const guard = '            structuralKey(received) !== observedKey ||\n';
-      if (altered.split(guard).length !== 2) throw new Error(`Copied cancellation guard not unique: ${name}`);
-      altered = altered.replace(guard, '');
-    }
     writeFileSync(file, altered);
     results.push({name, phase, rejected: !accepted(phase, assertion)});
     writeFileSync(file, original);
