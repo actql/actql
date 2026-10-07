@@ -340,3 +340,28 @@ history from `986ac17dc349b51c55b4edbaeee33a3630b471c9` as execution at a later 
 The compiled/local acceptance unit is now complete; full-part/other-target
 checks and authenticated main qualification, ordinary-PR reuse and inclusive
 net CI savings remain separate obligations.
+
+## Post-integration residual scope
+
+While publication was being finalized, the coordinator integrated #863 and
+advanced its old branch to `a189675f0825383df540598aa071aa69ad6794f6`.
+The attempted push was refused as non-fast-forward; no force push occurred.
+The residual history/evidence work moves to `fix/pipeline-fixed-retained-history`,
+with current main `6ee9b2f0f485b1daf5bd9f5fb4fb7ccac32fec44` normally adopted
+by `c3ea345d3311b2caf4a260613d471a8bebbea3ea`. No #863 implementation is
+resubmitted. Product code, workflow and independent expectations are identical
+to the adopted main.
+
+The new main includes two further single-parent package gate changes without
+source declarations: `e33988626ac1e35b4388b0cb44b4f27fd0b93a62` adds role
+projection/installed-connector tests, and
+`71841fa208249e28d45a1eea0619b603c462cd64` adds durable-submission checks.
+Commit `8b31905f9` records their actual parent/blob/mode and command rationale.
+Three inherited merge declarations need digest-bound late-input supplements
+for these actual ancestor sources and, where ancestral, the earlier `ca5ff089`
+source. Supplements follow source declaration introduction; original records,
+original inputs and validation rules are unchanged. The read-only scan now
+finds no missing single-parent declaration. Actual current-main history
+admission follows separately. Physical originals still prove the exact
+`b7a692658` campaign; current main's later bounded output/Host changes were
+not recompiled or retroactively covered by that original.
