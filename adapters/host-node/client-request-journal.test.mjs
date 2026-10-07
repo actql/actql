@@ -93,6 +93,123 @@ async function directory(t) {
   return path;
 }
 
+test('submission custody loss fences replay and new admission across restart', async t => {
+  const path = await directory(t);
+  let journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  journal.acceptDefinition(identity(), {namespaceId: 'namespace-a',
+    runDefinition: runDefinition(), lookupExpiresAt: expires}, moon, publicationControl);
+  const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  t.after(() => database.close());
+  database.exec('DELETE FROM client_requests');
+  const fresh = identity({...fixture, requestId: 'fresh-request', logicalRequestScopeCid:
+    hashCanonical({authority_scope_cid: fixture.authorityScopeCid, caller_request_id: 'fresh-request',
+      version: 'actql-logical-request/0.1'})});
+  assert.ok(fresh);
+  let definitions = 0;
+  for (const restart of [false, true]) {
+    if (restart) {journal.close(); journal = openClientRequestJournal(path);}
+    for (const requested of [identity(), fresh]) {
+      await assert.rejects(journal.admitOrLookupDefinition(requested, {
+        namespaceId: 'namespace-a', lookupExpiresAt: expires,
+        issueDefinition: () => {definitions++; return runDefinition('replacement');},
+      }, moon, publicationControl), {code: 'ClientRequestSubmissionCustodyLost'});
+      assert.throws(() => journal.acceptDefinition(requested, {
+        namespaceId: 'namespace-a', lookupExpiresAt: expires,
+        runDefinition: runDefinition('replacement'),
+      }, moon, publicationControl), {code: 'ClientRequestSubmissionCustodyLost'});
+    }
+    assert.equal(database.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
+    assert.equal(database.prepare('SELECT issued_count FROM client_submission_custody').get().issued_count, 1);
+  }
+  assert.equal(definitions, 0);
+});
+
+test('submission custody advancement and Run acceptance roll back together', async t => {
+  const path = await directory(t);
+  const journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  t.after(() => database.close());
+  database.exec(`CREATE TRIGGER reject_submission_custody BEFORE UPDATE ON client_submission_custody
+    BEGIN SELECT RAISE(ABORT, 'PrimarySubmissionCustodyFailure'); END`);
+  const accept = () => journal.acceptDefinition(identity(), {namespaceId: 'namespace-a',
+    runDefinition: runDefinition(), lookupExpiresAt: expires}, moon, publicationControl);
+  assert.throws(accept, error => {
+    assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
+    assert.match(error.cause.message, /PrimarySubmissionCustodyFailure/u);
+    return true;
+  });
+  assert.equal(database.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
+  assert.equal(database.prepare('SELECT issued_count FROM client_submission_custody').get().issued_count, 0);
+  database.exec('DROP TRIGGER reject_submission_custody');
+  assert.equal(accept().inserted, true);
+  assert.equal(accept().inserted, false);
+  assert.equal(database.prepare('SELECT issued_count FROM client_submission_custody').get().issued_count, 1);
+});
+
+test('submission custody loss while issuance awaits is checked again at commit', async t => {
+  const path = await directory(t);
+  const journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  let release;
+  const paused = new Promise(resolve => {release = resolve;});
+  const pending = journal.admitOrLookupDefinition(identity(), {namespaceId: 'namespace-a',
+    lookupExpiresAt: expires, issueDefinition: async () => {
+      await paused; return runDefinition('replacement');
+    }}, moon, publicationControl);
+  journal.acceptDefinition(identity(), {namespaceId: 'namespace-a',
+    lookupExpiresAt: expires, runDefinition: runDefinition()}, moon, publicationControl);
+  const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  t.after(() => database.close());
+  database.exec('DELETE FROM client_requests');
+  release();
+  await assert.rejects(pending, {code: 'ClientRequestSubmissionCustodyLost'});
+  assert.equal(database.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
+  assert.equal(database.prepare('SELECT issued_count FROM client_submission_custody').get().issued_count, 1);
+});
+
+test('existing marked journal gains submission custody without rewriting original admission', async t => {
+  const path = await directory(t);
+  const previous = openClientRequestJournal(path);
+  const accepted = previous.acceptDefinition(identity(), {namespaceId: 'namespace-a',
+    runDefinition: runDefinition(), lookupExpiresAt: expires}, moon, publicationControl);
+  previous.close();
+  // Construct the previously supported schema, preserving its admission and
+  // original journal marker. This establishes no pre-upgrade history claim.
+  const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  const original = database.prepare('SELECT * FROM client_requests').get();
+  database.exec('DROP TABLE client_submission_custody');
+  database.close();
+  await rm(join(path, 'submission-custody-format.json'));
+  const marker = await readFile(join(path, 'journal-format.json'));
+  const journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  assert.deepEqual((journal.lookupDefinition({namespaceId: 'namespace-a',
+    authorityScopeCid: fixture.authorityScopeCid, requestId: fixture.requestId}, moon, publicationControl)).ref,
+  accepted.ref);
+  const observer = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  t.after(() => observer.close());
+  assert.deepEqual(observer.prepare('SELECT * FROM client_requests').get(), original);
+  assert.equal(observer.prepare('SELECT issued_count FROM client_submission_custody').get().issued_count, 1);
+  assert.deepEqual(await readFile(join(path, 'journal-format.json')), marker);
+});
+
+for (const loss of ['marker', 'record', 'schema']) {
+  test(`partial submission custody ${loss} is rejected without reconstructing evidence`, async t => {
+    const path = await directory(t);
+    openClientRequestJournal(path).close();
+    const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+    if (loss === 'record') database.exec('DELETE FROM client_submission_custody');
+    if (loss === 'schema') database.exec('ALTER TABLE client_submission_custody ADD COLUMN foreign_field TEXT');
+    database.close();
+    if (loss === 'marker') await rm(join(path, 'submission-custody-format.json'));
+    const original = await readFile(join(path, 'client-requests.sqlite3'));
+    assert.throws(() => openClientRequestJournal(path), {code: 'UnknownClientRequestJournalFormat'});
+    assert.deepEqual(await readFile(join(path, 'client-requests.sqlite3')), original);
+  });
+}
+
 test('automatic rollback retains the primary acceptance error', async t => {
   const path = await directory(t);
   const journal = openClientRequestJournal(path);

@@ -240,6 +240,19 @@ Concurrent or delayed observers cannot overwrite the first saved response or
 create a second terminal revision. Saved malformed evidence is retained rather
 than replaced by a lookup; that case remains a separate recovery obligation.
 
+The installed Host connects public `Run.reconcile()` to this observation of
+the original Effect continuation. It reopens the retained capture through the
+same Store owner, leaves the completed approval/resume intent unchanged, and
+uses common recovered apply, receipt aggregation and Result publication.
+The observation-only apply path rejects a remaining Ready member before any
+target refresh, approval or dispatch binder. It never turns reconciliation
+into permission to send an unattempted member. A still-unknown response keeps
+the capture and reconciliation state; observation failures do not reclassify
+the Run. Successful aggregation uses the journal's existing compare-and-swap
+transition from `needs_reconciliation`, not a new `resuming` state or intent.
+An unknown execution without an Effect continuation is not handled by this
+Table observation path.
+
 Catalog head publication, the original operation's immutable commit record and
 storage reservation transfer form one durable Catalog transaction. The record
 binds request CID, old/new generation, schema, mapping and the complete owned
@@ -312,6 +325,28 @@ completing the packed public create/replace and different-Run read path. The
 existing managed identity policy still refuses direct acquisition Result
 publication; the initial read path uses acquisition followed by a Compute task
 and ordinary Named Result publication rather than weakening that policy.
+
+## Definitive publication conflicts
+
+The physical writer records a validated create-name or expected-generation
+conflict as `actql-table-noncommit-receipt/0.1`. The Catalog transaction checks
+the exact original operation's committed record first; a return-path error
+cannot replace an existing commit with failure. If no commit exists, the
+transaction requires that operation's retained allocation, atomically fences
+future publication and saves its sealed noncommit receipt. There is at most
+one such record per allocation, bounded by the existing operation limit.
+Receipt/fence persistence failure remains uncertain. A missing record or an
+arbitrary physical error is not a definitive refusal.
+
+The installed bridge retains these physical bytes under the original dispatch.
+The common Table projection admits the exact request, Effect, Catalog, schema,
+mapping and action-specific reason before the existing row outcome/Receipt
+owner can select `failed`. A readonly original-operation lookup can restore a
+lost noncommit reply under current evidence authority without sending again.
+Cleanup still requires observed physical stop and retains its own fallible
+manifest/deletion/reservation responsibility; recording noncommit neither
+deletes files nor releases capacity early. Original facts survive cleanup and
+later commits independently of current Table head.
 
 ## Implementation boundary
 

@@ -375,6 +375,29 @@ const cancellationColumns = ['namespace_id', 'authority_scope_cid', 'cancel_id',
   'run_definition_cid', 'expected_revision', 'intent_fingerprint_cid',
   'outcome_wire', 'outcome_cid'].sort();
 
+// Retain issuance independently of replay rows in this same journal. Losing
+// a row cannot turn its consumed identity into a fresh admission opportunity.
+const submissionMarkerName = 'submission-custody-format.json';
+const submissionMarker = Buffer.from(JSON.stringify({
+  version: 'actql-client-request-journal/0.1', feature: 'submission_custody',
+}));
+function inspectSubmissionStorage(database, enabled) {
+  const tables = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
+    AND name = 'client_submission_custody'`).all();
+  if (!enabled && tables.length === 0) return;
+  if (!enabled || tables.length !== 1) fail('UnknownClientRequestJournalFormat');
+  const fields = database.prepare('PRAGMA table_info(client_submission_custody)')
+    .all().map(field => field.name).sort();
+  const records = database.prepare('SELECT singleton, issued_count FROM client_submission_custody').all();
+  if (JSON.stringify(fields) !== JSON.stringify(['issued_count', 'singleton']) ||
+      records.length !== 1 || records[0].singleton !== 1 ||
+      !Number.isSafeInteger(records[0].issued_count) || records[0].issued_count < 0) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  // A lost replay row fences writes, but does not erase surviving individual
+  // observations. Reopening must not reset this counter to the remaining rows.
+}
+
 function inspectCancellationStorage(database, enabled) {
   const tables = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
     AND name IN ('client_cancellation_operations', 'client_cancellation_custody')`).all();
@@ -403,6 +426,12 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
       !readFileSync(featurePath).equals(cancellationMarker))) {
     fail('UnknownClientRequestJournalFormat');
   }
+  const submissionPath = join(directory, submissionMarkerName);
+  const submissionEnabled = entries.includes(submissionMarkerName);
+  if (submissionEnabled && (!lstatSync(submissionPath).isFile() ||
+      !readFileSync(submissionPath).equals(submissionMarker))) {
+    fail('UnknownClientRequestJournalFormat');
+  }
   inspectSqliteSnapshot(databasePath, database => {
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
@@ -410,9 +439,11 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
       fail('UnknownClientRequestJournalFormat');
     }
     inspectCancellationStorage(database, enabled);
+    inspectSubmissionStorage(database, submissionEnabled);
   }, {code: 'UnknownClientRequestJournalFormat',
     validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
       (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
+      (!submissionEnabled || readFileSync(submissionPath).equals(submissionMarker)) &&
       JSON.stringify(readdirSync(directory).sort()) === JSON.stringify(entries)});
 }
 
@@ -519,6 +550,22 @@ export function openClientRequestJournal(directory, {
       }
       syncDirectory(root);
     }
+    if (!existsSync(join(root, submissionMarkerName))) {
+      // Adopt only the retained original rows of an admitted prior format.
+      // This cannot certify missing pre-upgrade history or issue an epoch.
+      transaction.run(() => database.exec(`
+        CREATE TABLE client_submission_custody (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)
+        ) STRICT;
+        INSERT INTO client_submission_custody
+          SELECT 1, COUNT(*) FROM client_requests;
+      `));
+      const marker = openSync(join(root, submissionMarkerName), 'wx', 0o600);
+      try { writeFileSync(marker, submissionMarker); fsyncSync(marker); }
+      finally { closeSync(marker); }
+      syncDirectory(root);
+    }
     if (!existsSync(join(root, cancellationMarkerName))) {
       transaction.run(() => database.exec(`
         CREATE TABLE client_cancellation_operations (
@@ -580,6 +627,15 @@ export function openClientRequestJournal(directory, {
   const selectRun = database.prepare(`SELECT run_definition_cid
     FROM client_requests WHERE run_definition_cid = ?`);
   const count = database.prepare('SELECT COUNT(*) AS n FROM client_requests');
+  const submissionIssued = database.prepare('SELECT issued_count FROM client_submission_custody WHERE singleton = 1');
+  const advanceSubmissionCustody = database.prepare('UPDATE client_submission_custody SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?');
+  const assertSubmissionCustody = () => {
+    const n = Number(count.get().n);
+    if (!Number.isSafeInteger(n) || submissionIssued.get()?.issued_count !== n) {
+      fail('ClientRequestSubmissionCustodyLost');
+    }
+    return n;
+  };
   const cancellationCount = database.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations');
   const cancellationIssued = database.prepare('SELECT issued_count FROM client_cancellation_custody WHERE singleton = 1');
   const cancellationSelect = database.prepare(`SELECT * FROM client_cancellation_operations
@@ -725,6 +781,7 @@ export function openClientRequestJournal(directory, {
     return transact('accept', 'ClientRequestAcceptanceUnknown',
       error => typeof error?.code === 'string' &&
         error.code.startsWith('ClientRequest'), () => {
+      const retainedCount = assertSubmissionCustody();
       const existing = select.get(fields.authorityScopeCid,
         fields.requestId);
       if (existing !== undefined) {
@@ -768,6 +825,9 @@ export function openClientRequestJournal(directory, {
         runDefinitionWire ?? null, revision, lookupExpiresAt,
         resultNames === undefined ? null : JSON.stringify(resultNames),
         admissionEvidence);
+      if (Number(advanceSubmissionCustody.run(retainedCount).changes) !== 1) {
+        fail('ClientRequestSubmissionCustodyLost');
+      }
       return Object.freeze({inserted: true, ref: Object.freeze({
         namespaceId, authorityScopeCid: fields.authorityScopeCid,
         runDefinitionCid,
@@ -929,6 +989,8 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientRequestAdmission');
       }
       if (sourceInventory !== undefined) validateSourceInventory(sourceInventory);
+      ensureOpen();
+      assertSubmissionCustody();
       const retained = journal.resolveDefinition(identity, {namespaceId},
         requestControl, publicationControl);
       if (retained !== undefined) {

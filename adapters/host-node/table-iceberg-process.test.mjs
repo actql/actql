@@ -12,6 +12,7 @@ import {createIcebergPhysicalBridge} from './table-iceberg-process.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
+import {machineCid} from '../../scripts/actql-spec-family.mjs';
 
 const python = pathToFileURL(process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)));
 const directory = fileURLToPath(new URL('../table-iceberg/', import.meta.url));
@@ -145,6 +146,45 @@ test('real commit followed by process loss stays possible-dispatch after Ledger 
   assert.equal(recovered.result.request_cid, operation.request_cid);
   assert.deepEqual(wireValue((await f.bridge.read(recovered.result, f.mapping)).result), [{id: 1}]);
   assert.equal((await f.bridge.cleanup(prepared)).result.retained, true);
+});
+
+test('lost noncommit reply recovers the original durable fence without resending', async t => {
+  const f = await fixture(t);
+  const first = await f.bridge.execute(f.prepare(f.operation(), [{id: 1}]), {useCid: cid('7')});
+  const committed = JSON.parse(first.observation.body).result;
+  const {request_cid: _, ...body} = f.operation();
+  const preimage = {...body, input_relation_cid: cid('9')};
+  const operation = {...preimage, request_cid: machineCid(preimage)};
+  const lost = createIcebergPhysicalBridge({python, run: 'table-run', catalog: f.catalog,
+    entry: new URL('../table-iceberg/fixtures/lost-noncommit-process.py', import.meta.url)});
+  const prepared = lost.prepareWrite({operation, mapping: f.mapping, rows: [{id: 2}],
+    reservation: {bytes: 1048576, files: 16}, schemaWire: f.schemaWire});
+  const claim = f.claim(operation), ledger = f.open();
+  try {
+    await assert.rejects(captureClaimedEffectResponse({ledger, claim, requestCid: operation.request_cid,
+      execute: () => lost.execute(prepared, {useCid: cid('7')})}));
+    assert.equal(ledger.readClaimedResponse(claim), undefined, 'Lost reply is not a terminal fact');
+    assert.deepEqual(lost.status(prepared), {attempted: true, stopped: true});
+  } finally { ledger.close(); }
+  const reopened = f.open();
+  t.after(() => reopened.close());
+  const recovered = wireValue(await f.bridge.reconcileOperation(operation));
+  assert.equal(recovered.ok, false);
+  assert.equal(recovered.result.reason, 'CreateNameConflict');
+  assert.equal(recovered.result.request_cid, operation.request_cid);
+  const projection = JSON.parse(checked(moon.clientProgramTableOperationCommitOutcome(
+    canonicalText(operation), JSON.stringify(recovered), 409, 1n, 65536, 4096, 16)));
+  assert.equal(projection.state, 'failed');
+  assert.deepEqual(projection.error.details, recovered.result);
+  assert.equal((await captureClaimedEffectResponse({ledger: reopened, claim,
+    requestCid: operation.request_cid, execute: () => assert.fail('Lost refusal must not send again')})).claimed, false);
+  const cleaned = wireValue(await lost.cleanup(prepared));
+  assert.equal(cleaned.result.retained, false);
+  assert.equal(cleaned.result.pending, false);
+  assert.deepEqual(wireValue(await f.bridge.reconcileOperation(operation)), recovered,
+    'Cleanup cannot erase the original noncommit fact');
+  assert.deepEqual(wireValue((await f.bridge.read(committed, f.mapping)).result), [{id: 1}],
+    'Conflict cleanup must preserve the winning Table');
 });
 
 test('positive staging then cancellation waits for actual stop before fenced cleanup', async t => {
