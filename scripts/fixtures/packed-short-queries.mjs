@@ -41,6 +41,12 @@ async function exercise(db, counter, label) {
   assert.equal(first, repeated);
   assert.equal(first.then, undefined);
   assert.equal(getSubmissionInput(first).requestId, savedId);
+  const recovery = db.recoverRequest(first);
+  assert.equal(recovery.target.requestId, savedId);
+  const lookup = await recovery.lookup();
+  assert.equal(lookup.kind, 'found');
+  assert.deepEqual((await recovery.attach(lookup)).ref, first.execution.ref);
+  await assert.rejects(recovery.attach({...lookup}), {code: 'InvalidRequestRecoveryObservation'});
   assert.deepEqual(await query.all(), [{id: 1}, {id: 2}]);
   const schema = {'~standard': {version: 1, vendor: 'packed-test', async validate(value) {
     if (value === null || typeof value !== 'object' || typeof value.id !== 'number') {
@@ -148,9 +154,10 @@ try {
     await assert.rejects(query.all({'~standard': {}}), error => error === original);
     await assert.rejects(query.one({get maxRows() {throw new Error('local capture');}}),
       error => error === original);
-    const found = await remote.lookupRequest('https-lost');
+    const recovery = remote.recoverRequest(original);
+    const found = await recovery.lookup();
     assert.equal(found.kind, 'found');
-    const execution = await remote.attach(found.ref);
+    const execution = await recovery.attach(found);
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(), [{id: 5}]);
     await setImmediate();

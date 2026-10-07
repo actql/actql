@@ -1,6 +1,6 @@
 // This file is copied into the external packed installation before compilation.
 // Imports must resolve there, without repository packages or NODE_PATH fallbacks.
-import {open, type Result, type Reader} from '@actql/node';
+import {open, type Result, type Reader, type RequestRecovery, type RequestLookupTarget} from '@actql/node';
 import type {StandardSchemaV1, DynamicRow} from '@actql/sdk';
 const client = await open({stateDir: 'typed-consumer'});
 const schema: StandardSchemaV1<{id: number}, {label: string; at: Date}> = {
@@ -12,6 +12,17 @@ const schema: StandardSchemaV1<{id: number}, {label: string; at: Date}> = {
 };
 const query = client.sql('SELECT 1 AS id');
 const result: Result = await query;
+const recovery: RequestRecovery = client.recoverRequest(result);
+const savedTarget: RequestLookupTarget = recovery.target;
+const restoredRecovery = client.recoverRequest(savedTarget);
+const recoveredLookup = await restoredRecovery.lookup();
+if (recoveredLookup.kind === 'found') await restoredRecovery.attach(recoveredLookup);
+else {
+  // @ts-expect-error Unresolved/pre-Run branches cannot attach as a Run.
+  restoredRecovery.attach(recoveredLookup);
+}
+// @ts-expect-error A recovery handle is not an Execution before Run lookup.
+recovery.ref;
 const output: {label: string; at: Date}[] = await query.all(schema, {maxRows: 2});
 const rows: Reader<{label: string; at: Date}> = result.rows(schema);
 const collected: {label: string; at: Date}[] = await result.all(schema);

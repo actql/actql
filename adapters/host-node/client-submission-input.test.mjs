@@ -248,7 +248,11 @@ for (const entrance of ['local', 'https']) {
           result.requestId = 'edited-request';
           assert.deepEqual(sdk.explainSubmission(result), expectedExplanation);
         }
-        const found = await f.client.lookupRequest(snapshot.requestId);
+        const recovery = f.client.recoverRequest(result);
+        assert.deepEqual(f.operations, callsBeforeLocale);
+        assert.deepEqual(recovery.target, {operation: 'lookupRequest', requestId: 'saved-request',
+          lookupContext: {endpoint: f.endpoint, scopeRef: 'principal-a'}});
+        const found = await recovery.lookup();
         assert.equal(found.kind, committed ? 'found' : 'not_found');
         if (committed) assert.equal(found.ref.runDefinitionCid, stored[0].run_definition_cid);
         const lookupExplanation = sdk.explainRequestLookup(found);
@@ -259,7 +263,7 @@ for (const entrance of ['local', 'https']) {
         assert.equal(sdk.getSubmissionInput(found), undefined);
         assert.deepEqual(f.stored(), stored);
         f.revoke();
-        await assert.rejects(f.client.lookupRequest(snapshot.requestId), {code: 'ClientConnectionDenied'});
+        await assert.rejects(recovery.lookup(), {code: 'ClientConnectionDenied'});
         assert.deepEqual(f.stored(), stored);
         assert.equal(f.operations.filter(value => value === 'submit').length, 1);
         assert.equal(sdk.getSubmissionInput(result), snapshot);

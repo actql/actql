@@ -443,6 +443,51 @@ or the selected row wire limit, whichever is smaller.
 
 ## Held requests and Checkpoints
 
+`client.recoverRequest(observationOrTarget)` creates a lookup-only recovery
+handle. It performs no I/O, submission, approval or resumption. It accepts an
+original SDK submission error (`RequestHeld` or `SubmissionUnknown`), its
+received Execution or successful short-query Result, or an original request
+lookup response/error. Mutable error properties and copied observations do
+not supply the original request context.
+
+The handle's frozen `target` is the existing `lookupRequest` candidate:
+`{operation, requestId, lookupContext: {endpoint, scopeRef}}`. An application
+can save this JSON and restore it with `recoverRequest(savedTarget)` after
+connecting again to the same endpoint and confirmed scope. Saved targets are
+untrusted lookup data, not authenticated references, durable acceptance,
+epochs or permission to retry. The SDK captures only exact own data fields
+without invoking getters, `toJSON` or conversion hooks. It refuses mismatches
+before lookup instead of translating an older context into a different scope.
+
+```js
+const recovery = client.recoverRequest(originalSubmissionError);
+const savedTarget = JSON.stringify(recovery.target); // application-owned storage
+const observation = await recovery.lookup();
+if (observation.kind === 'found') {
+  const execution = await recovery.attach(observation);
+  const state = await execution.status();
+}
+// After reconnecting: client.recoverRequest(JSON.parse(savedTarget)).
+```
+
+`lookup()` returns the existing `RequestLookup` union unchanged. A held request
+still has no Run; `not_found` and `unknown` do not establish nonexecution.
+`attach()` accepts only a `found` observation returned by that same handle's
+`lookup()`. A direct lookup, another handle or a serialized copy does not have
+that association. This local check is not authority: the ordinary Host attach
+operation checks current access again. Each call is explicit; there is no
+polling, automatic attachment, write retry or status-to-success inference.
+
+The target preserves this Client's negotiated connection context; comparison
+does not detect a later scope change inside a credential callback. Keep that
+scope stable for the Client and create a new connection when changing it.
+Current Host authorization still applies on every operation. The standard Local Host now projects its
+existing root/principal/policy-bound authority scope for default as well as
+explicit policy connections. Reopen the same state root and configuration;
+another root with the same request ID is a different scope. Older
+principal-only lookup contexts are refused, not reinterpreted. No state path,
+input, credential or private review is added to the saved target.
+
 A Host may hold a request before any Run exists. For example, its account
 configuration can delegate Run acceptance on a protected Site, and the Host
 defers the decision to a durable Checkpoint. `startSource()` and `start()` then
