@@ -36,7 +36,16 @@ fn strategy_policy_candidate_set(
         candidate.assessment.execution_bytes.to_string(),
       )
       @encode.begin_array(writer)
-      for task, offered in candidate.choices {
+      let mut view_index = 0
+      for task in 0..<choices.run.graph.original_task_count {
+        let offered = if view_index < candidate.choices.length() &&
+          choices.run.graph.original_tasks[view_index] == task {
+          let selected = candidate.choices[view_index]
+          view_index += 1
+          selected
+        } else {
+          None
+        }
         match offered {
           None => @encode.null_value(writer)
           Some(offer) => {
