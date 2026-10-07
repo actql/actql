@@ -135,7 +135,9 @@ test('physical Local output recovery releases Site holdings and permits full cap
   const site = createInProcessExecutionSite({key: 'local-output-reuse',
     generation: 1, runtimeRevision: 'test/1', maxRetainedBytes: 100n,
     maxExecutionBytes: 0n});
-  for (const failCleanup of ['before', 'after', undefined]) {
+  for (const failCleanup of ['before', 'after', 'before-frozen', 'after-frozen', undefined]) {
+    const before = failCleanup?.startsWith('before') ?? false;
+    const frozen = failCleanup?.endsWith('frozen') ?? false;
     const store = await createLocalRetainedStore({parentDirectory: directory,
       capacityBytes: 100, maxFrameBytes: 64, maxEntries: 1});
     let injected = failCleanup, retries = 0;
@@ -143,9 +145,17 @@ test('physical Local output recovery releases Site holdings and permits full cap
       status: store.status, reserve: store.reserve, close: store.close,
       async cleanup() {
         retries++;
-        if (injected === 'before') { injected = false; throw new Error('LocalCleanupInjected'); }
+        if (injected && before) {
+          injected = false;
+          const error = new Error('LocalCleanupInjected');
+          throw frozen ? Object.freeze(error) : error;
+        }
         const result = await store.cleanup();
-        if (injected === 'after') { injected = false; throw new Error('LocalCleanupInjected'); }
+        if (injected && !before) {
+          injected = false;
+          const error = new Error('LocalCleanupInjected');
+          throw frozen ? Object.freeze(error) : error;
+        }
         return result;
       },
     };
@@ -166,15 +176,15 @@ test('physical Local output recovery releases Site holdings and permits full cap
     assert.equal(executionSiteStatus(site).heldBytes, 100n);
     if (failCleanup) {
       await assert.rejects(report.close(), error => {
-        const primary = failCleanup === 'before' ? error.primaryFailure : error;
+        const primary = before ? error.primaryFailure : error.primaryFailure ?? error;
         assert.equal(primary?.message, 'LocalCleanupInjected');
-        if (failCleanup === 'before') {
+        if (before) {
           assert.equal(error.cleanupHandle.status().pending, true);
           assert.equal(typeof error.cleanupHandle.retry, 'function');
         }
         return true;
       });
-      const physicallyPending = failCleanup === 'before';
+      const physicallyPending = before;
       assert.equal(report.cleanupPending(), physicallyPending);
       assert.equal(executionSiteStatus(site).holdings, physicallyPending ? 1 : 0);
       assert.equal(executionSiteStatus(site).heldBytes, physicallyPending ? 100n : 0n);
@@ -188,7 +198,7 @@ test('physical Local output recovery releases Site holdings and permits full cap
     assert.deepEqual(await readdir(directory), []);
     assert.equal(f.events.filter(event => event === 'advance').length, 1);
     assert.equal(f.events.filter(event => event === 'task-close').length, 1);
-    assert.equal(retries, failCleanup === 'before' ? 2 : 1);
+    assert.equal(retries, before ? 2 : 1);
   }
 });
 
