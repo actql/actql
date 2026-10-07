@@ -13,34 +13,6 @@ pub(all) struct ExecutionLifecycleOperations[E] {
 }
 
 ///|
-/// Compatibility surface for managed implementations while callers migrate to
-/// the common lifecycle owner. It contains no completion authority.
-pub(all) struct ManagedExecutionOperations[E] {
-  cancel : () -> Unit
-  dispose : () -> Unit
-  settled : () -> Unit
-  retention_released : () -> Bool
-  scratch_released : () -> Bool
-  released : () -> Unit
-  ready : () -> Result[Unit, E]
-}
-
-///|
-pub fn[E] managed_execution_lifecycle(
-  operations : ManagedExecutionOperations[E],
-) -> ExecutionLifecycleOperations[E] {
-  {
-    cancel: operations.cancel,
-    dispose: operations.dispose,
-    settled: operations.settled,
-    retention_released: operations.retention_released,
-    scratch_released: operations.scratch_released,
-    released: operations.released,
-    ready: operations.ready,
-  }
-}
-
-///|
 /// Selected managed private payload plus common physical capacity. Preparation
 /// performs no external I/O; the Host reserves and registers the task before
 /// calling the installed implementation.
@@ -50,7 +22,7 @@ struct PreparedManagedExecution[I, T, E] {
   join_output_ceilings : Array[(Int, Int64)]
   aggregate_output_ceilings : Array[AggregateOutputCeiling]
   analytic_envelopes : Array[AnalyticEnvelope]
-  prepare : () -> Result[(T, ManagedExecutionOperations[E]), E]
+  prepare : () -> Result[(T, ExecutionLifecycleOperations[E]), E]
   retained_bytes : () -> Result[Int64, E]
   mut started : Bool
 }
@@ -61,7 +33,7 @@ pub fn[I, T, E, P] bind_prepared_managed_execution(
   prepared : PreparedManagedCompute[I, P],
   capacity : ExecutionCapacity,
   join_output_ceilings : Array[(Int, Int64)],
-  prepare : (P) -> Result[(T, ManagedExecutionOperations[E]), E],
+  prepare : (P) -> Result[(T, ExecutionLifecycleOperations[E]), E],
   retained_bytes? : () -> Result[Int64, E],
   aggregate_output_ceilings? : Array[AggregateOutputCeiling] = [],
   analytic_envelopes? : Array[AnalyticEnvelope] = [],
@@ -181,7 +153,7 @@ pub fn[I, T, E] prepared_managed_execution_available(
 /// be live; a selected candidate never freezes Store availability.
 pub fn[I, T, E] start_prepared_managed_execution(
   prepared : PreparedManagedExecution[I, T, E],
-) -> Result[(T, ManagedExecutionOperations[E]), ExecutionPreparationIssue[E]] {
+) -> Result[(T, ExecutionLifecycleOperations[E]), ExecutionPreparationIssue[E]] {
   if !prepared_managed_execution_available(prepared) {
     return Err(Candidate(NotSelected))
   }

@@ -74,7 +74,7 @@ pub fn[T] start_captured_managed_duckdb_task(
           Err(issue) => return Err(compute_failure(issue))
         }
         completion.val = Some(prepared_completion)
-        let operations : @connector.ManagedExecutionOperations[
+        let operations : @connector.ExecutionLifecycleOperations[
           @strategy.RunIssue,
         ] = {
           cancel: fn() {
