@@ -101,6 +101,16 @@ but does not issue logical contracts or infer value constraints. Replace require
 the same saved schema wire. A reader receives those exact bytes and must still
 admit the complete logical contract through the common Source owner.
 
+The Source declaration carries the saved field map in the closed
+`actql-relation-schema/0.1` carrier-schema body. Required fields retain their
+complete value contracts; Conditional fields retain their separate presence
+wrapper. The declaration producer and Check Environment use the same bounded
+field-map reader, rather than separate primitive-type approximations. The
+logical field-map CID, carrier body CID and Contract Envelope CID identify
+different preimages. Existing object value contracts remain all-fields-required;
+this form serializes the existing Relation presence contract, not optional
+ordinary objects. Physical generation resolution alone supplies no read grant.
+
 Row acquisition uses the existing exact checked-input owner for both required
 and conditional columns. An omitted conditional cell enters presence-aware row
 admission; explicit NULL still goes through the column's nullable value contract.
