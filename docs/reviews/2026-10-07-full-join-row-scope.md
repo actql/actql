@@ -1,7 +1,8 @@
 # FULL JOIN: shared row scope
 
 Base: `2d4dc269cdc8d35fe6af2bb1facc91e9f019685f`.
-Status: focused lowering/checker tests pass; packed execution is pending.
+Status: focused lowering/checker tests and packed Embedded Local/HTTPS pass at
+the implementation revision below. Review and exact submitted-HEAD CI are pending.
 
 ## Counterexample and connection
 
@@ -80,6 +81,52 @@ node scripts/local-checks.mjs test node -- scripts/full-join-scope-source-input.
   `focused-test-lWkTK5`. Neither required relaxing product validation.
 
 No full Core, Wasm/native campaign, performance suite, manual CI run or merge
-was performed. Packed Local/HTTPS and exact-HEAD CI remain separate obligations.
+was performed. Packed Local/HTTPS is recorded separately below; exact submitted-HEAD CI remains pending.
 The FULL shared-row connection has no dependency on the CEIL/floor execution
 gap recorded by Draft #722.
+
+## Packed evidence
+
+Implementation/package/acceptance revision:
+`2e2d11657ceac02a46d380eb3d108c31cee97c6a`.
+The subsequent evidence-only commit changes this report, not compiled inputs.
+The normal producer ran `prepack` for all five packages with clean tracked
+build inputs. The command receipt reports `dirty: true` solely because retained
+untracked `review-artifacts/` exists; no untracked build inputs were included.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-full-join-2e2d11657-pack
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-graph-composition-probe-e90/npm-cache npm_config_offline=true npm_config_include=optional ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-full-join-2e2d11657-pack node scripts/test-packed-public-query.mjs --full-join-scope-only
+```
+
+The external installation passed five positive cases and three preparation
+refusals **on each** of Embedded Local and HTTPS, through actual Named Result
+reading and stream completion. This includes the independent JSON control,
+SQL projection, Pipe projection, NULL join keys and empty typed rows. Schema,
+nullable fields, declared column order, hidden-field absence, one Source
+acquisition and same-request/Result reuse are checked by the unchanged driver.
+Preparation refusals preserve zero Run admissions and zero provider I/O.
+
+Evidence:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-p9ADzL`.
+Command `008` completed with exit 0, no signal, complete output and elapsed time
+30,509.862 ms. The wrapper also passed its existing 11 profile tests, README
+Local/HTTPS quickstart and missing-generated-asset refusal. Those are separate
+from the five FULL cases per transport. The runner removed its owned private
+installation after saving evidence (`artifactsRemoved: true`, no evidence
+errors); logs, manifest and original tarballs remain.
+
+Manifest SHA-256 digests:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `d519367b6ba51f21953d396564ff7b9e08ad8030ac0df336a98719f84b83a84d` |
+| sdk | `12fe75e3860d112bc314c1ebb8586fbdc37efad05b8a472dfe68c4e5cc7389d2` |
+| run-host-core | `7baafd41632a352af0b3554c3d4ab674eddaf5e3a9470f19507f23721edc9777` |
+| local-node | `5556f7a9d5fb734bf079c5f3ee75d72c5b480bd1623ef431805a8599e4f6c8de` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+No all-packed campaign, full Core, Wasm/native execution, Cloud acceptance or
+manual CI was added. This is the selected FULL ON shared-row unit, not a claim
+that all SQL FULL JOIN forms are implemented. The source grammar, common
+contract bodies and their pins did not change; no old Run was reinterpreted.
