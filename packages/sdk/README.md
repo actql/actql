@@ -30,6 +30,13 @@ parameters, connection selection and lookup context. Local and HTTPS use the
 same JSON-value snapshot. Text is not normalized or converted to different
 newlines. Credentials and signing keys are not added to this snapshot.
 
+`check`, `start` and `aql` share numeric-preserving JSON request serialization.
+NaN, infinities and negative zero are refused, including nested parameters,
+Program values, declaration defaults, boxed Numbers and `toJSON` results.
+The snapshot is made once before credentials or transport. A submit refusal
+uses `InvalidClientPayload`; check retains `InvalidCheckRequest`. Neither is
+`SubmissionUnknown`, and neither can reach Host preparation or Run acceptance.
+
 ```js
 import {getSubmissionInput} from '@actql/sdk';
 

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {snapshotCheckRequest, checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
+import {snapshotClientRequest, snapshotCheckRequest, checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
   validCheckpointPage, validCheckOutcome,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
@@ -665,27 +665,31 @@ test('independent expression type reasons reject values and foreign fact familie
   ]) assert.equal(validCheckOutcome({...outcome(reasons[0]), ...prior}), false);
 });
 
-test('check request snapshots refuse lossy numbers and detach without normalization', () => {
-  for (const value of [NaN, Infinity, -Infinity, -0, new Number(NaN),
-    new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0},
-    Object.assign(new Number(1), {valueOf: () => NaN}),
-    Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]) {
-    assert.throws(() => snapshotCheckRequest({parameters: {x: {nested: [value]}}}), TypeError);
-  }
-  let coerced = 0;
-  const number = Object.assign(new Number(1), {valueOf: () => {coerced++; return 3.5;}});
-  assert.deepEqual(snapshotCheckRequest({parameters: {x: number}}), {parameters: {x: 3.5}});
-  assert.equal(coerced, 1);
-  const input = {input: {text: '/*😀*/\r\nSELECT @x AS n', format: 'sql'},
-    parameters: {'e\u0301/~': [0, null, 1.25, -2, Number.MAX_VALUE, Number.MIN_VALUE]}};
-  const copy = snapshotCheckRequest(input);
-  assert.deepEqual(copy, input);
-  input.parameters['e\u0301/~'][0] = 9;
-  assert.equal(copy.parameters['e\u0301/~'][0], 0);
-  let nested = 'leaf';
-  for (let i = 0; i < 70; i++) nested = [nested];
-  assert.deepEqual(snapshotCheckRequest({parameters: {x: nested}}), {parameters: {x: nested}});
-});
+for (const snapshot of [snapshotClientRequest, snapshotCheckRequest]) {
+  test(`${snapshot.name} refuses lossy numbers and detaches without normalization`, () => {
+    for (const value of [NaN, Infinity, -Infinity, -0, new Number(NaN),
+      new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0},
+      Object.assign(new Number(1), {valueOf: () => NaN}),
+      Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]) {
+      assert.throws(() => snapshot({parameters: {x: {nested: [value]}}}),
+        {name: 'TypeError', message: snapshot === snapshotClientRequest
+          ? 'UnrepresentableClientNumber' : 'UnrepresentableCheckNumber'});
+    }
+    let coerced = 0;
+    const number = Object.assign(new Number(1), {valueOf: () => {coerced++; return 3.5;}});
+    assert.deepEqual(snapshot({parameters: {x: number}}), {parameters: {x: 3.5}});
+    assert.equal(coerced, 1);
+    const input = {input: {text: '/*😀*/\r\nSELECT @x AS n', format: 'sql'},
+      parameters: {'e\u0301/~': [0, null, 1.25, -2, Number.MAX_VALUE, Number.MIN_VALUE]}};
+    const copy = snapshot(input);
+    assert.deepEqual(copy, input);
+    input.parameters['e\u0301/~'][0] = 9;
+    assert.equal(copy.parameters['e\u0301/~'][0], 0);
+    let nested = 'leaf';
+    for (let i = 0; i < 70; i++) nested = [nested];
+    assert.deepEqual(snapshot({parameters: {x: nested}}), {parameters: {x: nested}});
+  });
+}
 
 test('independent binding JSON reasons require owned documents and closed parser facts', () => {
   const fixture = JSON.parse(readFileSync(new URL('./fixtures/check-binding-json-reasons.json', import.meta.url), 'utf8'));
