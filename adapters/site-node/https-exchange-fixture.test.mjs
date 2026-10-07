@@ -45,11 +45,13 @@ async function credential(t, origin, operation) {
   journal.acceptGrant(signRemoteCredentialGrant(grant, control,
     {keyId: 'key-a', privateKey: authority.privateKey}), control);
   let uses = 0;
+  let resolved = 0;
   return Object.freeze({
     journal,
+    resolved: () => resolved,
     authorization: () => ({grant, useId: `use-${uses++}`, scope}),
     resource: Object.freeze({control, journal,
-      resolveSecret: async () => 'provider-secret',
+      resolveSecret: async () => { resolved++; return 'provider-secret'; },
       now: () => 1_999_999_999_999}),
   });
 }
@@ -246,4 +248,146 @@ test('a since-filtered listing continues on page two with the same date, encoded
       '/repos/o/r/issues?state=all&since=2026-10-01T00%3A00%3A00Z&per_page=2&page=2');
     assert.equal(seen[1].query.since, since);
     assert.equal(seen[0].query.since, seen[1].query.since);
+  });
+
+for (const {method, operation, body, status, responseBody} of [
+  {method: 'PUT', operation: 'items:replace', body: '{"name":"café"}',
+    status: 200, responseBody: '{"success":false}'},
+  {method: 'DELETE', operation: 'items:remove', status: 204, responseBody: ''},
+]) {
+  test(`scoped ${method} sends one exact request with one credential use`,
+    async t => {
+      const fixture = await openHttpsExchangeFixture(t, {routes: [{method,
+        pathname: '/items/a%2Fb', handle: () => ({status, body: responseBody})}]});
+      const setup = await credential(t, fixture.origin, operation);
+      const authorization = setup.authorization();
+      const invoke = () => invokeScopedCredentialOperation({authorization,
+        credential: {...setup.resource, ca: fixture.ca},
+        callResource: callHttpsCredentialResource, operation, method,
+        path: '/items/a%2Fb', query: [['q', 'a b'], ['marker', '%/']], body,
+        maxRequestBytes: 16, maxResponseBytes: 4096});
+      const result = await invoke();
+      assert.deepEqual(fixture.seen().map(entry => ({method: entry.method,
+        path: entry.path, body: entry.body, authorized: entry.authorized})),
+      [{method, path: '/items/a%2Fb?q=a%20b&marker=%25%2F',
+        body: body ?? '', authorized: true}]);
+      assert.equal(fixture.seen()[0].headers['content-type'],
+        method === 'PUT' ? 'application/json' : undefined);
+      assert.equal(fixture.seen()[0].headers['content-length'],
+        method === 'PUT' ? '16' : undefined);
+      assert.equal(setup.resolved(), 1);
+      assert.equal(setup.journal.recover().length, 1);
+      assert.equal(setup.journal.inspect(result.useCid).outcome, 'succeeded');
+      // Transport acceptance remains only a credential-use observation. The
+      // provider still receives the literal failure payload or empty 204; this
+      // boundary creates no business Effect outcome or success evidence.
+      assert.deepEqual(Object.keys(result).sort(),
+        ['accepted', 'body', 'headers', 'statusCode', 'useCid']);
+      assert.equal(result.accepted, true);
+      assert.equal(result.statusCode, status);
+      assert.equal(result.body.toString('utf8'), responseBody);
+      await assert.rejects(invoke(), {code: 'RemoteCredentialUseAlreadyClaimed'});
+      assert.equal(setup.resolved(), 1);
+      assert.equal(fixture.seen().length, 1);
+    });
+
+  test(`scoped ${method} redirect and lost response stay unknown without retry`,
+    async t => {
+      const fixture = await openHttpsExchangeFixture(t, {
+        routes: [{pathname: '/redirect', handle: () => ({status: 307,
+          headers: {location: '/forwarded'}})}],
+        faults: [{kind: 'lose-reply', method, pathname: '/lost'}],
+      });
+      const setup = await credential(t, fixture.origin, operation);
+      for (const path of ['/redirect', '/lost']) {
+        const authorization = setup.authorization();
+        const invoke = () => invokeScopedCredentialOperation({authorization,
+          credential: {...setup.resource, ca: fixture.ca},
+          callResource: callHttpsCredentialResource, operation, method, path,
+          body, maxRequestBytes: 16, maxResponseBytes: 4096});
+        await assert.rejects(invoke(), path === '/redirect'
+          ? {code: 'RemoteCredentialRedirectRejected'} : {code: 'ECONNRESET'});
+        assert.equal(setup.journal.recover().at(-1).outcome, 'unknown');
+        await assert.rejects(invoke(), {code: 'RemoteCredentialUseAlreadyClaimed'});
+      }
+      assert.deepEqual(fixture.seen().map(entry => [entry.method, entry.path,
+        entry.body, entry.authorized]),
+      [[method, '/redirect', body ?? '', true],
+        [method, '/lost', body ?? '', true]]);
+      assert.equal(setup.resolved(), 2);
+      assert.equal(setup.journal.recover().length, 2);
+      assert.equal(fixture.remainingFaults(), 0);
+    });
+}
+
+test('invalid physical method/body, reserved headers and oversized PUT stop before use',
+  async t => {
+    const fixture = await openHttpsExchangeFixture(t);
+    const setup = await credential(t, fixture.origin, 'items:write');
+    const cases = [
+      {method: 'HEAD', code: 'UnsupportedRemoteCredentialOperation'},
+      {method: 'put', body: '{}', code: 'UnsupportedRemoteCredentialOperation'},
+      {method: 'PUT'}, {method: 'PUT', body: null},
+      {method: 'PUT', body: Buffer.from('{}')},
+      {method: 'PUT', body: '{"name":"café"}', maxRequestBytes: 15},
+      {method: 'DELETE', body: ''}, {method: 'DELETE', body: '{}'},
+      {method: 'DELETE', body: null}, {method: 'GET', body: '{}'},
+      {method: 'POST'}, {method: 'PATCH'},
+      {method: 'PUT', body: '{}', headers: [['authorization', 'forged']],
+        code: 'ReservedHttpRequestHeader'},
+      {method: 'DELETE', headers: [['content-length', '0']],
+        code: 'ReservedHttpRequestHeader'},
+      {method: 'PUT', body: '{}', responseHeaders: ['set-cookie'],
+        code: 'InvalidHttpResponseHeaderNames'},
+      {method: 'DELETE', path: 'https://elsewhere.invalid/items'},
+    ];
+    for (const {code = 'InvalidRemoteCredentialOperation', maxRequestBytes = 16,
+      ...operation} of cases) {
+      await assert.rejects(callHttpsCredentialResource({...setup.resource,
+        ...setup.authorization(), ca: fixture.ca, maxRequestBytes,
+        operations: new Map([['items:write', {path: '/items', ...operation}]])}),
+      {code});
+    }
+    await assert.rejects(callHttpsCredentialResource({...setup.resource,
+      ...setup.authorization(), ca: fixture.ca, operations: new Map()}),
+    {code: 'UnsupportedRemoteCredentialOperation'});
+    assert.equal(setup.resolved(), 0);
+    assert.deepEqual(setup.journal.recover(), []);
+    assert.deepEqual(fixture.seen(), []);
+  });
+
+test('new scoped methods preserve operation, grant scope and current authority gates',
+  async t => {
+    const fixture = await openHttpsExchangeFixture(t);
+    for (const method of ['PUT', 'DELETE']) {
+      const operation = `items:${method}`;
+      const setup = await credential(t, fixture.origin, operation);
+      const body = method === 'PUT' ? '{}' : undefined;
+      const invoke = (authorization, named = operation, credential = {}) =>
+        invokeScopedCredentialOperation({authorization,
+          credential: {...setup.resource, ca: fixture.ca, ...credential},
+          callResource: callHttpsCredentialResource, operation: named,
+          method, path: '/items', body,
+          maxRequestBytes: 16, maxResponseBytes: 4096});
+      await assert.rejects(async () => invoke(setup.authorization(), 'foreign'),
+        {code: 'InvalidOwnedInvocationContext'});
+      const authorization = setup.authorization();
+      await assert.rejects(async () => invoke({...authorization,
+        scope: {...authorization.scope, operation: 'foreign'}}, 'foreign'));
+      assert.equal(setup.resolved(), 0);
+      assert.deepEqual(setup.journal.recover(), []);
+      let now = 1_999_999_999_999;
+      await assert.rejects(async () => invoke(setup.authorization(), operation, {
+        now: () => now,
+        resolveSecret: async scope => {
+          const secret = await setup.resource.resolveSecret(scope);
+          now = 2_000_000_000_000;
+          return secret;
+        },
+      }));
+      assert.equal(setup.resolved(), 1);
+      assert.equal(setup.journal.recover().length, 1);
+      assert.equal(setup.journal.recover()[0].outcome, 'failed');
+    }
+    assert.deepEqual(fixture.seen(), []);
   });

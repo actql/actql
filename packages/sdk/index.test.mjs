@@ -10,6 +10,7 @@ import './check-session-presentation.test.mjs';
 import './check-presentation.test.mjs';
 import './check-protocol-failures.test.mjs';
 import './resource-protocol-failures.test.mjs';
+import './profile-observation.test.mjs';
 import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
@@ -1152,21 +1153,23 @@ test('delivery attempt lookup binds the existing Host evidence to the request',
 
 
 test('cancel validates the response and exact requested Run', async t => {
-  let reply = {ref, kind: 'accepted', revision: 5};
+  const cancellation = {cancelId: 'original-cancel', expectedRevision: 4};
+  let reply = {ref, cancelRef: {...ref, ...cancellation}, kind: 'accepted', revision: 5};
   t.mock.method(globalThis, 'fetch', async url => Response.json(
     String(url).endsWith('/connect') ? profile :
       String(url).endsWith('/attach') ? admission : reply));
   const client = await connect(options);
   t.after(() => client.close());
   const execution = await client.attach(ref);
-  assert.deepEqual(await execution.cancel(), reply);
+  assert.deepEqual(await execution.cancel(cancellation), reply);
   for (const invalid of [{}, {...reply, kind: 'stopped'},
     {...reply, revision: -1},
     ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(key =>
       ({...reply, ref: {...ref, [key]: key === 'namespaceId' ? 'foreign' :
         `sha256:${'c'.repeat(64)}`}}))]) {
     reply = invalid;
-    await assert.rejects(execution.cancel(), {code: 'InvalidHostCancellation'});
+    await assert.rejects(execution.cancel(cancellation), error =>
+      error.code === 'CancellationUnknown' && error.cause.code === 'InvalidHostCancellation');
   }
 });
 
