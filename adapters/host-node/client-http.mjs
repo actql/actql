@@ -88,7 +88,8 @@ function responseCode(error) {
   if (error?.code === 'ClientProgramNeedsInputs' ||
       error?.code === 'ClientProgramRejected' ||
       error?.code === 'ClientProgramUnsupported' ||
-      error?.code === 'ClientProgramAnalysisLimit') return 422;
+      error?.code === 'ClientProgramAnalysisLimit' ||
+      error?.code === 'ClientProgramImplementationLimit') return 422;
   if (error?.code === 'UnknownClientOperation') return 404;
   if (error?.code === 'ClientOperationUnavailable') return 501;
   if (error?.code === 'ResultAttemptLookupUnavailable') return 501;
