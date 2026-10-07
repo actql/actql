@@ -1,14 +1,15 @@
-> Public migration status: the legacy structural envelope, STEP and OP are
-> withdrawn. Named-call examples below record the adopted logical mapping;
-> their historical decoder is an internal fixture tool. They are not currently
-> executable public source. See [migration mapping](frontend-language-migration.md).
+> The legacy structural envelope, STEP and OP are withdrawn. SQL/Pipe DATA
+> connects the named calls listed under [current source connections](#current-source-connections)
+> to ordinary Program operations. Other adopted calls remain explicit gaps;
+> the historical decoder is an internal fixture tool, not a public fallback.
+> See [migration mapping](frontend-language-migration.md).
 
 # SGA surface syntax over the existing Program
 
 This is the accepted logical design for the SGA Frontend increment. Named
 Graph calls previously lowered inside structural DATA; that public envelope
-is withdrawn. The standalone adopted surface still needs the migration
-connections listed above. The contract baseline remains 0.1. Public SDK/CLI
+is withdrawn. Current Script lowering uses SQL/Pipe DATA and the sole Graph
+contract. The contract baseline remains 0.1. Public SDK/CLI
 source routing and packed Local/HTTP execution are required for text migration
 acceptance. Graph execution support is measured per operation and profile.
 
@@ -84,7 +85,47 @@ producer at two different operand positions, or repeated mean samples.
 Generators have no Pipe left operand. In particular, mean_graphs uses only
 its declared list, and is rejected after `FROM` or another Pipe operation.
 
-## Complete Graph operation inventory
+## Current source connections
+
+The Script frontend connects these adopted calls to the existing Program.
+The [query-text specification](../spec/query-text.md#graph-pattern-source)
+defines the installed subset and its restrictions. A connected source route
+does not authorize a Graph, establish common execution support for every
+argument or certify every backend.
+
+| Named calls | Carrier transition | Script lowering boundary |
+| --- | --- | --- |
+| `normalize_graph` | Graph → Graph | [Graph-preserving calls](../../src/query_program/sga_script_program.mbt); zero arguments, existing `true` operation body |
+| `node_rows`, `edge_rows` | Graph → Relation | [Graph rows](../../src/query_program/graph_rows_program.mbt); admitted definition/label selection and ordinary Relation continuation |
+| `traverse` | Graph → Relation | [Traversal rows](../../src/query_program/traversal_nodes_program.mbt); explicit `emit: 'nodes'` or `'paths'`, retained selector and bounds |
+| `match_nodes`, `match_edges` | Graph → Relation | [Named match rows](../../src/query_program/graph_match_rows_program.mbt); explicit field order, common predicate/type checking |
+| `degree`, `graph_bounds`, `components` | Graph → Relation | [Diagnostic rows](../../src/query_program/graph_diagnostics_program.mbt); authored bodies and parameters retained |
+| `graphs_equal`, `graph_diff` | Graph pair → Relation | [Pair rows](../../src/query_program/graph_equality_program.mbt); explicit earlier DATA peer, existing Boolean/Delta columns |
+| `subgraph` | Graph → Graph | [Subgraph calls](../../src/query_program/subgraph_script_program.mbt); existing retained Relation selector, common membership/closure rules |
+| `union_graphs`, `subtract_graphs` | Graph inputs → Graph | [Composition calls](../../src/query_program/graph_composition_program.mbt); preserve authored peer order and policies, binary subtraction |
+| `apply_graph_delta` | Graph + Delta Relation → Graph | [Delta application](../../src/query_program/graph_delta_program.mbt); explicit producer and field, common Delta validation |
+
+Both DATA and terminal query routing reuse these boundaries. A Relation-returning
+call creates the corresponding Relation scope; the old Graph columns do not
+remain visible. Further Graph calls after that transition are refused. A
+Graph-returning call retains the checked Graph contract until explicit rows
+or MATCH processing; it does not acquire, save, copy or select an execution
+location itself.
+
+`reach`, `shortest_path`, `graft_graph` and `mean_graphs` remain adopted but
+unconnected in this Script frontend. In particular, the generator-style
+`mean_graphs` binding is not an implemented constructor. Parser vocabulary
+and historical machine-input execution are not successful public text routes.
+Wider selector acquisition, terminal quantified predicates and other pattern
+forms also retain their individually documented gaps. Do not restore the
+structural envelope or a simple-Graph conversion to pass them.
+
+Operation-level review records and their exact source/package evidence are
+linked in the [source-connection checkpoint](../reviews/2026-10-07-sga-source-connection-ledger.md).
+Those records remain scoped to their original SHAs; this architecture table
+does not relabel their execution results as current-HEAD verification.
+
+## Historical inventory and adopted operations
 
 All rows have machine Program operation keys and historical internal STEP/OP
 fixtures. The operation key equals the name in the first column. Adopted named
@@ -104,10 +145,14 @@ and [TRAIL resources](../../src/query_integration/graph_trail_resource_wbtest.mb
 Historical successes do not establish current execution or packed acceptance
 of the new named source.
 
-| Program operation | Pipe/current input | Other inputs | Output | Adopted named DATA | Local evidence |
+The two construction rows retain the old inventory's forms. Current pure text
+construction is `DATA g = PROPERTY GRAPH (...)`; those rows are not pending
+alternative public constructors or supported legacy machine schemas.
+
+| Historical Program operation | Pipe/current input | Other inputs | Output | Adopted call / historical form | Historical Local evidence |
 | --- | --- | --- | --- | --- | --- |
-| graph, concise form | Relation | Existing graph field mapping | Graph | Text construction pending | Host |
-| graph, explicit form | None | Node Relation and edge Relation | Graph | Text construction pending | Host |
+| graph, concise form | Relation | Existing graph field mapping | Graph | Withdrawn form; current constructor is PROPERTY GRAPH | Host |
+| graph, explicit form | None | Node Relation and edge Relation | Graph | Withdrawn form; current constructor is PROPERTY GRAPH | Host |
 | normalize_graph | Graph | None | Graph | `normalize_graph()` | Host |
 | match_nodes | Graph | Predicate/projection arguments | Relation | `match_nodes(...)` | Host |
 | match_edges | Graph | Predicate/projection arguments | Relation | `match_edges(...)` | Host |
