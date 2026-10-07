@@ -320,6 +320,14 @@ evidence and unverified performance/target/distribution coverage.
 
 ## Status interpretation (2026-09-28)
 
+The bounded receiving-input follow-up on 2026-10-07 retains long producer-name
+measurement/comparison inside the existing same-task chain owner. Partial maps
+never authorize a child; cancellation keeps inputs/private outputs until stop
+and cleanup. Common metadata limits, the independently counted 19-poll handoff,
+and the ordinary retained Append/select/two-consumer Program have limited JS
+evidence. Existing Native source/census pins require G review before this unit
+is merge-ready; old receipts are not adopted as new-source evidence. See the
+[receiving-input record](2026-10-07-local-producer-read-preparation.md).
 The 2026-10-07 string aggregation follow-up replaces demanded delimiter/item
 whole-Text sizing and final join with the same finisher's scalar phases and
 existing exact-capacity StringBuilder. Original byte/control totals, raw data,
