@@ -535,6 +535,7 @@ export type RunObservationFailureExplanation = Readonly<{
   hint: string;
   next: Readonly<{operation: 'status'; ref: RunReference}>;
 }> & (Readonly<{kind: 'uninterpretable'; problem: 'unknown_state'}> |
+  Readonly<{kind: 'unavailable'; problem: 'observation_unavailable'}> |
   Readonly<{kind: 'protocol_failure'; problem: 'contract_mismatch' | 'malformed_response'}>);
 export declare function explainRunObservationFailure(error: unknown,
   options?: OperationExplanationOptions): RunObservationFailureExplanation | undefined;
