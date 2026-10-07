@@ -9,6 +9,31 @@ const unit = 'packages/sdk/operation-formats.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const facts = 'operation formats retain typed facts, original lookup references and unknown outcomes without I/O';
 const mutations = [
+  {name: 'submission explanation converts accepted preparation failure into nonacceptance',
+    path: 'packages/sdk/index.mjs', file: 'adapters/host-node/submission-epoch-public.test.mjs',
+    from: "const observation = outcome.kind === 'unresolvable' ? 'history_unresolvable' : outcome.kind;",
+    to: "const observation = outcome.kind === 'preparation_failed' ? 'not_accepted' : outcome.kind === 'unresolvable' ? 'history_unresolvable' : outcome.kind;",
+    targets: ['local', 'https'].flatMap(entrance => [
+      'an accepted unsupported pre-Run wait remains a preparation failure after reconnect',
+      'durable input rejection explains nonacceptance and survives original lookup',
+    ].map(name => target(`${entrance}: ${name}`, 'submission-public-phase', 'deepStrictEqual')))},
+  {name: 'submission explanation drops admitted lookup facts',
+    path: 'packages/sdk/index.mjs', file: 'packages/sdk/submission-explanations.test.mjs',
+    from: 'return retainSubmissionExplanation(freezeInput(answer), answer, context);',
+    to: 'return freezeInput(answer);',
+    targets: ['not_accepted', 'preparation_failed', 'preparing', 'ready', 'unresolvable'].map(kind => target(
+      `submission lookup explanation retains admitted ${kind} and the original epoch`, 'submission-lookup', 'deepStrictEqual'))},
+  {name: 'submission explanation replaces a rejected lookup original with a fresh nonce',
+    path: 'packages/sdk/index.mjs', file: 'packages/sdk/submission-explanations.test.mjs',
+    from: 'hint: submissionObservationHint, next: submissionTarget(context)}));',
+    to: "hint: submissionObservationHint, next: {...submissionTarget(context), submissionRef: {...context.submissionRef, nonce: 'fresh-submission'}}}));",
+    targets: ['unknown branch', 'wrong nonce', 'malformed problem', 'changed clone'].map(fault => target(
+      `submission lookup refuses ${fault} without acquiring outcome facts`, 'submission-rejected-reference', 'deepStrictEqual'))},
+  {name: 'submission explanation presents local nondispatch as Owner rejection',
+    path: 'packages/sdk/index.mjs', file: 'packages/sdk/submission-explanations.test.mjs',
+    from: "if (input) submissionExplanations.set(result, freezeInput({observation: 'not_sent',",
+    to: "if (input) submissionExplanations.set(result, freezeInput({observation: 'not_accepted',",
+    targets: [target('known unsent submission explains dispatch only and has no Owner outcome', 'submission-unsent')]},
   {name: 'short query drops its existing Run observation explanation', path: 'packages/sdk/index.mjs',
     file: 'adapters/host-node/client-short-query-observation-failure.test.mjs',
     from: '    if (failure) runObservationFailures.set(error, failure);',

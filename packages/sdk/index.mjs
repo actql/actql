@@ -387,6 +387,47 @@ const submissionLookupExplanation = (observation, input) => freezeInput({
     lookupContext: input.lookupContext},
 });
 
+const submissionObservationHint = 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.';
+const submissionTarget = context => ({operation: 'lookupSubmission',
+  submissionRef: context.submissionRef, lookupContext: context.lookupContext});
+const retainSubmissionExplanation = (result, outcome, context) => {
+  // Called only after admitting the exact Owner response and its binding.
+  // Acceptance phase follows its typed branch, never its problem code.
+  let explanation;
+  if (outcome.kind === 'ready') explanation = {
+    observation: 'run_reference_received',
+    summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+    next: {operation: 'status', ref: outcome.admission.ref},
+  };
+  else if (outcome.kind === 'held') explanation = heldRequestExplanation(outcome.held, context);
+  else {
+    const observation = outcome.kind === 'unresolvable' ? 'history_unresolvable' : outcome.kind;
+    const summaries = {
+      not_accepted: 'The Host durably rejected this submission before acceptance. Its identity is consumed; no Run reference was returned.',
+      preparation_failed: 'The Host accepted this submission, then preparation failed. No Run reference was returned; this is not a rejection before acceptance.',
+      preparing: 'The Host accepted this submission and preparation is still pending. No Run reference was returned.',
+      history_unresolvable: 'The Host cannot establish the original submission outcome. Work may already have started.',
+    };
+    explanation = {observation, summary: summaries[observation], hint: submissionObservationHint,
+      next: submissionTarget(context),
+      ...(['not_accepted', 'preparation_failed'].includes(outcome.kind)
+        ? {problem: {code: outcome.problem.code, classification: outcome.problem.classification}} : {})};
+  }
+  submissionExplanations.set(result, freezeInput(explanation));
+  return result;
+};
+const retainSubmissionLookupFailure = (cause, context, observation) => {
+  let error;
+  try {error = requestCancellationCause(cause);}
+  catch {error = new ClientError('ClientTransportUnknown');}
+  submissionExplanations.set(error, freezeInput({observation,
+    summary: observation === 'lookup_unavailable'
+      ? 'The submission lookup could not be completed. Acceptance and execution remain unresolved.'
+      : 'This SDK could not interpret the submission lookup response. Acceptance and execution remain unresolved.',
+    hint: submissionObservationHint, next: submissionTarget(context)}));
+  return error;
+};
+
 const requestObservationHint = 'Keep the original request reference and use an authorized lookup. This observation grants no permission to resubmit, execute, answer a Checkpoint or release resources.';
 const heldRequestExplanation = (answer, context) => freezeInput({
   observation: 'request_held', preparationState: answer.state,
@@ -891,6 +932,9 @@ const submissionNotSent = (context, cause) => {
   const result = new ClientError('SubmissionNotSent', {...context, cause});
   const input = submissionContexts.get(context);
   if (input) submissionInputs.set(result, input);
+  if (input) submissionExplanations.set(result, freezeInput({observation: 'not_sent',
+    summary: 'This SDK did not dispatch this submission attempt. This is not an Owner-issued rejection and does not establish the original identity outcome.',
+    hint: submissionObservationHint, next: submissionTarget(input)}));
   return result;
 };
 const retainReadExplanation = (result, context, rowsYielded, observation, cleanupUnknown = false) => {
@@ -1940,11 +1984,7 @@ async function connectSelected(selected, port) {
         catch (cause) {throw submissionUnknown(context, cause);}
         submissionInputs.set(run, snapshot);
         submissionOutcomes.set(run, outcome);
-        submissionExplanations.set(run, freezeInput({
-          observation: 'run_reference_received',
-          summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
-          next: {operation: 'status', ref: run.ref},
-        }));
+        retainSubmissionExplanation(run, outcome, snapshot);
         return run;
       }
       const error = outcome.kind === 'held'
@@ -1954,8 +1994,7 @@ async function connectSelected(selected, port) {
         {requestId, submissionRef: body.submissionRef, outcome});
       submissionInputs.set(error, snapshot);
       submissionOutcomes.set(error, outcome);
-      if (outcome.kind === 'held') submissionExplanations.set(error,
-        heldRequestExplanation(outcome.held, snapshot));
+      retainSubmissionExplanation(error, outcome, snapshot);
       throw error;
     })();
     submissionInputs.set(pending, snapshot);
@@ -2017,10 +2056,20 @@ async function connectSelected(selected, port) {
       try {owned = freezeInput(snapshotClientRequest(submissionRef));}
       catch {fail('InvalidSubmissionRef');}
       if (!validSubmissionRef(owned)) fail('InvalidSubmissionRef');
-      const response = await exchange('lookup-submission', {submissionRef: owned}, signal);
-      const answer = detachResponse(captureResponse(await controlValue(response)));
-      if (!validSubmissionLookup(answer, selected.wire, owned)) fail('InvalidHostSubmissionLookup');
-      return freezeInput(answer);
+      const context = freezeInput({submissionRef: owned,
+        lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
+      let response;
+      try {response = await exchange('lookup-submission', {submissionRef: owned}, signal);}
+      catch (cause) {throw retainSubmissionLookupFailure(cause, context, 'lookup_unavailable');}
+      let answer;
+      try {
+        answer = detachResponse(captureResponse(await controlValue(response)));
+        if (!validSubmissionLookup(answer, selected.wire, owned)) fail('InvalidHostSubmissionLookup');
+      } catch {
+        throw retainSubmissionLookupFailure(new ClientError('InvalidHostSubmissionLookup'),
+          context, 'lookup_uninterpretable');
+      }
+      return retainSubmissionExplanation(freezeInput(answer), answer, context);
     },
     // Check authored source without starting anything. The outcome is the
     // Host's actql-check-outcome/0.1 value: a report bound to its scope and

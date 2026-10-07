@@ -1378,6 +1378,19 @@ preparation-write path is introduced by these declaration conditions.
 
 ### Passive operation diagnostic formats
 
+Submission presentation follows admitted `SubmissionOutcome` and
+`SubmissionLookup` branches from the existing logical-request/journal Owners.
+Durable `not_accepted` consumes the identity before acceptance;
+`preparation_failed` retains acceptance, while `preparing` establishes no Run
+reference. Their explanations preserve the original authenticated epoch/nonce
+and disclosed typed problem, without interpreting a problem code as a phase.
+An `unresolvable` lookup, rejected response or exchange failure establishes
+neither nonacceptance nor permission to restart. A known unsent local attempt
+describes only its dispatch boundary, not the Owner outcome for a previously
+used identity. Only admitted Run references offer a Run-status candidate.
+Formatting consumes the same immutable SDK-owned explanation; copied DTOs and
+error messages cannot supply these facts.
+
 `formatSubmission`, `formatCancellation`, `formatReadFailure` and
 `formatEffectUncertainty` render only the original SDK-owned observations used
 by their corresponding explanation helpers. They offer `text`, `html` and
