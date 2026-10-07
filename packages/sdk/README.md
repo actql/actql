@@ -99,7 +99,8 @@ start exactly one source admission immediately. SQL selects `sql`; AQL selects
 after the existing Run wait. They do not read rows until explicitly requested.
 
 ```js
-const query = client.sql('SELECT 1 AS id', undefined, {requestId: 'example-1'});
+const submissionRef = client.newSubmission({nonce: 'example-1'});
+const query = client.sql('SELECT 1 AS id', undefined, {submissionRef});
 const requestId = query.requestId; // available before credentials or transport
 const result = await query;
 const rows = await query.all();
@@ -229,25 +230,38 @@ observation, and retains detached immutable data. Capture or verification
 failure rejects the connection with `InvalidHostProfile`; it establishes no
 check verdict. The negotiated `scopeRef` identifies connection scope, separately
 from a check report's `context_ref` and input revisions. `startSource(text,
-{format: "json" | "yaml"})` and `start(program)` send one admission request
-immediately and resolve only after an acceptance response. Both accept
-`requestId`. An omitted ID is generated before send; an uncertain submission
-error exposes that ID and a lookup context. Call `lookupRequest(requestId)`
-to inspect the existing request without starting Compute. An unknown response
+{format: "json" | "yaml"})` and `start(program)` send one immutable submission
+intent. The Host supplies an authenticated epoch in its negotiated profile.
+`client.newSubmission({nonce})` captures that epoch and a caller nonce before
+send; omitting `submissionRef` creates a new reference for that call. A bare
+historical `requestId` does not create work under a newly negotiated epoch.
+
+Retain the full original reference across reconnects and process restart.
+`lookupSubmission(submissionRef)` observes that original submission under
+current authorization without starting Compute. A new connection's epoch
+cannot replace the saved one. An unknown response or an `unresolvable` lookup
 does not prove nonacceptance, and the SDK does not retry automatically.
-Profile, admission and request-lookup replies use the public
-`@actql/client-wire` validators, including exact connection and durability
-bindings. A found request lookup must echo the requested ID. A malformed or
-foreign acceptance does not become a known Run.
+Profile, submission and lookup replies use the public `@actql/client-wire`
+validators, including exact connection, durability, epoch/nonce and intent
+bindings. A malformed or foreign acceptance does not become a known Run.
+
 The Client serializes the submitted Program and parameters before awaiting an
 asynchronous credential callback, so later mutation of caller objects cannot
 change that transmission. `getSubmissionInput(result)` retrieves this call's
-detached, deeply frozen JSON request input from its returned Execution,
-`SubmissionUnknown` error or `RequestHeld` error. It includes the original
-request ID, submission kind, Program or text with declarations, supplied
-parameters, connection selection and lookup context. Local and HTTPS use the
-same JSON-value snapshot. Text is not normalized or converted to different
-newlines. Credentials and signing keys are not added to this snapshot.
+detached, deeply frozen JSON request input from its returned Promise, Execution
+or original submission error. It includes the full submission reference, nonce,
+submission kind, Program or text with declarations, supplied parameters,
+connection selection and lookup context. Local and HTTPS use the same JSON-value
+snapshot. Text is not normalized or converted to different newlines. Credentials
+and signing keys are not added to this snapshot. The accessor does not persist
+anything; applications must arrange their own durable input custody.
+
+`getSubmissionOutcome(result)` returns only the validated Owner-issued outcome
+received by that original call. `not_accepted` is a durable rejection that
+consumes the identity; `preparation_failed` is failure after acceptance. Neither
+is inferred from an HTTP error, message or missing record. `preparing` is not a
+Run admission. `SubmissionNotSent` reports a local failure before dispatch and
+has no Owner outcome; a lost response is `SubmissionUnknown`.
 
 `check`, `start` and `startSource` share numeric-preserving JSON request serialization.
 NaN, infinities and negative zero are refused, including nested parameters,
@@ -260,14 +274,16 @@ uses `InvalidClientPayload`; check retains `InvalidCheckRequest`. Neither is
 import {getSubmissionInput} from '@actql/sdk';
 
 try {
-  const execution = await client.start(program, {requestId, parameters});
+  const submissionRef = client.newSubmission({nonce: 'original-operation'});
+  // Retain this reference with the original application input for restart.
+  const execution = await client.start(program, {submissionRef, parameters});
   const submitted = getSubmissionInput(execution);
   // Compare the accepted handle with this call's original input.
 } catch (error) {
   if (error.code !== 'SubmissionUnknown') throw error;
   const submitted = getSubmissionInput(error);
   // Inspect the original request; do not submit the edited Program again.
-  const lookup = await client.lookupRequest(submitted.requestId);
+  const lookup = await client.lookupSubmission(submitted.submissionRef);
 }
 ```
 
@@ -276,7 +292,7 @@ SDK result. The validated submit branch fixes its observation independently of
 error `code`, message, severity or HTTP status: `acceptance_unknown` for a lost,
 malformed or foreign reply; `run_reference_received` for a validated Run
 reference; and `request_held` for a validated held response. The first says that
-work may already have started and names the original `lookupRequest` target and
+work may already have started and names the original `lookupSubmission` target and
 connection scope. A returned Run reference instead names its read-only `status`
 inspection. A held response names request lookup and does not promise a current
 preparation or execution state. These are presentation facts from this call,
@@ -286,9 +302,9 @@ not a new server acceptance contract or an execution/publication/release proof.
 import {explainSubmission} from '@actql/sdk';
 
 const explanation = explainSubmission(result);
-if (explanation?.next.operation === 'lookupRequest') {
+if (explanation?.next.operation === 'lookupSubmission') {
   // Use the original Client and its current authorization for this lookup.
-  const observation = await client.lookupRequest(explanation.next.requestId);
+  const observation = await client.lookupSubmission(explanation.next.submissionRef);
   // A missing record does not prove nonacceptance or permit resubmission.
 }
 ```
@@ -498,12 +514,23 @@ attempt without cancelling its Run; `all()` never returns a truncated result.
 The reader decodes a received transport chunk in slices no larger than 8 KiB
 or the selected row wire limit, whichever is smaller.
 
-## Held requests and Checkpoints
+## Historical held requests and Run Checkpoints
 
-A Host may hold a request before any Run exists. For example, its account
+The initial epoch-bound standard Host path does not create pre-Run approval
+waits. Delegated preparation or Source-read authorization without an immediate
+permit is refused before sealing evidence or creating a Checkpoint. After
+intent acceptance this is a durable preparation failure. Model and Effect
+approval on an admitted Run continue through the existing Run owners.
+
+The following bare-request operations observe historical pre-Run holds in their
+original identity domain; they do not select a legacy submission path. Run
+cancellation uses `execution.cancel()` and the immutable cancellation reference
+returned by that operation.
+
+An earlier Host may have held a request before any Run existed. For example, its account
 configuration can delegate Run acceptance on a protected Site, and the Host
-defers the decision to a durable Checkpoint. `startSource()` and `start()` then
-reject with `RequestHeld`. That is a control result, not a failure and not an
+defers the decision to a durable Checkpoint. Its original `aql()` or `start()` call
+rejected with `RequestHeld`. That is a control result, not a failure and not an
 unknown submission. The request is stored durably, so it never needs to be
 submitted again. `error.held` carries the `prepareAttemptId` and the
 Checkpoint reference, and never a RunRef. Follow the request with
@@ -549,17 +576,14 @@ listing, reading the review body and answering are separate permissions.
 ```js
 import {createPrivateKey, sign} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {connect, RequestHeld} from '@actql/node';
+import {connect} from '@actql/node';
 
 const endpoint = 'https://remote-host.example/';
 const owner = await connect({mode: 'remote', endpoint, token: ownerToken});
 let execution;
-try {
-  execution = await owner.startSource(documentText, {format: 'json',
-    requestId: 'nightly-1'});
-} catch (error) {
-  if (!(error instanceof RequestHeld)) throw error;
-}
+// This ID belongs to a saved historical held request, not a new submission.
+const original = await owner.lookupRequest('nightly-1');
+if (original.kind !== 'held') throw new Error('HistoricalRequestNotHeld');
 
 // Later, from any process: review and answer.
 const reviewer = await connect({mode: 'remote', endpoint,

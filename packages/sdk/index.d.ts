@@ -5,7 +5,7 @@ export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
   WireCancellationLookup, WireCheckpointSummary, WireClientProfile,
-  WireConnection,
+  WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -16,6 +16,9 @@ export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
 export type CancellationReference = WireCancellationRef;
 export type CancellationLookup = WireCancellationLookup;
+export type SubmissionReference = WireSubmissionRef;
+export type SubmissionOutcome = WireSubmissionOutcome;
+export type SubmissionLookup = WireSubmissionLookup;
 /** actql-check-outcome/0.1. */
 export type CheckOutcome = WireCheckOutcome;
 type CheckReportScope = Extract<CheckOutcome, {outcome: 'completed'}>['report']['scope'];
@@ -118,16 +121,21 @@ export declare function createCheckSupplementationSession(client: Pick<Client, '
   options: Readonly<{maxAttempts: number}>): CheckSupplementationSession;
 export type SubmissionInput = Readonly<{
   requestId: string;
+  submissionRef?: WireSubmissionRef;
   kind: 'program' | 'aql';
   input: unknown;
   parameters: unknown;
   connection: Readonly<WireConnection>;
   lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
 }>;
-/** Original prepared JSON input, not evidence of sending, acceptance or permission to resend. */
+/** Detached original of the pending Promise, execution or exact SDK error.
+ * Available before first send; not Host persistence, acceptance or resend authority. */
 export declare function getSubmissionInput(result: unknown): SubmissionInput | undefined;
-type RequestObservationTarget = Readonly<{operation: 'lookupRequest'; requestId: string;
-  lookupContext: Readonly<{endpoint: string; scopeRef: string}>}>;
+/** Exact, schema-admitted Owner response only; error codes alone provide no facts. */
+export declare function getSubmissionOutcome(result: unknown): SubmissionOutcome | undefined;
+type RequestObservationTarget = Readonly<{lookupContext: Readonly<{endpoint: string; scopeRef: string}>}> & (
+  Readonly<{operation: 'lookupRequest'; requestId: string}> |
+  Readonly<{operation: 'lookupSubmission'; submissionRef: SubmissionReference}>);
 export type HeldRequestExplanation = Readonly<{
   observation: 'request_held';
   preparationState: 'waiting_checkpoint' | 'resuming' | 'ended';
@@ -140,8 +148,7 @@ export type HeldRequestExplanation = Readonly<{
 export type SubmissionExplanation = Readonly<{summary: string}> & (
   Readonly<{
     observation: 'acceptance_unknown';
-    next: Readonly<{operation: 'lookupRequest'; requestId: string;
-      lookupContext: Readonly<{endpoint: string; scopeRef: string}>}>;
+    next: RequestObservationTarget;
   }> | HeldRequestExplanation | Readonly<{
     observation: 'run_reference_received';
     next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
@@ -387,8 +394,7 @@ export type DynamicRow = Record<string, unknown>;
 /** Recovery locator using the existing Run and authored Result name. */
 export type ResultReference = Readonly<{run: RunReference; resultName: string}>;
 export type QueryParameters = Record<string, unknown> | null;
-export type QueryOptions = Readonly<{
-  requestId?: string;
+export type QueryOptions = SubmissionOptions & Readonly<{
   signal?: AbortSignal;
   result?: string;
   parameterDeclarations?: Record<string, unknown>;
@@ -468,19 +474,29 @@ export interface Execution {
   result(name: string): Result;
 }
 
+export type SubmissionOptions = Readonly<{
+  parameters?: unknown;
+  signal?: AbortSignal;
+}> & (
+  /** Omit for deliberate new work; retain getSubmissionInput(promise) before awaiting. */
+  Readonly<{submissionRef?: undefined; requestId?: never}> |
+  /** requestId only asserts this original nonce; it never allocates an identity. */
+  Readonly<{submissionRef: WireSubmissionRef; requestId?: string}>
+);
+
 export interface Client {
+  /** Allocate and retain before sending; reconnect never replaces an original ref. */
+  newSubmission(options?: {nonce?: string}): WireSubmissionRef;
+  lookupSubmission(ref: WireSubmissionRef, options?: {signal?: AbortSignal}): Promise<WireSubmissionLookup>;
   readonly profile: ConfirmedProfile;
   readonly requestedDurability: Durability | null;
   sql(text: string, parameters?: QueryParameters, options?: QueryOptions): ResultPromise;
   aql(text: string, parameters?: QueryParameters, options?: QueryOptions): ResultPromise;
   /** Low-level source admission without an automatic wait or Result read. */
-  startSource(text: string, options: {
+  startSource(text: string, options: SubmissionOptions & {
     format: ClientSourceFormat;
     /** The existing Program params map, admitted by the Host checker. */
     parameterDeclarations?: Record<string, unknown>;
-    parameters?: unknown;
-    requestId?: string;
-    signal?: AbortSignal;
   }): Promise<Execution>;
   /**
    * Check authored source without starting anything. Completed, failed and
@@ -493,11 +509,7 @@ export interface Client {
     parameters?: Record<string, unknown> | null;
     signal?: AbortSignal;
   }): Promise<CheckOutcome>;
-  start(program: Record<string, unknown>, options?: {
-    parameters?: unknown;
-    requestId?: string;
-    signal?: AbortSignal;
-  }): Promise<Execution>;
+  start(program: Record<string, unknown>, options?: SubmissionOptions): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,
     options?: {signal?: AbortSignal}): Promise<RequestLookup>;

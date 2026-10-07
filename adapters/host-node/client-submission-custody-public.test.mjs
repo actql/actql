@@ -55,20 +55,22 @@ for (const entrance of ['local', 'https']) {
     // preserving the original and independent publication/Run evidence.
     const database = new DatabaseSync(join(scratch.path, 'host/requests/client-requests.sqlite3'));
     try {
-      const row = database.prepare('SELECT * FROM client_requests WHERE caller_request_id = ?')
-        .get('original-submission');
+      const row = database.prepare(`SELECT * FROM client_requests
+        WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`)
+        .get(initial.ref.namespaceId, initial.ref.authorityScopeCid, initial.ref.runDefinitionCid);
       assert.equal(row.run_definition_cid, initial.ref.runDefinitionCid);
       await writeFile(join(scratch.path, 'original-request-record.json'), JSON.stringify(row));
       assert.equal(Number(database.prepare('DELETE FROM client_requests WHERE caller_request_id = ?')
-        .run('original-submission').changes), 1);
+        .run(row.caller_request_id).changes), 1);
     } finally {database.close();}
     const resumed = await phase('resubmit');
     assert.equal(resumed.outcome, 'unknown', JSON.stringify(resumed));
     assert.equal(resumed.code, 'SubmissionUnknown');
     assert.equal(resumed.requestId, 'original-submission');
     assert.equal(resumed.computes, 0);
-    assert.deepEqual(resumed.lookup, {kind: 'not_found'});
-    assert.equal(resumed.lookupObservation, 'lookup_unresolved');
+    assert.deepEqual(resumed.submissionRef, initial.submissionRef);
+    assert.deepEqual(resumed.lookup, {kind: 'unresolvable', submissionRef: initial.submissionRef,
+      problem: {code: 'submission_history_unresolvable'}});
     scratch.passed();
   });
 }

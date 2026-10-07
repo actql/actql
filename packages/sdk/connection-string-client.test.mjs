@@ -1,3 +1,4 @@
+import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inspect} from 'node:util';
@@ -17,7 +18,7 @@ function stubFetch(t, implementation) {
 
 const secret = 'DSN_CANARY_SECRET:+/@?#%';
 const dsn = `actql://token:${encodeURIComponent(secret)}@example.test/workspace-A`;
-const profile = () => ({version: 'actql-client-host/0.1', mode: 'remote', owner: 'remote',
+const profile = () => ({submissionEpoch, version: 'actql-client-host/0.1', mode: 'remote', owner: 'remote',
   durability: 'durable', scopeRef: 'unchanged-scope', workspaceId: 'workspace-A', capabilities: [],
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
@@ -157,14 +158,15 @@ test('SDK DSNs carry a fixed Workspace without exposing the connection secret', 
     noSecret(body); noSecret(url.href);
     assert.equal(body.connection.workspaceId, 'workspace-A'); calls.push(operation);
     if (operation === 'connect') return Response.json(profile());
-    if (operation === 'submit' || operation === 'attach') return Response.json({ref, durability: 'durable', revision: 1});
+    if (operation === 'submit-intent') return Response.json(readySubmission(body, {ref, durability: 'durable', revision: 1}));
+    if (operation === 'attach') return Response.json({ref, durability: 'durable', revision: 1});
     if (operation === 'lookup-request') return Response.json({kind: 'not_found'});
     throw new Error('UnexpectedOperation');
   });
   for (const factory of [connect]) {
     const client = await factory(dsn);
     try {
-      const run = await client.start({version: 'actql/0.1'}, {requestId: 'saved-dsn'});
+      const run = await client.start({version: 'actql/0.1'}, {submissionRef: originalSubmission('saved-dsn')});
       noSecret(client); noSecret(run); noSecret(getSubmissionInput(run));
       assert.equal(getSubmissionInput(run).lookupContext.endpoint, 'https://example.test/');
       assert.equal(getSubmissionInput(run).connection.workspaceId, 'workspace-A');
@@ -172,7 +174,7 @@ test('SDK DSNs carry a fixed Workspace without exposing the connection secret', 
       await client.lookupRequest('saved-dsn');
     } finally {await client.close();}
   }
-  assert.deepEqual(calls, ['connect', 'submit', 'attach', 'lookup-request']);
+  assert.deepEqual(calls, ['connect', 'submit-intent', 'attach', 'lookup-request']);
 });
 
 test('conflicting, absent and malformed credentials fail before a getter or fetch', async t => {
@@ -256,14 +258,14 @@ test('lost DSN submission retains unknown acceptance and safe context without re
   });
   const client = await connect(dsn);
   try {
-    await assert.rejects(client.start({version: 'actql/0.1'}, {requestId: 'saved'}), error => {
+    await assert.rejects(client.start({version: 'actql/0.1'}, {submissionRef: originalSubmission('saved')}), error => {
       assert.equal(error.code, 'SubmissionUnknown'); assert.equal(error.requestId, 'saved');
       assert.equal(explainSubmission(error).observation, 'acceptance_unknown');
       noSecret(error); noSecret(getSubmissionInput(error)); noSecret(explainSubmission(error));
       assert.equal(error.lookupContext.endpoint, 'https://example.test/'); return true;
     });
   } finally {await client.close();}
-  assert.deepEqual(calls, ['connect', 'submit']);
+  assert.deepEqual(calls, ['connect', 'submit-intent']);
 });
 
 test('DSN read failures retain attempt and prefix facts without a borrowed private error code', async t => {

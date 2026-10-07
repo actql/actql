@@ -11,7 +11,8 @@ import {connect, explainCancellation, formatCancellation} from '../../packages/s
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
-const {directory, entrance, phase, loss, output, cancelRef: originalRef} = JSON.parse(process.argv[2]);
+const {directory, entrance, phase, loss, output, cancelRef: originalRef,
+  submissionRef: originalSubmission} = JSON.parse(process.argv[2]);
 const requestId = 'original-cancel-successful-run';
 const cancelId = 'original-cancel-operation';
 const keys = generateKeyPairSync('ed25519');
@@ -26,7 +27,7 @@ const authorization = {
   hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
   observe(name, detail) {
     if (name === 'computed') computes++;
-    console.log('INSTALLED_CANCEL_OWNER', name, detail?.code ?? '');
+    console.log('INSTALLED_CANCEL_OWNER', name, detail?.code ?? '', new Date().toISOString());
   },
 };
 const installation = {directory: join(directory, 'host'), authorization};
@@ -42,7 +43,7 @@ const snapshot = () => ({
     revision, cancellation_requested, physical_close_confirmed FROM client_requests`).all().map(row => ({...row})),
 });
 try {
-  console.log('INSTALLED_CANCEL_PHASE', 'opening', phase);
+  console.log('INSTALLED_CANCEL_PHASE', 'opening', phase, new Date().toISOString());
   if (entrance === 'local') client = await connectEmbeddedLocal({mode: 'local', owner: 'local', installation});
   else {
     const [key, cert] = await Promise.all(['host.key', 'host.crt'].map(name => readFile(join(directory, name))));
@@ -54,13 +55,14 @@ try {
       endpoint: `https://127.0.0.1:${server.address().port}/`});
   }
   database = new DatabaseSync(join(installation.directory, 'requests/client-requests.sqlite3'), {readOnly: true});
-  console.log('INSTALLED_CANCEL_PHASE', 'connected');
+  console.log('INSTALLED_CANCEL_PHASE', 'connected', new Date().toISOString());
   if (phase === 'initial') {
     const program = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
-    const run = await client.start(program, {requestId});
-    console.log('INSTALLED_CANCEL_PHASE', 'submitted');
+    const submissionRef = client.newSubmission({nonce: requestId});
+    const run = await client.start(program, {submissionRef});
+    console.log('INSTALLED_CANCEL_PHASE', 'submitted', new Date().toISOString());
     const status = await run.wait({signal: AbortSignal.timeout(15000)});
-    console.log('INSTALLED_CANCEL_PHASE', 'terminal', status.status);
+    console.log('INSTALLED_CANCEL_PHASE', 'terminal', status.status, new Date().toISOString());
     assert.equal(status.status, 'succeeded');
     const rows = await run.result('answer').all();
     console.log('INSTALLED_CANCEL_PHASE', 'read', rows.length);
@@ -93,13 +95,13 @@ try {
     console.log('INSTALLED_CANCEL_PHASE', 'cancel-returned', failure?.code);
     assert.deepEqual(failure, {code: 'CancellationUnknown', cancelRef});
     assert.equal(faults, 1);
-    await writeFile(output, JSON.stringify({ref: run.ref, cancelRef, status, rows,
+    await writeFile(output, JSON.stringify({ref: run.ref, submissionRef, cancelRef, status, rows,
       failure, explanation, faults, computes, snapshot: snapshot()}));
   } else {
-    const request = await client.lookupRequest(requestId);
+    const request = await client.lookupSubmission(originalSubmission);
     console.log('INSTALLED_CANCEL_PHASE', 'request-found');
-    assert.equal(request.kind, 'found');
-    const run = await client.attach(request.ref);
+    assert.equal(request.kind, 'ready');
+    const run = await client.attach(request.admission.ref);
     const before = snapshot();
     const callerRef = {...originalRef};
     const lookup = await run.lookupCancellation(callerRef);
