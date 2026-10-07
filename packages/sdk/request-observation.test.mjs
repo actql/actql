@@ -31,6 +31,45 @@ async function fixture(t, reply) {
 }
 const next = {operation: 'lookupRequest', requestId: 'saved',
   lookupContext: {endpoint: 'actql:embedded', scopeRef: 'scope'}};
+
+for (const kind of ['found', 'held']) for (const target of ['verification copy', 'captured original']) {
+  test(`request lookup classifies a throwing ${target} getter for ${kind}`, async t => {
+    const reply = kind === 'found' ? {kind, requestId: 'saved', ref,
+      durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'}
+      : held('waiting_checkpoint');
+    const f = await fixture(t, reply);
+    const clone = globalThis.structuredClone;
+    const privateCause = new Error('private-lookup-verification-getter');
+    let copies = 0, reads = 0, failure;
+    // Explicitly inject the existing verification-copy fault model. Native
+    // structuredClone does not normally return getters or mutate its input.
+    const mocked = t.mock.method(globalThis, 'structuredClone', value => {
+      const copy = clone(value);
+      if (value?.kind === kind && value.requestId === 'saved') {
+        copies++;
+        Object.defineProperty(target === 'verification copy' ? copy : value,
+          'requestId', {enumerable: true, configurable: true,
+            get() { reads++; throw privateCause; }});
+      }
+      return copy;
+    });
+    try { await f.client.lookupRequest('saved'); } catch (error) { failure = error; }
+    finally { mocked.mock.restore(); }
+    assert.equal(copies, 1);
+    assert.equal(reads, 1);
+    assert.deepEqual(f.calls, ['connect', 'lookup-request']);
+    assert.equal(reply.requestId, 'saved');
+    assert.equal(failure?.code, 'InvalidHostRequestLookup', '[lookup-verification:classification]');
+    assert.notEqual(failure, privateCause);
+    const explanation = sdk.explainRequestLookup(failure);
+    assert.equal(explanation.observation, 'lookup_uninterpretable');
+    assert.deepEqual(explanation.next, next);
+    assert.equal(sdk.explainRequestLookup({...failure}), undefined);
+    assert.equal(sdk.getSubmissionInput(failure), undefined);
+    assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-lookup-verification-getter/u);
+  });
+}
+
 const summaries = {
   lookup_unresolved: 'This lookup does not establish whether the submission was accepted.',
   lookup_unavailable: 'The Host could not supply a request lookup observation. Acceptance remains unresolved.',

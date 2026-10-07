@@ -124,7 +124,9 @@ test('Table installation refuses invalid closed profiles and budgets before I/O'
   }
   const profile = effectProfile(root);
   for (const limits of [{maxWork: 0}, {material: null}, {reservation: {byte: 1}},
-    JSON.parse('{"__proto__":1}'), {material: {maxDepth: 0}}]) {
+    JSON.parse('{"__proto__":1}'), {material: {maxDepth: 0}},
+    {material: {maxWireBytes: 65537}}, {material: {maxNodes: 4097}},
+    {material: {maxDepth: 17}}, {material: {maxWork: 2147483648}}]) {
     assert.throws(() => checkInstalledTableEffectProfile({...profile, limits}),
       {code: 'InvalidInstalledTableEffectLimits'});
   }
