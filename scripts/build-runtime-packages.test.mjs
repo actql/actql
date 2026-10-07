@@ -182,7 +182,7 @@ distribution[3] = distribution[3].replace(
 // Original-attempt recovery shares that runtime and distribution job.
 distribution[3] = distribution[3].replace(
   'adapters/host-node/client-read-progress.test.mjs ',
-  'adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs ',
+  'adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs ',
 );
 
 // Model Checkpoint signing reuses the prepared SDK/Host distribution gate.

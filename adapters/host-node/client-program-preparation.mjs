@@ -82,7 +82,7 @@ function serializeProgram({kind, input, parameters}) {
 }
 
 export function installNodeClientProgramPreparation({moon, environment,
-  allowEffects = false, effectEvidence = [], sourcePublication}) {
+  allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
@@ -93,6 +93,11 @@ export function installNodeClientProgramPreparation({moon, environment,
         (typeof moon.clientProgramPrepareEffectComputationWithParameters !==
           'function'))) {
     throw new TypeError('InvalidClientProgramPreparationInstallation');
+  }
+  if (valuesMaxRows !== undefined && (!Number.isSafeInteger(valuesMaxRows) ||
+      valuesMaxRows < 1 || valuesMaxRows > 10000 ||
+      typeof moon.clientProgramWithValuesRowLimit !== 'function' || allowEffects)) {
+    throw new TypeError('InvalidLocalValuesRowLimit');
   }
   const owned = new WeakSet();
   const effectOwned = new WeakSet();
@@ -122,8 +127,12 @@ export function installNodeClientProgramPreparation({moon, environment,
       outcome = moon.clientProgramPrepareEffectFreeWithParameters(
         document, format, environment, supplied);
     }
-    const prepared = moon.clientProgramPreparationReady(outcome);
+    let prepared = moon.clientProgramPreparationReady(outcome);
     if (prepared !== undefined) {
+      if (valuesMaxRows !== undefined) {
+        prepared = moon.clientProgramWithValuesRowLimit(prepared, valuesMaxRows);
+        if (prepared === undefined) fail('ClientProgramUnsupported');
+      }
       owned.add(prepared);
       return prepared;
     }

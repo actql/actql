@@ -14,6 +14,14 @@ unavailable. See the [current implementation status](../../docs/reviews/current-
 An explicit Local endpoint can use the connected Host path. The Remote SDK
 does not depend on the Local package or DuckDB.
 
+For the source-free, single-task Values profile, explicitly set
+`installation: {valuesMaxRows: 121}` to select a finite row ceiling (1..10000)
+instead of its default 100. Other work, cell, value, wire and the 512 MiB
+capacity limits still apply. The installed Host saves the selected profile's
+original with request acceptance and binds it to the Run; attaching to an
+already successful Run does not re-execute it under current configuration.
+See the [Local Host profile](../local-node/README.md) for scope and HTTP options.
+
 Embedded Local and Remote HTTP expose the same public submit, lookup, Run
 status, Checkpoint, Named Result and cancellation operations. Transport does
 not make a held or unknown request safe to resubmit under another connection.

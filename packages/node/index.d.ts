@@ -7,6 +7,9 @@ export type {Client, Execution, Result, Reader, RunReference,
 
 export type EmbeddedHostInstallation = Readonly<{
   directory?: string;
+  /** Explicit row bound for the installed source-free, single-task Values profile.
+   * Defaults to 100; 1..10000. Other work, cell and byte ceilings remain fixed. */
+  valuesMaxRows?: number;
   sourceProfilePath?: string;
   sourceProfilePaths?: readonly [string, string];
   resolveSourceSecret?: (...args: any[]) => any;

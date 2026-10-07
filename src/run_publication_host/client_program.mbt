@@ -30,6 +30,55 @@ struct PreparedClientProgram {
   graph : @strategy.CheckedDAG
   check_environment_cid : String
   source : @syntax.Program
+  local_values_max_rows : Int
+}
+
+///|
+/// Trusted Local configuration for an already checked source-free Values
+/// owner. This preserves the Program and its checker bindings; it does not
+/// grant execution or increase cell, value, work, byte or ledger budgets.
+/// Other execution profiles keep their existing bounds.
+pub fn with_prepared_client_values_row_limit(
+  value : PreparedClientProgram,
+  max_rows : Int,
+) -> PreparedClientProgram? {
+  let standard = client_standard_values_sequence_limits()
+  if max_rows < 1 ||
+    max_rows > standard.max_cells ||
+    @strategy.graph_task_count(value.graph) != 1 ||
+    prepared_client_uses_graph_carrier(value) {
+    return None
+  }
+  guard @strategy.graph_task_owner(value.graph, 0) is Some(owner) else {
+    return None
+  }
+  let prepared = @lower.bound_preparation(owner)
+  let pipeline = @lower.pipeline(prepared)
+  if !@pipeline.starts_with_values(pipeline) {
+    return None
+  }
+  for step in 0..<@pipeline.step_count(pipeline) {
+    if @lower.node_at(prepared, step) is Some(node) &&
+      @lower.payload(node) is @lower.Infer(_) {
+      return None
+    }
+  }
+  Some({ ..value, local_values_max_rows: max_rows, })
+}
+
+///|
+pub fn prepared_client_values_sequence_limits(
+  value : PreparedClientProgram,
+) -> @lower.SequenceLimits {
+  {
+    ..client_standard_values_sequence_limits(),
+    max_rows: value.local_values_max_rows,
+  }
+}
+
+///|
+pub fn prepared_client_values_max_rows(value : PreparedClientProgram) -> Int {
+  value.local_values_max_rows
 }
 
 ///|
@@ -1194,6 +1243,7 @@ pub fn prepare_parsed_effect_free_client_program(
         graph,
         check_environment_cid: @checked.checking_environment_cid(environment),
         source: parsed,
+        local_values_max_rows: client_standard_values_sequence_limits().max_rows,
       })
     Err(issue) => Err(Graph(issue))
   }

@@ -75,7 +75,7 @@ import {assertEffectTargetReadBinding, effectTargetReadContinuation} from
 import {EFFECT_TARGET_CONTINUATION} from './effect-target-read-inventory.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan, sourceFreeTaskPlan,
+  sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
   acquiredTaskRunAdmission, inferTaskRunAdmission} from
   './local-values-plan.mjs';
@@ -126,6 +126,8 @@ async function embeddedInstallationIdentity(root, installation) {
       resultDataPolicy: installation.resultDataPolicy}),
     ...(installation?.retainedRelationOutput === true ? {
       retainedRelationOutput: true} : {}),
+    ...(installation?.valuesMaxRows === undefined ? {} : {
+      valuesMaxRows: installation.valuesMaxRows}),
     hostKey: authorization?.hostKey === undefined ? null : {
       keyId: authorization.hostKey.keyId,
       publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
@@ -160,17 +162,28 @@ function localStateRoot() {
 // decides the tuple (Site key, this realization, write) for each request.
 const REALIZATION_KEY = 'source-free-values';
 
+function validateValuesMaxRows(value) {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 10000)) {
+    throw new TypeError('InvalidLocalValuesRowLimit');
+  }
+}
+
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy,
-  retainedRelationOutput = false}) {
+  retainedRelationOutput = false, valuesMaxRows}) {
+  validateValuesMaxRows(valuesMaxRows);
   if (typeof retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
   const selectedSourcePaths = installedSourcePaths({sourceProfilePath, sourceProfilePaths});
   const selectedEffectPath = effectProfilePath ??
     process.env.ACTQL_LOCAL_EFFECT_PROFILE;
+  if (valuesMaxRows !== undefined &&
+      (effectInstallation !== undefined || selectedEffectPath !== undefined)) {
+    throw new TypeError('InvalidLocalValuesRowLimit');
+  }
   if (effectInstallation !== undefined && selectedEffectPath !== undefined) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
@@ -389,7 +402,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment, sourcePublication,
+    environment, sourcePublication, valuesMaxRows,
     allowEffects: effectInstallation !== undefined});
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
@@ -916,6 +929,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           runAdmissionEvidence: {prepared: held.plan.preparedEvidence.wire,
             authorization: held.plan.authorization.wire,
             sourceInventory: sourceInventory(held.preparedSources)}};
+        const valuesEvidence = sourceFreeValuesAdmissionEvidence(held.plan);
+        if (valuesEvidence !== undefined) return {
+          runDefinition: held.plan.runDefinition,
+          runAdmissionEvidence: valuesEvidence};
         return held.plan.runDefinition;
       },
     }, moon, control).catch(cause => {
@@ -2277,7 +2294,7 @@ export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
-  resultDataPolicy, retainedRelationOutput}) {
+  resultDataPolicy, retainedRelationOutput, valuesMaxRows}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
@@ -2287,7 +2304,7 @@ export async function openInstalledRemoteHttpHost({directory,
     beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy,
-    retainedRelationOutput});
+    retainedRelationOutput, valuesMaxRows});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -2378,6 +2395,7 @@ export async function connectEmbeddedLocal(options) {
       typeof installation !== 'object' || Array.isArray(installation))) {
     throw new TypeError('InvalidInstalledHostOptions');
   }
+  validateValuesMaxRows(installation?.valuesMaxRows);
   if (installation?.retainedRelationOutput !== undefined &&
       typeof installation.retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
@@ -2397,7 +2415,8 @@ export async function connectEmbeddedLocal(options) {
         modelInstallation: installation?.modelInstallation,
         registerModelProviders: installation?.registerModelProviders,
         resultDataPolicy: installation?.resultDataPolicy,
-        retainedRelationOutput: installation?.retainedRelationOutput})});
+        retainedRelationOutput: installation?.retainedRelationOutput,
+        valuesMaxRows: installation?.valuesMaxRows})});
     profiles.set(root, opened);
     opened.host.catch(() => {
       if (profiles.get(root) === opened) profiles.delete(root);
