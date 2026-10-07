@@ -1,7 +1,7 @@
 // Generated from the registered Client–Host machine contract.
 export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
 export declare const runStateProtocol: Readonly<{version: "actql-run-state/0.1"; statuses: readonly ("preparing" | "running" | "waiting_checkpoint" | "resuming" | "needs_reconciliation" | "succeeded" | "failed" | "cancelled")[]}>;
-export type ClientHostOperation = "connect" | "submit" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
+export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "lookup-submission" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
 export type WireValueContractShape = Readonly<{
   type: "decimal";
   nullable: boolean;
@@ -40,6 +40,253 @@ export type WireValueContractShape = Readonly<{
   nullable: boolean;
   media_type?: string;
 }>;
+export type WireSubmissionEpochShape = Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+
+export type WireSubmissionRefShape = Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+
+export type WireSubmissionOutcomeShape = Readonly<{
+  kind: "ready";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  admission: Readonly<{
+  ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  durability: "volatile" | "durable";
+  revision: number;
+}>;
+}> | Readonly<{
+  kind: "held";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  held: Readonly<{
+  kind: "held";
+  requestId: string;
+  prepareAttemptId: string;
+  state: "waiting_checkpoint" | "resuming" | "ended";
+  durability: "durable";
+  lookupExpiresAt: string;
+  checkpoint?: Readonly<{
+  checkpointId: string;
+  checkpointCid: string;
+  kind: "run_scope" | "read_access" | "data_egress" | "cost_scope" | "effect_set";
+  expiresAt: string;
+}>;
+  endReason?: string;
+  terminalErrorCode?: string;
+}>;
+}> | Readonly<{
+  kind: "preparing";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+}> | Readonly<{
+  kind: "not_accepted";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  problem: Readonly<{
+  code: string;
+  classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
+}>;
+}> | Readonly<{
+  kind: "preparation_failed";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  problem: Readonly<{
+  code: string;
+  classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
+}>;
+}>;
+
+export type WireSubmissionLookupShape = Readonly<{
+  kind: "ready";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  admission: Readonly<{
+  ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  durability: "volatile" | "durable";
+  revision: number;
+}>;
+}> | Readonly<{
+  kind: "held";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  held: Readonly<{
+  kind: "held";
+  requestId: string;
+  prepareAttemptId: string;
+  state: "waiting_checkpoint" | "resuming" | "ended";
+  durability: "durable";
+  lookupExpiresAt: string;
+  checkpoint?: Readonly<{
+  checkpointId: string;
+  checkpointCid: string;
+  kind: "run_scope" | "read_access" | "data_egress" | "cost_scope" | "effect_set";
+  expiresAt: string;
+}>;
+  endReason?: string;
+  terminalErrorCode?: string;
+}>;
+}> | Readonly<{
+  kind: "preparing";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+}> | Readonly<{
+  kind: "not_accepted";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  problem: Readonly<{
+  code: string;
+  classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
+}>;
+}> | Readonly<{
+  kind: "preparation_failed";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  problem: Readonly<{
+  code: string;
+  classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
+}>;
+}> | Readonly<{
+  kind: "unresolvable";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  problem: Readonly<{
+  code: string;
+}>;
+}>;
+
 export type WireRunRefShape = Readonly<{
   namespaceId: string;
   authorityScopeCid: string;
@@ -61,6 +308,14 @@ export type WireProfileShape = Readonly<{
   mode: "local" | "remote" | "hybrid";
   owner: "local" | "remote" | "cloud";
   durability: "volatile" | "durable";
+  submissionEpoch?: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
   scopeRef: string;
   capabilities: readonly string[];
   limits: Readonly<{

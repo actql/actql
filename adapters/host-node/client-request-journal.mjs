@@ -12,6 +12,7 @@ import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
+import {sameSubmissionRef, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -399,6 +400,10 @@ function inspectSubmissionStorage(database, enabled) {
 }
 
 const epochMarkerName = 'submission-epoch-format.json';
+const intentMarkerName = 'submitted-intent-format.json';
+const intentMarker = Buffer.from(JSON.stringify({
+  version: 'actql-client-request-journal/0.1', feature: 'submitted_intents',
+}));
 const epochMarker = Buffer.from(JSON.stringify({
   version: 'actql-client-request-journal/0.1', feature: 'submission_epochs',
 }));
@@ -421,6 +426,20 @@ function inspectEpochStorage(database, enabled) {
       records.length !== 1 || !validEpochAuthority(records[0])) {
     fail('UnknownClientRequestJournalFormat');
   }
+}
+function inspectIntentStorage(database, enabled) {
+  const names = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
+    AND name IN ('client_submitted_intents', 'client_submitted_intent_custody')`).all();
+  if (!enabled && names.length === 0) return;
+  if (!enabled || names.length !== 2) fail('UnknownClientRequestJournalFormat');
+  const fields = database.prepare('PRAGMA table_info(client_submitted_intents)').all()
+    .map(field => field.name).sort();
+  const expected = ['authority_scope_cid', 'submission_id', 'nonce', 'epoch_wire',
+    'intent_cid', 'intent_wire', 'accepted_at', 'phase', 'outcome_wire', 'revision'].sort();
+  const custody = database.prepare('SELECT singleton, issued_count FROM client_submitted_intent_custody').all();
+  if (JSON.stringify(fields) !== JSON.stringify(expected) || custody.length !== 1 ||
+      custody[0].singleton !== 1 || !Number.isSafeInteger(custody[0].issued_count) ||
+      custody[0].issued_count < 0) fail('UnknownClientRequestJournalFormat');
 }
 
 function inspectCancellationStorage(database, enabled) {
@@ -463,6 +482,10 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
       !readFileSync(epochPath).equals(epochMarker))) {
     fail('UnknownClientRequestJournalFormat');
   }
+  const intentPath = join(directory, intentMarkerName);
+  const intentEnabled = entries.includes(intentMarkerName);
+  if (intentEnabled && (!lstatSync(intentPath).isFile() ||
+      !readFileSync(intentPath).equals(intentMarker))) fail('UnknownClientRequestJournalFormat');
   inspectSqliteSnapshot(databasePath, database => {
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
@@ -472,11 +495,13 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
     inspectCancellationStorage(database, enabled);
     inspectSubmissionStorage(database, submissionEnabled);
     inspectEpochStorage(database, epochEnabled);
+    inspectIntentStorage(database, intentEnabled);
   }, {code: 'UnknownClientRequestJournalFormat',
     validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
       (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
       (!submissionEnabled || readFileSync(submissionPath).equals(submissionMarker)) &&
       (!epochEnabled || readFileSync(epochPath).equals(epochMarker)) &&
+      (!intentEnabled || readFileSync(intentPath).equals(intentMarker)) &&
       JSON.stringify(readdirSync(directory).sort()) === JSON.stringify(entries)});
 }
 
@@ -620,6 +645,31 @@ export function openClientRequestJournal(directory, {
       finally {closeSync(marker);}
       syncDirectory(root);
     }
+    if (!existsSync(join(root, intentMarkerName))) {
+      transaction.run(() => database.exec(`
+        CREATE TABLE client_submitted_intents (
+          submission_id TEXT PRIMARY KEY,
+          authority_scope_cid TEXT NOT NULL,
+          nonce TEXT NOT NULL,
+          epoch_wire TEXT NOT NULL,
+          intent_cid TEXT NOT NULL,
+          intent_wire TEXT NOT NULL,
+          accepted_at INTEGER NOT NULL,
+          phase TEXT NOT NULL CHECK (phase IN ('preparing', 'not_accepted', 'preparation_failed', 'ready', 'held')),
+          outcome_wire TEXT,
+          revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0)
+        ) STRICT;
+        CREATE TABLE client_submitted_intent_custody (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)
+        ) STRICT;
+        INSERT INTO client_submitted_intent_custody VALUES (1, 0);
+      `));
+      const marker = openSync(join(root, intentMarkerName), 'wx', 0o600);
+      try {writeFileSync(marker, intentMarker); fsyncSync(marker);}
+      finally {closeSync(marker);}
+      syncDirectory(root);
+    }
     if (!existsSync(join(root, cancellationMarkerName))) {
       transaction.run(() => database.exec(`
         CREATE TABLE client_cancellation_operations (
@@ -751,11 +801,72 @@ export function openClientRequestJournal(directory, {
     const requestId = control.clientSubmissionRequestId(verified.handle, submission.nonce);
     if (requestId === undefined) fail('InvalidClientSubmissionNonce');
     if (requestId !== fields.requestId) fail('ClientSubmissionIdentityMismatch');
+    if (submission.intentCid !== undefined) {
+      // Expiry stops new admission, not preparation of an already accepted
+      // intent. The persisted receipt, rather than a caller flag, supplies
+      // this fact. Rejection and failed preparation cannot acquire a Run.
+      assertIntentCustody();
+      const row = intentSelect.get(requestId);
+      if (row === undefined) fail('ClientSubmittedIntentCustodyLost');
+      const retained = retainedIntent(row, control);
+      if (retained.intentCid !== submission.intentCid ||
+          !['preparing', 'held', 'ready'].includes(retained.phase)) {
+        fail('ClientSubmittedIntentConflict');
+      }
+      return 'admissible';
+    }
     return verified.validity;
   };
   const refuseEpoch = validity => {
     if (validity !== 'admissible') fail(validity === 'expired'
       ? 'ClientSubmissionEpochExpired' : 'ClientSubmissionEpochNotYetValid');
+  };
+  const intentSelect = database.prepare('SELECT * FROM client_submitted_intents WHERE submission_id = ?');
+  const intentCount = database.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(CAST(intent_wire AS BLOB))), 0) AS bytes FROM client_submitted_intents');
+  const intentIssued = database.prepare('SELECT issued_count FROM client_submitted_intent_custody WHERE singleton = 1');
+  const assertIntentCustody = () => {
+    const retained = intentCount.get();
+    if (retained.n !== intentIssued.get()?.issued_count) fail('ClientSubmittedIntentCustodyLost');
+    return retained;
+  };
+  const originalIntent = (intent, control) => {
+    const wire = control.clientSubmittedIntentWire(intent);
+    const identity = control.clientSubmittedIntentCid(intent);
+    const checked = control.clientSubmittedIntent(wire, 1048576, 65536, 64);
+    if (checked === undefined || control.clientSubmittedIntentCid(checked) !== identity ||
+        control.clientSubmittedIntentWire(checked) !== wire) fail('InvalidClientSubmittedIntent');
+    return {wire, identity};
+  };
+  const retainedIntent = (row, control) => {
+    const intent = control.clientSubmittedIntent(row.intent_wire, 1048576, 65536, 64);
+    if (intent === undefined || control.clientSubmittedIntentCid(intent) !== row.intent_cid ||
+        control.clientSubmittedIntentWire(intent) !== row.intent_wire) fail('ClientSubmittedIntentCorrupt');
+    const epoch = JSON.parse(row.epoch_wire);
+    const {handle} = epochHandle(epoch, control);
+    const authority = epochAuthority.get();
+    if (!validEpochAuthority(authority)) fail('ClientSubmissionEpochCustodyLost');
+    if (authenticateEpoch(authority.authentication_key, control.clientSubmissionEpochWire(handle)) !==
+        epoch.authenticator) fail('ClientSubmittedIntentCorrupt');
+    if (control.clientSubmissionRequestId(handle, row.nonce) !== row.submission_id ||
+        epoch.authorityScopeCid !== row.authority_scope_cid ||
+        !Number.isSafeInteger(row.accepted_at) || row.accepted_at < epoch.notBefore ||
+        row.accepted_at >= epoch.expiresAt || !Number.isSafeInteger(row.revision) || row.revision < 0 ||
+        !control.clientSubmittedIntentTransition(row.phase, row.phase)) fail('ClientSubmittedIntentCorrupt');
+    const submissionRef = Object.freeze({epoch: Object.freeze(epoch), nonce: row.nonce});
+    const outcome = row.outcome_wire === null ? undefined : JSON.parse(row.outcome_wire);
+    if (outcome === undefined && row.phase !== 'preparing' ||
+        outcome !== undefined && (outcome.kind !== row.phase ||
+          !validStoredSubmissionOutcome(outcome, submissionRef, row.intent_cid))) {
+      fail('ClientSubmittedIntentCorrupt');
+    }
+    if (row.phase === 'ready') {
+      const run = select.get(row.authority_scope_cid, row.submission_id);
+      if (run === undefined || run.run_definition_cid !== outcome.admission.ref.runDefinitionCid ||
+          run.namespace_id !== outcome.admission.ref.namespaceId) fail('ClientSubmittedIntentCorrupt');
+    }
+    return Object.freeze({submissionRef: Object.freeze({epoch: Object.freeze(epoch), nonce: row.nonce}),
+      requestId: row.submission_id, intentCid: row.intent_cid, intentWire: row.intent_wire,
+      phase: row.phase, revision: row.revision, outcome});
   };
   const cancellationCount = database.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations');
   const cancellationIssued = database.prepare('SELECT issued_count FROM client_cancellation_custody WHERE singleton = 1');
@@ -998,6 +1109,96 @@ export function openClientRequestJournal(directory, {
   };
 
   const journal = Object.freeze({
+    // Intent custody is separate from Run-definition custody. A preparing
+    // receipt contains no invented execution CID and performs no dispatch.
+    recordSubmittedIntent(submissionRef, intent, {authorityScopeCid,
+      currentAuthorization, phase = 'preparing', outcome}, control) {
+      ensureOpen();
+      const original = originalIntent(intent, control);
+      const verified = verifyEpoch(submissionRef.epoch, {authorityScopeCid,
+        currentAuthorization, purpose: 'admit'}, control);
+      const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
+      if (requestId === undefined || !['preparing', 'not_accepted'].includes(phase)) {
+        fail('InvalidClientSubmittedIntent');
+      }
+      if (phase === 'not_accepted' && (outcome?.kind !== phase ||
+          !validStoredSubmissionOutcome(outcome, submissionRef, original.identity))) {
+        fail('InvalidClientSubmittedIntentOutcome');
+      }
+      if (phase === 'preparing' && outcome !== undefined && (outcome.kind !== phase ||
+          !validStoredSubmissionOutcome(outcome, submissionRef, original.identity))) {
+        fail('InvalidClientSubmittedIntentOutcome');
+      }
+      const result = transaction.run(() => {
+        const retained = assertIntentCustody();
+        const existing = intentSelect.get(requestId);
+        if (existing !== undefined) {
+          const previous = retainedIntent(existing, control);
+          if (previous.intentCid !== original.identity) fail('ClientSubmittedIntentConflict');
+          return {inserted: false, ...previous};
+        }
+        const current = verifyEpochLocked(submissionRef.epoch, {authorityScopeCid,
+          currentAuthorization, purpose: 'admit'}, control);
+        if (current.validity !== 'admissible') return {epochRejected: current.validity};
+        if (retained.n >= maxRecords || retained.bytes + Buffer.byteLength(original.wire) > 64 * 1024 * 1024) {
+          fail('ClientSubmittedIntentCapacity');
+        }
+        database.prepare(`INSERT INTO client_submitted_intents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
+          .run(requestId, authorityScopeCid, submissionRef.nonce,
+            canonicalValueJson(current.epoch, {dataKeys: true}), original.identity,
+            original.wire, epochAuthority.get().observed_at, phase,
+            outcome === undefined ? null : canonicalValueJson(outcome, {dataKeys: true}));
+        if (Number(database.prepare(`UPDATE client_submitted_intent_custody
+          SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
+          .run(retained.n).changes) !== 1) fail('ClientSubmittedIntentCustodyLost');
+        return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control)};
+      });
+      if (result.epochRejected !== undefined) refuseEpoch(result.epochRejected);
+      return Object.freeze(result);
+    },
+    lookupSubmittedIntent(submissionRef, {authorityScopeCid, currentAuthorization}, control) {
+      ensureOpen();
+      const verified = verifyEpoch(submissionRef.epoch, {authorityScopeCid,
+        currentAuthorization, purpose: 'lookup'}, control);
+      const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
+      if (requestId === undefined) fail('InvalidClientSubmissionNonce');
+      const row = intentSelect.get(requestId);
+      return row === undefined ? undefined : retainedIntent(row, control);
+    },
+    completeSubmittedIntent(submissionRef, outcome, {authorityScopeCid,
+      currentAuthorization, expectedRevision, connection}, control) {
+      ensureOpen();
+      const verified = verifyEpoch(submissionRef.epoch, {authorityScopeCid,
+        currentAuthorization, purpose: 'lookup'}, control);
+      const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
+      if (requestId === undefined || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
+        fail('InvalidClientSubmittedIntentOutcome');
+      }
+      return transaction.run(() => {
+        assertIntentCustody();
+        const row = intentSelect.get(requestId);
+        if (row === undefined) fail('ClientSubmittedIntentCustodyLost');
+        const retained = retainedIntent(row, control);
+        if (!sameSubmissionRef(retained.submissionRef, submissionRef) ||
+            !validSubmissionOutcome(outcome, connection, submissionRef, retained.intentCid)) {
+          fail('InvalidClientSubmittedIntentOutcome');
+        }
+        if (retained.revision !== expectedRevision) return retained;
+        if (!control.clientSubmittedIntentTransition(retained.phase, outcome.kind)) {
+          fail('InvalidClientSubmittedIntentOutcome');
+        }
+        if (['ready', 'not_accepted', 'preparation_failed'].includes(retained.phase)) return retained;
+        if (outcome.kind === 'ready') {
+          const run = select.get(authorityScopeCid, requestId);
+          if (run === undefined || run.run_definition_cid !== outcome.admission.ref.runDefinitionCid ||
+              run.namespace_id !== outcome.admission.ref.namespaceId) fail('InvalidClientSubmittedIntentOutcome');
+        }
+        database.prepare(`UPDATE client_submitted_intents SET phase = ?, outcome_wire = ?, revision = revision + 1
+          WHERE submission_id = ? AND revision = ?`).run(outcome.kind,
+          canonicalValueJson(outcome, {dataKeys: true}), requestId, expectedRevision);
+        return retainedIntent(intentSelect.get(requestId), control);
+      });
+    },
     issueSubmissionEpoch({authorityScopeCid, currentAuthorization}, control) {
       ensureOpen();
       if (currentAuthorization !== true) fail('ClientSubmissionEpochUnauthorized');

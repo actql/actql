@@ -8,10 +8,11 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
+  validSubmissionRef, validSubmissionOutcome, validSubmissionLookup,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
-import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+import {reviewBytesMatchCid, contentCid, bytesCid, canonicalJson, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {formatOperationExplanation} from './operation-formats.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
@@ -357,7 +358,8 @@ const retainCancellationExplanation = (result, context, observation, revision) =
 const submissionLookupExplanation = (observation, input) => freezeInput({
   observation,
   summary: 'Submission acceptance is unknown. Work may already have started.',
-  next: {operation: 'lookupRequest', requestId: input.requestId,
+  next: {operation: input.submissionRef === undefined ? 'lookupRequest' : 'lookupSubmission',
+    ...(input.submissionRef === undefined ? {requestId: input.requestId} : {submissionRef: input.submissionRef}),
     lookupContext: input.lookupContext},
 });
 
@@ -1080,8 +1082,8 @@ async function connectSelected(selected, port) {
         return value;
       }
       catch (cause) {
-        if (operation === 'submit') {
-          if (isClientSubmitRejection(cause?.code)) {
+        if (operation === 'submit' || operation === 'submit-intent') {
+          if (operation === 'submit' && isClientSubmitRejection(cause?.code)) {
             throw new ClientError(cause.code, {cause});
           }
           throw submissionUnknown(submitContext, cause);
@@ -1118,7 +1120,7 @@ async function connectSelected(selected, port) {
         redirect: 'error',
       });
     } catch (cause) {
-      if (operation === 'submit') {
+      if (operation === 'submit' || operation === 'submit-intent') {
         throw submissionUnknown(submitContext, cause);
       }
       throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
@@ -1130,7 +1132,7 @@ async function connectSelected(selected, port) {
       const code = typeof error?.code === 'string' &&
         /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(error.code)
         ? error.code : `HostHTTP${response.status}`;
-      if (operation === 'submit' && (response.status >= 500 ||
+      if (operation === 'submit-intent' || operation === 'submit' && (response.status >= 500 ||
           !isClientSubmitRejection(code))) {
         throw submissionUnknown(submitContext, new ClientError(code));
       }
@@ -1602,7 +1604,50 @@ async function connectSelected(selected, port) {
     });
   };
 
+  const submitIntent = async (kind, input, options) => {
+    let body;
+    try {
+      body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
+        kind, input, parameters: options.parameters ?? null}));
+    } catch {fail('InvalidClientPayload');}
+    if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
+        options.requestId !== body.submissionRef.nonce) fail('InvalidSubmissionRef');
+    const requestId = body.submissionRef.nonce;
+    const context = {requestId, submissionRef: body.submissionRef,
+      lookupContext: Object.freeze({endpoint: selected.endpoint, scopeRef: confirmed.scopeRef})};
+    const snapshot = freezeInput({...body, requestId, connection: selected.wire,
+      lookupContext: context.lookupContext});
+    submissionContexts.set(context, snapshot);
+    const intentCid = await bytesCid(new TextEncoder().encode(canonicalJson({
+      intent: {kind, input: body.input, parameters: body.parameters},
+      version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));
+    let outcome;
+    try {
+      const response = await exchange('submit-intent', {...body, intentCid}, options.signal, context);
+      outcome = detachResponse(captureResponse(await controlValue(response)));
+      if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid)) {
+        fail('InvalidHostSubmissionOutcome');
+      }
+    } catch (cause) {
+      if (cause?.code === 'SubmissionUnknown') throw cause;
+      throw submissionUnknown(context, cause);
+    }
+    outcome = freezeInput(outcome);
+    if (outcome.kind === 'ready') {
+      const run = execution(outcome.admission);
+      submissionInputs.set(run, snapshot);
+      return run;
+    }
+    const error = outcome.kind === 'held'
+      ? new RequestHeld(outcome.held, context.lookupContext)
+      : new ClientError(outcome.kind === 'not_accepted' ? 'SubmissionNotAccepted'
+        : outcome.kind === 'preparation_failed' ? 'SubmissionPreparationFailed' : 'SubmissionPreparing',
+      {requestId, submissionRef: body.submissionRef, outcome});
+    submissionInputs.set(error, snapshot);
+    throw error;
+  };
   const submit = async (kind, input, options = {}) => {
+    if (options.submissionRef !== undefined) return submitIntent(kind, input, options);
     const requestId = options.requestId ?? crypto.randomUUID();
     if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
     const context = {requestId, lookupContext: Object.freeze({
@@ -1655,6 +1700,21 @@ async function connectSelected(selected, port) {
   return Object.freeze({
     profile: confirmed,
     requestedDurability: selected.wire.durability ?? null,
+    newSubmission: ({nonce = crypto.randomUUID()} = {}) => {
+      const ref = freezeInput(snapshotClientRequest({epoch: confirmed.submissionEpoch, nonce}));
+      if (!validSubmissionRef(ref)) fail('SubmissionEpochUnavailable');
+      return ref;
+    },
+    lookupSubmission: async (submissionRef, {signal} = {}) => {
+      let owned;
+      try {owned = freezeInput(snapshotClientRequest(submissionRef));}
+      catch {fail('InvalidSubmissionRef');}
+      if (!validSubmissionRef(owned)) fail('InvalidSubmissionRef');
+      const response = await exchange('lookup-submission', {submissionRef: owned}, signal);
+      const answer = detachResponse(captureResponse(await controlValue(response)));
+      if (!validSubmissionLookup(answer, selected.wire, owned)) fail('InvalidHostSubmissionLookup');
+      return freezeInput(answer);
+    },
     aql: (text, options = {}) => {
       if (typeof text !== 'string' || !text ||
           !clientSourceFormats.includes(options.format)) {

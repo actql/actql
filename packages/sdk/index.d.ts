@@ -2,7 +2,7 @@ export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
   WireCancellationLookup, WireCheckpointSummary, WireClientProfile,
-  WireConnection,
+  WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -13,6 +13,9 @@ export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
 export type CancellationReference = WireCancellationRef;
 export type CancellationLookup = WireCancellationLookup;
+export type SubmissionReference = WireSubmissionRef;
+export type SubmissionOutcome = WireSubmissionOutcome;
+export type SubmissionLookup = WireSubmissionLookup;
 /** actql-check-outcome/0.1. */
 export type CheckOutcome = WireCheckOutcome;
 type CheckReportScope = Extract<CheckOutcome, {outcome: 'completed'}>['report']['scope'];
@@ -115,6 +118,7 @@ export declare function createCheckSupplementationSession(client: Pick<Client, '
   options: Readonly<{maxAttempts: number}>): CheckSupplementationSession;
 export type SubmissionInput = Readonly<{
   requestId: string;
+  submissionRef?: WireSubmissionRef;
   kind: 'program' | 'aql';
   input: unknown;
   parameters: unknown;
@@ -419,6 +423,9 @@ export interface Execution {
 }
 
 export interface Client {
+  /** Allocate and retain before sending; reconnect never replaces an original ref. */
+  newSubmission(options?: {nonce?: string}): WireSubmissionRef;
+  lookupSubmission(ref: WireSubmissionRef, options?: {signal?: AbortSignal}): Promise<WireSubmissionLookup>;
   readonly profile: ConfirmedProfile;
   readonly requestedDurability: Durability | null;
   aql(text: string, options: {
@@ -427,6 +434,7 @@ export interface Client {
     parameterDeclarations?: Record<string, unknown>;
     parameters?: unknown;
     requestId?: string;
+    submissionRef?: WireSubmissionRef;
     signal?: AbortSignal;
   }): Promise<Execution>;
   /**
@@ -443,6 +451,7 @@ export interface Client {
   start(program: Record<string, unknown>, options?: {
     parameters?: unknown;
     requestId?: string;
+    submissionRef?: WireSubmissionRef;
     signal?: AbortSignal;
   }): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;

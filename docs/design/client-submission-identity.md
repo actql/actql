@@ -75,3 +75,44 @@ Starting deliberately new work after an unresolved original requires the
 explicit authorized risk-acknowledgement transition and its retained link.
 Changing the epoch silently is not that transition. It does not permit automatic
 resending of unknown Effects or bypass their existing reconciliation owner.
+
+## Submitted intent and outcome projection
+
+`actql-submitted-intent/0.1` identifies the original JSON submission before a
+checked Program or Run definition exists. Its canonical preimage contains
+`intent` and `version`. The intent has exactly `input`, `kind` (`program` or
+`aql`) and `parameters` (object or null). Source text, declarations, parameter
+values and data member names are preserved by the common value canonicalizer.
+This receipt provides no checker verdict, execution authority or Run CID.
+
+The existing request journal separately retains the authenticated epoch/nonce,
+intent CID and canonical original, admission time, phase and observation
+revision. Known preparation refusals committed before acceptance are terminal
+`not_accepted` outcomes. After acceptance, preparation failure is
+`preparation_failed`; it cannot retroactively become a pre-acceptance rejection.
+`preparing` records contain no invented Run reference. A supported `held`
+request retains the existing prepare-attempt/Checkpoint owner. `ready` refers
+to a Run whose binding is independently checked against the same request
+journal. Terminal outcomes are immutable; stale observations cannot replace a
+newer committed outcome.
+
+An accepted preparing or held intent can finish preparation after its epoch's
+new-admission interval ends. The original persisted receipt establishes this
+fact, rather than a supplied flag. Its current authorization is checked again
+after asynchronous preparation or lookup. Missing intent custody fences writes;
+a missing original is publicly unresolvable, never proof that nothing executed.
+The journal stores intent rows and their issuance counter atomically. Storage
+admission is bounded independently of checker or execution capacity.
+
+Both ingress transports validate the original submission reference and intent
+CID. The Local ingress owns nested JSON before awaiting caller authentication.
+A submit exception can follow a successful Run COMMIT, so the adapter looks up
+the original Run before projecting a typed preparation failure. The public
+request lookup does not carry a Run control revision: projecting a `ready`
+admission obtains that revision from the authorized journal record.
+
+The SDK allocates an explicit submission reference before sending and retains
+it with the detached input on a lost or malformed reply. Lookup takes that exact
+reference; a newly issued connection epoch cannot replace it. Historical
+bare-request observations remain in their existing identity domain and are not
+reinterpreted as epoch-bound receipts.

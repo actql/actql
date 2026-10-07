@@ -58,3 +58,45 @@ pub fn client_submission_request_id(
     Err(_) => None
   }
 }
+
+///|
+#export_name("clientSubmittedIntent")
+pub fn client_submitted_intent(
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication_host.ClientSubmittedIntent? {
+  match
+    @publication_host.prepare_client_submitted_intent(
+      wire, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(intent) => Some(intent)
+    Err(_) => None
+  }
+}
+
+///|
+#export_name("clientSubmittedIntentWire")
+pub fn client_submitted_intent_wire(
+  value : @publication_host.ClientSubmittedIntent,
+) -> String {
+  @publication_host.client_submitted_intent_wire(value)
+}
+
+///|
+#export_name("clientSubmittedIntentCid")
+pub fn client_submitted_intent_cid(
+  value : @publication_host.ClientSubmittedIntent,
+) -> String {
+  @publication_host.client_submitted_intent_cid(value)
+}
+
+///|
+#export_name("clientSubmittedIntentTransition")
+pub fn client_submitted_intent_transition(
+  before : String,
+  after : String,
+) -> Bool {
+  @publication_host.client_submitted_intent_transition(before, after)
+}

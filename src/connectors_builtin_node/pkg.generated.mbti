@@ -1402,6 +1402,14 @@ pub fn client_submission_epoch_wire(@logical_request_scope.SubmissionEpoch) -> S
 
 pub fn client_submission_request_id(@logical_request_scope.SubmissionEpoch, String) -> String?
 
+pub fn client_submitted_intent(String, Int, Int, Int) -> @run_publication_host.ClientSubmittedIntent?
+
+pub fn client_submitted_intent_cid(@run_publication_host.ClientSubmittedIntent) -> String
+
+pub fn client_submitted_intent_transition(String, String) -> Bool
+
+pub fn client_submitted_intent_wire(@run_publication_host.ClientSubmittedIntent) -> String
+
 pub fn duckdb_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration raise NodeHostFailure
 
 pub fn duckdb_managed_capacity(@actql/actql/connectors/duckdb/driver.ManagedStrategyComputeHostConfiguration[Int]) -> (Int64, Int64)?

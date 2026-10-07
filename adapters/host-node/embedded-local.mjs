@@ -9,6 +9,7 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {installNodeClientSubmission} from './client-submission.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
@@ -921,6 +922,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     requestId: submission.requestId, principalId: submission.principalId,
     connection: submission.connection, kind: submission.kind, input: submission.input,
     parameters: submission.parameters, resultNames,
+    ...(submission.submission === undefined ? {} : {submission: submission.submission}),
     ...(preparedSources?.length === 2 ? {acquisitions: sourceDescriptors(preparedSources)}
       : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
   });
@@ -949,6 +951,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     held) => {
     const accepted = await journal.admitOrLookupDefinition(requested, {
       namespaceId, lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
+      submission: submission.submission,
       resultNames, sourceInventory: sourceInventory(held.preparedSources),
       issueDefinition: () => {
         held.plan = planFor(submission);
@@ -1214,11 +1217,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const admitEffectDefinition = submission => {
     const {requestId, principalId, connection, kind, input, parameters} = submission;
     effectSubmissions.set(submission.preparedProgram, JSON.parse(canonicalValueJson({
-      requestId, principalId, connection, kind, input, parameters}, {dataKeys: true})));
+      requestId, principalId, connection, kind, input, parameters,
+      ...(submission.submission === undefined ? {} : {submission: submission.submission})}, {dataKeys: true})));
     return effectRun.accept({
     prepared: submission.preparedProgram, authorityScopeCid,
     requestId: submission.requestId, namespaceId,
     principalId: submission.principalId, connection: submission.connection,
+    submission: submission.submission,
     lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
     });
   };
@@ -1247,7 +1252,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       };
       const captured = {version: 'actql-remote-captured-submission/0.1',
         requestId, principalId: actual, connection, kind, input,
-        parameters, resultNames};
+        parameters, resultNames,
+        ...(submission.submission === undefined ? {} : {submission: submission.submission})};
       const decided = await checkpoints.acceptRun({requested: requestedFacts,
         captured});
       if (decided.kind !== 'dispatch') {
@@ -1444,7 +1450,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const submission = {principalId: captured.principalId,
       connection: captured.connection, requestId: captured.requestId,
       kind: captured.kind, input: captured.input,
-      parameters: captured.parameters};
+      parameters: captured.parameters,
+      ...(captured.submission === undefined ? {} : {submission: captured.submission})};
     submission.preparedProgram = await prepareSubmit(submission);
     const {requested, resultNames, acquired, acquisitionCount, effectful} = requestOf(submission);
     const preparedSources = acquisitionCount === 2
@@ -1648,9 +1655,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     if (accepted === undefined) throw new Error('HeldRunDefinitionMissing');
     return (await observeRun({ref: accepted.ref, principalId})).status;
   };
-  const negotiate = () => ({version: 'actql-client-host/0.1',
+  const negotiate = async value => ({version: 'actql-client-host/0.1',
     mode, owner: mode, durability: 'durable',
     scopeRef: hostCapacityPolicy === undefined ? principalId : authorityScopeCid,
+    ...(hostConnection(value) ? {submissionEpoch: await submissionService.issueEpoch(value)} : {}),
     capabilities: ['result-jsonl'], limits: {
       maxReadWireBytes: 10 * 1024 * 1024,
       maxRowWireBytes: 1024 * 1024,
@@ -1667,6 +1675,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     if (authorizedScope(value) === undefined) return found;
     return checkpoints.heldLookup(value.requestId) ?? found;
   };
+  const submissionService = installNodeClientSubmission({journal, moon,
+    authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
+    prepareSubmit, submit, lookupRequest: lookupHeld});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: ({principalId: actual, after, limit}) =>
       checkpoints.listCheckpoints({principalId: actual, after, limit}),
@@ -2329,6 +2340,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       : hostConnection(value) || value.operation === 'connect' &&
         checkpointConnection(value),
     negotiate, prepareSubmit, submit, check, attach,
+    submitIntent: submissionService.submitIntent,
+    lookupSubmission: submissionService.lookupSubmission,
     lookupRequest: lookupHeld,
     stateService, resultService, observeRun, wait, reconcile, cancel, lookupCancellation, cancelRequest,
     ...checkpointOperations,
