@@ -85,11 +85,13 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
       }}));
 }
 
-for (const empty of [false,true]) {
-  test(`installed Table hooks ${empty ? 'empty' : 'nonempty'} preserve original capture and claims`,
-    async t => exerciseEffectSourceSet(t, {empty, target: targetRef, mappingRef,
+for (const sparseTableInput of [false, true]) for (const empty of [false,true]) {
+  test(`installed Table hooks ${sparseTableInput ? 'sparse private ' : ''}${empty ? 'empty' : 'nonempty'} preserve original capture and claims`,
+    async t => exerciseEffectSourceSet(t, {empty, sparseTableInput,
+      privateTableInput: sparseTableInput, target: targetRef, mappingRef,
       minimumApproval: 'required', onTablePreview: async f => {
         const {moon,sourceControl: control} = f;
+        const originalCompleted = f.execution.completed.slice();
         const writes = [], inspections = [];
         const materials = new WeakMap();
         let cleanupCalls = 0, testCleanup = false, finishCleanup = false;
@@ -151,7 +153,8 @@ for (const empty of [false,true]) {
             stage.apply.members[1].claims[0].canonicalRequestCid);
           assert.deepEqual(writes, []);
           assert.deepEqual(inspections, []);
-          assert.equal(f.execution.completed.length, 1);
+          assert.deepEqual(f.execution.completed, originalCompleted);
+          if (!sparseTableInput) assert.equal(f.execution.completed.length, 1);
           stage.apply.ledger.prepareCapturedSetIntents(stage.apply.capturedInputs,
             stage.apply.members, 100);
           const provider = JSON.parse(stage.continuationWire);
@@ -165,10 +168,30 @@ for (const empty of [false,true]) {
           assert.equal(stage.cleanupOwner.cleanupPending(), true);
           assert.equal(cleanupCalls, 1);
           finishCleanup = true;
+          let schemaReleases = 0;
+          if (sparseTableInput) {
+            // Inject only a failed release of the real Store lease. The
+            // pending schema and Ledger must remain in the same stage custody.
+            const schema = stage.cleanupOwner.schemas[0];
+            assert.equal(schema.status().pending, true);
+            stage.cleanupOwner.schemas[0] = Object.freeze({
+              status: () => schema.status(),
+              async release() {
+                if (++schemaReleases === 1) throw new Error('TableSchemaReleaseFailure');
+                return schema.release();
+              },
+            });
+            await assert.rejects(stage.dispose(), {message: 'TableSchemaReleaseFailure'});
+            assert.equal(stage.cleanupOwner.cleanupPending(), true);
+            assert.equal(schema.status().pending, true);
+            assert.equal(cleanupCalls, 3);
+          }
           await Promise.all([stage.dispose(), stage.dispose()]);
           assert.equal(cleanupCalls, 3);
+          assert.equal(schemaReleases, sparseTableInput ? 2 : 0);
           await stage.dispose();
           assert.equal(cleanupCalls, 3);
+          assert.equal(schemaReleases, sparseTableInput ? 2 : 0);
           testCleanup = false;
           assert.equal(stage.cleanupOwner.cleanupPending(), false);
           durable = await recoverCompletedEffectfulComputation({store: f.physicalStore, control,
@@ -197,7 +220,8 @@ for (const empty of [false,true]) {
           await recoveredStage.dispose();
           await recoveredStage.dispose();
           assert.equal(recoveryOwner.cleanupPending(), false);
-          assert.equal(f.execution.completed.length, 1);
+          assert.deepEqual(f.execution.completed, originalCompleted);
+          if (!sparseTableInput) assert.equal(f.execution.completed.length, 1);
           // The real recovered Ledger remains owned after a close failure,
           // even when its primary preparation exception is immutable.
           const originalFailure = Object.freeze(Object.assign(new Error('RecoveredTablePreparationFailure'),

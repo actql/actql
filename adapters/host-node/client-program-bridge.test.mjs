@@ -13,6 +13,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {installNodeClientSubmission} from './client-submission.mjs';
 import {composeInstalledCheckEnvironment} from
   './installed-check-environment.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
@@ -931,9 +932,9 @@ function publicationEvidence(program, parameters, semantics,
 // This fixture provides missing compiler/Host policy evidence. Its checked
 // Program identity and the physical Result bytes come from product owners.
 function checkedValuesPublicationPlan(prepared, control,
-  executionContextCid = cid('a')) {
+  executionContextCid = cid('a'), requestId = 'published-values-request') {
   const request = moon.clientProgramRequestIdentity(
-    prepared, cid('a'), 'published-values-request', cid('b'));
+    prepared, cid('a'), requestId, cid('b'));
   const compilation = checked(moon.clientProgramCompileLocalValues(prepared));
   const template = control.admitRunEvidence('bound_invocation_template',
     moon.clientProgramCompilationTemplateWire(compilation),
@@ -1623,65 +1624,92 @@ test('Node JS bridge binds separately supplied Parameters through the shared che
     assert.ok(ready(prepare(withDefault, 'json', undefined)));
   });
 
-test('public submit rejects checker failures before Run admission', async () => {
+test('public submit rejects checker failures before Run admission', async t => {
   const {environment} = await checkedFixture();
   const document = await readFile(new URL('parameter-values.json', fixture),
     'utf8');
   const prepareSubmit = installNodeClientProgramPreparation({
     moon, environment});
   let admissions = 0;
-  let admittedIdentity;
+  let admittedIdentity, admittedRequestId;
+  await mkdir(scratch, {recursive: true});
+  const directory = await mkdtemp(join(scratch.pathname, 'submission-checker-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const journal = openClientRequestJournal(directory);
+  t.after(() => journal.close());
+  const control = runtimeCore(moon).publicationControl;
+  const lookupRequest = installNodeClientRequestLookup({journal, control: moon,
+    authorizedScope: ({principalId}) => principalId === 'principal-a'
+      ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
+  const submitProgram = async ({preparedProgram, requestId}) => {
+    admissions++;
+    admittedRequestId = requestId;
+    admittedIdentity = moon.clientProgramRequestIdentity(preparedProgram, cid('a'), requestId, cid('b'));
+    const accepted = await journal.admitOrLookupDefinition(admittedIdentity, {
+      namespaceId: 'namespace-a', lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      issueDefinition: () => checkedValuesPublicationPlan(preparedProgram, control, cid('a'), requestId).runDefinition,
+    }, moon, control);
+    return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
+  };
+  const submission = installNodeClientSubmission({journal, moon, prepareSubmit,
+    submit: submitProgram, lookupRequest, authorizedScope: ({principalId}) =>
+      principalId === 'principal-a' ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
   const server = createServer(createClientHttpHandler({
     authenticate: header => header === 'Bearer scoped-token'
       ? 'principal-a' : undefined,
     authorizeConnection: () => true,
-    negotiate: () => ({
+    negotiate: async request => ({
       version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-      durability: 'volatile', scopeRef: 'principal-a', capabilities: [],
+      durability: 'durable', scopeRef: 'principal-a', capabilities: [],
+      submissionEpoch: await submission.issueEpoch(request),
       limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
         maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
         maxRows: 100, maxBatchRows: 10,
         maxBatchRetainedValueBytes: 2048},
     }),
-    prepareSubmit,
+    prepareSubmit, lookupRequest, submit: submitProgram,
+    submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
     maxRequestBytes: 100000,
-    submit: ({preparedProgram, requestId}) => {
-      admissions++;
-      admittedIdentity = moon.clientProgramRequestIdentity(preparedProgram,
-        cid('a'), requestId, cid('b'));
-      return {ref: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
-        runDefinitionCid: cid('c')}, durability: 'volatile', revision: 0};
-    },
   }));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     const origin = `http://127.0.0.1:${server.address().port}/`;
-    const submit = parameters => fetch(new URL('actql/client/0.1/submit',
-      origin), {
-      method: 'POST', headers: {authorization: 'Bearer scoped-token',
-        'content-type': 'application/json'},
-      body: JSON.stringify({connection: {mode: 'local', owner: 'local',
-        runners: [], consentRefs: []}, requestId: 'saved-parameter-id',
-      kind: 'aql', input: {text: document, format: 'json'}, parameters}),
-    });
-    for (const [parameters, status, code] of [
-      [null, 422, 'ClientProgramNeedsInputs'],
-      [{n: null}, 422, 'ClientProgramRejected'],
-      [{n: 'bad'}, 422, 'ClientProgramRejected'],
-      [{n: 2, extra: true}, 422, 'ClientProgramRejected'],
-      [{n: 'x'.repeat(65536)}, 413, 'ClientParametersTooLarge'],
+    const connection = {mode: 'local', owner: 'local', runners: [], consentRefs: []};
+    const epoch = await submission.issueEpoch({principalId: 'principal-a', connection});
+    let nonce = 0;
+    const submit = parameters => {
+      const source = {kind: 'aql', input: {text: document, format: 'json'}, parameters};
+      const intent = moon.clientSubmittedIntent(JSON.stringify(source), 1048576, 65536, 64);
+      assert.ok(intent);
+      return fetch(new URL('actql/client/0.1/submit-intent', origin), {
+        method: 'POST', headers: {authorization: 'Bearer scoped-token', 'content-type': 'application/json'},
+        body: JSON.stringify({connection, submissionRef: {epoch, nonce: `checker-${++nonce}`},
+          intentCid: moon.clientSubmittedIntentCid(intent), ...source}),
+      });
+    };
+    for (const [parameters, code, classification] of [
+      [null, 'ClientProgramNeedsInputs', 'requirements'],
+      [{n: null}, 'ClientProgramRejected', 'operation_failed'],
+      [{n: 'bad'}, 'ClientProgramRejected', 'operation_failed'],
+      [{n: 2, extra: true}, 'ClientProgramRejected', 'operation_failed'],
+      [{n: 'x'.repeat(65536)}, 'ClientParametersTooLarge', 'implementation_limit'],
     ]) {
       const response = await submit(parameters);
-      assert.equal(response.status, status);
-      assert.deepEqual(await response.json(), {code});
+      assert.equal(response.status, 200);
+      const outcome = await response.json();
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code, classification});
+      assert.deepEqual(await submission.lookupSubmission({principalId: 'principal-a', connection,
+        submissionRef: outcome.submissionRef}), outcome);
     }
     assert.equal(admissions, 0);
     const client = await connectClient({mode: 'local', owner: 'local',
       endpoint: origin, token: 'scoped-token'});
     try {
       await assert.rejects(client.startSource(document, {format: 'json',
-        requestId: 'sdk-invalid-parameter', parameters: {n: null}}),
-      {code: 'ClientProgramRejected'});
+        submissionRef: client.newSubmission({nonce: 'sdk-invalid-parameter'}), parameters: {n: null}}),
+      error => error.code === 'SubmissionNotAccepted' &&
+        error.outcome.kind === 'not_accepted' && error.outcome.problem.code === 'ClientProgramRejected');
       assert.equal(admissions, 0);
     } finally {
       client.close();
@@ -1695,10 +1723,11 @@ test('public submit rejects checker failures before Run admission', async () => 
       moon.clientProgramSemanticsCid(prepared));
     const accepted = await submit({n: 2});
     assert.equal(accepted.status, 200);
+    assert.equal((await accepted.json()).kind, 'ready');
     assert.equal(admissions, 1);
     assert.equal(moon.clientRequestParametersCid(admittedIdentity),
       moon.clientRequestParametersCid(moon.clientProgramRequestIdentity(
-        prepared, cid('a'), 'saved-parameter-id', cid('b'))));
+        prepared, cid('a'), admittedRequestId, cid('b'))));
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
@@ -2000,8 +2029,7 @@ test('public Values submit computes and reads its real Local Result',
     };
     const journalDirectory = join(directory, 'requests');
     await mkdir(journalDirectory);
-    const identity = moon.clientProgramRequestIdentity(
-      prepared, cid('a'), 'published-values-request', cid('b'));
+    let identity, originalRequestId, submissionRef;
     let store = await openLocalPublicationStore(configuration, control);
     let published;
     try {
@@ -2022,10 +2050,12 @@ test('public Values submit computes and reads its real Local Result',
       });
       let issues = 0;
       let computes = 0;
-      const negotiate = () => ({
+      let submission;
+      const negotiate = async request => ({
         version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
         durability: 'durable', scopeRef: 'principal-before-restart',
         capabilities: ['result-jsonl'],
+        submissionEpoch: await submission.issueEpoch(request),
         limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
           maxRowRetainedValueBytes: 1024,
           maxRetainedValueBytes: 4096, maxRows: 100,
@@ -2037,12 +2067,13 @@ test('public Values submit computes and reads its real Local Result',
         connection}) => {
         const requested = moon.clientProgramRequestIdentity(
           preparedProgram, cid('a'), requestId, cid('b'));
+        identity = requested; originalRequestId = requestId;
         const accepted = await journal.admitOrLookupDefinition(requested, {
           namespaceId: 'namespace-a',
           lookupExpiresAt: '2099-01-01T00:00:00.000Z',
           issueDefinition: () => {
             issues++;
-            plan = checkedValuesPublicationPlan(preparedProgram, control);
+            plan = checkedValuesPublicationPlan(preparedProgram, control, cid('a'), requestId);
             return plan.runDefinition;
           },
         }, moon, control);
@@ -2060,12 +2091,16 @@ test('public Values submit computes and reads its real Local Result',
         return {ref: start.ref, durability: start.durability,
           revision: start.revision};
       };
+      submission = installNodeClientSubmission({journal, moon, prepareSubmit, submit, lookupRequest,
+        authorizedScope: ({principalId}) => principalId === 'principal-before-restart'
+          ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
       const submitServer = createServer(createClientHttpHandler({
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-before-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
           facts.connection.owner === 'local',
         negotiate, prepareSubmit, lookupRequest, submit,
+        submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
       }));
       await new Promise(resolve => submitServer.listen(0, '127.0.0.1',
         resolve));
@@ -2077,6 +2112,7 @@ test('public Values submit computes and reads its real Local Result',
           authorizeConnection: facts => facts.connection.mode === 'local' &&
             facts.connection.owner === 'local',
           negotiate, prepareSubmit, lookupRequest, submit,
+          submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
           maxRowBytes: 1024,
         }));
         try {
@@ -2085,8 +2121,8 @@ test('public Values submit computes and reads its real Local Result',
             throw new Error('NetworkOnEmbeddedLocalSubmit');
           };
           try {
-            const accepted = await local.startSource(document, {format: 'json',
-              requestId: 'published-values-request'});
+            submissionRef = local.newSubmission({nonce: 'published-values-request'});
+            const accepted = await local.startSource(document, {format: 'json', submissionRef});
             assert.equal(accepted.profile.durability, 'durable');
             assert.equal(issues, 1);
             assert.equal(computes, 1);
@@ -2102,7 +2138,7 @@ test('public Values submit computes and reads its real Local Result',
           let responseLost = false;
           globalThis.fetch = async (url, options) => {
             const reply = await transport(url, options);
-            if (!responseLost && new URL(url).pathname.endsWith('/submit')) {
+            if (!responseLost && new URL(url).pathname.endsWith('/submit-intent')) {
               responseLost = true;
               await reply.arrayBuffer();
               throw new Error('Acceptance response lost after Host send');
@@ -2111,36 +2147,40 @@ test('public Values submit computes and reads its real Local Result',
           };
           try {
             await assert.rejects(client.startSource(document, {format: 'json',
-              requestId: 'published-values-request'}), error =>
+              submissionRef}), error =>
               error.code === 'SubmissionUnknown' &&
               error.requestId === 'published-values-request');
           } finally { globalThis.fetch = transport; }
           assert.equal(responseLost, true);
-          const recovered = await client.lookupRequest(
-            'published-values-request');
-          assert.equal(recovered.kind, 'found');
-          assert.equal(recovered.ref.runDefinitionCid,
+          const recovered = await client.lookupSubmission(submissionRef);
+          assert.equal(recovered.kind, 'ready');
+          assert.equal(recovered.admission.ref.runDefinitionCid,
             plan.runDefinition.identity);
           const submitted = await client.startSource(document, {format: 'json',
-            requestId: 'published-values-request'});
-          assert.deepEqual(submitted.ref, recovered.ref);
+            submissionRef});
+          assert.deepEqual(submitted.ref, recovered.admission.ref);
           assert.equal(submitted.profile.durability, 'durable');
           assert.equal(submitted.ref.runDefinitionCid,
             plan.runDefinition.identity);
           const repeated = await client.startSource(document, {format: 'json',
-            requestId: 'published-values-request'});
+            submissionRef});
           assert.deepEqual(repeated.ref, submitted.ref);
           const changed = document.replace('"id": 2', '"id": 3');
           assert.notEqual(changed, document);
           await assert.rejects(client.startSource(changed, {format: 'json',
-            requestId: 'published-values-request'}),
-          {code: 'ClientRequestIntentConflict'});
-          const found = await client.lookupRequest('published-values-request');
+            submissionRef}),
+          error => error.code === 'SubmissionUnknown' &&
+            error.cause?.code === 'ClientSubmittedIntentConflict' &&
+            error.submissionRef.nonce === submissionRef.nonce);
+          assert.deepEqual(await client.lookupSubmission(submissionRef), recovered);
+          const found = await client.lookupRequest(originalRequestId);
           assert.deepEqual(found.ref, submitted.ref);
           assert.equal(found.durability, 'durable');
           assert.equal(found.lookupExpiresAt, '2099-01-01T00:00:00.000Z');
-          assert.deepEqual(await client.lookupRequest('absent-request'),
-            {kind: 'not_found'});
+          const absent = await client.lookupSubmission(client.newSubmission({nonce: 'absent-request'}));
+          assert.equal(absent.kind, 'unresolvable');
+          assert.equal(issues, 1);
+          assert.equal(computes, 1);
         } finally { client.close(); }
       } finally {
         await new Promise(resolve => submitServer.close(resolve));
@@ -2251,7 +2291,7 @@ test('public Values submit computes and reads its real Local Result',
           token: 'scoped-token',
         });
         const execution = await client.attach(ref);
-        const found = await client.lookupRequest('published-values-request');
+        const found = await client.lookupRequest(originalRequestId);
         assert.deepEqual(found.ref, ref);
         assert.equal(found.durability, 'durable');
         assert.equal(execution.profile.durability, 'durable');
@@ -2381,9 +2421,10 @@ const effectInputExportArgs = limits => [
 ];
 
 async function effectFixture({splitSource = false,
+  graphProfile = false,
   splitEffectSource = 'consumer', writeKind = 'create',
   memberIds = ['save'], target = 'connector://crm/account',
-  mappingRef = 'mapping:crm.account.v1', sourceIds,
+  mappingRef = 'mapping:crm.account.v1', sourceIds, mappingSource = 'id',
   continueMembers = [], minimumApproval = 'none'} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
@@ -2424,7 +2465,7 @@ async function effectFixture({splitSource = false,
     row_mapping: writeKind === 'create' && sourceIds ? {
       Name: {field: 'id', null_behavior: 'reject'},
       External_Key__c: {field: 'id', null_behavior: 'reject'},
-    } : {Name: {field: 'id', null_behavior: 'reject'}},
+    } : {Name: {field: mappingSource, null_behavior: 'reject'}},
     schema: 'actql.mapping_contract/0.1',
     target_ref: target,
     target_schema: targetSchema,
@@ -2443,7 +2484,7 @@ async function effectFixture({splitSource = false,
   mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
     'mapping_contract_cid');
   environmentDocument.mapping_contracts = [mapping];
-  if (splitSource) {
+  if (splitSource || graphProfile) {
     environmentDocument.host_policy_profile.capacity = JSON.parse(
       canonicalJson({
         ...environmentDocument.host_policy_profile.capacity,
@@ -2459,7 +2500,7 @@ async function effectFixture({splitSource = false,
     environmentDocument.evidence_bundle_cid,
     false, false, true, false, false, false, false,
   ];
-  const environment = splitSource
+  const environment = splitSource || graphProfile
     ? moon.clientProgramCheckEnvironmentWithGraphProfile(
       ...environmentArgs,
       machineCid(JSON.parse(await readFile(new URL(
@@ -5671,13 +5712,42 @@ test('Effect source set shares exact owners and retains failed cleanup',
 // owners; it does not clone the source, substitute caller rows or require
 // Python for the ordinary Host suite.
 export async function exerciseEffectSourceSet(t, {distinctResults = false,
-  writeKind = 'store', empty = false, onTablePreview, target,
+  writeKind = 'store', empty = false, privateTableInput = false, sparseTableInput = false, onTablePreview, target,
   mappingRef, minimumApproval} = {}) {
         const fixture = await effectFixture({writeKind, target, mappingRef,
-          minimumApproval,
+          minimumApproval, graphProfile: sparseTableInput,
+          mappingSource: sparseTableInput ? 'k' : 'id',
           memberIds: ['first', 'second']});
         const document = JSON.parse(fixture.document);
         if (empty) document.stages[0].steps[0].values.rows = [];
+        if (sparseTableInput) {
+          assert.equal(privateTableInput, true);
+          document.stages[0].steps = [
+            {values: {schema: {k: {type: 'number', nullable: false},
+              p: {type: 'number', nullable: true}},
+              rows: empty ? [] : [{k: 2, p: null}, {k: 1, p: 7}]}, as: 'persons'},
+            {values: {schema: {k: {type: 'number', nullable: false}},
+              rows: empty ? [] : [{k: 3}]}, as: 'companies'},
+            {graph: {version: 'actql-graph-constructor/0.1', nodes: [
+              {name: 'Person', from: 'persons', key: ['k'], labels: [
+                {name: 'Person', properties: {mode: 'columns', columns: [{from: 'p', to: 'p'}]}}]},
+              {name: 'Company', from: 'companies', key: ['k'], labels: []},
+            ], edges: []}, as: 'g'},
+            {from: 'g', node_rows: true, as: 'graph_rows'},
+            {from: 'graph_rows', sort: [{field: 'k', dir: 'asc', nulls: 'first'}], as: 'selected'},
+          ];
+          document.stages[0].results.rows = {from: 'selected', fields: ['k']};
+        }
+        if (privateTableInput) {
+          assert.equal(writeKind, 'store');
+          assert.equal(distinctResults, false);
+          const {from, fields} = document.stages[0].results.rows;
+          document.stages[0].table_inputs = {rows: {from,
+            fields: sparseTableInput ? ['k', 'p'] : fields}};
+          for (const member of Object.values(document.stages[0].effects)) {
+            member.store.from = {table_input: 'rows'};
+          }
+        }
         if (distinctResults) {
           document.stages[0].results.other = structuredClone(
             document.stages[0].results.rows);
@@ -5686,7 +5756,8 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
         const preparation = moon.clientProgramPrepareEffectComputationWithParameters(
           JSON.stringify(document), 'json', fixture.environment, undefined, []);
         const prepared = moon.clientProgramEffectPreparationReady(preparation);
-        assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(preparation));
+        assert.ok(prepared, inspect(moon.clientProgramEffectPreparationIssue(preparation),
+          {depth: 8}));
         const evidence = publicationEvidence(
           moon.clientProgramEffectDefinitionCid(prepared),
           effectParametersCid(prepared),
@@ -5723,7 +5794,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           1n, 0n, 0n, 0n);
         assert.ok(owned);
         const execution = await runCapturedEffectComputation(owned);
-        const inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+        const inputs = checked(moon.clientProgramPinEffectSources(owned, privateTableInput ? 3 : 2));
         await mkdir(scratch, {recursive: true});
         const directory = await mkdtemp(join(scratch.pathname, 'source-set-'));
         t.after(() => rm(directory, {recursive: true, force: true}));
@@ -5765,8 +5836,11 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             metadata_delete_by: '2026-09-24T04:00:00.000Z',
             clock_contract_cid: cid('0')}), publicationLimits);
         const issuedArguments = [];
+        const issuerName = privateTableInput ?
+          'issueSourceFreeLocalEffectTableArtifact' :
+          'issueSourceFreeLocalEffectResultArtifact';
         const issuerControl = Object.freeze({...control,
-          issueSourceFreeLocalEffectResultArtifact(...args) {
+          [issuerName](...args) {
             if (distinctResults && issuedArguments.length === 1) {
               // Equal Result values do not let the first preparation claim
               // the second Result's live export receipt.
@@ -5776,14 +5850,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
                 .issueSourceFreeLocalEffectResultArtifact(...foreign),
               {code: 'MoonBitHostFailure'});
             }
-            const issued = control.issueSourceFreeLocalEffectResultArtifact(
-              ...args);
+            const issued = control[issuerName](...args);
             issuedArguments.push(args);
             return issued;
           },
         });
         const options = {moon, checkedOwner: prepared, execution, inputs,
-          maxMembers: 2, maxGroupingWork: 3,
+          maxMembers: 2, maxGroupingWork: privateTableInput ? 5 : 3,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: 100000, control: issuerControl,
@@ -5804,11 +5877,17 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           const tableLimits = {maxWireBytes: 65536, maxNodes: 4096,
             maxDepth: 16, maxWork: 1000};
           const artifact = sources.members[0].payload.localResultArtifact;
-          assert.equal(JSON.parse(artifact.wire).actual_row_count, empty ? 0 : 2);
+          const rowCount = empty ? 0 : sparseTableInput ? 3 : 2;
+          assert.equal(JSON.parse(artifact.wire).actual_row_count, rowCount);
           const storage = control.localEffectTableStorageMapping(artifact,
             tableLimits);
           const body = JSON.parse(storage.wire);
-          assert.deepEqual(body.columns, [{name: 'id', nullable: false,
+          assert.deepEqual(body.columns, sparseTableInput ? [
+            {name: 'k', nullable: false, physical_type: 'double', presence: 'required',
+              presence_field_id: null, value_field_id: 1},
+            {name: 'p', nullable: true, physical_type: 'double', presence: 'conditional',
+              presence_field_id: 3, value_field_id: 2},
+          ] : [{name: 'id', nullable: false,
             physical_type: 'double', presence: 'required',
             presence_field_id: null, value_field_id: 1}]);
           assert.equal(body.schema_cid,
@@ -5873,6 +5952,12 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               'store', [], [], ['first', 'second'], [cid('0'), cid('1')],
               scope, {templateOnly: true, ...(target === undefined ? {} : {target}),
                 ...(mappingRef === undefined ? {} : {mapping: mappingRef})}).wire);
+            if (privateTableInput) {
+              for (const member of template.effects) {
+                delete member.source_result;
+                member.source_table_input = 'rows';
+              }
+            }
             const operations = [];
             for (const [index, member] of template.effects.entries()) {
               const localIdentity = index === 0 ? identity : otherIdentity;
@@ -5944,7 +6029,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               storage_mapping_cid: storage.identity,
               table_uuid: '11111111-2222-3333-4444-555555555555',
               generation_cid: cid('b'), metadata_location: 'file:///table/generation.json',
-              snapshot_id: empty ? null : '123', row_count: empty ? 0 : 2,
+              snapshot_id: empty ? null : '123', row_count: rowCount,
             };
             receipt.receipt_cid = canonicalHashWithoutSelf(receipt, 'receipt_cid');
             const responseWire = canonicalJson({ok: true, result: receipt});
@@ -6107,20 +6192,26 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           for (const args of issuedArguments) {
             // The receipt was released by exportPinnedEffectInput before
             // returning the prepared Store owner.
-            assert.throws(() => control
-              .issueSourceFreeLocalEffectResultArtifact(...args),
+            assert.throws(() => control[issuerName](...args),
             {code: 'MoonBitHostFailure'});
           }
-          assert.equal(writers, distinctResults ? 2 : 1);
+          assert.equal(writers, privateTableInput ? 2 : distinctResults ? 2 : 1);
           assert.equal(sources.members[0].payload.summary.logicalCid,
             sources.members[1].payload.summary.logicalCid);
           assert.equal(sources.members[0].payload ===
             sources.members[1].payload, !distinctResults);
           assert.equal(sources.members[0].payload.localManifest,
             sources.members[1].payload.localManifest);
-          assert.deepEqual(Object.keys(JSON.parse(
-            sources.members[0].payload.localManifest.wire).results),
-          distinctResults ? ['other', 'rows'] : ['rows']);
+          const manifestBody = JSON.parse(
+            sources.members[0].payload.localManifest.wire);
+          assert.deepEqual(Object.keys(manifestBody.results),
+            distinctResults ? ['other', 'rows'] : ['rows']);
+          if (privateTableInput) {
+            assert.deepEqual(Object.keys(manifestBody.table_inputs), ['rows']);
+            const sourceBody = JSON.parse(sources.members[0].payload.summary.artifact.wire);
+            assert.equal(sourceBody.source_table_input, 'rows');
+            assert.equal(Object.hasOwn(sourceBody, 'source_result'), false);
+          }
           if (distinctResults) assert.notEqual(
             sources.members[0].payload.localResultDefinition.identity,
             sources.members[1].payload.localResultDefinition.identity);

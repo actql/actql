@@ -93,39 +93,57 @@ pub fn[T] append_managed_publication_bridge_wire(
     return Err(Closed)
   }
   let receipt = bridge.output.material.receipt
-  let decoded = match bridge.references {
-    ReferenceFree => decode_retained_row(receipt.schema, text, limits)
+  let appended = match bridge.references {
+    ReferenceFree => append_admitted_output_wire(bridge.admitted, text, limits)
     ExactRows => {
       guard receipt.reference_rows.get(bridge.imported_rows)
         is Some(source_references) else {
         close_managed_publication_bridge(bridge)
         return Err(Wire(InvalidShape))
       }
-      decode_retained_row(
-        receipt.schema,
+      append_admitted_output_wire_references(
+        bridge.admitted,
         text,
         limits,
         reference_cells=source_references,
       )
     }
   }
-  let values = match decoded {
-    Ok(values) => values
-    Err(issue) => {
-      close_managed_publication_bridge(bridge)
-      return Err(Wire(issue))
-    }
-  }
-  match append_admitted_output(bridge.admitted, values) {
+  match appended {
     Ok(_) => {
       bridge.imported_rows += 1
       Ok(())
     }
-    Err(issue) => {
+    Err(Wire(issue)) => {
+      close_managed_publication_bridge(bridge)
+      Err(Wire(issue))
+    }
+    Err(Admission(issue)) => {
       close_managed_publication_bridge(bridge)
       Err(Admission(issue))
     }
   }
+}
+
+///|
+/// A private Table projection still belongs to this exact completed generation.
+/// It is not a public Result occurrence or publication capability.
+pub fn[T] managed_publication_bridge_matches_table_input_export(
+  bridge : ManagedPublicationBridge[T],
+  output : ManagedCompletedOutput[T],
+  preparation : CompletedTableInputRelationExportPreparation,
+  occurrence : ManagedTableInputOccurrence,
+) -> Bool {
+  bridge.live.val &&
+  managed_completed_output_available(output) &&
+  managed_completed_same_occurrence(bridge.output, output) &&
+  (match bridge.completed {
+    Some(value) =>
+      completed_table_input_export_preparation_matches_owner(
+        preparation, occurrence, value,
+      )
+    None => false
+  })
 }
 
 ///|
