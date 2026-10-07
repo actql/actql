@@ -23,7 +23,23 @@ export const exchangeLimits = Object.freeze({
   maxObservedHeaderBytes: 8192,
 });
 
-export const exchangeMethods = Object.freeze(['GET', 'POST', 'PATCH']);
+export const exchangeMethods = Object.freeze(['GET', 'POST', 'PATCH', 'PUT',
+  'DELETE']);
+
+// The typed request and physical resource share one method/body policy. The
+// typed boundary historically allows an absent POST/PATCH body; the physical
+// resource requires it. PUT always requires a string; GET/DELETE never take
+// one. This validates transport shape, not JSON or provider Effect meaning.
+export function checkHttpRequestMethodBody(method, body,
+  {requireBody = false} = {}) {
+  if (!exchangeMethods.includes(method)) fail('InvalidHttpRequestMethod');
+  const bodyless = method === 'GET' || method === 'DELETE';
+  if ((body !== undefined && typeof body !== 'string') ||
+      (bodyless && body !== undefined) ||
+      (!bodyless && (requireBody || method === 'PUT') && body === undefined)) {
+    fail('InvalidHttpRequestBody');
+  }
+}
 
 // Headers the credential resource owns, that carry credentials, or that
 // reshape the connection. A provider never sets them, and an installation
@@ -111,13 +127,9 @@ export function requestTarget(path, query = []) {
 }
 
 // One owned request: method, exact target, owned headers and an optional
-// string body (mutations only).
+// string body (POST/PATCH/PUT only).
 export function ownHttpRequest({method, path, query, headers, body}) {
-  if (!exchangeMethods.includes(method)) fail('InvalidHttpRequestMethod');
-  if ((body !== undefined && typeof body !== 'string') ||
-      (method === 'GET' && body !== undefined)) {
-    fail('InvalidHttpRequestBody');
-  }
+  checkHttpRequestMethodBody(method, body);
   return Object.freeze({
     method,
     target: requestTarget(path, query),
