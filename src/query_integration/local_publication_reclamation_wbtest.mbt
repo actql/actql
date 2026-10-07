@@ -1,5 +1,15 @@
 ///|
 test "Local finalization cancellation retains capacity through admission retirement" {
+  check_local_admission_retirement(false)
+}
+
+///|
+test "Local cancellation during partial receipt keeps completion unpublished" {
+  check_local_admission_retirement(true)
+}
+
+///|
+fn check_local_admission_retirement(partial_receipt : Bool) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     checked_program=Some(managed_import_reclamation_program()),
     preparation_work=10000,
@@ -44,9 +54,22 @@ test "Local finalization cancellation retains capacity through admission retirem
   // Build a real admission buffer through the selected finalization path, but
   // cancel before adopting or publishing its receipt.
   let mut polls = 0
-  while !(operations.advance_finalization)(1).unwrap().complete {
+  while true {
+    let poll = (operations.advance_finalization)(1).unwrap()
     polls += 1
     assert_true(polls < 10000)
+    assert_true(poll.work > 0L && poll.work <= 1L)
+    if partial_receipt && poll.progress == 108L {
+      // All 100 rows were admitted, then eight receipt-copy entries advanced.
+      // The shared cursor has not issued a receipt or adopted retained output.
+      assert_false(poll.complete)
+      assert_true((operations.material)() is None)
+      break
+    }
+    if poll.complete {
+      assert_false(partial_receipt)
+      break
+    }
   }
   let ledger = @strategy.captured_dag_ledger(run)
   let reserved = @resources.ledger_usage(ledger).reserved_execution_bytes
