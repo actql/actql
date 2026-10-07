@@ -247,3 +247,28 @@ This closes local physical acceptance for the pristine phase only. Full mutated
 detection, restoration, exploration, other targets, retained-history validation,
 and authenticated Actions comparison/reuse remain separate obligations. No full
 pipeline job is skipped, no reused receipt is issued, and no saving is claimed.
+
+## Actual retained-history acceptance
+
+At clean `a3cfe9a45a0e6a91067c951328b47b449bef6c04`, the existing
+`node proofs/relation-pipeline/history.mjs --write` validator succeeded once
+under guard `run-dZmOvB`, with a 900-second bound. A transparent local preload
+observed the original Git commands' timing without replacing their arguments or
+results. Its bytes are preserved alongside the output. The validator checked
+82 protected files, 222 source declarations and 183 integrations; a subsequent
+nonzero check bound the generated manifest to that exact source revision. Both
+steps exited 0 and the guard confirmed lock release. Actual history took
+205,704 ms, with 6,313 original Git calls; this is not a CI savings experiment.
+
+Preserve the exact generated manifest, guard, output and timing preload in
+`evidence/2026-10-08-pipeline-pristine-foundation-a3cfe9a45.json.gz`:
+1,391,466 uncompressed bytes, SHA-256
+`f14cd3781d3fb96e9aec4c3c89743b5aa4b0987deea4a2c3f3f5c86b5f07f311`.
+The embedded manifest's own SHA-256 is
+`9fe2eee85cf54699f0b8b9f25f4e0692fce4456182f9cbf78a5980694349d542`.
+This closes the actual retained-history gap for the implementation at that
+revision. This subsequent evidence/documentation commit changes no protected
+pipeline execution source or declaration; it does not relabel the validator's
+execution revision. Hosted CI and full pipeline campaigns remain unverified by
+this local command, and Actions-dependent qualification/reuse/savings remain
+explicitly deferred.
