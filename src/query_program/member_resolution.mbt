@@ -320,12 +320,117 @@ fn MemberResolution::expression(
 }
 
 ///|
+fn member_rows(value : @carrier.Carrier) -> @schema.Schema? {
+  @carrier.relation_rows(value).bind(@carrier.complete_schema)
+}
+
+///|
+// Retain typed Carrier kinds across ToVectors/NEAREST. A schema alone cannot
+// represent their producer roles. This is structural information only: pending
+// key, profile, capacity and data-validation obligations remain with checking.
+fn MemberResolution::relation_carrier(
+  self : MemberResolution,
+  at : @wire.Cursor,
+  schema : @schema.Schema?,
+) -> @carrier.Carrier? raise Abort {
+  guard schema is Some(schema) else { return None }
+  self.spend(at, @schema.field_count(schema))
+  Some(@carrier.relation(@carrier.typed_rows(schema)))
+}
+
+///|
+fn MemberResolution::operation_carrier(
+  self : MemberResolution,
+  tag : String,
+  body : @wire.Cursor,
+  input : @carrier.Carrier?,
+  names : Map[String, @carrier.Carrier?],
+  declarations : @parameters.Declarations?,
+) -> @carrier.Carrier? raise Abort {
+  if self.probe_refused {
+    return None
+  }
+  if ["to_vectors", "normalize_vectors", "score_vectors", "nearest"].contains(
+      tag,
+    ) {
+    guard input is Some(input) else { return None }
+    let queries = if tag == "nearest" {
+      member_text(body, "queries").bind(name => {
+        names.get(name).bind(value => value)
+      })
+    } else {
+      None
+    }
+    if tag == "nearest" && queries is None {
+      return None
+    }
+    let copy = self.copy(body)
+    let limits : @vector.Limits = {
+      max_work: self.work,
+      max_nodes: self.limits.source.tree.max_nodes,
+      max_depth: self.limits.source.tree.max_depth,
+      max_text_bytes: self.limits.source.tree.max_total_string_bytes,
+    }
+    let checked = if tag == "nearest" {
+      @vector.check_nearest(
+        @builder.cursor(copy),
+        input,
+        queries.unwrap(),
+        limits,
+      ).map(checked => {
+        (@vector.nearest_output(checked), @vector.nearest_usage(checked).work)
+      })
+    } else {
+      let operation : @vector.Operation = match tag {
+        "to_vectors" => ToVectors
+        "normalize_vectors" => NormalizeVectors
+        _ => ScoreVectors
+      }
+      @vector.check(
+        operation,
+        @builder.cursor(copy),
+        input,
+        declarations,
+        limits,
+      ).map(checked => (@vector.output(checked), @vector.usage(checked).work))
+    }
+    return match checked {
+      Ok((output, work)) => {
+        self.spend(body, work)
+        Some(output)
+      }
+      Err({ kind: BudgetExceeded, .. }) =>
+        raise Abort(
+          Expression({
+            issue: @expression.WorkLimit,
+            origin: @builder.origin(self.source, body),
+          }),
+        )
+      Err(_) => {
+        self.defer_refusal()
+        None
+      }
+    }
+  }
+  self.relation_carrier(
+    body,
+    self.operation_schema(
+      tag,
+      body,
+      input.bind(member_rows),
+      names,
+      declarations,
+    ),
+  )
+}
+
+///|
 fn MemberResolution::operation_schema(
   self : MemberResolution,
   tag : String,
   body : @wire.Cursor,
   rows : @schema.Schema?,
-  names : Map[String, @schema.Schema?],
+  names : Map[String, @carrier.Carrier?],
   declarations : @parameters.Declarations?,
 ) -> @schema.Schema? raise Abort {
   if self.probe_refused {
@@ -362,7 +467,7 @@ fn MemberResolution::operation_schema(
   let cursor = @builder.cursor(copy)
   if tag == "join" || tag == "cross_join" {
     guard member_text(body, "with").bind(name => {
-        names.get(name).bind(value => value)
+        names.get(name).bind(value => value).bind(member_rows)
       })
       is Some(right) else {
       return None
@@ -408,7 +513,7 @@ fn MemberResolution::operation_schema(
   }
   if tag == "append" {
     guard member_text(body, "with").bind(name => {
-        names.get(name).bind(value => value)
+        names.get(name).bind(value => value).bind(member_rows)
       })
       is Some(right) else {
       return None
@@ -568,16 +673,17 @@ fn resolve_query_members(
     .bind(cursor => member_success(@wire.elements(cursor)))
     .unwrap()
   let results : Map[(String, String), @schema.Schema?] = Map([])
-  let originals : Map[String, @schema.Schema?] = Map([])
+  let originals : Map[String, @carrier.Carrier?] = Map([])
   for (name, schema) in context.input_schemas {
-    originals[name] = Some(schema)
+    originals[name] = resolution.relation_carrier(root, Some(schema))
   }
   for input in context.inputs {
     if originals.contains(input.name) {
       continue
     }
     originals[input.name] = match input.source {
-      Captured(cursor) => resolution.input_schema(cursor)
+      Captured(cursor) =>
+        resolution.relation_carrier(cursor, resolution.input_schema(cursor))
       _ => None
     }
   }
@@ -586,7 +692,7 @@ fn resolve_query_members(
       break
     }
     resolution.spend(stage, 1)
-    let names : Map[String, @schema.Schema?] = Map([])
+    let names : Map[String, @carrier.Carrier?] = Map([])
     let inputs = member_lookup(stage, "inputs").unwrap()
     for index in 0..<@wire.object_length(inputs).unwrap() {
       let (name, declaration) = @wire.field_at(inputs, index).unwrap()
@@ -594,7 +700,10 @@ fn resolve_query_members(
         match
           (member_text(reference, "stage"), member_text(reference, "result")) {
           (Some(stage), Some(result)) =>
-            results.get((stage, result)).bind(value => value)
+            resolution.relation_carrier(
+              declaration,
+              results.get((stage, result)).bind(value => value),
+            )
           _ => None
         }
       } else {
@@ -615,16 +724,20 @@ fn resolve_query_members(
       if member_text(step, "from") is Some(name) {
         current = names.get(name).bind(value => value)
       }
-      let mut output : @schema.Schema? = None
+      let mut output : @carrier.Carrier? = None
       for index in 0..<@wire.object_length(step).unwrap() {
         let (tag, body) = @wire.field_at(step, index).unwrap()
         if ["from", "as", "meta"].contains(tag) {
           continue
         }
         if tag != "values" {
-          resolution.expression(body, current, context.parameter_declarations)
+          resolution.expression(
+            body,
+            current.bind(member_rows),
+            context.parameter_declarations,
+          )
         }
-        output = resolution.operation_schema(
+        output = resolution.operation_carrier(
           tag,
           body,
           current,
@@ -645,7 +758,7 @@ fn resolve_query_members(
     for index in 0..<@wire.object_length(stage_results).unwrap() {
       let (name, body) = @wire.field_at(stage_results, index).unwrap()
       let rows = member_text(body, "from").bind(name => {
-        names.get(name).bind(value => value)
+        names.get(name).bind(value => value).bind(member_rows)
       })
       results[(stage_id, name)] = resolution.result_schema(body, rows)
     }
