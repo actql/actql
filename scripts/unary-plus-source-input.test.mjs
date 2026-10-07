@@ -41,9 +41,9 @@ test('normal packed corpus and focused invocation execute the same authored case
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }
   assert.ok(fixture.includes('unaryPlusOnly ? {successes: unaryPlusSuccesses'));
-  assert.ok(fixture.includes('const scopeOnly = unaryPlusOnly ||'));
+  assert.match(fixture, /const scopeOnly = [^;]*\bunaryPlusOnly\b/u);
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_UNARY_PLUS_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/unary-plus-source-input.mjs', 'unary-plus-source-input.mjs']"));
-  assert.ok(driver.includes("const narrowPublicQuery = process.argv.some(flag => ['--unary-plus-only'"));
+  assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^;]*'--unary-plus-only'/u);
   assert.ok(driver.includes("if (process.argv.includes('--unary-plus-only')) return;"));
 });
