@@ -11,6 +11,7 @@ const ref = JSON.parse(readFileSync(`${path}.ref.json`, 'utf8'));
 const progress = (stage, facts = {}) => console.error('ACTQL_EFFECT_OBSERVATION_PROGRESS ' +
   JSON.stringify({stage, ...facts}));
 progress('connecting');
+const diagnostics = [];
 const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
   durability: 'durable', installation: {
     directory: installation.directory,
@@ -18,7 +19,8 @@ const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     resolveSourceSecret: async () => 'test-only-secret',
     effectProfilePath: installation.effectProfilePath,
     resolveEffectSecret: async () => 'test-only-secret',
-    authorization: installation.authorization}});
+    authorization: {...installation.authorization,
+      observe: (name, detail) => diagnostics.push({name, code: detail?.code})}}});
 progress('connected');
 try {
   const execution = await client.attach(ref);
@@ -35,10 +37,12 @@ try {
   assert.equal(state.status, 'needs_reconciliation');
   progress('observed');
   let reconcileError;
-  try { await execution.reconcile(); }
+  let reconciled;
+  try { reconciled = await execution.reconcile(); }
   catch (error) { reconcileError = error.code; }
   progress('reconcile_observed');
-  console.log(JSON.stringify({ref, state, reconcileError,
+  console.log(JSON.stringify({ref, state, reconcileError, reconciled, diagnostics,
+    reconciledExplanation: sdk.explainEffectUncertainty?.(reconciled),
     explanation: sdk.explainEffectUncertainty?.(state),
     japaneseExplanation: sdk.explainEffectUncertainty?.(state, {locale: 'ja'}),
     copiedExplanation: sdk.explainEffectUncertainty?.({...state}),

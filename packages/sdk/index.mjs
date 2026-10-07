@@ -330,7 +330,7 @@ const retainEffectUncertainty = (state, ref) => {
       physicalStop: state.control?.physical_stop ?? 'unknown',
       ...(state.control === undefined ? {} :
         {controlRevision: state.control.revision}),
-      next: {operation: 'status', ref: {...ref}},
+      next: {operation: 'reconcile', ref: {...ref}},
     }));
   }
   return state;
