@@ -257,7 +257,7 @@ try {
       endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-owner'});
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
   try {
-    run = phase === 'lookup-cancel-fence-loss'
+    run = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss'
       ? await client.attach(read('run.json'))
       : await client.start(program, {requestId: 'public-model-resume'});
     if (existsSync(path('run.json'))) {
@@ -358,6 +358,50 @@ try {
         });
         assert.equal(lost, true, 'the real Model fence commit was observed');
       } finally { DatabaseSync.prototype.exec = originalExec; }
+    } else if (phase === 'cancel-commit-loss') {
+      const before = await run.status();
+      const cancelRef = {...run.ref, cancelId: 'model-commit-original-cancel',
+        expectedRevision: before.control.revision};
+      save('cancel-ref.json', cancelRef);
+      const originalExec = DatabaseSync.prototype.exec;
+      let lost = false;
+      DatabaseSync.prototype.exec = function(sql) {
+        const outcome = sql === 'COMMIT' && !lost && this.prepare(
+          "SELECT name FROM sqlite_master WHERE name = 'client_cancellation_operations'").get() !== undefined
+          ? this.prepare('SELECT outcome_wire FROM client_cancellation_operations WHERE cancel_id = ?')
+            .get(cancelRef.cancelId)?.outcome_wire : undefined;
+        // Fault the final request-journal transaction, not the earlier pending
+        // identity or the independent Model fence transaction.
+        if (outcome != null) {
+          lost = true;
+          if (options.commitLoss === 'after') originalExec.call(this, sql);
+          throw new Error('FixtureCancelCommitReplyLost');
+        }
+        return originalExec.call(this, sql);
+      };
+      try {
+        await assert.rejects(run.cancel({cancelId: cancelRef.cancelId,
+          expectedRevision: cancelRef.expectedRevision}), error => {
+          assert.equal(error.code, 'CancellationUnknown');
+          assert.deepEqual(error.cancelRef, cancelRef);
+          return true;
+        });
+        assert.equal(lost, true, 'the final original cancellation COMMIT was observed');
+      } finally { DatabaseSync.prototype.exec = originalExec; }
+      const first = await run.lookupCancellation(cancelRef);
+      const second = await run.lookupCancellation(cancelRef);
+      assert.deepEqual(second, first);
+      cancellationRecovery = {cancelRef, first, second, unknownCode: 'CancellationUnknown'};
+      if (options.commitLoss === 'after') await until(async () => {
+        const state = await run.status();
+        return state.status === 'cancelled' ? state : undefined;
+      });
+    } else if (phase === 'lookup-cancel-commit-loss') {
+      const cancelRef = read('cancel-ref.json');
+      const first = await run.lookupCancellation(cancelRef);
+      const second = await run.lookupCancellation(cancelRef);
+      assert.deepEqual(second, first);
+      cancellationRecovery = {cancelRef, first, second};
     } else if (phase === 'lookup-cancel-fence-loss') {
       const cancelRef = read('cancel-ref.json');
       const first = await run.lookupCancellation(cancelRef);
@@ -368,7 +412,7 @@ try {
     }
     if (cancellationRecovery !== undefined) {
       const state = await run.status();
-      output({runId: state.run_id, status: state.status, cancellationRecovery});
+      output({runId: state.run_id, status: state.status, control: state.control, cancellationRecovery});
     } else if (phase === 'approve-source') {
       const found = await until(async () => {
         const lookup = await client.lookupRequest('public-model-resume');

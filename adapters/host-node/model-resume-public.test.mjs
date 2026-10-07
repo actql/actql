@@ -434,6 +434,57 @@ for (const transport of ['local', 'https']) {
     assertSends(f, []);
   });
 
+  for (const commitLoss of ['before', 'after']) {
+    test(`public Model ${transport}: original cancellation survives ${commitLoss} final COMMIT reply loss`, async t => {
+      const f = await fixture(t, {transport, commitLoss});
+      const waiting = f.phase('wait');
+      const lost = f.phase('cancel-commit-loss');
+      assertSameRun(waiting, lost);
+      assert.equal(lost.cancellationRecovery.unknownCode, 'CancellationUnknown');
+      const cancelRef = f.read('cancel-ref.json');
+      assert.equal(cancelRef.cancelId, 'model-commit-original-cancel');
+      const custody = () => {
+        const database = new DatabaseSync(join(f.root, 'host', 'requests',
+          'client-requests.sqlite3'), {readOnly: true});
+        try {
+          return {operations: database.prepare(`SELECT cancel_id, expected_revision,
+            outcome_wire, outcome_cid FROM client_cancellation_operations`).all().map(row => ({...row})),
+          issued: database.prepare('SELECT issued_count FROM client_cancellation_custody').get().issued_count,
+          requested: database.prepare('SELECT cancellation_requested FROM client_requests').get().cancellation_requested};
+        } finally { database.close(); }
+      };
+      const snapshot = custody();
+      assert.equal(snapshot.issued, 1);
+      assert.equal(snapshot.operations.length, 1);
+      assert.equal(snapshot.requested, commitLoss === 'after' ? 1 : 0);
+      const expected = commitLoss === 'before' ? {kind: 'unknown', cancelRef}
+        : {kind: 'found', cancellation: {ref: waiting.ref, cancelRef,
+          kind: 'accepted', revision: cancelRef.expectedRevision + 1}};
+      assert.deepEqual(lost.cancellationRecovery.first, expected);
+      assert.deepEqual(lost.cancellationRecovery.second, expected);
+      if (commitLoss === 'after') {
+        assert.equal(lost.status, 'cancelled', 'committed cancellation stops the live Run without resend');
+        assert.equal(lost.control.cancellation_requested, true);
+        assert.equal(lost.control.physical_stop, 'confirmed');
+        assert.deepEqual(JSON.parse(snapshot.operations[0].outcome_wire), expected.cancellation);
+      } else {
+        assert.equal(lost.control.cancellation_requested, false);
+        assert.equal(snapshot.operations[0].outcome_wire, null);
+      }
+      assert.equal(f.journal().fences.length, 1);
+      assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+      assertSends(f, []);
+      const lookup = f.phase('lookup-cancel-commit-loss');
+      assertSameRun(waiting, lookup);
+      assert.deepEqual(lookup.cancellationRecovery.first, expected);
+      assert.deepEqual(lookup.cancellationRecovery.second, expected);
+      assert.deepEqual(custody(), snapshot, 'exact lookup cannot finish, rewrite or resend cancellation');
+      assert.equal(f.journal().fences.length, 1);
+      assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+      assertSends(f, []);
+    });
+  }
+
   test(`public Model ${transport}: cancellation after one saved response retains it and prevents later sends`, async t => {
     const f = await fixture(t, {transport, count: 3});
     const waiting = f.phase('wait');
