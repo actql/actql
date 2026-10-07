@@ -1272,11 +1272,18 @@ async function connectSelected(selected, port) {
           catch (cause) {
             throw new ClientError('InvalidHostAttemptLookup', {cause});
           }
-          if (!validDeliveryAttemptLookup(answer, {
+          const expected = {
             attemptId, runDefinitionCid: ref.runDefinitionCid,
             resultName: name,
-          })) fail('InvalidHostAttemptLookup');
-          return Object.freeze(answer);
+          };
+          try {
+            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
+            answer = structuredClone(answer);
+            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
+            return freezeInput(answer);
+          } catch {
+            fail('InvalidHostAttemptLookup');
+          }
         },
       });
     };
