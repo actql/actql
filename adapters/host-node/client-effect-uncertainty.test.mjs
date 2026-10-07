@@ -17,7 +17,7 @@ const expectedExplanation = (ref, revision) => ({
   effects: ['save'],
   physicalStop: 'confirmed',
   controlRevision: revision,
-  next: {operation: 'status', ref},
+  next: {operation: 'reconcile', ref},
 });
 
 const localObservation = path => new Promise((resolve, reject) => {
@@ -48,6 +48,7 @@ for (const entrance of ['local', 'https']) {
       const step = await setup.embedded(requestId, setup.program());
       assert.deepEqual(await step('submit'), {held: true});
       assert.deepEqual(await step('answer'), {answered: ['committed']});
+      assert.deepEqual(await step('resume'), {status: 'needs_reconciliation'});
       observe = () => localObservation(join(setup.root,
         `embedded-${requestId}.json`));
     } else {
@@ -68,9 +69,12 @@ for (const entrance of ['local', 'https']) {
             return value.status === 'needs_reconciliation' && value.control?.physical_stop === 'confirmed' ? value : undefined;
           });
           let reconcileError;
-          try { await attached.reconcile(); }
+          let reconciled;
+          try { reconciled = await attached.reconcile(); }
           catch (error) { reconcileError = error.code; }
-          return {ref: attached.ref, state, reconcileError,
+          return {ref: attached.ref, state, reconcileError, reconciled,
+            diagnostics: host.diagnostics.map(({name, detail}) => ({name, code: detail?.code})),
+            reconciledExplanation: sdk.explainEffectUncertainty?.(reconciled),
             explanation: sdk.explainEffectUncertainty?.(state),
             japaneseExplanation: sdk.explainEffectUncertainty?.(state, {locale: 'ja'}),
             copiedExplanation: sdk.explainEffectUncertainty?.({...state}),
@@ -79,6 +83,9 @@ for (const entrance of ['local', 'https']) {
       };
     }
     const first = await observe();
+    if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') t.diagnostic(JSON.stringify({ref: first.ref, state: first.state,
+      reconciled: first.reconciled, reconcileError: first.reconcileError,
+      diagnostics: first.diagnostics}));
     // Establish the actual Owner/provider facts before testing presentation.
     assert.equal(first.state.status, 'needs_reconciliation');
     assert.deepEqual(first.state.next_action, {kind: 'reconcile', effects: ['save']});
@@ -86,9 +93,6 @@ for (const entrance of ['local', 'https']) {
     assert.equal(first.state.result_available, false);
     assert.equal(setup.writes().length, 2);
     assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
-    // This standard Host has not connected a public reconciliation handler.
-    // That missing operation is distinct from knowing an Effect outcome.
-    assert.equal(first.reconcileError, 'ClientOperationUnavailable');
     assert.deepEqual(first.explanation,
       expectedExplanation(first.ref, first.state.control.revision),
       '[check-mutation:effect-explanation]');
@@ -102,6 +106,9 @@ for (const entrance of ['local', 'https']) {
       '[check-mutation:operation-effect-public-format]');
     const queries = setup.queries(), reads = setup.targetReads();
     const again = await observe();
+    if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') t.diagnostic(JSON.stringify({ref: again.ref, state: again.state,
+      reconciled: again.reconciled, reconcileError: again.reconcileError,
+      diagnostics: again.diagnostics}));
     assert.deepEqual(again.japaneseExplanation, {...expectedExplanation(again.ref, again.state.control.revision),
       summary: '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。'},
     '[check-mutation:operation-effect-public-restart]');
@@ -114,5 +121,23 @@ for (const entrance of ['local', 'https']) {
     assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
     assert.equal(setup.queries(), queries);
     assert.equal(setup.targetReads(), reads);
+    // The original Effect continuation is observation-only. Inconclusive
+    // provider evidence must preserve uncertainty, not fail or resend a write.
+    // Keep the Local path assertion after the independent no-resend facts,
+    // so an Owner failure does not conceal those observations in this case.
+    for (const observation of [first, again]) {
+      assert.equal(observation.reconcileError, undefined,
+        '[check-mutation:effect-reconciliation-path]');
+      assert.equal(observation.reconciled.status, 'needs_reconciliation',
+        '[check-mutation:effect-reconciliation-state]');
+      assert.equal(observation.reconciled.run_id, first.state.run_id);
+      assert.deepEqual(observation.reconciled.next_action,
+        {kind: 'reconcile', effects: ['save']});
+      assert.equal(observation.reconciled.control.physical_stop, 'confirmed');
+      assert.equal(observation.reconciled.result_available, false);
+      assert.deepEqual(observation.reconciledExplanation,
+        expectedExplanation(first.ref, observation.reconciled.control.revision),
+        '[check-mutation:effect-reconciliation-explanation]');
+    }
   });
 }
