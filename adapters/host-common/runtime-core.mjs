@@ -1716,6 +1716,7 @@ function publicationControl(moon) {
   const localEffectArtifactTokens = new WeakMap();
   const localEffectIdentityTokens = new WeakMap();
   const tableInputTokens = new WeakMap();
+  const tablePreviewTokens = new WeakMap();
   const localEffectManifestTokens = new WeakMap();
   const localEffectDependencyTokens = new WeakMap();
   const localEffectImportTokens = new WeakMap();
@@ -2630,6 +2631,24 @@ function publicationControl(moon) {
       }
       return moon.clientProgramTableInputMatchesSource(ownedInput,
         ownedArtifact, ownedIdentity);
+    },
+    bindTablePreview(input, capturedPreview, memberIndex) {
+      const ownedInput = tableInputTokens.get(input);
+      if (ownedInput === undefined || !Number.isSafeInteger(memberIndex) ||
+          memberIndex < 0) throw new TypeError('Invalid Table Preview input');
+      const issued = checked(moon.clientProgramBindTablePreview(ownedInput,
+        capturedPreview, memberIndex));
+      const value = Object.freeze({
+        subjectCid: moon.clientProgramTablePreviewSubjectCid(issued),
+        operationWire: moon.clientProgramTablePreviewOperationJson(issued),
+      });
+      tablePreviewTokens.set(value, issued);
+      return value;
+    },
+    tablePreviewInputAvailable(preview) {
+      const owned = tablePreviewTokens.get(preview);
+      if (owned === undefined) throw new TypeError('Foreign Table Preview');
+      return moon.clientProgramTablePreviewInputAvailable(owned);
     },
     checkSourceFreeLocalEffectPreviewIdentities(owner, inputs, wire,
       runIdentityCid, authoringContextCid, identities, limits) {

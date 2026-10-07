@@ -109,6 +109,8 @@ pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.Pu
 
 pub fn bind_client_table_input(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, Int, Int, Int) -> Result[ClientTableInput, ClientTableInputIssue]
 
+pub fn bind_client_table_preview(ClientTableInput, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Result[ClientTablePreview, ClientTableInputIssue]
+
 pub fn bind_client_task_run(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientTaskRunBinding, ClientTaskRunBindingIssue]
 
 pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectRunIssue]
@@ -446,6 +448,12 @@ pub fn client_table_input_mapping(ClientTableInput) -> @effect_application.Table
 pub fn client_table_input_matches_source(ClientTableInput, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity) -> Bool
 
 pub fn client_table_input_operation(ClientTableInput) -> @effect_application.TableOperation
+
+pub fn client_table_preview_input_available(ClientTablePreview) -> Bool
+
+pub fn client_table_preview_operation(ClientTablePreview) -> @effect_application.TableOperation
+
+pub fn client_table_preview_subject_cid(ClientTablePreview) -> String
 
 pub fn client_task_compilation_compiled_plan(ClientTaskCompilation) -> @run_publication.PublicationContract
 
@@ -1720,8 +1728,12 @@ pub(all) enum ClientTableInputIssue {
   Mapping(@effect_application.TableStorageMappingIssue)
   Operation(@effect_application.TableContractIssue)
   ForeignInput
+  Preview(@effect_application.TablePreviewIssue)
+  Unavailable
   Encoding
 } derive(Eq, @debug.Debug)
+
+type ClientTablePreview
 
 pub(all) enum ClientTaskAoAStepsIssue {
   MissingTask

@@ -202,6 +202,8 @@ pub fn effect_preview_footprint_target_cid(EffectPreviewFootprintIdentity, Int) 
 
 pub fn effect_preview_footprint_target_count(EffectPreviewFootprintIdentity) -> Int
 
+pub fn effect_preview_member_approval(EffectPreviewIdentity, Int) -> String?
+
 pub fn effect_preview_member_authority_scope_cid(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_capability_evidence_cid(EffectPreviewIdentity, Int) -> String?
@@ -263,6 +265,8 @@ pub fn effect_preview_row_intended_changes_wire(EffectPreviewIdentity, Int, Int)
 pub fn effect_preview_row_intended_value_wire(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_row_key(EffectPreviewIdentity, Int, Int) -> String?
+
+pub fn effect_preview_row_states_not_applicable(EffectPreviewIdentity, Int, Int) -> Bool
 
 pub fn effect_preview_run_identity(EffectPreviewIdentity) -> String
 
@@ -956,6 +960,7 @@ pub struct EffectPreviewIdentity {
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
+  member_approvals : Array[String]
   member_footprints : Array[EffectPreviewFootprintIdentity]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
@@ -964,6 +969,7 @@ pub struct EffectPreviewIdentity {
   row_intended_change_states : Array[Array[String]]
   row_intended_value_wires : Array[Array[String]]
   row_guard_version_cids : Array[Array[String]]
+  row_nonrow_states : Array[Array[Bool]]
   ordered_row_correlation_wires : Array[Array[String]]
   ordered_row_intended_change_states : Array[Array[String]]
   ordered_row_intended_value_wires : Array[Array[String]]
