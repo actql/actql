@@ -22,19 +22,32 @@ fn effect_context_dependency_roots(
       continue
     }
     guard @json.object_field(source, "artifact") is Some(artifact) &&
+      @json.object_field(source, "definition") is Some(definition) &&
+      captured_local_definition_source(
+        definition, max_bytes, max_nodes, max_depth,
+      )
+      is Some(relation_source) &&
       canonical_value_wire(artifact, max_bytes, max_nodes, max_depth)
       is Some(wire) else {
       return Err(InvalidBody)
     }
     let root = match
       admit_publication_effect_dependency_body(
-        "result_artifact", wire, max_bytes, max_nodes, max_depth,
+        match relation_source {
+          Result(_) => "result_artifact"
+          TableInput(_) => "table_input_artifact"
+        },
+        wire,
+        max_bytes,
+        max_nodes,
+        max_depth,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    if !seen.contains(root.node.identity) {
-      seen[root.node.identity] = true
+    let key = dependency_key(root.node.kind, root.node.identity)
+    if !seen.contains(key) {
+      seen[key] = true
       roots.push(root)
     }
   }

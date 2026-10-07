@@ -59,12 +59,25 @@ test "recovery import correspondence rejects independently valid substitutions" 
   let run = invocation(producer.node.identity, "[]")
   fn result(
     name : String,
+    table : Bool,
   ) -> (CapturedEffectDependencyBody, CapturedEffectDependencyBody) raise {
     let definition = import_binding_test_body(
-      "local_result_definition",
-      "{\"version\":\"actql-local-result-definition/0.1\",\"unit_definition_cid\":\"" +
+      if table {
+        "local_table_input_definition"
+      } else {
+        "local_result_definition"
+      },
+      "{\"version\":\"" +
+      (if table {
+        "actql-local-table-input-definition/0.1"
+      } else {
+        "actql-local-result-definition/0.1"
+      }) +
+      "\",\"unit_definition_cid\":\"" +
       producer.node.identity +
-      "\",\"result_name\":\"" +
+      "\"," +
+      (if table { "\"table_input_name\"" } else { "\"result_name\"" }) +
+      ":\"" +
       name +
       "\"}",
     )
@@ -95,7 +108,11 @@ test "recovery import correspondence rejects independently valid substitutions" 
     (
       definition,
       admit_publication_effect_dependency_body(
-        "result_artifact",
+        if table {
+          "table_input_artifact"
+        } else {
+          "result_artifact"
+        },
         artifact.wire,
         10000,
         1000,
@@ -103,8 +120,44 @@ test "recovery import correspondence rejects independently valid substitutions" 
       ).unwrap(),
     )
   }
-  let (definition, artifact) = result("rows")
-  let (other_definition, other_artifact) = result("other")
+  let (definition, artifact) = result("rows", false)
+  let (other_definition, other_artifact) = result("other", false)
+  let (private_definition, private_artifact) = result("rows", true)
+  let mixed_manifest = (private_cid : String, public_cid : String) => {
+    import_binding_test_body(
+      "local_manifest",
+      "{\"version\":\"actql-local-result-manifest/0.1\",\"unit_definition_cid\":\"" +
+      producer.node.identity +
+      "\",\"local_invocation_cid\":\"" +
+      run.node.identity +
+      "\",\"results\":{\"rows\":\"" +
+      public_cid +
+      "\"},\"table_inputs\":{\"rows\":\"" +
+      private_cid +
+      "\"}}",
+    )
+  }
+  let shared = [
+    producer, run, definition, artifact, private_definition, private_artifact,
+  ]
+  let mixed = shared.copy()
+  mixed.push(
+    mixed_manifest(private_artifact.node.identity, artifact.node.identity),
+  )
+  assert_eq(validate_effect_dependency_import_bindings(mixed), Ok(()))
+  for
+    (private_cid, public_cid) in [
+      (artifact.node.identity, artifact.node.identity),
+      (private_artifact.node.identity, private_artifact.node.identity),
+      (other_artifact.node.identity, artifact.node.identity),
+    ] {
+    let invalid = shared.copy()
+    invalid.push(mixed_manifest(private_cid, public_cid))
+    assert_eq(
+      validate_effect_dependency_import_bindings(invalid),
+      Err(InvalidBody),
+    )
+  }
   let manifest = import_binding_test_body(
     "local_manifest",
     "{\"version\":\"actql-local-result-manifest/0.1\",\"unit_definition_cid\":\"" +

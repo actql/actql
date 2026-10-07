@@ -4,6 +4,7 @@ pub(all) enum EffectResultBindingIssueKind {
   WorkLimit
   ForeignProgram
   MissingResult
+  MissingTableInput
   MissingField
   InvalidCommandTarget
   UnsupportedTableInput
@@ -49,6 +50,7 @@ pub fn effect_result_binding_issue_field(
 pub struct EffectResultBinding {
   header : @syntax.EffectHeader
   result : @results.ResultDefinition?
+  table_input : @results.TableInputDefinition?
   fields : Array[EffectResultFieldBinding]
 }
 
@@ -105,6 +107,14 @@ pub fn effect_result_binding_result(
   binding : EffectResultBinding,
 ) -> @results.ResultDefinition? {
   binding.result
+}
+
+///|
+/// A private Table source is never returned through the public Result getter.
+pub fn effect_result_binding_table_input(
+  binding : EffectResultBinding,
+) -> @results.TableInputDefinition? {
+  binding.table_input
 }
 
 ///|
@@ -185,9 +195,10 @@ fn binding_charge(
 }
 
 ///|
-/// Bind authored member fields to the admitted Stage Result schema. This
-/// retains exact Result ownership and checked field contracts, and rejects a
-/// Command target that is not a non-null ResourceRef. It does not establish
+/// Bind authored member fields to the admitted Stage Result schema, or a
+/// whole-Relation Store source to its checked private Table declaration.
+/// This retains exact source ownership and checked field contracts, and
+/// rejects a Command target that is not a non-null ResourceRef. It does not establish
 /// Mapping/Command compatibility, current authority, Preview, or apply
 /// admission. The binding is not an execution permit.
 pub fn bind_effect_results(
@@ -223,10 +234,23 @@ pub fn bind_effect_results(
   let members : Array[EffectResultBinding] = []
   for index in 0..<count {
     let header = @syntax.effect_header_at(headers, index).unwrap()
-    // Until the separate checked private port is connected to capture and
-    // Table Preview, never downgrade it to a source-free ordinary Store.
-    if @syntax.effect_header_source_table_input(header) is Some(_) {
-      return Err(binding_issue(UnsupportedTableInput, header))
+    let table_input = match @syntax.effect_header_source_table_input(header) {
+      None => None
+      Some(name) => {
+        if @syntax.effect_header_kind(header) != "store" ||
+          @syntax.effect_header_source_result(header) is Some(_) {
+          return Err(binding_issue(UnsupportedTableInput, header))
+        }
+        guard stage_table_inputs_at(
+            checked,
+            @syntax.effect_header_stage(header),
+          )
+          is Some(inputs) &&
+          @results.lookup_table_input(inputs, name) is Some(input) else {
+          return Err(binding_issue(MissingTableInput, header))
+        }
+        Some(input)
+      }
     }
     let fields : Array[EffectResultFieldBinding] = []
     let result = match @syntax.effect_header_source_result(header) {
@@ -309,7 +333,7 @@ pub fn bind_effect_results(
         }
       }
     }
-    members.push({ header, result, fields, })
+    members.push({ header, result, table_input, fields, })
   }
   Ok({ owner: checked, headers, members, work: max_work - remaining, })
 }

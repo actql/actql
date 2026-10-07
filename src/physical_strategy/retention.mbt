@@ -40,9 +40,16 @@ priv enum CapturedResidentReference {
 /// boundary. This pin retains the physical allocation but does not expose
 /// rows, establish a logical CID, or authorize Effect use or public egress.
 struct CapturedResidentResultBorrow {
+  occurrence : @execution.ManagedResultOccurrence
+  pin : CapturedResidentGenerationPin
+}
+
+///|
+/// One pin on the existing task lifetime. Result and private Table inputs
+/// share its ceiling, physical-release predicate and allocation owner.
+priv struct CapturedResidentGenerationPin {
   run : CapturedDAG
   task : Int
-  occurrence : @execution.ManagedResultOccurrence
   reference : CapturedResidentReference
   mut live : Bool
 }
@@ -193,13 +200,24 @@ fn resident_result_borrow_ready(
   occurrence : @execution.ManagedResultOccurrence,
   max_pins : Int,
 ) -> Result[Unit, RunIssue] {
-  if max_pins <= 0 || task < 0 || task >= run.outputs.length() {
-    return Err(ForeignCandidate)
-  }
   let owner = @execution.managed_result_occurrence_owner(occurrence)
   let target = @ports.port_target(
     @execution.managed_result_occurrence_port(occurrence),
   )
+  resident_generation_borrow_ready(run, task, owner, target, max_pins)
+}
+
+///|
+fn resident_generation_borrow_ready(
+  run : CapturedDAG,
+  task : Int,
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+  max_pins : Int,
+) -> Result[Unit, RunIssue] {
+  if max_pins <= 0 || task < 0 || task >= run.outputs.length() {
+    return Err(ForeignCandidate)
+  }
   guard run.graph.owners.get(task) is Some(actual) &&
     physical_equal(actual, owner) &&
     captured_task_target(run, task) == Some(target) else {
@@ -266,6 +284,19 @@ fn borrow_captured_resident_result_reference(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  acquire_captured_resident_generation_pin(run, task, max_pins).map(pin => {
+    occurrence,
+    pin,
+  })
+}
+
+///|
+/// Call only after exact checked-owner, target and task completion validation.
+fn acquire_captured_resident_generation_pin(
+  run : CapturedDAG,
+  task : Int,
+  max_pins : Int,
+) -> Result[CapturedResidentGenerationPin, RunIssue] {
   let reference = match run.outputs[task] {
     Some(Managed(value)) => CapturedResidentReference::Managed(value)
     Some(CarrierManaged(value)) => CapturedResidentReference::Carrier(value)
@@ -283,17 +314,24 @@ fn borrow_captured_resident_result_reference(
     return Err(Physical(@resources.HoldingLimit))
   }
   run.lifetimes[task].pins += 1
-  Ok({ run, task, occurrence, reference, live: true, })
+  Ok({ run, task, reference, live: true, })
 }
 
 ///|
 pub fn captured_resident_result_borrow_available(
   borrow : CapturedResidentResultBorrow,
 ) -> Bool {
-  if !borrow.live {
+  captured_resident_generation_pin_available(borrow.pin)
+}
+
+///|
+fn captured_resident_generation_pin_available(
+  pin : CapturedResidentGenerationPin,
+) -> Bool {
+  if !pin.live {
     return false
   }
-  match borrow.reference {
+  match pin.reference {
     Managed(reference) =>
       @execution.managed_completed_reference_available(reference)
     Carrier(reference) =>
@@ -306,7 +344,7 @@ pub fn[T] captured_resident_result_borrow_matches_managed(
   borrow : CapturedResidentResultBorrow,
   output : @execution.ManagedCompletedOutput[T],
 ) -> Bool {
-  match borrow.reference {
+  match borrow.pin.reference {
     Managed(reference) =>
       captured_resident_result_borrow_available(borrow) &&
       @execution.managed_completed_reference_matches(reference, output) &&
@@ -326,7 +364,7 @@ pub fn captured_resident_result_borrow_matches_carrier(
   borrow : CapturedResidentResultBorrow,
   output : @execution.CarrierManagedCompletedOutput,
 ) -> Bool {
-  match borrow.reference {
+  match borrow.pin.reference {
     Carrier(reference) =>
       captured_resident_result_borrow_available(borrow) &&
       @execution.carrier_managed_completed_reference_matches(reference, output) &&
@@ -352,12 +390,19 @@ pub fn captured_resident_result_borrow_occurrence(
 pub fn release_captured_resident_result_borrow(
   borrow : CapturedResidentResultBorrow,
 ) -> Bool {
-  if !borrow.live {
+  release_captured_resident_generation_pin(borrow.pin)
+}
+
+///|
+fn release_captured_resident_generation_pin(
+  pin : CapturedResidentGenerationPin,
+) -> Bool {
+  if !pin.live {
     return false
   }
-  borrow.live = false
-  borrow.run.lifetimes[borrow.task].pins -= 1
-  collect_captured_retention(borrow.run)
+  pin.live = false
+  pin.run.lifetimes[pin.task].pins -= 1
+  collect_captured_retention(pin.run)
   true
 }
 
@@ -443,7 +488,7 @@ pub fn captured_any_result_borrows_share_view(
       a.pin.task == b.pin.task &&
       physical_equal(a.pin.output, b.pin.output)
     (Resident(a), Resident(b)) =>
-      physical_equal(a.run, b.run) && a.task == b.task
+      physical_equal(a.pin.run, b.pin.run) && a.pin.task == b.pin.task
     (Source(a), Source(b)) =>
       physical_equal(a.run, b.run) &&
       a.task == b.task &&

@@ -178,11 +178,16 @@ fn effect_mapping_rule_sources(
     return Err(effect_mapping_rule_issue(WorkLimit, header))
   }
   remaining.val -= count
-  let result = match effect_result_binding_result(effect) {
-    Some(value) => value
-    None => return Err(effect_mapping_rule_issue(InvalidBody, header))
+  let schema = match
+    (
+      effect_result_binding_result(effect),
+      effect_result_binding_table_input(effect),
+    ) {
+    (Some(value), None) => @results.output_schema(value)
+    (None, Some(value)) if @syntax.effect_header_kind(header) == "store" =>
+      @results.table_input_schema(value)
+    _ => return Err(effect_mapping_rule_issue(InvalidBody, header))
   }
-  let schema = @results.output_schema(result)
   for index in 0..<count {
     let (target, source) = @environment.mapping_row_fields_source_at(
       rows, index,
