@@ -482,6 +482,7 @@ export function validateResourceAccounting({
         'moon:value_contract': 'value_contract',
         'moon:encode_core': 'encode_core',
         'moon:relation_schema': 'relation_schema',
+        'moon:connectors_local': 'connectors/local',
         'moon:bounded_tuple_sort': 'bounded_tuple_sort',
         'moon:managed_record_storage': 'managed_record_storage',
         'moon:managed_record_runtime': 'managed_record_runtime',
@@ -613,6 +614,7 @@ export function validateResourceAccounting({
         'append_chain_two_consumers',
         'append_chain_work_workspace_exact_one_short',
         'append_chain_cancel_cleanup',
+        'append_receiving_metadata_limits', 'append_receiving_metadata_handoff',
       ]) {
         if (!boundaryRoles.has(role)) {
           fail(`${label}: ${role} fixture is missing`);
@@ -951,6 +953,8 @@ export function validateResourceAccounting({
 
         'node:embedded_vector_records':
           'adapters/host-node/public-vector-record-retention.test.mjs',
+        'node:embedded_producer_metadata':
+          'adapters/host-node/public-producer-read-preparation.test.mjs',
         'node:embedded_property_names':
           'adapters/host-node/public-property-name-retention.test.mjs',
       }[item.suite];
@@ -1037,10 +1041,15 @@ export function validateResourceAccounting({
       }
     }
     if (route.family === 'RelA' && route.operation === 'append') {
-      for (const role of ['append_chain_timer', 'append_chain_publication']) {
+      for (const role of ['append_chain_timer', 'append_chain_publication',
+        'append_receiving_metadata_public']) {
         if (!environmentRoles.has(role)) {
           fail(`${label}: ${role} fixture is missing`);
         }
+      }
+      if (!fs.readFileSync(path.join(root, 'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+        .includes("import './public-producer-read-preparation.test.mjs';")) {
+        fail(`${label}: receiving metadata public fixture is not suite-connected`);
       }
     }
     if (route.global_count_entrypoint !== undefined) {
@@ -1797,6 +1806,25 @@ export function validateResourceAccounting({
       !environmentRoles.has('ordinary_derive_in_flight_host_timer')) {
       fail(`${label}: ordinary derive Host timer evidence is missing`);
     }
+    if (route.family === 'RelA' && ['sort', 'take'].includes(route.operation)) {
+      for (const role of ['ordered_metadata_quantum', 'ordered_metadata_stop',
+        ...(route.operation === 'sort' ? ['ordered_metadata_term_limits'] : [])]) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('ordered_metadata_public')) {
+        fail(`${label}: ordered metadata public fixture is missing`);
+      }
+    }
+    if (route.family === 'RelA' && ['json_pick', 'watermark_rows', 'lag'].includes(route.operation)) {
+      for (const role of ['generated_metadata_quantum', 'generated_metadata_stop',
+        ...(route.operation === 'json_pick' ? ['generated_metadata_workspace',
+          'generated_metadata_work'] : [])]) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('generated_metadata_public')) {
+        fail(`${label}: generated metadata public fixture is missing`);
+      }
+    }
     if (route.family === 'RelA' && route.operation === 'derive' &&
       (!environmentRoles.has('same_stage_values_derive_timer_cancel_cleanup') ||
         !boundaryRoles.has('same_stage_values_derive_two_consumers'))) {
@@ -1808,7 +1836,9 @@ export function validateResourceAccounting({
         'derive_object_name_limits', 'derive_object_name_stop',
         'derive_raw_text_child_limits', 'derive_raw_text_child_stop',
         'derive_indexed_snapshot_limits', 'derive_row_name_limits',
-        'derive_row_name_stop']) {
+        'derive_row_name_stop', 'derive_metadata_lookup',
+        'derive_metadata_prepare_stop', 'derive_metadata_projection_stop',
+        'derive_metadata_quantum']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('derive_property_name_public')) {

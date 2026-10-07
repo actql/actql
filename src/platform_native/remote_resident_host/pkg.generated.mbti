@@ -66,6 +66,8 @@ pub fn prepare_resident_retained_producer_context(@remote_journal.Journal, Resid
 
 pub fn prepare_resident_retained_transfer(@remote_runtime.NativeRemoteRuntime, @remote_site_protocol.DispatchRequest, @run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest, @run_publication_host.ClientRetainedInputCurrent, @execution_site.ExecutionSite, @remote_transfer_journal.Journal, @filesystem.Root, Int, Int64, Int64) -> Result[ResidentRetainedTransfer, ResidentRetainedTransferIssue]
 
+pub fn prepare_resident_saved_output(@remote_journal.Journal, @execution_site.ExecutionSite, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, String, String, () -> String, () -> Bool) -> Result[ResidentSavedOutput, ResidentHostIssue]
+
 pub fn reclaim_resident_output_intents(@remote_journal.Journal, @publication_store.Store) -> Result[Int, ResidentOutputIssue]
 
 pub fn reclaim_resident_payload(@publication_store.Store, @publication_payload.PublicationPayloadRequest) -> Result[Bool, ResidentOutputIssue]
@@ -260,6 +262,17 @@ pub(all) struct ResidentRunAdmission {
   limits : @run_publication_host.ClientValuesRunMaterialsLimits
   source : (String, String)?
 }
+
+pub struct ResidentSavedOutput {
+  journal : @remote_journal.Journal
+  request : @remote_site_protocol.DispatchRequest
+  output : @remote_site_protocol.RemotePollOutput
+  subject : @remote_site_protocol.RemoteManagedOutputSubject
+  payload : @publication_payload.PublicationPayloadRequest
+  current : () -> Bool
+}
+pub fn ResidentSavedOutput::is_current(Self) -> Bool
+pub fn ResidentSavedOutput::recover(Self, @publication_store.Store, @remote_transfer_journal.Journal, @http_client.Client, String, Int) -> ResidentDelivery
 
 type ResidentSourceCompute
 pub fn ResidentSourceCompute::close(Self) -> Bool

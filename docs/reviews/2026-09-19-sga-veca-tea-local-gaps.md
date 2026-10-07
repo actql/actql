@@ -320,6 +320,14 @@ evidence and unverified performance/target/distribution coverage.
 
 ## Status interpretation (2026-09-28)
 
+The bounded receiving-input follow-up on 2026-10-07 retains long producer-name
+measurement/comparison inside the existing same-task chain owner. Partial maps
+never authorize a child; cancellation keeps inputs/private outputs until stop
+and cleanup. Common metadata limits, the independently counted 19-poll handoff,
+and the ordinary retained Append/select/two-consumer Program have limited JS
+evidence. Existing Native source/census pins require G review before this unit
+is merge-ready; old receipts are not adopted as new-source evidence. See the
+[receiving-input record](2026-10-07-local-producer-read-preparation.md).
 The 2026-10-07 string aggregation follow-up replaces demanded delimiter/item
 whole-Text sizing and final join with the same finisher's scalar phases and
 existing exact-capacity StringBuilder. Original byte/control totals, raw data,
@@ -6282,3 +6290,52 @@ installed projected-read metadata ceiling remain separate. This is neither
 all-start boundedness nor Native physical capacity certification. See the
 [indexed row record](2026-10-07-local-indexed-row-snapshots.md) for the
 counterexample, independent budgets, public shape and unverified coverage.
+
+### Resumable row metadata preparation (2026-10-07)
+
+SnapshotMap, OrderedBindings, Filter, AssertAll and Select prepare wide/long
+input names, output names and cached sources in the existing bounded owner.
+Binding/projection comparison and schema lookup retain UTF-16 cursors and
+borrow immutable admitted names rather than hashing all names during start.
+Partial preparation observes cancellation and releases its own workspace
+once while preserving borrowed inputs and spent work. Short metadata retains
+its existing bounded footprint and logical charging remains unchanged.
+
+This is a dependent unit after the indexed row change, not main adoption or
+all-start boundedness. KernelBody copies, other kernel metadata, availability
+validation and the installed projected-read ceiling remain. See the
+[metadata cursor record](2026-10-07-local-row-metadata-cursor.md) for the
+counterexample, implemented shapes, shared evidence and unverified coverage.
+
+### Resumable order and key metadata (2026-10-07)
+
+Sort, take, distinct, dedupe, unique assertion and top-k now reach the same
+wide/long-name metadata preparation owner. Term lookup and schema-name
+charging retain cursors across resumes; reservation and entry charges occur
+once. The bounded small lane, typed ordering and cumulative work are preserved.
+Independent temporary limits, Unicode/NULL/duplicate rows, resume quanta and
+stopped cleanup supplement the existing operation-wide evidence.
+
+A normal retained-Store sort -> take -> derive -> select Program publishes
+three fixed ordered Named Results, feeds two consumers, reuses a repeated
+request and delivers cancellation after positive progress. This does not
+close initial preparation, availability, JSON/window metadata or Native
+physical capacity correspondence. The unmerged #704 owner remains a
+dependency. See the [order metadata record](2026-10-07-local-row-order-metadata.md).
+
+### Resumable generated row metadata (2026-10-07)
+
+JSON Pick, fixed Watermark rows and Lag prepare wide/long-name schemas and
+operation sources in the existing bounded Relation owner. Exact generated
+roles are matched once with retained UTF-16 cursors and cached for output
+copying. Canonical schema order no longer requires generated columns last.
+Short-lane budgets, cumulative logical work and borrowed-input custody remain
+unchanged. Independent JSON preparation/work limits and stops inside role
+matching/source lookup supplement existing whole-operation evidence.
+
+Normal real-Store Programs publish three fixed Named Results, use two
+consumers and deliver post-progress cancellation without early release or
+partial publication. The evidence gate requires these connected fixtures.
+This dependent unit follows #704/#708; it does not close initial preparation,
+availability validation, projected-read capacity or Native correspondence.
+See the [generated metadata record](2026-10-07-local-generated-row-metadata.md).

@@ -10,9 +10,9 @@ export function nativeUnitFixture(bounds) {
 
 // Synthetic one-point Array descriptors for validator negatives, not FFI evidence.
 export function nativeArrayUnitFixture(bounds) {
-  return Object.fromEntries(['inputNames', 'outputNames', 'sortedIndices'].map((name, i) => {
+  return Object.fromEntries(['inputNames', 'outputNames', 'rowSources', 'snapshot', 'sortedIndices'].map((name, i) => {
     const slots = Number(bounds[name]), bytes = name === 'sortedIndices' ? 4 : 8;
-    return [name, { owner: String(100 + 2 * i), backing: String(101 + 2 * i), slots,
+    return [name, { owner: String(100 + 2 * i), backing: slots === 0 && bytes === 8 ? '999' : String(101 + 2 * i), slots,
       length: slots, elementBytes: bytes, ownerBytes: '24', backingBytes: String(8 + slots * bytes),
       ownerStatic: false, backingStatic: slots === 0 }];
   }));

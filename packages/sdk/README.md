@@ -30,6 +30,13 @@ parameters, connection selection and lookup context. Local and HTTPS use the
 same JSON-value snapshot. Text is not normalized or converted to different
 newlines. Credentials and signing keys are not added to this snapshot.
 
+`check`, `start` and `aql` share numeric-preserving JSON request serialization.
+NaN, infinities and negative zero are refused, including nested parameters,
+Program values, declaration defaults, boxed Numbers and `toJSON` results.
+The snapshot is made once before credentials or transport. A submit refusal
+uses `InvalidClientPayload`; check retains `InvalidCheckRequest`. Neither is
+`SubmissionUnknown`, and neither can reach Host preparation or Run acceptance.
+
 ```js
 import {getSubmissionInput} from '@actql/sdk';
 
@@ -169,9 +176,12 @@ lookup candidate, never permission to reopen or rerun Compute. Standard
 wording is English; `locale: 'ja'` selects the existing Japanese localization.
 A release receipt never proves that the Client
 received or saved every value. A reader reaches `complete` only after the
-normal wire terminator; values yielded before a failure are a prefix.
-Installed Local delivery also propagates its owner's terminal-record or
-receipt failure after a normal terminator, retaining the failed attempt.
+normal wire terminator and transport EOF; values yielded before a failure
+are a prefix. The installed HTTPS Host confirms payload termination first,
+then withholds HTTP EOF until its owner durably saves the receipt and succeeded
+record. Persistence failure interrupts the response and retains the original
+attempt. Installed Local delivery likewise waits for the owner's terminal-record
+and receipt outcome after a normal terminator.
 Installed Local Host errors use the same public code policy as HTTP; private
 provider causes, stacks and internal cleanup handles are not public diagnostics.
 `rowsYielded()` counts complete rows returned to that reader's caller. For

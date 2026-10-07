@@ -8,7 +8,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol, runStateProtocol} from
+  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
@@ -1385,8 +1385,8 @@ async function connectSelected(selected, port) {
     })};
     let body;
     try {
-      body = freezeInput(JSON.parse(JSON.stringify({requestId, kind, input,
-        parameters: options.parameters ?? null})));
+      body = freezeInput(snapshotClientRequest({requestId, kind, input,
+        parameters: options.parameters ?? null}));
     } catch { fail('InvalidClientPayload'); }
     const snapshot = freezeInput({...body, connection: selected.wire,
       lookupContext: context.lookupContext});
@@ -1446,7 +1446,7 @@ async function connectSelected(selected, port) {
       let body;
       try {
         // Detach caller-owned objects synchronously, before credentials or I/O.
-        body = freezeInput(snapshotCheckRequest({input: {text, format: options.format,
+        body = freezeInput(snapshotClientRequest({input: {text, format: options.format,
           ...(options.parameterDeclarations === undefined ? {} :
             {parameterDeclarations: options.parameterDeclarations})},
           parameters: options.parameters ?? null}));

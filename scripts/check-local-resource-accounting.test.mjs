@@ -2560,8 +2560,10 @@ for (const operation of ['node_rows', 'edge_rows', 'to_events', 'to_vectors']) {
 test('append loses its boundary record when exact resource evidence is removed', () => {
   for (const [field, roles] of [
     ['boundary_tests', ['append_chain_two_consumers', 'append_chain_cancel_cleanup',
-      'append_chain_work_workspace_exact_one_short']],
-    ['environment_tests', ['append_chain_timer', 'append_chain_publication']],
+      'append_chain_work_workspace_exact_one_short',
+      'append_receiving_metadata_limits', 'append_receiving_metadata_handoff']],
+    ['environment_tests', ['append_chain_timer', 'append_chain_publication',
+      'append_receiving_metadata_public']],
   ]) {
     for (const role of roles) {
       assert.match(run(undefined, routes => {
@@ -3821,6 +3823,52 @@ test('indexed row assurance requires name limits stop and public evidence', () =
       const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
       derive[kind] = derive[kind].filter(entry => entry.role !== role);
     }), /(?:derive_(?:indexed_snapshot_limits|row_name_limits|row_name_stop)|indexed snapshot public) fixture is missing/u);
+  }
+});
+
+test('row metadata assurance requires lookup phase stop projection and quantum evidence', () => {
+  for (const role of ['derive_metadata_lookup', 'derive_metadata_prepare_stop',
+    'derive_metadata_projection_stop', 'derive_metadata_quantum']) {
+    assert.match(run(undefined, routes => {
+      const derive = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'derive');
+      derive.boundary_tests = derive.boundary_tests.filter(entry => entry.role !== role);
+    }), new RegExp(`${role} fixture is missing`, 'u'));
+  }
+});
+
+test('ordered metadata assurance requires limits stop quantum and public evidence', () => {
+  for (const [operation, kind, role] of [
+    ['sort', 'boundary_tests', 'ordered_metadata_term_limits'],
+    ...['sort', 'take'].flatMap(operation => [
+      [operation, 'boundary_tests', 'ordered_metadata_quantum'],
+      [operation, 'boundary_tests', 'ordered_metadata_stop'],
+      [operation, 'environment_tests', 'ordered_metadata_public'],
+    ]),
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route[kind] = route[kind].filter(entry => entry.role !== role);
+    }), /(?:ordered_metadata_(?:term_limits|quantum|stop)|ordered metadata public) fixture is missing/u);
+  }
+});
+
+test('generated metadata assurance requires limits stop quantum and public evidence', () => {
+  for (const [operation, kind, role] of [
+    ['json_pick', 'boundary_tests', 'generated_metadata_workspace'],
+    ['json_pick', 'boundary_tests', 'generated_metadata_work'],
+    ...['json_pick', 'watermark_rows', 'lag'].flatMap(operation => [
+      [operation, 'boundary_tests', 'generated_metadata_quantum'],
+      [operation, 'boundary_tests', 'generated_metadata_stop'],
+      [operation, 'environment_tests', 'generated_metadata_public'],
+    ]),
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route[kind] = route[kind].filter(entry => entry.role !== role);
+    }), /(?:generated_metadata_(?:workspace|work|quantum|stop)|generated metadata public) fixture is missing/u);
   }
 });
 

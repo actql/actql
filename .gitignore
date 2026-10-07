@@ -1,6 +1,8 @@
 .DS_Store
 node_modules/
 __pycache__/
+.venv-table/
+.cache-table/
 _build/
 packages/local-node/adapters/
 packages/local-node/spec/

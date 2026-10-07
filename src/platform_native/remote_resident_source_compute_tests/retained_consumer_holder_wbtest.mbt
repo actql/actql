@@ -249,6 +249,133 @@ fn retained_consumer_holder_case(
     executed.completion.evidence_cid,
   )
   assert_eq(entries.val, 1)
+  // Saved-report preparation uses this real completed consumer. Missing
+  // Output custody is a refusal, never permission to enter Compute again.
+  let delegated : @resident_protocol.ResidentSiteDelegation = {
+    coordinator_authority: @remote.dispatch_request_journal_key(dispatch)[0],
+    site_key: scope[0],
+    runtime_bundle_cid: scope[2],
+    connector_registration: scope[3],
+    connector_revision: scope[4],
+    strategy_revision: scope[5],
+    grant_cid: scope[6],
+    evidence_issuer_capability_cid: scope[7],
+    budget_cids: [@remote.dispatch_request_budget_cid(dispatch)],
+  }
+  let attempt = @remote.dispatch_request_attempt_identity(dispatch).unwrap()
+  let missing_intent = "sha256:" + "e".repeat(64)
+  let saved_revision = @remote.dispatch_record_revision(
+    journal.require(dispatch).unwrap(),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Runtime(@runtime.CompletedRestorationPending)),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => false,
+    )
+    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      "another-attempt",
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.EnvelopeMissing),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      {
+        ..admission,
+        source: Some(("connector://other/source#v", "sha256:" + "0".repeat(64))),
+      },
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Refused(@resident_protocol.ForeignSource)),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      { ..delegated, coordinator_authority: "foreign-coordinator", },
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2100-01-01T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
+  )
+  let foreign_site = @site.create_site(
+    scope[0],
+    2,
+    scope[2],
+    4,
+    4,
+    1048576L,
+    1048576L,
+  ).unwrap()
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      foreign_site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(journal.require(dispatch).unwrap()),
+    saved_revision,
+  )
+  assert_eq(entries.val, 1)
+  assert_true(journal.pending_output_intents().unwrap().is_empty())
   // Completion must name the original file custody before it is available for
   // Output. A process-local completion alone cannot survive holder loss.
   let custody = @dispatch_journal.recovered_site_dispatch_file_custody(
