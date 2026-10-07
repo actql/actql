@@ -6813,3 +6813,18 @@ the actual filter/select strategy caller are connected in the
 The packed payload remains one bounded-capacity allocation; its latency,
 View-plan preparation and trusted callbacks are not made bounded by this change.
 Pure-select native candidate support and whole-Local completion are not claimed.
+
+### Within-row retained export follow-up (2026-10-08)
+
+Completed row-file export now resumes name/value measurement and canonical
+emission through existing cursors. The Local Node Store adapter polls within
+one row, yielding for Host cancellation before a complete row reaches the Store.
+The ordinary Values/filter/select producer and its two consumer Named Results
+use real retained/publication Stores with independent expectations. Cancellation
+during row measurement retains its original cause, confirms stop, prevents
+publication and drains existing cleanup without additional Compute.
+See the [row export record](2026-10-08-local-bounded-row-file-export.md) for
+independent work/workspace limits, the additional fixed capacity envelope and
+fixed-source JS/Node evidence. Export preparation, publication metadata copies,
+blocking Native consumers and trusted callback latency are still separate
+boundaries; this is not packed/all-target or whole-Local completion.

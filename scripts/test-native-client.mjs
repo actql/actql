@@ -312,6 +312,26 @@ try {
     parameterDeclarations: {minimum: {type: 'number'}},
   });
   assert.deepEqual(querySubmit.body.parameters, {minimum: 1});
+  await writeFile(join(root, 'budget-numbers.json'),
+    JSON.stringify({numbers: Array(8192).fill(1)}));
+  await writeFile(join(root, 'budget-depth.json'),
+    '{"nested":' + '['.repeat(32) + '1' + ']'.repeat(32) + '}');
+  const budgetRefusals = [];
+  for (const [nonce, parameters] of [
+    ['parameter-node-limit', 'budget-numbers.json'],
+    ['parameter-depth-limit', 'budget-depth.json'],
+  ]) {
+    const before = requests.length;
+    const rejected = await run('aql', '--program-file', 'query.sql', '--format', 'sql',
+      '--request-id', nonce, '--parameters-file', parameters);
+    assert.notEqual(rejected.code, 0, nonce);
+    assert.equal(requests.length, before, `${nonce}: no connection or submission before refusal`);
+    budgetRefusals.push({nonce, stderr: rejected.stderr});
+  }
+  console.log('NATIVE_SUBMISSION_BUDGET_EVIDENCE', JSON.stringify(budgetRefusals));
+  for (const {nonce, stderr} of budgetRefusals) {
+    assert.match(stderr, /JSON file exceeds configured bounds/u, nonce);
+  }
   const beforeInvalid = requests.filter(item =>
     item.operation === 'submit-intent').length;
   const invalid = await run('aql', '--program-file', 'program.json',
