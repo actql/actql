@@ -327,6 +327,9 @@ if (process.argv.includes('--join-order-only')) {
 if (process.argv.includes('--group-ordinal-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_ORDINAL_ONLY = '1';
 }
+if (process.argv.includes('--pipe-aggregate-expression-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_AGGREGATE_EXPRESSION_ONLY = '1';
+}
 if (process.argv.includes('--pipe-aggregate-order-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_AGGREGATE_ORDER_ONLY = '1';
 }
@@ -509,7 +512,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--unnest-checked-array-onl
   '--graph-any-direction-only',
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
-  '--group-property-only', '--pipe-aggregate-order-only',
+  '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only',
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
@@ -583,7 +586,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-any-direction-only',
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
-  '--group-property-only', '--pipe-aggregate-order-only',
+  '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only',
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
@@ -610,6 +613,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--graph-quantifier-forms-only') ||
     process.argv.includes('--group-property-only') ||
     process.argv.includes('--pipe-aggregate-order-only') ||
+    process.argv.includes('--pipe-aggregate-expression-only') ||
     process.argv.includes('--distinct-order-only') ||
     process.argv.includes('--implicit-property-only') ||
     process.argv.includes('--computed-object-property-only') ||

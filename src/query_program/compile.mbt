@@ -2222,6 +2222,7 @@ fn compile_steps(
         let scoped = pipe_changed || pipe_rebound
         let input_visible = pipe_visible.copy()
         let input_ranges = pipe_ranges.copy()
+        let input_fields = active_fields.copy()
         let projections = expanded_replacement_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
@@ -2322,7 +2323,11 @@ fn compile_steps(
         let key_display_names : Array[String] = []
         let key_aliases = match grouping_scope {
           SqlSelect => []
-          PipeAggregate(names) => names
+          PipeAggregate(names, _) => names
+        }
+        let pipe_embedded = match grouping_scope {
+          SqlSelect => []
+          PipeAggregate(_, names) => names
         }
         let by : Array[@builder.Node] = []
         for index in 0..<keys.length() {
@@ -2478,6 +2483,8 @@ fn compile_steps(
           selected_projections(query)
         }
         let select_calls : Array[(@query.AggregateCall, String)] = []
+        let pipe_embedded_slots : Array[(String, String)] = []
+        let pipe_output_slots : Array[(String, String)] = []
         let resolve_input = path => {
           if scoped {
             pipe_slot(
@@ -2486,7 +2493,7 @@ fn compile_steps(
               input_ranges,
             )
           } else {
-            resolve_column(path, query, input, active_fields)
+            resolve_column(path, query, input, input_fields)
           }
         }
         for projection in projections {
@@ -2498,10 +2505,13 @@ fn compile_steps(
           match projection.aggregate {
             Some(call) => {
               let name = projection.name.unwrap().value
-              let embedded = sql_group_projection &&
-                !selected.any(item => {
-                  item.aggregate is Some(_) && item.name == projection.name
-                })
+              let embedded = pipe_embedded.contains(projection.name.unwrap()) ||
+                (
+                  sql_group_projection &&
+                  !selected.any(item => {
+                    item.aggregate is Some(_) && item.name == projection.name
+                  })
+                )
               let mut reused : String? = None
               if embedded {
                 for (previous, slot) in select_calls {
@@ -2516,13 +2526,15 @@ fn compile_steps(
               let slot = match reused {
                 Some(slot) => slot
                 None => {
-                  let output_name = if embedded &&
+                  let output_name = if (
+                      embedded && active_fields.contains(name)
+                    ) ||
                     (
-                      active_fields.contains(name) ||
+                      (embedded || !sql_group_projection) &&
                       result_fields.contains(name)
                     ) {
                     pipe_physical_name(
-                      active_fields + result_fields,
+                      order_reserved + result_fields,
                       "aql_select_aggregate_",
                     )
                   } else {
@@ -2569,7 +2581,7 @@ fn compile_steps(
                   output_name
                 }
               }
-              if embedded {
+              if embedded && sql_group_projection {
                 // Only parser-owned embedded calls enter SELECT's scalar
                 // scope. An authored sibling alias still cannot be read here.
                 let scope = sql_group_select_scope.unwrap()
@@ -2583,6 +2595,11 @@ fn compile_steps(
                   }) +
                   [(name, slot)],
                 })
+              } else if embedded {
+                pipe_embedded_slots.push((name, slot))
+              }
+              if !sql_group_projection && !embedded {
+                pipe_output_slots.push((name, slot))
               }
             }
             None => ()
@@ -2825,17 +2842,121 @@ fn compile_steps(
               },
             )
           }
-          for entry in aggregates {
-            if names.any(previous => {
-                ascii_upper(previous) == ascii_upper(entry.0)
-              }) {
+          // Scalar aggregate expressions read retained input keys and private
+          // aggregate slots. Published sibling aliases are not input bindings.
+          let scalar_visible = input_visible.filter(entry => {
+              key_names.contains(entry.1)
+            }) +
+            pipe_embedded_slots
+          let scalar_ranges = input_ranges.map(range => {
+            (range.0, range.1.filter(entry => key_names.contains(entry.1)))
+          })
+          let scalar_derives : Array[(String, @builder.Node)] = []
+          for projection in projections {
+            if pipe_embedded.contains(projection.name.unwrap()) {
+              continue
+            }
+            let name = projection.name.unwrap().value
+            if names.any(previous => ascii_upper(previous) == ascii_upper(name)) {
               raise Abort(DuplicateOutput)
             }
-            names.push(entry.0)
-            selected.push(construction.text(entry.0))
+            let slot = if projection.aggregate is Some(_) {
+              let mut result : String? = None
+              for entry in pipe_output_slots {
+                if entry.0 == name {
+                  result = Some(entry.1)
+                  break
+                }
+              }
+              result.unwrap()
+            } else {
+              let mut suffix = scalar_derives.length()
+              let mut slot = "aql_pipe_aggregate_" + suffix.to_string()
+              while active_fields.contains(slot) ||
+                    names.contains(slot) ||
+                    scalar_derives.any(entry => entry.0 == slot) {
+                suffix += 1
+                slot = "aql_pipe_aggregate_" + suffix.to_string()
+              }
+              let expression = projection.expression.unwrap()
+              let bindings : Array[(Int, @query.NamePart)] = []
+              let bound_visible = scalar_visible.copy()
+              let authored_paths = join_reference_paths(expression)
+              let mut binding_work = 0
+              for node in 0..<@query.expression_node_count(expression) {
+                binding_work += @query.expression_node_count(expression)
+                if binding_work > max_work {
+                  raise Abort(
+                    Expression({
+                      issue: @expression.WorkLimit,
+                      origin: @query.expression_origin(expression, node),
+                    }),
+                  )
+                }
+                let child = @query.expression_child(expression, node).unwrap()
+                for (key, field) in grouped_keys {
+                  binding_work += @query.expression_node_count(key) +
+                    @query.expression_node_count(child)
+                  if binding_work > max_work {
+                    raise Abort(
+                      Expression({
+                        issue: @expression.WorkLimit,
+                        origin: @query.expression_origin(expression, node),
+                      }),
+                    )
+                  }
+                  if same_expression(key, child, references=(left, right) => {
+                      same_group_reference(left, right, resolve_input)
+                    }) {
+                    let mut serial = bindings.length()
+                    let mut reference = "aql_pipe_group_bound_" +
+                      serial.to_string()
+                    while bound_visible.any(entry => {
+                            ascii_upper(entry.0) == ascii_upper(reference)
+                          }) ||
+                          authored_paths.any(path => {
+                            ascii_upper(path[0].value) == ascii_upper(reference)
+                          }) {
+                      serial += 1
+                      reference = "aql_pipe_group_bound_" + serial.to_string()
+                    }
+                    bindings.push((node, { value: reference, quoted: false, }))
+                    bound_visible.push((reference, field))
+                    break
+                  }
+                }
+              }
+              let expression = @query.expression_with_field_bindings(
+                expression, bindings,
+              ).unwrap()
+              scalar_derives.push(
+                (
+                  slot,
+                  append_pipe_expression(
+                    construction, expression, bound_visible, scalar_ranges, max_work,
+                  ),
+                ),
+              )
+              slot
+            }
+            names.push(name)
+            selected.push(
+              if name == slot {
+                construction.text(slot)
+              } else {
+                construction.object([(name, construction.text(slot))])
+              },
+            )
+          }
+          if !scalar_derives.is_empty() {
+            step_entries.push(entries.copy())
+            entries.clear()
+            step_entries.push([("derive", construction.object(scalar_derives))])
           }
           if names != active_fields {
-            step_entries.push(entries.copy())
+            if !entries.is_empty() {
+              step_entries.push(entries.copy())
+            }
             entries.clear()
             entries.push(("select", construction.array(selected)))
           }
