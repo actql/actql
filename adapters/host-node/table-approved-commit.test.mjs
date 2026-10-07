@@ -266,6 +266,20 @@ for (const empty of [false, true]) {
             approvedBinding = binding;
             assert.throws(() => bind({...binding, decisions: binding.decisions.map(value => ({...value}))}),
               {code: 'TableCommitApprovalRequired'});
+            const foreignScope = effect.logicalRequestScope(cid('e'), 'table-bind-foreign', 128);
+            const claim = binding.members[0].claims[0];
+            const correlation = canonicalValueJson(f.operations[0].request_cid);
+            const foreignKey = effect.dispatchKey(foreignScope, binding.subjectCid, correlation, 128, 8, 3);
+            const foreignLocator = effect.logicalItemLocator(foreignScope, 'captured-table', 'unit-1',
+              JSON.parse(f.authored._0).effects[0].effect_id, correlation, 128, 256, 16, 4);
+            const foreignMembers = binding.members.map((member, index) => index === 0
+              ? {...member, claims: [{...claim, scope: foreignScope, key: foreignKey, locator: foreignLocator}]}
+              : member);
+            // Genuine approval is unchanged; exact Preview/claim scope must
+            // refuse before a send claim, physical allocation or commit.
+            assert.throws(() => bind({...binding, members: foreignMembers}), {code: 'MoonBitHostFailure'});
+            assert.equal(countAllocations(), 0);
+            assert.equal(countCommits(), 0);
             return bind(binding);
           };
           const apply = recovery ? applyRecoveredEffectSet : applyCapturedEffectSet;
