@@ -4869,6 +4869,34 @@
       },
       "boundary_tests": [
         {
+          "role": "join_compound_metadata_limit",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_metadata_cursor_wbtest.mbt",
+          "fixture": "join metadata preserves literal exact and one short preparation work"
+        },
+        {
+          "role": "join_compound_metadata_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_join_wbtest.mbt",
+          "fixture": "empty bounded join has independent exact work and workspace limits"
+        },
+        {
+          "role": "join_compound_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_metadata_cursor_wbtest.mbt",
+          "fixture": "join metadata yields within long Unicode source and output names"
+        },
+        {
+          "role": "join_compound_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_metadata_cursor_wbtest.mbt",
+          "fixture": "join cancellation retains borrowed inputs at each metadata cursor boundary"
+        },
+        {
           "role": "join_compound_output_port_limit",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5091,6 +5119,14 @@
       ],
       "environment_tests": [
         {
+          "role": "join_compound_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained join source metadata preserves results and post-progress custody",
+          "case": "compoundCompletionProgram"
+        },
+        {
           "role": "join_compound_output_port_public",
           "suite": "node:embedded_property_names",
           "targets": [
@@ -5276,6 +5312,50 @@
       },
       "boundary_tests": [
         {
+          "role": "nest_compound_metadata_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_nest_wbtest.mbt",
+          "fixture": "bounded nest admits exact work and rejects one unit short"
+        },
+        {
+          "role": "nest_compound_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound nest completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "nest_compound_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/compound_metadata_cursor_wbtest.mbt",
+          "fixture": "compound metadata cancellation retains inputs and clears cursor reservations once"
+        },
+        {
+          "role": "nest_compound_metadata_workspace",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/compound_metadata_cursor_wbtest.mbt",
+          "fixture": "charged schema lookup preserves independent UTF8 work and workspace limits"
+        },
+        {
           "role": "nest_compound_output_port_limit",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5365,6 +5445,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "nest_compound_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained nest source metadata preserves results and post-progress custody",
+          "case": "compoundCompletionProgram"
+        },
         {
           "role": "nest_compound_output_port_public",
           "suite": "node:embedded_property_names",
@@ -12087,6 +12177,50 @@
       },
       "boundary_tests": [
         {
+          "role": "interval_compound_metadata_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/compound_metadata_cursor_wbtest.mbt",
+          "fixture": "temporal metadata starts uncharged and preserves literal preparation boundaries"
+        },
+        {
+          "role": "interval_compound_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound interval completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "interval_compound_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/compound_metadata_cursor_wbtest.mbt",
+          "fixture": "compound metadata cancellation retains inputs and clears cursor reservations once"
+        },
+        {
+          "role": "interval_compound_metadata_workspace",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/compound_metadata_cursor_wbtest.mbt",
+          "fixture": "charged schema lookup preserves independent UTF8 work and workspace limits"
+        },
+        {
           "role": "interval_compound_output_port_limit",
           "suite": "moon:execution_relation",
           "targets": [
@@ -12264,6 +12398,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "interval_compound_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained interval source metadata preserves results and post-progress custody",
+          "case": "compoundCompletionProgram"
+        },
         {
           "role": "interval_compound_output_port_public",
           "suite": "node:embedded_property_names",
@@ -12486,6 +12630,50 @@
       },
       "boundary_tests": [
         {
+          "role": "asof_compound_metadata_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/compound_metadata_cursor_wbtest.mbt",
+          "fixture": "temporal metadata starts uncharged and preserves literal preparation boundaries"
+        },
+        {
+          "role": "asof_compound_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_compound_port_preparation_wbtest.mbt",
+          "fixture": "bounded compound asof completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "asof_compound_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/compound_metadata_cursor_wbtest.mbt",
+          "fixture": "compound metadata cancellation retains inputs and clears cursor reservations once"
+        },
+        {
+          "role": "asof_compound_metadata_workspace",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/compound_metadata_cursor_wbtest.mbt",
+          "fixture": "charged schema lookup preserves independent UTF8 work and workspace limits"
+        },
+        {
           "role": "asof_compound_output_port_limit",
           "suite": "moon:execution_relation",
           "targets": [
@@ -12674,6 +12862,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "asof_compound_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained asof source metadata preserves results and post-progress custody",
+          "case": "compoundCompletionProgram"
+        },
         {
           "role": "asof_compound_output_port_public",
           "suite": "node:embedded_property_names",

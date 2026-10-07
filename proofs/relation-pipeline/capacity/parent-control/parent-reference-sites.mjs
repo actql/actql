@@ -142,3 +142,7 @@ export function inspectParentReferenceCode(start,symbolText,objectText,linkedTex
     structuralReferenceCount:5,references,pointRequestedBytes:references.reduce((n,s)=>n+s.requestedBytes,0),
     payloadBytesMeasured:false,allocationRequestsEstablished:true,completePhysicalLifetimeUpper:false};
 }
+
+// Shared decoder only; these exports do not authorize a different inspection
+// scope. Each consuming check must validate its own instruction/ABI premises.
+export {functions as nativeFunctions,target as nativeCallTarget};

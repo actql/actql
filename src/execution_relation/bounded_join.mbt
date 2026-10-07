@@ -5,6 +5,7 @@ priv enum BoundedJoinPhase {
   ResolveKey
   ResolveKeySource
   ResolveField
+  ChargeOutputName
   ResolveSource
   BeginPair
   BuildCell
@@ -37,8 +38,9 @@ priv struct BoundedJoinState {
   mut columns : Array[(Bool, Int)]
   mut phase : BoundedJoinPhase
   mut field : Int
-  mut source_column : Int
-  mut source_name : String
+  mut source_field : @schema.FieldName
+  mut metadata_lookup : ChargedRowMetadataLookup?
+  mut name_charge : RowNameCharge?
   mut output_name : String
   mut on_left : Bool
   mut column : Int
@@ -103,6 +105,14 @@ fn cleanup_bounded_join_state(state : BoundedJoinState) -> Bool {
   }
   cleanup_binary_input_scan(state.input_scan)
   cleanup_bounded_join_pairs(state.pairs)
+  if state.metadata_lookup is Some(cursor) {
+    close_row_metadata_lookup(cursor.lookup)
+    state.metadata_lookup = None
+  }
+  if state.name_charge is Some(cursor) {
+    close_row_name_charge(cursor)
+    state.name_charge = None
+  }
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
     state.output_recheck = None
@@ -147,6 +157,45 @@ fn bounded_join_begin_cell_measure(
   state.pending = Some(admitted)
   state.phase = ChargeCell
   true
+}
+
+///|
+/// Borrow the input schema and preserve each candidate's original entry and
+/// requested-name byte charges. The lookup owns its continuation until terminal
+/// resolution or cleanup; no whole spelling is flattened or compared here.
+fn bounded_join_metadata_column(
+  state : BoundedJoinState,
+) -> Result[Int?, RowIssue] {
+  if state.metadata_lookup is None {
+    let schema = bounded_binding_input_schema(
+      if state.on_left {
+        state.left
+      } else {
+        state.right
+      },
+    )
+    guard start_charged_row_metadata_lookup(
+        schema,
+        state.source_field,
+        state.workspace,
+        false,
+      )
+      is Some(cursor) else {
+      return Err(RowLimit)
+    }
+    state.metadata_lookup = Some(cursor)
+  }
+  match
+    advance_charged_row_metadata_lookup(
+      state.metadata_lookup.unwrap(),
+      state.control,
+    ) {
+    Ok(Some(column)) => {
+      state.metadata_lookup = None
+      Ok(Some(column))
+    }
+    other => other
+  }
 }
 
 ///|
@@ -224,40 +273,34 @@ fn bounded_join_step(
           is Some((left, _)) else {
           return bounded_join_failure(InvalidExecution, progress, used)
         }
-        state.source_name = @schema.reference_name(left)
-        state.source_column = 0
+        state.source_field = left
         state.on_left = true
         state.phase = ResolveKeySource
         used += 1
       }
       ResolveKeySource => {
-        let schema = bounded_binding_input_schema(
-          if state.on_left {
-            state.left
-          } else {
-            state.right
-          },
-        )
-        guard @schema.field_at(schema, state.source_column) is Some(field) else {
-          return bounded_join_failure(InvalidExecution, progress, used)
+        let column = match bounded_join_metadata_column(state) {
+          Ok(None) => {
+            used += 1
+            continue
+          }
+          Ok(Some(column)) => column
+          Err(issue) =>
+            return bounded_join_failure(Rows(issue), progress, used + 1)
         }
-        if !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, state.source_name) {
-          return bounded_join_failure(Rows(RowLimit), progress, used)
+        if column < 0 {
+          return bounded_join_failure(InvalidExecution, progress, used + 1)
         }
-        if @schema.reference_name(field.name) != state.source_name {
-          state.source_column += 1
-        } else if state.on_left {
-          state.key_left_column = state.source_column
+        if state.on_left {
+          state.key_left_column = column
           let (_, right) = @lower.inner_join_key_at(state.profile, state.field).unwrap()
-          state.source_name = @schema.reference_name(right)
-          state.source_column = 0
+          state.source_field = right
           state.on_left = false
         } else {
           if !reserve_slots(state.workspace, 3) {
             return bounded_join_failure(Rows(RowLimit), progress, used)
           }
-          state.pairs.keys.push((state.key_left_column, state.source_column))
+          state.pairs.keys.push((state.key_left_column, column))
           state.pairs.orders.push({
             column: state.field,
             descending: false,
@@ -282,47 +325,60 @@ fn bounded_join_step(
             (side == @schema.Left, @schema.Unqualified(name))
           _ => return bounded_join_failure(InvalidExecution, progress, used)
         }
-        let name = @schema.reference_name(field.output)
-        if !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, name) {
+        // Lowering constructs projection entries in exact output-schema order.
+        // Borrow the admitted spelling, including scoped names, without copying.
+        guard @schema.field_reference_name_at(state.output_schema, state.field)
+          is Some(name) else {
+          return bounded_join_failure(InvalidExecution, progress, used)
+        }
+        if !spend_control(state.control, 1) {
           return bounded_join_failure(Rows(RowLimit), progress, used)
         }
+        guard start_row_name_charge(name, state.workspace) is Some(cursor) else {
+          return bounded_join_failure(Rows(RowLimit), progress, used)
+        }
+        state.name_charge = Some(cursor)
         state.output_name = name
-        state.source_name = @schema.reference_name(source)
+        state.source_field = source
         state.on_left = on_left
-        state.source_column = 0
-        state.phase = ResolveSource
+        state.phase = ChargeOutputName
+        used += 1
+      }
+      ChargeOutputName => {
+        guard state.name_charge is Some(cursor) else {
+          return bounded_join_failure(InvalidExecution, progress, used)
+        }
+        match advance_row_name_charge(cursor, Some(state.control), None) {
+          Err(issue) =>
+            return bounded_join_failure(Rows(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            state.name_charge = None
+            state.phase = ResolveSource
+          }
+        }
         used += 1
       }
       ResolveSource => {
-        let schema = bounded_binding_input_schema(
-          if state.on_left {
-            state.left
-          } else {
-            state.right
-          },
-        )
-        if state.source_column == @schema.field_count(schema) {
-          return bounded_join_failure(InvalidExecution, progress, used)
+        let column = match bounded_join_metadata_column(state) {
+          Ok(None) => {
+            used += 1
+            continue
+          }
+          Ok(Some(column)) => column
+          Err(issue) =>
+            return bounded_join_failure(Rows(issue), progress, used + 1)
         }
-        guard @schema.field_at(schema, state.source_column) is Some(candidate) else {
-          return bounded_join_failure(InvalidExecution, progress, used)
+        if column < 0 {
+          return bounded_join_failure(InvalidExecution, progress, used + 1)
         }
-        if !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, state.source_name) {
+        if !reserve_slots(state.workspace, 3) {
           return bounded_join_failure(Rows(RowLimit), progress, used)
         }
-        if @schema.reference_name(candidate.name) == state.source_name {
-          if !reserve_slots(state.workspace, 3) {
-            return bounded_join_failure(Rows(RowLimit), progress, used)
-          }
-          state.names.push(state.output_name)
-          state.columns.push((state.on_left, state.source_column))
-          state.field += 1
-          state.phase = ResolveField
-        } else {
-          state.source_column += 1
-        }
+        state.names.push(state.output_name)
+        state.columns.push((state.on_left, column))
+        state.field += 1
+        state.phase = ResolveField
         used += 1
       }
       BeginPair => {
@@ -696,8 +752,9 @@ pub fn start_bounded_join(
     columns: [],
     phase: PrepareCompletionPort,
     field: 0,
-    source_column: 0,
-    source_name: "",
+    source_field: @schema.Unqualified(""),
+    metadata_lookup: None,
+    name_charge: None,
     output_name: "",
     on_left: true,
     column: 0,

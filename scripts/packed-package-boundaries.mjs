@@ -1,6 +1,6 @@
 // Audit actual installed package graphs, not the monorepo's dependency layout.
 import assert from 'node:assert/strict';
-import {existsSync, readFileSync, realpathSync} from 'node:fs';
+import {existsSync, lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isBuiltin, createRequire} from 'node:module';
 import {dirname, isAbsolute, join, relative, resolve} from 'node:path';
 import {buildSync} from 'esbuild';
@@ -39,9 +39,30 @@ export function auditPackedPackages(root, names) {
       for (const imported of metadata.imports.filter(item => item.external)) {
         if (isBuiltin(imported.path)) continue;
         const dependency = packageName(imported.path);
-        assert.ok(Object.hasOwn(manifest.dependencies ?? {}, dependency),
+        const required = Object.hasOwn(manifest.dependencies ?? {}, dependency);
+        const peer = Object.hasOwn(manifest.peerDependencies ?? {}, dependency);
+        assert.ok(required || peer,
           `Undeclared dependency: ${manifest.name} -> ${imported.path}`);
-        const resolved = createRequire(path).resolve(imported.path);
+        const require = createRequire(path);
+        let resolved;
+        try { resolved = require.resolve(imported.path); }
+        catch (error) {
+          // Only an absent optional peer may be unresolved. A present package
+          // with a broken entry point/subpath is still a broken installation.
+          const optional = !required && peer &&
+            manifest.peerDependenciesMeta?.[dependency]?.optional === true;
+          const absent = require.resolve.paths(dependency).every(directory => {
+            try {
+              lstatSync(join(directory, dependency));
+              return false;
+            } catch (failure) {
+              if (failure.code === 'ENOENT') return true;
+              throw failure;
+            }
+          });
+          if (optional && absent && error.code === 'MODULE_NOT_FOUND') continue;
+          throw error;
+        }
         assert.ok(inside(owned, realpathSync(resolved)),
           `Dependency outside consumer: ${imported.path}`);
       }

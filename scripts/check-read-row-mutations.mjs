@@ -43,7 +43,25 @@ const observations = phase => ['local', 'https'].map(entrance => ({
     {id: 'delivery-observation-custody', operator: 'strictEqual'}],
 }));
 const observationAcceptance = 'adapters/host-node/client-delivery-observation.test.mjs';
+const publishedRunAcceptance = 'adapters/host-node/client-read-run-capacity.test.mjs';
+const publishedPrefixes = (consumers, id, operator) => ['local', 'https'].flatMap(entrance =>
+  consumers.map(consumer => ({
+    name: `${entrance}: actual 121-row Run preserves its interrupted ${consumer} attempt and permits an explicit new read after restart`,
+    assertions: [{id, operator}],
+  })));
 const mutations = [
+  ['published prefix loses the caller-visible row count', [
+    ['    attemptId: context.attemptId, rowsYielded,', '    attemptId: context.attemptId, rowsYielded: 0,'],
+  ], publishedPrefixes(['rows'], 'read-121-count', 'strictEqual'), publishedRunAcceptance],
+  ['published prefix recommends a transparent resume', [
+    ['Look it up before deciding whether to open a new read from the beginning.', 'Resume automatically after the prefix.'],
+  ], publishedPrefixes(['rows', 'all'], 'read-121-facts', 'deepStrictEqual'), publishedRunAcceptance],
+  ['published prefix explanation can be recovered from a copied error', [
+    ['const readExplanations = new WeakMap();',
+      'const readExplanations = {values: new Map(),\n' +
+      '  set(key, value) {this.values.set(JSON.stringify(key), value);},\n' +
+      '  get(key) {return this.values.get(JSON.stringify(key));}};'],
+  ], publishedPrefixes(['rows', 'all'], 'read-121-custody', 'strictEqual'), publishedRunAcceptance],
   ['non-object frames become successful rows', [
     ["                  if (row === null || typeof row !== 'object' ||\n                      Array.isArray(row)) fail('InvalidResultFrame');", ''],
   ], shape],
@@ -84,10 +102,16 @@ const accepted = (tests, entry = acceptance) => {
   {encoding: 'utf8', timeout: 70000, maxBuffer: 16 * 1024 * 1024});
   return mutationAcceptance(result, tests, entry);
 };
+const args = process.argv.slice(2);
+if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
+  throw new Error('Usage: check-read-row-mutations.mjs [--match name-substring]');
+}
+const selected = mutations.filter(([name]) => !args.length || name.includes(args[1]));
+if (!selected.length) throw new Error('No read mutations selected');
 const original = readFileSync(path, 'utf8');
 const results = [];
 try {
-  for (const [name, replacements, tests, entry] of mutations) {
+  for (const [name, replacements, tests, entry] of selected) {
     let source = original;
     for (const [from, to] of replacements) {
       if (source.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
@@ -99,7 +123,8 @@ try {
 } finally {
   writeFileSync(path, original);
 }
-const restoredAccepted = accepted([...shape, ...syntax, ...lookupSnapshots, ...lookupAdmission]) &&
-  accepted(['normal', 'before-commit', 'after-commit'].flatMap(observations), observationAcceptance);
+const restorations = new Map(selected.map(([, , tests, entry]) =>
+  [JSON.stringify([entry ?? acceptance, tests]), {tests, entry}]));
+const restoredAccepted = [...restorations.values()].every(({tests, entry}) => accepted(tests, entry));
 console.log(JSON.stringify({mutations: results, restoredAccepted}, null, 2));
 if (!restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;
