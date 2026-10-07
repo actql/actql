@@ -7,6 +7,7 @@ import {
   "actql/actql/program_source_builder",
   "actql/actql/query_expression",
   "actql/actql/query_syntax",
+  "actql/actql/relation_schema",
   "actql/actql/stage_syntax",
 }
 
@@ -28,6 +29,7 @@ pub(all) struct Context {
   captured_stage : String?
   parameter_declarations : @parameter_binding.Declarations?
   inputs : Array[Input]
+  input_schemas : Array[(String, @relation_schema.Schema)]
 }
 
 pub(all) struct GraphBinding {

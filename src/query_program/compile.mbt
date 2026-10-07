@@ -44,6 +44,7 @@ pub(all) struct Context {
   captured_stage : String?
   parameter_declarations : @parameters.Declarations?
   inputs : Array[Input]
+  input_schemas : Array[(String, @schema.Schema)]
 }
 
 ///|
@@ -4670,9 +4671,9 @@ pub fn compile(
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
     }
-    match @program.admit_generated_source(source, limits.program) {
+    match admit_query_source(source, document, context, limits) {
       Ok(program) => Ok(program)
-      Err(issue) => Err(Admission(issue))
+      Err(issue) => Err(issue)
     }
   } catch {
     Abort(issue) => {
@@ -5044,9 +5045,9 @@ fn compile_cte_query(
       Ok(value) => value
       Err(issue) => raise Abort(Construction(issue))
     }
-    match @program.admit_generated_source(source, limits.program) {
+    match admit_query_source(source, document, context, limits) {
       Ok(program) => Ok(program)
-      Err(issue) => Err(Admission(issue))
+      Err(issue) => Err(issue)
     }
   } catch {
     Abort(issue) => {
@@ -5733,9 +5734,9 @@ fn compile_set_query(
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
     }
-    match @program.admit_generated_source(source, limits.program) {
+    match admit_query_source(source, document, context, limits) {
       Ok(program) => Ok(program)
-      Err(issue) => Err(Admission(issue))
+      Err(issue) => Err(issue)
     }
   } catch {
     Abort(issue) => {
@@ -7368,9 +7369,7 @@ fn compile_join_query(
       Ok(value) => value
       Err(issue) => raise Abort(Construction(issue))
     }
-    @program.admit_generated_source(source, limits.program).map_err(issue => {
-      Admission(issue)
-    })
+    admit_query_source(source, document, context, limits)
   } catch {
     Abort(issue) => {
       @builder.discard(builder)

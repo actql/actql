@@ -14,6 +14,7 @@ fn test_context() -> @query.Context {
     program_id: "frontend.route",
     stage_id: "main",
     stage_result: "rows",
+    input_schemas: [],
     result_name: "answer",
     captured_stage: Some("capture"),
     parameter_declarations: None,
@@ -328,4 +329,57 @@ test "query syntax admission is bounded and independent of semantic context" {
   )
   assert_true(parse_query("FROM records |> SELECT id", Text) is Ok(_))
   assert_true(parse_query("{}", Json) is Err(InvalidFormat))
+}
+
+///|
+test "published receiver schemas retain generation binding and input ownership" {
+  let input = test_context().inputs[0]
+  let entry : PublishedAlias = {
+    name: input.relation,
+    source_ref: "connector://crm/main/records#snapshot",
+    environment_cid: "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    input: Relation(input),
+  }
+  let schema = @schema.from_object(
+    @contract.object_contract(
+      [("id", @contract.string_contract(nullable=false).unwrap())],
+      nullable=false,
+      max_fields=1,
+      max_name_bytes=2,
+    ).unwrap(),
+  ).unwrap()
+  let context = bind_query_context([entry], entry.environment_cid, input_schemas=[
+    (input.name, schema),
+  ]).unwrap()
+  assert_eq(context.input_schemas.length(), 1)
+  for
+    supplied in [
+      [("other", schema)],
+      [(input.name, schema), (input.name, schema)],
+    ] {
+    assert_true(
+      bind_query_context([entry], entry.environment_cid, input_schemas=supplied)
+      is Err(InvalidInputSchema),
+    )
+  }
+  assert_true(
+    bind_query_context([entry], "sha256:other", input_schemas=[
+      (input.name, schema),
+    ])
+    is Err(EnvironmentMismatch),
+  )
+  let wrong = @schema.from_object(
+    @contract.object_contract(
+      [("payload", @contract.string_contract(nullable=false).unwrap())],
+      nullable=false,
+      max_fields=1,
+      max_name_bytes=7,
+    ).unwrap(),
+  ).unwrap()
+  assert_true(
+    bind_query_context([entry], entry.environment_cid, input_schemas=[
+      (input.name, wrong),
+    ])
+    is Err(InvalidInputSchema),
+  )
 }

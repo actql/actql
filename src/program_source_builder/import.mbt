@@ -19,6 +19,31 @@ pub fn import_cursor(
   cursor : @wire.Cursor,
   generated_origin : @origin.Origin,
 ) -> Result[Node, Issue] {
+  import_cursor_impl(builder, cursor, generated_origin, None, _ => None)
+}
+
+///|
+/// Copy an admitted generated-source fragment while preserving each value/key
+/// origin. The optional text replacement acts on addressed text occurrences;
+/// it does not normalize values, rename keys or reuse a foreign source map.
+pub fn import_source(
+  builder : Builder,
+  source : Source,
+  cursor : @wire.Cursor,
+  replace_text? : (@wire.Cursor) -> String? = _ => None,
+) -> Result[Node, Issue] {
+  guard origin(source, cursor) is Some(mapped) else { return Err(ForeignNode) }
+  import_cursor_impl(builder, cursor, mapped, Some(source), replace_text)
+}
+
+///|
+fn import_cursor_impl(
+  builder : Builder,
+  cursor : @wire.Cursor,
+  generated_origin : @origin.Origin,
+  mapped : Source?,
+  replace_text : (@wire.Cursor) -> String?,
+) -> Result[Node, Issue] {
   if builder.closed {
     return Err(Closed)
   }
@@ -39,6 +64,10 @@ pub fn import_cursor(
   while work.pop() is Some(task) {
     match task {
       CursorVisit(current, parent_depth) => {
+        if mapped is Some(source) && origin(source, current) is None {
+          builder.closed = true
+          return Err(ForeignNode)
+        }
         scheduled -= 1
         if visited >= available {
           builder.closed = true
@@ -73,6 +102,10 @@ pub fn import_cursor(
         }
       }
       CursorFinish(current, count) => {
+        let current_origin = match mapped {
+          Some(source) => origin(source, current).unwrap()
+          None => generated_origin
+        }
         let children : Array[Node] = []
         for _ in 0..<count {
           children.push(values.pop().unwrap())
@@ -81,7 +114,7 @@ pub fn import_cursor(
           NullValue => Null
           BoolValue(value) => Bool(value)
           NumberValue(value) => Number(value)
-          TextValue(value) => String(value)
+          TextValue(value) => String(replace_text(current).unwrap_or(value))
           ArrayValue(_) =>
             Array(Array::makei(count, i => children[count - 1 - i]))
           ObjectValue(_) => {
@@ -89,14 +122,20 @@ pub fn import_cursor(
             for i in 0..<count {
               fields.push({
                 key: @wire.field_at(current, i).unwrap().0,
-                origin: generated_origin,
+                origin: match mapped {
+                  Some(source) =>
+                    key_origin(source, @wire.field_at(current, i).unwrap().1).unwrap_or(
+                      current_origin,
+                    )
+                  None => generated_origin
+                },
                 value: children[count - 1 - i],
               })
             }
             Object(fields)
           }
         }
-        match add(builder, value, generated_origin) {
+        match add(builder, value, current_origin) {
           Ok(node) => values.push(node)
           Err(error) => return Err(error)
         }
