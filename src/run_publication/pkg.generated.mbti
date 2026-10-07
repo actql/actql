@@ -672,6 +672,8 @@ pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvide
 
 pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(String, String)], CapturedEffectDependencyIssue]
 
+pub fn start_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int, Int) -> Result[CapturedResultSnapshotPreparation, CapturedRunIssuanceIssue]
+
 pub fn trusted_clock_not_before(String?, String) -> Bool
 
 pub fn validate_captured_effect_dependency_bodies(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], Int, CapturedEffectDependencyLimits) -> Result[Unit, CapturedEffectDependencyIssue]
@@ -788,6 +790,11 @@ pub(all) enum CapturedLocalEffectSourceIssue {
 } derive(Eq, @debug.Debug)
 
 type CapturedResultSnapshot
+
+type CapturedResultSnapshotPreparation
+pub fn CapturedResultSnapshotPreparation::advance(Self, Int) -> Result[(Bool, Int), CapturedRunIssuanceIssue]
+pub fn CapturedResultSnapshotPreparation::cancel(Self) -> Unit
+pub fn CapturedResultSnapshotPreparation::finish(Self) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
 
 pub(all) enum CapturedRunIssuanceIssue {
   CaptureIssuanceWrongContract(String)
