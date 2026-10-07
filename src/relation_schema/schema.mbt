@@ -114,6 +114,17 @@ pub fn fields(schema : Schema) -> Array[Field] {
 }
 
 ///|
+/// Borrow the spelling already admitted by this immutable schema. Qualification
+/// is not reconstructed or copied; this is name evidence, not read authority.
+pub fn field_reference_name_at(schema : Schema, index : Int) -> String? {
+  match schema.representation {
+    Flat(_, fields) =>
+      @contract.field_at(fields, index).map(field => field.name)
+    Scoped(fields) => fields.get(index).map(entry => entry.spelling)
+  }
+}
+
+///|
 pub fn field_reference_name(field : Field) -> String {
   reference_name(field.name)
 }

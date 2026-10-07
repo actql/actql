@@ -89,9 +89,26 @@ function textStringProgram(id) {
 }
 const textStringExpected=[{id:1,value:rawText+aggregateDelimiter+'end'},
   {id:2,value:null}];
+function wideSnapshotProgram(id) {
+  const value=program(id);
+  const schema={id:{type:'number',nullable:false}},rows=[{id:1},{id:2}];
+  // Nine total fields exceed the bounded small-row lane. Keep Values inside
+  // the producer Program; no extra wide public intermediate is required.
+  for(let index=0;index<8;index++){
+    const name='x'.repeat(63)+String.fromCharCode(97+index);
+    schema[name]={type:'number',nullable:false};
+    rows[0][name]=index;rows[1][name]=index+10;
+  }
+  const producer=value.stages[1];
+  producer.inputs={};
+  producer.steps[0].derive.value={field:'id'};
+  producer.steps.unshift({values:{schema,rows},as:'seed'});
+  value.stages.shift();
+  return value;
+}
 
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
-  valueContract={type:'number',nullable:true}){
+  valueContract={type:'number',nullable:true},producerTask=1){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
     const reached=Promise.withResolvers(),release=Promise.withResolvers();
     let client, cancelling=false, dispatches=0, advances=0, completions=0;
@@ -115,7 +132,7 @@ async function verifyRetainedNames(t,label,makeProgram,rows=expected,
           if(name==='dispatch_reserved')dispatches++;
           if(name!=='local_compute_advanced')return;
           advances++;
-          if(cancelling && detail.task===1 && BigInt(detail.work)>0n){
+          if(cancelling && detail.task===producerTask && BigInt(detail.work)>0n){
             reached.resolve();await release.promise;
           }
         },
@@ -166,3 +183,6 @@ test('public retained raw Text array aggregation preserves data and post-progres
 test('public retained string aggregation preserves delimiters data and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'text-string',textStringProgram,textStringExpected,
     {type:'string',nullable:true}));
+test('public retained wide indexed snapshots preserve rows and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'wide-snapshot',wideSnapshotProgram,
+    [{id:1,value:1},{id:2,value:2}],{type:'number',nullable:false},0));
