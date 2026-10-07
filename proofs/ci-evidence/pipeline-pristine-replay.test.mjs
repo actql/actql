@@ -5,11 +5,13 @@ import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {hash, gitTree} from './inputs.mjs';
-import {pipelinePristineSourcePaths} from './isolation.mjs';
-import {snapshotFromGit} from './isolated-runtime.mjs';
-import {validatePristineReport} from '../relation-pipeline/pristine-replay.mjs';
+import {pipelinePristineSourcePaths, checkLocalImageDefinition, localIsolatedRunArguments, isolatedCoreBuildMetadata} from './isolation.mjs';
+import {snapshotFromGit, checkIsolatedInputs, imageRuntime} from './isolated-runtime.mjs';
+import {validatePristineReport, pristineScientificObservation} from '../relation-pipeline/pristine-replay.mjs';
+import {encode} from '../bounded-session/action-inputs.mjs';
+import {join} from 'node:path';
 import {payload} from '../relation-pipeline/fixture.mjs';
-import {validatePipelinePristineOriginal} from './isolated-execution.mjs';
+import {validatePipelinePristineOriginal, checkPipelinePristineResult} from './isolated-execution.mjs';
 import {verifyPristineTamperRefusals} from './local-isolated-acceptance.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -53,4 +55,61 @@ test('captured real output tampering changes a value even when the first indepen
   assert.deepEqual(verifyPristineTamperRefusals(pristine), ['missing-receipt', 'wrong-target', 'changed-source',
     'changed-log', 'changed-input', 'changed-value', 'reuse-promotion']);
   assert.deepEqual(pristine, original, 'Refusal experiments must not rewrite their original');
+});
+
+
+const imageBytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/2026-10-08-local-isolated-pipeline-pristine-f2a191b51.json.gz', import.meta.url)), {maxOutputLength: 8 * 1024 * 1024});
+assert.equal(hash(imageBytes), 'bd87e6234f3620945f04a1d7a2af5d595b92b319e8b547643d163aa61ccc468a');
+const imageOriginal = JSON.parse(imageBytes), imageRevision = 'f2a191b51fd6ecd7b70486c6e8fa33204fa8964e';
+const imageTree = gitTree(root, imageRevision); imageTree.prefetch(pipelinePristineSourcePaths(imageTree));
+const imageSource = snapshotFromGit(imageTree, 'pipeline-pristine');
+const normalImageBytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/2026-10-08-pipeline-pristine-normal-f2a191b51.json.gz', import.meta.url)), {maxOutputLength: 4 * 1024 * 1024});
+assert.equal(hash(normalImageBytes), '0a81ea5af7e6c061696c486a3615262a512d67d8edd3c3d9d9c1e304bbbef68f');
+const pairedNormal = JSON.parse(normalImageBytes);
+
+function consumeImage(record) {
+  assert.equal(record.authority, 'local-physical-acceptance'); assert.equal(record.reuseAuthorized, false);
+  assert.equal(record.revision, imageRevision); assert.equal(record.profile, 'pipeline-pristine');
+  const {prepared, answer} = record;
+  assert.equal(record.manifestDigest, hash(JSON.stringify(prepared.manifest)));
+  assert.equal(answer.owner, prepared.owner);
+  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree: imageTree, local: true, profile: record.profile});
+  checkLocalImageDefinition({image: answer.imageDefinition, imageId: answer.imageId, owner: answer.owner, profile: record.profile});
+  assert.equal(encode(answer.arguments), encode(localIsolatedRunArguments({imageId: answer.imageId,
+    owner: answer.owner, cidFile: join(prepared.context, 'container.id'), profile: record.profile})));
+  return checkPipelinePristineResult({payload: answer.payload, manifest: prepared.manifest, before: imageSource});
+}
+
+test('the actual immutable pipeline image original passes source, runtime, entrypoint and strong original receipt checks', () => {
+  assert(consumeImage(imageOriginal));
+  assert.equal(imageOriginal.answer.payload.report.units, 4);
+  assert.equal(imageOriginal.answer.payload.sourcePreserved, true);
+  const paths = new Set(imageOriginal.answer.payload.root.entries.map(entry => entry.path));
+  for (const path of isolatedCoreBuildMetadata) assert(!paths.has(`runtime/moonbit/${path}`));
+});
+
+test('the two real fresh phases agree without discarding schema, work, identity, NULL, rows or order', () => {
+  assert(validatePipelinePristineOriginal(pairedNormal.report, imageSource, pairedNormal.files));
+  const science = pristineScientificObservation(imageOriginal.answer.payload.report);
+  assert.deepEqual(science, pristineScientificObservation(pairedNormal.report));
+  assert.equal(hash(JSON.stringify(science)), imageOriginal.comparison.scientificDigest);
+  assert.equal(imageOriginal.comparison.matched, true);
+  assert.deepEqual(verifyPristineTamperRefusals(imageOriginal.answer.payload), imageOriginal.comparison.rejected);
+});
+
+test('a local pipeline image never enters Session or Actions admission and cannot promote reuse', () => {
+  const {prepared} = imageOriginal;
+  assert.throws(() => checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree: imageTree, local: true}));
+  assert.throws(() => checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree: imageTree, profile: 'pipeline-pristine'}));
+  const altered = structuredClone(imageOriginal); altered.reuseAuthorized = true; assert.throws(() => consumeImage(altered));
+});
+
+for (const path of isolatedCoreBuildMetadata) test(`the real pipeline cohort rejects reintroduced core build metadata ${path}`, () => {
+  const altered = structuredClone(imageOriginal);
+  altered.prepared.manifest.root.entries.push({path: `runtime/moonbit/${path}`, kind: 'file', mode: 0o644, bytes: 1, digest: 'a'.repeat(64)});
+  // Keep the altered runtime identity internally consistent so this negative
+  // copy reaches the explicit exclusion, beyond the root-digest check.
+  altered.prepared.runtime = imageRuntime(altered.prepared.manifest, {local: true, profile: 'pipeline-pristine'});
+  assert.throws(() => checkIsolatedInputs({runtime: altered.prepared.runtime, manifest: altered.prepared.manifest,
+    tree: imageTree, local: true, profile: 'pipeline-pristine'}), /core build metadata must be absent/u);
 });

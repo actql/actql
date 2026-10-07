@@ -183,3 +183,67 @@ original explicitly has unverified comparison and no reuse authority.
 Run the same four-case physical selection once with the corrected refusal helper.
 Actual retained-history validation remains a separate single gate; timed-out
 broad and filtered Node foundation selections are not passing evidence.
+
+## Accepted physical pristine phase and original replay
+
+At clean `f2a191b51fd6ecd7b70486c6e8fa33204fa8964e`, the same bounded local
+command completed successfully. Both the normal owner and the immutable image
+executed all four independent JS minima. The consumer checked actual source,
+runtime/root, environment, startup, requested Program, compiled fixture and raw
+observations, then compared both scientific observations. It retains schema,
+identity, work, stage, NULL, duplicate occurrences, rows and order; only invocation
+IDs are omitted from comparison. All seven altered evidence copies were refused.
+The source was preserved and the authenticated container/image owners closed.
+
+```sh
+node proofs/ci-evidence/local-isolated-acceptance.mjs run \
+  --engine /usr/local/bin/docker \
+  --builder-image sha256:e894118949319b479bfc3e16e545cb2f85b7a2194aa86ea9cd4e29538f2b13c3 \
+  --moon-home /Users/t14i/workspace/20260822/worktrees/actql-local-isolated-session-acceptance/_build/local-isolated-toolchain/moonbit \
+  --profile pipeline-pristine
+```
+
+The actual resulting image ID was
+`sha256:ad02e934e9fd8ecdb1afeadef82f5ddf98487ad78b739404538da9173cadaf8c`,
+with 7,114 root entries. All four installed-core build-owner files were absent
+from its physical root inventory. Guard `run-pcK618` accepted; the original
+acceptance record is retained byte-for-byte in
+`evidence/2026-10-08-local-isolated-pipeline-pristine-f2a191b51.json.gz`:
+5,832,111 raw bytes, SHA-256
+`bd87e6234f3620945f04a1d7a2af5d595b92b319e8b547643d163aa61ccc468a`.
+The separate normal original is
+`evidence/2026-10-08-pipeline-pristine-normal-f2a191b51.json.gz`:
+1,466,547 raw bytes, SHA-256
+`0a81ea5af7e6c061696c486a3615262a512d67d8edd3c3d9d9c1e304bbbef68f`.
+Neither original is relabeled to a later submission SHA.
+
+| Local interval | Milliseconds |
+| --- | ---: |
+| Normal source preparation | 3,215 |
+| Normal four-case execution | 165,548 |
+| Image input preparation | 51,967 |
+| Image build | 15,967 |
+| Image execution | 155,748 |
+| Image inspection | 2,319 |
+| Owner cleanup | 200 |
+| Host input inspection | 1,681 |
+| Inclusive elapsed time | 403,186 |
+
+These are one local acceptance's recorded intervals, not additive runner totals,
+a controlled before/after comparison, or net CI savings. The scientific digest is
+`9885af510de3828c7b34774fb6eeafb7abefe29bb97d09c6d0015fce68cd3402`.
+
+The subsequently added raw-original replay and local-boundary selection passed
+28/28 through the bounded/nonzero wrapper (guard `run-koEJbF`, focused record
+`focused-test-PJb9ld`). It pins both original byte digests and their execution
+revision, reconstructs its actual Git inputs, and runs the real shared consumer.
+Four additional negative copies reintroduce each excluded metadata file with an
+internally consistent runtime digest, reaching the explicit exclusion check.
+Those are evidence-consumer refusal tests, not four physical mutation executions.
+The first draft of these negative tests instead hit the preceding runtime-digest
+check (24/28 passed); the fixture was corrected without weakening the consumer.
+
+This closes local physical acceptance for the pristine phase only. Full mutated
+detection, restoration, exploration, other targets, retained-history validation,
+and authenticated Actions comparison/reuse remain separate obligations. No full
+pipeline job is skipped, no reused receipt is issued, and no saving is claimed.
