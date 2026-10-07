@@ -226,18 +226,30 @@ fn bounded_interval_step(
         }
         match advance_trusted_output_preparation(cursor) {
           Err(issue) =>
-            return bounded_interval_failure(Completion(issue), progress, used + 1)
+            return bounded_interval_failure(
+              Completion(issue),
+              progress,
+              used + 1,
+            )
           Ok(false) => ()
           Ok(true) => {
             let live = state.live
             let rows = state.rows
             state.port = match
               finish_trusted_output_preparation(cursor, fn(_) {
-                if live.val { rows.val } else { None }
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
               }) {
               Ok(port) => Some(port)
               Err(issue) =>
-                return bounded_interval_failure(Completion(issue), progress, used + 1)
+                return bounded_interval_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
             }
             state.port_preparation = None
             state.phase = ReadLeftClocks
@@ -787,7 +799,10 @@ pub fn start_bounded_interval_join(
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      Some([trusted_output_relation_input(left), trusted_output_relation_input(right)]),
+      Some([
+        trusted_output_relation_input(left),
+        trusted_output_relation_input(right),
+      ]),
     ) {
     Ok(value) => value
     Err(issue) => {

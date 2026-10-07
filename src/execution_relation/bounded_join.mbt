@@ -179,11 +179,19 @@ fn bounded_join_step(
             let rows = state.rows
             state.port = match
               finish_trusted_output_preparation(cursor, fn(_) {
-                if live.val { rows.val } else { None }
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
               }) {
               Ok(port) => Some(port)
               Err(issue) =>
-                return bounded_join_failure(Completion(issue), progress, used + 1)
+                return bounded_join_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
             }
             state.port_preparation = None
             state.phase = ChargeInput
@@ -652,7 +660,10 @@ pub fn start_bounded_join(
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      Some([bounded_binding_trusted_input(left), bounded_binding_trusted_input(right)]),
+      Some([
+        bounded_binding_trusted_input(left),
+        bounded_binding_trusted_input(right),
+      ]),
     ) {
     Ok(value) => value
     Err(issue) => {

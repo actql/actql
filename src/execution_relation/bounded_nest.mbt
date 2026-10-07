@@ -334,11 +334,19 @@ fn bounded_nest_step(
             let rows = state.rows
             state.port = match
               finish_trusted_output_preparation(cursor, fn(_) {
-                if live.val { rows.val } else { None }
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
               }) {
               Ok(port) => Some(port)
               Err(issue) =>
-                return bounded_nest_failure(Completion(issue), progress, used + 1)
+                return bounded_nest_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
             }
             state.port_preparation = None
             state.phase = ChargeInput
@@ -1074,7 +1082,10 @@ pub fn start_bounded_nest(
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      Some([trusted_output_relation_input(parent), trusted_output_relation_input(child)]),
+      Some([
+        trusted_output_relation_input(parent),
+        trusted_output_relation_input(child),
+      ]),
     ) {
     Ok(value) => value
     Err(issue) => {

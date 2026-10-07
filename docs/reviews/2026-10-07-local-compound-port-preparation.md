@@ -107,6 +107,19 @@ not by weakening acceptance. The first gate mutation test also exposed a missing
 production file in its source snapshot; the source inventory was fixed rather
 than bypassed. None of those failed runs is counted as success.
 
+The final formatting audit found five production files not formatted by the
+earlier multi-file formatter invocation. The pinned formatter was then applied
+one file at a time. All eleven changed MoonBit files are byte-identical to the
+formatter's normalized output from the verified implementation SHA. This is a
+format-only correction, not a new runtime test result; the receipts remain bound
+to the implementation SHA above.
+
+Draft #774 initially submitted `ceb9543b0351e617a0296593247bd732ba22117d`.
+Its automatic [CI run](https://github.com/actql/actql/actions/runs/37583709434)
+did not start the selector job because GitHub reported failed account payments or
+the spending limit. No product test executed in that run. It is not a product
+failure or CI success, and was not manually rerun.
+
 ## Remaining obligations
 
 This closes completion-port preparation for these five providers, not all Local
