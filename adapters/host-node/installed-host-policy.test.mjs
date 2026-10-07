@@ -101,7 +101,7 @@ for (const initial of ['absent', 'undefined']) {
 }
 
 async function submit(client, requestId = 'policy-request') {
-  const run = await client.aql('SELECT 1 AS n', {format: 'sql', requestId});
+  const run = await client.startSource('SELECT 1 AS n', {format: 'sql', requestId});
   assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
   assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
   return run;
@@ -236,7 +236,7 @@ for (const entrance of ['local', 'https']) {
     const client = host?.client ?? await connect({mode: 'local', owner: 'local',
       installation: {directory, sourceProfilePath, hostCapacityPolicy: selected}});
     t.after(() => client.close());
-    const run = await client.aql(item.text, {format: item.format, requestId: 'analytic-original-profile',
+    const run = await client.startSource(item.text, {format: item.format, requestId: 'analytic-original-profile',
       parameters: item.parameters, parameterDeclarations: item.parameterDeclarations});
     assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
     assert.deepEqual(await run.result('answer').all(), item.expected);

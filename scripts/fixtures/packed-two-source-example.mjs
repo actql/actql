@@ -52,7 +52,7 @@ async function verify(mode, options, directory) {
     const reader = execution.result('joined').rows();
     assert.deepEqual(await Array.fromAsync(reader), expected.rows);
     assert.equal(reader.state(), 'complete');
-    const repeated = await client.aql(await readFile(resolve(example, 'two-source-join.program.json'), 'utf8'),
+    const repeated = await client.startSource(await readFile(resolve(example, 'two-source-join.program.json'), 'utf8'),
       {format: 'json', requestId: 'two-source-join-example'});
     assert.deepEqual(repeated.ref, ref);
   } finally { client.close(); }

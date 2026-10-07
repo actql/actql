@@ -29,7 +29,7 @@ const program = {
 };
 const client = await connect({mode: 'local', owner: 'local', durability: 'durable'});
 try {
-  const execution = await client.aql(JSON.stringify(program), {
+  const execution = await client.startSource(JSON.stringify(program), {
     format: 'json', requestId: 'packed-reach-capacity',
   });
   const state = await execution.wait();

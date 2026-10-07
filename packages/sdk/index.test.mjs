@@ -1,3 +1,4 @@
+import './source-query.test.mjs';
 import './delivery-lookup-failure.test.mjs';
 import './check-reason-catalog.test.mjs';
 import './connection-string.test.mjs';
@@ -469,7 +470,7 @@ test('document submit, attach and reads use one reference without replay', async
   t.after(() => mock.restoreAll());
   const client = await connect(options);
   assert.equal(client.profile.durability, 'durable');
-  const execution = await client.aql('{"version":"actql/0.1"}',
+  const execution = await client.startSource('{"version":"actql/0.1"}',
     {format: 'json', requestId: 'request-a'});
   assert.deepEqual(execution.ref, ref);
   assert.deepEqual(await execution.status(), state);
@@ -503,7 +504,7 @@ test('query declarations travel with source without entering the SDK',
     });
     t.after(() => mock.restoreAll());
     const client = await connect(options);
-    await client.aql('SELECT id FROM records WHERE id = @p', {
+    await client.startSource('SELECT id FROM records WHERE id = @p', {
       format: 'sql', parameterDeclarations: {p: {type: 'number'}},
       parameters: {p: 1}, requestId: 'saved-query-id',
     });
@@ -514,7 +515,7 @@ test('query declarations travel with source without entering the SDK',
         parameterDeclarations: {p: {type: 'number'}}},
       parameters: {p: 1},
     });
-    await assert.rejects(client.aql('{}', {format: 'json',
+    await assert.rejects(client.startSource('{}', {format: 'json',
       parameterDeclarations: {p: {type: 'number'}}}),
     {code: 'InvalidAqlDocument'});
     assert.equal(requests.length, 2);
@@ -530,7 +531,7 @@ test('confirmed query input refusal stays typed after HTTP submit', async t => {
   });
   t.after(() => mock.restoreAll());
   const client = await connect(options);
-  await assert.rejects(client.aql('SELECT @missing FROM records', {
+  await assert.rejects(client.startSource('SELECT @missing FROM records', {
     format: 'sql', requestId: 'saved-invalid-query',
   }), {code: 'ClientProgramInvalidInput'});
   assert.deepEqual(operations, ['connect', 'submit']);
@@ -794,7 +795,7 @@ test('one query and Result path serves each connected ownership profile',
     ];
     const query = async connection => {
       const client = await connect(connection);
-      const execution = await client.aql('{"version":"actql/0.1"}',
+      const execution = await client.startSource('{"version":"actql/0.1"}',
         {format: 'json'});
       const values = await execution.result('answer').all();
       client.close();
@@ -1012,7 +1013,7 @@ test('overlapping unknown submits keep their own exact text and declarations', a
   const text = 'SELECT "e\u0301"\r\nFROM @x';
   const declarations = {p: {type: 'String'}};
   const parameters = {p: 'original'};
-  const first = client.aql(text, {format: 'sql', requestId: 'first',
+  const first = client.startSource(text, {format: 'sql', requestId: 'first',
     parameterDeclarations: declarations, parameters}).catch(error => error);
   const second = client.start({version: 'actql/0.1', marker: 'second'},
     {requestId: 'second', parameters: {p: 'second'}}).catch(error => error);

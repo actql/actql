@@ -95,7 +95,7 @@ for (const mode of ['local', 'remote']) {
       }
       t.after(() => client.close());
       const requestId = `source-snapshot-${mode}`;
-      const run = await client.aql(source, {format: 'aql-text', requestId});
+      const run = await client.startSource(source, {format: 'aql-text', requestId});
       assert.equal((await run.wait()).status, 'succeeded');
       assert.deepEqual(await run.result('paths').all(), expectedRows);
       assert.deepEqual((await run.result('paths').describe()).columns, expectedColumns);
@@ -120,7 +120,7 @@ for (const mode of ['local', 'remote']) {
       assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
       const beforeReuse = events.length;
       assert.deepEqual(await (await client.attach(run.ref)).result('paths').all(), expectedRows);
-      assert.deepEqual((await client.aql(source, {format: 'aql-text', requestId})).ref, run.ref);
+      assert.deepEqual((await client.startSource(source, {format: 'aql-text', requestId})).ref, run.ref);
       assert.equal(events.length, beforeReuse, 'read/attach/request reuse dispatches no new work');
       assert.equal(completed.size, 1);
       t.diagnostic('Authored source → ordinary Host → saved/restored Graph → TRAIL Named Result; no independent exact snapshot CID claim');

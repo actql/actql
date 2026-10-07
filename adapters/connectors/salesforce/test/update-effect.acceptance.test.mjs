@@ -47,7 +47,7 @@ const nameProgram = (setup, ids) => JSON.stringify(effectProgram({save:
 
 async function submit(setup, host, program, requestId) {
   const client = await host.as('owner-token');
-  const execution = await client.aql(program, {format: 'json', requestId});
+  const execution = await client.startSource(program, {format: 'json', requestId});
   const state = await waitFor(async () => {
     const current = await execution.status();
     return current.status === 'waiting_checkpoint' ||
@@ -118,7 +118,7 @@ test('a nullable source for a non-nullable field is refused at submission',
       records: typedRecords, writes: [typedWrite], org: typedOrg});
     const host = await setup.openHost();
     const client = await host.as('owner-token');
-    await assert.rejects(client.aql(typedProgram(setup, [
+    await assert.rejects(client.startSource(typedProgram(setup, [
       {id: 'a00000000000001', amount: '1.00',
         at: '2024-06-01T09:30:00.000Z', name: null}], true),
     {format: 'json', requestId: 'update-null-name'}),

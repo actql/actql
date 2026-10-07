@@ -47,7 +47,7 @@ try {
   if (step === 'submit') {
     let execution;
     try {
-      execution = await client.aql(installation.program, {format: 'json',
+      execution = await client.startSource(installation.program, {format: 'json',
         requestId: installation.requestId});
     } catch (error) {
       if (error?.code === 'ClientProgramUnsupported') {

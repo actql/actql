@@ -4287,20 +4287,20 @@ test(`two-member captured Effect Run ${
       try {
         let run;
         if (loseClientReply) {
-          await assert.rejects(client.aql(document, {format: 'json',
+          await assert.rejects(client.startSource(document, {format: 'json',
             requestId: 'complete-two-effects-request'}),
           {code: 'SubmissionUnknown'});
         } else {
-          run = await client.aql(document, {format: 'json',
+          run = await client.startSource(document, {format: 'json',
             requestId: 'complete-two-effects-request'});
         }
-        run ??= await client.aql(document, {format: 'json',
+        run ??= await client.startSource(document, {format: 'json',
           requestId: 'complete-two-effects-request'});
         assert.equal(run.ref.namespaceId, 'namespace-a');
         if (publishedRunDefinitionCid !== undefined) {
           assert.equal(run.ref.runDefinitionCid, publishedRunDefinitionCid);
         }
-        const replay = await client.aql(document, {format: 'json',
+        const replay = await client.startSource(document, {format: 'json',
           requestId: 'complete-two-effects-request'});
         assert.deepEqual(replay.ref, run.ref);
         assert.equal(physicalStarts, 1);
@@ -4336,7 +4336,7 @@ test(`two-member captured Effect Run ${
       try {
         const client = await serve(server);
         try {
-          const run = await client.aql(document, {format: 'json',
+          const run = await client.startSource(document, {format: 'json',
             requestId: 'complete-two-effects-request'});
           assert.deepEqual(run.ref, reconcileRef);
           const state = await run.status();
@@ -4442,7 +4442,7 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
         endpoint: `http://127.0.0.1:${server.address().port}/`,
         token: 'scoped-token', durability: 'durable'});
       try {
-        await assert.rejects(client.aql(unsupported.document,
+        await assert.rejects(client.startSource(unsupported.document,
           {format: 'json', requestId: 'unsupported-effect-request'}),
         {code: 'ClientProgramUnsupported'});
       } finally { client.close(); }

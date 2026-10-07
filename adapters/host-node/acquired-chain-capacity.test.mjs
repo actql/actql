@@ -171,7 +171,7 @@ for (const transport of ['local', 'https']) {
           const document = await readFile(new URL('./fixtures/' + item.file, import.meta.url), 'utf8');
           const options = {format: 'json', requestId: `${item.name}-${variant}`,
             ...(item.parameters === undefined ? {} : {parameters: item.parameters})};
-          const run = await f.client.aql(document, options);
+          const run = await f.client.startSource(document, options);
           if (cancel) {
             await Promise.race([f.barrier.promise, run.wait().then(state => {
               throw new Error(`Run ended before cancellation barrier: ${JSON.stringify(state)}`);
@@ -202,7 +202,7 @@ for (const transport of ['local', 'https']) {
           }
           const counts = f.counts();
           const attached = await f.client.attach(run.ref);
-          const repeated = await f.client.aql(document, options);
+          const repeated = await f.client.startSource(document, options);
           assert.deepEqual(repeated.ref, run.ref);
           assert.deepEqual((await f.client.lookupRequest(options.requestId)).ref, run.ref);
           assert.equal((await attached.status()).status, state.status);

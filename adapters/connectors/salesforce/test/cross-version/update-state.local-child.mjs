@@ -21,7 +21,7 @@ const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     resolveEffectSecret: secret,
     authorization: hostAuthorization(orgId, keys, {local: true})}});
 if (step === 'submit') {
-  const execution = await client.aql(program, {format: 'json',
+  const execution = await client.startSource(program, {format: 'json',
     requestId: 'cross-version-update'});
   await waitFor(async () => (await execution.status()).status ===
     'waiting_checkpoint');

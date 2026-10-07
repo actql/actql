@@ -41,7 +41,7 @@ test('typed JSON capture survives Store commit and fresh-process Host restart', 
     const records = [];
     try {
       for (const input of inputs) {
-        const run = await client.aql(input.text, {format: input.format,
+        const run = await client.startSource(input.text, {format: input.format,
           requestId: input.name});
         const state = await run.wait({signal: AbortSignal.timeout(30_000)});
         assert.equal(state.status, 'succeeded',
@@ -82,7 +82,7 @@ test('typed JSON capture survives Store commit and fresh-process Host restart', 
         records[index].description);
       assert.deepEqual(execution.ref, records[index].ref);
       // Reusing the original request must recover the same durable Run.
-      const repeated = await client.aql(input.text, {format: input.format,
+      const repeated = await client.startSource(input.text, {format: input.format,
         requestId: input.name});
       assert.deepEqual(repeated.ref, execution.ref);
       assert.deepEqual(await repeated.result('answer').all(), input.expected);

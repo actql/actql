@@ -303,7 +303,7 @@ export async function verifyTwoSourceRetained({connect, openInstalledRemoteHttpH
       assert.deepEqual((await client.lookupRequest(item.requestId)).ref, item.ref);
       assert.equal(typeof item.submission.document, 'string');
       assert.ok(['json', 'aql-text'].includes(item.submission.format));
-      const resent = await client.aql(item.submission.document,
+      const resent = await client.startSource(item.submission.document,
         {format: item.submission.format, requestId: item.requestId});
       assert.deepEqual(resent.ref, item.ref);
       assert.equal((await resent.status()).status, 'succeeded');
