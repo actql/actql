@@ -27,8 +27,8 @@ const cases = [
     'fn() {\n        if reclaimed.val {\n          return Ok(true)',
     'fn() {\n        if state.current is Some(active) { advance_managed_provider(active, 1) |> ignore }\n        if reclaimed.val {\n          return Ok(true)'],
   ['handoff-failure-drops-children', chain,
-    'Ok(Some(selected)) =>\n              match start_next(selected) {\n                Ok(_) => return Ok(managed_provider_continue(0L, 1L)),\n                Err(issue) => {\n                  terminal.val = true',
-    'Ok(Some(selected)) =>\n              match start_next(selected) {\n                Ok(_) => return Ok(managed_provider_continue(0L, 1L)),\n                Err(issue) => {\n                  state.children = []\n                  terminal.val = true'],
+    'Ok(Some(selected)) =>\n              match start_next(selected) {\n                Ok(_) => return Ok(managed_provider_continue(0L, 1L))\n                Err(issue) => {\n                  terminal.val = true',
+    'Ok(Some(selected)) =>\n              match start_next(selected) {\n                Ok(_) => return Ok(managed_provider_continue(0L, 1L))\n                Err(issue) => {\n                  state.children = []\n                  terminal.val = true'],
   ['pending-cleanup-reported-complete', chain,
     'Ok(false) => return Ok(false)', 'Ok(false) => return Ok(true)'],
   ['cancel-not-forwarded-to-session', tea,
@@ -38,6 +38,12 @@ const cases = [
   ['premature-chain-terminal', chain,
     'let terminal = Ref(false)', 'let terminal = Ref(true)'],
 ].map(([id, path, original, changed]) => [id, path, original, changed, suite, 'chain evidence*']);
+// Refuse every missing/ambiguous site before compiling the first mutant.
+// This is recipe correspondence, not successful fault detection.
+for (const [id, path, original] of cases) {
+  const source = readFileSync(join(root, path), 'utf8');
+  if (source.split(original).length !== 2) throw new Error(`Mutation site not unique: ${id}`);
+}
 const before = snapshot(root);
 const directory = join(root, '.artifacts/relation-chain');
 mkdirSync(directory, { recursive: true });
