@@ -108,6 +108,8 @@ pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffect
 
 pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, Int, Int, Int) -> Result[@run_publication_host.ClientTableInput, @run_publication_host.ClientTableInputIssue]
 
+pub fn client_program_bind_table_preview(@run_publication_host.ClientTableInput, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Result[@run_publication_host.ClientTablePreview, @run_publication_host.ClientTableInputIssue]
+
 pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
 
 pub fn client_program_canonical_effect_preview_draft(String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
@@ -865,6 +867,20 @@ pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientP
 pub fn client_program_table_input_matches_source(@run_publication_host.ClientTableInput, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity) -> Bool
 
 pub fn client_program_table_input_operation_json(@run_publication_host.ClientTableInput) -> String
+
+pub fn client_program_table_operation_commit_outcome(String, String, Int, Int64, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
+
+pub fn client_program_table_preview_commit_outcome(@run_publication_host.ClientTablePreview, String, Int, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
+
+pub fn client_program_table_preview_input_available(@run_publication_host.ClientTablePreview) -> Bool
+
+pub fn client_program_table_preview_ledger_identity(@run_publication_host.ClientTablePreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn client_program_table_preview_member_index(@run_publication_host.ClientTablePreview) -> Int
+
+pub fn client_program_table_preview_operation_json(@run_publication_host.ClientTablePreview) -> String
+
+pub fn client_program_table_preview_subject_cid(@run_publication_host.ClientTablePreview) -> String
 
 pub fn client_program_table_storage_mapping_cid(@effect_application.TableStorageMapping) -> String
 

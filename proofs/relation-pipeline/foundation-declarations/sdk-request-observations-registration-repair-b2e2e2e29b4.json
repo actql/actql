@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-request-observations-registration-repair-b2e2e2e29b4",
+  "kind": "change",
+  "revision": "b2e2e2e29b42a17a2a6ae6d200b9fb84241a3f06",
+  "parents": [
+    "d4cfe4a880eef413f9e80e1ede4410af978a3aee"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "d4cfe4a880eef413f9e80e1ede4410af978a3aee",
+          "digest": "d5b5babd65a14024f07865ac499b5bb336331976a70ee0c7970b5055e53e41e0",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "427922c63e4d09448da344253e652eb40eb4773e26c29b09a9269c90d12b923a",
+      "afterMode": "100644",
+      "reason": "Remove the interim conflict markers and retain both Delivery explanation tests and the adopted main packed read-opening check. Independently verify every parent distribution command token and all other main script registrations; do not rewrite the failed interim merge or any prior evidence."
+    }
+  ]
+}
