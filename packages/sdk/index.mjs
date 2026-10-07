@@ -105,33 +105,6 @@ const freezeInput = value => {
   return value;
 };
 
-// Observe each enumerable response field once, before admission or branching.
-// This is a data capture, not request JSON serialization: no toJSON/coercion,
-// borrowed array methods, or repeated reads of shared nested response objects.
-const captureResponse = (value, captured = new Map()) => {
-  if (['function', 'symbol', 'bigint'].includes(typeof value)) {
-    throw new TypeError('InvalidHostResponseData');
-  }
-  if (value === null || typeof value !== 'object') return value;
-  if (captured.has(value)) return captured.get(value);
-  const copy = Array.isArray(value) ? new Array(value.length) : {};
-  captured.set(value, copy);
-  for (const key of Object.keys(value)) Object.defineProperty(copy, key, {
-    value: captureResponse(value[key], captured),
-    enumerable: true, writable: true, configurable: true,
-  });
-  return copy;
-};
-
-// Keep the detachment check against stable admitted data. A faulty copy must
-// not replace a well-shaped identity, control fact, or observation outcome.
-const detachResponse = value => {
-  const observedKey = structuralKey(value);
-  const copy = structuredClone(value);
-  if (structuralKey(copy) !== observedKey) throw new TypeError('ChangedHostResponse');
-  return copy;
-};
-
 export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
@@ -150,6 +123,38 @@ const structuralKey = value => value !== null && typeof value === 'object'
     : '{' + Object.keys(value).sort().map(key =>
       JSON.stringify(key) + ':' + structuralKey(value[key])).join(',') + '}'
   : JSON.stringify(value);
+
+// Observe each enumerable response field once, before admission or branching.
+// This is a data capture, not request JSON serialization: no toJSON/coercion,
+// borrowed array methods, or repeated reads of shared nested response objects.
+const captureResponse = (value, captured = new Map()) => {
+  if (['function', 'symbol', 'bigint'].includes(typeof value)) {
+    throw new TypeError('InvalidHostResponseData');
+  }
+  if (value === null || typeof value !== 'object') return value;
+  if (captured.has(value)) return captured.get(value);
+  const copy = Array.isArray(value) ? new Array(value.length) : {};
+  captured.set(value, copy);
+  for (const key of Object.keys(value)) Object.defineProperty(copy, key, {
+    value: captureResponse(value[key], captured),
+    enumerable: true, writable: true, configurable: true,
+  });
+  return copy;
+};
+
+// Keep detachment bound to the stable captured cancellation identity.
+// Copy faults cannot replace the original operation or its recorded outcome.
+const detachResponse = value => {
+  const observedKey = structuralKey(value);
+  const copy = structuredClone(value);
+  if (structuralKey(copy) !== observedKey || structuralKey(value) !== observedKey) {
+    throw new TypeError('ChangedHostResponse');
+  }
+  // Return the stable captured facts. A substituted copy may expose getters
+  // that change after verification; it never becomes the admitted response.
+  return value;
+};
+
 const unordered = values => [...new Map(values.map(value =>
   [structuralKey(value), value])).entries()].sort(([left], [right]) =>
   left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
@@ -1155,19 +1160,23 @@ async function connectSelected(selected, port) {
       let state;
       try { state = await controlValue(response); }
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
-      let problem;
+      try { state = captureResponse(state); }
+      catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }
+      const problem = rejectedRunProblem(state);
       try {
-        state = captureResponse(state);
-        problem = rejectedRunProblem(state);
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
         // Each observation owns its value even if a Local port reuses a reply.
+        const observation = state;
         const observedKey = structuralKey(state);
         state = structuredClone(state);
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
         if (structuralKey(state) !== observedKey) {
           throw rejectedRunObservation(ref, operation, 'malformed_response');
         }
-        return retainEffectUncertainty(state, ref);
+        if (structuralKey(observation) !== observedKey) {
+          throw rejectedRunObservation(ref, operation, 'malformed_response');
+        }
+        return retainEffectUncertainty(observation, ref);
       } catch (cause) {
         if (runObservationFailures.has(cause)) throw cause;
         throw rejectedRunObservation(ref, operation, 'malformed_response');
@@ -1450,9 +1459,12 @@ async function connectSelected(selected, port) {
           try {
             answer = captureResponse(answer);
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
-            answer = detachResponse(answer);
-            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
-            return retainDeliveryExplanation(freezeInput(answer), {
+            const observation = answer;
+            const observedKey = structuralKey(answer);
+            answer = structuredClone(answer);
+            if (!validDeliveryAttemptLookup(answer, expected) || structuralKey(answer) !== observedKey) fail('InvalidHostAttemptLookup');
+            if (structuralKey(observation) !== observedKey) fail('InvalidHostAttemptLookup');
+            return retainDeliveryExplanation(freezeInput(observation), {
               operation: 'deliveryAttempt', ref, resultName: name, attemptId,
               lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
             });
@@ -1575,13 +1587,17 @@ async function connectSelected(selected, port) {
       throw submissionUnknown(context, cause);
     }
     try { admitted = captureResponse(admitted); }
-    catch (cause) { throw submissionUnknown(context, cause); }
+    catch { throw submissionUnknown(context, new ClientError('InvalidHostAdmission')); }
     if (admitted?.kind === 'held' &&
         validSubmitReply(admitted, selected.wire, requestId)) {
+      const observation = admitted;
       try {
-        admitted = detachResponse(admitted);
-        if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId)) fail('InvalidHostAdmission');
+        const observedKey = structuralKey(admitted);
+        admitted = structuredClone(admitted);
+        if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId) || structuralKey(admitted) !== observedKey) fail('InvalidHostAdmission');
+        if (structuralKey(observation) !== observedKey) fail('InvalidHostAdmission');
       } catch (cause) { throw submissionUnknown(context, cause); }
+      admitted = observation;
       const held = new RequestHeld(freezeInput(admitted), context.lookupContext);
       submissionInputs.set(held, snapshot);
       submissionExplanations.set(held, heldRequestExplanation(admitted, snapshot));
@@ -1640,15 +1656,22 @@ async function connectSelected(selected, port) {
         if (cause instanceof ClientError) throw cause;
         throw rejectedCheck(body, 'malformed_response');
       }
+      try { outcome = captureResponse(outcome); }
+      catch { throw rejectedCheck(body, 'malformed_response'); }
       const header = rejectedCheckHeader(outcome);
       const reject = () => { throw rejectedCheck(body, rejectedCheckProblem(header)); };
+      const observation = outcome;
       try {
         if (!validCheckOutcome(outcome)) reject();
+        const observedKey = structuralKey(outcome);
         // Own this call's value before binding or freezing it. A Local Host may
         // reuse its response object without replacing a previous SDK observation.
         try { outcome = structuredClone(outcome); }
         catch { reject(); }
         if (!validCheckOutcome(outcome)) reject();
+        if (structuralKey(outcome) !== observedKey) reject();
+        if (structuralKey(observation) !== observedKey) reject();
+        outcome = observation;
         const report = outcome.report ?? outcome.partial_report;
         if (report) {
           const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
@@ -1716,15 +1739,18 @@ async function connectSelected(selected, port) {
       catch (cause) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      try {
-        answer = captureResponse(answer);
-        if (!validRequestLookup(answer, requestId)) fail('InvalidHostRequestLookup');
-        answer = detachResponse(answer);
-        if (!validRequestLookup(answer, requestId)) fail('InvalidHostRequestLookup');
-      } catch {
+      try { answer = captureResponse(answer); }
+      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
+      if (!validRequestLookup(answer, requestId)) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      return retainRequestLookupExplanation(freezeInput(answer), context);
+      const observation = answer;
+      const observedKey = structuralKey(answer);
+      try { answer = structuredClone(answer); }
+      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
+      if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
+      if (structuralKey(observation) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
+      return retainRequestLookupExplanation(freezeInput(observation), context);
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is
     // cancelled through its own cancellation. `accepted` means the Host
@@ -1760,6 +1786,8 @@ async function connectSelected(selected, port) {
       if (!validRequestCancellation(answer, requestId)) {
         throw uninterpretableRequestCancellation(context);
       }
+      const observation = answer;
+      const observedKey = structuralKey(answer);
       const original = {kind: answer.kind, revision: answer.revision,
         ref: answer.ref === undefined ? undefined : {...answer.ref}};
       try {
@@ -1770,8 +1798,9 @@ async function connectSelected(selected, port) {
               answer.ref?.[field] !== original.ref?.[field])) {
           throw new ClientError('InvalidHostRequestCancellation');
         }
+        if (structuralKey(observation) !== observedKey) throw new ClientError('InvalidHostRequestCancellation');
       } catch { throw uninterpretableRequestCancellation(context); }
-      return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);
+      return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);
     },
     // Resources an installed connection shows to this caller, from the
     // Host's current Catalog observation. A listing is display material:

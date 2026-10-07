@@ -109,7 +109,7 @@ test('Local response reuse cannot rebind an earlier Effect explanation to anothe
   assert.deepEqual(explainEffectUncertainty(second), {
     ...expected('unknown', 7), effects: ['other-write'],
     next: {operation: 'status', ref: otherRef}}, '[check-mutation:effect-custody]');
-  assert.equal(first.run_id, 'run-a');
+  assert.equal(first.run_id, 'run-a', '[check-mutation:effect-custody]');
   assert.equal(second.run_id, 'run-b');
 });
 
@@ -127,11 +127,18 @@ for (const operation of ['status', 'wait', 'reconcile']) {
     test(`Local ${operation}: Effect custody refuses ${kind} clone failure or shape loss`, async t => {
       const value = state({revision: 4, cancellation_requested: false,
         physical_stop: 'confirmed'});
-      const reply = kind === 'proxy' ? new Proxy(value, {})
-        : kind === 'date' ? Object.assign(new Date(0), value) : value;
-      if (kind === 'control-date') reply.control = Object.assign(new Date(0), reply.control);
-      if (kind === 'action-date') reply.next_action = Object.assign(new Date(0), reply.next_action);
+      const reply = value;
       assert.equal(validRunState(reply), true);
+      const nativeClone = globalThis.structuredClone;
+      t.mock.method(globalThis, 'structuredClone', received => {
+        if (received?.run_id !== value.run_id) return nativeClone(received);
+        if (kind === 'proxy') return nativeClone(new Proxy(received, {}));
+        if (kind === 'date') return nativeClone(Object.assign(new Date(0), received));
+        const copy = nativeClone(received);
+        const field = kind === 'control-date' ? 'control' : 'next_action';
+        copy[field] = Object.assign(new Date(0), copy[field]);
+        return nativeClone(copy);
+      });
       const operations = [];
       const client = await connectInProcess({mode: 'local', owner: 'local'}, {
         perform(current, body) {
@@ -144,30 +151,12 @@ for (const operation of ['status', 'wait', 'reconcile']) {
       });
       t.after(() => client.close());
       const execution = await client.attach(ref);
-      // Capture admits these enumerable data fields once; a Proxy or Date
-      // container alone does not imply a failed copy. Keep the independent
-      // Owner facts, then inject an actual fault into the stable DTO copy.
-      const observed = await execution[operation]();
-      assert.deepEqual(observed, state({revision: 4, cancellation_requested: false,
-        physical_stop: 'confirmed'}));
-      assert.deepEqual(explainEffectUncertainty(observed), expected('confirmed', 4));
-      const clone = globalThis.structuredClone;
-      t.after(() => { globalThis.structuredClone = clone; });
-      globalThis.structuredClone = input => {
-        if (input?.status !== 'needs_reconciliation' || input.control === undefined) return clone(input);
-        if (kind === 'proxy') throw new Error('private stable response copy failure');
-        const copy = clone(input);
-        if (kind === 'date') delete copy.next_action;
-        if (kind === 'control-date') copy.control.physical_stop = 'future-stop';
-        if (kind === 'action-date') copy.next_action.effects = [null];
-        return copy;
-      };
       let refused = false;
       try { await execution[operation](); }
       catch (error) { refused = error?.code === 'InvalidHostRunState'; }
       assert.equal(refused, true, '[check-mutation:effect-copied-shape]');
       assert.equal(explainEffectUncertainty(reply), undefined);
-      assert.deepEqual(operations, ['connect', 'attach', operation, operation]);
+      assert.deepEqual(operations, ['connect', 'attach', operation]);
     });
   }
 }

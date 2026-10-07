@@ -740,3 +740,72 @@ for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']
     assert.deepEqual(f.stored(), f.before);
   });
 }
+
+for (const field of ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
+  test(`in-process: cancellation captures the first getter-backed ${field} association`, async t => {
+    let reads = 0;
+    const f = await fixture(t, 'in-process', undefined, {physicalStart: true,
+      transformCancelReply(value) {
+        const original = value.ref[field];
+        return {...value, ref: Object.defineProperty({...value.ref}, field, {
+          enumerable: true,
+          get: () => ++reads <= 2 ? original
+            : field === 'namespaceId' ? 'foreign-namespace' : cid('f'),
+        })};
+      }});
+    const ref = {...f.execution.ref};
+    const result = await f.execution.cancel().then(value => ({value}), error => ({error}));
+    assert.equal(result.error, undefined, '[check-mutation:cancel-reference-capture]');
+    assert.deepEqual(result.value.ref, ref);
+    assert.deepEqual(sdk.explainCancellation(result.value).next, {operation: 'status', ref});
+    assert.equal(reads, 1);
+    assert.deepEqual(f.stored(), [{...f.before[0], cancellation_requested: 1,
+      revision: f.before[0].revision + 1}]);
+    assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
+  });
+}
+
+
+for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']]) {
+  test(`${entrance}: getter-backed Run reply preserves the first owner observation`, async t => {
+    let reads = 0, issued;
+    const f = await fixture(t, transport, undefined, {physicalStart: true,
+      transformRunReply: value => {
+        issued = {...value};
+        return {...value, get run_id() { return ++reads === 1 ? value.run_id : 'replacement-run'; }};
+      }});
+    const answer = await f.execution.status();
+    assert.equal(answer.run_id, 'saved-run', '[check-mutation:response-capture-public-run]');
+    assert.deepEqual(answer, issued);
+    assert.equal(reads, 1);
+    assert.equal(answer.control.physical_stop, 'unknown');
+    assert.deepEqual(f.stored(), f.before);
+    assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
+    assert.deepEqual(f.operations, ['connect', 'attach', 'status']);
+  });
+  test(`${entrance}: getter-backed cancellation preserves issued kind and revision`, async t => {
+    const reads = {kind: 0, revision: 0}; let issued;
+    const f = await fixture(t, transport, undefined, {physicalStart: true,
+      transformCancelReply: value => {
+        issued = {...value};
+        return {...value,
+          get kind() { return ++reads.kind === 1 ? value.kind : 'already_terminal'; },
+          get revision() { return ++reads.revision === 1 ? value.revision : 999; }};
+      }});
+    const answer = await f.execution.cancel();
+    assert.deepEqual({kind: answer.kind, revision: answer.revision},
+      {kind: 'accepted', revision: f.before[0].revision + 1}, '[check-mutation:response-capture-public-cancel]');
+    assert.deepEqual(answer, issued);
+    assert.deepEqual(reads, {kind: 1, revision: 1});
+    assert.deepEqual(sdk.explainCancellation(answer).next, {operation: 'status', ref: f.execution.ref});
+    assert.equal(sdk.explainCancellation(answer).observation, 'accepted');
+    assert.equal(sdk.explainCancellation(structuredClone(answer)), undefined);
+    assert.deepEqual(f.stored(), [{...f.before[0], cancellation_requested: 1,
+      revision: f.before[0].revision + 1}]);
+    assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
+    const current = await f.execution.status();
+    assert.equal(current.control.physical_stop, 'unknown');
+    assert.notEqual(current.status, 'cancelled');
+    assert.deepEqual(f.operations, ['connect', 'attach', 'cancel', 'status']);
+  });
+}

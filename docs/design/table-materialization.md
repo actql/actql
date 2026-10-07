@@ -128,6 +128,23 @@ Durable source holdings retain both through the existing result-aware capture
 owner. Installations must not obtain their requests from per-row write mapping
 or invent a row to represent an empty Table.
 
+The installed Table hooks project the completed computation and recovered
+capture into the existing installed Effect Site. Installation metadata binds
+each checked Effect member and Mapping to one Catalog/name and create or
+expected-generation replace action. Capability identity also binds the runtime,
+installation and these exact targets; a changed capability cannot resume a
+saved Preview. Member ordering comes from checked ordinals, not installation
+array order. Source-free authoring does not fabricate Model provenance.
+
+Capture prepares bounded physical material but performs no Catalog observation
+or write. Recovery reads the original Catalog operation under current authority
+before using the common durable frontier. Only Ready members refresh current
+target guards; a committed create is not rejected merely because its name now
+exists. Dispatching/Unknown members reconcile rather than claim another send.
+The same Site cleanup custody serializes concurrent retries, retains pending
+physical handles, and closes the Ledger only after verified cleanup. Immutable
+Table generations remain Catalog-owned after temporary Run handles are released.
+
 The Table input binding is paired with the existing checked captured Preview,
 including its exact live source occurrence. A different member, substituted
 operation, row-oriented inventory, missing approval requirement or different

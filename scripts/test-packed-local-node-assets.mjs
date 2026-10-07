@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {packedClientPackage, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -32,15 +33,15 @@ function run(command, args, cwd) {
 
 const artifacts = [];
 for (const name of ['client-wire', 'sdk', 'local-node']) {
-  const packed = run('npm', ['pack', '--pack-destination', root, '--json'],
-    join(repository, 'packages', name));
-  const metadata = JSON.parse(packed);
-  artifacts.push(join(root, metadata[0]?.filename ??
-    metadata[`@actql/${name}`]?.filename));
+  await packedClientPackage({repository, name, destination: root,
+    pack: () => run('npm', ['pack', '--pack-destination', root, '--json'],
+      join(repository, 'packages', name))});
+  artifacts.push(join(root, `actql-${name}-0.0.0-development.tgz`));
 }
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');
-run('npm', ['install', '--ignore-scripts', '--no-save', ...artifacts], root);
+run('npm', ['install', '--ignore-scripts', '--no-save', ...artifacts,
+  await pinnedDuckDBPackage(repository)], root);
 const moduleRoot = join(root, 'node_modules/@actql/local-node');
 for (const name of [
   'connectors_builtin_node/connectors_builtin_node.js',

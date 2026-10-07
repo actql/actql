@@ -6484,3 +6484,27 @@ This does not certify all provider start work as bounded. Nest input-name array
 creation, temporal metadata setup, installed callbacks and Native correspondence
 remain distinct, as do unexecuted Wasm/Native and packed acceptance. See the
 [compound preparation record](2026-10-07-local-compound-port-preparation.md).
+
+### Resumable compound input metadata (2026-10-07)
+
+Nest no longer copies complete input-name arrays inside start. Its source lookup,
+generated-role comparison and name charges borrow admitted schemas and advance the
+existing cursors. Interval and As-of resolve clocks, keys, identity, ties and output
+columns inside bounded resume, preserving their original per-candidate UTF-8 work.
+The same cleanup owner closes the reserved continuation and partial metadata once;
+borrowed inputs and accepted completed outputs retain their custody.
+
+At `0ee2f1b32dde441d46d99d87cf6eec3f1122dc0e`, selected JS fixtures passed
+42/42 and the public Host/resource/inventory batch passed 7/7. The three real-Store
+Programs use long actual input keys, publish fixed ordered producer/two-consumer
+results, reuse requests and confirm post-progress stop and reclamation. Independent
+282/561 lookup work, one-entry workspace, 118/114 temporal preparation and existing
+whole-operation boundaries are maintained. Private metadata phase cancellation is
+not conflated with the public positive-work barrier.
+
+#774/#769 remain parent dependencies. Main
+`8f4889ef52510063600490211fb46718a006fc97` was normally adopted through both
+parents without importing this child implementation into them. Installed availability
+callbacks, other initial metadata, Native capacity correspondence and unexecuted
+Wasm/Native/packed acceptance remain distinct. See the
+[compound input metadata record](2026-10-07-local-compound-input-metadata.md).

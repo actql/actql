@@ -42,7 +42,9 @@ pub fn bind_recovered_client_table_preview(
     Err(issue) => return Err(Operation(issue))
   }
   match
-    @effect.check_table_operation_preview(operation, preview, member_index) {
+    @effect.check_table_operation_preview(
+      operation, preview, member_index, scope,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Preview(issue))
   }

@@ -24,7 +24,7 @@ import {fileURLToPath} from 'node:url';
 import {compatibilityReport, packageIdentity, textIdentity} from
   './fixtures/dbt-compat-judge.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache} from
+import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from
   './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -213,6 +213,7 @@ for (const name of CLIENT_PACKAGES) {
 await writeFile(join(install, 'package.json'),
   '{"private":true,"type":"module"}\n');
 await run('npm', ['install', '--ignore-scripts', '--no-save',
+  await pinnedDuckDBPackage(repository),
   ...CLIENT_PACKAGES.map(name => join(install,
     `actql-${name}-0.0.0-development.tgz`))], {cwd: install, env: npmEnv,
     kind: 'install'});

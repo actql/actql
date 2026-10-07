@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inspect} from 'node:util';
+import * as sdk from '../../packages/sdk/index.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openReadOpeningFixture, connectOpeningHost} from './client-read-opening.fixture.mjs';
 
@@ -25,6 +26,32 @@ async function attemptBytes(directory) {
   return Promise.all(names.map(name => readFile(join(root, name, 'attempt.json'), 'utf8')));
 }
 
+function assertReadExplanation(failure, consumer, ref, endpoint, attemptId) {
+  const count = consumer === 'rows' ? 120 : 0;
+  const explanation = sdk.explainReadFailure(failure);
+  assert.equal(explanation.rowsYielded, count, '[check-mutation:read-121-count]');
+  const {cleanup, ...facts} = explanation;
+  assert.ok(cleanup === undefined || cleanup === 'unknown');
+  assert.deepEqual(facts, {
+    observation: 'read_incomplete', attemptId, rowsYielded: count,
+    summary: `This read stopped after returning ${count} rows.`,
+    hint: 'Keep this read reference. Look it up before deciding whether to open a new read from the beginning.',
+    next: {operation: 'deliveryAttempt', ref, resultName: 'answer', attemptId,
+      lookupContext: {endpoint, scopeRef: 'principal'}},
+  }, '[check-mutation:read-121-facts]');
+  assert.equal(sdk.explainReadFailure({...failure}), undefined, '[check-mutation:read-121-custody]');
+  for (const format of ['text', 'html', 'json']) {
+    const output = sdk.formatReadFailure(failure, {format});
+    assert.ok(output);
+    assert.doesNotMatch(output, /InjectedPhysicalRowInterruption|fixture-token/);
+    if (format === 'json') assert.deepEqual(JSON.parse(output).explanation, explanation,
+      '[check-mutation:read-121-format]');
+  }
+  failure.code = 'Succeeded'; failure.rowsYielded = 999; failure.attemptId = 'foreign-read';
+  assert.deepEqual(sdk.explainReadFailure(failure), explanation, '[check-mutation:read-121-custody]');
+  return explanation;
+}
+
 for (const entrance of ['local', 'https']) {
   for (const consumer of ['rows', 'all']) {
     test(`${entrance}: actual 121-row Run preserves its interrupted ${consumer} attempt and permits an explicit new read after restart`,
@@ -39,7 +66,7 @@ for (const entrance of ['local', 'https']) {
             observeSubmission: (stage, error) => console.log('READ_121_SUBMISSION', entrance, stage,
               error === undefined ? '' : inspect(error, {depth: 8}))});
         const host = await connectOpeningHost(fixture, entrance, directory);
-        let release, ref, attemptId, observed, originalPolicy, completeAttempt;
+        let release, ref, attemptId, observed, originalPolicy, completeAttempt, failure, explanation;
         const yielded = new Promise(resolve => {release = resolve;});
         if (consumer === 'all') release();
         fixture.beforeRow(async index => {
@@ -66,6 +93,7 @@ for (const entrance of ['local', 'https']) {
                 if (seen.length === 120) release();
               }
           }, error => {
+            failure = error;
             if (reader === undefined) attemptId = error.attemptId;
             return typeof attemptId === 'string' && error.attemptId === attemptId &&
               error.rowsYielded === (consumer === 'rows' ? 120 : 0);
@@ -80,17 +108,29 @@ for (const entrance of ['local', 'https']) {
           assert.equal(observed.kind, 'found');
           assert.equal(observed.record.state, 'failed');
           assert.equal(observed.hostReleaseReceipt, null);
+          const beforeExplanation = {...fixture.counts};
+          explanation = assertReadExplanation(failure, consumer, ref, host.endpoint, attemptId);
+          assert.deepEqual(fixture.counts, beforeExplanation, '[check-mutation:read-121-passive]');
+          assert.equal((await run.status()).status, 'succeeded');
           const bytes = await attemptBytes(directory);
           assert.equal(bytes.length, 1);
           assert.deepEqual(await result.deliveryAttempt(attemptId), observed);
           assert.deepEqual(await attemptBytes(directory), bytes);
           assert.deepEqual(fixture.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});
           if (reader) await assert.rejects(Array.fromAsync(reader), {code: 'ReadAttemptAlreadyStarted'});
+          fixture.authorize(false);
+          await assert.rejects(Array.fromAsync(result.rows()));
+          await host.settled();
+          assert.deepEqual(fixture.counts, beforeExplanation);
+          assert.deepEqual(await attemptBytes(directory), bytes);
+          fixture.authorize(true);
           const fresh = result.rows();
           assert.notEqual(fresh.attemptId, attemptId);
           assert.deepEqual(await Array.fromAsync(fresh), expected);
           assert.equal(fresh.rowsYielded(), 121);
           assert.equal(fresh.state(), 'complete');
+          assert.deepEqual(sdk.explainReadFailure(failure), explanation);
+          assert.equal((await run.status()).status, 'succeeded');
           await host.settled();
           completeAttempt = await result.deliveryAttempt(fresh.attemptId);
           assertSameResult(completeAttempt, observed);
@@ -145,7 +185,7 @@ for (const entrance of ['local', 'https']) {
         console.log('READ_121_EVIDENCE', JSON.stringify({directory, entrance, consumer, ref,
           attemptId, originalState: observed.record.state, originalPolicy,
           restoredAttemptId: restored.readAttempt.attempt.attempt_id,
-          restartCounts: restored.counts, rows: restored.rows.length}));
+          restartCounts: restored.counts, rows: restored.rows.length, readExplanation: explanation}));
         scratch.passed();
       });
   }
