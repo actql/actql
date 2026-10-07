@@ -82,8 +82,8 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     ",\"snapshot\":" + state.snapshot.capacity().to_string() +
     ",\"rowSources\":" + state.row_sources.capacity().to_string() +
     "},\"metadataPreparation\":{\"stepped\":" + state.stepped_metadata.to_string() +
-    ",\"lookup\":" + state.metadata_lookup.map(_ => true).unwrap_or(false).to_string() +
-    ",\"nameCharge\":" + state.name_charge.map(_ => true).unwrap_or(false).to_string() +
+    ",\"lookup\":" + (state.metadata_lookup is Some(_)).to_string() +
+    ",\"nameCharge\":" + (state.name_charge is Some(_)).to_string() +
     ",\"snapshotEntries\":" + state.snapshot.length().to_string() +
     ",\"sourceEntries\":" + state.row_sources.length().to_string() +
     "},\"mapCapacity\":{\"inputOrdinals\":" + state.input_ordinals.capacity().to_string() +
