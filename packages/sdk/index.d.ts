@@ -86,7 +86,10 @@ export type CheckRequirementFrontier = Readonly<{
 /** Known public context selections from the original completed check; no write permission. */
 export type CheckContextRequirement = Readonly<{
   code: 'host_capacity_policy_required';
-  facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {supplier: 'checking_context_owner'}>;
+  facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {schema_pointer: '/schema'}>;
+}> | Readonly<{
+  code: 'numeric_reduction_profile_required';
+  facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {profile_cid: string}>;
 }>;
 export declare function getCheckContextRequirements(outcome: unknown): readonly CheckContextRequirement[] | undefined;
 /** Copied, partial and uninterpretable reports have no comparable frontier. */

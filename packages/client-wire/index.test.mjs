@@ -800,3 +800,21 @@ test('capacity context conditions are requirements without caller blame or posit
     assert.equal(validCheckOutcome(changed), false);
   }
 });
+
+// This envelope is independently authored; producer output is not an expectation.
+test('numeric profile conditions reject values, caller blame and generated positions', () => {
+  const outcome = JSON.parse(readFileSync(new URL('./fixtures/check-numeric-profile-required.json', import.meta.url), 'utf8'));
+  assert.equal(validCheckOutcome(outcome), true);
+  for (const change of [
+    value => {value.report.requirements[0].facts.profile_cid = `sha256:${'0'.repeat(64)}`;},
+    value => {value.report.requirements[0].facts.supplier = 'caller';},
+    value => {value.report.requirements[0].facts.contributors = [1, 2];},
+    value => {value.report.requirements[0].facts.schema_pointer = '/schema';},
+    value => {value.report.requirements[0].location = {kind: 'text', document_id: 'source', revision: value.report.inputs[0].revision, precision: 'exact', start_byte: 0, end_byte: 1};},
+    value => {value.report.verdict = 'invalid'; value.report.reasons = value.report.requirements; value.report.requirements = [];},
+    value => {value.report.verdict = 'verified';},
+  ]) {
+    const changed = structuredClone(outcome);change(changed);
+    assert.equal(validCheckOutcome(changed), false);
+  }
+});
