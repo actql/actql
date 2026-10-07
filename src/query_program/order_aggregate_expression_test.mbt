@@ -195,14 +195,6 @@ test "ORDER aggregate expression keeps implicit star inputs distinct from privat
       },
     ],
   }
-  let program = compile(
-    @query.parse_query(
-      "SELECT * FROM t GROUP BY 1, 2 ORDER BY COUNT(*) + 1, y",
-      syntax_limits(),
-    ).unwrap(),
-    context,
-    construction_limits(),
-  ).unwrap()
   let expected = @program.parse(
     (
       #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_order_aggregate_0":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"aql_order_aggregate_0":1,"y":20},{"aql_order_aggregate_0":2,"y":10}]},"as":"t"},{"from":"t","group":{"by":["aql_order_aggregate_0","y"],"aggregates":{"aql_having_aggregate_2":{"fn":"count"}}}},{"derive":{"aql_pipe_sort_5":{"add":[{"field":"aql_having_aggregate_2"},{"literal":1}]}}},{"sort":[{"field":"aql_pipe_sort_5","dir":"asc","nulls":"first"},{"field":"y","dir":"asc","nulls":"first"}]},{"select":["aql_order_aggregate_0","y"],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["aql_order_aggregate_0","y"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
@@ -221,5 +213,15 @@ test "ORDER aggregate expression keeps implicit star inputs distinct from privat
     Rejected(error) => raise @check.diagnostic_cause(error)
     _ => fail("the authored star/call collision keeps both physical values")
   }
-  assert_eq(semantic(program), semantic(expected))
+  for
+    source in [
+      "SELECT * FROM t GROUP BY 1, 2 ORDER BY COUNT(*) + 1, y", "SELECT * REPLACE (y AS y) FROM t GROUP BY 1, 2 ORDER BY COUNT(*) + 1, y",
+    ] {
+    let program = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      context,
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(program), semantic(expected), msg=source)
+  }
 }

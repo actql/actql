@@ -25,6 +25,27 @@ const success = (name, text, extra = {}) => ({name: 'star-replace-' + name,
 const originalColumns = [column('amount', nullable), column('id')];
 const negative = [{amount: null, id: -1}, {amount: 20, id: -2},
   {amount: 30, id: -3}, {amount: 30, id: -3}];
+const aggregateRows = [{id: 1, amount: 10}, {id: 1, amount: 10},
+  {id: 2, amount: 30}, {id: 3, amount: null}];
+const aggregateExpected = [{amount: 11, id: 20}, {amount: 31, id: 30},
+  {amount: null, id: null}];
+const aggregateColumns = [column('amount', nullable), column('id', nullable)];
+// Independently group the original amount, then project its increment. The
+// source's GROUP BY output alias groups amount + 1, which has the same groups
+// on these numeric/NULL inputs; SUM must still consume the original amount.
+export const starAggregateSnapshotProgram = {version: 'actql/0.1', id: 'fixture.star_aggregate_snapshot',
+  stages: [starReplaceProgram.stages[0],
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'records', group: {by: ['amount'], aggregates: {id: {fn: 'sum', field: 'amount'}}}},
+        {derive: {incremented_amount: {add: [{field: 'amount'}, {literal: 1}]}}},
+        {select: [{amount: 'incremented_amount'}, 'id']},
+        {sort: [{field: 'id', dir: 'asc', nulls: 'last'},
+          {field: 'amount', dir: 'asc', nulls: 'last'}], as: 'ordered'}],
+      results: {rows: {from: 'ordered', fields: ['amount', 'id']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const aggregateSuccess = (name, text, extra = {}) => success(name, text, {
+  sourceRows: aggregateRows, expected: aggregateExpected, columns: aggregateColumns, ...extra,
+});
 export const starReplaceSuccesses = [
   success('independent-json', JSON.stringify(starReplaceProgram), {format: 'json'}),
   success('sql-swap-and-null', sql, {format: 'sql'}),
@@ -75,6 +96,15 @@ export const starReplaceSuccesses = [
     expected: [{k: 1, original: 1}, {k: 0, original: 2}, {k: 0, original: 3}, {k: 0, original: 3}],
   }),
   success('typed-empty', sql, {sourceRows: [], expected: []}),
+  aggregateSuccess('aggregate-snapshot-json', JSON.stringify(starAggregateSnapshotProgram), {format: 'json'}),
+  aggregateSuccess('aggregate-snapshot-bare-order', 'SELECT * REPLACE (SUM(amount) AS id, amount + 1 AS amount) '
+    + 'FROM records WHERE id > 0 GROUP BY amount ORDER BY id NULLS LAST, amount NULLS LAST'),
+  aggregateSuccess('aggregate-snapshot-quoted-order', 'SELECT * REPLACE (SUM(amount) AS id, amount + 1 AS amount) '
+    + 'FROM records WHERE id > 0 GROUP BY amount ORDER BY `id` NULLS LAST, amount NULLS LAST'),
+  aggregateSuccess('aggregate-snapshot-quoted-replacement', 'SELECT * REPLACE (SUM(amount) AS `id`, amount + 1 AS amount) '
+    + 'FROM records WHERE id > 0 GROUP BY amount ORDER BY id NULLS LAST, amount NULLS LAST'),
+  aggregateSuccess('aggregate-snapshot-qualified', 'SELECT r.* REPLACE (SUM(r.amount) AS id, r.amount + 1 AS amount) '
+    + 'FROM records AS r WHERE r.id > 0 GROUP BY r.amount + 1 ORDER BY `id` NULLS LAST, amount NULLS LAST'),
 ];
 export const starReplaceRefusals = [
   'SELECT * REPLACE (1 AS absent) FROM records',

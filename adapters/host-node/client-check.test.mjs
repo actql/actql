@@ -4558,3 +4558,35 @@ for (const entrance of ['local', 'http']) {
     }
   });
 }
+
+for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: SELECT range lifetime rejects expired aliases before Run admission`, async t => {
+    const client = await open(t, configurations.allowed);
+    for (const selection of ['SELECT id', 'SELECT *', 'SELECT old.*',
+      'SELECT id |> ORDER BY id', 'SELECT id |> ORDER BY old.amount',
+      'SELECT DISTINCT id |> ORDER BY old.id |> ORDER BY old.id']) {
+      const text = `FROM records AS old |> ${selection} |> WHERE old.id = 7`;
+      const outcome = await client.check(text, {format: 'aql-text'});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'invalid', text);
+      assert.deepEqual(outcome.report.reasons.map(({code, facts}) => ({code, facts})),
+        [{code: 'query_expression_invalid', facts: {issue: 'unknown_reference'}}]);
+    }
+    for (const [text, format] of [
+      ['FROM records AS old |> SELECT id |> WHERE id = 7', 'aql-text'],
+      ['FROM records AS old |> SELECT * |> WHERE id = 7', 'aql-text'],
+      ['FROM records AS old |> SELECT id |> AS old |> WHERE old.id = 7', 'aql-text'],
+      ['FROM records AS old |> SELECT DISTINCT id |> ORDER BY old.id |> ORDER BY id', 'aql-text'],
+      ['SELECT id FROM records AS old ORDER BY old.id', 'sql'],
+      ['SELECT id FROM records AS old ORDER BY old.amount', 'sql'],
+    ]) {
+      const outcome = await client.check(text, {format});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'verified', text);
+      assert.deepEqual(outcome.report.reasons, []);
+    }
+    // This is the installed public check entrance. It must not execute rows,
+    // dispatch work, or turn an invalid query into an admitted Run.
+    client.assertNoExecution();
+  });
+}

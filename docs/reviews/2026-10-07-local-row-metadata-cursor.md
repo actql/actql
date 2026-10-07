@@ -3,8 +3,10 @@
 Branch: feat/local-row-metadata-cursor. Initial implementation parent: #700
 at `de990aa851ce0fbdd0b88b53c6446d3fc2748c2f`. The unmerged parent remains an
 explicit dependency. Final integration target is main, not the parent branch.
-Adopted origin/main: `8a9d39eddff6240868517daaf645d2a5d8e43ed7`, by normal
-merge. The sole Graph transition at
+Initial adopted main: `8a9d39eddff6240868517daaf645d2a5d8e43ed7`. Before
+public acceptance, main advanced; the final adopted main is
+`0916c24a4a0ec3f9652eae4a92770524aec0de58`, also by normal merge without
+conflicts. The sole Graph transition at
 `b98a50ff763d1367e344fdfa8aea380ec8749132` remains an ancestor; no old alias,
 identity reinterpretation or compatibility fallback is introduced.
 
