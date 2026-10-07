@@ -184,7 +184,9 @@ fn cleanup_bounded_unnest_state(state : BoundedUnnestState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.names = []
@@ -234,11 +236,19 @@ fn bounded_unnest_step(
             let rows = state.rows
             state.port = match
               finish_trusted_output_preparation(cursor, fn(_) {
-                if live.val { rows.val } else { None }
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
               }) {
               Ok(port) => Some(port)
               Err(issue) =>
-                return fail_bounded_unnest(Completion(issue), progress, used + 1)
+                return fail_bounded_unnest(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
             }
             state.port_preparation = None
             state.phase = ResolveInput
@@ -545,7 +555,6 @@ fn bounded_unnest_step(
         guard state.output is Some(output) else {
           return fail_bounded_unnest(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -615,7 +624,7 @@ fn start_bounded_unnest_input(
     Err(_) => return Err(InputLimit)
   }
   let output = match
-    prepare_admitted_output(
+    prepare_bounded_admitted_output(
       owner,
       @pipeline.Step(step),
       max_rows,
@@ -782,6 +791,12 @@ pub fn advance_bounded_unnest(
       Ok(BoundedUnnestStopped(reason, progress~, work~))
     }
   }
+}
+
+///|
+/// Observe outstanding custody independently from cleanup's change result.
+pub fn bounded_unnest_cleanup_pending(value : BoundedUnnestExecution) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
 
 ///|

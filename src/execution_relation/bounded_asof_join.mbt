@@ -187,7 +187,9 @@ fn cleanup_bounded_asof_state(state : BoundedAsOfState) -> Bool {
     state.sort = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.identity_order = []
@@ -968,7 +970,6 @@ fn bounded_asof_step(
         guard state.output is Some(output) else {
           return bounded_asof_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -1178,7 +1179,12 @@ fn start_bounded_asof_join_input(
     return Err(Rows(RowLimit))
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(step), output_ceiling, values) {
+    prepare_bounded_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      output_ceiling,
+      values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }

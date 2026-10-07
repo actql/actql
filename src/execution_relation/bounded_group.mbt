@@ -241,7 +241,9 @@ fn cleanup_bounded_group_state(state : BoundedGroupState) -> Bool {
     state.evaluation = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.pending.clear()
@@ -346,11 +348,19 @@ fn bounded_group_step(
             let rows = state.rows
             state.port = match
               finish_trusted_output_preparation(cursor, fn(_) {
-                if live.val { rows.val } else { None }
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
               }) {
               Ok(port) => Some(port)
               Err(issue) =>
-                return bounded_group_failure(Completion(issue), progress, used + 1)
+                return bounded_group_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
             }
             state.port_preparation = None
             state.phase = ChargeInput
@@ -636,7 +646,6 @@ fn bounded_group_step(
         guard state.output is Some(output) else {
           return bounded_group_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -759,7 +768,7 @@ fn start_bounded_group_with_input(
     Err(_) => return Err(InvalidExecution)
   }
   let output = match
-    prepare_admitted_output(
+    prepare_bounded_admitted_output(
       owner,
       @pipeline.Step(step),
       max_rows,
@@ -1015,6 +1024,12 @@ pub fn advance_bounded_group_execution(
       Ok(BoundedGroupStopped(reason, progress~, work~))
     }
   }
+}
+
+///|
+/// Observe outstanding custody independently from cleanup's change result.
+pub fn bounded_group_cleanup_pending(value : BoundedGroupExecution) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
 
 ///|

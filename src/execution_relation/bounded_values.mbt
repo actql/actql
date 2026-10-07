@@ -87,7 +87,9 @@ fn cleanup_bounded_values_state(state : BoundedValuesState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.checked_row = []
@@ -331,7 +333,6 @@ fn bounded_values_step(
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -397,7 +398,7 @@ pub fn start_bounded_values(
     Err(issue) => return Err(Capture(issue))
   }
   let output = match
-    prepare_admitted_output(
+    prepare_bounded_admitted_output(
       owner,
       @pipeline.Step(step),
       max_rows,
@@ -494,6 +495,12 @@ pub fn advance_bounded_values(
       Ok(BoundedValuesStopped(reason, progress~, work~))
     }
   }
+}
+
+///|
+/// Observe outstanding custody independently from cleanup's change result.
+pub fn bounded_values_cleanup_pending(value : BoundedValuesExecution) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
 
 ///|
