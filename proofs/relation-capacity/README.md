@@ -8,21 +8,32 @@ and the parent allowance have not become proved facts.
 
 ## Scope fixed before proof
 
-`allocations.json` was committed before the model in `d57251d4e`. Its SHA-256 is
-`4dfd632af58dd025e44661bc69be6a761328e6666fa6ee0efe78818d57ad2957`.
+The current `allocations.json` reviews the aggregate state and metadata cursor
+at main `4fdcffb63f651e3dafa7dceaaf58a36a3e199cdb`. Its SHA-256 is
+`4945d5aebfd02f7865c0e9d20e9dde3015b6ca4fede67d8d1f1b1e740b17bc24`. The prior inventory remains fixed in its original Git
+source and execution records; no old-source compatibility route is retained.
 The gate requires that exact inventory; relabeling a request or shrinking the
-inventory cannot discharge an obligation. The inspected main is
-`01ee57ea17dd5ee9308360fd9744e335718283cc`.
+inventory cannot discharge an obligation. This scope is limited to the existing TimeSeries-to-Relation chains, which keep
+the conservative sum of child scratch. It does not establish the max-scratch
+reservation for eligible built-in-only chains.
 
 The inventory includes every child Session/provider state, staged and completed
 output, intermediate backing arrays, newly made exact edge wrappers, and parent
-Refs/closures/children-array backing capacity. Borrowed external payloads are
+aggregate-state/remaining Refs, actual callback captures, completed/children-array backing capacity and the pending metadata/read cursors. Borrowed external payloads are
 charged to their existing owner; each newly allocated wrapper/copy is included.
 Driver imports/final independent conversion have separate reservations in
 `src/connectors/local/driver/managed_dispatch.mbt`; that whole Host envelope is
 not proved by this theorem. GC/allocator metadata, fragmentation, stacks, code
 pages and RSS are excluded from this unit, not from an allocation census by
 renaming chain-owned objects.
+
+The current product adds a 512-byte metadata reservation. That constant is not
+called a physical upper bound. The model below retains its stronger *assumed*
+`count * 256` bound for all uncovered parent/edge allocations, including metadata.
+Source checks and existing executed fixtures do not discharge that assumption or
+establish an exhaustive current Native allocation census. Cleanup source checks
+require false/error to return before clearing completed outputs and pending input
+preparation; only successful reclamation permits those clears.
 
 ## What is proved
 

@@ -3,6 +3,20 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { snapshot as sessionSnapshot, artifacts, targets, includesObligations } from '../bounded-session/evidence.mjs';
 export { artifacts, targets };
+// The actual checker inventories 14 Session, 22 chain and 18 stop/pause laws.
+export const modelExecution = Object.freeze({target: 'model', count: 14 + 22 + 18,
+  command: Object.freeze([process.execPath, 'proofs/relation-chain/check.mjs']),
+  summary: 'Checked 54 theorems, expected claim types and axiom dependencies'});
+// Parse the complete observed checker result, never a caller-supplied count.
+// Capacity and pipeline supply their independently reviewed checker descriptor.
+export function modelObservationUnits(output, exit, expected = modelExecution) {
+  const summaries = output.split(/\r?\n/u).filter(line => line.startsWith('Checked '));
+  if (exit !== 0 || summaries.length !== 1 || summaries[0] !== expected.summary || output.includes('sorryAx')) {
+    throw new Error('Missing or incomplete typed model observation');
+  }
+  return expected.count;
+}
+
 export const fixture = 'src/query_integration/relation_chain_evidence_wbtest.mbt';
 export const pauseFixture = 'src/query_integration/relation_chain_stop_pause_wbtest.mbt';
 export const stopFixture = 'src/query_integration/relation_chain_delayed_work_wbtest.mbt';
@@ -242,10 +256,12 @@ export function validate(nodes, report, current, target) {
         : node.run === `connection-${target}` ? fixture
         : node.run === `stop-connection-${target}` ? stopFixture
         : node.run === `pause-connection-${target}` ? pauseFixture : null;
-      const command = model ? [process.execPath, 'proofs/relation-chain/check.mjs']
+      const command = model ? modelExecution.command
         : ['moon', 'test', suite, '--target', target, '--deny-warn'];
       if (!result?.passed || result.exit !== 0 || result.sourceDigest !== current.digest ||
           !same(result.command, command)) throw new Error('Missing or unrelated executed evidence');
+      if (model && (result.target !== modelExecution.target || result.count !== modelExecution.count))
+        throw new Error('Invalid model target or theorem count');
       if (!model) {
         if (!suite || result.target !== target || !(result.count >= (suite === pauseFixture ? 2 : suite === stopFixture ? 6 : suite === fixture ? 4 : 1)) ||
             !Object.keys(result.artifacts ?? {}).length) throw new Error('Invalid executed target/artifact');

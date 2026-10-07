@@ -7018,3 +7018,26 @@ not establish full metadata
 boundedness, all-target or packed/HTTPS acceptance, hosted CI success, or
 whole-Local completion. Earlier synchronous entries remain historical rather
 than current descriptions of the newly connected payload-validation path.
+
+### Resumed Result dependency validation (2026-10-08)
+
+The retained Effect-free commit owner now also polls Result dependency
+lookups, duplicate/use inventories and Artifact provenance. Private use
+flags are initialized and reserved incrementally, and immutable arrays are
+read without whole-inventory copies. Exact evidence bindings, typed refusal
+order, shared retention rules and Store custody remain unchanged.
+
+The [Result dependency record](2026-10-08-local-bounded-result-evidence.md)
+separates integrated-source common JS 256/256 from clean-source Node 8/8,
+including six actual retained Host cases. The success case requires multiple
+polls during Result dependency resolution, then reads all three independently
+named Results with fixed content/order. Independent control totals and
+exact/one-short workspace reservations cover the new continuation; partial
+cancellation retires private state without retiring the admitted inputs.
+
+PR #934 is merged, and this unit normally adopts main
+`2d38f1ccf8134ebb96446ef9cb1e53767a704200` without conflicts. Durable
+binding inventories, request/index inventories, long names and computation
+metadata preludes still have synchronous boundaries. Effectful commit,
+Native/direct, packed and all-target acceptance are not closed by these
+checks. This is not whole publication or whole-Local completion.

@@ -361,7 +361,13 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
               : target.strategyEffectFreeCommitCheckFixturePhase(preparation);
             route.validationPolls = (route.validationPolls ?? 0) + 1;
             (route.validationPhases ??= new Set()).add(phase);
-            if (!chain) route.commitPolls = (route.commitPolls ?? 0) + 1;
+            if (!chain) {
+              route.commitPolls = (route.commitPolls ?? 0) + 1;
+              if (phase === 'result-evidence') {
+                route.resultEvidencePolls = (route.resultEvidencePolls ?? 0) + 1;
+                assert.equal(result, 0);
+              }
+            }
             assert.equal(completedDispatches, 3);
             if (chain && mode === 'cancel-during-publication-validation' &&
                 !scheduled && phase === route.cancelValidationPhase &&
@@ -1036,6 +1042,8 @@ for (const phase of ['success', 'context-check', 'rows-check']) {
         assert.equal(owner.status, 'published');
         await assertPublishedRows(publication, plan, owner.execution, [second, first]);
         assert.ok(route.commitPolls > 1);
+        assert.ok(route.resultEvidencePolls > 1,
+          'Result dependency resolution must yield within commit validation');
         assert.equal(route.attemptCreates, 1);
       } else {
         await assert.rejects(run(), error => {

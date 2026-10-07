@@ -106,5 +106,22 @@
     "Store/backend/failure/resource tests retained",
     "delayed-stop callback work not changed",
     "no product bug fixes; preserve counterexample and hand off to owner"
-  ]
+  ],
+  "modelExtension": {
+    "revision": "2cf51f3b3d6171de17c21b3490a235f29ab3f28a",
+    "checker": "proofs/relation-chain/check.mjs",
+    "priorDigest": "abac294b2005149066e11305c4422f1c5f619bec5a657e74a78cd8fe0c37da6c",
+    "files": {
+      "proofs/relation-chain/check.mjs": "d8bb217e75fb13b057136a8356a04f9dba05a82dfbe78d13892aba68a08c7d43",
+      "proofs/relation-chain/StopAccounting.lean": "33aaf44ae59b75a7337f7efd557bfbae39f08f7e464db61ffe5596821c2ed9ad",
+      "proofs/relation-chain/StopClaims.lean": "9de230f934b5e78377d5407d0f669344bbeaac38e37d514e2502f981a00b7914"
+    },
+    "observation": {
+      "session": 14,
+      "chain": 22,
+      "stopAndPause": 18,
+      "total": 54
+    },
+    "reason": "Adopt the already integrated stop-inclusive and Waiting/Settling pause model and typed claim roots. Original Session/Chain laws, typed claims and historical checker digest remain fixed. The producer must execute the current 54-law typed/axiom audit; no old-checker compatibility or stronger implementation claim is introduced."
+  }
 }
