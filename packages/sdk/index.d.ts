@@ -152,8 +152,18 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
   }> | HeldRequestExplanation | Readonly<{
     observation: 'run_reference_received';
     next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+  }> | Readonly<{
+    observation: 'not_accepted' | 'preparation_failed';
+    problem: Extract<SubmissionOutcome, {kind: 'not_accepted'}>['problem'];
+    hint: string;
+    next: RequestObservationTarget & Readonly<{operation: 'lookupSubmission'}>;
+  }> | Readonly<{
+    observation: 'preparing' | 'history_unresolvable' | 'lookup_unavailable' |
+      'lookup_uninterpretable' | 'not_sent';
+    hint: string;
+    next: RequestObservationTarget & Readonly<{operation: 'lookupSubmission'}>;
   }>);
-/** Read-only advice for this exact SDK submit result; no retry or execution permission. */
+/** Read-only advice for this exact SDK submit or lookup result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown, options?: OperationExplanationOptions): SubmissionExplanation | undefined;
 export type RequestLookupExplanation = Readonly<{summary: string; hint: string}> & (
   HeldRequestExplanation | Readonly<{
