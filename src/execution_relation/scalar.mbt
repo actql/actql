@@ -75,6 +75,12 @@ pub fn unary(
         Boolean(b) => Ok(Boolean(!b))
         Number(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
+    Floor =>
+      match value {
+        Null => Ok(Null)
+        Number(n) => finite(n.floor())
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     Negate =>
       match value {
         Null => Ok(Null)

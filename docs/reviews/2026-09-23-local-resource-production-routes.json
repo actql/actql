@@ -1542,6 +1542,55 @@
           "fixture": "retained row names stop in input snapshot output and capture phases"
         },
         {
+          "role": "derive_metadata_lookup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_metadata_cursor_wbtest.mbt",
+          "fixture": "row metadata lookup preserves qualified UTF16 spelling and bounded scans"
+        },
+        {
+          "role": "derive_metadata_prepare_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_metadata_cursor_wbtest.mbt",
+          "fixture": "expression metadata preparation stops during each owned phase"
+        },
+        {
+          "role": "derive_metadata_projection_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_metadata_cursor_wbtest.mbt",
+          "fixture": "indexed projection prepares sources in bounded fragments and stops before reading"
+        },
+        {
+          "role": "derive_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_metadata_cursor_wbtest.mbt",
+          "fixture": "metadata resume quantum preserves expression and projection rows and charges"
+        },
+        {
+          "role": "derive_borrowed_bindings_values",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_row_metadata_wbtest.mbt",
+          "fixture": "borrowed bindings retain canonical values across resume quanta"
+        },
+        {
+          "role": "derive_borrowed_bindings_shadow",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_row_metadata_wbtest.mbt",
+          "fixture": "borrowed ordered bindings preserve prior slots and shadow winners"
+        },
+        {
+          "role": "derive_borrowed_bindings_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_row_metadata_wbtest.mbt",
+          "fixture": "borrowed binding cancellation retains input and reclaims active roots once"
+        },
+        {
           "role": "derive_raw_text_child_limits",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1697,6 +1746,13 @@
           "fixture": "public retained wide indexed snapshots preserve rows and post-progress custody"
         },
         {
+          "role": "derive_borrowed_bindings_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained borrowed bindings preserve map values NULL and post-progress custody"
+        },
+        {
           "role": "derive_raw_text_child_public",
           "suite": "node:embedded_property_names",
           "targets": ["node"],
@@ -1837,6 +1893,27 @@
           "fixture": "ordinary Local sort resumes within quantum and feeds two Computes"
         },
         {
+          "role": "ordered_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "ordered metadata preserves independent rows and charges across resume quanta"
+        },
+        {
+          "role": "ordered_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "long order metadata stops inside name charges and key lookups without refund"
+        },
+        {
+          "role": "ordered_metadata_term_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "long sort term has independently derived work and temporary workspace boundaries"
+        },
+        {
           "role": "mixed_stage_sort_quantum_and_lifetime",
           "suite": "moon:query_integration",
           "targets": [
@@ -1945,6 +2022,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "property-match-sort-wide-comparison"
+        },
+        {
+          "role": "ordered_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained ordered metadata preserves ties NULL and post-progress custody"
         },
         {
           "role": "ordinary_sort_in_flight_host_timer",
@@ -2167,6 +2251,20 @@
           "fixture": "ordinary Local take resumes within quantum and feeds two Computes"
         },
         {
+          "role": "ordered_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "ordered metadata preserves independent rows and charges across resume quanta"
+        },
+        {
+          "role": "ordered_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "long order metadata stops inside name charges and key lookups without refund"
+        },
+        {
           "role": "values_split_take_lifetime",
           "suite": "moon:query_integration",
           "targets": [
@@ -2275,6 +2373,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "property-match-take"
+        },
+        {
+          "role": "ordered_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained ordered metadata preserves ties NULL and post-progress custody"
         },
         {
           "role": "ordinary_take_in_flight_host_timer",
@@ -3137,6 +3242,20 @@
           "fixture": "empty lag reserves output schema before copying input names"
         },
         {
+          "role": "generated_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_metadata_wbtest.mbt",
+          "fixture": "generated metadata preserves exact roles NULL and occurrence order across quanta"
+        },
+        {
+          "role": "generated_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_metadata_wbtest.mbt",
+          "fixture": "generated metadata stops inside role matching and source lookup before input charging"
+        },
+        {
           "role": "lag_selected_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -3180,6 +3299,13 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "parameter lag",
           "case": "lagProgram"
+        },
+        {
+          "role": "generated_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained lag metadata preserves generated roles and post-progress custody"
         },
         {
           "role": "lag_selected_in_flight_host_timer",
@@ -3292,6 +3418,20 @@
           "fixture": "watermark admits independently counted work and workspace"
         },
         {
+          "role": "generated_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_metadata_wbtest.mbt",
+          "fixture": "generated metadata preserves exact roles NULL and occurrence order across quanta"
+        },
+        {
+          "role": "generated_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_metadata_wbtest.mbt",
+          "fixture": "generated metadata stops inside role matching and source lookup before input charging"
+        },
+        {
           "role": "watermark_selected_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -3324,6 +3464,13 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "fixed parameter watermark",
           "case": "fixedWatermarkProgram"
+        },
+        {
+          "role": "generated_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained watermark metadata preserves generated roles and post-progress custody"
         },
         {
           "role": "watermark_prefix_host_two_consumers",
@@ -3984,6 +4131,48 @@
           "fixture": "json pick admits independently counted leaf work and workspace"
         },
         {
+          "role": "borrowed_json_path_work",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_json_path_wbtest.mbt",
+          "fixture": "borrowed JSON path preserves Unicode probes and independent work limits"
+        },
+        {
+          "role": "borrowed_json_path_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_json_path_wbtest.mbt",
+          "fixture": "borrowed JSON path stops inside a later Unicode segment"
+        },
+        {
+          "role": "generated_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_metadata_wbtest.mbt",
+          "fixture": "generated metadata preserves exact roles NULL and occurrence order across quanta"
+        },
+        {
+          "role": "generated_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_metadata_wbtest.mbt",
+          "fixture": "generated metadata stops inside role matching and source lookup before input charging"
+        },
+        {
+          "role": "generated_metadata_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_metadata_wbtest.mbt",
+          "fixture": "generated source preparation admits independent exact and one-short temporary workspace"
+        },
+        {
+          "role": "generated_metadata_work",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_metadata_wbtest.mbt",
+          "fixture": "generated JSON output preserves independently derived whole execution work limits"
+        },
+        {
           "role": "json_pick_selected_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -4027,6 +4216,20 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "json pick",
           "case": "jsonPickProgram"
+        },
+        {
+          "role": "borrowed_json_path_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained borrowed JSON path preserves Unicode NULL and post-progress custody"
+        },
+        {
+          "role": "generated_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained json metadata preserves generated roles and post-progress custody"
         },
         {
           "role": "json_pick_same_stage_host_two_consumers",
@@ -6772,6 +6975,20 @@
           "fixture": "append admits independently calculated exact work and workspace"
         },
         {
+          "role": "append_receiving_metadata_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/producer_read_preparation_wbtest.mbt",
+          "fixture": "producer metadata yields inside long names with exact visit budgets"
+        },
+        {
+          "role": "append_receiving_metadata_handoff",
+          "suite": "moon:connectors_local",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/connectors/local/relation_chain_input_preparation_wbtest.mbt",
+          "fixture": "long producer handoff keeps nineteen independent control polls across quanta"
+        },
+        {
           "role": "append_two_consumer_reclamation",
           "suite": "moon:query_integration",
           "targets": [
@@ -7084,6 +7301,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "append-filter-in-flight"
+        },
+        {
+          "role": "append_receiving_metadata_public",
+          "suite": "node:embedded_producer_metadata",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-producer-read-preparation.test.mjs",
+          "fixture": "public retained chain prepares long producer names before child start and cancellation"
         },
         {
           "role": "append_chain_publication",

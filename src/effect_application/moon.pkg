@@ -1,5 +1,7 @@
 supported_targets = "+js+wasm+native"
 
+formatter(ignore: [ "table_vectors.generated_wbtest.mbt" ])
+
 import {
   "actql/actql/canonical_value" @canonical,
   "actql/actql/canonical_json" @json,

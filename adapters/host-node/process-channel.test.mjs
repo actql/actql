@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { prepareManagedExecution, startManagedExecution } from './process-channel.mjs';
 import {encodeProcessFrame, executionProtocol} from './process-frames.mjs';
+import {pathToFileURL} from 'node:url';
 
 const configuration = () => ({
   entry: new URL('./process-fixture.mjs', import.meta.url), run: 'owned-run',
@@ -35,6 +36,31 @@ test('managed execution uses a separate process and bounded sequential requests'
   await channel.close();
   assert.equal(channel.status().exited, true);
   assert.equal(channel.cleanupHandle.status().pending, false);
+});
+
+test('trusted interpreter URL is snapshotted with the existing process owner', async t => {
+  const runtime = pathToFileURL(process.execPath);
+  const prepared = prepareManagedExecution({...configuration(), runtime});
+  runtime.pathname = '/missing-interpreter';
+  const channel = await startManagedExecution(prepared);
+  t.after(() => channel.close());
+  assert.notEqual((await channel.request({command: 'echo', value: 1})).pid, process.pid);
+  await channel.close();
+  assert.equal(channel.cleanupHandle.status().pending, false);
+});
+
+test('interpreter configuration rejects non-file input and retains failed-spawn cleanup', async () => {
+  for (const runtime of ['python', new URL('https://example.invalid/python')]) {
+    assert.throws(() => prepareManagedExecution({...configuration(), runtime}),
+      {code: 'InvalidExecutionConfiguration'});
+  }
+  let error;
+  try {
+    await startManagedExecution({...configuration(), runtime: new URL('file:///missing-interpreter')});
+  } catch (caught) { error = caught; }
+  assert.equal(error.code, 'ExecutionSpawnFailure');
+  await error.cleanupHandle.retry();
+  assert.equal(error.cleanupHandle.status().pending, false);
 });
 
 test('invalid request is correctable without consuming the sequence', async t => {

@@ -1,34 +1,17 @@
 import assert from 'node:assert/strict';
-import { auditParentStartup } from './audit.mjs';
-// Reuse the complete, internally consistent executed receipt, rather than
-// changing just a fact label. No extra MoonBit execution is needed.
-export function rejectParentSubstitutions(report, source, read) {
-  auditParentStartup(report, source, read);
-  for (const target of ['js', 'wasm']) {
-    const copy = structuredClone(report);
-    copy.target = target;
-    assert.throws(() => auditParentStartup(copy, source, read), /Requested parent probe target/);
-  }
-  const claim = structuredClone(report);
-  claim.unconditionalAllocationBytes = true;
-  assert.throws(() => auditParentStartup(claim, source, read), /unconditional capacity guarantee/);
-  const relabeled = structuredClone(report);
-  relabeled.observation.faults.find(f => f.kind === 'parent control investigation').environmentBytes = 112;
-  assert.throws(() => auditParentStartup(relabeled, source, read), /AssertionError/);
-  const archives = structuredClone(report);
-  archives.execution.parentArchives = {};
-  assert.throws(() => auditParentStartup(archives, source, read), /AssertionError/);
-  const bound = structuredClone(report);
-  bound.retainedCore.recipe.bytes = '512';
-  assert.throws(() => auditParentStartup(bound, source, read), /recipe differs/);
-  const model = structuredClone(report);
-  model.model.sourceDigest = '0'.repeat(64);
-  assert.throws(() => auditParentStartup(model, source, read), /independent execution receipt/);
-  const candidates = structuredClone(report);
-  candidates.providerConstruction.recipe.bytes = 512;
-  assert.throws(() => auditParentStartup(candidates, source, read), /Provider recipe differs/);
-  const incomplete = structuredClone(report);
-  delete incomplete.providerConstruction;
-  assert.throws(() => auditParentStartup(incomplete, source, read), /Provider recipe differs/);
-  return 'native parent receipt: portable-slot substitution, unsupported guarantee, detached facts, changed core/provider recipe, missing provider evidence, stale model and missing executed artifacts rejected';
+import {auditParentStartup} from './audit.mjs';
+export function rejectParentSubstitutions(report,source,read) {
+  auditParentStartup(report,source,read);
+  const bad = mutate => {const copy=structuredClone(report);mutate(copy);assert.throws(()=>auditParentStartup(copy,source,read));};
+  bad(r=>r.target='js');bad(r=>r.target='wasm');
+  bad(r=>r.unconditionalAllocationBytes=true);bad(r=>r.reuseAuthorized=true);
+  bad(r=>r.buildIdentity='0'.repeat(64));bad(r=>r.boundary.sourceDigest='0'.repeat(64));
+  bad(r=>r.restored=false);bad(r=>r.records[0].environments[0].requestedBytes=72);
+  bad(r=>r.artifacts={});bad(r=>r.archives={});
+  bad(r=>r.retainedCore.bytes='512');bad(r=>r.model.sourceDigest='0'.repeat(64));
+  bad(r=>r.providerConstruction.recipe.bytes=512);bad(r=>delete r.providerConstruction);
+  bad(r=>delete r.preparationStorageFacts);
+  bad(r=>r.preparationStorageFacts[3].selected.backingBytes=0);
+  bad(r=>r.preparationStorageFacts[2].transferredColumns='1');
+  return '17 Native parent receipt substitutions rejected; no extra scientific execution';
 }

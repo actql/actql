@@ -539,46 +539,56 @@ fn local_bounded_relation_check(
   let matches = match
     @execution.generated_sequence_step_at(sequence, position) {
     Some(@lower.RowStep(kernel)) =>
-      match check {
-        Group =>
-          (match @lower.kernel_group(kernel) {
-            Some(group) =>
-              @execution.group_execution_supported_with_numeric(group)
-            None => false
-          }) ||
-          @lower.kernel_count_group(kernel) is Some(_)
-        Analytic =>
-          match @lower.kernel_analytic(kernel) {
-            Some(analytic) =>
-              @execution.analytic_execution_supported_with_numeric(analytic)
-            None => false
-          }
-        Pivot =>
-          match @lower.kernel_pivot(kernel) {
-            Some(pivot) =>
-              @execution.pivot_execution_supported_with_numeric(pivot)
-            None => false
-          }
-        RowWindow => false
-        TopK =>
-          match @lower.kernel_body(kernel) {
-            @lower.TopK(_, _) | @lower.PartitionedTopK(_, _) => true
-            _ => false
-          }
-        Lag => @lower.kernel_body(kernel) is @lower.Lag(_, _)
-        JsonPick => @lower.kernel_body(kernel) is @lower.JsonPick(_, _, _)
-        Watermark => @lower.kernel_body(kernel) is @lower.Watermark(_, _, _, _)
-        Dedupe => @lower.kernel_body(kernel) is @lower.DedupeRows
-        Assertion =>
-          match @lower.kernel_body(kernel) {
-            @lower.AssertAll(_) | @lower.AssertUnique(_) => true
-            _ => false
-          }
-        Expansion =>
-          match @lower.kernel_body(kernel) {
-            @lower.Unpivot(_, _, _, _) | @lower.Unnest(_, _, _, _, _) => true
-            _ => false
-          }
+      if @lower.kernel_json_pick(kernel) is Some(_) {
+        check is JsonPick
+      } else if @lower.kernel_unique_keys(kernel) is Some(_) {
+        check is Assertion
+      } else if @lower.kernel_bindings(kernel) is Some(_) ||
+        @lower.kernel_is_projection(kernel) {
+        false
+      } else {
+        match check {
+          Group =>
+            (match @lower.kernel_group(kernel) {
+              Some(group) =>
+                @execution.group_execution_supported_with_numeric(group)
+              None => false
+            }) ||
+            @lower.kernel_count_group(kernel) is Some(_)
+          Analytic =>
+            match @lower.kernel_analytic(kernel) {
+              Some(analytic) =>
+                @execution.analytic_execution_supported_with_numeric(analytic)
+              None => false
+            }
+          Pivot =>
+            match @lower.kernel_pivot(kernel) {
+              Some(pivot) =>
+                @execution.pivot_execution_supported_with_numeric(pivot)
+              None => false
+            }
+          RowWindow => false
+          TopK =>
+            match @lower.kernel_body(kernel) {
+              @lower.TopK(_, _) | @lower.PartitionedTopK(_, _) => true
+              _ => false
+            }
+          Lag => @lower.kernel_body(kernel) is @lower.Lag(_, _)
+          JsonPick => false
+          Watermark =>
+            @lower.kernel_body(kernel) is @lower.Watermark(_, _, _, _)
+          Dedupe => @lower.kernel_body(kernel) is @lower.DedupeRows
+          Assertion =>
+            match @lower.kernel_body(kernel) {
+              @lower.AssertAll(_) => true
+              _ => false
+            }
+          Expansion =>
+            match @lower.kernel_body(kernel) {
+              @lower.Unpivot(_, _, _, _) | @lower.Unnest(_, _, _, _, _) => true
+              _ => false
+            }
+        }
       }
     Some(@lower.WindowStep(_)) => check is RowWindow
     _ => false
