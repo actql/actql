@@ -27,6 +27,7 @@ export function tableEffectContract() {
     identity: {
       request: 'canonical_complete_operation_excluding_only_request_cid',
       receipt: 'canonical_complete_receipt_excluding_only_receipt_cid',
+      noncommit_receipt: 'canonical_complete_noncommit_receipt_excluding_only_receipt_cid',
       mapping: 'canonical_complete_mapping_excluding_only_mapping_cid',
       generation: 'sha256_of_exact_published_iceberg_metadata_file_bytes',
       table: 'catalog_identity_and_immutable_iceberg_table_uuid',
@@ -44,6 +45,7 @@ export function tableEffectContract() {
       publication: 'durable_catalog_head_and_original_operation_record_in_one_transaction',
       completion: 'confirmed_original_catalog_commit_not_http_admission_or_staging',
       recovery: 'operation_record_retained_independently_of_head_and_later_commits',
+      noncommit: 'validated_conflict_original_operation_record_and_publication_fence_atomic_not_http_or_absent_head',
       retention: 'independent_of_origin_run_release_or_named_result_ttl',
       capacity: 'finite_persistent_limits_include_retained_staged_and_unknown_files',
       refusal: 'typed_prewrite_refusal_for_unsupported_contracts_or_storage_exhaustion',
@@ -91,6 +93,16 @@ export function tableEffectContract() {
         schema_cid: cid,
         storage_mapping_cid: cid,
         row_count: nonnegative,
+        receipt_cid: cid,
+      }),
+      noncommit_receipt: schema('noncommit-receipt', {
+        version: {const: 'actql-table-noncommit-receipt/0.1'},
+        request_cid: cid,
+        effect_identity_cid: cid,
+        catalog_identity_cid: cid,
+        schema_cid: cid,
+        storage_mapping_cid: cid,
+        reason: {enum: ['CreateNameConflict', 'ExpectedGenerationConflict']},
         receipt_cid: cid,
       }),
       storage_mapping: schema('storage-mapping', {

@@ -46,8 +46,15 @@ export function authoredTableVectors() {
     generation_cid: pin('b'),
     metadata_location: 'file:///warehouse/tickets/metadata/00001.json',
     snapshot_id: '9223372036854775807', row_count: 3}, 'receipt_cid');
+  const createConflictReceipt = seal({version: 'actql-table-noncommit-receipt/0.1',
+    request_cid: create.request_cid, effect_identity_cid: pin('2'),
+    catalog_identity_cid: pin('3'), schema_cid: pin('6'), storage_mapping_cid: pin('7'),
+    reason: 'CreateNameConflict'}, 'receipt_cid');
+  const {receipt_cid: ___, ...noncommitBase} = createConflictReceipt;
+  const replaceConflictReceipt = seal({...noncommitBase,
+    request_cid: replace.request_cid, reason: 'ExpectedGenerationConflict'}, 'receipt_cid');
   const cases = Object.entries({create, replace, emptyReceipt,
-    replacementReceipt}).map(([id, body]) => ({id, body,
+    replacementReceipt, createConflictReceipt, replaceConflictReceipt}).map(([id, body]) => ({id, body,
     expected_canonical_bytes: canonicalText(body),
     expected_cid: body.request_cid && !id.endsWith('Receipt')
       ? body.request_cid : body.receipt_cid}));
@@ -78,5 +85,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (process.argv.includes('--write')) writeFileSync(file, contents);
     assert.equal(readFileSync(file, 'utf8'), contents, `Stale ${file}`);
   }
-  console.log('Table operation vectors: four independently authored preimages.');
+  console.log('Table operation vectors: six independently authored preimages.');
 }
