@@ -472,6 +472,8 @@ pub fn read_model_dependency(ModelDependencyKind, Bytes, String, Limits, Int) ->
 
 pub fn read_model_execution_contract(ModelTaskContract, Bytes, String, Limits, Int) -> Result[ModelExecutionContract, ModelTaskIssue]
 
+pub fn read_relation_schema_fields(@decode_core.Cursor, Int, Int, Int, Int) -> Result[(@relation_schema.Schema, Int), CarrierSchemaIssue]
+
 pub fn read_single_attempt_model_dependencies(ModelExecutionContract, Bytes?, Bytes?, Bytes?, Limits, Int) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue]
 
 pub fn read_text_rank_selection(WireEnvironment, Int) -> Result[TextRankSelection, TextRankSelectionIssue]

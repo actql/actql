@@ -555,7 +555,7 @@ The common machine constructor is `property_graph`, selected explicitly with
 `version: "actql-property-graph-constructor/0.1"`. Its output is the separately
 admitted `actql-property-graph-contract/0.1` Graph, not a legacy simple Graph.
 The complete runnable input is
-[`property-graph-parallel.program.json`](../../scripts/fixtures/property-graph-parallel.program.json).
+[`property-graph-parallel.program.json`](../../scripts/fixtures/graph-parallel.program.json).
 It constructs two independently keyed parallel self-loop edges, performs a
 definition-scoped MATCH and exposes the keys through a public Named Result.
 
@@ -564,7 +564,7 @@ definition `name`, resolved producer `from`, and nonempty ordered `key` column
 list. Edge `source`/`target` identify a node definition and ordered endpoint
 columns. Static label entries select declared properties independently of
 label membership. See the normative
-[constructor contract](../spec/language.md#property-graph-construction).
+[constructor contract](../spec/language.md#graph-keyed-graph-construction).
 
 The common checker owns definition-domain issuance. Frontends must not invent
 a domain, use a current input Artifact CID as provenance, or repeat Graph

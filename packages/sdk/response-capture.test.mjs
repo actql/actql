@@ -63,6 +63,97 @@ async function fixture(t, reply) {
   t.after(() => client.close());
   return {client, run: await client.attach(ref), calls};
 }
+
+async function attachmentFixture(t, reply) {
+  const calls = [];
+  const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
+    perform(operation) {
+      calls.push(operation);
+      if (operation === 'connect') return profile;
+      if (operation === 'attach') return reply;
+      throw new Error('UnexpectedOperation');
+    },
+  });
+  t.after(() => client.close());
+  return {client, calls};
+}
+
+test('attach retains the first observed original Run and admission facts', async t => {
+  const reads = {ref: 0, durability: 0, revision: 0};
+  const expected = {ref: {...ref}, durability: 'durable', revision: 7};
+  const replacements = {ref: {...ref, runDefinitionCid: cid('d')},
+    durability: 'volatile', revision: 99};
+  const reply = {};
+  for (const field of Object.keys(reads)) Object.defineProperty(reply, field, {
+    enumerable: true,
+    get() { return ++reads[field] === 1 ? expected[field] : replacements[field]; },
+  });
+  const f = await attachmentFixture(t, reply);
+  const attached = await f.client.attach(ref);
+  assert.deepEqual(attached.ref, ref);
+  assert.equal(attached.profile.durability, 'durable');
+  assert.deepEqual(reads, {ref: 1, durability: 1, revision: 1});
+  assert.deepEqual(f.calls, ['connect', 'attach']);
+});
+
+test('attach refuses a first foreign Run even when later observations match', async t => {
+  let reads = 0;
+  const reply = {get ref() {
+    return ++reads === 1 ? {...ref, runDefinitionCid: cid('d')} : ref;
+  }, durability: 'durable', revision: 7};
+  const f = await attachmentFixture(t, reply);
+  await assert.rejects(f.client.attach(ref), {code: 'ForeignHostAdmission'});
+  assert.equal(reads, 1);
+  assert.deepEqual(f.calls, ['connect', 'attach']);
+});
+
+test('attach capture failure is a safe refusal before constructing a handle', async t => {
+  const reply = {get ref() { throw new Error('private attach getter'); },
+    durability: 'durable', revision: 7};
+  const f = await attachmentFixture(t, reply);
+  await assert.rejects(f.client.attach(ref), error => {
+    assert.equal(error.code, 'InvalidHostAdmission');
+    assert.doesNotMatch(JSON.stringify(error), /private attach getter/);
+    assert.equal(Object.hasOwn(error, 'cause'), false);
+    return true;
+  });
+  assert.deepEqual(f.calls, ['connect', 'attach']);
+});
+
+for (const mutateOriginal of [false, true]) {
+  test(`attach refuses conversion changes to ${mutateOriginal ? 'the captured original' : 'its verification copy'}`, async t => {
+    const reply = {ref: {...ref}, durability: 'durable', revision: 7};
+    const f = await attachmentFixture(t, reply);
+    const clone = globalThis.structuredClone;
+    let changed = 0;
+    t.mock.method(globalThis, 'structuredClone', value => {
+      if (value?.durability === 'durable' && value?.revision === 7) {
+        changed++;
+        if (mutateOriginal) value.ref.runDefinitionCid = cid('d');
+        const copy = clone(value);
+        copy.ref.runDefinitionCid = cid('d');
+        return copy;
+      }
+      return clone(value);
+    });
+    await assert.rejects(f.client.attach(ref), {code: 'InvalidHostAdmission'});
+    assert.equal(changed, 1);
+    assert.deepEqual(reply.ref, ref);
+    assert.deepEqual(f.calls, ['connect', 'attach']);
+  });
+}
+
+test('attach detaches the admitted Run from subsequent Host response reuse', async t => {
+  const reply = {ref: {...ref}, durability: 'durable', revision: 7};
+  const f = await attachmentFixture(t, reply);
+  const attached = await f.client.attach(ref);
+  reply.ref.runDefinitionCid = cid('d');
+  reply.durability = 'volatile';
+  assert.deepEqual(attached.ref, ref);
+  assert.equal(attached.profile.durability, 'durable');
+  assert.deepEqual(f.calls, ['connect', 'attach']);
+});
+
 test('request cancellation captures the first kind, Run reference and revision once', async t => {
   const expected = {kind: 'accepted', requestId: 'saved', ref: {...ref}, revision: 7};
   const reply = {...expected}, reads = {kind: 0, ref: 0, revision: 0};

@@ -148,6 +148,10 @@ assert.equal(exampleCommands.length, 2);
 run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
+for (const path of ['fixtures/graph-delta-application.mjs',
+  'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs']) {
+  await writeFile(join(root, path), await readFile(join(repository, 'scripts', path)));
+}
 await writeFile(join(root, 'fixtures/graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/graph-parallel.program.json')));
 await writeFile(join(root, 'fixtures/graph-presence.program.json'),

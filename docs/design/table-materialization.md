@@ -83,6 +83,43 @@ Unsupported declarations and physical-name collisions are refused before
 staging. The schema identity preserves logical constraints that are not part of
 the physical boolean/double/string discriminator.
 
+A new Table Source must use that complete logical schema, not infer one from
+the physical mapping or sample rows. Publication must retain the common owner's
+canonical field-contract map under its schema CID in the durable Table metadata.
+On a later read, the common owner must re-admit that map and check its identity,
+column names, value contracts and presence against the selected generation.
+Missing logical metadata is a refusal, not permission to synthesize unconstrained
+primitive types from Iceberg fields. The Source declaration and the runtime input
+must agree even for an empty generation.
+
+The live export supplies its exact canonical schema wire; recovery retains the
+same wire with the original mapping and operation. The common owner checks it
+against the approved schema CID before dispatch. The physical writer requires
+this material and stores it as `actql.logical-schema` in immutable Iceberg
+metadata. It checks correspondence with the sealed field-ID/presence mapping,
+but does not issue logical contracts or infer value constraints. Replace requires
+the same saved schema wire. A reader receives those exact bytes and must still
+admit the complete logical contract through the common Source owner.
+
+The Source declaration carries the saved field map in the closed
+`actql-relation-schema/0.1` carrier-schema body. Required fields retain their
+complete value contracts; Conditional fields retain their separate presence
+wrapper. The declaration producer and Check Environment use the same bounded
+field-map reader, rather than separate primitive-type approximations. The
+logical field-map CID, carrier body CID and Contract Envelope CID identify
+different preimages. Existing object value contracts remain all-fields-required;
+this form serializes the existing Relation presence contract, not optional
+ordinary objects. Physical generation resolution alone supplies no read grant.
+
+Row acquisition uses the existing exact checked-input owner for both required
+and conditional columns. An omitted conditional cell enters presence-aware row
+admission; explicit NULL still goes through the column's nullable value contract.
+Required omissions, undeclared fields and type violations refuse the acquisition.
+The existing cumulative capture bounds include presence containers, and failed
+input admission cannot hand off earlier rows as a completed partial Source.
+This does not relax required fields of ordinary object value contracts or make
+conditional columns available to ordinary expressions without a schema guarantee.
+
 The common Host binds a Table request to the exact checked `store` member,
 captured local Result Artifact, issued Effect identity and logical request
 scope. It checks the request's Artifact, logical Relation, schema, mapping and
@@ -154,7 +191,10 @@ approval grant: current installed target validation, permission and approval
 decisions, source availability and durable claims remain required at apply.
 
 For process recovery, the same private capture record retains the original
-sealed storage mapping and operation for each Table member. A recovered typed
+sealed storage mapping, operation and canonical schema wire for each Table
+member. The closed material record contains `mapping_wire`, `operation_wire`
+and `schema_wire`; omitted schema material is refused without reconstruction.
+A recovered typed
 Table view derives the operation from that member's sealed Preview, re-admits
 the exact mapping, and matches the original request scope, semantic Result
 Artifact, schema, logical Relation, policy and physical source occurrence.
@@ -226,6 +266,32 @@ not change an acquired reader. Run/Result release releases only temporary input
 and read ownership, never the Table or its live files. Original commit records
 remain available after later commits and Run release within the configured
 durable storage installation.
+
+The optional local I/O bridge resolves a read selector containing the installed
+Catalog, namespace/name, Table UUID and schema CID. It reads the Catalog head
+and original publication record in one database snapshot, validates the
+immutable metadata and saved storage mapping, and returns that generation's
+receipt, mapping and canonical logical schema wire. Subsequent reads use this
+frozen generation, not a later
+head. Unknown tables, mismatched UUID/schema and missing publication records
+are refusals, not empty tables or reconstructed records. This read resolution
+is not reconciliation of an uncertain Effect: the original-operation lookup
+remains separate. The installed Source caller must check current read authority
+before and after I/O and admit decoded rows through the common presence-aware
+Relation owner; this physical primitive alone is not public Source acceptance.
+
+The installed Table row adapter restores SourceViews from the exact saved
+logical schema and an explicit Table selector, without Catalog I/O during
+installation or Check. Selector identity preserves namespace/name data bytes;
+configuration text normalization cannot alias different physical Tables. The
+existing installed row Source owner checks current authority before acquisition
+and again after metadata and data I/O, admits the entire decoded input through
+its presence-aware row contract, and owns page/capture accounting and cleanup.
+A read freezes one generation before subsequent data access. Its close releases
+only temporary acquisition custody, never Catalog-owned files. A Host loader
+must supply its trusted Site/read-approval boundary; this adapter does not issue
+authority or implement another scheduler. Installing this adapter is distinct
+from completing the packed public create/replace and different-Run read path.
 
 ## Implementation boundary
 

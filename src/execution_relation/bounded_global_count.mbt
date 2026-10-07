@@ -135,19 +135,25 @@ priv struct BoundedGlobalCountState {
   mut port : TrustedOutputPort[Unit]?
   mut port_preparation : TrustedOutputPreparation?
   mut phase : BoundedGlobalCountPhase
-  ordinals : Map[String, Int]
+  mut ordinals : Array[Int]
   mut input_names : Array[String]
-  key_names : Map[String, Int]
+  mut key_names : Array[@schema.FieldName]
   mut key_orders : Array[ColumnOrder]
   comparison : BoundedRowComparison
   engine : @bounded.Control
   mut sort_execution : BoundedIndexSort?
   mut sorted_indices : Array[Int]?
-  aggregate_names : Map[String, Int]
+  mut aggregate_names : Array[String]
   mut aggregate_columns : Array[Int?]
   mut counts : Array[Int]
   mut output_columns : Array[(Bool, Int)]
   mut field : Int
+  mut metadata_lookup : RowMetadataLookup?
+  mut name_charge : RowNameCharge?
+  mut metadata_column : Int?
+  mut metadata_part : Int
+  mut output_scan : Int
+  mut output_offset : Int
   mut charge_row : Int
   mut charge_column : Int
   mut charge_open : Bool
@@ -159,6 +165,7 @@ priv struct BoundedGlobalCountState {
   mut aggregate : Int
   mut row_open : Bool
   mut output_row_open : Bool
+  mut output_field_started : Bool
   mut output_row : Array[@admitted.Value]
   mut output_recheck : @admitted.RecheckCursor?
   mut output_measure : SteppedValueMeasure?
@@ -257,12 +264,21 @@ fn cleanup_bounded_global_count_state(state : BoundedGlobalCountState) -> Bool {
     cancel_admitted_output(output) |> ignore
     state.output = None
   }
-  state.ordinals.clear()
+  if state.metadata_lookup is Some(cursor) {
+    close_row_metadata_lookup(cursor)
+    state.metadata_lookup = None
+  }
+  if state.name_charge is Some(cursor) {
+    close_row_name_charge(cursor)
+    state.name_charge = None
+  }
+  state.metadata_column = None
+  state.ordinals = []
   state.input_names = []
-  state.key_names.clear()
+  state.key_names = []
   state.key_orders = []
   state.sorted_indices = None
-  state.aggregate_names.clear()
+  state.aggregate_names = []
   state.aggregate_columns = []
   state.counts = []
   state.output_columns = []
@@ -286,6 +302,102 @@ fn cleanup_bounded_global_count_state(state : BoundedGlobalCountState) -> Bool {
     state.live.val = false
   }
   true
+}
+
+///|
+/// Checked schema uniqueness replaces name hashing. The enclosing input owner
+/// still supplies availability and exact binding; this cursor is metadata only.
+fn global_count_metadata_column(
+  state : BoundedGlobalCountState,
+  field : @schema.FieldName,
+) -> Result[Int?, RowIssue] {
+  if state.metadata_column is Some(column) {
+    return Ok(Some(column))
+  }
+  if state.metadata_lookup is None {
+    guard start_row_metadata_lookup(
+        global_count_input_schema(state.input),
+        field,
+        state.workspace,
+      )
+      is Some(cursor) else {
+      return Err(RowLimit)
+    }
+    state.metadata_lookup = Some(cursor)
+  }
+  match advance_row_metadata_lookup(state.metadata_lookup.unwrap()) {
+    None => Ok(None)
+    Some(column) => {
+      state.metadata_lookup = None
+      guard state.ordinals.get(column) is Some(column) else {
+        return Err(InvalidRows)
+      }
+      state.metadata_column = Some(column)
+      Ok(Some(column))
+    }
+  }
+}
+
+///|
+/// Charge an original name once, not once per inspected schema candidate.
+/// Separate the fixed entry cost from scalar work and retain pending custody.
+fn global_count_metadata_name(
+  state : BoundedGlobalCountState,
+  name : String,
+  entry : Int,
+) -> Result[Bool, RowIssue] {
+  if state.name_charge is None {
+    guard start_row_name_charge(name, state.workspace) is Some(cursor) else {
+      return Err(RowLimit)
+    }
+    state.name_charge = Some(cursor)
+    if !spend_control(state.control, entry) {
+      return Err(RowLimit)
+    }
+    return Ok(false)
+  }
+  match
+    advance_row_name_charge(
+      state.name_charge.unwrap(),
+      Some(state.control),
+      None,
+    ) {
+    Ok(true) => {
+      state.name_charge = None
+      Ok(true)
+    }
+    other => other
+  }
+}
+
+///|
+fn global_count_name_value(
+  state : BoundedGlobalCountState,
+  name : String,
+  budget : ValueBudget,
+) -> Result[Bool, RowNameIssue] {
+  if name.length() <= 64 {
+    return if charge_text(budget, name) {
+      Ok(true)
+    } else {
+      Err(NameValueLimit)
+    }
+  }
+  if state.name_charge is None {
+    guard start_row_name_charge(name, state.workspace) is Some(cursor) else {
+      return Err(NameWorkspaceLimit)
+    }
+    state.name_charge = Some(cursor)
+  }
+  match
+    advance_row_name_charge(state.name_charge.unwrap(), None, Some(budget)) {
+    Err(_) => Err(NameValueLimit)
+    Ok(false) => Ok(false)
+    Ok(true) => {
+      state.name_charge = None
+      Ok(true)
+    }
+  }
 }
 
 ///|
@@ -347,23 +459,26 @@ fn bounded_global_count_step(
           state.phase = ResolveKeys
           continue
         }
-        guard @schema.field_at(
+        guard @schema.field_reference_name_at(
             global_count_input_schema(state.input),
             state.field,
           )
-          is Some(field) else {
+          is Some(name) else {
           return global_count_failure(InvalidExecution, progress, used)
         }
-        let name = @schema.reference_name(field.name)
-        if state.ordinals.contains(name) {
-          return global_count_failure(Rows(InvalidRows), progress, used)
+        match global_count_metadata_name(state, name, 1) {
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => ()
+          Err(issue) =>
+            return global_count_failure(Rows(issue), progress, used + 1)
         }
-        if !reserve_slots(state.workspace, 2) ||
-          !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, name) {
+        if !reserve_slots(state.workspace, 2) {
           return global_count_failure(Rows(RowLimit), progress, used)
         }
-        state.ordinals[name] = state.field
+        state.ordinals.push(state.field)
         state.input_names.push(name)
         state.field += 1
         used += 1
@@ -377,17 +492,31 @@ fn bounded_global_count_step(
         guard @lower.count_group_key_at(state.group, state.field) is Some(key) else {
           return global_count_failure(InvalidExecution, progress, used)
         }
-        let name = @schema.reference_name(key)
-        guard state.ordinals.get(name) is Some(column) else {
-          return global_count_failure(Rows(InvalidRows), progress, used)
+        let column = match global_count_metadata_column(state, key) {
+          Ok(None) => {
+            used += 1
+            continue
+          }
+          Ok(Some(column)) => column
+          Err(issue) =>
+            return global_count_failure(Rows(issue), progress, used + 1)
         }
-        if !reserve_slots(state.workspace, 1) ||
-          !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, name) {
+        let name = state.input_names[column]
+        match global_count_metadata_name(state, name, 1) {
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => ()
+          Err(issue) =>
+            return global_count_failure(Rows(issue), progress, used + 1)
+        }
+        if !reserve_slots(state.workspace, 1) {
           return global_count_failure(Rows(RowLimit), progress, used)
         }
-        state.key_names[name] = column
+        state.key_names.push(key)
         state.key_orders.push({ column, descending: false, nulls_first: true, })
+        state.metadata_column = None
         state.field += 1
         used += 1
       }
@@ -401,31 +530,54 @@ fn bounded_global_count_step(
           is Some(aggregate) else {
           return global_count_failure(InvalidExecution, progress, used)
         }
-        if state.aggregate_names.contains(aggregate.name) {
-          return global_count_failure(Rows(InvalidRows), progress, used)
-        }
-        let column = match aggregate.field {
-          None => None
-          Some(field) => {
-            let name = @schema.reference_name(field)
-            if !spend_control_text(state.control, name) {
-              return global_count_failure(Rows(RowLimit), progress, used)
-            }
-            match state.ordinals.get(name) {
-              Some(index) => Some(index)
-              None =>
-                return global_count_failure(Rows(InvalidRows), progress, used)
+        if state.metadata_part == 0 {
+          match aggregate.field {
+            None => ()
+            Some(field) => {
+              let column = match global_count_metadata_column(state, field) {
+                Ok(None) => {
+                  used += 1
+                  continue
+                }
+                Ok(Some(column)) => column
+                Err(issue) =>
+                  return global_count_failure(Rows(issue), progress, used + 1)
+              }
+              match
+                global_count_metadata_name(state, state.input_names[column], 0) {
+                Ok(false) => {
+                  used += 1
+                  continue
+                }
+                Ok(true) => ()
+                Err(issue) =>
+                  return global_count_failure(Rows(issue), progress, used + 1)
+              }
             }
           }
+          state.metadata_part = 1
+          used += 1
+          continue
         }
-        if !reserve_slots(state.workspace, 3) ||
-          !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, aggregate.name) {
+        match global_count_metadata_name(state, aggregate.name, 1) {
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => ()
+          Err(issue) =>
+            return global_count_failure(Rows(issue), progress, used + 1)
+        }
+        if !reserve_slots(state.workspace, 3) {
           return global_count_failure(Rows(RowLimit), progress, used)
         }
-        state.aggregate_names[aggregate.name] = state.field
-        state.aggregate_columns.push(column)
+        // PreparedCountGroup borrows the checked aggregate namespace; duplicate
+        // aliases cannot be constructed through its typed public constructor.
+        state.aggregate_names.push(aggregate.name)
+        state.aggregate_columns.push(state.metadata_column)
         state.counts.push(0)
+        state.metadata_column = None
+        state.metadata_part = 0
         state.field += 1
         used += 1
       }
@@ -438,21 +590,67 @@ fn bounded_global_count_step(
         guard @schema.field_at(state.output_schema, state.field) is Some(field) else {
           return global_count_failure(InvalidExecution, progress, used)
         }
-        let name = @schema.reference_name(field.name)
-        let column = match state.aggregate_names.get(name) {
-          Some(index) => (true, index)
-          None =>
-            match state.key_names.get(name) {
-              Some(index) => (false, index)
-              None =>
-                return global_count_failure(Rows(InvalidRows), progress, used)
+        if state.metadata_column is None {
+          let aggregate = state.output_scan < aggregate_count
+          let candidate = if aggregate {
+            @schema.Unqualified(state.aggregate_names[state.output_scan])
+          } else {
+            guard state.key_names.get(state.output_scan - aggregate_count)
+              is Some(key) else {
+              return global_count_failure(Rows(InvalidRows), progress, used)
             }
+            key
+          }
+          let (order, offset, _) = @schema.compare_reference_fragment(
+            field.name,
+            candidate,
+            state.output_offset,
+            64,
+          )
+          state.output_offset = offset
+          match order {
+            None => ()
+            Some(0) => {
+              state.metadata_part = if aggregate { 1 } else { 0 }
+              state.metadata_column = Some(
+                if aggregate {
+                  state.output_scan
+                } else {
+                  state.key_orders[state.output_scan - aggregate_count].column
+                },
+              )
+            }
+            Some(_) => {
+              state.output_scan += 1
+              state.output_offset = 0
+            }
+          }
+          used += 1
+          continue
         }
-        if !reserve_slots(state.workspace, 1) ||
-          !spend_control_text(state.control, name) {
+        let name = @schema.field_reference_name_at(
+          state.output_schema,
+          state.field,
+        ).unwrap()
+        match global_count_metadata_name(state, name, 0) {
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => ()
+          Err(issue) =>
+            return global_count_failure(Rows(issue), progress, used + 1)
+        }
+        if !reserve_slots(state.workspace, 1) {
           return global_count_failure(Rows(RowLimit), progress, used)
         }
-        state.output_columns.push(column)
+        state.output_columns.push(
+          (state.metadata_part == 1, state.metadata_column.unwrap()),
+        )
+        state.metadata_column = None
+        state.metadata_part = 0
+        state.output_scan = 0
+        state.output_offset = 0
         state.field += 1
         used += 1
       }
@@ -480,11 +678,21 @@ fn bounded_global_count_step(
               Err(_) =>
                 return global_count_failure(InvalidExecution, progress, used)
             }
-            if !charge_text(
-                state.input_values,
+            match
+              global_count_name_value(
+                state,
                 state.input_names[state.charge_column],
+                state.input_values,
               ) {
-              return global_count_failure(InputLimit, progress, used)
+              Ok(false) => {
+                used += 1
+                continue
+              }
+              Ok(true) => ()
+              Err(NameValueLimit) =>
+                return global_count_failure(InputLimit, progress, used + 1)
+              Err(NameWorkspaceLimit) =>
+                return global_count_failure(Rows(RowLimit), progress, used + 1)
             }
             guard charged is Some(value) else {
               if !charge_node(state.input_values, 2) {
@@ -751,15 +959,31 @@ fn bounded_global_count_step(
           }
         }
         if state.output_measure is None {
-          if !reserve_slots(state.workspace, 1) ||
-            !spend_control(state.control, 1) {
-            return global_count_failure(Rows(RowLimit), progress, used)
+          if !state.output_field_started {
+            if !reserve_slots(state.workspace, 1) ||
+              !spend_control(state.control, 1) {
+              return global_count_failure(Rows(RowLimit), progress, used)
+            }
+            state.output_field_started = true
           }
-          if !charge_text(
-              output.buffer.budget,
-              @schema.reference_name(field.name),
-            ) {
-            return global_count_failure(Capture(CaptureLimit), progress, used)
+          let name = @schema.field_reference_name_at(
+            state.output_schema,
+            state.field,
+          ).unwrap()
+          match global_count_name_value(state, name, output.buffer.budget) {
+            Ok(false) => {
+              used += 1
+              continue
+            }
+            Ok(true) => ()
+            Err(NameValueLimit) =>
+              return global_count_failure(
+                Capture(CaptureLimit),
+                progress,
+                used + 1,
+              )
+            Err(NameWorkspaceLimit) =>
+              return global_count_failure(Rows(RowLimit), progress, used + 1)
           }
           let (aggregate, index) = state.output_columns[state.field]
           let admitted_source = if aggregate {
@@ -833,6 +1057,7 @@ fn bounded_global_count_step(
             }
             state.output_row.push(admitted)
             state.field += 1
+            state.output_field_started = false
             used += 1
             continue
           }
@@ -872,6 +1097,7 @@ fn bounded_global_count_step(
             state.output_row.push(state.output_pending.unwrap())
             state.output_pending = None
             state.field += 1
+            state.output_field_started = false
           }
         }
         used += 1
@@ -1012,9 +1238,9 @@ fn start_bounded_global_count_with_input(
     port: None,
     port_preparation: Some(port_preparation),
     phase: PrepareCompletionPort,
-    ordinals: Map([]),
+    ordinals: [],
     input_names: [],
-    key_names: Map([]),
+    key_names: [],
     key_orders: [],
     comparison: {
       left: -1,
@@ -1029,11 +1255,17 @@ fn start_bounded_global_count_with_input(
     engine,
     sort_execution: None,
     sorted_indices: None,
-    aggregate_names: Map([]),
+    aggregate_names: [],
     aggregate_columns: [],
     counts: [],
     output_columns: [],
     field: 0,
+    metadata_lookup: None,
+    name_charge: None,
+    metadata_column: None,
+    metadata_part: 0,
+    output_scan: 0,
+    output_offset: 0,
     charge_row: 0,
     charge_column: 0,
     charge_open: false,
@@ -1045,6 +1277,7 @@ fn start_bounded_global_count_with_input(
     aggregate: 0,
     row_open: false,
     output_row_open: false,
+    output_field_started: false,
     output_row: [],
     output_recheck: None,
     output_measure: None,

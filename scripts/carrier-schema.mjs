@@ -9,6 +9,11 @@ export function carrierBodyContract(protocol, aoa) {
   const name = structuredClone(object.properties.fields.propertyNames);
   const closed = properties => ({type:'object',additionalProperties:false,required:Object.keys(properties),properties});
   const record = {$ref:'#/$defs/record'};
+  const fieldContract = {$ref:'#/$defs/value_contract'};
+  const relation = closed({version:{const:'actql-relation-schema/0.1'},fields:{
+    type:'object',propertyNames:name,additionalProperties:{oneOf:[fieldContract,
+      closed({contract:fieldContract,presence:{const:'conditional'}})]},
+  }});
   // Reuse the admitted constructor's owned structural grammar. A catalog
   // schema is not a second definition/domain issuer or a runtime snapshot.
   const graph = structuredClone(aoa.execution_contracts['BRIDGE.rows.to_graph'].params_schema.properties.contract);
@@ -23,12 +28,14 @@ export function carrierBodyContract(protocol, aoa) {
       closed({version:{const:'actql-events-contract/0.1'},records:record,id:{type:'string',...name},time:{type:'string',...name}}),
       closed({version:{const:'actql-vectors-contract/0.1'},records:record,
         ids:{type:'array',minItems:1,uniqueItems:true,items:{type:'string',...name}},components:{type:'string',...name}}),
+      relation,
     ],
     $defs:{...structuredClone(checked.$defs),record:object},
   };
   return {schema,semantics:{
     scope:'all_carrier_schema_bodies_including_unused_complete_structural_declarations_not_runtime_evidence',
     dispatch:'checked_object_relation_graph_events_vectors_versioned_bodies_no_role_inference',
+    relation_presence:'finite_schema_identity_field_map_required_checked_contract_or_closed_conditional_wrapper_not_optional_object_values_no_sample_based_inference',
     roles:'exact_record_fields_nonnull_KeyComparable_ids_number_or_timestamp_event_time_nonnull_vector_components',
     vector_identity:'nonempty_ordered_unique_tuple_components_disjoint_no_implicit_stringification',
     graph:'ActQL_owned_definition_domain_typed_node_and_independent_edge_keys_complete_properties_label_sets_exact_selected_laws_no_retired_endpoint_tuple_body_or_conversion',

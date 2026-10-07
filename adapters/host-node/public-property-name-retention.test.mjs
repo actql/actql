@@ -181,7 +181,7 @@ function borrowedBindingsProgram(id,ordered=false) {
   return value;
 }
 
-function unaryCompletionProgram(id, kind) {
+function unaryCompletionProgram(id, kind, longInput=false) {
   const value = program(id), source = value.stages[0], producer = value.stages[1];
   source.steps[0].values = {schema:{id:{type:'number',nullable:false},
     payload:{type:'number',nullable:true}}, rows:[{id:1,payload:7},{id:2,payload:null}]};
@@ -210,6 +210,15 @@ function unaryCompletionProgram(id, kind) {
     throw new Error(`Unknown unary completion fixture: ${kind}`);
   }
   producer.steps = [operation];
+  if(longInput && kind==='count'){
+    const inputName=`${member}_input_key`;
+    source.steps[0].values={schema:{[inputName]:{type:'number',nullable:false},
+      payload:{type:'number',nullable:true}},
+      rows:[{[inputName]:1,payload:7},{[inputName]:2,payload:null}]};
+    source.results.rows.fields=[inputName,'payload'];
+    operation.group.by=[inputName];
+    producer.steps.push({derive:{id:{field:inputName}},as:'identified'});
+  }
   if (kind !== 'unpivot') {
     producer.steps.push({derive:{value:{field:member}},as:'derived'});
   }
@@ -259,7 +268,10 @@ function compoundCompletionProgram(id, kind, longInput=false) {
       ({...row,[inputName]:id}));
     source.results.rows.fields=source.results.rows.fields.map(name=>
       name==='id'?inputName:name);
-    if(kind==='nest')operation.nest.on=[{left:inputName,right:inputName}];
+    if(kind==='join'){
+      operation.join.on=[{left:inputName,right:inputName}];
+      operation.join.select.id=`left.${inputName}`;
+    }else if(kind==='nest')operation.nest.on=[{left:inputName,right:inputName}];
     else if(kind==='interval'){
       operation.interval_join.on=[{left:inputName,right:inputName}];
       operation.interval_join.select.id=`left.${inputName}`;
@@ -268,6 +280,10 @@ function compoundCompletionProgram(id, kind, longInput=false) {
       operation.asof_join.left_id=inputName;
       operation.asof_join.right_tie_break=[inputName];
       operation.asof_join.select.id=`left.${inputName}`;
+    }else if(kind==='sequence'){
+      operation.sequence.id=inputName;
+      operation.sequence.pattern[0].where=`${inputName} = 1`;
+      operation.sequence.pattern[1].where=`${inputName} = 2`;
     }else throw new Error(`Unsupported metadata fixture: ${kind}`);
     if(kind==='nest')producer.steps.push({derive:{id:{field:inputName}},as:'identified'});
   }
@@ -281,6 +297,28 @@ function compoundCompletionProgram(id, kind, longInput=false) {
 }
 
 const completionColumn='x'.repeat(256)+'😀';
+function sequencePositionProgram(id,overlap){
+  const value=compoundCompletionProgram(id,'sequence');
+  const source=value.stages[0].steps[0].values;
+  source.rows=Array.from({length:16},(_,index)=>({id:index+1,clock:1,value:index===0?1:2}));
+  source.schema={id:{type:'number',nullable:false},clock:{type:'number',nullable:false},
+    value:{type:'number',nullable:false}};
+  value.stages[0].results.rows.fields=['id','clock','value'];
+  const producer=value.stages[1];
+  producer.steps[0].sequence={by:[],id:'id',time:'clock',within:10,overlap,
+    contiguity:'adjacent',pattern:Array.from({length:16},(_,index)=>({
+      as:`p${index}`,where:index===0?'value = 1':'value = 2'}))};
+  producer.steps[1].select=[{id:'p0_id'},{value:'p15_id'}];
+  return value;
+}
+
+for(const overlap of ['allow','disallow']){
+  test(`public retained sequence ${overlap} position copies preserve results and cleanup custody`,
+    {timeout:90_000},t=>verifyRetainedNames(t,`sequence-position-${overlap}`,
+      id=>sequencePositionProgram(id,overlap),[{id:1,value:16}],
+      {type:'number',nullable:false}));
+}
+
 function completionProgram(id,kind='values',duplicates='all') {
   const schema={id:{type:'number',nullable:false},
     [completionColumn]:{type:'number',nullable:true}};
@@ -432,6 +470,14 @@ test('public retained COUNT completion names preserve counts and post-progress c
   {timeout:90_000}, t=>verifyRetainedNames(t,'unary-count',
     id=>unaryCompletionProgram(id,'count'),[{id:1,value:1},{id:2,value:0}],
     {type:'number',nullable:false}));
+test('public retained COUNT source metadata preserves counts and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'count-source-metadata',
+    id=>unaryCompletionProgram(id,'count',true),[{id:1,value:1},{id:2,value:0}],
+    {type:'number',nullable:false}));
+test('public retained sequence source metadata preserves results and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'sequence-source-metadata',
+    id=>compoundCompletionProgram(id,'sequence',true),[{id:1,value:2}],
+    {type:'number',nullable:false}));
 test('public retained row-window completion names preserve NULL and post-progress custody',
   {timeout:90_000}, t=>verifyRetainedNames(t,'unary-window',
     id=>unaryCompletionProgram(id,'window')));
@@ -469,6 +515,7 @@ test('public retained Values completion names preserve Unicode and preparation c
     expected,{type:'number',nullable:true},0));
 
 for(const [kind,title] of [
+  ['join','public retained join source metadata preserves results and post-progress custody'],
   ['nest','public retained nest source metadata preserves results and post-progress custody'],
   ['interval','public retained interval source metadata preserves results and post-progress custody'],
   ['asof','public retained asof source metadata preserves results and post-progress custody'],
