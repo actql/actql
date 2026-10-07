@@ -26,6 +26,14 @@
         "output_names",
         "input_ordinals",
         "binding_ordinals",
+        "row_sources",
+        "stepped_metadata",
+        "metadata_projection",
+        "metadata_projection_field",
+        "metadata_binding",
+        "metadata_offset",
+        "metadata_lookup",
+        "name_charge",
         "projection_ordinals",
         "json_path",
         "json_source_column",
@@ -135,6 +143,29 @@
       ]
     },
     {
+      "path": "src/execution_relation/row_metadata_cursor.mbt",
+      "struct": "RowMetadataLookup",
+      "fields": [
+        "schema",
+        "name",
+        "workspace",
+        "column",
+        "offset",
+        "closed"
+      ]
+    },
+    {
+      "path": "src/execution_relation/row_name_charge.mbt",
+      "struct": "RowNameCharge",
+      "fields": [
+        "name",
+        "workspace",
+        "offset",
+        "bytes",
+        "closed"
+      ]
+    },
+    {
       "path": "src/execution_relation/producer_read.mbt",
       "struct": "ProducerRead",
       "fields": [
@@ -146,6 +177,7 @@
       ]
     }
   ],
+  "metadataCursorScope": "The numeric/NULL short-name DISTINCT pilot has empty row_sources, false stepped_metadata and no metadata_projection, metadata_lookup or name_charge. The observer rejects nonempty/active values as unmodeled; these records do not extend the pilot's byte bound.",
   "derivedFilledEntryBounds": {
     "metadata": "4*w: input/output names, input ordinals, projection ordinals",
     "index": "2*n: two merge index arrays; result transfer shares one backing",

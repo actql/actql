@@ -51,7 +51,7 @@ options(
   ],
   [rows]: [
     ['  let (session, token) = @bounded.start(\n    engine,', '  capacity_observe(state, "start")\n  let (session, token) = @bounded.start(\n    engine,'],
-    ['    match state.phase {\n      PrepareDistinctTerms', '    capacity_observe(state, "checkpoint")\n    match state.phase {\n      PrepareDistinctTerms'],
+    ['    match state.phase {\n      PrepareInputNames', '    capacity_observe(state, "checkpoint")\n    match state.phase {\n      PrepareInputNames'],
     ['fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {', 'fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {\n  capacity_observe(state, "before-cleanup")'],
     ['    state.live.val = false\n  }\n  true\n}', '    state.live.val = false\n  }\n  capacity_observe(state, "after-cleanup")\n  true\n}'],
     ['        // The merge owns two index arrays.', '        let capacity_before_indices = state.workspace.live\n        // The merge owns two index arrays.'],
