@@ -152,7 +152,9 @@ fn QueryParser::graph_node(
 }
 
 ///|
-fn QueryParser::graph_edge(self : QueryParser) -> GraphEdgePattern raise QueryAbort {
+fn QueryParser::graph_edge(
+  self : QueryParser,
+) -> GraphEdgePattern raise QueryAbort {
   self.node()
   let start = self.peek().start
   let incoming = self.peek().value == Operator("<")
@@ -202,9 +204,7 @@ fn QueryParser::graph_edge(self : QueryParser) -> GraphEdgePattern raise QueryAb
     }
     max_hops = self.safe_integer(true)
     self.graph_symbol(125)
-    if variable is Some(_) ||
-      min_hops > max_hops ||
-      max_hops == 0L {
+    if variable is Some(_) || min_hops > max_hops || max_hops == 0L {
       raise QueryAbort(
         "GRAPH_PATTERN_UNSUPPORTED_SHAPE: bounded anonymous edge required", start,
       )

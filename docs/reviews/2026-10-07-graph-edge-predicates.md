@@ -83,7 +83,35 @@ receipt `focused-test-uecuWi`, attempt `run-TX6sr1`. Post-fix focused evidence:
 `/private/tmp/actql-b-edge-predicate-focused.log`, receipt
 `focused-test-roZdN5`, attempt `run-oTF9VV` (under this worktree's `_build`).
 
-Fresh five-package Local/HTTPS source acceptance is pending at this document
-revision. Hosted CI, Wasm/native, full Core, proofs and performance are not
-claimed by the focused JS checks. Package SHA/digests and actual packed results
-will be recorded separately for the tested clean commit.
+Fresh normal five-package source acceptance passed at
+`22e87b27292f6bb7ae2e6e7ee7a4e7d99d3d93c1`, after adopting main
+`95ba84870c27da71dc8b143e56170847aa4b60b9`. Embedded Local and HTTPS each
+completed 25 positive cases (16 new edge cases and 9 retained node cases) and
+13 pre-admission refusals. The unchanged harness verified ordered rows,
+Result.describe contracts, read/attach/resubmit identity, and no Run admission
+or source I/O on refusals. This is local evidence, not hosted CI success.
+
+Commands, using the pinned Node/MoonBit toolchain and existing bounded
+`runLocalCheck` heavy-work exclusion (300s producer, 900s narrow consumer):
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-edge-predicate-22e87b272-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-edge-predicate-22e87b272-pack \
+  node scripts/test-packed-public-query.mjs --graph-property-predicate-only
+```
+
+Producer manifest: `/private/tmp/actql-b-edge-predicate-22e87b272-pack/packed-client-packages.json`.
+Consumer receipt: `../.codex-scratch/public-query-evidence-gYw0Au/summary.json`.
+It records passed/complete and `artifactsRemoved: true`; the successful temporary
+installation and Stores were reclaimed after evidence preservation. Logs:
+`/private/tmp/actql-b-edge-predicate-22e87b272-pack.log` and
+`/private/tmp/actql-b-edge-predicate-22e87b272-packed.log`. The producer checked
+its exact clean build-input revision and all five tarball SHA-256 digests; the
+consumer audited the actual external dependency graph. Untracked prior review
+evidence outside build-input directories was retained, not used as package code.
+
+At that integration SHA, the changed dependency/request-name Node checks passed
+5/5 (receipt `focused-test-HNquMV`, attempt `run-yMYLGx`). Final source formatting
+and this evidence update are later than the packed execution: do not rewrite
+that run as execution at a later SHA. Hosted CI, other public corpora,
+Wasm/native, full Core, proofs and performance remain unverified here.

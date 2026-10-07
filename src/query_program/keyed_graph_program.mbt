@@ -466,10 +466,18 @@ fn lower_script_keyed_graph_query(
         )
       }
       if edge.constraint is Some(_) {
-        params.push(("edge_where", keyed_constraint(
-          construction, edge.constraint, None, keyed_edge_fields(graph, edge),
-          limits.max_expression_work,
-        )))
+        params.push(
+          (
+            "edge_where",
+            keyed_constraint(
+              construction,
+              edge.constraint,
+              None,
+              keyed_edge_fields(graph, edge),
+              limits.max_expression_work,
+            ),
+          ),
+        )
       }
     } else {
       params.push(
@@ -487,10 +495,18 @@ fn lower_script_keyed_graph_query(
                 )
               }
               if edge.constraint is Some(_) {
-                hop.push(("edge_where", keyed_constraint(
-                  construction, edge.constraint, None, keyed_edge_fields(graph, edge),
-                  limits.max_expression_work,
-                )))
+                hop.push(
+                  (
+                    "edge_where",
+                    keyed_constraint(
+                      construction,
+                      edge.constraint,
+                      None,
+                      keyed_edge_fields(graph, edge),
+                      limits.max_expression_work,
+                    ),
+                  ),
+                )
               }
               construction.object(hop)
             }),
