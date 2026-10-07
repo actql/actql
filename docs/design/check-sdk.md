@@ -1750,3 +1750,18 @@ custody. A missing input or mismatched revision cannot produce an editor range
 or apply a correction. The getter is separate from `getSubmissionOutcome`:
 verified checking can coexist with an accepted preparation failure and never
 establishes execution success, cancellation or release.
+
+When a declared runtime value is absent, the bound-input observation remains
+undetermined and retains its known typed `parameter_value_required` Requirement
+and `bound_values_missing` coverage limit. Its structured location identifies
+the original declaration; it does not invent a supplied-value document. The
+acceptance phase remains the preparation Owner's decision, independently of
+the checking verdict. Editing caller-owned declarations while awaiting the
+reply cannot change the declaration snapshot used to interpret that reply.
+
+Supplying a value requires a new check with the caller's original source,
+format and declarations plus the new supplied bindings. The new observation
+has its own context binding; the old report and its locations retain their
+original inputs. A successful new check does not automatically resubmit the
+failed request or grant execution permission. The known Requirement frontier
+does not certify complete template checking or narrow the original bound scope.
