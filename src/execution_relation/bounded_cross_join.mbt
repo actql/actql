@@ -111,7 +111,9 @@ fn cleanup_bounded_cross_join_state(state : BoundedCrossJoinState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.names = []
@@ -418,7 +420,6 @@ fn bounded_cross_join_step(
         guard state.output is Some(output) else {
           return bounded_cross_join_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -526,7 +527,12 @@ pub fn start_bounded_cross_join(
     return Err(InvalidExecution)
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(step), ceiling, output_values) {
+    prepare_bounded_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      ceiling,
+      output_values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
@@ -627,6 +633,14 @@ pub fn advance_bounded_cross_join(
       Ok(BoundedCrossJoinStopped(reason, progress~, work~))
     }
   }
+}
+
+///|
+/// Observe outstanding custody independently from cleanup's change result.
+pub fn bounded_cross_join_cleanup_pending(
+  value : BoundedCrossJoinExecution,
+) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
 
 ///|

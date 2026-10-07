@@ -12,6 +12,10 @@ const sdkAcceptance = 'packages/sdk/index.test.mjs';
 const requestAcceptance = 'packages/sdk/request-observation.test.mjs';
 const preparationAcceptance = 'adapters/host-node/remote-checkpoint-host.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'request-record-loss') return ['local', 'https'].map(entrance => ({
+    name: `${entrance}: missing submission record preserves uncertainty despite an already published Run`,
+    assertions: [{id: assertion, operator: assertion === 'request-record-loss-kind' ? 'strictEqual' : 'deepStrictEqual'}],
+  }));
   if (phase.startsWith('request-cancel-')) {
     const names = {
       'request-cancel-admission': ['clone changes request identity', 'clone changes known branch', 'clone changes Run reference', 'clone throws'].map(fault => `request cancellation rejects ${fault}`),
@@ -131,6 +135,14 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['request record loss is presented as durable nonacceptance',
+    "    answer.kind === 'not_found' ? 'lookup_unresolved'",
+    "    answer.kind === 'not_found' ? 'not_accepted'",
+    'request-record-loss', 'request-record-loss-kind'],
+  ['request record loss recommends a new submission',
+    "{operation: 'lookupRequest', requestId: context.requestId,\n          lookupContext: context.lookupContext},",
+    "{operation: 'submit', requestId: context.requestId,\n          lookupContext: context.lookupContext},",
+    'request-record-loss', 'request-record-loss-advice'],
   ['request cancellation malformed body becomes an exchange failure',
     '      try { answer = await controlValue(response); }\n      catch { throw uninterpretableRequestCancellation(context); }',
     "      try { answer = await controlValue(response); }\n      catch { throw retainRequestCancellationExplanation(new ClientError('CancellationUnknown', {requestId}), context, 'outcome_unknown', 'exchange_failed'); }",
@@ -362,6 +374,7 @@ const mutations = [
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
   const file = phase === 'request-cancel-preparation' ? preparationAcceptance
+    : phase === 'request-record-loss' ? 'adapters/host-node/client-request-record-loss.test.mjs'
     : ['request-cancel-public', 'request-cancel-stop', 'request-cancel-loss'].includes(phase) ? cancellationAcceptance
     : phase === 'request-ended-public' ? preparationAcceptance
     : phase === 'request-absent-public' ? acceptance

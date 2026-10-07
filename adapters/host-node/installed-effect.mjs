@@ -19,11 +19,12 @@ import {canonicalJson} from './local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
+import {tableInstallation} from './installed-table-installation.mjs';
 import {installedConnectorFor, installedEffectTable,
   loadInstalledEffectModule, providerBundleUrl,
   verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
-const installations = installedEffectTable(installedConnectors);
+const installations = installedEffectTable([tableInstallation, ...installedConnectors]);
 
 const refuse = (code, cause) => {
   throw Object.assign(new TypeError(code, {cause}), {code});

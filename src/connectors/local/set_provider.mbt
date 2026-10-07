@@ -79,9 +79,9 @@ fn set_provider(
           },
           fn() { @bounded.request_cancel(control) },
           fn() {
-            @execution.cleanup_bounded_set(active).map_err(issue => {
-              bounded_set_issue(issue, step)
-            })
+            @execution.cleanup_bounded_set(active)
+            .map(_ => !@execution.bounded_set_cleanup_pending(active))
+            .map_err(issue => bounded_set_issue(issue, step))
           },
         ),
       )

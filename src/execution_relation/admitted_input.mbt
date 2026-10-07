@@ -12,10 +12,12 @@ priv struct AdmittedRowBuffer {
   schema : @schema.Schema
   max_rows : Int
   budget : ValueBudget
-  rows : Array[Array[@admitted.Value]]
-  presence_rows : Array[AdmittedRelationRow]
+  mut rows : Array[Array[@admitted.Value]]
+  mut presence_rows : Array[AdmittedRelationRow]
   mut open : Bool
   mut reading : Bool
+  mut reclaiming : Bool
+  mut deferred_reclamation : Bool
 }
 
 ///|
@@ -51,6 +53,8 @@ pub fn prepare_admitted_input(
       presence_rows: [],
       open: true,
       reading: false,
+      reclaiming: false,
+      deferred_reclamation: false,
     },
   })
 }
@@ -63,12 +67,78 @@ pub fn cancel_admitted_input(input : AdmittedInput) -> Bool {
 
 ///|
 fn cancel_admitted_buffer(input : AdmittedRowBuffer) -> Bool {
-  if !input.open {
+  if !input.open && !input.reclaiming {
     return false
   }
+  // Preserve the existing synchronous API's immediate logical cancellation.
+  // Bounded kernels must use sliced reclamation, not this convenience API.
   input.open = false
   input.rows.clear()
   input.presence_rows.clear()
+  input.rows = []
+  input.presence_rows = []
+  input.reclaiming = false
+  true
+}
+
+///|
+fn revoke_admitted_buffer(input : AdmittedRowBuffer) -> Unit {
+  if input.deferred_reclamation {
+    input.open = false
+    input.reclaiming = true
+  } else {
+    cancel_admitted_buffer(input) |> ignore
+  }
+}
+
+///|
+/// Remove only private row-container references. Immutable cell payloads can
+/// be shared with inputs; neither those values nor sealed output are mutated.
+/// Overwrite before pop because non-JS arrays retain references in unused slots.
+fn advance_admitted_buffer_reclamation(
+  input : AdmittedRowBuffer,
+  quantum : Int,
+) -> Bool {
+  if !input.open && !input.reclaiming {
+    return true
+  }
+  if quantum <= 0 {
+    return false
+  }
+  input.open = false
+  input.reclaiming = true
+  for _ in 0..<quantum {
+    if input.rows.last() is Some(row) {
+      if row.is_empty() {
+        input.rows[input.rows.length() - 1] = []
+        input.rows.pop() |> ignore
+      } else {
+        row[row.length() - 1] = @admitted.null_value()
+        row.pop() |> ignore
+      }
+    } else if input.presence_rows.last() is Some(row) {
+      if row.cells.is_empty() {
+        input.presence_rows[input.presence_rows.length() - 1] = {
+          ..row,
+          cells: [],
+        }
+        input.presence_rows.pop() |> ignore
+      } else {
+        row.cells[row.cells.length() - 1] = None
+        row.cells.pop() |> ignore
+      }
+    } else {
+      break
+    }
+  }
+  if !input.rows.is_empty() || !input.presence_rows.is_empty() {
+    return false
+  }
+  // Empty logical arrays still own backing storage on Native/Wasm. Detach it
+  // after every original row and cell reference has been individually removed.
+  input.rows = []
+  input.presence_rows = []
+  input.reclaiming = false
   true
 }
 
@@ -100,14 +170,14 @@ fn append_admitted_buffer_cells(
     return Err(ClosedCapture)
   }
   if !@schema.all_fields_required(input.schema) {
-    cancel_admitted_buffer(input) |> ignore
+    revoke_admitted_buffer(input)
     return Err(ConditionalInputRequiresPresence)
   }
   input.reading = true
   let result = append_admitted_row(input, width, read)
   input.reading = false
   if result is Err(_) {
-    cancel_admitted_buffer(input) |> ignore
+    revoke_admitted_buffer(input)
   }
   result
 }
@@ -231,11 +301,11 @@ fn append_admitted_buffer_presence(
   }
   if @schema.all_fields_required(buffer.schema) ||
     !physical_equal(buffer.schema, row.schema) {
-    cancel_admitted_buffer(buffer) |> ignore
+    revoke_admitted_buffer(buffer)
     return Err(InvalidCheckedRow)
   }
   if buffer.presence_rows.length() >= buffer.max_rows {
-    cancel_admitted_buffer(buffer) |> ignore
+    revoke_admitted_buffer(buffer)
     return Err(CaptureLimit)
   }
   let budget = buffer.budget
@@ -248,7 +318,7 @@ fn append_admitted_buffer_presence(
     }) {
     Ok(copied) => copied
     Err(_) => {
-      cancel_admitted_buffer(buffer) |> ignore
+      revoke_admitted_buffer(buffer)
       return Err(CaptureLimit)
     }
   }
