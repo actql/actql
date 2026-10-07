@@ -16,6 +16,8 @@ pub fn admit_captured_effect_source_artifact(EffectPreviewIdentity, Int, Publica
 
 pub fn admit_captured_effect_source_dependencies(Array[CapturedLocalEffectSourceEvidence], String, Int, Int, Int) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
 
+pub fn admit_captured_effect_source_from_result(EffectPreviewIdentity, Int, PublicationContract, PublicationContract, PublicationContract, String) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue]
+
 pub fn admit_captured_local_effect_source(CapturedEffectSourceArtifact, String, String, String, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[CapturedLocalEffectSourceEvidence, CapturedLocalEffectSourceIssue]
 
 pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
@@ -105,6 +107,8 @@ pub fn captured_effect_dependency_inventory_json(CapturedEffectDependencyInvento
 pub fn captured_effect_source_artifact_cid(CapturedEffectSourceArtifact) -> String
 
 pub fn captured_effect_source_holding_cid(CapturedEffectSourceArtifact) -> String
+
+pub fn captured_effect_source_inventory_from_results_valid(EffectPreviewIdentity, Array[Int], Array[PublicationContract], Array[PublicationContract]) -> Bool
 
 pub fn captured_effect_source_matches_result_facts(CapturedEffectSourceArtifact, PublicationContract, String) -> Bool
 

@@ -97,6 +97,31 @@ pub fn captured_effect_source_recovery_inventory_valid(
   member_indices : Array[Int],
   artifacts : Array[PublicationContract],
 ) -> Bool {
+  captured_effect_source_inventory_valid(preview, member_indices, artifacts, [])
+}
+
+///|
+pub fn captured_effect_source_inventory_from_results_valid(
+  preview : EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[PublicationContract],
+  results : Array[PublicationContract],
+) -> Bool {
+  if results.length() != artifacts.length() {
+    return false
+  }
+  captured_effect_source_inventory_valid(
+    preview, member_indices, artifacts, results,
+  )
+}
+
+///|
+fn captured_effect_source_inventory_valid(
+  preview : EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[PublicationContract],
+  results : Array[PublicationContract],
+) -> Bool {
   let count = effect_preview_member_count(preview)
   if count == 0 || member_indices.length() != artifacts.length() {
     return false
@@ -108,9 +133,24 @@ pub fn captured_effect_source_recovery_inventory_valid(
       member_index >= count ||
       seen[member_index] ||
       artifacts[index].name != "effect_source_artifact" ||
-      effect_preview_member_source_result(preview, member_index) is None ||
-      effect_preview_member_result_artifact_cid(preview, member_index) !=
-      Some(artifacts[index].identity) {
+      effect_preview_member_source_result(preview, member_index) is None {
+      return false
+    }
+    let expected = if results.is_empty() {
+      artifacts[index].identity
+    } else {
+      let name = effect_preview_member_source_result(preview, member_index).unwrap()
+      if !effect_source_contract_matches_result_facts(
+          artifacts[index],
+          results[index],
+          name,
+        ) {
+        return false
+      }
+      results[index].identity
+    }
+    if effect_preview_member_result_artifact_cid(preview, member_index) !=
+      Some(expected) {
       return false
     }
     seen[member_index] = true
