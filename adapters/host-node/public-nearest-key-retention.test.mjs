@@ -148,7 +148,7 @@ async function runPublicNearestBarrier(t, {
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(program(fixtureId, prefix, direct, longNames));
     const options = {format: 'json', requestId: fixtureId};
-    const execution = await client.aql(source, options);
+    const execution = await client.startSource(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
     assert.deepEqual(Object.keys(state.result_availability).sort(), names.toSorted());
@@ -156,7 +156,7 @@ async function runPublicNearestBarrier(t, {
     assert.equal(completions, 1);
     assert.ok(representations?.some(item => item.representation === 'retained-file'));
     const finishedAdvances = advances;
-    const repeat = await client.aql(source, options);
+    const repeat = await client.startSource(source, options);
     assert.deepEqual(repeat.ref, execution.ref);
     assert.deepEqual(await repeat.result('published').all(), expected);
     assert.equal(advances, finishedAdvances);
@@ -164,7 +164,7 @@ async function runPublicNearestBarrier(t, {
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', prefix, direct, longNames)),
+    const cancel = await client.startSource(JSON.stringify(program(fixtureId + '-cancel', prefix, direct, longNames)),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {

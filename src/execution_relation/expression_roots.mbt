@@ -122,7 +122,7 @@ fn consume_expression_value(
 }
 
 ///|
-/// A private object accumulator grows within the same root owner. It is not
+/// A private Object or Array accumulator grows within the same root owner. It is not
 /// exposed as a Value or completion and cannot bypass per-value/live ceilings.
 fn grow_object_root(
   root : ExpressionRootLease,

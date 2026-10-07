@@ -1045,7 +1045,7 @@ const pairExpectedRows = JSON.parse(readFileSync(
   'query-pair.expected-rows.json', 'utf8'));
 async function checkCurrentGraph(client, suffix) {
   const program = JSON.parse(readFileSync('graph-parallel.json', 'utf8'));
-  const execution = await client.aql(JSON.stringify(program),
+  const execution = await client.startSource(JSON.stringify(program),
     {format: 'json', requestId: 'packed-graph-' + suffix});
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -1066,7 +1066,7 @@ async function checkCurrentGraph(client, suffix) {
       direction: 'out', min_hops: 2, max_hops: 2, path_mode: 'trail',
       emit: 'paths'}, as: 'paths'});
   program.stages[0].results.out = {from: 'paths', fields: ['hop_count']};
-  const trail = await client.aql(JSON.stringify(program),
+  const trail = await client.startSource(JSON.stringify(program),
     {format: 'json', requestId: 'packed-property-trail-' + suffix});
   assert.equal((await trail.wait()).status, 'succeeded');
   // Two distinct edge keys permit exactly the two two-hop permutations.
@@ -1074,7 +1074,7 @@ async function checkCurrentGraph(client, suffix) {
     [{hop_count: 2}, {hop_count: 2}]);
 }
 async function checkQueryPair(client, suffix) {
-  const execution = await client.aql(pairQueryDocument,
+  const execution = await client.startSource(pairQueryDocument,
     {format: 'json', requestId: 'packed-query-pair-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('answer').all(), pairExpectedRows);
@@ -1089,7 +1089,7 @@ async function checkOrderScopes(client, suffix) {
     ['equal-selected-expressions', [{a: 2, b: 2}, {a: 3, b: 3}]],
     ['distinct-equal-selected-expressions', [{a: 2, b: 2}, {a: 3, b: 3}]],
   ]) {
-    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+    const execution = await client.startSource(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     const status = await execution.wait();
     assert.equal(status.status, 'succeeded', JSON.stringify(status));
@@ -1107,13 +1107,13 @@ async function checkOrderScopes(client, suffix) {
     ['distinct-selected-order', [{x: 30}, {x: 80}, {x: 120}]],
     ['selected-expression-order', [{x: 31}, {x: 81}, {x: 121}]],
   ]) {
-    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+    const execution = await client.startSource(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     const status = await execution.wait();
     assert.equal(status.status, 'succeeded', JSON.stringify(status));
     assert.deepEqual(await execution.result('answer').all(), expected);
   }
-  const failed = await client.aql(
+  const failed = await client.startSource(
     readFileSync('failing-hidden-order.json', 'utf8'),
     {format: 'json', requestId: 'packed-failing-hidden-order-' + suffix});
   const state = await failed.wait();
@@ -1121,7 +1121,7 @@ async function checkOrderScopes(client, suffix) {
   await assert.rejects(failed.result('answer').all());
 }
 async function checkConcat(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('concat-query.json', 'utf8'),
     {format: 'json', requestId: 'packed-concat-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
@@ -1131,7 +1131,7 @@ async function checkConcat(client, suffix) {
   ]);
 }
 async function checkValuesCte(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('values-cte-query.json', 'utf8'),
     {format: 'json', requestId: 'packed-values-cte-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
@@ -1144,7 +1144,7 @@ async function checkPipeSnapshots(client, suffix) {
       {old_x: 1, old_y: 2, x: 2, y: 1}]],
     ['pipe-drop-old', [{old_x: 2, y: 1}, {old_x: 1, y: 2}]],
   ]) {
-    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+    const execution = await client.startSource(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     const status = await execution.wait();
     assert.equal(status.status, 'succeeded', JSON.stringify(status));
@@ -1156,19 +1156,19 @@ async function checkNullOrder(client, suffix) {
     ['null-order-asc', [{a: null}, {a: 1}, {a: 2}]],
     ['null-order-desc', [{a: 2}, {a: 1}, {a: null}]],
   ]) {
-    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+    const execution = await client.startSource(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(), expected);
   }
-  const paged = await client.aql(readFileSync('paged-query.json', 'utf8'),
+  const paged = await client.startSource(readFileSync('paged-query.json', 'utf8'),
     {format: 'json', requestId: 'packed-paged-query-' + suffix});
   assert.equal((await paged.wait()).status, 'succeeded');
   assert.deepEqual(await paged.result('answer').all(), [{a: 1}, {a: 2}]);
 }
 async function checkGlobalCounts(client, suffix) {
   for (const name of ['count-nullable', 'count-variety', 'count-empty']) {
-    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+    const execution = await client.startSource(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     const status = await execution.wait();
     assert.equal(status.status, 'succeeded', JSON.stringify(status));
@@ -1187,14 +1187,14 @@ async function checkNumericAggregate(client, suffix) {
       {id: 4, total: 5, average: 5 / 3},
     ]],
   ]) {
-    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+    const execution = await client.startSource(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(), expected);
   }
 }
 async function checkAnalyticPeers(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('analytic-peers.json', 'utf8'),
     {format: 'json', requestId: 'packed-analytic-peers-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
@@ -1203,7 +1203,7 @@ async function checkAnalyticPeers(client, suffix) {
       {id: 2, ranking: 1, dense: 1}]);
 }
 async function checkJoinSubquery(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('join-subquery.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-subquery-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
@@ -1211,17 +1211,17 @@ async function checkJoinSubquery(client, suffix) {
     [{left_id: 2, right_id: 2}]);
 }
 async function checkCteJoinBody(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('cte-join-body.json', 'utf8'),
     {format: 'json', requestId: 'packed-cte-join-body-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('answer').all(), [{id: 2}]);
-  const computed = await client.aql(
+  const computed = await client.startSource(
     readFileSync('computed-cte-join-body.json', 'utf8'),
     {format: 'json', requestId: 'packed-computed-cte-join-body-' + suffix});
   assert.equal((await computed.wait()).status, 'succeeded');
   assert.deepEqual(await computed.result('answer').all(), [{total: 4}]);
-  const ordered = await client.aql(
+  const ordered = await client.startSource(
     readFileSync('ordered-cte-join.json', 'utf8'),
     {format: 'json', requestId: 'packed-ordered-cte-join-' + suffix});
   const orderedStatus = await ordered.wait();
@@ -1231,7 +1231,7 @@ async function checkCteJoinBody(client, suffix) {
     [{x: 2}, {x: 1}, {x: 2}]);
 }
 async function checkFilteredSubqueryJoin(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('filtered-subquery-join.json', 'utf8'),
     {format: 'json', requestId: 'packed-filtered-subquery-join-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
@@ -1239,7 +1239,7 @@ async function checkFilteredSubqueryJoin(client, suffix) {
     [{a: 2, d: null}]);
 }
 async function checkFullUsingValues(client, suffix) {
-  const execution = await client.aql(fullUsingValuesDocument,
+  const execution = await client.startSource(fullUsingValuesDocument,
     {format: 'json', requestId: 'packed-full-using-values-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(sortedRows(await execution.result('answer').all()),
@@ -1262,7 +1262,7 @@ const sortedRows = rows => rows.map(row => JSON.stringify(row)).sort();
 async function checkJoinCases(client, suffix) {
   const cases = JSON.parse(readFileSync('join-cases.json', 'utf8'));
   for (const [kind, expected] of cases) {
-    const execution = await client.aql(
+    const execution = await client.startSource(
       readFileSync('join-' + kind + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-join-' + kind + '-' + suffix});
     const status = await execution.wait();
@@ -1270,36 +1270,36 @@ async function checkJoinCases(client, suffix) {
     assert.deepEqual(sortedRows(await execution.result('answer').all()),
       sortedRows(expected));
   }
-  const execution = await client.aql(readFileSync('join-pipe.json', 'utf8'),
+  const execution = await client.startSource(readFileSync('join-pipe.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-pipe-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(sortedRows(await execution.result('answer').all()),
     sortedRows(cases[0][1]));
-  const computed = await client.aql(
+  const computed = await client.startSource(
     readFileSync('join-computed.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-computed-' + suffix});
   assert.equal((await computed.wait()).status, 'succeeded');
   assert.deepEqual(await computed.result('answer').all(),
     [{total: 2, label: 'x'}, {total: 2, label: 'x'}]);
-  const distinct = await client.aql(
+  const distinct = await client.startSource(
     readFileSync('join-distinct.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-distinct-' + suffix});
   assert.equal((await distinct.wait()).status, 'succeeded');
   assert.deepEqual(await distinct.result('answer').all(), [{a: 1}]);
-  const computedLeft = await client.aql(
+  const computedLeft = await client.startSource(
     readFileSync('join-computed-left.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-computed-left-' + suffix});
   assert.equal((await computedLeft.wait()).status, 'succeeded');
   assert.deepEqual(await computedLeft.result('answer').all(),
     [{total: 2, label: 'x'}, {total: 2, label: 'x'},
       {total: null, label: null}, {total: null, label: null}]);
-  const filteredLeft = await client.aql(
+  const filteredLeft = await client.startSource(
     readFileSync('join-filtered-left.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-filtered-left-' + suffix});
   assert.equal((await filteredLeft.wait()).status, 'succeeded');
   assert.deepEqual(await filteredLeft.result('answer').all(),
     [{a: 2}, {a: null}]);
-  const prefilteredLeft = await client.aql(
+  const prefilteredLeft = await client.startSource(
     readFileSync('join-prefiltered-left.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-prefiltered-left-' + suffix});
   assert.equal((await prefilteredLeft.wait()).status, 'succeeded');
@@ -1309,7 +1309,7 @@ async function checkJoinCases(client, suffix) {
     ['filtered-demand', [{ratio: 10}]],
     ['case-demand', [{ratio: 0}, {ratio: 10}]],
   ]) {
-    const attempt = await client.aql(readFileSync('join-' + name + '.json',
+    const attempt = await client.startSource(readFileSync('join-' + name + '.json',
       'utf8'), {format: 'json', requestId: 'packed-join-' + name + '-'
         + suffix});
     assert.equal((await attempt.wait()).status, 'succeeded');
@@ -1317,21 +1317,21 @@ async function checkJoinCases(client, suffix) {
   }
 }
 async function checkOrderedJoin(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('join-ordered.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-ordered-' + suffix});
   const status = await execution.wait();
   assert.equal(status.status, 'succeeded', JSON.stringify(status));
   assert.deepEqual(await execution.result('answer').all(),
     [{a: 2, d: null}, {a: 1, d: 'x'}]);
-  const hidden = await client.aql(
+  const hidden = await client.startSource(
     readFileSync('join-hidden-order.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-hidden-order-' + suffix});
   const hiddenStatus = await hidden.wait();
   assert.equal(hiddenStatus.status, 'succeeded', JSON.stringify(hiddenStatus));
   assert.deepEqual(await hidden.result('answer').all(),
     [{x: 2}, {x: 1}, {x: 1}]);
-  const collision = await client.aql(
+  const collision = await client.startSource(
     readFileSync('join-alias-priority.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-alias-priority-' + suffix});
   const collisionStatus = await collision.wait();
@@ -1340,7 +1340,7 @@ async function checkOrderedJoin(client, suffix) {
   assert.deepEqual(await collision.result('answer').all(), [{d: 2}]);
 }
 async function checkCollectionQuery(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('collection-query.json', 'utf8'),
     {format: 'json', requestId: 'packed-collection-' + suffix});
   const status = await execution.wait();
@@ -1348,13 +1348,13 @@ async function checkCollectionQuery(client, suffix) {
   const rows = await execution.result('answer').all();
   assert.equal(rows.length, 1);
   assert.equal(rows[0].labels, 'y|x|x|n');
-  const keyed = await client.aql(
+  const keyed = await client.startSource(
     readFileSync('keyed-collection-query.json', 'utf8'),
     {format: 'json', requestId: 'packed-keyed-collection-' + suffix});
   const keyedStatus = await keyed.wait();
   assert.equal(keyedStatus.status, 'succeeded', JSON.stringify(keyedStatus));
   assert.deepEqual(await keyed.result('answer').all(), [{ids: [2, 1]}]);
-  const piped = await client.aql(
+  const piped = await client.startSource(
     readFileSync('keyed-pipe-collection-query.json', 'utf8'),
     {format: 'json', requestId: 'packed-keyed-pipe-collection-' + suffix});
   const pipeStatus = await piped.wait();
@@ -1362,7 +1362,7 @@ async function checkCollectionQuery(client, suffix) {
   assert.deepEqual(await piped.result('answer').all(), [{ids: [2, 1]}]);
 }
 async function checkExpressionFailure(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('eager-and-query.json', 'utf8'),
     {format: 'json', requestId: 'packed-eager-and-' + suffix});
   const status = await execution.wait();
@@ -1370,7 +1370,7 @@ async function checkExpressionFailure(client, suffix) {
 }
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
-    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+    const execution = await client.startSource(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     const status = await execution.wait();
     assert.equal(status.status, 'succeeded', JSON.stringify(status));
@@ -1382,7 +1382,7 @@ async function checkChainedSet(client, suffix) {
   const expected = [{a: 3, b: 'z'}, {a: 2, b: 'y'},
     {a: 2, b: 'y'}, {a: 1, b: 'x'}];
   for (const name of ['chained-set-sql', 'chained-set-pipe']) {
-    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+    const execution = await client.startSource(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     const status = await execution.wait();
     assert.equal(status.status, 'succeeded', JSON.stringify(status));
@@ -1405,7 +1405,7 @@ async function checkCapturedSet(client, suffix) {
     ['captured-set', capturedSetDocument],
     ['captured-pipe-set', readFileSync('captured-pipe-set-query.json', 'utf8')],
   ]) {
-    const execution = await client.aql(document,
+    const execution = await client.startSource(document,
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     const status = await execution.wait();
     assert.equal(status.status, 'succeeded', JSON.stringify(status));
@@ -1419,7 +1419,7 @@ async function checkCapturedSet(client, suffix) {
     ['captured-intersect', [{id: 3}, {id: 2}]],
     ['captured-except', []],
   ]) {
-    const current = await client.aql(readFileSync(name + '.json', 'utf8'),
+    const current = await client.startSource(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     const settled = await current.wait();
     assert.equal(settled.status, 'succeeded', JSON.stringify(settled));
@@ -1429,7 +1429,7 @@ async function checkCapturedSet(client, suffix) {
 }
 async function checkCapturedCte(client, suffix) {
   const beforeSingle = physicalSourceStatements.length;
-  const execution = await client.aql(capturedCteDocument,
+  const execution = await client.startSource(capturedCteDocument,
     {format: 'json', requestId: 'packed-captured-cte-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   const beforeSingleRead = physicalSourceStatements.length;
@@ -1442,7 +1442,7 @@ async function checkCapturedCte(client, suffix) {
     beforeSingle;
   if (suffix === 'local') assert.ok(singleAcquisitionStatements > 0);
   const beforeReuse = physicalSourceStatements.length;
-  const reused = await client.aql(reusedCteDocument,
+  const reused = await client.startSource(reusedCteDocument,
     {format: 'json', requestId: 'packed-reused-cte-' + suffix});
   assert.equal((await reused.wait()).status, 'succeeded');
   const beforeReusedRead = physicalSourceStatements.length;
@@ -1459,30 +1459,30 @@ async function checkCapturedCte(client, suffix) {
     assert.equal(physicalSourceStatements.length - beforeReuse,
       singleAcquisitionStatements);
   }
-  const using = await client.aql(usingCteDocument,
+  const using = await client.startSource(usingCteDocument,
     {format: 'json', requestId: 'packed-using-cte-' + suffix});
   assert.equal((await using.wait()).status, 'succeeded');
   assert.deepEqual(sortedRows(await using.result('answer').all()),
     sortedRows([{id: 3}, {id: 3}, {id: 2}, {id: 3}, {id: 3}]));
-  const fullUsing = await client.aql(fullUsingCteDocument,
+  const fullUsing = await client.startSource(fullUsingCteDocument,
     {format: 'json', requestId: 'packed-full-using-cte-' + suffix});
   assert.equal((await fullUsing.wait()).status, 'succeeded');
   assert.deepEqual(sortedRows(await fullUsing.result('answer').all()),
     sortedRows([{id: 2, left_id: 2, right_id: null},
       {id: 3, left_id: null, right_id: 3}]));
-  const chained = await client.aql(chainedCteDocument,
+  const chained = await client.startSource(chainedCteDocument,
     {format: 'json', requestId: 'packed-chained-cte-' + suffix});
   assert.equal((await chained.wait()).status, 'succeeded');
   assert.deepEqual(await chained.result('answer').all(),
     [{id: 3}, {id: 2}, {id: 3}]);
-  const joinedBody = await client.aql(capturedCteJoinBodyDocument,
+  const joinedBody = await client.startSource(capturedCteJoinBodyDocument,
     {format: 'json', requestId: 'packed-captured-cte-join-body-' + suffix});
   assert.equal((await joinedBody.wait()).status, 'succeeded');
   assert.deepEqual((await joinedBody.result('answer').all())
     .map(row => ({id: row.id, amount: row.amount})),
   [{id: 3, amount: 30}, {id: 3, amount: 30},
     {id: 3, amount: 30}, {id: 3, amount: 30}]);
-  const computed = await client.aql(
+  const computed = await client.startSource(
     readFileSync('captured-computed-cte-join-body.json', 'utf8'),
     {format: 'json', requestId: 'packed-captured-computed-cte-' + suffix});
   assert.equal((await computed.wait()).status, 'succeeded');
@@ -1490,7 +1490,7 @@ async function checkCapturedCte(client, suffix) {
     [{total: 6}, {total: 6}, {total: 6}, {total: 6}]);
 }
 async function checkCapturedSubquery(client, suffix) {
-  const execution = await client.aql(capturedSubqueryDocument,
+  const execution = await client.startSource(capturedSubqueryDocument,
     {format: 'json', requestId: 'packed-captured-subquery-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('answer').all(),
@@ -1500,7 +1500,7 @@ const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 const distinctExpressionDocument = readFileSync(
   'distinct-expression-query.json', 'utf8');
 async function checkDistinctExpression(client, suffix) {
-  const execution = await client.aql(distinctExpressionDocument,
+  const execution = await client.startSource(distinctExpressionDocument,
     {format: 'json', requestId: 'packed-distinct-expression-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('answer').all(),
@@ -1509,14 +1509,14 @@ async function checkDistinctExpression(client, suffix) {
 const groupedQueryDocument = readFileSync('grouped-query.json', 'utf8');
 const aliasGroupedDocument = readFileSync('alias-grouped-query.json', 'utf8');
 async function checkAliasGrouped(client, suffix) {
-  const execution = await client.aql(aliasGroupedDocument,
+  const execution = await client.startSource(aliasGroupedDocument,
     {format: 'json', requestId: 'packed-alias-grouped-' + suffix});
   const status = await execution.wait();
   assert.equal(status.status, 'succeeded', JSON.stringify(status));
   assert.deepEqual(await execution.result('answer').all(), [{id: 30, n: 2}]);
 }
 async function checkComputedGrouped(client, suffix) {
-  const execution = await client.aql(
+  const execution = await client.startSource(
     readFileSync('computed-grouped-query.json', 'utf8'),
     {format: 'json', requestId: 'packed-computed-grouped-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
@@ -1528,7 +1528,7 @@ const analyticQueryDocument = readFileSync('analytic-query.json', 'utf8');
 async function checkAnalyticCases(client, suffix) {
   const cases = JSON.parse(readFileSync('analytic-cases.json', 'utf8'));
   for (const [name, expected] of cases) {
-    const execution = await client.aql(
+    const execution = await client.startSource(
       readFileSync('analytic-' + name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-analytic-' + name + '-' + suffix});
     const status = await execution.wait();
@@ -1544,7 +1544,7 @@ const segmentedDocument = readFileSync('segmented-join-program.json', 'utf8');
 const segmentedResultsDocument = readFileSync(
   'segmented-results-program.json', 'utf8');
 async function checkSegmentedProgram(client, suffix) {
-  const execution = await client.aql(segmentedDocument, {format: 'json',
+  const execution = await client.startSource(segmentedDocument, {format: 'json',
     requestId: 'packed-segmented-join-' + suffix});
   const status = await execution.wait();
   assert.equal(status.status, 'succeeded', JSON.stringify(status));
@@ -1556,7 +1556,7 @@ async function checkSegmentedProgram(client, suffix) {
     [{a: 2, d: null}]);
 }
 async function checkSegmentedResults(client, suffix) {
-  const execution = await client.aql(segmentedResultsDocument,
+  const execution = await client.startSource(segmentedResultsDocument,
     {format: 'json', requestId: 'packed-segmented-results-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('answer').all(),
@@ -1565,7 +1565,7 @@ async function checkSegmentedResults(client, suffix) {
 }
 async function runApplication(options, requestId) {
   const client = await connect(options);
-  const execution = await client.aql(document, {format: 'json', requestId});
+  const execution = await client.startSource(document, {format: 'json', requestId});
   const settled = await execution.wait();
   assert.equal(settled.status, 'succeeded');
   const rows = await execution.result('answer').all();
@@ -1573,7 +1573,7 @@ async function runApplication(options, requestId) {
 }
 async function runAcquiredApplication(options, requestId) {
   const client = await connect(options);
-  const execution = await client.aql(acquiredDocument, {format: 'json',
+  const execution = await client.startSource(acquiredDocument, {format: 'json',
     requestId, parameters: {minimum: 1}});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.equal((await execution.status()).control.physical_stop, 'confirmed');
@@ -1591,9 +1591,9 @@ async function runAcquiredApplication(options, requestId) {
     'found');
   assert.deepEqual((await client.lookupRequest(requestId)).ref,
     execution.ref);
-  assert.deepEqual((await client.aql(acquiredDocument, {format: 'json',
+  assert.deepEqual((await client.startSource(acquiredDocument, {format: 'json',
     requestId, parameters: {minimum: 1}})).ref, execution.ref);
-  await assert.rejects(client.aql(acquiredDocument, {format: 'json',
+  await assert.rejects(client.startSource(acquiredDocument, {format: 'json',
     requestId, parameters: {minimum: 2}}),
   {code: 'ClientRequestIntentConflict'});
   return {client, execution, b, c};
@@ -1637,17 +1637,17 @@ assert.deepEqual((await installedLocal.lookupRequest(
   'packed-standard-values')).ref, execution.ref);
 assert.deepEqual((await installedLocal.attach(execution.ref)).ref,
   execution.ref);
-const valuesQueryLocal = await installedLocal.aql(valuesQueryDocument,
+const valuesQueryLocal = await installedLocal.startSource(valuesQueryDocument,
   {format: 'json', requestId: 'packed-query-values-local'});
 assert.equal((await valuesQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await valuesQueryLocal.result('answer').all(),
   [{id: 1}, {id: 2}]);
-const nestedQueryLocal = await installedLocal.aql(nestedQueryDocument,
+const nestedQueryLocal = await installedLocal.startSource(nestedQueryDocument,
   {format: 'json', requestId: 'packed-query-nested-values-local'});
 assert.equal((await nestedQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await nestedQueryLocal.result('answer').all(),
   expectedNestedRows);
-const computedValuesQueryLocal = await installedLocal.aql(
+const computedValuesQueryLocal = await installedLocal.startSource(
   computedValuesQueryDocument,
   {format: 'json', requestId: 'packed-query-computed-values-local'});
 assert.equal((await computedValuesQueryLocal.wait()).status, 'succeeded');
@@ -1667,7 +1667,7 @@ await checkCteJoinBody(installedLocal, 'local');
 await checkFilteredSubqueryJoin(installedLocal, 'local');
 await checkFullUsingValues(installedLocal, 'local');
 await checkConcat(installedLocal, 'local');
-const setQueryLocal = await installedLocal.aql(setQueryDocument,
+const setQueryLocal = await installedLocal.startSource(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-local'});
 const setQueryLocalStatus = await setQueryLocal.wait();
 assert.equal(setQueryLocalStatus.status, 'succeeded',
@@ -1679,14 +1679,14 @@ await checkJoinCases(installedLocal, 'local');
 await checkCollectionQuery(installedLocal, 'local');
 await checkExpressionFailure(installedLocal, 'local');
 await checkOrderedJoin(installedLocal, 'local');
-const pipeUnionLocal = await installedLocal.aql(pipeUnionQueryDocument,
+const pipeUnionLocal = await installedLocal.startSource(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-local'});
 assert.equal((await pipeUnionLocal.wait()).status, 'succeeded');
 assert.deepEqual(await pipeUnionLocal.result('answer').all(), expectedUnionRows);
 const acquiredLocal = await runAcquiredApplication(
   {mode: 'local', owner: 'local', durability: 'durable'},
   'packed-acquired-local');
-const capturedQueryLocal = await acquiredLocal.client.aql(capturedQueryDocument,
+const capturedQueryLocal = await acquiredLocal.client.startSource(capturedQueryDocument,
   {format: 'json', requestId: 'packed-captured-query-local'});
 assert.equal((await capturedQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await capturedQueryLocal.result('answer').all(),
@@ -1697,30 +1697,30 @@ await checkCapturedSet(acquiredLocal.client, 'local');
 await checkAliasGrouped(acquiredLocal.client, 'local');
 await checkComputedGrouped(acquiredLocal.client, 'local');
 await checkCapturedSubquery(acquiredLocal.client, 'local');
-const distinctQueryLocal = await acquiredLocal.client.aql(distinctQueryDocument,
+const distinctQueryLocal = await acquiredLocal.client.startSource(distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-local'});
 assert.equal((await distinctQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await distinctQueryLocal.result('answer').all(),
   [{id: 2}, {id: 3}]);
 await checkDistinctExpression(acquiredLocal.client, 'local');
-const groupedQueryLocal = await acquiredLocal.client.aql(groupedQueryDocument,
+const groupedQueryLocal = await acquiredLocal.client.startSource(groupedQueryDocument,
   {format: 'json', requestId: 'packed-grouped-query-local'});
 assert.equal((await groupedQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await groupedQueryLocal.result('answer').all(),
   [{id: 3, n: 2}]);
-const analyticQueryLocal = await acquiredLocal.client.aql(analyticQueryDocument,
+const analyticQueryLocal = await acquiredLocal.client.startSource(analyticQueryDocument,
   {format: 'json', requestId: 'packed-analytic-query-local'});
 assert.equal((await analyticQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await analyticQueryLocal.result('answer').all(),
   [{id: 3, ranking: 3}, {id: 1, ranking: 1},
     {id: 2, ranking: 2}, {id: 3, ranking: 3}]);
-const extendedQueryLocal = await acquiredLocal.client.aql(extendedQueryDocument,
+const extendedQueryLocal = await acquiredLocal.client.startSource(extendedQueryDocument,
   {format: 'json', requestId: 'packed-extended-query-local'});
 assert.equal((await extendedQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await extendedQueryLocal.result('answer').all(),
   [{id: 3, adjusted: 31}, {id: 1, adjusted: null},
     {id: 2, adjusted: 21}, {id: 3, adjusted: 31}]);
-const pipeSetQueryLocal = await acquiredLocal.client.aql(pipeSetQueryDocument,
+const pipeSetQueryLocal = await acquiredLocal.client.startSource(pipeSetQueryDocument,
   {format: 'json', requestId: 'packed-pipe-set-query-local'});
 assert.equal((await pipeSetQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await pipeSetQueryLocal.result('answer').all(),
@@ -1728,7 +1728,7 @@ assert.deepEqual(await pipeSetQueryLocal.result('answer').all(),
     {old_id: 1, old_amount: null, id: null, amount: 1},
     {old_id: 2, old_amount: 20, id: 20, amount: 2},
     {old_id: 3, old_amount: 30, id: 30, amount: 3}]);
-const pipeSetGroupedLocal = await acquiredLocal.client.aql(
+const pipeSetGroupedLocal = await acquiredLocal.client.startSource(
   pipeSetGroupedDocument,
   {format: 'json', requestId: 'packed-pipe-set-grouped-local'});
 assert.equal((await pipeSetGroupedLocal.wait()).status, 'succeeded');
@@ -1750,7 +1750,7 @@ const nullable = JSON.parse(document);
 nullable.id = 'client-nullable-values';
 nullable.stages[0].steps[0].values.schema.id.nullable = true;
 nullable.stages[0].steps[0].values.rows = [{id: null}, {id: 3}];
-const nullableRun = await installedLocal.aql(JSON.stringify(nullable),
+const nullableRun = await installedLocal.startSource(JSON.stringify(nullable),
   {format: 'json', requestId: 'packed-nullable-values'});
 assert.equal((await nullableRun.wait()).status, 'succeeded');
 assert.deepEqual(await nullableRun.result('answer').all(),
@@ -1758,7 +1758,7 @@ assert.deepEqual(await nullableRun.result('answer').all(),
 const empty = JSON.parse(document);
 empty.id = 'client-empty-values';
 empty.stages[0].steps[0].values.rows = [];
-const emptyRun = await installedLocal.aql(JSON.stringify(empty),
+const emptyRun = await installedLocal.startSource(JSON.stringify(empty),
   {format: 'json', requestId: 'packed-empty-values'});
 assert.equal((await emptyRun.wait()).status, 'succeeded');
 assert.deepEqual(await emptyRun.result('answer').all(), []);
@@ -1767,7 +1767,7 @@ computed.id = 'client-values-filtered';
 computed.stages[0].steps.push({filter: 'id > 1', as: 'filtered'});
 computed.stages[0].results.rows.from = 'filtered';
 const computedDocument = JSON.stringify(computed);
-const computedLocal = await installedLocal.aql(computedDocument,
+const computedLocal = await installedLocal.startSource(computedDocument,
   {format: 'json', requestId: 'packed-computed-local'});
 const computedLocalState = await computedLocal.wait();
 assert.equal(computedLocalState.status, 'succeeded',
@@ -1775,12 +1775,12 @@ assert.equal(computedLocalState.status, 'succeeded',
 assert.deepEqual(await computedLocal.result('answer').all(), [{id: 2}]);
 await checkSegmentedProgram(installedLocal, 'local');
 await checkSegmentedResults(installedLocal, 'local');
-assert.deepEqual((await installedLocal.aql(document, {format: 'json',
+assert.deepEqual((await installedLocal.startSource(document, {format: 'json',
   requestId: 'packed-standard-values'})).ref, execution.ref);
 const conflictingProgram = JSON.parse(document);
 assert.equal(conflictingProgram.stages[0].steps[0].values.rows[1].id, 2);
 conflictingProgram.stages[0].steps[0].values.rows[1].id = 3;
-await assert.rejects(installedLocal.aql(JSON.stringify(conflictingProgram),
+await assert.rejects(installedLocal.startSource(JSON.stringify(conflictingProgram),
   {format: 'json', requestId: 'packed-standard-values'}),
   {code: 'ClientRequestIntentConflict'});
 installedLocal.close();
@@ -1792,7 +1792,7 @@ const remoteOptions = {mode: 'remote',
 const timingClient = await connect(remoteOptions);
 let acceptanceTimer;
 const timingRun = await Promise.race([
-  timingClient.aql(document, {format: 'json',
+  timingClient.startSource(document, {format: 'json',
     requestId: 'packed-acceptance-before-dispatch'}),
   new Promise((_, reject) => {
     acceptanceTimer = setTimeout(() => reject(
@@ -1808,7 +1808,7 @@ const waitAttempt = timingRun.wait({signal: abortedWait.signal});
 abortedWait.abort();
 await assert.rejects(waitAttempt);
 assert.equal((await timingRun.status()).status, 'running');
-const cancelledRun = await timingClient.aql(document, {format: 'json',
+const cancelledRun = await timingClient.startSource(document, {format: 'json',
   requestId: 'packed-cancel-before-dispatch'});
 assert.equal((await cancelledRun.cancel()).kind, 'accepted');
 const cancelledState = await cancelledRun.status();
@@ -1817,7 +1817,7 @@ assert.equal(cancelledState.control.cancellation_requested, true);
 assert.equal(cancelledState.control.physical_stop, 'confirmed');
 assert.equal((await cancelledRun.cancel()).kind, 'already_requested');
 assert.equal((await cancelledRun.wait()).status, 'cancelled');
-const cancelledAcquired = await timingClient.aql(acquiredDocument,
+const cancelledAcquired = await timingClient.startSource(acquiredDocument,
   {format: 'json', requestId: 'packed-acquired-cancel-before-dispatch',
     parameters: {minimum: 1}});
 assert.equal((await cancelledAcquired.cancel()).kind, 'accepted');
@@ -1829,12 +1829,12 @@ const release = await originalFetch(new URL('/__test/release-dispatch',
 assert.equal(release.status, 200);
 assert.equal((await timingRun.wait()).status, 'succeeded');
 assert.deepEqual(await timingRun.result('answer').all(), rows);
-const cancelledResend = await timingClient.aql(document, {format: 'json',
+const cancelledResend = await timingClient.startSource(document, {format: 'json',
   requestId: 'packed-cancel-before-dispatch'});
 assert.deepEqual(cancelledResend.ref, cancelledRun.ref);
 assert.equal((await cancelledResend.wait()).status, 'cancelled');
 await assert.rejects(cancelledResend.result('answer').all());
-const cancelledAcquiredResend = await timingClient.aql(acquiredDocument,
+const cancelledAcquiredResend = await timingClient.startSource(acquiredDocument,
   {format: 'json', requestId: 'packed-acquired-cancel-before-dispatch',
     parameters: {minimum: 1}});
 assert.deepEqual(cancelledAcquiredResend.ref, cancelledAcquired.ref);
@@ -1845,17 +1845,17 @@ const {client: installedRemote, execution: remoteExecution,
   rows: remoteRows} = await runApplication(remoteOptions,
   'packed-remote-values');
 assert.deepEqual(remoteRows, rows);
-const valuesQueryRemote = await installedRemote.aql(valuesQueryDocument,
+const valuesQueryRemote = await installedRemote.startSource(valuesQueryDocument,
   {format: 'json', requestId: 'packed-query-values-remote'});
 assert.equal((await valuesQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await valuesQueryRemote.result('answer').all(),
   [{id: 1}, {id: 2}]);
-const nestedQueryRemote = await installedRemote.aql(nestedQueryDocument,
+const nestedQueryRemote = await installedRemote.startSource(nestedQueryDocument,
   {format: 'json', requestId: 'packed-query-nested-values-remote'});
 assert.equal((await nestedQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await nestedQueryRemote.result('answer').all(),
   expectedNestedRows);
-const computedValuesQueryRemote = await installedRemote.aql(
+const computedValuesQueryRemote = await installedRemote.startSource(
   computedValuesQueryDocument,
   {format: 'json', requestId: 'packed-query-computed-values-remote'});
 assert.equal((await computedValuesQueryRemote.wait()).status, 'succeeded');
@@ -1880,7 +1880,7 @@ await checkJoinSubquery(installedRemote, 'remote');
 await checkCteJoinBody(installedRemote, 'remote');
 await checkFilteredSubqueryJoin(installedRemote, 'remote');
 await checkFullUsingValues(installedRemote, 'remote');
-const setQueryRemote = await installedRemote.aql(setQueryDocument,
+const setQueryRemote = await installedRemote.startSource(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-remote'});
 assert.equal((await setQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await setQueryRemote.result('answer').all(), expectedUnionRows);
@@ -1890,7 +1890,7 @@ await checkJoinCases(installedRemote, 'remote');
 await checkCollectionQuery(installedRemote, 'remote');
 await checkExpressionFailure(installedRemote, 'remote');
 await checkOrderedJoin(installedRemote, 'remote');
-const pipeUnionRemote = await installedRemote.aql(pipeUnionQueryDocument,
+const pipeUnionRemote = await installedRemote.startSource(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-remote'});
 assert.equal((await pipeUnionRemote.wait()).status, 'succeeded');
 assert.deepEqual(await pipeUnionRemote.result('answer').all(), expectedUnionRows);
@@ -1898,7 +1898,7 @@ await checkSegmentedProgram(installedRemote, 'remote');
 await checkSegmentedResults(installedRemote, 'remote');
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
-const capturedQueryRemote = await acquiredRemote.client.aql(
+const capturedQueryRemote = await acquiredRemote.client.startSource(
   capturedQueryDocument,
   {format: 'json', requestId: 'packed-captured-query-remote'});
 assert.equal((await capturedQueryRemote.wait()).status, 'succeeded');
@@ -1910,34 +1910,34 @@ await checkCapturedSet(acquiredRemote.client, 'remote');
 await checkAliasGrouped(acquiredRemote.client, 'remote');
 await checkComputedGrouped(acquiredRemote.client, 'remote');
 await checkCapturedSubquery(acquiredRemote.client, 'remote');
-const distinctQueryRemote = await acquiredRemote.client.aql(
+const distinctQueryRemote = await acquiredRemote.client.startSource(
   distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-remote'});
 assert.equal((await distinctQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await distinctQueryRemote.result('answer').all(),
   [{id: 2}, {id: 3}]);
 await checkDistinctExpression(acquiredRemote.client, 'remote');
-const groupedQueryRemote = await acquiredRemote.client.aql(
+const groupedQueryRemote = await acquiredRemote.client.startSource(
   groupedQueryDocument,
   {format: 'json', requestId: 'packed-grouped-query-remote'});
 assert.equal((await groupedQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await groupedQueryRemote.result('answer').all(),
   [{id: 3, n: 2}]);
-const analyticQueryRemote = await acquiredRemote.client.aql(
+const analyticQueryRemote = await acquiredRemote.client.startSource(
   analyticQueryDocument,
   {format: 'json', requestId: 'packed-analytic-query-remote'});
 assert.equal((await analyticQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await analyticQueryRemote.result('answer').all(),
   [{id: 3, ranking: 3}, {id: 1, ranking: 1},
     {id: 2, ranking: 2}, {id: 3, ranking: 3}]);
-const extendedQueryRemote = await acquiredRemote.client.aql(
+const extendedQueryRemote = await acquiredRemote.client.startSource(
   extendedQueryDocument,
   {format: 'json', requestId: 'packed-extended-query-remote'});
 assert.equal((await extendedQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await extendedQueryRemote.result('answer').all(),
   [{id: 3, adjusted: 31}, {id: 1, adjusted: null},
     {id: 2, adjusted: 21}, {id: 3, adjusted: 31}]);
-const pipeSetQueryRemote = await acquiredRemote.client.aql(
+const pipeSetQueryRemote = await acquiredRemote.client.startSource(
   pipeSetQueryDocument,
   {format: 'json', requestId: 'packed-pipe-set-query-remote'});
 assert.equal((await pipeSetQueryRemote.wait()).status, 'succeeded');
@@ -1946,7 +1946,7 @@ assert.deepEqual(await pipeSetQueryRemote.result('answer').all(),
     {old_id: 1, old_amount: null, id: null, amount: 1},
     {old_id: 2, old_amount: 20, id: 20, amount: 2},
     {old_id: 3, old_amount: 30, id: 30, amount: 3}]);
-const pipeSetGroupedRemote = await acquiredRemote.client.aql(
+const pipeSetGroupedRemote = await acquiredRemote.client.startSource(
   pipeSetGroupedDocument,
   {format: 'json', requestId: 'packed-pipe-set-grouped-remote'});
 assert.equal((await pipeSetGroupedRemote.wait()).status, 'succeeded');
@@ -1971,24 +1971,24 @@ orderedAcquired.stages[2].results.r.from = 'sorted';
 const orderedDocument = JSON.stringify(orderedAcquired);
 const variantLocal = await connect({mode: 'local', owner: 'local',
   durability: 'durable'});
-const orderedLocal = await variantLocal.aql(orderedDocument,
+const orderedLocal = await variantLocal.startSource(orderedDocument,
   {format: 'json', requestId: 'packed-acquired-ordered-local',
     parameters: {minimum: 1}});
 assert.equal((await orderedLocal.wait()).status, 'succeeded');
 assert.deepEqual((await orderedLocal.result('b').all()).map(row => row.id),
   [3, 3, 2]);
-const orderedRemote = await installedRemote.aql(orderedDocument,
+const orderedRemote = await installedRemote.startSource(orderedDocument,
   {format: 'json', requestId: 'packed-acquired-ordered-remote',
     parameters: {minimum: 1}});
 assert.equal((await orderedRemote.wait()).status, 'succeeded');
 assert.deepEqual((await orderedRemote.result('b').all()).map(row => row.id),
   [3, 3, 2]);
-const emptyLocal = await variantLocal.aql(acquiredDocument,
+const emptyLocal = await variantLocal.startSource(acquiredDocument,
   {format: 'json', requestId: 'packed-acquired-empty-local',
     parameters: {minimum: 9}});
 assert.equal((await emptyLocal.wait()).status, 'succeeded');
 assert.deepEqual(await emptyLocal.result('b').all(), []);
-const emptyRemote = await installedRemote.aql(acquiredDocument,
+const emptyRemote = await installedRemote.startSource(acquiredDocument,
   {format: 'json', requestId: 'packed-acquired-empty-remote',
     parameters: {minimum: 9}});
 assert.equal((await emptyRemote.wait()).status, 'succeeded');
@@ -2002,20 +2002,20 @@ nullableAcquired.stages[2].results.r.fields = ['amount', 'id'];
 const nullableDocument = JSON.stringify(nullableAcquired);
 const expectedNullable = [{id: 1, amount: null}, {id: 2, amount: 20},
   {id: 3, amount: 30}, {id: 3, amount: 30}];
-const nullableLocal = await variantLocal.aql(nullableDocument,
+const nullableLocal = await variantLocal.startSource(nullableDocument,
   {format: 'json', requestId: 'packed-acquired-nullable-local',
     parameters: {minimum: 0}});
 assert.equal((await nullableLocal.wait()).status, 'succeeded');
 assert.deepEqual((await nullableLocal.result('b').all())
   .sort((left, right) => left.id - right.id), expectedNullable);
-const nullableRemote = await installedRemote.aql(nullableDocument,
+const nullableRemote = await installedRemote.startSource(nullableDocument,
   {format: 'json', requestId: 'packed-acquired-nullable-remote',
     parameters: {minimum: 0}});
 assert.equal((await nullableRemote.wait()).status, 'succeeded');
 assert.deepEqual((await nullableRemote.result('b').all())
   .sort((left, right) => left.id - right.id), expectedNullable);
 variantLocal.close();
-const computedRemote = await installedRemote.aql(computedDocument,
+const computedRemote = await installedRemote.startSource(computedDocument,
   {format: 'json', requestId: 'packed-computed-remote'});
 assert.equal((await computedRemote.wait()).status, 'succeeded');
 assert.deepEqual(await computedRemote.result('answer').all(), [{id: 2}]);
@@ -2037,7 +2037,7 @@ globalThis.fetch = async (url, options) => {
   return reply;
 };
 try {
-  await assert.rejects(installedRemote.aql(document, {format: 'json',
+  await assert.rejects(installedRemote.startSource(document, {format: 'json',
     requestId: 'packed-remote-lost-ack'}), error =>
     error.code === 'SubmissionUnknown' &&
     error.requestId === 'packed-remote-lost-ack');
@@ -2046,7 +2046,7 @@ assert.equal(remoteReplyLost, true);
 const recoveredRemote = await installedRemote.lookupRequest(
   'packed-remote-lost-ack');
 assert.equal(recoveredRemote.kind, 'found');
-const resumedRemote = await installedRemote.aql(document, {format: 'json',
+const resumedRemote = await installedRemote.startSource(document, {format: 'json',
   requestId: 'packed-remote-lost-ack'});
 assert.deepEqual(resumedRemote.ref, recoveredRemote.ref);
 assert.equal((await resumedRemote.wait()).status, 'succeeded');
@@ -2062,7 +2062,7 @@ globalThis.fetch = async (url, options) => {
   return reply;
 };
 try {
-  await assert.rejects(installedRemote.aql(acquiredDocument,
+  await assert.rejects(installedRemote.startSource(acquiredDocument,
     {format: 'json', requestId: 'packed-acquired-lost-ack',
       parameters: {minimum: 1}}), error =>
     error.code === 'SubmissionUnknown' &&
@@ -2072,7 +2072,7 @@ assert.equal(acquiredReplyLost, true);
 const foundAcquired = await installedRemote.lookupRequest(
   'packed-acquired-lost-ack');
 assert.equal(foundAcquired.kind, 'found');
-const recoveredAcquired = await installedRemote.aql(acquiredDocument,
+const recoveredAcquired = await installedRemote.startSource(acquiredDocument,
   {format: 'json', requestId: 'packed-acquired-lost-ack',
     parameters: {minimum: 1}});
 assert.deepEqual(recoveredAcquired.ref, foundAcquired.ref);
@@ -2082,26 +2082,26 @@ assert.deepEqual(await recoveredAcquired.result('b').all(),
 const failDispatch = await originalFetch(new URL(
   '/__test/fail-next-dispatch', remoteOptions.endpoint), {method: 'POST'});
 assert.equal(failDispatch.status, 200);
-const failedRemote = await installedRemote.aql(document, {format: 'json',
+const failedRemote = await installedRemote.startSource(document, {format: 'json',
   requestId: 'packed-remote-dispatch-failure'});
 const failedState = await failedRemote.wait();
 assert.equal(failedState.status, 'failed');
 assert.equal(failedState.terminal_error.code,
   'ACTQL_E_UNPUBLISHED_RUN');
-const repeatedFailure = await installedRemote.aql(document, {format: 'json',
+const repeatedFailure = await installedRemote.startSource(document, {format: 'json',
   requestId: 'packed-remote-dispatch-failure'});
 assert.deepEqual(repeatedFailure.ref, failedRemote.ref);
 assert.equal((await repeatedFailure.status()).status, 'failed');
 const failSegmentedDispatch = await originalFetch(new URL(
   '/__test/fail-next-dispatch', remoteOptions.endpoint), {method: 'POST'});
 assert.equal(failSegmentedDispatch.status, 200);
-const failedSegmented = await installedRemote.aql(segmentedDocument,
+const failedSegmented = await installedRemote.startSource(segmentedDocument,
   {format: 'json', requestId: 'packed-segmented-dispatch-failure'});
 const failedSegmentedState = await failedSegmented.wait();
 assert.equal(failedSegmentedState.status, 'failed');
 assert.equal(failedSegmentedState.control.physical_stop, 'confirmed');
 await assert.rejects(failedSegmented.result('answer').all());
-assert.deepEqual((await installedRemote.aql(segmentedDocument,
+assert.deepEqual((await installedRemote.startSource(segmentedDocument,
   {format: 'json', requestId: 'packed-segmented-dispatch-failure'})).ref,
 failedSegmented.ref);
 installedRemote.close();
@@ -2232,7 +2232,7 @@ const client = await connect({mode: 'remote',
   token: 'packed-test-token', durability: 'durable'});
 const document = readFileSync('values.json', 'utf8');
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
-const execution = await client.aql(document, {format: 'json',
+const execution = await client.startSource(document, {format: 'json',
   requestId: 'packed-restart-before-physical-start'});
 for (let attempt = 0; attempt < 100; attempt++) {
   if ((await execution.status()).status === 'running') break;
@@ -2240,12 +2240,12 @@ for (let attempt = 0; attempt < 100; attempt++) {
 }
 assert.equal((await execution.status()).status, 'running');
 writeFileSync('restart-remote-ref.json', JSON.stringify(execution.ref));
-const acquired = await client.aql(acquiredDocument, {format: 'json',
+const acquired = await client.startSource(acquiredDocument, {format: 'json',
   requestId: 'packed-acquired-restart-before-start',
   parameters: {minimum: 1}});
 assert.equal((await acquired.status()).status, 'running');
 writeFileSync('restart-acquired-ref.json', JSON.stringify(acquired.ref));
-const cancelled = await client.aql(document, {format: 'json',
+const cancelled = await client.startSource(document, {format: 'json',
   requestId: 'packed-cancel-before-restart'});
 assert.equal((await cancelled.cancel()).kind, 'accepted');
 writeFileSync('cancelled-remote-ref.json', JSON.stringify(cancelled.ref));
@@ -2266,19 +2266,19 @@ assert.equal((await attached.status()).status, 'running');
 const cancelledRef = JSON.parse(readFileSync('cancelled-remote-ref.json', 'utf8'));
 const cancelled = await client.attach(cancelledRef);
 assert.equal((await cancelled.status()).status, 'cancelled');
-const cancelledResend = await client.aql(document, {format: 'json',
+const cancelledResend = await client.startSource(document, {format: 'json',
   requestId: 'packed-cancel-before-restart'});
 assert.deepEqual(cancelledResend.ref, cancelledRef);
 assert.equal((await cancelledResend.wait()).status, 'cancelled');
 assert.equal((await cancelledResend.status()).control.physical_stop, 'confirmed');
 await assert.rejects(cancelledResend.result('answer').all());
-const execution = await client.aql(document, {format: 'json',
+const execution = await client.startSource(document, {format: 'json',
   requestId: 'packed-restart-before-physical-start'});
 assert.deepEqual(execution.ref, ref);
 assert.equal((await execution.wait()).status, 'succeeded');
 assert.deepEqual(await execution.result('answer').all(),
   [{id: 1}, {id: 2}]);
-const repeated = await client.aql(document, {format: 'json',
+const repeated = await client.startSource(document, {format: 'json',
   requestId: 'packed-restart-before-physical-start'});
 assert.deepEqual(repeated.ref, ref);
 assert.equal((await repeated.status()).status, 'succeeded');
@@ -2288,7 +2288,7 @@ const acquiredRef = JSON.parse(readFileSync('restart-acquired-ref.json',
   'utf8'));
 const acquiredAttached = await client.attach(acquiredRef);
 assert.equal((await acquiredAttached.status()).status, 'running');
-const acquiredResumed = await client.aql(acquiredDocument,
+const acquiredResumed = await client.startSource(acquiredDocument,
   {format: 'json', requestId: 'packed-acquired-restart-before-start',
     parameters: {minimum: 1}});
 assert.deepEqual(acquiredResumed.ref, acquiredRef);
@@ -2356,7 +2356,7 @@ assert.deepEqual(await attached.result('answer').all(),
   [{id: 1}, {id: 2}]);
 assert.deepEqual((await client.lookupRequest('packed-standard-values')).ref,
   ref);
-const repeated = await client.aql(readFileSync('values.json', 'utf8'),
+const repeated = await client.startSource(readFileSync('values.json', 'utf8'),
   {format: 'json', requestId: 'packed-standard-values'});
 assert.deepEqual(repeated.ref, ref);
 const acquiredRef = JSON.parse(readFileSync('acquired-local-ref.json',

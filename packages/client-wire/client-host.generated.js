@@ -50,6 +50,12 @@ const schemas = {
           "cloud"
         ]
       },
+      "workspaceId": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
       "consentRefs": {
         "type": "array",
         "uniqueItems": true,
@@ -247,6 +253,12 @@ const schemas = {
         ]
       },
       "scopeRef": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "workspaceId": {
         "type": "string",
         "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
         "minLength": 1,
@@ -10240,6 +10252,7 @@ export const validProfileContract = (value, selected) =>
   validConnectionShape(selected) && validProfileShape(value) &&
   value.mode === selected.mode &&
   value.owner === selected.owner &&
+  value.workspaceId === selected.workspaceId &&
   !(selected.durability === "durable" && value.durability !== "durable");
 export const validAdmissionContract = (value, selected) =>
   validConnectionShape(selected) && validAdmissionShape(value) &&

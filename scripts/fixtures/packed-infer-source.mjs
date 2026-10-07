@@ -102,7 +102,7 @@ try {
   };
   if (phase === 'refusal') {
     const before = journalCount();
-    await assert.rejects(client.aql(source, {format: 'aql-text', requestId}), error => {
+    await assert.rejects(client.startSource(source, {format: 'aql-text', requestId}), error => {
       assert.ok(['ClientProgramInvalidInput', 'ClientProgramRejected',
         'ClientProgramUnsupported'].includes(error.code), error.code);
       return true;
@@ -112,7 +112,7 @@ try {
     assert.deepEqual(await client.lookupRequest(requestId), {kind: 'not_found'});
     console.log(JSON.stringify({transport, phase, caseName, calls, admittedRuns: 0}));
   } else {
-    const run = await client.aql(source, {format: 'aql-text', requestId});
+    const run = await client.startSource(source, {format: 'aql-text', requestId});
     const signal = AbortSignal.timeout(60_000);
     const terminal = await run.wait({signal});
     console.log(JSON.stringify({transport, phase, caseName, observation: 'first-wait',
@@ -135,7 +135,7 @@ try {
     const attached = await client.attach(run.ref);
     assert.deepEqual(await attached.result('answer').describe({signal}), description);
     assert.deepEqual(await attached.result('answer').all({signal}), fixture.rows);
-    const resent = await client.aql(source, {format: 'aql-text', requestId});
+    const resent = await client.startSource(source, {format: 'aql-text', requestId});
     assert.deepEqual(resent.ref, run.ref);
     assert.deepEqual(await resent.result('answer').all({signal}), fixture.rows);
     assert.equal(calls, phase === 'replay' ? 0 : fixture.calls);

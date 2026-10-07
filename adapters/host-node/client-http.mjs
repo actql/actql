@@ -3,11 +3,12 @@
 import {inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {performClientSubmit} from './client-submit.mjs';
 import {projectClientCheckUnavailable} from './client-check.mjs';
+import {isLoopbackHttpRequest} from './loopback-http.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {deliverAuthorizedResult,
   describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
-import {clientHostOperations, validCheckpointPage, validCheckpointReview,
+import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, validCheckpointReview,
   validClientAdmission, validClientBody, validClientProfile, validCancellation, validCancellationLookup,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
@@ -151,19 +152,23 @@ function observationAttempt(response) {
 }
 
 export function createClientHttpHandler({
-  authenticate, authorizeConnection, stateService, resultService,
+  authenticate, authorizeConnection, workspaceForPrincipal, stateService, resultService,
   negotiate, submit, attach, lookupRequest, observeRun, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
-  check, maxRequestBytes = 65536, observe,
+  check, maxRequestBytes = 65536, observe, loopbackHttp = false,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
+      typeof loopbackHttp !== 'boolean' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0) {
     throw new TypeError('InvalidClientHostInstallation');
   }
   return async (request, response) => {
     try {
+      if (loopbackHttp && !isLoopbackHttpRequest(request)) {
+        invalid('ClientConnectionDenied');
+      }
       if (request.method !== 'POST' ||
           !request.url?.startsWith('/actql/client/0.1/')) {
         invalid('UnknownClientOperation');
@@ -196,6 +201,19 @@ export function createClientHttpHandler({
         runners: Object.freeze([...body.connection.runners])});
       const ref = body.ref === undefined ? undefined :
         Object.freeze({...body.ref});
+      // Widening the structural wire schema must not let an old boolean
+      // authorizer silently ignore a new Workspace assertion. Resolve only
+      // from the authenticated principal and trusted installation context.
+      if (connection.workspaceId !== undefined) {
+        let workspaceId;
+        try {
+          workspaceId = typeof workspaceForPrincipal === 'function'
+            ? await workspaceForPrincipal(principal) : undefined;
+        } catch { invalid('ClientConnectionDenied'); }
+        if (!clientWorkspaceMatches(connection, workspaceId)) {
+          invalid('ClientConnectionDenied');
+        }
+      }
       let authorized;
       try {
         authorized = await authorizeConnection(Object.freeze({

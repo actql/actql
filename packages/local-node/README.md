@@ -93,6 +93,41 @@ installation fields match the Embedded Local profile above. Attach
 the embedding application. Clients use `@actql/node` or `@actql/sdk` with
 `{mode: 'remote', endpoint, token, durability: 'durable'}`.
 
+To admit `actql://host:port/workspace-id` clients, also supply the Host's
+stable `workspaceId` installation option. It is a service identifier, not a
+directory path or a replacement for the existing Local namespace. The Host
+checks the assertion independently of current authentication/authorization on
+every operation. Without this option, asserted connections are refused.
+Only asserted connections receive the matching profile field; existing
+endpoint clients retain their original response shape. TLS trust and server
+startup remain explicit, including when the Host listens on localhost.
+
+For explicitly opted-in local HTTP clients, set `loopbackHttp: true` and attach
+the handler to a caller-owned Node HTTP server bound to a literal loopback:
+
+```js
+import {createServer} from 'node:http';
+import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
+const host = await openInstalledRemoteHttpHost({
+  directory, workspaceId, authenticate, loopbackHttp: true,
+});
+const server = createServer(host.handler);
+await new Promise((resolve, reject) => {
+  server.once('error', reject);
+  server.listen({host: '127.0.0.1', port: 8080}, resolve);
+});
+```
+
+The application supplies its normal bearer-authentication callback. Clients
+use `actql://localhost:8080/workspace-id?transport=http`; an IPv6-only listener
+uses `host: '::1'` and `actql://[::1]:8080/workspace-id?transport=http`.
+The guard checks the actual accepting Server's bind and socket addresses before
+authentication, rejecting wildcard/public listeners and non-loopback peers.
+Host and forwarded headers cannot supply those facts. It does not bind, retry
+or reconfigure a listener. Close the server, then await `host.close()` as above.
+Loopback is not an identity, and this mode does not provide TLS server
+authentication. Keep ordinary authentication and per-request Workspace checks.
+
 The physical journal and publication Store live under
 `~/.local/share/actql`. Set `ACTQL_LOCAL_STATE_DIR` before process start to
 select a different directory. The Host uses the current OS user's filesystem
@@ -120,8 +155,11 @@ scope. An explicit selection is bound into installation identity and the
 Host-issued authority scope used by request journals and Run references. Its
 policy CID covers the effective checker-consumed capacity body, including
 built-in defaults for omitted optional graph limits.
-The explicit-policy connection also reports that opaque scope in `scopeRef`,
-so retained SDK lookup context distinguishes the selection.
+Every connection reports the existing opaque authority scope in `scopeRef`,
+including the default policy. This distinguishes state roots and principals
+as well as explicit policy selections, without changing historical Run or
+request identities. Older principal-only lookup contexts do not name this
+exact scope and must not be silently translated during recovery.
 Equivalent explicit policy values retain identity across restarts; a different
 selection is a different request/authority scope, including for the same caller
 request ID. Existing references are not translated into that scope: use the

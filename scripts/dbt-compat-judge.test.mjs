@@ -104,7 +104,7 @@ function evidenceFixture() {
       revision: source.revision, sha256: 'c'.repeat(64)})),
     compileChecks: {project: {connectionOpens: 0, duckdbFiles: [], userFile: false}},
     outcomes: ['local', 'http'].map(transport => ({case: 'orders', transport,
-      entry: '@actql/node:client.aql', module: 'node_modules/@actql/node/index.mjs',
+      entry: '@actql/node:client.startSource', module: 'node_modules/@actql/node/index.mjs',
       format: 'sql', input: textIdentity(sql), stage: 'named-result',
       all: [{id: 2, amount: 20}], streamed: [{id: 2, amount: 20}],
       streamState: 'complete', columns, verdict: 'passed',

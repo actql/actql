@@ -85,7 +85,7 @@ test('public retained sequence orders long identities and compound Text keys',
       submitted.id = empty ? 'public-sequence-empty' : 'public-sequence';
       const source = JSON.stringify(submitted);
       const options = {format: 'json', requestId: submitted.id};
-      const execution = await client.aql(source, options).catch(error => {
+      const execution = await client.startSource(source, options).catch(error => {
         assert.fail(inspect(error, {depth: 8}));
       });
       const state = await execution.wait({signal: AbortSignal.timeout(45_000)});
@@ -106,7 +106,7 @@ test('public retained sequence orders long identities and compound Text keys',
       assert.ok(advances > 0);
       assert.equal(completions, empty ? 2 : 1);
       const savedAdvances = advances;
-      const repeated = await client.aql(source, options);
+      const repeated = await client.startSource(source, options);
       assert.deepEqual(repeated.ref, execution.ref);
       assert.deepEqual(await repeated.result('published').all(), expected);
       assert.equal(advances, savedAdvances);

@@ -70,7 +70,7 @@ test('public retained REPLACE and LENGTH publish independent Unicode and NULL ro
       const source = JSON.stringify(program(id, rows, search, replacement));
       const priorAdvances = advances;
       const options = {format: 'json', requestId: 'text-' + id};
-      const run = await client.aql(source, options);
+      const run = await client.startSource(source, options);
       const state = await run.wait({signal: AbortSignal.timeout(45_000)});
       assert.equal(state.status, 'succeeded', JSON.stringify(state));
       assert.deepEqual(await run.result('answer').all(), expected);
@@ -82,7 +82,7 @@ test('public retained REPLACE and LENGTH publish independent Unicode and NULL ro
         entry.representation === 'retained-file'));
       assert.ok(advances > priorAdvances, 'ordinary Program used bounded Local dispatch');
       const before = dispatches;
-      assert.deepEqual((await client.aql(source, options)).ref, run.ref);
+      assert.deepEqual((await client.startSource(source, options)).ref, run.ref);
       assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(), expected);
       assert.equal(dispatches, before);
     }
@@ -119,7 +119,7 @@ test('public Text call cancellation is delivered after charged progress',
         })}});
     const source = JSON.stringify(program('cancel', [{id: 1, payload: 'a'.repeat(4096)}], 'a', 'bb'));
     const options = {format: 'json', requestId: 'text-cancel'};
-    const run = await client.aql(source, options);
+    const run = await client.startSource(source, options);
     await reached.promise;
     const before = advances;
     try {
@@ -138,6 +138,6 @@ test('public Text call cancellation is delivered after charged progress',
     assert.equal(completions, 0);
     assert.equal(advances, before);
     assert.equal(dispatches, 1);
-    assert.deepEqual((await client.aql(source, options)).ref, run.ref);
+    assert.deepEqual((await client.startSource(source, options)).ref, run.ref);
     assert.equal(dispatches, 1);
   });

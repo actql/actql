@@ -254,7 +254,7 @@ test('public Client reads published GitHub Issues to a Named Result', async t =>
   const {client} = await setup.open();
   // The Host start restored the publication without provider I/O.
   assert.equal(setup.api.seen().length, 1);
-  const execution = await client.aql(program, {format: 'json',
+  const execution = await client.startSource(program, {format: 'json',
     requestId: 'github-read-1'});
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -295,7 +295,7 @@ test('installed row source retains public output across Host reopen',
     const {client, close} = await setup.open().catch(error => {
       assert.fail(error.primaryFailure?.stack ?? error.stack);
     });
-    const run = await client.aql(JSON.stringify(document), {format: 'json',
+    const run = await client.startSource(JSON.stringify(document), {format: 'json',
       requestId: 'github-retained-read'});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -312,7 +312,7 @@ test('installed row source retains public output across Host reopen',
     assert.equal(reads, 2);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(JSON.stringify(document), {format: 'json',
+    const resent = await client.startSource(JSON.stringify(document), {format: 'json',
       requestId: 'github-retained-read'});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, reads);
@@ -358,7 +358,7 @@ test('retained acquired rows feed numeric group slots and two consumers',
       consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
     };
     const {client, close} = await setup.open();
-    const run = await client.aql(JSON.stringify(document), {format: 'json',
+    const run = await client.startSource(JSON.stringify(document), {format: 'json',
       requestId: 'github-retained-group'});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -390,7 +390,7 @@ test('retained acquired rows feed numeric group slots and two consumers',
     empty.stages[2].results.r.fields = ['n'];
     empty.stages[3].steps = [{select: ['total', 'mean'], as: 'out'}];
     empty.stages[3].results.r.fields = ['total', 'mean'];
-    const emptyRun = await client.aql(JSON.stringify(empty), {format: 'json',
+    const emptyRun = await client.startSource(JSON.stringify(empty), {format: 'json',
       requestId: 'github-retained-empty-numeric-group'});
     const emptyState = await emptyRun.wait();
     assert.equal(emptyState.status, 'succeeded', JSON.stringify(emptyState));
@@ -436,7 +436,7 @@ test('retained GitHub rows keep Event times through a fixed window', async t => 
   document.results = {windowed: {from: {stage: 'events', result: 'r'}},
     consumed: {from: {stage: 'consumer', result: 'r'}}};
   const {client, close} = await setup.open();
-  const run = await client.aql(JSON.stringify(document), {format: 'json',
+  const run = await client.startSource(JSON.stringify(document), {format: 'json',
     requestId: 'github-retained-fixed-events'});
   const state = await run.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -474,7 +474,7 @@ test('retained row source admits its exact row ceiling and refuses one more',
     setup.state.pageSize = 100;
     await setup.publish();
     const {client} = await setup.open();
-    const exact = await client.aql(program, {format: 'json',
+    const exact = await client.startSource(program, {format: 'json',
       requestId: 'github-retained-exact-row-ceiling'});
     const exactState = await exact.wait();
     assert.equal(exactState.status, 'succeeded', JSON.stringify(exactState));
@@ -483,7 +483,7 @@ test('retained row source admits its exact row ceiling and refuses one more',
         title: `Issue ${index + 1}`, author: 'octocat'})));
     const beforeExtra = listings(setup.api).length;
     repository.issues.push({number: 101});
-    const excess = await client.aql(program, {format: 'json',
+    const excess = await client.startSource(program, {format: 'json',
       requestId: 'github-retained-one-over-row-ceiling'});
     const excessState = await excess.wait();
     assert.equal(excessState.status, 'failed', JSON.stringify(excessState));
@@ -497,7 +497,7 @@ test('retained row source admits its exact row ceiling and refuses one more',
     assert.equal(listings(setup.api).length, beforeExtra + 2);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(program, {format: 'json',
+    const resent = await client.startSource(program, {format: 'json',
       requestId: 'github-retained-one-over-row-ceiling'});
     assert.deepEqual(resent.ref, excess.ref);
     assert.equal(listings(setup.api).length, beforeExtra + 2);
@@ -585,7 +585,7 @@ test('two installed row sources retain a joined public Named Result',
     await setup.publish();
     const document = twoRowSourceProgram();
     const {client, close} = await setup.open();
-    const run = await client.aql(JSON.stringify(document), {format: 'json',
+    const run = await client.startSource(JSON.stringify(document), {format: 'json',
       requestId: 'github-two-source-join'}).catch(error => {
         assert.fail(`${error.stack}\n${error.cause?.stack ?? ''}\n${JSON.stringify(observations)}`);
       });
@@ -617,7 +617,7 @@ test('two installed row sources retain a joined public Named Result',
       ['R_hello', 'R_hello', 'R_copy']);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(JSON.stringify(document), {format: 'json',
+    const resent = await client.startSource(JSON.stringify(document), {format: 'json',
       requestId: 'github-two-source-join'});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, 3);
@@ -639,7 +639,7 @@ test('retained two-source Join feeds an Events window and consumer', async t => 
   await setup.publish();
   const document = twoSourceEventsWindowProgram();
   const {client, close} = await setup.open();
-  const run = await client.aql(JSON.stringify(document), {format: 'json',
+  const run = await client.startSource(JSON.stringify(document), {format: 'json',
     requestId: 'github-two-source-events-window'});
   const state = await run.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -687,7 +687,7 @@ test('mixed GitHub and DuckDB captures feed a retained Events window', async t =
     'amount', 'window_start_ms', 'window_end_ms'];
   const wire = JSON.stringify(document);
   const {client, close} = await setup.open();
-  const run = await client.aql(wire, {format: 'json',
+  const run = await client.startSource(wire, {format: 'json',
     requestId: 'github-duckdb-retained-events-window'});
   const state = await run.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -744,7 +744,7 @@ test('retained two-source Events failure keeps cleanup for retry', async t => {
   document.stages[3].steps[3].filter =
     'number / (number - number) > 0';
   const {client, host} = await setup.open();
-  const run = await client.aql(JSON.stringify(document), {format: 'json',
+  const run = await client.startSource(JSON.stringify(document), {format: 'json',
     requestId: 'github-two-source-events-failure'});
   await firstClose;
   assert.ok(observations.some(([name, detail]) =>
@@ -798,7 +798,7 @@ test('GitHub and DuckDB captures share one retained two-source owner',
     document.stages[4].results.r.fields = ['number', 'amount'];
     const wire = JSON.stringify(document);
     const {client, close} = await setup.open();
-    const run = await client.aql(wire, {format: 'json',
+    const run = await client.startSource(wire, {format: 'json',
       requestId: 'github-duckdb-retained-join'});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -817,7 +817,7 @@ test('GitHub and DuckDB captures share one retained two-source owner',
     assert.ok(providerReads > 0, 'the selected DuckDB source performed physical I/O');
     const reads = listings(setup.api).length;
     assert.equal(reads, 2);
-    const resent = await client.aql(wire, {format: 'json',
+    const resent = await client.startSource(wire, {format: 'json',
       requestId: 'github-duckdb-retained-join'});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, reads);
@@ -826,7 +826,7 @@ test('GitHub and DuckDB captures share one retained two-source owner',
     reversed.id = 'duckdb-github-retained-join';
     [reversed.stages[0], reversed.stages[1]] =
       [reversed.stages[1], reversed.stages[0]];
-    const reverseRun = await client.aql(JSON.stringify(reversed),
+    const reverseRun = await client.startSource(JSON.stringify(reversed),
       {format: 'json', requestId: 'duckdb-github-retained-join'});
     const reverseState = await reverseRun.wait();
     assert.equal(reverseState.status, 'succeeded', JSON.stringify(reverseState));
@@ -863,7 +863,7 @@ test('a failed second row source preserves first-input cleanup without publicati
           message: 'API rate limit exceeded'}]}};
     const {client} = await setup.open();
     const document = JSON.stringify(twoRowSourceProgram());
-    const run = await client.aql(document, {format: 'json',
+    const run = await client.startSource(document, {format: 'json',
       requestId: 'github-two-source-second-fails'});
     const state = await run.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
@@ -877,7 +877,7 @@ test('a failed second row source preserves first-input cleanup without publicati
       'carrier-snapshots')), []);
     const reads = listings(setup.api).length;
     assert.equal(reads, 3);
-    const resent = await client.aql(document, {format: 'json',
+    const resent = await client.startSource(document, {format: 'json',
       requestId: 'github-two-source-second-fails'});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, reads);
@@ -915,7 +915,7 @@ test('two-source row cleanup retries without reacquisition after a later failure
       return {...response, body};
     };
     const {client, host} = await setup.open();
-    const run = await client.aql(JSON.stringify(twoRowSourceProgram()),
+    const run = await client.startSource(JSON.stringify(twoRowSourceProgram()),
       {format: 'json', requestId: 'github-two-source-cleanup-retry'});
     await firstClose;
     const beforeRetry = listings(setup.api).length;
@@ -973,7 +973,7 @@ test('two-source cancellation retains the first row capture until stop and clean
     await setup.publish();
     const {client} = await setup.open();
     const document = JSON.stringify(twoRowSourceProgram());
-    const run = await client.aql(document, {format: 'json',
+    const run = await client.startSource(document, {format: 'json',
       requestId: 'github-two-source-cancel'});
     await firstCompleted;
     const firstUsage = observations.find(([name, detail]) =>
@@ -1021,7 +1021,7 @@ test('two-source Join cancellation waits for Compute stop before input cleanup',
     await setup.publish();
     const {client} = await setup.open();
     const document = JSON.stringify(twoRowSourceProgram());
-    const run = await client.aql(document, {format: 'json',
+    const run = await client.startSource(document, {format: 'json',
       requestId: 'github-two-source-join-in-flight-cancel'});
     const first = await Promise.race([
       advanced.then(detail => ({kind: 'advance', detail})),
@@ -1052,7 +1052,7 @@ test('two-source Join cancellation waits for Compute stop before input cleanup',
     assertAcquisitionReleased(observations);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(document, {format: 'json',
+    const resent = await client.startSource(document, {format: 'json',
       requestId: 'github-two-source-join-in-flight-cancel'});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, reads);
@@ -1075,7 +1075,7 @@ async function verifyLostRetainedStoreAcknowledgement(t, phase, event) {
   await setup.publish();
   const {client} = await setup.open();
   const document = JSON.stringify(twoRowSourceProgram());
-  const run = await client.aql(document, {format: 'json',
+  const run = await client.startSource(document, {format: 'json',
     requestId: `github-two-source-store-${phase}-failure`});
   const state = await run.wait();
   assert.equal(state.status, 'failed', JSON.stringify(state));
@@ -1096,7 +1096,7 @@ async function verifyLostRetainedStoreAcknowledgement(t, phase, event) {
   assert.deepEqual(await readdir(join(setup.root, 'state',
     'carrier-snapshots')), []);
   const reads = listings(setup.api).length;
-  const resent = await client.aql(document, {format: 'json',
+  const resent = await client.startSource(document, {format: 'json',
     requestId: `github-two-source-store-${phase}-failure`});
   assert.deepEqual(resent.ref, run.ref);
   assert.equal(listings(setup.api).length, reads);
@@ -1125,7 +1125,7 @@ test('retained row source does not publish after a later page fails',
         body: {data: null, errors: [{type: 'RATE_LIMITED',
           message: 'API rate limit exceeded'}]}};
     const {client} = await setup.open();
-    const run = await client.aql(program, {format: 'json',
+    const run = await client.startSource(program, {format: 'json',
       requestId: 'github-retained-later-page-failure'});
     const state = await run.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
@@ -1134,7 +1134,7 @@ test('retained row source does not publish after a later page fails',
     assert.equal(listings(setup.api).length, 2);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(program, {format: 'json',
+    const resent = await client.startSource(program, {format: 'json',
       requestId: 'github-retained-later-page-failure'});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, 2);
@@ -1160,7 +1160,7 @@ test('a rate limit stated in an HTTP 200 stops the Run without a Result',
       body: {data: null, errors: [{type: 'RATE_LIMITED',
         message: 'API rate limit exceeded'}]}});
     const {client} = await setup.open();
-    const execution = await client.aql(program, {format: 'json',
+    const execution = await client.startSource(program, {format: 'json',
       requestId: 'github-read-limited'});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
@@ -1172,7 +1172,7 @@ test('a rate limit stated in an HTTP 200 stops the Run without a Result',
 // provider's state changes after publication.
 const failsWithoutResult = async (setup, requestId) => {
   const {client} = await setup.open();
-  const execution = await client.aql(program, {format: 'json', requestId});
+  const execution = await client.startSource(program, {format: 'json', requestId});
   const state = await execution.wait();
   assert.equal(state.status, 'failed', JSON.stringify(state));
   assert.equal(state.result_available, false);
@@ -1198,7 +1198,7 @@ test('A, then a same-name B, then A again: every request stays on A', async t =>
     finally { original.answer = answer; }
   };
   const {client} = await setup.open();
-  const execution = await client.aql(program, {format: 'json',
+  const execution = await client.startSource(program, {format: 'json',
     requestId: 'github-read-aba'});
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -1268,7 +1268,7 @@ test('an empty body is published as an empty string, not NULL', async t => {
     {number: 1, body: ''}, {number: 2, body: 'text'}];
   await setup.publish();
   const {client} = await setup.open();
-  const execution = await client.aql(bodyProgram, {format: 'json',
+  const execution = await client.startSource(bodyProgram, {format: 'json',
     requestId: 'github-body-1'});
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -1318,7 +1318,7 @@ test('accounted GitHub pages charge complete raw responses exactly once', async 
     const from = observations.length;
     const document = twoRowSourceProgram();
     document.id = `github-raw-body-${padding}`;
-    const run = await client.aql(JSON.stringify(document), {format: 'json',
+    const run = await client.startSource(JSON.stringify(document), {format: 'json',
       requestId: `github-raw-body-${padding}`});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -1350,7 +1350,7 @@ test('a parser-refused GitHub raw response remains charged without a Result', as
   setup.state.answer = () => ({body});
   const {client, host} = await setup.open();
   const document = JSON.stringify(twoRowSourceProgram());
-  const run = await client.aql(document, {format: 'json',
+  const run = await client.startSource(document, {format: 'json',
     requestId: 'github-raw-parser-refusal'});
   const state = await run.wait();
   assert.equal(state.status, 'failed', JSON.stringify(state));

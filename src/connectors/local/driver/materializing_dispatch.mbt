@@ -64,6 +64,7 @@ pub struct LocalDispatchOperations {
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : () -> Result[Unit, LocalDispatchIssue]
   close : () -> Unit
+  cleanup_refresh : () -> Bool
 }
 
 ///|
@@ -211,6 +212,12 @@ pub fn[C, E] start_local_dispatch(
           )
         },
         close: fn() { @strategy.close_task_execution(run, ticket) },
+        cleanup_refresh: fn() {
+          if !@local.advance_local_materializing_cleanup(attempt, 64) {
+            return false
+          }
+          @strategy.refresh_task_execution_cleanup(run, ticket).unwrap_or(false)
+        },
       })
     }
   }

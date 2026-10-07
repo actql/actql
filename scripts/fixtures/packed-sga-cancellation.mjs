@@ -70,7 +70,7 @@ for (const mode of ['local', 'remote']) {
     }
     client = await connect(options);
     const requestId = `sga-cancel-${mode}-${randomUUID()}`;
-    submission = client.aql(source, {format: 'json', requestId});
+    submission = client.startSource(source, {format: 'json', requestId});
     // Record a rejection immediately, even if intake fails before the hook.
     const submitFailure = submission.then(() => new Promise(() => {}),
       error => { throw error; });
@@ -96,7 +96,7 @@ for (const mode of ['local', 'remote']) {
     // A pre-start cancellation has none, so lookup is denied without payload.
     await assert.rejects(execution.result('answer').all(),
       error => error.code === 'ResultAccessDenied');
-    assert.deepEqual((await client.aql(source,
+    assert.deepEqual((await client.startSource(source,
       {format: 'json', requestId})).ref, execution.ref);
     assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
     assert.equal((await (await client.attach(execution.ref)).status()).status,
@@ -109,7 +109,7 @@ for (const mode of ['local', 'remote']) {
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
       const restored = await client.attach(execution.ref);
       assert.equal((await restored.status()).status, 'cancelled');
-      assert.deepEqual((await client.aql(source,
+      assert.deepEqual((await client.startSource(source,
         {format: 'json', requestId})).ref, execution.ref);
     }
     assert.equal(steps.filter(name => name === 'dispatch_reserved').length, 1);

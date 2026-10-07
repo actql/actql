@@ -54,3 +54,25 @@ Host. Explicit policy selections participate in installation and request
 scope identity; omitting the option preserves historical defaults. See the
 [installed Host policy contract](../local-node/README.md#explicit-host-capacity-policy).
 This option is not a connected Remote Client request or authorization grant.
+
+## Short Local queries
+
+```js
+import {open} from '@actql/node';
+await using db = await open({stateDir: '.actql'});
+const rows = await db.sql('SELECT 1 AS id').all();
+```
+
+`open()` is a thin entry into the existing installed Local Host and its private
+connection lease. Its default is CWD/.actql, and `db.info.stateDir` reports the
+absolute selected directory. Keep this durable state out of version control.
+The existing `connect()` environment/home-directory defaults are unchanged.
+`open({installation})` accepts the existing installation options except its
+`directory`; choose that location only with `stateDir`. Closing or asynchronous
+disposal uses the same awaited Client cleanup and never cancels a Run.
+
+Short `sql`/`aql` calls return a native ResultPromise and preserve one request ID
+across all awaits. For immediate low-level source admission use `startSource`;
+Program `start` is unchanged. These entries preserve the installed language and
+connector capabilities; `open` does not load or install an unselected DuckDB
+adapter. See the SDK README for Result selection, read limits and recovery.

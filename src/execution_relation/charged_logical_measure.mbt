@@ -55,18 +55,33 @@ fn advance_charged_logical_measure(
   if budget.failed {
     return Err(Logical(FailedLogicalBudget))
   }
+  let before = cursor.remaining
+  let result = advance_reserved_logical_measure(cursor, workspace, reserved)
+  budget.work += before - cursor.remaining
+  if result is Err(Logical(_)) {
+    budget.failed = true
+  }
+  result
+}
+
+///|
+/// Both charged measurements and constructor-result proof use this same
+/// reservation path. Proof acquisition does not invent a second production
+/// charge; its ordinary result event still consumes the complete weight.
+fn advance_reserved_logical_measure(
+  cursor : LogicalMeasureCursor,
+  workspace : RowWorkspace,
+  reserved : Int,
+) -> Result[(LogicalValueMeasure?, Int), ChargedLogicalMeasureIssue] {
   // One transition replaces a frame with at most two. Reserve the successor
   // before the existing cursor can allocate it.
   if !reserve_slots(workspace, 1) {
     return Err(Workspace)
   }
-  let before = cursor.remaining
   let result = advance_logical_measure(cursor)
-  budget.work += before - cursor.remaining
   match result {
     Err(issue) => {
       release_slots(workspace, 1)
-      budget.failed = true
       Err(Logical(ValueMeasure(issue)))
     }
     Ok(measured) => {
