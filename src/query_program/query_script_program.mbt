@@ -42,6 +42,7 @@ fn lower_script_relation(
   reserved : Array[String],
   output : String,
   retained? : Array[RetainedResult]? = None,
+  carry_ranges? : Bool = false,
 ) -> Input raise Abort {
   let known = if @query.cte_count(query) == 0 {
     known
@@ -62,6 +63,7 @@ fn lower_script_relation(
         steps,
         reserved,
         name,
+        carry_ranges=cte.carry_ranges,
       )
       scoped = scoped.filter(input => !input_relation_matches([cte.name], input))
       scoped.push({ ..bound, relation: [cte.name], })
@@ -84,6 +86,7 @@ fn lower_script_relation(
     reserved,
     output,
     retained~,
+    carry_ranges~,
   )
 }
 
@@ -99,14 +102,33 @@ fn lower_script_relation_term(
   reserved : Array[String],
   output : String,
   retained? : Array[RetainedResult]? = None,
+  carry_ranges? : Bool = false,
 ) -> Input raise Abort {
   if @query.graph_query(query) is Some(_) {
     raise Abort(UnsupportedGraph)
   }
+  let preserved : Array[JoinChainScope]? = if carry_ranges {
+    Some([])
+  } else {
+    None
+  }
   if @query.join_part_count(query) > 0 {
-    return lower_script_join_relation(
-      construction, query, known, context, sources, limits, steps, reserved, retained,
+    let bound = lower_script_join_relation(
+      construction,
+      query,
+      known,
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
+      retained,
+      preserved_scope=preserved,
     )
+    if preserved is Some(scopes) {
+      sources.ranges[bound.name] = scopes[0]
+    }
+    return bound
   }
   let selected = selected_input(query, { ..context, inputs: known, }, limits)
   let fields = query_columns(query, selected)
@@ -155,9 +177,33 @@ fn lower_script_relation_term(
     output,
     retained~,
     parameter_declarations=context.parameter_declarations,
+    initial_scope=sources.ranges.get(input.name),
+    preserved_scope=preserved,
   )
   steps.append(body)
-  let name = if body.is_empty() { input.name } else { output }
+  let name = if body.is_empty() && carry_ranges {
+    // Scope belongs to this continuation, never to the shared Source binding.
+    steps.push(
+      construction.object([
+        ("from", construction.text(input.name)),
+        (
+          "select",
+          construction.array(
+            output_fields.map(field => construction.text(field)),
+          ),
+        ),
+        ("as", construction.text(output)),
+      ]),
+    )
+    output
+  } else if body.is_empty() {
+    input.name
+  } else {
+    output
+  }
+  if preserved is Some(scopes) {
+    sources.ranges[name] = scopes[0]
+  }
   {
     relation: [],
     name,
@@ -206,6 +252,7 @@ pub fn compile_query_script(
       stages: [],
       bound: Map([]),
       unshared: unshared_script_sources(script, context.inputs),
+      ranges: Map([]),
     }
     let mut known = context.inputs.copy()
     let mut graphs : Array[ScriptGraph] = []
@@ -454,6 +501,7 @@ pub fn compile_query_script(
         stages: sources.stages,
         bound: Map([]),
         unshared: [],
+        ranges: Map([]),
       }
       stage_known = [
         {

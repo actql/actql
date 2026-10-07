@@ -107,13 +107,4 @@ test "projected Pipe JOIN cannot revive removed columns or displaced aliases" {
       assert_true(result is Err(AmbiguousColumn), msg=text)
     }
   }
-  // An old range snapshot after a value change is not faithfully representable
-  // by one visible producer. Keep this current gap explicit, not misbound.
-  assert_true(
-    @query.parse_query(
-      "FROM t |> AS l |> SET x = 2 |> JOIN r AS rr ON l.x = rr.k |> SELECT x",
-      syntax_limits(),
-    )
-    is Err(_),
-  )
 }

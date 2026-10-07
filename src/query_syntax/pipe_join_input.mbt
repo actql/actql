@@ -1,7 +1,7 @@
 ///|
-// A producer reference can retain the visible row and one range over exactly
-// that row. It cannot reconstruct original range snapshots displaced by SET,
-// DROP, RENAME or EXTEND. Projection removes those snapshots; AS binds anew.
+// The ordinary projected-producer path retains one range over the current row.
+// Original snapshots displaced by SET/DROP/RENAME/EXTEND need the separate
+// private continuation scope. Projection removes snapshots; AS binds anew.
 fn pipe_join_input_alias(query : Query) -> NamePart?? {
   if query.graph is Some(_) {
     return None
@@ -49,4 +49,21 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
   } else {
     None
   }
+}
+
+///|
+// Only ordinary Relation operations may carry an immutable row scope into
+// another JOIN. Model, Graph and Result boundaries keep their own admission.
+fn pipe_join_range_input(query : Query) -> Bool {
+  query.graph is None &&
+  query.operations.all(operation => {
+    match operation {
+      Infer(_)
+      | Nearest(_)
+      | RetainResult(_)
+      | GraphCall(_)
+      | UnnestSource(_, _, _) => false
+      _ => true
+    }
+  })
 }
