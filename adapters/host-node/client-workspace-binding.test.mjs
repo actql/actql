@@ -10,11 +10,18 @@ const ref = {namespaceId: 'separate-namespace', authorityScopeCid: `sha256:${'a'
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const connection = {mode: 'remote', owner: 'remote', consentRefs: [], runners: [],
   workspaceId: 'workspace-A'};
+const submissionRef = {epoch: {version: 'actql-submission-epoch/0.1',
+  authorityScopeCid: ref.authorityScopeCid, epochNonce: 'd'.repeat(64),
+  authenticator: 'e'.repeat(64), notBefore: 1_800_000_000_000,
+  expiresAt: 1_800_000_001_000}, nonce: 'saved-submission'};
 // Independent legitimate requests for every public operation. The fixture
 // validates them before proving the assertion guard precedes their handlers.
 const bodies = {
   connect: {},
   submit: {requestId: 'saved-request', kind: 'program', input: {}, parameters: null},
+  'submit-intent': {submissionRef, intentCid: `sha256:${'f'.repeat(64)}`,
+    kind: 'program', input: {}, parameters: null},
+  'lookup-submission': {submissionRef},
   check: {input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null},
   attach: {ref}, 'lookup-request': {requestId: 'saved-request'}, status: {ref},
   wait: {ref, until: null},
@@ -49,7 +56,8 @@ for (const transport of ['http', 'in-process']) {
           return 'workspace-B';
         }}),
         maxRowBytes: 1024, negotiate: forbidden, prepareSubmit: forbidden,
-        submit: forbidden, check: forbidden, attach: forbidden,
+        submit: forbidden, submitIntent: forbidden, lookupSubmission: forbidden,
+        check: forbidden, attach: forbidden,
         lookupRequest: forbidden, observeRun: forbidden, wait: forbidden,
         cancel: forbidden, lookupCancellation: forbidden, reconcile: forbidden,
         deliveryAttempt: forbidden, checkpoints: forbidden,

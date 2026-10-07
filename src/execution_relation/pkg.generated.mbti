@@ -105,6 +105,8 @@ pub fn advance_managed_output_values_reclamation(ManagedOutputValues, Int) -> Bo
 
 pub fn[P, T] advance_managed_view_output_finish(ManagedViewOutputPort[P, T], P, Int) -> Result[ManagedOutputFinishAdvance, ManagedViewOutputIssue]
 
+pub fn[T] advance_managed_view_selection(ManagedViewSelectionPreparation[T], Int) -> Result[(Bool, Int), ManagedSelectionMeasureIssue]
+
 pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[PredicateExpressionPoll, EvalIssue]
 
 pub fn advance_prepare_producer_read(ProducerReadPreparation) -> Result[ProducerRead?, ProducerReadIssue]
@@ -176,6 +178,10 @@ pub fn attach_retained_producer_measurement(FixedProducerMeasurement, RetainedPr
 pub fn authorize_managed_identity_attempt(ManagedIdentityIssuanceCapability, CompletionPreparation, ManagedIdentityRequirement) -> Result[ManagedIdentityAttemptPermit, ManagedIdentityIssuanceIssue]
 
 pub fn authorize_managed_identity_execution_attempt(ManagedIdentityIssuanceCapability, ManagedExecutionAttempt, CompletionPreparation, ManagedIdentityRequirement) -> Result[ManagedIdentityAttemptPermit, ManagedIdentityIssuanceIssue]
+
+pub fn[T] begin_managed_view_selection(ManagedViewPlan[T], Array[Int], Int, Int, validate_occurrence? : (Int, Int) -> Bool) -> Result[ManagedViewSelectionPreparation[T], ManagedSelectionMeasureIssue]
+
+pub fn[T] begin_managed_view_slice(ManagedViewPlan[T], Int, Int, Int, Int, validate_occurrence? : (Int, Int) -> Bool) -> Result[ManagedViewSelectionPreparation[T], ManagedSelectionMeasureIssue]
 
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
 
@@ -280,6 +286,8 @@ pub fn cancel_managed_output_values(ManagedOutputValues) -> Bool
 pub fn[P] cancel_managed_verified_output_port(ManagedVerifiedOutputPort[P]) -> Bool
 
 pub fn[P, T] cancel_managed_view_output_port(ManagedViewOutputPort[P, T]) -> Bool
+
+pub fn[T] cancel_managed_view_selection_preparation(ManagedViewSelectionPreparation[T]) -> Bool
 
 pub fn cancel_predicate_expression(PredicateExpressionExecution) -> Bool
 
@@ -1231,6 +1239,8 @@ pub fn supplied_relation_read_schema(SuppliedRelationRead) -> @relation_schema.S
 
 pub fn take_admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOutputRows?
 
+pub fn[T] take_managed_view_selection(ManagedViewSelectionPreparation[T]) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue]
+
 pub fn trusted_output_carrier_input(@managed_carrier_runtime.ProducerReadReference) -> TrustedOutputInput
 
 pub fn trusted_output_relation_input(ProducerRead) -> TrustedOutputInput
@@ -2088,6 +2098,7 @@ pub(all) enum ManagedSelectionMeasureIssue {
   MissingIndex
   InvalidSelection
   UnsupportedColumns
+  Closed
 }
 
 pub(all) enum ManagedVerifiedOutputIssue {
@@ -2141,6 +2152,8 @@ pub(all) enum ManagedViewRows {
 } derive(Eq, @debug.Debug)
 
 type ManagedViewSelection[T]
+
+type ManagedViewSelectionPreparation[T]
 
 pub(all) enum NestEnvelopeScope {
   GroupedBytes
