@@ -25,6 +25,11 @@ fn unnest_source_element(
       max_work,
     }) {
     Ok(lowered) => lowered
+    // Relation-bound correlation has no field schema in this scope probe.
+    // The caller lowers it against the actual row/ranges below; explicit
+    // projection does not require guessed element fields. Budget and all
+    // other lowerer errors still propagate. Unknown stars remain refused.
+    Err({ issue: @expression.UnknownReference, .. }) => return None
     Err(diagnostic) => raise Abort(Expression(diagnostic))
   }
   let typed = match
@@ -58,11 +63,13 @@ fn unnest_source_element(
 // visible column. Current columns take precedence over a bare range name.
 fn unnest_expression_columns(
   visible : Array[(String, String)],
-  receiver : (@query.NamePart, String)?,
+  receivers : Array[(@query.NamePart, String)],
 ) -> Array[(String, String)] {
-  match receiver {
-    Some((name, slot)) if !pipe_name_exists(visible, name) =>
-      visible + [(name.value, slot)]
-    _ => visible
+  let columns = visible.copy()
+  for (name, slot) in receivers {
+    if !pipe_name_exists(columns, name) {
+      columns.push((name.value, slot))
+    }
   }
+  columns
 }

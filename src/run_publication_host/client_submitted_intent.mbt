@@ -22,9 +22,13 @@ pub fn client_submitted_intent_wire(value : ClientSubmittedIntent) -> String {
 ///|
 /// Durable terminal decisions are immutable. Preparing and a supported held
 /// intent can acquire a Run; neither can become a pre-acceptance rejection.
-pub fn client_submitted_intent_transition(before : String, after : String) -> Bool {
+pub fn client_submitted_intent_transition(
+  before : String,
+  after : String,
+) -> Bool {
   match before {
-    "preparing" => ["preparing", "held", "ready", "preparation_failed"].contains(after)
+    "preparing" =>
+      ["preparing", "held", "ready", "preparation_failed"].contains(after)
     "held" => ["held", "ready", "preparation_failed"].contains(after)
     "ready" | "not_accepted" | "preparation_failed" => before == after
     _ => false
@@ -43,23 +47,33 @@ pub fn prepare_client_submitted_intent(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue] {
-  if max_bytes < 1 || max_bytes > 1048576 ||
-    max_nodes < 1 || max_nodes > 65536 ||
-    max_depth < 1 || max_depth > 64 {
+  if max_bytes < 1 ||
+    max_bytes > 1048576 ||
+    max_nodes < 1 ||
+    max_nodes > 65536 ||
+    max_depth < 1 ||
+    max_depth > 64 {
     return Err(InvalidLimits)
   }
   let source = match
     @source.parse_json_bytes_preserving(@utf8.encode(body), {
-      max_input_bytes: max_bytes, max_nodes, max_depth,
+      max_input_bytes: max_bytes,
+      max_nodes,
+      max_depth,
     }) {
     Ok(source) => source
-    Err(error) => match error.issue {
-      InputLimit | NodeLimit | DepthLimit => return Err(Limit)
-      _ => return Err(InvalidEnvelope)
-    }
+    Err(error) =>
+      match error.issue {
+        InputLimit | NodeLimit | DepthLimit => return Err(Limit)
+        _ => return Err(InvalidEnvelope)
+      }
   }
   let value = @canonical.from_source(
-    source, max_nodes, max_depth, max_bytes, data_keys=true,
+    source,
+    max_nodes,
+    max_depth,
+    max_bytes,
+    data_keys=true,
   ) catch {
     @canonical.InputLimit => return Err(Limit)
     _ => return Err(InvalidEnvelope)
@@ -81,7 +95,11 @@ pub fn prepare_client_submitted_intent(
   let wire = @canonical.stringify_value(value, max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Limit)
   }
-  let writer = @encode.hashing_writer(max_bytes + 128, max_nodes + 4, max_depth + 1) catch {
+  let writer = @encode.hashing_writer(
+    max_bytes + 128,
+    max_nodes + 4,
+    max_depth + 1,
+  ) catch {
     _ => return Err(Encoding)
   }
   try {
@@ -91,7 +109,7 @@ pub fn prepare_client_submitted_intent(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-submitted-intent/0.1")
     @encode.end_object(writer)
-    Ok({wire, cid: "sha256:" + @encode.finish_hash(writer)})
+    Ok({ wire, cid: "sha256:" + @encode.finish_hash(writer), })
   } catch {
     _ => Err(Encoding)
   }
