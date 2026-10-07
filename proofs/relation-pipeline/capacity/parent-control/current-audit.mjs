@@ -3,6 +3,8 @@ import {hash} from '../../inventory.mjs';
 import {boundCurrentOverlay,currentFixture} from './current-overlay.mjs';
 import {checkParentCensus} from './bounds.mjs';
 import {inspectCurrentChain} from './current-inspect.mjs';
+import {auditScalarCode} from './provider-callback-code.mjs';
+import {fileURLToPath} from 'node:url';
 import {inspectProviderConstruction} from './provider-construction.mjs';
 import {checkPreparationArraySource,inspectPreparationStorage} from './preparation-arrays.mjs';
 import {nativeProfile} from '../backing/source.mjs';
@@ -54,11 +56,16 @@ export function auditCurrentChain(report,current,read) {
   assert(binary.includes(marker),'Compiled fixture marker absent from executed binary');
   if(report.runtime.platform==='darwin-arm64') {assert.equal(binary.readUInt32LE(0),0xfeedfacf);assert.equal(binary.readUInt32LE(4),0x0100000c);}
   else {assert.equal(report.runtime.platform,'linux-x64');assert.equal(binary.subarray(0,4).toString('hex'),'7f454c46');assert.equal(binary[4],2);assert.equal(binary.readUInt16LE(18),62);}
+  const providers=JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json')).providers.map(p=>p.name);
+  const providerCallbackExtents=auditScalarCode(report,providerFacts.filter(f=>f.kind==='provider construction observation'),
+    fileURLToPath(new URL('../../../../',import.meta.url)),read,providers);
+  if(providerCallbackExtents.scalarAllocationRequestsEstablished)
+    assert(providerCallbackExtents.maxPointRequestedBytes<=provider.recipe.bytes,'Point constructor bytes exceed conditional envelope');
   const pin=JSON.parse(read('toolchain.json'));assert.deepEqual(report.toolchain,pin);
   assert.deepEqual(report.runtime.archive,pin.archives[report.runtime.platform]);
   assert.deepEqual(report.runtime.sources,{...nativeProfile.sources,...nativeProfile.platformBinaries[report.runtime.platform]});
   assert.equal(report.runtime.profileDigest,hash(JSON.stringify(nativeProfile)));
-  return {chain:inspectCurrentChain(records),providerConstruction:provider,preparationStorage,
+  return {chain:inspectCurrentChain(records),providerConstruction:provider,preparationStorage,providerCallbackExtents,
     scientificExecution:'one fixed-source Native fixture; no new execution is inferred from this audit',
     completePhysicalUpper:false};
 }
