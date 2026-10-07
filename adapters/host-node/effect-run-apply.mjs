@@ -387,7 +387,7 @@ export async function applyRecoveredEffectSet({
   requestScope, programId, nodeId, maxRows, maxFrontierWork,
   maxRecoveryWork, keyLimits,
   reconcileStoredResponses, refreshPreflight, dispatchRow, bindDispatch, signal,
-  authorization,
+  authorization, observationOnly = false,
 }) {
   if (!moon || !store || !publicationControl || !computation || !preview ||
       typeof ledger?.recoverClaimFacts !== 'function' ||
@@ -407,7 +407,8 @@ export async function applyRecoveredEffectSet({
       (reconcileStoredResponses !== undefined &&
         typeof reconcileStoredResponses !== 'function') ||
       typeof refreshPreflight !== 'function' ||
-      !validDispatch(dispatchRow, bindDispatch)) {
+      !validDispatch(dispatchRow, bindDispatch) ||
+      typeof observationOnly !== 'boolean') {
     fail('InvalidRecoveredEffectApply');
   }
   signal?.throwIfAborted();
@@ -428,6 +429,12 @@ export async function applyRecoveredEffectSet({
       maxWork: maxRecoveryWork});
   }
   const initial = recovered.frontier;
+  // Public reconciliation observes the original attempted rows. It neither
+  // acquires a new approval nor enters the ordinary proven-unsent dispatch
+  // path, even when another member of this Set remains Ready.
+  if (observationOnly && control.setFrontierReadyCount(initial) !== 0) {
+    fail('EffectReconciliationUnattemptedRows');
+  }
   if (control.setFrontierReadyCount(initial) === 0) {
     return Object.freeze({dispatched: 0, frontier: initial});
   }
