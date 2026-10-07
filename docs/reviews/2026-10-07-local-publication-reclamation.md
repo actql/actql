@@ -140,3 +140,50 @@ Host driver hook. Wasm/Native execution, physical-byte correspondence, full
 Core/proof/packed/HTTPS/performance and submitted-HEAD CI are not established.
 This unit can be published as Draft; these checks do not establish shipping
 readiness or completion of the whole retained Local goal.
+
+## Standard Host and real-Store validation
+
+Local Node and DuckDB Host JS release runtimes were rebuilt from clean
+`f104f8ede03f6353481d971ca7ce1a2e77b9f959` (`run-ggp024`, 75 tasks).
+The DuckDB conformance runtime also built (`run-5U1GOE`, 3 tasks). These root
+runtime artifacts are not packed packages. The focused boundary imports the
+checkout SDK and standard Host, and uses real retained/publication Stores.
+
+The initial 13-case selection failed 8 cases (`run-4GKC8r` /
+`focused-test-bk4Dyr`). Successful-output close reached common cleanup refresh
+before disposing its ticket. Two scalar boundary cases additionally used the
+old work model. Neither check was removed: parent commit
+`e5bce7dda72bbc8a3ffeb336d2449d8a456e81bc` fixes close ordering and adopts the
+existing independent 162/161 work model with unchanged 9/8 workspace limits.
+The new close-order regression failed before the fix and its three-file Node
+selection subsequently passed 31/31; see the parent record for receipt scope.
+
+The child adopted that fix by normal merge as clean
+`c87106aa97d5587691acd93a12b1ead806110f8d`. The following selection passed
+13/13 (`run-w3M31g` / `focused-test-MVnICX`):
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 180 -- \
+  --test-name-pattern \
+  'retained Values honors|retained source-free Values chain retains responsibility|retained Values publishes ordered source-free chain|installed retained .*factory executes|installed retained Vectors retains custody after publication|installed retained Events retries cleanup after publication' \
+  adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs
+```
+
+This executes normal installed Local Graph/Events/Vectors mixed Stages and the
+source-free Values/filter/select route, reads the three actual Named Results
+against independent ordered rows, and checks two consumers and final resource
+release. It also executes typed work/workspace one-short failures, cancellation
+after filter starts, arithmetic failure, retained append/finalize failure, and
+Carrier publication failures with cleanup retry and unchanged dispatch counts.
+
+Compiled MoonBit inputs are unchanged between the runtime-build SHA and this
+execution SHA: the merge changed only the Node adapter, tests and evidence.
+Runtime reuse therefore does not hide a stale compiled input. The installed
+DuckDB driver hook itself is still not exercised by this Local boundary.
+Wasm/Native execution, clean packed/HTTPS acceptance, physical-byte lifetime
+correspondence and submitted-HEAD CI remain unverified. No full campaign or CI
+retry was added. Subsequent documentation commits do not relabel this receipt.
+Before publication, the unpublished merge message was changed to Conventional
+Commits with 72-column lines as `4be58f30a5cbfecb26bdd80792df5960f50a7e18`.
+Its tree and parents are unchanged; the execution receipt stays tied to the
+original merge SHA above, not the message-only successor.
