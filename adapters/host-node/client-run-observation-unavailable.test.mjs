@@ -28,8 +28,8 @@ for (const entrance of ['local', 'https']) {
       const run = await host.client.start(openingProgram, {requestId: 'original-observed-run'});
       const original = await run.status();
       assert.equal(original.status, 'succeeded');
-      assert.deepEqual(await run.result('answer').all(), [{id: 1}, {id: 2}]);
-      await host.settled();
+      assert.equal(original.result_available, true);
+      const result = run.result('answer');
       const before = {...fixture.counts};
       const retained = [];
       for (const [operation, loss] of [['status', true], ['status', false], ['wait', false], ['reconcile', false]]) {
@@ -54,7 +54,7 @@ for (const entrance of ['local', 'https']) {
       }
       lost = false; allowed = true;
       assert.deepEqual(await run.status(), original);
-      assert.deepEqual(await run.result('answer').all(), [{id: 1}, {id: 2}]);
+      assert.deepEqual(await result.all(), [{id: 1}, {id: 2}]);
       await host.settled();
       assert.equal(fixture.counts.computes, 1);
       assert.equal(fixture.counts.definitions, 1);
