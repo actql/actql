@@ -75,9 +75,9 @@ export const pipeJoinInputSuccesses = [
     columns: ['n', 'id'].map(name => ({name, contract: number})), expected: [{n: 2, id: 3}]}),
 ];
 export const pipeJoinInputRefusals = [
-  {name: 'removed-range', text: source.replace('l.key = r.key', 'old.id = r.key')},
-  {name: 'removed-column', text: source.replace('l.key = r.key', 'l.id = r.key')},
-  {name: 'duplicate-range', text: source.replace('AS r ON l.key = r.key', 'AS l ON l.key = l.key')},
+  {name: 'removed-range', expectedCode: 'ClientProgramRejected', text: source.replace('l.key = r.key', 'old.id = r.key')},
+  {name: 'removed-column', expectedCode: 'ClientProgramRejected', text: source.replace('l.key = r.key', 'l.id = r.key')},
+  {name: 'duplicate-range', expectedCode: 'ClientProgramRejected', text: source.replace('AS r ON l.key = r.key', 'AS l ON l.key = l.key')},
   {name: 'invalid-ceiling', text: source.replace('MAX_OUTPUT_ROWS 10', 'MAX_OUTPUT_ROWS 0')},
   {name: 'undeclared', parameterDeclarations: undefined, parameters: undefined},
   {name: 'missing', parameters: {minimum: 12}},
