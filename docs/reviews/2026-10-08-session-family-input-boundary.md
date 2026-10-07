@@ -1,6 +1,6 @@
 # Session and pipeline scientific input boundaries
 
-Adopted main: `ca39ec1a82c89a0e038af3862af4de8a383b26fb`.
+Initial adopted main: `ca39ec1a82c89a0e038af3862af4de8a383b26fb`.
 Implementation and clean final execution:
 `4fe695effcbaff1d833ebb00a070229ab8a205e2`.
 
@@ -96,9 +96,33 @@ The first clean final attempt (`run-YAuDcM`) passed 22/29 and failed 7 during
 Lean version startup through the inherited installation shim. Those plans did
 not reach Lean. Its original failure is retained; it is neither an expected
 semantic refusal nor a pass. Selecting the already installed pinned binary via
-PATH resolved this without changing the checker, guard or expectations. No
-download or Actions environment impersonation was used. `git diff --check`
-passed. Later publication adds only this review and its original text archive.
+PATH resolved this without changing the checker, guard or expectations. Recovery
+used the already installed binary; no download was requested for recovery and
+no Actions environment was impersonated. `git diff --check` passed. The first
+evidence publication added only this review and its original text archive.
+
+## Normal main adoption
+
+After the checks, #896 was integrated externally as
+`13423434de68e495d46f965e5b5ba35eb2df46b1`. Adopted updated main
+`2664bcf3203c42eafe0ca5919763dbe8ad081b40` by normal merge at
+`c555e59daeb265f615318c6e49240cad7502e803`, without conflicts or changes to any
+of the 17 own CI implementation/fixture files. The final Lean execution above
+remains evidence for its original SHA, not a new run of the integrated source.
+
+At clean integration SHA, workflow-pinned Node 22.22.0 passed the affected
+actual-tree and module/dispatch checks 5/5 under `run-oo1QEg`:
+
+```sh
+/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node \
+  scripts/local-checks.mjs test node --timeout-seconds 120 -- \
+  proofs/ci-evidence/current-input-obligations.test.mjs \
+  proofs/ci-evidence/session-module-boundary.test.mjs
+```
+
+This checks current main's changed imported input tree and preserves unresolved
+runtime refusal; it is not a full integrated proof/physical campaign. Existing
+successful campaigns were not repeated merely to attach another SHA.
 
 ## Remaining scope and goal
 
@@ -112,9 +136,9 @@ unverified. No Actions was queried for those origins, dispatched or retried.
 No new physical image/mutation campaign, Native/Wasm or full integration run was
 performed here. The saved pipeline originals are reconsumed at their actual
 historical source identities; moved validator equality is not new physical
-acceptance. The complete Session runner on adopted main separately needs the
-published Nest inherited-input correction in #896; this PR does not duplicate
-its protected sources or depend on an unpublished worktree. All changed files
+acceptance. The Nest inherited-input correction in #896 is adopted from
+integrated main; there is no remaining unmerged dependency or unpublished
+worktree input. This PR does not duplicate its protected sources. All changed files
 here are outside the 89 retained-history protection paths verified in #896;
 no protected-source declaration was invented. No current whole-history pass
 for this new SHA is claimed.
@@ -136,3 +160,10 @@ Raw JSON: 609,975 bytes, SHA-256
 `482c353481ccc2360a54e3a353afbe80f8d0eebde374e5278e86e892b214d36b`.
 Gzip: 60,896 bytes, SHA-256
 `d13f993728c7672e56caf7e31eaf29780b9fd88a6198a01729d0fe6ad6a416fa`.
+
+[Integration originals](evidence/2026-10-08-session-family-integration-c555e59da.json.gz)
+preserve the 5/5 output and guard/nonzero receipts, along with the byte-identical
+17-file correspondence. Raw JSON: 32,511 bytes, SHA-256
+`e39fbf8fcf30fd5c746a7fe147306c9619f5809e6b2a283985c8abec3357946e`.
+Gzip: 4,074 bytes, SHA-256
+`2187b1a3f519596cd7038127e10e204bd07ee3265e6b3c96b52ad06360701167`.
