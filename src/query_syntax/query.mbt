@@ -932,12 +932,17 @@ fn QueryParser::join_part(
 
 ///|
 fn QueryParser::starts_join(self : QueryParser) -> Bool {
-  self.has("JOIN") ||
-  self.has("INNER") ||
-  self.has("LEFT") ||
-  self.has("RIGHT") ||
-  self.has("FULL") ||
-  self.has("CROSS")
+  pipe_join_head(self.peek())
+}
+
+///|
+fn pipe_join_head(token : Token) -> Bool {
+  keyword(token, "JOIN") ||
+  keyword(token, "INNER") ||
+  keyword(token, "LEFT") ||
+  keyword(token, "RIGHT") ||
+  keyword(token, "FULL") ||
+  keyword(token, "CROSS")
 }
 
 ///|
@@ -1864,6 +1869,37 @@ fn QueryParser::pipe_tail(
       }
       return self.pipe_tail(self.bind_query(producer), cte_body~)
     }
+    if pipe_join_head(next) &&
+      !operations.is_empty() &&
+      !(operations.length() == 1 && operations[0] is Where(_)) {
+      let producer : Query = {
+        source: self.source,
+        ctes,
+        relation,
+        source_alias,
+        graph,
+        joins,
+        operations,
+        sets,
+        final_operations,
+        effect: None,
+        work: self.work,
+      }
+      self.spend(operations.length())
+      if pipe_join_input_alias(producer) is Some(current_range) {
+        // A terminal AS affects only the following JOIN's range. Move that
+        // binding out of the producer so it does not force an identity SELECT.
+        let body_operations = operations.copy()
+        while body_operations.last() is Some(Alias(_)) {
+          ignore(body_operations.pop())
+        }
+        let bound = self.bind_query({ ..producer, operations: body_operations, })
+        return self.pipe_tail(
+          { ..bound, source_alias: current_range, },
+          cte_body~,
+        )
+      }
+    }
     ignore(self.advance())
     self.node()
     if sga_call_head(self.peek()) {
@@ -1956,9 +1992,7 @@ fn QueryParser::pipe_tail(
       }
       sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
     } else if self.starts_join() {
-      if !sets.is_empty() ||
-        (!joins.is_empty() && !operations.is_empty()) ||
-        operations.length() > 1 {
+      if !sets.is_empty() || operations.length() > 1 {
         raise QueryAbort(
           "Pipe JOIN prefix must be one WHERE",
           self.peek().start,
