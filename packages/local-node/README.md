@@ -91,6 +91,32 @@ Only asserted connections receive the matching profile field; existing
 endpoint clients retain their original response shape. TLS trust and server
 startup remain explicit, including when the Host listens on localhost.
 
+For explicitly opted-in local HTTP clients, set `loopbackHttp: true` and attach
+the handler to a caller-owned Node HTTP server bound to a literal loopback:
+
+```js
+import {createServer} from 'node:http';
+import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
+const host = await openInstalledRemoteHttpHost({
+  directory, workspaceId, authenticate, loopbackHttp: true,
+});
+const server = createServer(host.handler);
+await new Promise((resolve, reject) => {
+  server.once('error', reject);
+  server.listen({host: '127.0.0.1', port: 8080}, resolve);
+});
+```
+
+The application supplies its normal bearer-authentication callback. Clients
+use `actql://localhost:8080/workspace-id?transport=http`; an IPv6-only listener
+uses `host: '::1'` and `actql://[::1]:8080/workspace-id?transport=http`.
+The guard checks the actual accepting Server's bind and socket addresses before
+authentication, rejecting wildcard/public listeners and non-loopback peers.
+Host and forwarded headers cannot supply those facts. It does not bind, retry
+or reconfigure a listener. Close the server, then await `host.close()` as above.
+Loopback is not an identity, and this mode does not provide TLS server
+authentication. Keep ordinary authentication and per-request Workspace checks.
+
 The physical journal and publication Store live under
 `~/.local/share/actql`. Set `ACTQL_LOCAL_STATE_DIR` before process start to
 select a different directory. The Host uses the current OS user's filesystem

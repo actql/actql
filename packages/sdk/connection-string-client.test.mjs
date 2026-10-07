@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inspect} from 'node:util';
 import {ClientError, connect, getSubmissionInput, explainSubmission} from './index.mjs';
+import {createServer} from 'node:http';
 
 const fetchContexts = new WeakSet();
 function stubFetch(t, implementation) {
@@ -29,6 +30,79 @@ const noSecret = value => {
     assert.equal(output.includes(dsn), false);
   }
 };
+
+test('invalid HTTP DSNs and guessed object flags cannot retrieve credentials or select plaintext', async t => {
+  let credentials = 0, requests = 0;
+  const token = () => {credentials++; return secret;};
+  stubFetch(t, () => {requests++; throw new Error('UnexpectedFetch');});
+  for (const uri of ['actql://example.test/workspace-A?transport=http',
+    'actql://localhost:0/workspace-A?transport=http',
+    'actql://localhost/workspace-A?transport=http&transport=http']) {
+    await assert.rejects(connect(uri, {token}), {code: 'InvalidConnectionString'});
+  }
+  for (const extra of [{}, {directLoopbackHttp: true}, {transport: 'http'}, {allowInsecure: true}]) {
+    await assert.rejects(connect({mode: 'remote', endpoint: 'http://127.0.0.1:8080/',
+      workspaceId: 'workspace-A', token, ...extra}), {code: 'InvalidConnectionEndpoint'});
+  }
+  assert.deepEqual({credentials, requests}, {credentials: 0, requests: 0});
+});
+
+test('bare localhost remains HTTPS and does not retry as HTTP after a TLS failure', async t => {
+  let requests = 0;
+  stubFetch(t, async url => {
+    requests++;
+    assert.equal(url.protocol, 'https:');
+    throw new Error(`TLS failure with ${secret}`);
+  });
+  await assert.rejects(connect('actql://localhost:8080/workspace-A', {token: secret}),
+    error => {noSecret(error); return error.code === 'ClientTransportUnknown';});
+  assert.equal(requests, 1);
+});
+
+for (const phase of ['before-headers', 'wire-limit', 'truncated']) {
+  test(`HTTP DSN read ${phase} preserves one attempt and closes its original socket`, {timeout: 5000}, async t => {
+    let entered, disconnected;
+    const started = new Promise(resolve => {entered = resolve;});
+    const ended = new Promise(resolve => {disconnected = resolve;});
+    const calls = [];
+    const server = createServer(async (request, response) => {
+      const operation = request.url.split('/').at(-1); calls.push(operation);
+      assert.equal(request.headers.authorization, `Bearer ${secret}`);
+      let text = ''; for await (const chunk of request) text += chunk;
+      assert.equal(JSON.parse(text).connection.workspaceId, 'workspace-A');
+      if (operation === 'connect' || operation === 'attach') {
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify(operation === 'connect' ? profile() : {ref, durability: 'durable', revision: 1}));
+        return;
+      }
+      assert.equal(operation, 'read'); response.once('close', disconnected); entered();
+      if (phase === 'before-headers') return;
+      response.writeHead(200, {'content-type': 'application/jsonl'});
+      if (phase === 'wire-limit') response.write('{"value":123456789}\n');
+      else response.end('{"value":1}\n');
+    });
+    await new Promise((resolve, reject) => {server.once('error', reject);
+      server.listen({host: '127.0.0.1', port: 0}, () => {server.off('error', reject); resolve();});});
+    t.after(() => new Promise(resolve => {server.closeAllConnections(); server.close(resolve);}));
+    const client = await connect(`actql://localhost:${server.address().port}/workspace-A?transport=http`, {token: secret});
+    const controller = new AbortController();
+    const reader = (await client.attach(ref)).result('answer').rows({signal: controller.signal,
+      ...(phase === 'wire-limit' ? {maxWireBytes: 8} : {})});
+    const reading = Array.fromAsync(reader);
+    const rejected = assert.rejects(reading, error => {
+      noSecret(error);
+      assert.equal(error.attemptId, reader.attemptId);
+      assert.equal(error.rowsYielded, phase === 'truncated' ? 1 : 0);
+      if (phase !== 'before-headers') assert.equal(error.code,
+        phase === 'wire-limit' ? 'ResultWireLimit' : 'IncompleteResultStream');
+      return true;
+    });
+    await started;
+    if (phase === 'before-headers') controller.abort();
+    await rejected; await ended; await client.close();
+    assert.deepEqual(calls, ['connect', 'attach', 'read']);
+  });
+}
 
 test('SDK DSNs carry a fixed Workspace without exposing the connection secret', async t => {
   const calls = [];

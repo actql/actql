@@ -17,7 +17,8 @@ import {formatOperationExplanation} from './operation-formats.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
 import {localizeOperation} from './operation-presentation.mjs';
-import {parseConnectionString, connectionStringCredential, validConnectionStringCredential} from
+import {parseConnectionString, connectionStringCredential, validConnectionStringCredential,
+  isLoopbackEndpointHostname} from
   './connection-string.mjs';
 export {getOperationPresentationInfo} from './operation-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
@@ -997,7 +998,7 @@ function connectionStringOptions(input, options = {}) {
     workspaceId: parsed.workspaceId, token, durability, consentRefs};
 }
 
-function connectionOptions(options) {
+function connectionOptions(options, parsedConnectionString = false) {
   if (options === null || typeof options !== 'object' ||
       Array.isArray(options)) fail('InvalidConnectionOptions');
   const {mode, owner, endpoint, token, durability, consentRefs, runners, workspaceId,
@@ -1037,8 +1038,9 @@ function connectionOptions(options) {
   let url;
   try { url = new URL(endpoint); }
   catch { fail('InvalidConnectionEndpoint'); }
-  const loopback = mode === 'local' && url.protocol === 'http:' &&
-    ['127.0.0.1', '[::1]'].includes(url.hostname);
+  const loopback = url.protocol === 'http:' &&
+    (mode === 'local' && ['127.0.0.1', '[::1]'].includes(url.hostname) ||
+      parsedConnectionString && mode === 'remote' && isLoopbackEndpointHostname(url.hostname));
   if (!(url.protocol === 'https:' || loopback) ||
       url.username || url.password ||
       url.search || url.hash || url.pathname !== '/') {
@@ -1054,7 +1056,8 @@ function connectionOptions(options) {
     ...(cloudConnectionRef === undefined ? {} : {cloudConnectionRef}),
   });
   if (!validClientConnection(wire)) fail('InvalidConnectionOptions');
-  return Object.freeze({endpoint: url.href, token, wire});
+  return Object.freeze({endpoint: url.href, token, wire,
+    ...(parsedConnectionString && loopback ? {directLoopbackHttp: true} : {})});
 }
 
 function tighter(requested, maximum) {
@@ -1085,7 +1088,7 @@ export async function connect(options, stringOptions) {
   let selected;
   try {
     selected = connectionOptions(connectionString
-      ? connectionStringOptions(options, stringOptions) : options);
+      ? connectionStringOptions(options, stringOptions) : options, connectionString);
   } catch (error) {
     if (connectionString && !ownedClientFailures.has(error)) fail('InvalidConnectionOptions');
     throw error;
@@ -1103,6 +1106,12 @@ export async function connectInProcess(options, port) {
 }
 
 async function connectSelected(selected, port) {
+  let directLoopback;
+  if (selected.directLoopbackHttp) {
+    try { ({requestLoopbackClient: directLoopback} = await import('#loopback-http')); }
+    catch { fail('LoopbackHttpUnavailable'); }
+    if (typeof directLoopback !== 'function') fail('LoopbackHttpUnavailable');
+  }
   let closed = false;
   const dispatchedCancellations = new WeakSet();
   const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
@@ -1158,7 +1167,7 @@ async function connectSelected(selected, port) {
       dispatchedCancellations.add(cancellationContext);
     }
     try {
-      response = await fetch(new URL(
+      response = await (directLoopback ?? fetch)(new URL(
         `actql/client/0.1/${operation}`, selected.endpoint,
       ), {
         method: 'POST',
