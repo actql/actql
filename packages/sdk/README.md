@@ -165,9 +165,12 @@ read. A `not_found` lookup does not prove that opening never committed, and
 lookup never reopens the payload or consumes another grant use.
 A release receipt never proves that the Client
 received or saved every value. A reader reaches `complete` only after the
-normal wire terminator; values yielded before a failure are a prefix.
-Installed Local delivery also propagates its owner's terminal-record or
-receipt failure after a normal terminator, retaining the failed attempt.
+normal wire terminator and transport EOF; values yielded before a failure
+are a prefix. The installed HTTPS Host confirms payload termination first,
+then withholds HTTP EOF until its owner durably saves the receipt and succeeded
+record. Persistence failure interrupts the response and retains the original
+attempt. Installed Local delivery likewise waits for the owner's terminal-record
+and receipt outcome after a normal terminator.
 Installed Local Host errors use the same public code policy as HTTP; private
 provider causes, stacks and internal cleanup handles are not public diagnostics.
 `rowsYielded()` counts complete rows returned to that reader's caller. For

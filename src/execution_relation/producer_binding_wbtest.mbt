@@ -42,6 +42,7 @@ fn producer_consumer(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
   extra_input? : Bool = false,
+  selected? : String = "a",
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(owner)),
@@ -66,7 +67,7 @@ fn producer_consumer(
     )
   }
   let p = @pipeline.check_with_evidence(
-    input_cursor("[{\"select\":[\"a\"]}]"),
+    input_cursor("[{\"select\":[\"" + selected + "\"]}]"),
     inputs,
     None,
     Some(input_cursor("\"prior\"")),
