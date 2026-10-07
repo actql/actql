@@ -4,6 +4,47 @@ pub(all) enum ArrayProfileIssue {
   BudgetExceeded
   InvalidCheckedProgram
   UnsupportedNestedArray(Int, Int, @expression.Location)
+  UnsupportedNestedArrayColumn(Int, @pipeline.Target, String)
+}
+
+///|
+// Inspect the admitted recursive type, not the shape of its runtime payload.
+// Each visited contract consumes work; wide objects cannot enqueue unbounded
+// children before the caller's budget is checked.
+fn array_nested_contract(
+  contract : @contract.Contract,
+  max_work : Int,
+) -> Result[(Bool, Int), ArrayProfileIssue] {
+  let pending = [contract]
+  let mut used = 0
+  while pending.pop() is Some(current) {
+    if used >= max_work {
+      return Err(BudgetExceeded)
+    }
+    used += 1
+    match current.shape {
+      @contract.Array(item, ..) => {
+        if item.shape is @contract.Array(_, ..) {
+          return Ok((true, used))
+        }
+        if pending.length() >= max_work - used {
+          return Err(BudgetExceeded)
+        }
+        pending.push(item)
+      }
+      @contract.Object(fields) => {
+        let count = @contract.field_count(fields)
+        if count > max_work - used - pending.length() {
+          return Err(BudgetExceeded)
+        }
+        for index in 0..<count {
+          pending.push(@contract.field_at(fields, index).unwrap().contract)
+        }
+      }
+      _ => ()
+    }
+  }
+  Ok((false, used))
 }
 
 ///|
@@ -17,35 +58,81 @@ fn array_nested_source(
   if count > max_work {
     return Err(BudgetExceeded)
   }
+  let mut used = 0
   for index in 0..<count {
-    match @typing.node_form(expression, index) {
-      Some(Expression("array", _)) | Some(Expression("empty_array", _)) => {
-        guard @typing.node_at(expression, index) is Some(node) else {
-          return Err(InvalidCheckedProgram)
-        }
-        match node.contract.shape {
-          @contract.Array(item, ..) =>
-            if item.shape is @contract.Array(_, ..) {
-              guard @expression.origin(
-                  @typing.expression(expression),
-                  node.source,
-                )
-                is Some(location) else {
-                return Err(InvalidCheckedProgram)
-              }
-              return Ok((Some(location), index + 1))
-            }
-          _ => return Err(InvalidCheckedProgram)
-        }
+    if used >= max_work {
+      return Err(BudgetExceeded)
+    }
+    used += 1
+    guard @typing.node_at(expression, index) is Some(node) else {
+      return Err(InvalidCheckedProgram)
+    }
+    let (nested, work) = match
+      array_nested_contract(node.contract, max_work - used) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    used += work
+    if nested {
+      guard @expression.origin(@typing.expression(expression), node.source)
+        is Some(location) else {
+        return Err(InvalidCheckedProgram)
       }
-      _ => ()
+      return Ok((Some(location), used))
     }
   }
-  Ok((None, count))
+  Ok((None, used))
 }
 
 ///|
-/// Validate source ARRAY constructors after the ordinary checker has resolved
+// Aggregation and projection can create a type without an ARRAY expression
+// root. Check the ordinary Relation contracts at producer boundaries as well.
+fn array_pipeline_profile(
+  pipeline : @pipeline.CheckedPipeline,
+  max_work : Int,
+) -> Result[((@pipeline.Target, String)?, Int), ArrayProfileIssue] {
+  let mut used = 0
+  let inputs = @pipeline.input_count(pipeline)
+  let steps = @pipeline.step_count(pipeline)
+  for index in 0..<(inputs + steps) {
+    if used >= max_work {
+      return Err(BudgetExceeded)
+    }
+    used += 1
+    let target = if index < inputs {
+      @pipeline.Input(index)
+    } else {
+      @pipeline.Step(index - inputs)
+    }
+    guard @pipeline.carrier_at(pipeline, target) is Some(carrier) else {
+      return Err(InvalidCheckedProgram)
+    }
+    if carrier is @carrier.Relation(rows) {
+      for field in 0..<@carrier.field_count(rows) {
+        if used >= max_work {
+          return Err(BudgetExceeded)
+        }
+        used += 1
+        let field = @carrier.field_at(rows, field).unwrap()
+        if field.contract is Some(contract) {
+          let (nested, work) = match
+            array_nested_contract(contract, max_work - used) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          used += work
+          if nested {
+            return Ok((Some((target, @schema.reference_name(field.name))), used))
+          }
+        }
+      }
+    }
+  }
+  Ok((None, used))
+}
+
+///|
+/// Validate source ARRAY types after the ordinary checker has resolved
 /// references and parameters. Machine Program input retains its recursive array
 /// contract. This check neither evaluates expressions nor creates an Owner.
 pub fn check_array_profile(
@@ -92,6 +179,14 @@ pub fn check_array_profile(
       if source is Some(source) {
         return Err(UnsupportedNestedArray(unit, slot.step, source))
       }
+    }
+    let (column, work) = match array_pipeline_profile(pipeline, remaining) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    remaining -= work
+    if column is Some((target, name)) {
+      return Err(UnsupportedNestedArrayColumn(unit, target, name))
     }
   }
   Ok(())

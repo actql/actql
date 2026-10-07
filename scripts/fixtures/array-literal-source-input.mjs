@@ -43,8 +43,16 @@ export const arrayLiteralRefusals = [
   {name: 'direct-nested-parameter', text: 'SELECT [@xs] AS items',
     parameterDeclarations: {xs: {type: 'array', max_items: 2, items: scalar('number')}},
     parameters: {xs: [1, 2]}, expectedCode: 'ClientProgramUnsupported'},
+  {name: 'direct-nested-parameter-reference', text: 'SELECT @matrix AS items',
+    parameterDeclarations: {matrix: {type: 'array', max_items: 1,
+      items: {type: 'array', max_items: 2, items: scalar('number')}}},
+    parameters: {matrix: [[1, 2]]}, expectedCode: 'ClientProgramUnsupported'},
+  {name: 'direct-nested-aggregate', format: 'aql-text',
+    text: 'FROM records |> ASSERT UNIQUE BY (id) |> AGGREGATE ARRAY_AGG(@xs IGNORE NULLS ORDER BY id) AS items GROUP BY id |> ORDER BY id',
+    parameterDeclarations: {xs: {type: 'array', max_items: 2, items: scalar('number')}},
+    parameters: {xs: [1, 2]}, expectedCode: 'ClientProgramUnsupported'},
   {name: 'malformed', text: 'SELECT [1,] AS items'},
-].map(value => ({...value, name: 'array-literal-' + value.name, format: 'sql'}));
+].map(value => ({...value, name: 'array-literal-' + value.name, format: value.format ?? 'sql'}));
 
 // ARRAY<JSON>, exact INT64/default empty typing and additional type annotations
 // remain tracked gaps. A shared constructor rejection is not positive support.

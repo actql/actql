@@ -32,9 +32,9 @@ The ordinary packed public-query campaign includes the new fixture; its narrow
 selection is `node scripts/test-packed-public-query.mjs --array-literal-only`.
 It contains ten positive cases, including a separately authored JSON Program,
 NULL items, only-NULL typed items, empty typed arrays, empty rows and SQL/Pipe
-UNNEST with ordered offsets. Five negative cases cover incompatible items,
-wrong annotation, immediate nested arrays from literals and parameters, and a
-malformed delimiter. Expectations include Result.describe contracts, declared
+UNNEST with ordered offsets. Seven negative cases cover incompatible items,
+wrong annotation, immediate nested arrays from literals, parameter references
+and aggregate outputs, and a malformed delimiter. Expectations include Result.describe contracts, declared
 column order, rows and no additional acquisition or execution on reattach/resend.
 Refusals must preserve typed error classification and cause no Run admission or
 provider I/O. The fixture never patches the generated Program.
@@ -126,3 +126,42 @@ The failure receipt retained stdout/stderr, SHA, tarball digests and command
 status; the private expansion was removed by the existing evidence wrapper.
 This unit remains Draft until common execution and the full authored Local/HTTPS
 corpus are verified. Parser/checker acceptance is not public execution support.
+
+## Follow-up profile regression
+
+The original source-only profile inspected ARRAY constructor nodes. A separate
+typed parameter reference to a recursively nested machine ARRAY therefore
+escaped it. The regression's pre-fix JS run executed four tests: three passed
+and the reference/closed-object case failed. Recursive machine typing succeeded
+before the source-only check, which is the intended separation of contracts.
+
+The correction reads every retained expression's admitted type and existing
+Relation input/output knowledge. A common checked ARRAY_AGG output can contain
+an immediate ARRAY item even when its argument is a flat ARRAY reference;
+the producer contract now closes that bypass. Bounded traversal preserves
+an object separator, ignores opaque JSON payload structure, retains original
+expression locations, and uses existing producer targets for schema refusals.
+No machine Program type, executor or Owner is changed.
+
+After integrating main `c1bac2884`, six focused JS profile tests passed. These
+include the reference counterexample, ARRAY_AGG output and exact work-boundary
+checks. Public refusal cases are registered in the existing campaign but are
+not counted as executed; the prior five-package run remains evidence only for
+its earlier SHA and failure. Common execution is tracked by #784.
+
+The full Program caller regression also admits independent Values and ARRAY_AGG
+controls through the normal checker, then verifies the source-profile refusal
+at the existing producer target. The aggregate control explicitly validates
+`unique_by: ["id"]`, as required by common ARRAY_AGG order resolution; earlier
+exploratory controls without that key evidence were rejected as
+`UnresolvedOrder`. No product key evidence, order requirement or ceiling was
+changed to make the probe pass. The final caller file passed 7/7 on JS.
+
+The updated grammar manifest is
+`sha256:4ce6abb00008cc0752dda4797487ef815287e30d21bc6e1ae5fca3941f7005a9`.
+The independently assembled Values Run preimage yields
+`sha256:26501230bde03bc47e0e4e772e4971b048de85af47b9626771a1904375eddd92`;
+the constructor-only ARRAY predecessor remains a separate fixed vector.
+Compilation manifests, normative imports, canonical generated vectors and
+selected/RelA Node bundle freshness were checked read-only. These checks do
+not establish new-SHA packed acceptance or Wasm/native runtime execution.

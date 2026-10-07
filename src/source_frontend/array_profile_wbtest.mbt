@@ -114,5 +114,83 @@ test "source array profile inspection is bounded before scanning typed nodes" {
     ),
   )
   assert_true(array_nested_source(expression, 2) is Err(BudgetExceeded))
-  assert_true(array_nested_source(expression, 3) is Ok((None, 3)))
+  // Three expression nodes plus four visited type nodes consume seven units.
+  assert_true(array_nested_source(expression, 6) is Err(BudgetExceeded))
+  assert_true(array_nested_source(expression, 7) is Ok((None, 7)))
+}
+
+///|
+test "source array profile detects nested types behind references and objects" {
+  let nested = "{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"array\",\"nullable\":false,\"max_items\":2,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
+  for
+    expression in [
+      array_profile_typed(
+        "{\"$param\":\"matrix\"}",
+        parameters=Some("{\"matrix\":" + nested + "}"),
+      ),
+      array_profile_typed(
+        "{\"field\":\"matrix\"}",
+        fields="{\"matrix\":" + nested + "}",
+      ),
+      array_profile_typed(
+        "{\"$param\":\"wrapped\"}",
+        parameters=Some(
+          "{\"wrapped\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"matrix\":" +
+          nested +
+          "}}}",
+        ),
+      ),
+    ] {
+    // Recursive machine contracts are admitted above. A query cannot bypass
+    // its selected ARRAY profile by referring to a predeclared value.
+    assert_true(array_nested_source(expression, 4096) is Ok((Some(_), _)))
+  }
+}
+
+///|
+fn array_profile_pipeline(text : String) -> @pipeline.CheckedPipeline {
+  @pipeline.check(array_profile_cursor(text), [], None, None, {
+    max_steps: 16,
+    max_work: 65536,
+    max_text_bytes: 65536,
+    max_nodes: 4096,
+    max_tokens: 4096,
+    max_depth: 64,
+  }).unwrap()
+}
+
+///|
+test "source array profile detects aggregate output without an array expression" {
+  let pipeline = array_profile_pipeline(
+    (
+      #|[{"as":"rows","values":{"schema":{"id":{"type":"number","nullable":false},"xs":{"type":"array","nullable":false,"max_items":2,"items":{"type":"number","nullable":false}}},"rows":[{"id":1,"xs":[1,2]}]}},{"group":{"by":[],"aggregates":{"items":{"fn":"array_agg","expr":{"field":"xs"},"order_by":[{"field":"id","dir":"asc","nulls":"first"}],"max_items":2}}}}]
+    ),
+  )
+  // The common checker retains its recursive machine-array contract. The
+  // profile reads that output rather than guessing from the aggregate name.
+  assert_true(
+    array_pipeline_profile(pipeline, 4096)
+    is Ok((Some((@pipeline.Step(1), "items")), _)),
+  )
+}
+
+///|
+test "source array profile contract traversal permits object separators and is bounded" {
+  let contract = @contract.read_author(
+    array_profile_cursor(
+      (
+        #|{"type":"array","nullable":false,"max_items":1,"items":{"type":"object","nullable":false,"fields":{"xs":{"type":"array","nullable":false,"max_items":2,"items":{"type":"number","nullable":false}}}}}
+      ),
+    ),
+    { max_nodes: 128, max_depth: 32, max_text_bytes: 4096, },
+  ).unwrap()
+  assert_true(array_nested_contract(contract, 3) is Err(BudgetExceeded))
+  assert_true(array_nested_contract(contract, 4) is Ok((false, 4)))
+  let pipeline = array_profile_pipeline(
+    (
+      #|[{"as":"rows","values":{"schema":{"unit":{"type":"boolean","nullable":false}},"rows":[{"unit":true}]}}]
+    ),
+  )
+  assert_true(array_pipeline_profile(pipeline, 2) is Err(BudgetExceeded))
+  assert_true(array_pipeline_profile(pipeline, 3) is Ok((None, 3)))
 }

@@ -21,7 +21,9 @@ fn client_source_preparation_issue_code(
     UnsupportedCarrier => "source_unsupported"
     Declarations => "source_declarations"
     ArrayProfile(BudgetExceeded) => "source_limit"
-    ArrayProfile(UnsupportedNestedArray(_, _, _)) => "source_unsupported"
+    ArrayProfile(UnsupportedNestedArray(_, _, _))
+    | ArrayProfile(UnsupportedNestedArrayColumn(_, _, _)) =>
+      "source_unsupported"
     ArrayProfile(_) => "source_invalid_input"
     Frontend(issue) =>
       match issue {

@@ -13,6 +13,8 @@ import {
   "actql/actql/expression_typing" @typing,
   "actql/actql/value_contract" @contract,
   "actql/actql/expression_syntax" @expression,
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/relation_schema" @schema,
 }
 
 import {

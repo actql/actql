@@ -21,6 +21,13 @@ test('ARRAY fixtures retain independently authored types order multiplicity and 
   for (const fixture of arrayLiteralRefusals.filter(value => value.name.includes('direct-nested'))) {
     assert.equal(fixture.expectedCode, 'ClientProgramUnsupported');
   }
+  const refusals = new Map(arrayLiteralRefusals.map(value => [value.name, value]));
+  const reference = refusals.get('array-literal-direct-nested-parameter-reference');
+  assert.equal(reference.text, 'SELECT @matrix AS items');
+  assert.deepEqual(reference.parameters, {matrix: [[1, 2]]});
+  assert.equal(reference.parameterDeclarations.matrix.items.type, 'array');
+  assert.equal(refusals.get('array-literal-direct-nested-aggregate').text,
+    'FROM records |> ASSERT UNIQUE BY (id) |> AGGREGATE ARRAY_AGG(@xs IGNORE NULLS ORDER BY id) AS items GROUP BY id |> ORDER BY id');
   const names = [...arrayLiteralSuccesses, ...arrayLiteralRefusals].map(value => value.name);
   assert.equal(new Set(names).size, names.length);
 });

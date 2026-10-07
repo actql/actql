@@ -411,13 +411,17 @@ peer, so the common checker checks the declared item type and evaluates the
 actual elements once. It does not add an element CAST. NULL elements retain
 their nullable contract even when the annotation provides a nonnullable peer.
 
-After ordinary checking, source preparation rejects constructors whose
-resolved immediate item type is ARRAY. This includes an array-valued column
-or parameter; inspecting literal syntax alone is insufficient. An intervening
-closed object is permitted. JSON payload arrays are JSON values, not SQL ARRAY
-types. Recursive arrays in JSON/YAML Program input retain their common
-contract. Source-profile rejection occurs before durable Run admission and
-provider I/O and retains the common expression's original location.
+After ordinary checking, source preparation rejects resolved ARRAY types whose
+immediate item type is ARRAY. This includes constructors, references to typed
+columns or parameters, and Relation outputs such as ARRAY_AGG; inspecting
+literal syntax alone is insufficient. Recursive type inspection is bounded by
+the source profile's work limit. An intervening closed object is permitted,
+but does not hide a directly nested ARRAY elsewhere within that object. JSON
+payload arrays are JSON values, not SQL ARRAY types. Recursive arrays in
+JSON/YAML Program input retain their common contract. Source-profile rejection
+occurs before durable Run admission and provider I/O. Expression refusals retain
+the common expression's original location; producer-schema refusals identify
+the existing Unit, input/step and field without inventing an expression origin.
 
 The selected [GoogleSQL array reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type)
 also supports `ARRAY<JSON>` and defaults otherwise untyped empty literals to

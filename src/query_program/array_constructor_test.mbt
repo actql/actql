@@ -217,3 +217,47 @@ test "checked machine arrays retain recursive types while the source profile rej
     is Err(InvalidLimits),
   )
 }
+
+///|
+test "source profile checks admitted Relation producer types beyond constructors" {
+  let controls = [
+    (
+      #|{"version":"actql/0.1","id":"fixture.array_reference","stages":[{"id":"main","inputs":{},"steps":[{"as":"rows","values":{"schema":{"id":{"type":"number","nullable":false},"matrix":{"type":"array","nullable":false,"max_items":1,"items":{"type":"array","nullable":false,"max_items":2,"items":{"type":"number","nullable":false}}}},"rows":[{"id":1,"matrix":[[1,2]]}]}},{"sort":[{"field":"id","dir":"asc","nulls":"first"}]},{"select":["id","matrix"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","matrix"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    (
+      #|{"version":"actql/0.1","id":"fixture.array_aggregate","stages":[{"id":"main","inputs":{},"steps":[{"as":"rows","values":{"schema":{"id":{"type":"number","nullable":false},"xs":{"type":"array","nullable":false,"max_items":2,"items":{"type":"number","nullable":false}}},"rows":[{"id":1,"xs":[1,2]}]}},{"assert_rows":{"unique_by":["id"]}},{"group":{"by":["id"],"aggregates":{"items":{"fn":"array_agg","expr":{"field":"xs"},"order_by":[{"field":"id","dir":"asc","nulls":"first"}],"max_items":2}}},"as":"grouped"},{"sort":[{"field":"id","dir":"asc","nulls":"first"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","items"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+  ]
+  for index, text in controls {
+    let control = @program.parse(
+      text,
+      construction_limits().program,
+      format=Json,
+    ).unwrap()
+    let checked = match
+      @check.check_parsed(control, check_environment(), None, check_limits()) {
+      Checked(checked) => checked
+      NeedsInputs(_) => fail("machine controls contain no acquisition")
+      Rejected(diagnostic) =>
+        match @check.diagnostic_cause(diagnostic) {
+          Source(SourceView(Program(Program(Order(_, PipelineOrder(issue)))))) =>
+            fail("control \{index}: " + @debug.to_string(issue.kind))
+          Source(SourceView(Program(Program(Order(_, ResultOrder(issue)))))) =>
+            fail("control \{index}: " + @debug.to_string(issue.kind))
+          cause => raise cause
+        }
+    }
+    guard @frontend.check_array_profile(checked, max_work=4096, max_slots=64)
+      is Err(UnsupportedNestedArrayColumn(unit, target, name)) else {
+      fail("source profile must inspect the admitted producer output")
+    }
+    assert_eq(unit, 0)
+    if index == 0 {
+      assert_eq(target, @pipeline.Step(0))
+      assert_eq(name, "matrix")
+    } else {
+      assert_eq(target, @pipeline.Step(2))
+      assert_eq(name, "items")
+    }
+  }
+}

@@ -5,6 +5,7 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/frontend_source_map",
   "actql/actql/parameter_binding",
+  "actql/actql/pipeline_typing",
   "actql/actql/program_check",
   "actql/actql/query_program",
   "actql/actql/query_syntax",
@@ -47,6 +48,7 @@ pub(all) enum ArrayProfileIssue {
   BudgetExceeded
   InvalidCheckedProgram
   UnsupportedNestedArray(Int, Int, @expression_syntax.Location)
+  UnsupportedNestedArrayColumn(Int, @pipeline_typing.Target, String)
 }
 
 pub(all) enum Format {
