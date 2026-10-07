@@ -13,6 +13,13 @@ const unitTargets = id => ['status', 'wait', 'reconcile'].map(operation => targe
 const publicTargets = ['in-process', 'https'].map(entrance => target(
   `${entrance}: uninterpretable Run observations retain only the original authorized lookup`, 'run-protocol-public-rejection'));
 const mutations = [
+  {name: 'response capture reobserves borrowed getters during admission', path,
+    file: 'packages/sdk/response-capture.test.mjs',
+    from: 'const captureResponse = (value, captured = new Map()) => {',
+    to: 'const captureResponse = (value, captured = new Map()) => { return value;',
+    targets: ['status', 'wait', 'reconcile', 'lookup-request', 'submit', 'cancel', 'delivery-attempt']
+      .map(operation => target(`${operation}: capture observes response getters once before admission`,
+        'response-capture-once'))},
   {name: 'unknown state classified as a known failure', path, file: unit,
     from: "kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',",
     to: "kind: 'protocol_failure',", targets: unitTargets('run-protocol-kind')},

@@ -172,12 +172,19 @@ const mutations = [
     '  const retained = new ClientError(code,\n    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});',
     '  const retained = error;', 'request-error-custody', 'request-failure-custody'],
   ['request observation loses detached checkpoint custody',
-    "      try { answer = structuredClone(answer); }", "      try {}", 'request-snapshot', 'request-lookup-detached'],
-  ['request observation skips copied-response revalidation',
-    "      if (!validRequestLookup(answer, requestId)) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');", '', 'request-admission', 'request-lookup-admission'],
+    "        answer = captureResponse(answer);\n" +
+    "        if (!validRequestLookup(answer, requestId)) fail('InvalidHostRequestLookup');\n" +
+    "        answer = detachResponse(answer);",
+    "        if (!validRequestLookup(answer, requestId)) fail('InvalidHostRequestLookup');", 'request-snapshot', 'request-lookup-detached'],
+  ['request observation skips copy preservation and revalidation',
+    "        answer = detachResponse(answer);\n" +
+    "        if (!validRequestLookup(answer, requestId)) fail('InvalidHostRequestLookup');",
+    "        answer = structuredClone(answer);", 'request-admission', 'request-lookup-admission'],
   ['request observation permits a copied held reply to change its branch',
-    "admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId)",
-    "!validSubmitReply(admitted, selected.wire, requestId)", 'request-held-admission', 'request-held-admission'],
+    "        admitted = detachResponse(admitted);\n" +
+    "        if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId)) fail('InvalidHostAdmission');",
+    "        admitted = structuredClone(admitted);\n" +
+    "        if (!validSubmitReply(admitted, selected.wire, requestId)) fail('InvalidHostAdmission');", 'request-held-admission', 'request-held-admission'],
   ['request observation loses the submitted held preparation state',
     "observation: 'request_held', preparationState: answer.state,",
     "observation: 'request_held', preparationState: undefined,", 'request-held-state', 'request-held-state'],
@@ -270,20 +277,28 @@ const mutations = [
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
     'cancellation-unknown', 'cancel-unknown-explanation'],
   ['cancellation response reuse changes an earlier Run observation',
-    'received = structuredClone(response);', 'received = response;',
+    'received = detachResponse(received);', 'received = response;',
     'cancellation-custody', 'cancel-custody'],
   ['cancellation clone failure leaks an unassociated error',
-    'try { received = structuredClone(response); }',
-    'received = structuredClone(response); try {}',
+    "        let received;\n        try {\n          received = captureResponse(response);",
+    "        let received = structuredClone(captureResponse(response));\n        try {\n          received = captureResponse(response);",
     'cancellation-clone:clone throws', 'cancel-clone-invalid'],
-  ['cancellation clone erasure bypasses shape validation',
-    'if (!validCancellation(received) ||',
-    'if (false ||',
+  ['cancellation clone erasure bypasses copy and shape validation',
+    'received = detachResponse(received);\n          if (!validCancellation(received) ||',
+    'received = structuredClone(received);\n          if (false ||',
     'cancellation-clone:clone erases fields', 'cancel-clone-invalid'],
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => [
     `cancellation clone bypasses ${field} association`,
-    `received.ref.${field} !== ref.${field}`,
-    'false',
+    'received = detachResponse(received);\n' +
+      '          if (!validCancellation(received) ||\n' +
+      '              received.ref.namespaceId !== ref.namespaceId ||\n' +
+      '              received.ref.authorityScopeCid !== ref.authorityScopeCid ||\n' +
+      "              received.ref.runDefinitionCid !== ref.runDefinitionCid) fail('InvalidHostCancellation');",
+    'received = structuredClone(received);\n' +
+      '          if (!validCancellation(received) ||\n' +
+      ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(key =>
+        `              ${key === field ? 'false' : `received.ref.${key} !== ref.${key}`}`).join(' ||\n') +
+      ") fail('InvalidHostCancellation');",
     `cancellation-clone:clone changes ${field}`, 'cancel-clone-invalid',
   ]),
   ['check reporting budget is blamed on an invalid input',

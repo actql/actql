@@ -104,6 +104,33 @@ const freezeInput = value => {
   return value;
 };
 
+// Observe each enumerable response field once, before admission or branching.
+// This is a data capture, not request JSON serialization: no toJSON/coercion,
+// borrowed array methods, or repeated reads of shared nested response objects.
+const captureResponse = (value, captured = new Map()) => {
+  if (['function', 'symbol', 'bigint'].includes(typeof value)) {
+    throw new TypeError('InvalidHostResponseData');
+  }
+  if (value === null || typeof value !== 'object') return value;
+  if (captured.has(value)) return captured.get(value);
+  const copy = Array.isArray(value) ? new Array(value.length) : {};
+  captured.set(value, copy);
+  for (const key of Object.keys(value)) Object.defineProperty(copy, key, {
+    value: captureResponse(value[key], captured),
+    enumerable: true, writable: true, configurable: true,
+  });
+  return copy;
+};
+
+// Keep the detachment check against stable admitted data. A faulty copy must
+// not replace a well-shaped identity, control fact, or observation outcome.
+const detachResponse = value => {
+  const observedKey = structuralKey(value);
+  const copy = structuredClone(value);
+  if (structuralKey(copy) !== observedKey) throw new TypeError('ChangedHostResponse');
+  return copy;
+};
+
 export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
@@ -1116,8 +1143,10 @@ async function connectSelected(selected, port) {
       let state;
       try { state = await controlValue(response); }
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
-      const problem = rejectedRunProblem(state);
+      let problem;
       try {
+        state = captureResponse(state);
+        problem = rejectedRunProblem(state);
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
         // Each observation owns its value even if a Local port reuses a reply.
         const observedKey = structuralKey(state);
@@ -1407,8 +1436,9 @@ async function connectSelected(selected, port) {
             resultName: name,
           };
           try {
+            answer = captureResponse(answer);
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
-            answer = structuredClone(answer);
+            answer = detachResponse(answer);
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
             return retainDeliveryExplanation(freezeInput(answer), {
               operation: 'deliveryAttempt', ref, resultName: name, attemptId,
@@ -1431,25 +1461,19 @@ async function connectSelected(selected, port) {
       cancel: async ({signal} = {}) => {
         const context = freezeInput({ref: {...ref}});
         const response = await readControl('cancel', {}, signal, context);
-        if (!validCancellation(response) ||
-            response.ref.namespaceId !== ref.namespaceId ||
-            response.ref.authorityScopeCid !== ref.authorityScopeCid ||
-            response.ref.runDefinitionCid !== ref.runDefinitionCid) {
-          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
-            context, 'outcome_unknown');
-        }
-        // Local ports may reuse their response object across operations.
         let received;
-        try { received = structuredClone(response); }
-        catch {
-          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
-            context, 'outcome_unknown');
-        }
-        // Cloning may reject a Local value or drop/change its validated fields.
-        if (!validCancellation(received) ||
-            received.ref.namespaceId !== ref.namespaceId ||
-            received.ref.authorityScopeCid !== ref.authorityScopeCid ||
-            received.ref.runDefinitionCid !== ref.runDefinitionCid) {
+        try {
+          received = captureResponse(response);
+          if (!validCancellation(received) ||
+              received.ref.namespaceId !== ref.namespaceId ||
+              received.ref.authorityScopeCid !== ref.authorityScopeCid ||
+              received.ref.runDefinitionCid !== ref.runDefinitionCid) fail('InvalidHostCancellation');
+          received = detachResponse(received);
+          if (!validCancellation(received) ||
+              received.ref.namespaceId !== ref.namespaceId ||
+              received.ref.authorityScopeCid !== ref.authorityScopeCid ||
+              received.ref.runDefinitionCid !== ref.runDefinitionCid) fail('InvalidHostCancellation');
+        } catch {
           throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
             context, 'outcome_unknown');
         }
@@ -1484,10 +1508,12 @@ async function connectSelected(selected, port) {
     catch (cause) {
       throw submissionUnknown(context, cause);
     }
+    try { admitted = captureResponse(admitted); }
+    catch (cause) { throw submissionUnknown(context, cause); }
     if (admitted?.kind === 'held' &&
         validSubmitReply(admitted, selected.wire, requestId)) {
       try {
-        admitted = structuredClone(admitted);
+        admitted = detachResponse(admitted);
         if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId)) fail('InvalidHostAdmission');
       } catch (cause) { throw submissionUnknown(context, cause); }
       const held = new RequestHeld(freezeInput(admitted), context.lookupContext);
@@ -1624,12 +1650,14 @@ async function connectSelected(selected, port) {
       catch (cause) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      if (!validRequestLookup(answer, requestId)) {
+      try {
+        answer = captureResponse(answer);
+        if (!validRequestLookup(answer, requestId)) fail('InvalidHostRequestLookup');
+        answer = detachResponse(answer);
+        if (!validRequestLookup(answer, requestId)) fail('InvalidHostRequestLookup');
+      } catch {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      try { answer = structuredClone(answer); }
-      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
-      if (!validRequestLookup(answer, requestId)) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       return retainRequestLookupExplanation(freezeInput(answer), context);
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is

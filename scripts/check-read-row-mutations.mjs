@@ -27,7 +27,9 @@ const lookupAdmission = ['clone changes a previously valid field', 'reply cannot
     name: `local: delivery lookup rejects ${fault}`,
     assertions: [{id: 'delivery-lookup-admission', operator: 'strictEqual'}],
   }));
-const lookupCopy = "            answer = structuredClone(answer);\n" +
+const lookupCapture = "            answer = captureResponse(answer);\n" +
+  "            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');\n";
+const lookupCopy = "            answer = detachResponse(answer);\n" +
   "            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');\n" +
   "            return retainDeliveryExplanation(freezeInput(answer), {";
 const observations = phase => ['local', 'https'].map(entrance => ({
@@ -43,9 +45,9 @@ const mutations = [
     ["                  if (row === null || typeof row !== 'object' ||\n                      Array.isArray(row)) fail('InvalidResultFrame');", ''],
   ], shape],
   ['lookup responses retain shared mutable owner records', [
-    [lookupCopy, '            return retainDeliveryExplanation(Object.freeze(answer), {'],
+    [lookupCapture + lookupCopy, '            return retainDeliveryExplanation(Object.freeze(answer), {'],
   ], lookupSnapshots],
-  ['lookup clone skips its contract revalidation', [
+  ['lookup clone skips preservation and contract revalidation', [
     [lookupCopy, '            answer = structuredClone(answer);\n' +
       '            return retainDeliveryExplanation(freezeInput(answer), {'],
   ], lookupAdmission],
@@ -57,7 +59,7 @@ const mutations = [
     ['                  rowsYielded++;\n                  yield row;', '                  yield row;'],
   ], shape],
   ['absent lookup becomes Host delivery success', [
-    ["answer.kind === 'not_found' ? 'lookup_unresolved'", "answer.kind === 'not_found' ? 'host_delivery_succeeded'"],
+    ["const observation = answer.kind === 'not_found' ? 'lookup_unresolved'", "const observation = answer.kind === 'not_found' ? 'host_delivery_succeeded'"],
   ], observations('before-commit'), observationAcceptance],
   ['an uncertain opening is described as a confirmed stopped read', [
     ["state === 'opening' ? {observation: 'read_open_unknown'} : undefined", 'undefined'],
