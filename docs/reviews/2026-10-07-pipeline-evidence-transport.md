@@ -66,6 +66,9 @@ failures cannot become a prerequisite of the fresh scientific audit.
 The inherited owned-version scan failure in the Native negative fixture at
 `retained_task_input_wbtest.mbt:782` remains disclosed in #815. This unit changes
 neither that fixture nor the scanner and does not repeat or waive that failure.
-The next units remain actual execution isolation, independent full-main
+The archive reader is exported and locally exercised; the global required check
+still requires the pipeline job verdict. Wiring that check to consume the saved
+original/certificate is a separate remaining unit, not implied by this result.
+The next units remain that consumer connection, actual execution isolation, independent full-main
 qualification and fresh shadow comparison, limited activation, related-input
 fresh execution, and collection/transfer/authentication-inclusive net savings.
