@@ -1938,3 +1938,39 @@ test('offline Effect settlement upgrade does not create a journal at a wrong roo
   assert.equal(existsSync(join(root, 'checkpoint-journal.sqlite3')), false);
   assert.equal(existsSync(backupPath), false);
 });
+
+test('competing fresh journal initializers share the same completed layout', async t => {
+  const {open} = await workspace(t);
+  const originalExec = DatabaseSync.prototype.exec;
+  let competitor;
+  let raced = false;
+  // Deterministically complete another real connection after this opener's
+  // empty-schema observation but before its initialization transaction.
+  DatabaseSync.prototype.exec = function(sql, ...args) {
+    if (sql === 'PRAGMA synchronous = FULL' && !raced) {
+      raced = true;
+      competitor = open();
+    }
+    return originalExec.call(this, sql, ...args);
+  };
+  let journal;
+  try { journal = open(); }
+  finally { DatabaseSync.prototype.exec = originalExec; }
+  assert.equal(raced, true);
+  const checkpoint = persist(journal);
+  assert.equal(competitor.inspect(checkpoint.checkpointCid).checkpointCid,
+    checkpoint.checkpointCid);
+});
+
+test('a current layout missing its settlement table is refused without repairing evidence', async t => {
+  const {open} = await workspace(t);
+  const journal = open();
+  persist(journal);
+  journal.close();
+  const damaged = new DatabaseSync(journal.path);
+  damaged.exec('DROP TABLE resume_effect_settlements');
+  damaged.close();
+  const before = readFileSync(journal.path);
+  assert.throws(() => open(), /no such table: resume_effect_settlements/);
+  assert.deepEqual(readFileSync(journal.path), before);
+});

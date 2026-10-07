@@ -1,6 +1,6 @@
 // Explicit offline layout update. Ordinary Host startup never calls this tool.
-import {constants, copyFileSync, chmodSync, closeSync, fsyncSync,
-  existsSync, openSync, readFileSync, realpathSync, statSync} from 'node:fs';
+import {constants, closeSync, fsyncSync, existsSync, openSync,
+  readSync, realpathSync, statSync, writeSync} from 'node:fs';
 import {dirname, resolve, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
@@ -46,13 +46,27 @@ export function upgradeCheckpointEffectSettlement({root, backupPath, offline = f
     }
     // The operator confirms every Host is stopped. Exclusive writing alone
     // cannot revoke an old process's already-open connection.
-    copyFileSync(path, backup, constants.COPYFILE_EXCL);
-    chmodSync(backup, 0o600);
-    const fd = openSync(backup, 'r');
-    try { fsyncSync(fd); } finally { closeSync(fd); }
+    // The backup is private from its first byte, including an interrupted
+    // copy. Bounded copying also avoids buffering the entire journal in RAM.
+    const source = openSync(path, 'r');
+    const digest = createHash('sha256');
+    try {
+      const fd = openSync(backup, constants.O_WRONLY | constants.O_CREAT |
+        constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+      try {
+        const buffer = Buffer.allocUnsafe(64 * 1024);
+        let count;
+        while ((count = readSync(source, buffer, 0, buffer.length, null)) !== 0) {
+          let written = 0;
+          while (written < count) written += writeSync(fd, buffer, written, count - written);
+          digest.update(buffer.subarray(0, count));
+        }
+        fsyncSync(fd);
+      } finally { closeSync(fd); }
+    } finally { closeSync(source); }
     const directory = openSync(dirname(backup), 'r');
     try { fsyncSync(directory); } finally { closeSync(directory); }
-    const backupSha256 = createHash('sha256').update(readFileSync(backup)).digest('hex');
+    const backupSha256 = digest.digest('hex');
     // No Run, claim, admission, resolution, Model, or Effect evidence row is
     // rewritten. The new durable observation mode starts empty.
     database.exec(EFFECT_SETTLEMENT_TABLE_SQL);

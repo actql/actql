@@ -239,23 +239,32 @@ export function openSqliteCheckpointJournal(root, {
     database.exec('PRAGMA busy_timeout = 10000');
     // Refuse an old or unmarked layout before any schema DDL or record write.
     // This startup gate cannot revoke a connection another process already holds.
-    const hasMetadata = database.prepare(
-      "SELECT name FROM sqlite_schema WHERE type = 'table' AND name = 'journal_metadata'").get();
-    if (hasMetadata !== undefined) {
+    const hasCurrentLayout = () => {
+      // Take one schema snapshot, so another initializer's atomic commit
+      // cannot look like unmarked tables between two separate queries.
+      const tables = database.prepare(
+        "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all();
+      if (!tables.some(table => table.name === 'journal_metadata')) {
+        if (tables.length !== 0) fail('UnsupportedCheckpointJournal');
+        return false;
+      }
       const version = database.prepare('SELECT value FROM journal_metadata WHERE key = ?').get('schema_version');
       if (version?.value !== SCHEMA_VERSION) fail('UnsupportedCheckpointJournal');
       // Never repair a recognized journal by recreating a missing refusal
       // marker table: it may have held a still-unsettled no-send decision.
       database.prepare('SELECT intent_id, generation, refusal_code FROM resume_effect_settlements LIMIT 0');
-    } else if (database.prepare(
-      "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%' LIMIT 1").get() !== undefined) {
-      fail('UnsupportedCheckpointJournal');
-    }
+      return true;
+    };
+    const initialized = hasCurrentLayout();
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     // A recognized layout is opened as-is. Missing columns/tables are damage,
     // not a request to recreate storage that may have held entered attempts.
-    if (hasMetadata === undefined) transaction.run(() => {
+    if (!initialized) transaction.run(() => {
+      // A competing Host may have finished initialization while this one
+      // waited for the writer. Validate its finished layout instead of
+      // recreating any table that could already contain refusal evidence.
+      if (hasCurrentLayout()) return;
       database.exec(`
       CREATE TABLE IF NOT EXISTS journal_metadata (
         key TEXT PRIMARY KEY NOT NULL,
