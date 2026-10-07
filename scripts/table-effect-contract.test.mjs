@@ -66,3 +66,14 @@ test('original operation binding does not collapse into name or current head', (
   assert.equal(contract.semantics.unknown,
     'reconcile_original_operation_no_resend_no_potentially_published_file_cleanup');
 });
+
+// JSON Schema maxLength and common admission count Unicode scalar values.
+test('Table name and namespace length preserve supplementary Unicode boundaries', () => {
+  for (const field of ['table_name', 'namespace']) {
+    const input = value => reseal({...request,
+      [field]: field === 'namespace' ? [value] : value});
+    checkTableOperation(input('😀'.repeat(256)));
+    assert.throws(() => checkTableOperation(input('😀'.repeat(257))));
+    assert.throws(() => checkTableOperation(input('\ud800')));
+  }
+});
