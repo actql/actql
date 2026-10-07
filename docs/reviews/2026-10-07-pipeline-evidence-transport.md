@@ -13,8 +13,9 @@ Share only controlled sample construction in `fixtures/mutation-action-sample.mj
 with the existing adapter tests; update `ci-artifacts.test.mjs` for the consuming
 workflow contract. Capture the existing checker output in `mutation-actions.mjs`; retain immutable
 original reports/receipts and reconstruct the exact required/application plan
-from those originals when consuming the archive. The existing final consumer
-workflow writes the derived record and includes it in its existing artifact.
+from those originals when consuming the archive. The pipeline producer writes
+the derived record; the global required check consumes the dedicated original
+through `mutation-action-final.mjs` and retains its acceptance separately.
 Protect the new source/tests through the existing history inventory and exact
 source/parent/blob/mode declarations.
 
@@ -27,8 +28,8 @@ read-only ZIP reader. No extraction, archive code execution or Actions token
 forwarding to storage is introduced. Missing/expired transport is not accepted;
 it remains distinct from invalid provenance/digest/plan data. This unit does not
 authorize skipping an action, close the execution environment, or promote a
-local archive into an Actions original. Required final whole-run acceptance and
-shadow comparison remain separate qualification requirements.
+local archive into an Actions original. Actual hosted transfer/acceptance and
+historical shadow comparison remain unverified qualification requirements.
 
 ## Acceptance
 
@@ -43,7 +44,7 @@ new three-target campaigns, Linux isolation or actual hosted provenance.
 
 ## Final required-check connection boundary
 
-Extend this same Draft with `mutation-action-final.mjs` and its consuming tests.
+This Draft includes `mutation-action-final.mjs` and its consuming tests.
 The existing required `check` authenticates the current pipeline job's exact
 artifact ID/digest and reconstructs the independent plan before succeeding.
 Keep the existing job-verdict gate first and preserve Draft/target selection.
@@ -86,9 +87,46 @@ failures cannot become a prerequisite of the fresh scientific audit.
 The inherited owned-version scan failure in the Native negative fixture at
 `retained_task_input_wbtest.mbt:782` remains disclosed in #815. This unit changes
 neither that fixture nor the scanner and does not repeat or waive that failure.
-The archive reader is exported and locally exercised; the global required check
-still requires the pipeline job verdict. Wiring that check to consume the saved
-original/certificate is a separate remaining unit, not implied by this result.
-The next units remain that consumer connection, actual execution isolation, independent full-main
+Those results establish the earlier transport implementation only. They are not
+relabelled as results of the following required-check connection.
+
+## Required consumer: fixed-source local results
+
+Implementation: `5cf1516c39804a25a553d39b25f3a1a15e334e31`.
+Declaration and tested clean source: `3e76c4458d3ec35e50b8bc10673c01b8ed2b605e`.
+[Preserved raw summaries, stdout and foundation](evidence/2026-10-07-pipeline-required-consumer-local-acceptance.json)
+bind each artifact's compressed and original bytes, command and executed source.
+
+The bounded/nonzero archive test ran the actual pinned Lean once to construct
+the 36-obligation certificate and exercised the actual required consumer:
+32/32 passed. The selected existing pipeline/Session workflow, aggregate, Draft
+selection and actual committed-input checks passed 11/11. A preceding
+dirty-tree archive/downloader diagnostic passed 37/37 and is recorded separately.
+
+The first clean-source archive invocation failed its shared setup with
+`spawnSync lean ETIMEDOUT` at the unchanged 30-second checker limit. No test was
+accepted and no timeout was counted as a mutation detection. One bounded rerun
+passed without source, pin, checker or timeout changes. Host CPU/memory load was
+observed but is not established as the cause. Keep both raw results.
+
+The actual full repository foundation validator first reached its 360-second
+local bound. A timed diagnostic then passed in 584.889 seconds with a
+600-second outer bound. Its local preload invoked every original Git call
+unchanged and observed durations; it did not replace roots, parents, blobs,
+modes, declaration rules or verdicts. The preload bytes and both invocations
+are retained. The diagnostic recorded 5,937 real Git calls and about 404.939
+seconds within those calls, including 3,342 `ls-tree` calls (230.702 seconds)
+and 1,536 `merge-base` calls (105.519 seconds). This loaded local observation is
+not a controlled before/after comparison or hosted net-saving result.
+
+The global check now consumes the saved original after the existing job-verdict
+gate, using exact producer artifact ID/digest and independent required coverage.
+It rechecks the real run/attempt after all member/plan/certificate processing.
+The complete diagnostic archive, producer assignments, scientific/capacity
+audits and Draft/target selection remain. No action is skipped.
+
+The next units are actual execution isolation, independent full-main
 qualification and fresh shadow comparison, limited activation, related-input
 fresh execution, and collection/transfer/authentication-inclusive net savings.
+Linux guarded publication and live Actions transfer/required acceptance remain
+unverified. No Actions were polled, dispatched or retried for this local unit.
