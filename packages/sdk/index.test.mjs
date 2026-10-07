@@ -1,5 +1,6 @@
 import './delivery-lookup-failure.test.mjs';
 import './check-reason-catalog.test.mjs';
+import './client-close.test.mjs';
 import './operation-formats.test.mjs';
 import './run-observation-protocol.test.mjs';
 import './operation-diagnostic-locales.test.mjs';

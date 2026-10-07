@@ -90,7 +90,12 @@ export function authorizedLocalResultFrames(service, request, signal,
         if (!complete) controller.abort();
         try { if (!complete) await reader.cancel(); } catch {}
         reader.releaseLock();
-        await outcome;
+        const settled = await outcome;
+        // Early return/abort still owns terminal-record durability. Preserve
+        // its existing retry handle rather than swallowing that failure.
+        if (!settled.ok && settled.error?.cleanupPending === true) {
+          throw settled.error;
+        }
       }
     },
   })});

@@ -312,6 +312,7 @@ for (const entrance of ['local', 'https']) {
 for (const entrance of ['local', 'https']) {
   for (const operation of ['rows', 'all']) {
     test(`${entrance}: ${operation} preserves a terminal record failure after all 121 rows`, async t => {
+      let recordUnavailable = true;
       const unavailable = Object.assign(new Error('private-delivery-secret'), {
         stack: 'private-delivery-secret', cause: new Error('private-delivery-secret'),
         sourceLocator: 'connector://private-delivery-secret',
@@ -319,7 +320,7 @@ for (const entrance of ['local', 'https']) {
       const rows = Array.from({length: 121}, (_, index) => `{"value":${index + 1}}`);
       const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
         rows, maxBytes: 16384, async beforeAppend(record) {
-          if (JSON.parse(record.wire).state === 'succeeded') throw unavailable;
+          if (recordUnavailable && JSON.parse(record.wire).state === 'succeeded') throw unavailable;
         },
       });
       const f = await installed(t, entrance, fixture);
@@ -358,7 +359,10 @@ for (const entrance of ['local', 'https']) {
       assert.equal(fixture.state.readers, 1);
       assert.deepEqual(f.operations, ['connect', 'attach', 'read']);
       assertReadExplanation(f, failure, failedAttemptId, reader ? 121 : 0,
-        'read_incomplete', entrance === 'https');
+        'read_incomplete', true);
+      // Recovery is cleanup of this exact record, not another delivery. Let
+      // the Client's retained owner settle during teardown after assertions.
+      recordUnavailable = false;
     });
   }}
 
