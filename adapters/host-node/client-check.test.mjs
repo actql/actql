@@ -947,6 +947,42 @@ for (const [entrance, open] of Object.entries(entrances)) {
     assert.deepEqual(projections[1], projections[2]);
   });
 
+  test(`${entrance}: missing submitted values retain requirements instead of invalid input`, async t => {
+    const client = await open(t, configurations.allowed);
+    let error;
+    try {await client.startSource(query, {format: 'sql', parameterDeclarations: declarations});}
+    catch (cause) {error = cause;}
+    const acceptance = sdk.getSubmissionOutcome(error);
+    assert.equal(acceptance?.kind, 'not_accepted');
+    assert.deepEqual(acceptance.problem, {code: 'ClientProgramNeedsInputs', classification: 'requirements'},
+      '[check-mutation:submission-missing-phase]');
+    const checked = sdk.getSubmissionCheckObservation(error);
+    assert.equal(checked?.report.verdict, 'undetermined', '[check-mutation:submission-missing-verdict]');
+    assert.deepEqual(checked.report.scope, {kind: 'bound_input'});
+    assert.deepEqual(checked.report.reasons, []);
+    const declaration = sdk.getCheckInput(checked, 'parameter_declarations');
+    assert.deepEqual(declaration.value, declarations);
+    assert.deepEqual(checked.report.requirements, [{code: 'parameter_value_required',
+      facts: {parameter: 'minimum', expected_type: 'number', admission: expectedNumberAdmission},
+      location: {kind: 'structured', document_id: 'parameter_declarations',
+        revision: declaration.revision, pointer: '/minimum'}}],
+    '[check-mutation:submission-missing-requirement]');
+    assert.deepEqual(checked.report.coverage, {limits: [{code: 'bound_values_missing'}], unresolved: []});
+    assert.equal(sdk.resolveCheckLocation(checked, checked.report.requirements[0].location).value.type, 'number');
+    assert.equal(sdk.getCheckInput(structuredClone(checked), 'parameter_declarations'), undefined);
+    const original = sdk.getSubmissionInput(error);
+    assert.equal(original.input.text, query);
+    assert.equal(sdk.getSubmissionCheckObservation(await client.lookupSubmission(original.submissionRef)), undefined);
+    const filled = await client.check(original.input.text, {format: original.input.format,
+      parameterDeclarations: declaration.value, parameters: {minimum: 20}});
+    assert.equal(filled.report.verdict, 'verified');
+    assert.deepEqual(filled.report.scope, {kind: 'bound_input'});
+    assert.deepEqual(filled.report.requirements, []);
+    assert.notEqual(filled.report.context_ref, checked.report.context_ref);
+    assert.equal(checked.report.verdict, 'undetermined');
+    client.assertNoExecution();
+  });
+
   test(`${entrance}: authored syntax locations retain exact UTF-8 input revisions`, async t => {
     const client = await open(t, configurations.denied);
     // Fixed byte expectations, hand-counted independently of parser output.
