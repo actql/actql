@@ -1,5 +1,6 @@
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {actionInputs, hash, sharedFiles, mutationSnapshotExtras} from './inputs.mjs';
+import {readFileSync} from 'node:fs';
+import {actionInputs, hash, sharedFiles, mutationSnapshotExtras, pipelineInventoryBoundary} from './inputs.mjs';
 import {readCatalog} from './actions.mjs';
 import {sealReceipt, canonicalReceipt, mutationIds} from './receipts.mjs';
 
@@ -19,6 +20,7 @@ export function costFixture(reused = false, fullCatalog = false) {
   const files = new Map([...sharedFiles, ...mutationSnapshotExtras,
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs', 'mutations.mjs', 'evidence.mjs'].map(path => `proofs/bounded-session/${path}`),
     ...['bounded_execution', 'connectors/local', 'query_integration'].map(path => `src/${path}/moon.pkg`)].map(path => [path, path]));
+  files.set(pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8'));
   for (const name of ['check.mjs', 'Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'])
     files.set(`proofs/events-bridge/${name}`, name);
   for (const action of catalog.actions) if (action.package) files.set(`${action.package}/moon.pkg`, '');
@@ -45,4 +47,3 @@ export function costFixture(reused = false, fullCatalog = false) {
     buildMilliseconds: 4, executionMilliseconds: 6, inspectionMilliseconds: 2, closeMilliseconds: 2}};
   return {state, catalog, acquisition, comparison, receipts, collectionBytes, certificate, isolatedExecution};
 }
-

@@ -163,12 +163,12 @@ test "SELECT aggregate expression keeps implicit star columns with private-looki
     Rejected(error) => raise @check.diagnostic_cause(error)
     _ => fail("private-looking input keys remain ordinary star columns")
   }
-  // The existing allocator starts at the four supplied physical entries:
-  // two input columns plus the two retained group keys. This spelling is
-  // allocation bookkeeping; the original input and aggregate are distinct.
+  // The allocator reserves eight entries: two input columns, two grouping
+  // keys, two named GROUP projections and two retained result keys. This
+  // independent spelling keeps the original input and aggregate distinct.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_select_aggregate_0":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"aql_select_aggregate_0":1,"y":20},{"aql_select_aggregate_0":2,"y":10}]},"as":"t"},{"from":"t","group":{"by":["aql_select_aggregate_0","y"],"aggregates":{"aql_select_aggregate_4":{"fn":"count"}}}},{"derive":{"aql_query_expr_2":{"add":[{"field":"aql_select_aggregate_4"},{"literal":1}]}}},{"select":["aql_select_aggregate_0","y",{"next":"aql_query_expr_2"}]},{"sort":[{"field":"next","dir":"asc","nulls":"first"},{"field":"y","dir":"asc","nulls":"first"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["aql_select_aggregate_0","y","next"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_select_aggregate_0":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"aql_select_aggregate_0":1,"y":20},{"aql_select_aggregate_0":2,"y":10}]},"as":"t"},{"from":"t","group":{"by":["aql_select_aggregate_0","y"],"aggregates":{"aql_select_aggregate_8":{"fn":"count"}}}},{"derive":{"aql_query_expr_2":{"add":[{"field":"aql_select_aggregate_8"},{"literal":1}]}}},{"select":["aql_select_aggregate_0","y",{"next":"aql_query_expr_2"}]},{"sort":[{"field":"next","dir":"asc","nulls":"first"},{"field":"y","dir":"asc","nulls":"first"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["aql_select_aggregate_0","y","next"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,

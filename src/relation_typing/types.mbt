@@ -242,6 +242,12 @@ pub fn projection_field_at(
 }
 
 ///|
+/// Count the immutable checked projection without copying its entries.
+pub fn projection_field_count(value : CheckedOperation) -> Int {
+  value.projection.length()
+}
+
+///|
 pub fn work_used(value : CheckedOperation) -> Int {
   value.work_used
 }

@@ -6,7 +6,7 @@ const cwd = fileURLToPath(new URL('.', import.meta.url));
 const modules = [
   ['BoundedSession', '../bounded-session/Session.lean', 14],
   ['RelationChain', 'Chain.lean', 22],
-  ['RelationChainStop', 'StopAccounting.lean', 14],
+  ['RelationChainStop', 'StopAccounting.lean', 18],
 ].map(([namespace, path, count]) => ({namespace, count,
   source: readFileSync(new URL(path, import.meta.url), 'utf8')}));
 const model = modules.map(m => m.source).join('\n');
