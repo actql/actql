@@ -1007,6 +1007,134 @@ pub fn strategy_issue_effectful_captured_run(
 }
 
 ///|
+#export_name("strategyBeginEffectFreeCapturedRun")
+pub fn strategy_begin_effect_free_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.CapturedRunIssuancePreparation {
+  @publication.start_effect_free_captured_run(
+    run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
+    advances, authoring, models, max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
+#export_name("strategyBeginEffectfulCapturedRun")
+pub fn strategy_begin_effectful_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  sources : Array[@publication.CapturedEffectSourceArtifact],
+  local_sources : Array[@publication.CapturedLocalEffectSourceEvidence],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  preview : @publication.EffectPreviewIdentity,
+  plan_names : Array[String],
+  plan_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  dependency_wire : String?,
+  max_workspace : Int,
+) -> @publication.CapturedRunIssuancePreparation raise NodeHostFailure {
+  if plan_names.length() != plan_wires.length() {
+    raise InvalidCommand
+  }
+  let plans : Array[(String, String)] = []
+  for index in 0..<plan_names.length() {
+    plans.push((plan_names[index], plan_wires[index]))
+  }
+  let dependency_inventory = match dependency_wire {
+    None => None
+    Some(wire) =>
+      match
+        @publication.admit_captured_effect_source_dependencies(
+          local_sources, wire, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => Some(value)
+        Err(_) => raise InvalidCommand
+      }
+  }
+  @publication.start_effectful_captured_run(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    snapshots,
+    sources,
+    local_sources,
+    advances,
+    authoring,
+    models,
+    preview,
+    plans,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    dependency_inventory~,
+  )
+}
+
+///|
+#export_name("strategyCapturedRunAdvance")
+pub fn strategy_captured_run_advance(
+  preparation : @publication.CapturedRunIssuancePreparation,
+  quantum : Int,
+) -> Bool raise NodeHostFailure {
+  match preparation.advance(quantum) {
+    Ok((done, _)) => done
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedRunFinish")
+pub fn strategy_captured_run_finish(
+  preparation : @publication.CapturedRunIssuancePreparation,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match preparation.finish() {
+    Ok(contract) => contract
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedRunCancel")
+pub fn strategy_captured_run_cancel(
+  preparation : @publication.CapturedRunIssuancePreparation,
+) -> Unit {
+  preparation.cancel()
+}
+
+///|
+#export_name("strategyCapturedRunFixturePhase")
+pub fn strategy_captured_run_fixture_phase(
+  preparation : @publication.CapturedRunIssuancePreparation,
+) -> String {
+  @publication.captured_run_preparation_fixture_phase(preparation)
+}
+
+///|
 /// Issue the final Effectful Receipt only from an admitted computation chain
 /// and the exact private Preview and Effect Set receipts. This is not apply
 /// authority or a durable publication commit.
