@@ -87,7 +87,8 @@ function responseCode(error) {
       error?.code === 'InvalidCheckpointPage') return 400;
   if (error?.code === 'ClientProgramNeedsInputs' ||
       error?.code === 'ClientProgramRejected' ||
-      error?.code === 'ClientProgramUnsupported') return 422;
+      error?.code === 'ClientProgramUnsupported' ||
+      error?.code === 'ClientProgramAnalysisLimit') return 422;
   if (error?.code === 'UnknownClientOperation') return 404;
   if (error?.code === 'ClientOperationUnavailable') return 501;
   if (error?.code === 'ResultAttemptLookupUnavailable') return 501;
