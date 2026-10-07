@@ -140,6 +140,16 @@ The earlier 31-case JS selection remains evidence at its original SHA; it was
 not relabeled or rerun as an all-Core integration campaign. The later record
 commit changes documentation only and does not replace these source identities.
 
+Before the first push, five unpublished commit messages were wrapped to the
+repository's 72-character limit. Every tree and exact parent correspondence
+was checked unchanged; no published history or code was rewritten. The executed
+implementation `868a7fefa0a1d5d627c92c25a607f75818bcaa3e` maps to published
+`9d1c3381243484bff7365de22b8054e98e9fedaa`; the integrated executed source
+`71289a8cdb5bd9948499dabcf83a074d69e516ed` maps to published
+`4c477fba0dae106f60857718a9860d5ced87b7f8`. Those checks remain tied to the
+original observed SHAs; the mapping establishes identical source, not another
+test execution or CI success.
+
 Installed availability callbacks, cancellation/disposal walks over input
 handles, retired-Carrier walks, other scratch collections and Native physical
 allocation/reclamation correspondence remain distinct. This cursor proves a
