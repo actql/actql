@@ -4,8 +4,10 @@ Base: main `4ceb8b6f97674b9b9d0edbc2dbae4541187d5d22`. Independent branch:
 `feat/frontend-correlated-unnest`. This unit does not depend on the pending
 literal membership or Graph quantifier PRs and adds no execution owner.
 Current integration adopts main
-`36c6125428ef318237547b8047c73c6ff34c2241` by normal merge, retaining its adopted
+`c6a1a8e7ab3726cccbf1fddc897bde15a5927e5a` by normal merge, retaining its adopted
 literal-membership, finite Graph grammar, input refusals and bounded cleanup.
+The adopted commit also contains manifest-derived Local package payloads; its
+normal package producer is used without a compatibility overlay.
 
 ## Fixed counterexample and reference
 
