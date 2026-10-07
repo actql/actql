@@ -301,3 +301,42 @@ This scan is preparatory, not retained-history admission. Run the actual
 composer after the supplement and verify its exact current-source manifest.
 The successful compiled campaign remains the original `b7a692658` result;
 no code or independent runtime expectation changed in these history repairs.
+
+## Accepted corrected retained history
+
+At clean submitted correction SHA `986ac17dc349b51c55b4edbaeee33a3630b471c9`, existing late-input
+supplement positive/refusal fixtures passed **17/17** (`run-aJDt0k`,
+`focused-test-MLSPFj`):
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  --test-name-pattern='late receipt supplement' \
+  proofs/relation-pipeline/foundation.test.mjs
+```
+
+The actual retained-history command then passed under `run-hXmfTz` with the
+existing 900-second bound, followed by a nonzero exact-source consumer: **87
+protected files, 230 declarations, 190 integrations**, source revision exactly
+`986ac17dc349b51c55b4edbaeee33a3630b471c9`. The original inherited declaration
+bytes/inputs and every source/parent/blob/mode obligation remain unchanged.
+The guard completed and released locks. Transparent timing observed 6,555
+unchanged Git invocations, 144,662 ms inside those calls; this is a diagnostic,
+not a calibrated savings comparison.
+
+The accepted local history original is
+`evidence/2026-10-08-pipeline-fixed-js-foundation-986ac17dc.json.gz` (raw 1515060 bytes,
+SHA-256 `df390159aa5d69ac045de68ef73a7e835ee6629caeee5110f28de017bccb51ed`). It retains the exact guard,
+output, timing preload, binding consumer and raw generated manifest
+(SHA-256 `e9da750b9770d7157ab52df9f9008c56a19b27b2de85c2c135ed9d380b81f0e0`). The guard invokes
+`node --import /private/tmp/g-foundation-git-timing.mjs
+proofs/relation-pipeline/history.mjs --write`; its transparent preload is
+embedded in the original, and the next consumer checks clean HEAD, nonzero
+files and exact manifest source revision. This is local validation, never
+Actions provenance or reuse authorization.
+
+Publication after this result adds only the evidence archive and this report.
+It does not relabel the physical campaign from `b7a692658` or the accepted
+history from `986ac17dc349b51c55b4edbaeee33a3630b471c9` as execution at a later SHA.
+The compiled/local acceptance unit is now complete; full-part/other-target
+checks and authenticated main qualification, ordinary-PR reuse and inclusive
+net CI savings remain separate obligations.
