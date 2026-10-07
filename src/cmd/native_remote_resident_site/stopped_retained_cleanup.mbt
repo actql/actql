@@ -111,6 +111,10 @@ fn recover_retained_input_command(
           root_path,
           limits,
           current,
+          recorded=match optional(child, "publication-custody-root") {
+            Some(path) => Some(load_recorded_publication(path))
+            None => None
+          },
         ) {
         Ok(_) => None
         Err(NotCurrent) => Some("source cleanup current custody unconfirmed")

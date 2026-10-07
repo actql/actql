@@ -28,6 +28,7 @@ pub fn reclaim_stopped_resident_source_output(
   producer_root : String,
   limits : @output.NativeRemoteStandardTransferBindingLimits,
   exclusive_current : () -> Bool,
+  recorded? : @publication.RecordedRunPublication? = None,
 ) -> Result[Unit, ResidentStoppedSourceCleanupIssue] {
   if !exclusive_current() {
     return Err(NotCurrent)
@@ -63,24 +64,52 @@ pub fn reclaim_stopped_resident_source_output(
   guard @remote.remote_poll_dispatch_run_materials(producer) is Some(wire) else {
     return Err(Host(EnvelopeMissing))
   }
-  // Re-admit the original identity and graph; cleanup does not refresh the
-  // Run or authorize acquisition, and is not blocked by execution expiry.
-  let materials = match rebuild_materials(admission, request, wire) {
-    Ok(value) => value
-    Err(issue) => return Err(Host(Refused(issue)))
-  }
-  if !(resident_source_dispatch_role(materials, request)
-    is Ok(InternalSourceProducer)) {
-    return Err(Host(Refused(@resident.UnsupportedTask)))
-  }
-  guard admission.source is Some((source_ref, source_contract)) &&
-    @host.prepared_client_source_evidence_facts(materials.prepared, 0, 0)
-    is Some(facts) else {
+  guard admission.source is Some((source_ref, source_contract)) else {
     return Err(Host(Refused(@resident.ForeignSource)))
   }
-  let selected = @planning.query_source_evidence_fact_values(facts)
-  if selected[0] != source_ref || selected[1] != source_contract {
-    return Err(Host(Refused(@resident.ForeignSource)))
+  // The recorded path is selected explicitly; a failed ordinary admission
+  // never falls back to another Plan or grants execution permission.
+  let cleanup_graph = match recorded {
+    Some(original) => {
+      let (run_cid, _) = @remote.dispatch_request_task_scope(request)
+      match
+        @host.admit_recorded_client_source_cleanup_graph(
+          wire,
+          run_cid,
+          original,
+          admission.expressions,
+          admission.operations,
+          admission.limits,
+          source_ref,
+          source_contract,
+        ) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(Binding(issue))
+      }
+    }
+    None => None
+  }
+  let materials = match cleanup_graph {
+    Some(_) => None
+    None => {
+      let value = match rebuild_materials(admission, request, wire) {
+        Ok(value) => value
+        Err(issue) => return Err(Host(Refused(issue)))
+      }
+      if !(resident_source_dispatch_role(value, request)
+        is Ok(InternalSourceProducer)) {
+        return Err(Host(Refused(@resident.UnsupportedTask)))
+      }
+      guard @host.prepared_client_source_evidence_facts(value.prepared, 0, 0)
+        is Some(facts) else {
+        return Err(Host(Refused(@resident.ForeignSource)))
+      }
+      let selected = @planning.query_source_evidence_fact_values(facts)
+      if selected[0] != source_ref || selected[1] != source_contract {
+        return Err(Host(Refused(@resident.ForeignSource)))
+      }
+      Some(value)
+    }
   }
   let p = match journal.observation(request) {
     Ok(value) => value
@@ -104,23 +133,44 @@ pub fn reclaim_stopped_resident_source_output(
     @journal.recovered_site_dispatch_measurement(c) is Some(cm) else {
     return Err(CustodyPending)
   }
-  let permit = match
-    @host.prepare_client_retained_source_cleanup(
-      materials,
-      @remote.remote_poll_dispatch_input_binding(consumer),
-      @journal.recovered_site_dispatch_record(p),
-      pe,
-      ps,
-      pm,
-      @journal.recovered_site_dispatch_record(c),
-      ce,
-      cs,
-      cm,
-      limits.max_binding_bytes,
-      limits.max_chunks,
-      limits.max_manifest_bytes,
-      limits.max_referenced_bytes,
-    ) {
+  let permitted = match (cleanup_graph, materials) {
+    (Some(original), None) =>
+      @host.prepare_client_retained_source_cleanup_from_recorded(
+        original,
+        @remote.remote_poll_dispatch_input_binding(consumer),
+        @journal.recovered_site_dispatch_record(p),
+        pe,
+        ps,
+        pm,
+        @journal.recovered_site_dispatch_record(c),
+        ce,
+        cs,
+        cm,
+        limits.max_binding_bytes,
+        limits.max_chunks,
+        limits.max_manifest_bytes,
+        limits.max_referenced_bytes,
+      )
+    (None, Some(current)) =>
+      @host.prepare_client_retained_source_cleanup(
+        current,
+        @remote.remote_poll_dispatch_input_binding(consumer),
+        @journal.recovered_site_dispatch_record(p),
+        pe,
+        ps,
+        pm,
+        @journal.recovered_site_dispatch_record(c),
+        ce,
+        cs,
+        cm,
+        limits.max_binding_bytes,
+        limits.max_chunks,
+        limits.max_manifest_bytes,
+        limits.max_referenced_bytes,
+      )
+    _ => return Err(CustodyPending)
+  }
+  let permit = match permitted {
     Ok(value) => value
     Err(issue) => return Err(Binding(issue))
   }

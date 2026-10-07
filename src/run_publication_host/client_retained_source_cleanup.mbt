@@ -57,6 +57,30 @@ pub fn prepare_client_retained_source_cleanup(
     Ok(value) => value
     Err(_) => return Err(InvalidBinding)
   }
+  finish_client_retained_source_cleanup(
+    edge, binding, producer_record, producer_evidence, producer_subject, producer_measurement,
+    consumer_record, consumer_evidence, consumer_subject, consumer_measurement, max_binding_bytes,
+    max_chunks, max_manifest_bytes, max_referenced_bytes,
+  )
+}
+
+///|
+fn finish_client_retained_source_cleanup(
+  edge : ClientRetainedInputEdge,
+  binding : @remote.RemoteInputBinding,
+  producer_record : @remote.DispatchRecord,
+  producer_evidence : @remote.RemoteExecutionEvidence,
+  producer_subject : @remote.RemoteManagedOutputSubject,
+  producer_measurement : @remote.RemoteManagedOutputMeasurement,
+  consumer_record : @remote.DispatchRecord,
+  consumer_evidence : @remote.RemoteExecutionEvidence,
+  consumer_subject : @remote.RemoteManagedOutputSubject,
+  consumer_measurement : @remote.RemoteManagedOutputMeasurement,
+  max_binding_bytes : Int,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> Result[ClientRetainedSourceCleanup, ClientRetainedTaskInputIssue] {
   let producer = @remote.dispatch_record_request(producer_record)
   let consumer = @remote.dispatch_record_request(consumer_record)
   if @remote.dispatch_request_task_scope(producer) !=

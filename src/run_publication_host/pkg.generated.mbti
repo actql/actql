@@ -102,6 +102,8 @@ pub fn admit_prepared_client_values_fragment(PreparedClientProgram, Int, String,
 
 pub fn admit_prepared_client_values_plan_graph(PreparedClientProgram, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphAdmissionIssue]
 
+pub fn admit_recorded_client_source_cleanup_graph(String, String, @run_publication.RecordedRunPublication, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientValuesRunMaterialsLimits, String, String) -> Result[ClientRecordedSourceCleanup, ClientRetainedTaskInputIssue]
+
 pub fn admit_source_free_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn admit_source_free_result_policy_body(String, String, Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, ClientCompiledRunIssue]
@@ -799,6 +801,8 @@ pub fn prepare_client_retained_input_intent(ClientRetainedInputProducer, ClientR
 pub fn prepare_client_retained_input_producer(ClientRetainedInputEdge, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue]
 
 pub fn prepare_client_retained_source_cleanup(ClientRunMaterials, @remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, Int, Int, Int, Int64) -> Result[ClientRetainedSourceCleanup, ClientRetainedTaskInputIssue]
+
+pub fn prepare_client_retained_source_cleanup_from_recorded(ClientRecordedSourceCleanup, @remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, Int, Int, Int, Int64) -> Result[ClientRetainedSourceCleanup, ClientRetainedTaskInputIssue]
 
 pub fn prepare_client_retained_task_dispatch(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, ClientRequestIdentity, Int, Int, String, ClientValuesSiteSelection, ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[@remote_site_protocol.DispatchRequest, ClientRetainedTaskDispatchIssue]
 
@@ -1501,6 +1505,11 @@ pub(all) enum ClientQueryRequirementIssue {
   Sequence(@execution_query.QuerySequenceIssue)
   Material(@query_planning.QueryMaterialIssue)
   Requirement(@query_planning.QueryRequirementIssue)
+}
+
+pub struct ClientRecordedSourceCleanup {
+  prepared : PreparedClientProgram
+  run_definition_cid : String
 }
 
 pub struct ClientRemoteTaskProgress {
