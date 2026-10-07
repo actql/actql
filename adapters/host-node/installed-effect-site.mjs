@@ -446,6 +446,7 @@ export function createInstalledEffectSite({environmentWire,
     },
     async resume(facts) {
       const {signal, ref, view, checkpointJournal, checkpointBinding} = facts;
+      const observing = facts.reconciliationOnly === true;
       signal?.throwIfAborted();
       // The Host resolves this Ref through its original request and current
       // evidence-read authority. No new physical-start claim exists here.
@@ -456,7 +457,7 @@ export function createInstalledEffectSite({environmentWire,
       let recovered;
       try { recovered = await facts.recoverCapture({signal}); }
       catch (error) {
-        if (isEffectCaptureRecoveryRefusal(error)) {
+        if (!observing && isEffectCaptureRecoveryRefusal(error)) {
           checkpointJournal.refuseUnsentEffectResume(view.checkpointCid,
             ref.runDefinitionCid);
         }
@@ -473,11 +474,13 @@ export function createInstalledEffectSite({environmentWire,
           computation: recovered.computation.computation,
           preview: recovered.computation.preview}));
       checkContinuationBinding(facts, recovered.computation);
-      const claimed = checkpointJournal.claimResume(view.runId, {
+      // Observing an unknown Effect is not a new approved continuation. Keep
+      // the completed resume intent and physical start identity unchanged.
+      const claimed = observing ? undefined : checkpointJournal.claimResume(view.runId, {
         claimant, leaseMs, binding: checkpointBinding,
         expectedCheckpointCid: view.checkpointCid,
         settleEffectRevalidation: true});
-      if (claimed.action === 'invalidated') {
+      if (claimed?.action === 'invalidated') {
         // The journal has durably failed this Run before any Effect send.
         // Transfer the recovered capture's cleanup before reporting that
         // stopped outcome to the common dispatch owner.
@@ -487,11 +490,11 @@ export function createInstalledEffectSite({environmentWire,
         // failed; the Checkpoint journal already owns the failed Run state.
         return Object.freeze({status: 'failed'});
       }
-      const settling = claimed.action === 'settlement';
-      if (claimed.action !== 'claimed' && !settling) return claimed;
+      const settling = claimed?.action === 'settlement';
+      if (!observing && claimed.action !== 'claimed' && !settling) return claimed;
       let stage;
       try {
-        if (!settling && facts.prepareTargetReads !== undefined) {
+        if (!observing && !settling && facts.prepareTargetReads !== undefined) {
           const targetReads = await facts.prepareTargetReads(claimed);
           if (targetReads !== undefined) {
             custody.retainAuthorization(targetReads);
@@ -504,7 +507,7 @@ export function createInstalledEffectSite({environmentWire,
           recovered,
           retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
       } catch (error) {
-        if (!settling && (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||
+        if (!observing && !settling && (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||
             error instanceof ExecutionAuthorizationError &&
               error.authorization?.action === 'deny')) {
           const refused = checkpointJournal.refuseUnsentEffectResume(
@@ -535,7 +538,7 @@ export function createInstalledEffectSite({environmentWire,
           stage.receipt.commonMoon !== facts.moon) {
         fail('InvalidInstalledEffectRecovery');
       }
-      checkContinuation(facts, stage, settling);
+      checkContinuation(facts, stage, settling || observing);
       const cleanupOwner = stage.cleanupOwner;
       if (typeof facts.retainExecution !== 'function' ||
           typeof cleanupOwner?.close !== 'function' ||
@@ -561,16 +564,21 @@ export function createInstalledEffectSite({environmentWire,
       }
       let failed = false;
       try {
-        const gate = await authorization(facts, stage, () => {
+        const gate = observing ? undefined : await authorization(facts, stage, () => {
           fail('InstalledEffectRepeatDeferralUnsupported');
         });
-        custody.retainAuthorization(gate);
-        const options = completionOptions(stage, gate, signal,
-          Object.freeze({claim: claimed}));
+        if (gate !== undefined) custody.retainAuthorization(gate);
+        const completion = completionOptions(stage, gate, signal,
+          observing ? undefined : Object.freeze({claim: claimed}));
+        const options = observing ? Object.freeze({...completion,
+          apply: Object.freeze({...completion.apply, observationOnly: true})}) : completion;
         facts.beginPhysicalWork?.();
         let result;
         try { result = await completeRecoveredEffectRun(options); }
         catch (error) {
+          // A rejected observation must not publish an old receipt as a new
+          // reconciliation result. Keep uncertainty and custody for retry.
+          if (observing) throw error;
           try { result = await completeInterruptedEffectRun(options, true); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoAttemptedSend') {
@@ -600,11 +608,16 @@ export function createInstalledEffectSite({environmentWire,
             preview: stage.preview});
         }
         if (result.status === 'failed') {
-          checkpointJournal.completeResume(claimed.claim, {status: 'failed'});
+          if (observing) checkpointJournal.finishRun(view.runId,
+            {from: 'needs_reconciliation', status: 'failed'});
+          else checkpointJournal.completeResume(claimed.claim, {status: 'failed'});
           releaseMode = 'retire';
         } else {
           const state = await currentRunState(facts, result, stage);
-          checkpointJournal.completeResume(claimed.claim, {
+          if (observing) checkpointJournal.finishRun(view.runId,
+            {from: 'needs_reconciliation', status: state.status,
+              runStateWire: JSON.stringify(state)});
+          else checkpointJournal.completeResume(claimed.claim, {
             runStateWire: JSON.stringify(state),
           });
           if (result.status !== 'needs_reconciliation') {

@@ -838,6 +838,20 @@ over the initial node scope, then each reached edge and node after the
 corresponding hop. WALK permits revisits, TRAIL excludes reuse of the same
 definition-scoped typed edge key, and ACYCLIC excludes node revisits. Separate paths with
 the same endpoints remain separate rows unless the query requests DISTINCT.
+The Script frontend passes a fixed directed pattern's reached-node `WHERE`
+or property-map to the corresponding `traverse.hops[i].node_where`. A
+qualified receiver names that hop's node variable; it does not capture another
+pattern variable. Static candidates follow the edge label and direction and
+its declared endpoint definitions. Ordinary checking validates property
+presence, types and nullable object access across every reached candidate.
+A reached-node label is admitted only when every static candidate carries it;
+otherwise the missing per-hop label filter is explicitly unsupported.
+
+A quantified pattern's terminal-node condition remains unsupported: the common
+homogeneous `node_where` filters every reached hop, so applying a terminal-only
+condition there would incorrectly prune intermediate nodes. Fixed-hop
+conditions do not add a new evaluator or implicit node-property projection.
+
 Graph variables are compile-time binding names. They do not create new
 runtime Node, Edge, or Path value types.
 
