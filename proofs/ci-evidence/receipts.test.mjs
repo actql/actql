@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp, writeFile, rm} from 'node:fs/promises';
@@ -8,7 +9,7 @@ import {encode} from '../bounded-session/action-inputs.mjs';
 import {checkApplications} from './applications.mjs';
 import {checkPlan} from './check.mjs';
 import {checkCertificate} from './final.mjs';
-import {actionInputs, hash, sharedFiles} from './inputs.mjs';
+import {actionInputs, hash, sharedFiles, pipelineInventoryBoundary} from './inputs.mjs';
 import {sealReceipt, canonicalReceipt, parseReceipt, authenticateOrigin, readOriginReceipt, readOriginReceipts, observationUnits, mutationIds} from './receipts.mjs';
 
 const revision = 'a'.repeat(40), candidate = 'b'.repeat(40);
@@ -24,6 +25,7 @@ function sourceTree(catalog = null) {
     ['src/bounded_execution/moon.pkg', ''], ['src/bounded_execution/session.mbt', 'kernel'],
     ['proofs/bounded-session/a.mjs', 'proof'],
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'].map(name => [`proofs/bounded-session/${name}`, name])]);
+  files.set(pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8'));
   if (catalog) files.set(catalogPath, encode(catalog));
   return {entries: new Map([...files].map(([path]) => [path, {kind: 'blob', mode: '100644'}])),
     read: path => Buffer.from(files.get(path))};
