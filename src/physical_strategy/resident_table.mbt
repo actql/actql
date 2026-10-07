@@ -58,10 +58,8 @@ pub fn prepare_resident_storage(
   if env.next_table >= @resources.ledger_limits(run.ledger).holdings {
     return Err(Physical(HoldingLimit))
   }
-  let storage = if producer < run.graph.captured_prefix {
-    guard run.sources[producer] is Some(source) else {
-      return Err(MissingOutput)
-    }
+  let storage = if producer < run.graph.captured_prefix &&
+    run.sources[producer] is Some(source) {
     match @query.captured_source_storage(source, max_entries, max_name_bytes) {
       Ok(value) => value
       Err(issue) => return Err(Capture(issue))

@@ -2,6 +2,7 @@
 // owner. Physical Local policy CIDs are stable identities of this Host profile.
 import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
+import {valuesHostPolicyOriginal, valuesExecutionContextCid} from './local-values-capacity.mjs';
 
 // Contract and evidence issuance bounds. A captured Run's Named Result
 // snapshot is admitted under them too, so they hold what one captured Run can
@@ -25,6 +26,13 @@ const cid = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
 const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
   name});
+const valuesAdmissions = new WeakMap();
+
+// Preserve the closed publication-plan shape. The request journal retains
+// this original configuration with the admission it actually authorized.
+export function sourceFreeValuesAdmissionEvidence(plan) {
+  return valuesAdmissions.get(plan);
+}
 const instant = value => new Date(value).toISOString();
 
 // These retained contract bodies use canonical key order. Previously only
@@ -51,7 +59,7 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
   sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
   dataPolicyCid, createdAt, now, resultCount, retainUntil,
   compiled, preparedProgram, effectCompilation, preparedEffect, moon,
-  modelEvidence = []}) {
+  modelEvidence = [], outputLimits = localOutputLimits}) {
   const at = Date.parse(now());
   const availableAt = retainUntil === undefined ? at + 60 * 60 * 1000
     : Math.max(at + 60 * 60 * 1000, Date.parse(retainUntil));
@@ -105,7 +113,7 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
       fenceCid: cid({version: 'actql-local-run-fence/0.1',
         run_definition_cid: runDefinition.identity}),
       externalIdempotencyKey: undefined, startedAt: createdAt}),
-    outputLimits: localOutputLimits, contractLimits: limits, now,
+    outputLimits, contractLimits: limits, now,
   });
   return {plan, retention, retentionDependencies};
 }
@@ -381,11 +389,13 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
   const createdAt = retained?.created_at ?? instant(at);
   const validUntil = retained?.valid_until ??
     instant(at + 24 * 60 * 60 * 1000);
-  const contextCid = cid({version: 'actql-installed-local-context/0.1',
-    authority_scope_cid: authorityScopeCid});
+  const maxRows = moon.clientProgramValuesMaxRows(preparedProgram);
+  const originalPolicy = valuesHostPolicyOriginal(maxRows);
+  const hostPolicyCid = originalPolicy?.cid ?? policyCid('source-free-values');
+  const contextCid = valuesExecutionContextCid(authorityScopeCid, originalPolicy);
   const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
     'values', {executionContextCid: contextCid,
-      hostPolicyCid: policyCid('source-free-values'), expiresAt: validUntil});
+      hostPolicyCid, expiresAt: validUntil});
   const {admission, compiledPlan} = compiled;
   const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
     namespaceId, runId: randomUUID(), createdAt, validUntil,
@@ -394,13 +404,26 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     compiled, runDefinition, {dataPolicyCid}, limits);
-  return localPublicationPlan({control, admission, runDefinition, invocation,
+  const plan = localPublicationPlan({control, admission, runDefinition, invocation,
     observation, compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid,
     namespaceId, storeAuthorityCid, dataPolicyCid, createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled, preparedProgram});
+    compiled, preparedProgram,
+    // The existing Result owner retains one row index per unsorted row.
+    // Follow the explicitly admitted row ceiling, preserving all other
+    // Result, value, work, wire and Store bounds. Ordered views retain their
+    // existing independent scratch requirement and can still be refused.
+    outputLimits: Object.freeze({...localOutputLimits,
+      maxResultWorkspaceEntries: Math.max(localOutputLimits.maxResultWorkspaceEntries, maxRows)}),
+  });
+  if (originalPolicy !== undefined) valuesAdmissions.set(plan, Object.freeze({
+    prepared: compiled.preparedEvidence.wire,
+    authorization: compiled.authorization.wire,
+    valuesHostPolicyOriginal: originalPolicy,
+  }));
+  return plan;
 }
 
 // Admit the complete checked task graph, including acquired sources, to the

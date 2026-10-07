@@ -76,7 +76,7 @@ import {assertEffectTargetReadBinding, effectTargetReadContinuation} from
 import {EFFECT_TARGET_CONTINUATION} from './effect-target-read-inventory.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan, sourceFreeTaskPlan,
+  sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
   acquiredTaskRunAdmission, inferTaskRunAdmission} from
   './local-values-plan.mjs';
@@ -129,6 +129,8 @@ async function embeddedInstallationIdentity(root, installation) {
       resultDataPolicy: installation.resultDataPolicy}),
     ...(installation?.retainedRelationOutput === true ? {
       retainedRelationOutput: true} : {}),
+    ...(installation?.valuesMaxRows === undefined ? {} : {
+      valuesMaxRows: installation.valuesMaxRows}),
     hostKey: authorization?.hostKey === undefined ? null : {
       keyId: authorization.hostKey.keyId,
       publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
@@ -163,18 +165,29 @@ function localStateRoot() {
 // decides the tuple (Site key, this realization, write) for each request.
 const REALIZATION_KEY = 'source-free-values';
 
+function validateValuesMaxRows(value) {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 10000)) {
+    throw new TypeError('InvalidLocalValuesRowLimit');
+  }
+}
+
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, hostCapacityPolicy,
-  retainedRelationOutput = false}) {
+  retainedRelationOutput = false, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
+  validateValuesMaxRows(valuesMaxRows);
   if (typeof retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
   const selectedSourcePaths = installedSourcePaths({sourceProfilePath, sourceProfilePaths});
   const selectedEffectPath = effectProfilePath ??
     process.env.ACTQL_LOCAL_EFFECT_PROFILE;
+  if (valuesMaxRows !== undefined &&
+      (effectInstallation !== undefined || selectedEffectPath !== undefined)) {
+    throw new TypeError('InvalidLocalValuesRowLimit');
+  }
   if (effectInstallation !== undefined && selectedEffectPath !== undefined) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
@@ -396,7 +409,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment, sourcePublication,
+    environment, sourcePublication, valuesMaxRows,
     allowEffects: effectInstallation !== undefined});
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
@@ -416,7 +429,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
-        store, storeAuthorityCid, authorityScopeCid, now,
+        store, storeAuthorityCid, authorityScopeCid, now, observe: diagnostic,
         getCheckpoints: () => checkpoints});
     }
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
@@ -923,6 +936,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           runAdmissionEvidence: {prepared: held.plan.preparedEvidence.wire,
             authorization: held.plan.authorization.wire,
             sourceInventory: sourceInventory(held.preparedSources)}};
+        const valuesEvidence = sourceFreeValuesAdmissionEvidence(held.plan);
+        if (valuesEvidence !== undefined) return {
+          runDefinition: held.plan.runDefinition,
+          runAdmissionEvidence: valuesEvidence};
         return held.plan.runDefinition;
       },
     }, moon, control).catch(cause => {
@@ -1030,59 +1047,62 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               if (inferSelections.has(facts.prepared) ||
                   moon.clientProgramEffectPrepareQueryAcquisition(
                 facts.prepared, 0, 0)?.$tag === 1) {
-                let retainedModel = modelResume;
-                if (retainedModel === undefined && targetResume !== undefined &&
-                    inferSelections.has(facts.prepared) && modelController !== undefined) {
-                  activeResume.assertCurrent();
-                  const taskIndex = moon.clientProgramInferPlanBoundary(
-                    inferSelections.get(facts.prepared).graph)._0;
-                  const records = modelController.discover(
-                    control.runDefinitionRunId(facts.runDefinition))
-                    .filter(record => record.inventory.taskIndex === taskIndex);
-                  if (records.length > 1) throw new Error('ModelResumeScopeAmbiguous');
-                  if (records.length === 1) {
-                    const record = records[0];
-                    const token = await modelController.prime(record);
-                    modelController.state(record.inventory);
+                let ownedModelToken;
+                try {
+                  let retainedModel = modelResume;
+                  if (retainedModel === undefined && targetResume !== undefined &&
+                      inferSelections.has(facts.prepared) && modelController !== undefined) {
                     activeResume.assertCurrent();
-                    retainedModel = {record, token, view: targetResume.view};
+                    const taskIndex = moon.clientProgramInferPlanBoundary(
+                      inferSelections.get(facts.prepared).graph)._0;
+                    const records = modelController.discover(
+                      control.runDefinitionRunId(facts.runDefinition))
+                      .filter(record => record.inventory.taskIndex === taskIndex);
+                    if (records.length > 1) throw new Error('ModelResumeScopeAmbiguous');
+                    if (records.length === 1) {
+                      const record = records[0];
+                      const token = ownedModelToken = await modelController.prime(record);
+                      modelController.state(record.inventory);
+                      activeResume.assertCurrent();
+                      retainedModel = {record, token, view: targetResume.view};
+                    }
                   }
-                }
-                const sourceContinuation = acquiredEffectContinuation({
-                  checkpoints: sourceProfile?.realizationKey !== 'duckdb-acquired'
-                    ? undefined : sourceCheckpoints,
-                  moon, acquired: facts.preparedExecution,
-                  submission: effectSubmissions.get(facts.prepared),
-                  declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
-                  unitId: moon.clientProgramEffectCompilationUnitId(facts.compilation),
-                  principalId, signal, resume: sourceResume,
-                  ...(retainedModel?.token.snapshot.sourceContinuation === undefined ? {} : {
-                    restore: {view: retainedModel.view,
-                      continuation: retainedModel.token.snapshot.sourceContinuation},
-                  }),
-                  currentRun: () => journal.lookupRunDefinition(facts.ref, moon, control)
-                    ?.cancellationRequested === false});
-                if (retainedModel !== undefined &&
-                    moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0 &&
-                    retainedModel.token.snapshot.sourceContinuation === undefined) {
-                  throw new Error('ModelSourceClosureCustodyUnavailable');
-                }
-                return openAcquiredEffectComputation({moon,
-                  owner: facts.owner, acquired: facts.preparedExecution,
-                  sourceProfile, registry, values, fragment, ordered,
-                  sourceAccess: sourceProfile?.sourceAccess, signal, now,
-                  retainComputationOwner, infer: inferSelections.get(facts.prepared),
-                  computeConfigurations: {local: localSnapshotConfiguration},
-                  withComputePauseHandler: (configurations, handlePause) => ({
-                    ...configurations,
-                    local: withLocalExecutionPauseHandler(configurations.local, handlePause),
-                  }),
-                  store, principalId, faultInjection: authorization?.faultInjection,
-                  observe: authorization?.observe, sourceContinuation,
-                  modelController, submission: effectSubmissions.get(facts.prepared),
-                  existingModel: retainedModel?.record,
-                  modelClaim: modelResume?.parentResume === undefined ? modelResume?.claim : undefined,
-                  parentResume, modelJournalPort: nextJournal});
+                  const sourceContinuation = acquiredEffectContinuation({
+                    checkpoints: sourceProfile?.realizationKey !== 'duckdb-acquired'
+                      ? undefined : sourceCheckpoints,
+                    moon, acquired: facts.preparedExecution,
+                    submission: effectSubmissions.get(facts.prepared),
+                    declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
+                    unitId: moon.clientProgramEffectCompilationUnitId(facts.compilation),
+                    principalId, signal, resume: sourceResume,
+                    ...(retainedModel?.token.snapshot.sourceContinuation === undefined ? {} : {
+                      restore: {view: retainedModel.view,
+                        continuation: retainedModel.token.snapshot.sourceContinuation},
+                    }),
+                    currentRun: () => journal.lookupRunDefinition(facts.ref, moon, control)
+                      ?.cancellationRequested === false});
+                  if (retainedModel !== undefined &&
+                      moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0 &&
+                      retainedModel.token.snapshot.sourceContinuation === undefined) {
+                    throw new Error('ModelSourceClosureCustodyUnavailable');
+                  }
+                  return await openAcquiredEffectComputation({moon,
+                    owner: facts.owner, acquired: facts.preparedExecution,
+                    sourceProfile, registry, values, fragment, ordered,
+                    sourceAccess: sourceProfile?.sourceAccess, signal, now,
+                    retainComputationOwner, infer: inferSelections.get(facts.prepared),
+                    computeConfigurations: {local: localSnapshotConfiguration},
+                    withComputePauseHandler: (configurations, handlePause) => ({
+                      ...configurations,
+                      local: withLocalExecutionPauseHandler(configurations.local, handlePause),
+                    }),
+                    store, principalId, faultInjection: authorization?.faultInjection,
+                    observe: authorization?.observe, sourceContinuation,
+                    modelController, submission: effectSubmissions.get(facts.prepared),
+                    existingModel: retainedModel?.record,
+                    modelClaim: modelResume?.parentResume === undefined ? modelResume?.claim : undefined,
+                    parentResume, modelJournalPort: nextJournal});
+                } finally { modelController?.release(ownedModelToken); }
               }
               const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
                 facts.owner, registry, values, 1n, 0n, 0n, 0n);
@@ -1968,6 +1988,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     for (;;) {
       const page = checkpoints.journal.discoverModelCallSets({after, limit: 100});
       for (const record of page) {
+        let token, transferred = false;
         try {
           const originalOwner = modelController.verifier.admitOriginalRun({
             originalRunWire: record.originals.originalRunWire});
@@ -1980,12 +2001,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               !checkpoints.journal.hasUnresolvedModelCalls(originalOwner.runId)) {
             // Terminal scopes with no unknown attempts may already have had
             // their private input retired. Discovery is not a new read grant.
+            modelController.retire(record);
             continue;
           }
           // Discovery is routing only. Authenticate original Store custody,
           // re-admit the entire inventory, then repair saved response markers
           // before inspecting cancellation or current send permission.
-          const token = await modelController.prime(record);
+          token = await modelController.prime(record);
           let calls = checkpoints.journal.readModelCalls(record.inventory);
           for (const slot of calls.slots) for (const entry of slot.attempts) {
             await modelController.observe(entry);
@@ -2211,14 +2233,16 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           }).finally(() => {
             if (renewal !== undefined) clearInterval(renewal);
             modelResumeFlights.delete(ref.runDefinitionCid);
+            modelController.release(token);
           });
+          transferred = true;
           modelResumeFlights.set(ref.runDefinitionCid, flight);
           busy = true;
         } catch (error) {
           busy = true;
           diagnostic('model_recovery_failed', {scopeCid: record.scopeCid,
             code: error?.code ?? error?.message});
-        }
+        } finally { if (!transferred) modelController.release(token); }
       }
       if (page.length < 100) break;
       after = page.at(-1).scopeCid;
@@ -2285,7 +2309,7 @@ export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
-  resultDataPolicy, retainedRelationOutput, hostCapacityPolicy}) {
+  resultDataPolicy, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
@@ -2296,7 +2320,7 @@ export async function openInstalledRemoteHttpHost({directory,
     beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy,
-    retainedRelationOutput, hostCapacityPolicy});
+    retainedRelationOutput, hostCapacityPolicy, valuesMaxRows});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -2393,9 +2417,10 @@ export async function connectEmbeddedLocal(options) {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
   if (installation !== undefined) {
-    const {hostCapacityPolicy: selected, ...rest} = installation;
+    const {hostCapacityPolicy: selected, valuesMaxRows, ...rest} = installation;
+    validateValuesMaxRows(valuesMaxRows);
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
-    installation = {...rest, hostCapacityPolicy};
+    installation = {...rest, hostCapacityPolicy, valuesMaxRows};
   }
   const root = installation?.directory === undefined ? localStateRoot() :
     resolve(installation.directory);
@@ -2413,7 +2438,8 @@ export async function connectEmbeddedLocal(options) {
         registerModelProviders: installation?.registerModelProviders,
         resultDataPolicy: installation?.resultDataPolicy,
         hostCapacityPolicy: installation?.hostCapacityPolicy,
-        retainedRelationOutput: installation?.retainedRelationOutput})});
+        retainedRelationOutput: installation?.retainedRelationOutput,
+        valuesMaxRows: installation?.valuesMaxRows})});
     profiles.set(root, opened);
     opened.host.catch(() => {
       if (profiles.get(root) === opened) profiles.delete(root);

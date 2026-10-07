@@ -8,6 +8,7 @@ pub struct ClientRetainedInputEdge {
   input_port : String
   producer_schema_cid : String
   producer_owner : @lower.BoundPrepared
+  producer_target : @pipeline.Target
   program : @context.ProgramSourceIdentity
 }
 
@@ -130,6 +131,7 @@ pub fn prepare_client_retained_input_edge(
     input_port,
     producer_schema_cid,
     producer_owner,
+    producer_target: @strategy.data_edge_target(edge),
     program: @checked.source_identity(@strategy.graph_program(graph)),
   })
 }
@@ -324,4 +326,27 @@ pub fn client_retained_input_capture_owner_matches(
 ) -> Bool {
   physical_equal(edge.producer_owner, @query.query_sequence_owner(sequence)) &&
   physical_equal(edge.program, program)
+}
+
+///|
+/// The imported completion uses the exact original producer preparation and
+/// Program identity. Equal schemas or task labels are not a substitute.
+pub fn client_retained_input_output_owner_matches(
+  edge : ClientRetainedInputEdge,
+  preparation : @execution.CompletionPreparation,
+  program : @context.ProgramSourceIdentity,
+) -> Bool {
+  physical_equal(
+    edge.producer_owner,
+    @execution.completion_preparation_owner(preparation),
+  ) &&
+  physical_equal(edge.program, program)
+}
+
+///|
+/// The checked output target selected by this existing data edge.
+pub fn client_retained_input_edge_target(
+  edge : ClientRetainedInputEdge,
+) -> @pipeline.Target {
+  edge.producer_target
 }
