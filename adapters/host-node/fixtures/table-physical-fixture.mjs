@@ -5,14 +5,20 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
-import * as moon from '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {runtimeCore} from '../../host-common/runtime-core.mjs';
-import {openEffectLedger} from '../effect-ledger.mjs';
-import {createIcebergPhysicalBridge} from '../table-iceberg-process.mjs';
 import {canonicalText} from '../../../scripts/check-canonical-json.mjs';
 import {machineCid} from '../../../scripts/actql-spec-family.mjs';
+import {tableTestAsset, tableTestModule} from './table-test-modules.mjs';
+const moon = await tableTestModule(new URL(
+  '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url),
+'@actql/local-node/runtime');
+const {runtimeCore} = await tableTestModule(new URL('../../host-common/runtime-core.mjs', import.meta.url),
+  'adapters/host-common/runtime-core.mjs');
+const {openEffectLedger} = await tableTestModule(new URL('../effect-ledger.mjs', import.meta.url),
+  'adapters/host-node/effect-ledger.mjs');
+const {createIcebergPhysicalBridge} = await tableTestModule(new URL('../table-iceberg-process.mjs', import.meta.url),
+  'adapters/host-node/table-iceberg-process.mjs');
 const python = pathToFileURL(process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../../.venv-table/bin/python', import.meta.url)));
-const directory = fileURLToPath(new URL('../../table-iceberg/', import.meta.url));
+const directory = await tableTestAsset(new URL('../../table-iceberg/', import.meta.url), 'adapters/table-iceberg');
 const cid = digit => 'sha256:'+digit.repeat(64);
 const control = runtimeCore(moon).effectApplicationControl;
 const seal = (value, field) => ({...value, [field]: machineCid(value)});
