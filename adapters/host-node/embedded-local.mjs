@@ -1,6 +1,7 @@
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
+import {snapshotHostCapacityPolicy, selectInstalledHostEnvironment} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
@@ -120,6 +121,8 @@ async function embeddedInstallationIdentity(root, installation) {
   const identity = bytesCid(canonicalJson({
     version: 'actql-embedded-installation/0.1', root,
     source, effect, accountIdentity, ordinary,
+    ...(installation?.hostCapacityPolicy === undefined ? {} : {
+      hostCapacityPolicy: installation.hostCapacityPolicy}),
     ...(installation?.modelInstallation === undefined ? {} : {
       modelEnvironment: installation.modelInstallation}),
     ...(installation?.resultDataPolicy === undefined ? {} : {
@@ -163,8 +166,9 @@ const REALIZATION_KEY = 'source-free-values';
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation,
-  modelInstallation, registerModelProviders, resultDataPolicy,
+  modelInstallation, registerModelProviders, resultDataPolicy, hostCapacityPolicy,
   retainedRelationOutput = false}) {
+  hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (typeof retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
@@ -183,13 +187,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const inferSelections = new WeakMap();
   const effectSubmissions = new WeakMap();
   const principalId = userInfo().username;
-  const baseEnvironmentWire = (await readFile(join(packageRoot,
-    'spec/local-check-environment.json'), 'utf8')).trimEnd();
+  const baseEnvironmentWire = selectInstalledHostEnvironment(moon, (await readFile(join(packageRoot,
+    'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
   let installedEffect;
-  let environmentWire;
+  let environmentWire, effectiveHostCapacityPolicyCid;
   try {
     sourceProfile = await loadInstalledSources(selectedSourcePaths,
       {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
@@ -220,10 +224,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const {evidence_bundle_cid: ignored, ...body} = JSON.parse(environmentWire);
     void ignored;
     body.host_policy_profile = {...body.host_policy_profile,
-      capacity: {...body.host_policy_profile.capacity,
-        max_graph_construction_edges: 1000,
+      capacity: {max_graph_construction_edges: 1000,
         max_graph_construction_input_rows: 1000,
-        max_graph_construction_nodes: 1000}};
+        max_graph_construction_nodes: 1000, ...body.host_policy_profile.capacity}};
+    if (hostCapacityPolicy !== undefined) {
+      effectiveHostCapacityPolicyCid = contentCid(body.host_policy_profile.capacity);
+    }
     environmentWire = canonicalJson({...body,
       evidence_bundle_cid: contentCid(body)});
     verifyInstalledConnectorBindings(sourceProfile,
@@ -273,7 +279,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   let ordered;
   const namespaceId = 'local';
   const authorityScopeCid = cid({version: 'actql-local-owner-scope/0.1',
-    root, principalId});
+    root, principalId, ...(hostCapacityPolicy === undefined ? {} :
+      {hostCapacityPolicyCid: effectiveHostCapacityPolicyCid})});
   const storeAuthorityCid = cid({version: 'actql-local-store-owner/0.1',
     root, principalId});
   const journalDirectory = join(root, 'requests');
@@ -1590,7 +1597,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     return (await observeRun({ref: accepted.ref, principalId})).status;
   };
   const negotiate = () => ({version: 'actql-client-host/0.1',
-    mode, owner: mode, durability: 'durable', scopeRef: principalId,
+    mode, owner: mode, durability: 'durable',
+    scopeRef: hostCapacityPolicy === undefined ? principalId : authorityScopeCid,
     capabilities: ['result-jsonl'], limits: {
       maxReadWireBytes: 10 * 1024 * 1024,
       maxRowWireBytes: 1024 * 1024,
@@ -2277,7 +2285,8 @@ export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
-  resultDataPolicy, retainedRelationOutput}) {
+  resultDataPolicy, retainedRelationOutput, hostCapacityPolicy}) {
+  hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
@@ -2287,7 +2296,7 @@ export async function openInstalledRemoteHttpHost({directory,
     beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy,
-    retainedRelationOutput});
+    retainedRelationOutput, hostCapacityPolicy});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -2360,12 +2369,13 @@ export async function publishInstalledSource({sourceProfilePath, directory,
 // (`ACTQL_LOCAL_EFFECT_PROFILE` by default). This is the explicit step a Host
 // start restores without provider I/O.
 export async function publishInstalledEffect({effectProfilePath, directory,
-  resolveEffectSecret, signal} = {}) {
+  resolveEffectSecret, signal, hostCapacityPolicy} = {}) {
+  hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
   await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
-  const baseEnvironmentWire = (await readFile(join(packageRoot,
-    'spec/local-check-environment.json'), 'utf8')).trimEnd();
+  const baseEnvironmentWire = selectInstalledHostEnvironment(moon, (await readFile(join(packageRoot,
+    'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy);
   return publishInstalledEffectProfile(
     effectProfilePath ?? process.env.ACTQL_LOCAL_EFFECT_PROFILE, {root,
       principalId: userInfo().username, moon, runtimeUrl,
@@ -2373,7 +2383,7 @@ export async function publishInstalledEffect({effectProfilePath, directory,
 }
 
 export async function connectEmbeddedLocal(options) {
-  const installation = options?.installation;
+  let installation = options?.installation;
   if (installation !== undefined && (installation === null ||
       typeof installation !== 'object' || Array.isArray(installation))) {
     throw new TypeError('InvalidInstalledHostOptions');
@@ -2381,6 +2391,11 @@ export async function connectEmbeddedLocal(options) {
   if (installation?.retainedRelationOutput !== undefined &&
       typeof installation.retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
+  }
+  if (installation !== undefined) {
+    const {hostCapacityPolicy: selected, ...rest} = installation;
+    const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
+    installation = {...rest, hostCapacityPolicy};
   }
   const root = installation?.directory === undefined ? localStateRoot() :
     resolve(installation.directory);
@@ -2397,6 +2412,7 @@ export async function connectEmbeddedLocal(options) {
         modelInstallation: installation?.modelInstallation,
         registerModelProviders: installation?.registerModelProviders,
         resultDataPolicy: installation?.resultDataPolicy,
+        hostCapacityPolicy: installation?.hostCapacityPolicy,
         retainedRelationOutput: installation?.retainedRelationOutput})});
     profiles.set(root, opened);
     opened.host.catch(() => {
