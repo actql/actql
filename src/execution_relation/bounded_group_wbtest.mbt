@@ -46,6 +46,7 @@ fn bounded_relation_start(
   fragment : Bool,
   max_work? : Int = 1000,
   max_entries? : Int = 1000,
+  name_bytes? : Int = 10000,
   constrain? : (GeneratedSequence) -> GeneratedSequence = generated => generated,
 ) -> (
   @bounded.Control,
@@ -132,7 +133,7 @@ fn bounded_relation_start(
     max_work,
     100,
     max_entries,
-    10000,
+    name_bytes,
   )
   (control, execution, source)
 }
@@ -248,23 +249,60 @@ test "bounded group admits exact work and rejects one unit short" {
 }
 
 ///|
+fn check_bounded_group_evaluation_stop(
+  control : @bounded.Control,
+  execution : BoundedGroupExecution,
+  source : CompletedOutput,
+) -> Unit raise {
+  // Name preparation also reports positive work. Observe a charged kernel
+  // advance after input charging instead of cancelling after a fixed poll count.
+  let mut evaluating = false
+  let mut work = 0L
+  for _ in 0..<1000 {
+    if !evaluating {
+      let in_evaluation = execution.state.phase is Evaluate &&
+        execution.state.evaluation is Some(_)
+      let remaining = execution.state.control.remaining
+      match advance_bounded_group_execution(execution, 1).unwrap() {
+        BoundedGroupContinue(work=next, ..) => {
+          assert_true(next > work && next - work <= 1L)
+          work = next
+          evaluating = in_evaluation &&
+            execution.state.phase is Evaluate &&
+            execution.state.evaluation is Some(_) &&
+            execution.state.control.remaining < remaining
+        }
+        _ => fail("group owner ended before charged kernel work")
+      }
+    }
+  }
+  assert_true(evaluating)
+  assert_true(execution.state.port_preparation is None)
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_group_execution(execution, 1).unwrap()
+    is BoundedGroupStopped(@bounded.Cancelled, work=stopped, ..) &&
+    stopped == work,
+  )
+  assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_false(cleanup_bounded_group_execution(execution).unwrap())
+  assert_true(execution.state.evaluation is None)
+  assert_eq(execution.state.workspace.live, 0)
+  assert_true(execution.state.output is None)
+  assert_true(execution.state.rows.val is None)
+  assert_false(execution.state.live.val)
+  assert_false(execution.accepted.val)
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "bounded group stops after positive work without publishing" {
   let (control, execution, source) = bounded_group_fixture(
     "[{\"k\":3},{\"k\":1},{\"k\":3},{\"k\":2}]",
   )
-  for _ in 0..<5 {
-    assert_true(
-      advance_bounded_group_execution(execution, 1)
-      is Ok(BoundedGroupContinue(..)),
-    )
-  }
-  assert_true(@bounded.request_cancel(control))
-  assert_true(
-    advance_bounded_group_execution(execution, 1)
-    is Ok(BoundedGroupStopped(_, ..)),
-  )
-  assert_true(cleanup_bounded_group_execution(execution).unwrap())
-  assert_true(completed_output_available(source))
+  check_bounded_group_evaluation_stop(control, execution, source)
 }
 
 ///|
@@ -343,20 +381,7 @@ test "bounded group stops a filtered aggregate after positive work" {
   let (control, execution, source) = bounded_group_start(
     "[{\"k\":3},{\"k\":1},{\"k\":3},{\"k\":2}]", bounded_group_filtered, true,
   )
-  let execution = execution.unwrap()
-  for _ in 0..<30 {
-    assert_true(
-      advance_bounded_group_execution(execution, 1)
-      is Ok(BoundedGroupContinue(..)),
-    )
-  }
-  assert_true(@bounded.request_cancel(control))
-  assert_true(
-    advance_bounded_group_execution(execution, 1)
-    is Ok(BoundedGroupStopped(_, ..)),
-  )
-  assert_true(cleanup_bounded_group_execution(execution).unwrap())
-  assert_true(completed_output_available(source))
+  check_bounded_group_evaluation_stop(control, execution.unwrap(), source)
 }
 
 ///|
@@ -418,20 +443,7 @@ test "bounded pivot stops after positive work without publishing" {
     bounded_pivot_schema, "[{\"id\":2,\"status\":\"open\",\"amount\":5},{\"id\":1,\"status\":\"open\",\"amount\":7},{\"id\":2,\"status\":\"open\",\"amount\":9}]",
     bounded_pivot_max, "pivot_0", false,
   )
-  let execution = execution.unwrap()
-  for _ in 0..<30 {
-    assert_true(
-      advance_bounded_group_execution(execution, 1)
-      is Ok(BoundedGroupContinue(..)),
-    )
-  }
-  assert_true(@bounded.request_cancel(control))
-  assert_true(
-    advance_bounded_group_execution(execution, 1)
-    is Ok(BoundedGroupStopped(_, ..)),
-  )
-  assert_true(cleanup_bounded_group_execution(execution).unwrap())
-  assert_true(completed_output_available(source))
+  check_bounded_group_evaluation_stop(control, execution.unwrap(), source)
 }
 
 ///|
@@ -520,20 +532,7 @@ test "bounded analytic stops after positive work without publishing" {
     bounded_analytic_schema, "[{\"id\":2,\"amount\":5},{\"id\":1,\"amount\":null},{\"id\":3,\"amount\":7}]",
     bounded_analytic_operation, "analytic_0", false,
   )
-  let execution = started.unwrap()
-  for _ in 0..<40 {
-    assert_true(
-      advance_bounded_group_execution(execution, 1)
-      is Ok(BoundedGroupContinue(..)),
-    )
-  }
-  assert_true(@bounded.request_cancel(control))
-  assert_true(
-    advance_bounded_group_execution(execution, 1)
-    is Ok(BoundedGroupStopped(_, ..)),
-  )
-  assert_true(cleanup_bounded_group_execution(execution).unwrap())
-  assert_true(completed_output_available(source))
+  check_bounded_group_evaluation_stop(control, started.unwrap(), source)
 }
 
 ///|

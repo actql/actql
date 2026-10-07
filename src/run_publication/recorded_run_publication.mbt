@@ -75,3 +75,55 @@ pub fn recorded_run_publication_current(
 ) -> Bool {
   run_publication_start_current(recorded.admission, recorded.definition, at)
 }
+
+///|
+/// Match the original scope and lifetime for cleanup only. This is not a
+/// current execution authorization and does not extend either deadline.
+pub fn recorded_run_publication_has_original_context(
+  recorded : RecordedRunPublication,
+  scope_id : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+) -> Bool {
+  contract_string(recorded.definition, "scope_id") == Some(scope_id) &&
+  contract_string(recorded.definition, "run_id") == Some(run_id) &&
+  contract_string(recorded.definition, "created_at") == Some(created_at) &&
+  contract_string(recorded.definition, "valid_until") == Some(valid_until)
+}
+
+///|
+/// Bind a checked graph to the original admitted Plan for cleanup. A newer
+/// Template or executable Plan is neither issued nor substituted. Matching
+/// these facts grants no execution, borrow, publication or capacity return.
+pub fn recorded_run_publication_matches_cleanup_graph(
+  recorded : RecordedRunPublication,
+  program_definition_cid : String,
+  program_semantics_cid : String,
+  check_environment_cid : String,
+  parameter_values_cid : String,
+  invocation_bindings_cid : String,
+  aoa_logical_cid : String,
+) -> Bool {
+  check_run_publication_program_binding(
+    recorded.admission,
+    recorded.definition,
+    program_definition_cid,
+    program_semantics_cid,
+    check_environment_cid,
+  )
+  is Ok(_) &&
+  run_definition_has_empty_initial_input_artifact_set(recorded.definition) &&
+  contract_string_from_value(
+    recorded.admission.template.value,
+    "parameter_values_cid",
+  ) ==
+  Some(parameter_values_cid) &&
+  contract_string_from_value(
+    recorded.admission.template.value,
+    "invocation_bindings_cid",
+  ) ==
+  Some(invocation_bindings_cid) &&
+  contract_string(recorded.admission.compiled_plan, "aoa_logical_cid") ==
+  Some(aoa_logical_cid)
+}
