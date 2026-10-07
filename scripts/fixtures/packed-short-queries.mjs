@@ -42,6 +42,40 @@ async function exercise(db, counter, label) {
   assert.equal(first.then, undefined);
   assert.equal(getSubmissionInput(first).requestId, savedId);
   assert.deepEqual(await query.all(), [{id: 1}, {id: 2}]);
+  const schema = {'~standard': {version: 1, vendor: 'packed-test', async validate(value) {
+    if (value === null || typeof value !== 'object' || typeof value.id !== 'number') {
+      return {issues: [{message: 'Expected numeric id', path: ['id']}]};
+    }
+    return {value: {label: `id-${value.id}`, at: new Date(value.id)}};
+  }}};
+  const expected = [{label: 'id-1', at: new Date(1)}, {label: 'id-2', at: new Date(2)}];
+  assert.deepEqual(await query.all(schema), expected);
+  assert.deepEqual(await first.all(schema), expected);
+  const typedRows = first.rows(schema);
+  assert.deepEqual(await Array.fromAsync(typedRows), expected);
+  assert.equal(typedRows.rowsYielded(), 2); assert.equal(typedRows.state(), 'complete');
+  const rejectsSecond = {'~standard': {version: 1, vendor: 'packed-test', validate(value) {
+    return value.id === 1 ? {value: 'first'} :
+      {issues: [{message: 'Second row refused', path: ['id']}]};
+  }}};
+  await assert.rejects(query.all(rejectsSecond), error =>
+    error.code === 'ResultValidationFailed' && error.validationKind === 'issues' &&
+    error.rowIndex === 1 && error.rowsYielded === 0 &&
+    error.resultRef.resultName === first.ref.resultName &&
+    error.resultRef.run.runDefinitionCid === first.ref.run.runDefinitionCid &&
+    error.issues[0].path[0] === 'id');
+  const invalid = first.rows(rejectsSecond), iterator = invalid[Symbol.asyncIterator]();
+  assert.deepEqual(await iterator.next(), {done: false, value: 'first'});
+  await assert.rejects(iterator.next(), {code: 'ResultValidationFailed',
+    attemptId: invalid.attemptId, rowIndex: 1, rowsYielded: 1});
+  let validates = 0;
+  const mutates = {'~standard': {version: 1, vendor: 'packed-test', validate(value) {
+    validates++; delete value.id; return {value: null};
+  }}};
+  await assert.rejects(query.all(mutates, {maxRetainedValueBytes: 270}),
+    {code: 'ResultRetainedLimit', rowsYielded: 0});
+  assert.equal(validates, 1, `${label}: raw collection charge precedes mutation`);
+
   assert.deepEqual(await query.all(), [{id: 1}, {id: 2}]);
   const one = first.rows(), two = first.rows();
   assert.notEqual(one.attemptId, two.attemptId);
@@ -111,6 +145,9 @@ try {
       assert.equal(getSubmissionInput(error).requestId, 'https-lost'); return true;
     });
     await assert.rejects(query.all(), error => error === original);
+    await assert.rejects(query.all({'~standard': {}}), error => error === original);
+    await assert.rejects(query.one({get maxRows() {throw new Error('local capture');}}),
+      error => error === original);
     const found = await remote.lookupRequest('https-lost');
     assert.equal(found.kind, 'found');
     const execution = await remote.attach(found.ref);
@@ -135,9 +172,12 @@ try {
     assert.equal(getSubmissionInput(error).requestId, 'held-query'); return true;
   });
   await assert.rejects(query, error => error === original);
+  await assert.rejects(query.all({'~standard': {}}), error => error === original);
+  await assert.rejects(query.scalar({get maxRows() {throw new Error('local capture');}}),
+    error => error === original);
   const observation = await held.lookupRequest('held-query');
   assert.equal(observation.kind, 'held');
   assert.equal(observation.prepareAttemptId, original.held.prepareAttemptId);
   assert.equal(heldAuthorization.count(), 0);
 } finally {await held.close();}
-console.log('Packed short-query Local/HTTPS: default open, rows, same Run, read limits, lost reply and held request passed');
+console.log('Packed short-query Local/HTTPS: default open, raw/typed rows, schema failures, same Run, read limits, lost reply and held request passed');

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inspect} from 'node:util';
 import {ClientError, connect, getSubmissionInput, explainSubmission,
-  explainDeliveryAttempt} from './index.mjs';
+  explainDeliveryAttempt, explainReadFailure} from './index.mjs';
 import {createServer} from 'node:http';
 
 const fetchContexts = new WeakSet();
@@ -31,6 +31,47 @@ const noSecret = value => {
     assert.equal(output.includes(dsn), false);
   }
 };
+
+for (const validationKind of ['issues', 'exception']) {
+  test(`DSN typed ${validationKind} preserves validation and sanitized cleanup uncertainty`, async t => {
+    const calls = [];
+    let cancelled = 0;
+    stubFetch(t, async (url, options) => {
+      const operation = url.pathname.split('/').at(-1);
+      calls.push(operation);
+      if (operation === 'connect') return Response.json(profile());
+      if (operation === 'attach') return Response.json({ref, durability: 'durable', revision: 1});
+      assert.equal(operation, 'read');
+      assert.equal(options.headers.authorization, `Bearer ${secret}`);
+      return new Response(new ReadableStream({
+        start(controller) {controller.enqueue(new TextEncoder().encode('{"n":1}\n'));},
+        cancel() {cancelled++; throw new Error(secret);},
+      }));
+    });
+    const client = await connect(dsn);
+    t.after(() => client.close());
+    const result = (await client.attach(ref)).result('answer');
+    const issues = [{message: 'Expected a different row', path: ['n']}];
+    const schema = {'~standard': {version: 1, vendor: 'dsn-integration', validate() {
+      if (validationKind === 'exception') throw new Error(secret);
+      return {issues};
+    }}};
+    await assert.rejects(result.all(schema), error => {
+      assert.equal(error.code, 'ResultValidationFailed');
+      assert.equal(error.validationKind, validationKind);
+      assert.equal(error.rowIndex, 0);
+      assert.equal(error.rowsYielded, 0);
+      assert.deepEqual(error.resultRef, result.ref);
+      assert.equal(explainReadFailure(error).cleanup, 'unknown');
+      assert.equal(error.cleanupError.message, 'ResultReadCleanupUnknown');
+      if (validationKind === 'issues') assert.equal(error.issues, issues);
+      noSecret(error);
+      return true;
+    });
+    assert.equal(cancelled, 1);
+    assert.deepEqual(calls, ['connect', 'attach', 'read']);
+  });
+}
 
 test('invalid HTTP DSNs and guessed object flags cannot retrieve credentials or select plaintext', async t => {
   let credentials = 0, requests = 0;
