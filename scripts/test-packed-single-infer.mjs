@@ -101,7 +101,7 @@ async ({root, directory, run, recordTarball}) => {
         providerFixture: pathToFileURL(join(root, 'model-provider-binding-fixture.mjs')).href,
         environment: join(root, 'base-environment.json')}}));
     const args = nodeTestArguments(['--test-name-pattern',
-      cancellationOnly ? '^public Model (local|https): (?:cancellation of a waiting Run fences all sends across restart|lost fence acknowledgement retains original pending cancellation across restart|original cancellation survives (?:before|after) final COMMIT reply loss|cancellation retains a sent unknown across restart|cancellation after one saved response retains it and prevents later sends)$'
+      cancellationOnly ? '^public Model (local|https): (?:cancellation of a waiting Run fences all sends across restart|lost fence acknowledgement retains original pending cancellation across restart|original cancellation survives (?:before|after) final COMMIT reply loss|sent unknown retains original cancellation after (?:before|after) final COMMIT reply loss|cancellation retains a sent unknown across restart|cancellation after one saved response retains it and prevents later sends)$'
         : approvalOnly ? '^public Model (local|https): cancellation retains a sent unknown across restart$'
         : '^public Model(?: (?:local|https))?:',
       'adapters/host-node/model-resume-public.test.mjs']);
@@ -112,7 +112,7 @@ async ({root, directory, run, recordTarball}) => {
       env: {...runtimeEnv, ACTQL_MODEL_ACCEPTANCE_INPUTS: inputs}, timeout: 360000});
     const checked = assertTestExecution('node', process.execPath, args,
       {status: 0, stdout});
-    assert.equal(checked.counts.passed, cancellationOnly ? 12 : approvalOnly ? 2 : 44,
+    assert.equal(checked.counts.passed, cancellationOnly ? 16 : approvalOnly ? 2 : 48,
       'Both selected transports and every requested recovery case must execute');
     console.log(stdout.trimEnd());
   }
