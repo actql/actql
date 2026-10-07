@@ -72,3 +72,36 @@ callee-saved registers, indexed-header convention and existing owner's retaining
 handoff. Other targets, callback body semantics, shared referents, transient
 allocations, allocator overhead and whole-parent physical lifetime upper bounds
 remain separate obligations. No Actions or reuse authority is created.
+
+## Darwin ARM64 primitive Ref correspondence
+
+The same five existing parent Ref roles also have a restricted Darwin ARM64
+code path. The actual object and linked executable must agree on five ordered
+typed helper calls, zero/negative-one initializers, returned `x0` aliases and
+unique aligned private `x29` custody slots. The real observer must receive those
+same slots in `x2` through `x6`. Both frame-pointer and stack-pointer stores are
+translated into the same frame coordinates, so full, partial and SP-alias writes
+cannot silently replace a Ref. Frame escape, partial frame-register changes,
+unknown instructions/calls, external branch entry and a changed conditional
+incref branch reject the finite correspondence.
+
+The executed Int64, Bool and Int helper bodies must have the reviewed constant
+allocation requests, scalar header, typed payload stores and return of that same
+allocation. Their requested extents are 16, 12, 12, 12 and 12 bytes, totaling 64.
+These are allocation-request facts; the 80-byte conditional Ref component is
+unchanged. No scalar GC descriptor is used as a payload-size measurement.
+
+The collector archives the actual object and independently regenerates scoped
+symbols, relocatable object disassembly and linked executable disassembly at
+final admission. Tool identities and executed binary/object digests remain bound.
+The trust boundary includes the pinned compiler/runtime, Darwin ARM64 ABI and
+LLVM/Mach-O inspection. The finite admitted calls include the existing provider
+Owner handoff and callback retirement, not arbitrary foreign code. The private
+slot check does not prove callback bodies, arbitrary aliasing or whole lifetime.
+
+Ordered callback capture correspondence remains explicitly unresolved on Darwin
+ARM64; only the existing Linux x64 decoder establishes that separate component.
+Physical allocation footprint, payload/referent overlap, allocator effects,
+Ledger generations, last-owner/GC reclamation and whole-parent upper bounds also
+remain unresolved. A historical original reinspection retains its historical
+source identity; it cannot replace a new submitted-SHA execution.
