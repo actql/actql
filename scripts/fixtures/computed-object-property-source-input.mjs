@@ -82,6 +82,10 @@ export const computedObjectPropertySuccesses = [
     + 'other AS payload FROM objects ORDER BY COALESCE(objects.payload, objects.other).score NULLS LAST, id',
   {expected: [collisionRows[3], collisionRows[4], collisionRows[1], collisionRows[0], collisionRows[2]],
     columns: collisionColumns}),
+  success('member-case-qualified-reuse', 'SELECT id, COALESCE(payload, other).SCORE AS original_score, '
+    + 'other AS payload FROM objects ORDER BY COALESCE(`objects`.`payload`, `objects`.`other`).`score` NULLS LAST, id',
+  {expected: [collisionRows[3], collisionRows[4], collisionRows[1], collisionRows[0], collisionRows[2]],
+    columns: collisionColumns}),
   success('current-and-snapshot', 'FROM objects AS before |> SET payload = other '
     + '|> SELECT id, COALESCE(before.payload, before.other).score AS original_score, '
     + 'COALESCE(payload, other).score AS score |> ORDER BY id', {

@@ -426,7 +426,7 @@ fn same_expression(
         pending.push((a_child, b_child))
       }
       (Property(a_child, a_name), Property(b_child, b_name)) => {
-        if a_name.value != b_name.value {
+        if !same_name(a_name, b_name) {
           return false
         }
         pending.push((a_child, b_child))
@@ -440,7 +440,8 @@ fn same_expression(
 ///|
 // GROUP expressions resolve against one input snapshot. A range-qualified
 // receiver and its unqualified spelling may denote the same physical value.
-// Unknown receivers never prove equality; property names retain their values.
+// Unknown receivers never prove equality. Member spelling follows Frontend
+// lookup; common typing must still establish a unique declared field.
 fn same_group_reference(
   left : Array[@query.NamePart],
   right : Array[@query.NamePart],
@@ -476,7 +477,7 @@ fn same_group_reference_in_scopes(
         return false
       }
       for index in 0..<(left.length() - a_length) {
-        if left[a_length + index].value != right[b_length + index].value {
+        if !same_name(left[a_length + index], right[b_length + index]) {
           return false
         }
       }

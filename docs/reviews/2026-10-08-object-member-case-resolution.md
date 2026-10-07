@@ -1,7 +1,7 @@
 # Object member spelling: checked Frontend counterexamples
 
-Status: Frontend repair in progress; focused Relation/parameter checks pass.
-Public packed acceptance and complete feature coverage remain unverified.
+Status: Frontend repair in progress; selected packed Local/HTTPS acceptance
+passes at the recorded clean source. Complete feature coverage remains open.
 Source: `62ebd828c4731d7b78d54241a63a532996630c2a`.
 This is separate from #933's grouped implicit-alias repair.
 
@@ -207,3 +207,57 @@ selected packed Local/HTTPS cases; review preparation work accounting and
 additional typed producer outputs (Graph/INFER/NEAREST and unsupported schema
 transitions). No full Core, Wasm/native, proof, performance or required CI
 success is claimed. The complete Frontend objective remains open.
+
+## Clean distribution acceptance and independent reuse correction
+
+Draft PR: #942. Clean source
+`a2f2c20f2bf5411b11b7e6c96251ca4032587f09` normally merged main
+`d7fe0f11a90e898bce5004bb20dc1dd3522771a5`. Guard `run-RGXrJj` executes
+the seven member tests successfully at that source. Guard `run-uYjeYX` builds
+the normal five packages once and reuses them for both selected external
+consumers; it is passed/complete and its locks are released.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-member-a2f2c20f2-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-member-a2f2c20f2-pack node scripts/test-packed-public-query.mjs --implicit-property-only
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-member-a2f2c20f2-pack node scripts/test-packed-public-query.mjs --computed-object-property-only
+```
+
+The implicit-property consumer has 13 normal cases and five preparation
+refusals per Local/HTTPS transport. The computed-receiver consumer has ten
+normal cases, five preparation refusals and one demanded-receiver execution
+failure per transport. Independent rows/contracts, aliases versus qualified
+input snapshots, empty/nullable inputs and public column/type checks pass.
+Existing acquisition/retry checks remain. Evidence roots are
+`worktrees/.codex-scratch/public-query-evidence-wWVFc4` and
+`worktrees/.codex-scratch/public-query-evidence-o7Ug0o`. Their source records
+are clean, complete, and passed; owned installations are removed after success.
+The original manifest and receipts retain all five tarball SHA-256 digests.
+These results do not cover later commits, all Core, Wasm/native or required CI.
+
+The old qualified COALESCE count assertion was investigated before amendment.
+The selected semantics and `docs/spec/query-text.md` require reuse when both
+clauses resolve to the same input receiver. The independently written
+`computed_qualified_reuse_expected()` explicitly derives the original
+payload/other pair once, selects `original_score` and `payload = other`, then
+sorts by `original_score` and `id`. It is checked as ordinary machine input
+before comparison with source lowering. Guard `run-9Sz2Gs` proves full Program
+equality for the original qualified source, 1/1, rather than deriving an
+expected expression count from product output. The historical rejected
+count-only edit remains distinct; it was never applied.
+
+Mixed `.SCORE`/`.score` and quoted-member variants then exposed another
+Frontend defect: syntax comparison used exact property names, so identical
+resolved receivers could still produce a second derive and pre-projection
+sort. Guard `run-9qqPXP` retains the pre-fix failure (6/7). The correction
+uses existing case-insensitive field-name comparison in explicit Property
+and reference-suffix equivalence, retaining receiver-slot/prefix identity
+checks and ordinary member ambiguity/type admission. The independent Program
+is unchanged; public rows, types, limits and qualified ordering expectations
+are unchanged. A corresponding case is registered in the normal computed
+receiver corpus. Later focused/packed receipts must be attributed to their
+own source revision before this follow-up is called executed. Working-diff
+guard `run-PkxVOw` now executes the computed receiver, GROUP property and
+member-binding files: 24/24 pass, including all three mixed-case/quoted
+independent Program controls. This is focused JS evidence, not clean-source
+packed evidence for the follow-up.
