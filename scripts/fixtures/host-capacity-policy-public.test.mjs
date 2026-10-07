@@ -63,7 +63,7 @@ for (const initial of ['absent', 'undefined']) {
     assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
     assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
     assert.equal(run.ref.authorityScopeCid, scope, '[host-policy:node-captured-absence]');
-    assert.equal(client.profile.scopeRef, userInfo().username);
+    assert.equal(client.profile.scopeRef, scope);
   });
 }
 

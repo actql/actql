@@ -783,7 +783,7 @@ test('a held request is reviewed, answered and resumed by the Host',
     assert.equal(waitingExplanation.preparationState, 'waiting_checkpoint', '[check-mutation:request-held-public]');
     assert.equal(explainSubmission(held).preparationState, 'waiting_checkpoint');
     assert.deepEqual(waitingExplanation.next, {operation: 'lookupRequest', requestId: 'held-a',
-      lookupContext: {endpoint: host.options('owner-token').endpoint, scopeRef: owner}});
+      lookupContext: {endpoint: host.options('owner-token').endpoint, scopeRef: client.profile.scopeRef}});
     assert.equal(explainRequestLookup({...waitingLookup}), undefined);
 
     const reviewer = await host.as('reviewer-token');

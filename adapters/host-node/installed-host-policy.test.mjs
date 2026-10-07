@@ -93,7 +93,7 @@ for (const initial of ['absent', 'undefined']) {
     installation.hostCapacityPolicy = {...policy, max_effect_items: 4321};
     const client = await opening;
     t.after(async () => {await client.close(); await rm(directory, {recursive: true, force: true});});
-    assert.equal(client.profile.scopeRef, userInfo().username);
+    assert.equal(client.profile.scopeRef, expectedScope(directory, undefined));
     const run = await submit(client);
     assert.equal(run.ref.authorityScopeCid, expectedScope(directory, undefined),
       '[host-policy:local-captured-absence]');
@@ -174,7 +174,7 @@ test('public HTTPS restart keeps selected request identity and separates changed
   await different.close();
   const defaults = await remote(t, directory, undefined);
   assert.equal((await defaults.client.lookupRequest('policy-request')).kind, 'not_found');
-  assert.equal(defaults.client.profile.scopeRef, userInfo().username);
+  assert.equal(defaults.client.profile.scopeRef, expectedScope(directory, undefined));
   const historical = await submit(defaults.client);
   assert.equal(historical.ref.authorityScopeCid, expectedScope(directory, undefined),
     '[host-policy:historical-default-scope]');
@@ -245,3 +245,32 @@ for (const entrance of ['local', 'https']) {
     await host?.close();
   });
 }
+
+
+test('default Local connection scopes separate roots and survive the same-root restart', async t => {
+  const firstRoot = await mkdtemp(join(scratch, 'scope-first-'));
+  const secondRoot = await mkdtemp(join(scratch, 'scope-second-'));
+  t.after(async () => {
+    await rm(firstRoot, {recursive: true, force: true});
+    await rm(secondRoot, {recursive: true, force: true});
+  });
+  const first = await connect({mode: 'local', owner: 'local', installation: {directory: firstRoot}});
+  const second = await connect({mode: 'local', owner: 'local', installation: {directory: secondRoot}});
+  t.after(() => first.close()); t.after(() => second.close());
+  assert.equal(first.profile.scopeRef, expectedScope(firstRoot, undefined));
+  assert.equal(second.profile.scopeRef, expectedScope(secondRoot, undefined));
+  assert.notEqual(first.profile.scopeRef, second.profile.scopeRef);
+  const original = await submit(first, 'same-id');
+  const unrelated = await submit(second, 'same-id');
+  assert.notEqual(original.ref.authorityScopeCid, unrelated.ref.authorityScopeCid);
+  assert.equal(original.ref.authorityScopeCid, expectedScope(firstRoot, undefined));
+  assert.equal(unrelated.ref.authorityScopeCid, expectedScope(secondRoot, undefined));
+  await first.close();
+  const reopened = await connect({mode: 'local', owner: 'local', installation: {directory: firstRoot}});
+  t.after(() => reopened.close());
+  assert.equal(reopened.profile.scopeRef, first.profile.scopeRef);
+  const lookup = await reopened.lookupRequest('same-id');
+  assert.equal(lookup.kind, 'found');
+  assert.deepEqual(lookup.ref, original.ref);
+  assert.deepEqual((await reopened.attach(lookup.ref)).ref, original.ref);
+});

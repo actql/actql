@@ -155,8 +155,11 @@ scope. An explicit selection is bound into installation identity and the
 Host-issued authority scope used by request journals and Run references. Its
 policy CID covers the effective checker-consumed capacity body, including
 built-in defaults for omitted optional graph limits.
-The explicit-policy connection also reports that opaque scope in `scopeRef`,
-so retained SDK lookup context distinguishes the selection.
+Every connection reports the existing opaque authority scope in `scopeRef`,
+including the default policy. This distinguishes state roots and principals
+as well as explicit policy selections, without changing historical Run or
+request identities. Older principal-only lookup contexts do not name this
+exact scope and must not be silently translated during recovery.
 Equivalent explicit policy values retain identity across restarts; a different
 selection is a different request/authority scope, including for the same caller
 request ID. Existing references are not translated into that scope: use the
