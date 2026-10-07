@@ -303,7 +303,11 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
             Construction(
               _,
               _,
-              Application(InvalidBoundCount | InvalidBoundMilliseconds(_))
+              Application(
+                InvalidBoundCount
+                | InvalidBoundMilliseconds(_)
+                | InvalidSeriesCount(ReversedRange)
+              )
             )
           )
         )

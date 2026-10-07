@@ -444,6 +444,11 @@ try {
       altered = altered.replace(anchor, anchor.replace('captureResponse(answer)', 'answer')
         .replace('captureResponse(response)', 'response').replace('captureResponse(outcome)', 'outcome'));
     }
+    if (phase === 'operation-input-range') {
+      const capacity = '                | InvalidSeriesCount(ReversedRange)\n';
+      if (altered.split(capacity).length !== 2) throw new Error(`Capacity fault anchor not unique: ${name}`);
+      altered = altered.replace(capacity, '');
+    }
     writeFileSync(file, altered);
     if (phase.startsWith('operation-input-')) buildOperationInputRuntime();
     results.push({name, phase, rejected: !accepted(phase, assertion)});
