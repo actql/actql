@@ -1,12 +1,13 @@
 import tempfile
 import unittest
 import sqlite3
+import hashlib
 from contextlib import closing
 from pathlib import Path
 
 from catalog import CatalogRefusal, TableCatalog
 from physical import seal, PhysicalRefusal
-from physical_test import mapping
+from physical_test import mapping, schema_wire
 
 
 def request(action, name, suffix, expected=None):
@@ -39,7 +40,7 @@ class CatalogTests(unittest.TestCase):
 
     def write(self, catalog, operation, rows, reservation=None):
         return catalog.write_claimed(operation, mapping(), rows,
-                                     reservation or {"bytes": 1048576, "files": 16})
+                                     reservation or {"bytes": 1048576, "files": 16}, schema_wire())
 
     def test_create_replace_and_original_operation_after_later_commit(self):
         rows = [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2, "p": None}, {"id": 3}, {"id": 3}]
@@ -77,6 +78,55 @@ class CatalogTests(unittest.TestCase):
             self.assertIsNotNone(receipt)
             self.assertEqual(reopened.read_generation(receipt, mapping()), [{"id": 1}])
             reopened.engine.dispose()
+
+    def test_new_read_resolves_one_generation_and_preserves_presence_after_replace(self):
+        rows = [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2, "p": None}, {"id": 3}, {"id": 3}]
+        with tempfile.TemporaryDirectory(prefix="actql-table-reader-") as root:
+            writer = self.open(root)
+            writer.create_namespace("test")
+            receipt = self.write(writer, request("create", "rows", "a"), rows)
+            selector = {"catalog_identity_cid": writer.catalog_cid, "namespace": ["test"],
+                        "table_name": "rows", "table_uuid": receipt["table_uuid"],
+                        "schema_cid": mapping()["schema_cid"]}
+            writer.engine.dispose()
+            reader = self.open(root)
+            frozen = reader.resolve_generation(selector)
+            self.assertEqual(frozen, {"receipt": receipt, "mapping": mapping(), "schema_wire": schema_wire()})
+            reader.engine.dispose()
+            writer = self.open(root)
+            replacement = self.write(writer, request("replace", "rows", "b", expected(receipt)), [{"id": 9}])
+            writer.engine.dispose()
+            reopened = self.open(root)
+            self.assertEqual(reopened.read_generation(frozen["receipt"], frozen["mapping"]), rows)
+            self.assertEqual(reopened.resolve_generation(selector)["receipt"], replacement)
+            for field, value, reason in (
+                    ("table_uuid", "00000000-0000-0000-0000-000000000000", "TableReadPublicationBinding"),
+                    ("schema_cid", "sha256:" + "9" * 64, "TableReadPublicationBinding"),
+                    ("catalog_identity_cid", "sha256:" + "9" * 64, "ForeignReadCatalog"),
+                    ("table_name", "missing", "TableReadNotFound")):
+                with self.subTest(field=field), self.assertRaisesRegex(CatalogRefusal, reason):
+                    reopened.resolve_generation({**selector, field: value})
+            reopened.engine.dispose()
+
+    def test_empty_generation_and_missing_original_publication_record_are_not_inferred(self):
+        with tempfile.TemporaryDirectory(prefix="actql-table-reader-empty-") as root:
+            catalog = self.open(root)
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "c"), [])
+            selector = {"catalog_identity_cid": catalog.catalog_cid, "namespace": ["test"],
+                        "table_name": "rows", "table_uuid": receipt["table_uuid"],
+                        "schema_cid": mapping()["schema_cid"]}
+            frozen = catalog.resolve_generation(selector)
+            self.assertEqual(frozen["mapping"], mapping())
+            self.assertEqual(catalog.read_generation(frozen["receipt"], frozen["mapping"]), [])
+            # A head is not a substitute for the original atomic publication
+            # record. Model record corruption without modifying physical files.
+            with closing(catalog.connection()) as db:
+                db.execute("DELETE FROM actql_table_commits WHERE request_cid=?", (receipt["request_cid"],))
+                db.commit()
+            with self.assertRaisesRegex(CatalogRefusal, "TableReadPublicationRecord"):
+                catalog.resolve_generation(selector)
+            catalog.engine.dispose()
 
     def test_record_failure_rolls_back_catalog_head_not_only_receipt(self):
         with tempfile.TemporaryDirectory(prefix="actql-table-atomic-") as root:
@@ -126,6 +176,55 @@ class CatalogTests(unittest.TestCase):
                 self.assertEqual(allocated, (1,))
             with self.assertRaisesRegex(PhysicalRefusal, "ExistingAllocationReconcileOnly"):
                 self.write(catalog, operation, [])
+            catalog.engine.dispose()
+
+    def test_logical_schema_is_saved_with_extents_through_replace_and_restart(self):
+        # Independently authored complete logical contract, not derived from
+        # the physical string discriminator or a schema inferred from rows.
+        wire = schema_wire().replace('"nullable":true,"type":"string"',
+                                     '"max_utf8_bytes":32,"nullable":true,"type":"string"')
+        schema = hashlib.sha256(wire.encode('utf-8')).hexdigest()
+        physical = seal({**{k: v for k, v in mapping().items() if k != 'mapping_cid'},
+                         'schema_cid': 'sha256:' + schema}, 'mapping_cid')
+        def operation(action, suffix, old=None):
+            base = request(action, 'rows', suffix, old)
+            return seal({**{k: v for k, v in base.items() if k != 'request_cid'},
+                         'schema_cid': physical['schema_cid'],
+                         'storage_mapping_cid': physical['mapping_cid']}, 'request_cid')
+        with tempfile.TemporaryDirectory(prefix='actql-table-schema-') as root:
+            catalog = self.open(root)
+            catalog.create_namespace('test')
+            first = operation('create', '1')
+            receipt = catalog.write_claimed(first, physical, [], {'bytes':1048576, 'files':16}, wire)
+            selector = {'catalog_identity_cid': first['catalog_identity_cid'], 'namespace':['test'],
+                        'table_name':'rows', 'table_uuid':receipt['table_uuid'],
+                        'schema_cid':physical['schema_cid']}
+            frozen = catalog.resolve_generation(selector)
+            self.assertEqual(frozen['schema_wire'], wire)
+            self.assertEqual(catalog.read_generation(receipt, physical), [])
+            second = operation('replace', '2', expected(receipt))
+            catalog.write_claimed(second, physical, [{'id':1}, {'id':2, 'p':None}],
+                                  {'bytes':1048576, 'files':16}, wire)
+            catalog.engine.dispose()
+            reopened = self.open(root)
+            self.assertEqual(reopened.resolve_generation(selector)['schema_wire'], wire)
+            self.assertEqual(reopened.read_generation(frozen['receipt'], frozen['mapping']), [])
+            self.assertEqual(reopened.reconcile(first), receipt)
+            reopened.engine.dispose()
+
+    def test_missing_or_foreign_logical_schema_refuses_before_staging(self):
+        with tempfile.TemporaryDirectory(prefix='actql-table-schema-refusal-') as root:
+            catalog = self.open(root)
+            catalog.create_namespace('test')
+            operation = request('create', 'rows', '1')
+            for wire, reason in [(None, 'MissingTableLogicalSchema'),
+                                 ('{}', 'TableLogicalSchemaIdentity'),
+                                 (schema_wire() + ' ', 'TableLogicalSchemaIdentity')]:
+                with self.assertRaisesRegex(CatalogRefusal, reason):
+                    catalog.write_claimed(operation, mapping(), [], {'bytes':1048576, 'files':16}, wire)
+                self.assertFalse(catalog.table_exists(('test', 'rows')))
+                self.assertIsNone(catalog.reconcile(operation))
+                self.assertFalse((Path(root) / 'warehouse').exists())
             catalog.engine.dispose()
 
 

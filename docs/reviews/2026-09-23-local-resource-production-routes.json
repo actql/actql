@@ -4869,6 +4869,34 @@
       },
       "boundary_tests": [
         {
+          "role": "join_compound_metadata_limit",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_metadata_cursor_wbtest.mbt",
+          "fixture": "join metadata preserves literal exact and one short preparation work"
+        },
+        {
+          "role": "join_compound_metadata_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_join_wbtest.mbt",
+          "fixture": "empty bounded join has independent exact work and workspace limits"
+        },
+        {
+          "role": "join_compound_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_metadata_cursor_wbtest.mbt",
+          "fixture": "join metadata yields within long Unicode source and output names"
+        },
+        {
+          "role": "join_compound_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_metadata_cursor_wbtest.mbt",
+          "fixture": "join cancellation retains borrowed inputs at each metadata cursor boundary"
+        },
+        {
           "role": "join_compound_output_port_limit",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5090,6 +5118,14 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "join_compound_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained join source metadata preserves results and post-progress custody",
+          "case": "compoundCompletionProgram"
+        },
         {
           "role": "join_compound_output_port_public",
           "suite": "node:embedded_property_names",
@@ -5487,6 +5523,50 @@
         "symbol": "global_count_provider"
       },
       "boundary_tests": [
+        {
+          "role": "count_compound_metadata_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/count_sequence_metadata_cursor_wbtest.mbt",
+          "fixture": "count metadata preserves independent exact and one short work"
+        },
+        {
+          "role": "count_compound_metadata_workspace",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/count_sequence_metadata_cursor_wbtest.mbt",
+          "fixture": "count and sequence metadata reserve exact and one short workspace"
+        },
+        {
+          "role": "count_compound_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/count_sequence_metadata_cursor_wbtest.mbt",
+          "fixture": "count metadata resumes long Unicode names without changing groups"
+        },
+        {
+          "role": "count_compound_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/count_sequence_metadata_cursor_wbtest.mbt",
+          "fixture": "count cancellation retains inputs within every name processing phase"
+        },
         {
           "role": "group_unary_output_port_limit",
           "suite": "moon:execution_relation",
@@ -6093,6 +6173,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "count_compound_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained COUNT source metadata preserves counts and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
         {
           "role": "group_unary_output_port_public",
           "suite": "node:embedded_property_names",
@@ -12953,6 +13043,78 @@
       },
       "boundary_tests": [
         {
+          "role": "sequence_position_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/sequence_position_cursor_wbtest.mbt",
+          "fixture": "sequence positions preserve independent rows and logical work across quanta"
+        },
+        {
+          "role": "sequence_position_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/sequence_position_cursor_wbtest.mbt",
+          "fixture": "sequence position reserve rejects one short before copying"
+        },
+        {
+          "role": "sequence_position_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/sequence_position_cursor_wbtest.mbt",
+          "fixture": "sequence cancels position copying and collection release without losing custody"
+        },
+        {
+          "role": "sequence_position_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/sequence_position_cursor_wbtest.mbt",
+          "fixture": "sequence match position copy yields before publishing a complete match"
+        },
+        {
+          "role": "sequence_compound_metadata_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/count_sequence_metadata_cursor_wbtest.mbt",
+          "fixture": "sequence metadata preserves long name exact and one short work"
+        },
+        {
+          "role": "sequence_compound_metadata_workspace",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/count_sequence_metadata_cursor_wbtest.mbt",
+          "fixture": "count and sequence metadata reserve exact and one short workspace"
+        },
+        {
+          "role": "sequence_compound_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/count_sequence_metadata_cursor_wbtest.mbt",
+          "fixture": "sequence metadata resumes long Unicode keys snapshots and pattern roles"
+        },
+        {
+          "role": "sequence_compound_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/count_sequence_metadata_cursor_wbtest.mbt",
+          "fixture": "sequence cancellation retains snapshots at lookup predicate and output boundaries"
+        },
+        {
           "role": "sequence_compound_output_port_limit",
           "suite": "moon:execution_relation",
           "targets": [
@@ -13163,6 +13325,24 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "sequence_position_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained sequence ${overlap} position copies preserve results and cleanup custody",
+          "case": "sequencePositionProgram"
+        },
+        {
+          "role": "sequence_compound_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained sequence source metadata preserves results and post-progress custody",
+          "case": "compoundCompletionProgram"
+        },
         {
           "role": "sequence_compound_output_port_public",
           "suite": "node:embedded_property_names",

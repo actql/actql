@@ -107,6 +107,103 @@ fn carrier_records(
 }
 
 ///|
+/// Read the existing Relation schema identity's finite field-contract map.
+/// Conditional entries are not optional fields of an ordinary object value.
+/// The enclosing owner has already measured the complete body; child contract
+/// admission and field reconstruction also share explicit cumulative bounds.
+fn carrier_relation_records(
+  fields : @decode.Cursor,
+  limits : @graph.Limits,
+  max_work : Int,
+) -> (@carrier.Knowledge, Int) raise CarrierStop {
+  let names = @decode.object_field_names(fields).unwrap_or_else(() => {
+    carrier_fail(InvalidBody, fields)
+  })
+  if names.length() > limits.max_nodes || names.length() > max_work {
+    carrier_fail(WorkLimit, fields)
+  }
+  let object = @decode.open_object(fields).unwrap()
+  let entries = []
+  let mut nodes = limits.max_nodes
+  let mut bytes = limits.max_bytes
+  let mut work = max_work - names.length()
+  for name in names {
+    let entry = carrier_required(object, name, fields)
+    let members = @decode.open_object(entry).unwrap_or_else(() => {
+      carrier_fail(InvalidBody, entry)
+    })
+    let conditional = @decode.lookup(members, "presence") is Some(_)
+    let contract_cursor = if conditional {
+      if @decode.closed_object(entry, ["contract", "presence"]) is Err(_) ||
+        carrier_name(members, "presence", entry) != "conditional" {
+        carrier_fail(InvalidBody, entry)
+      }
+      carrier_required(members, "contract", entry)
+    } else {
+      entry
+    }
+    let (contract, used_nodes, used_bytes) = match
+      @value_contract.read_checked_usage(contract_cursor, {
+        max_nodes: nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: bytes,
+      }) {
+      Ok(value) => value
+      Err(issue) => carrier_fail(InvalidType(issue), contract_cursor)
+    }
+    if used_nodes > work {
+      carrier_fail(WorkLimit, contract_cursor)
+    }
+    nodes -= used_nodes
+    bytes -= used_bytes
+    work -= used_nodes
+    entries.push(
+      (
+        @row.Unqualified(name),
+        contract,
+        if conditional {
+          @row.Conditional
+        } else {
+          @row.Required
+        },
+      ),
+    )
+  }
+  let schema = @row.from_presence_fields(
+    entries,
+    max_fields=limits.max_nodes,
+    max_name_bytes=limits.max_bytes,
+  ).unwrap_or_else(() => carrier_fail(InvalidBody, fields))
+  (@carrier.typed_rows(schema), max_work - work)
+}
+
+///|
+/// Provider-neutral admission of the original Relation field-contract map.
+/// This exposes the same reader used by Catalog checking, not another schema
+/// interpretation. It establishes types/presence only, never data or authority.
+pub fn read_relation_schema_fields(
+  fields : @decode.Cursor,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+) -> Result[(@row.Schema, Int), CarrierSchemaIssue] {
+  if max_bytes < 0 || max_nodes < 0 || max_depth < 0 || max_work < 0 {
+    return Err({ kind: InvalidLimits, source: Some(fields), })
+  }
+  try {
+    let (rows, work) = carrier_relation_records(
+      fields,
+      { max_bytes, max_nodes, max_depth, },
+      max_work,
+    )
+    Ok((@carrier.complete_schema(rows).unwrap(), work))
+  } catch {
+    CarrierStop(issue) => Err(issue)
+  }
+}
+
+///|
 // The caller first measures the entire canonical body within cumulative bounds.
 // These local construction bounds cannot reset the aggregate admission budget.
 fn read_carrier_body(
@@ -115,7 +212,7 @@ fn read_carrier_body(
   max_contract_work : Int,
 ) -> (@carrier.Carrier, Int) raise CarrierStop {
   let count = @decode.object_length(root).unwrap_or(0)
-  if count != 4 && count != 6 {
+  if count != 2 && count != 4 && count != 6 {
     carrier_fail(InvalidBody, root)
   }
   let obj = @decode.open_object(root).unwrap()
@@ -123,6 +220,17 @@ fn read_carrier_body(
     return (@carrier.relation(carrier_records(root, limits)), 0)
   }
   let version = carrier_name(obj, "version", root)
+  if version == "actql-relation-schema/0.1" {
+    if @decode.closed_object(root, ["version", "fields"]) is Err(_) {
+      carrier_fail(InvalidBody, root)
+    }
+    let (rows, work) = carrier_relation_records(
+      carrier_required(obj, "fields", root),
+      limits,
+      max_contract_work,
+    )
+    return (@carrier.relation(rows), work)
+  }
   if version == "actql-graph-contract/0.1" {
     return match @graph.read_cursor_usage(root, limits, max_contract_work~) {
       Ok((v, used)) => (@carrier.graph_carrier(@graph.graph(v)), used)

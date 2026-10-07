@@ -13,6 +13,7 @@ pub(all) enum RowSourceIssue {
   MissingField(String)
   UnexpectedField(String)
   Value(String)
+  Presence(@execution.RelationPresenceIssue)
   Capture(@execution.CaptureIssue)
   Closed
 } derive(Debug)
@@ -26,7 +27,7 @@ struct RowSourcePreparation {
   owner : @lower.BoundPrepared
   input_index : Int
   columns : Array[String]
-  contracts : Array[@contract.Contract]
+  schema : @schema.Schema
 }
 
 ///|
@@ -86,7 +87,6 @@ pub fn prepare_declared_row_source(
     return Err(InvalidInputSchema)
   }
   let columns = []
-  let contracts = []
   for index in 0..<@schema.field_count(schema) {
     let field = @schema.field_at(schema, index).unwrap()
     let name = @schema.field_reference_name(field)
@@ -94,12 +94,11 @@ pub fn prepare_declared_row_source(
       return Err(InvalidInputSchema)
     }
     columns.push(name)
-    contracts.push(@schema.field_contract(field))
   }
   if columns.is_empty() {
     return Err(InvalidInputSchema)
   }
-  Ok({ requirement, view, owner, input_index, columns, contracts, })
+  Ok({ requirement, view, owner, input_index, columns, schema, })
 }
 
 ///|
@@ -130,6 +129,7 @@ priv struct RowSourceRead {
   input : @execution.AdmittedInput
   page_limits : RowPageLimits
   values : @admitted.Limits
+  retention : @execution.ValueLimits
   mut pages : Int
   mut rows : Int
   mut open : Bool
@@ -165,6 +165,7 @@ fn begin_row_source_read(
           max_depth: retention.max_depth,
           max_text_bytes: retention.max_text_bytes,
         },
+        retention,
         pages: 0,
         rows: 0,
         open: true,
@@ -194,9 +195,9 @@ fn[T] fail_read(
 
 ///|
 /// Admit one page: a JSON array of objects keyed by declared field names.
-/// A row must carry every declared field the checked input uses; a key that
-/// is not a declared field refuses the page; `null` is admitted only where
-/// the checked contract is nullable.
+/// Required columns cannot disappear. Conditional columns retain omission
+/// separately from NULL under the exact checked input schema. Undeclared keys
+/// and values outside that schema still refuse the whole acquisition.
 fn accept_row_source_page(
   read : RowSourceRead,
   bytes : Bytes,
@@ -229,33 +230,83 @@ fn accept_row_source_page(
   }
   let preparation = read.preparation
   for item in items {
-    guard @decode.object_field_names(item) is Ok(names) &&
-      @decode.open_object(item) is Ok(object) else {
-      return fail_read(read, InvalidPage)
-    }
-    for name in names {
-      if !preparation.view.fields.contains(name) {
-        return fail_read(read, UnexpectedField(name))
-      }
-    }
-    let row = []
-    for index, name in preparation.columns {
-      guard @decode.lookup(object, name) is Some(cell) else {
-        return fail_read(read, MissingField(name))
-      }
-      match @admitted.admit(preparation.contracts[index], cell, read.values) {
-        Ok(value) => row.push(value)
-        Err(_) => return fail_read(read, Value(name))
-      }
-    }
-    match @execution.append_admitted_input(read.input, row) {
+    match
+      append_row_source_object(
+        read.input,
+        preparation.schema,
+        preparation.view.fields,
+        item,
+        read.values,
+        read.retention,
+      ) {
       Ok(_) => ()
-      Err(issue) => return fail_read(read, Capture(issue))
+      Err(issue) => return fail_read(read, issue)
     }
   }
   read.pages = read.pages + 1
   read.rows = read.rows + items.length()
   Ok(items.length())
+}
+
+///|
+// Keep page admission on the existing exact-input owner. A physical reader
+// never supplies presence guarantees, substitutes contracts or manufactures
+// NULL for an omitted cell. Dense sources retain their existing copy path.
+fn append_row_source_object(
+  input : @execution.AdmittedInput,
+  schema : @schema.Schema,
+  declared_fields : Array[String],
+  item : @decode.Cursor,
+  values : @admitted.Limits,
+  retention : @execution.ValueLimits,
+) -> Result[Unit, RowSourceIssue] {
+  guard @decode.object_field_names(item) is Ok(names) &&
+    @decode.open_object(item) is Ok(object) else {
+    return Err(InvalidPage)
+  }
+  for name in names {
+    if !declared_fields.contains(name) {
+      return Err(UnexpectedField(name))
+    }
+  }
+  let dense = @schema.all_fields_required(schema)
+  let row : Array[@admitted.CheckedValue] = []
+  let cells : Array[@admitted.CheckedValue?] = []
+  for index in 0..<@schema.field_count(schema) {
+    let field = @schema.field_at(schema, index).unwrap()
+    let name = @schema.field_reference_name(field)
+    match @decode.lookup(object, name) {
+      None => {
+        if @schema.field_presence(field) == @schema.Required {
+          return Err(MissingField(name))
+        }
+        cells.push(None)
+      }
+      Some(cell) => {
+        let checked = match @admitted.admit(field.contract, cell, values) {
+          Ok(value) => value
+          Err(_) => return Err(Value(name))
+        }
+        if dense {
+          row.push(checked)
+        } else {
+          cells.push(Some(checked))
+        }
+      }
+    }
+  }
+  if dense {
+    @execution.append_admitted_input(input, row).map_err(issue => Capture(issue))
+  } else {
+    let admitted = match
+      @execution.admit_relation_row(schema, cells, retention) {
+      Ok(value) => value
+      Err(issue) => return Err(Presence(issue))
+    }
+    @execution.append_admitted_input_presence(input, admitted).map_err(issue => {
+      Capture(issue)
+    })
+  }
 }
 
 ///|

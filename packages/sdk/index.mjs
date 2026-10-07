@@ -1130,10 +1130,20 @@ async function connectSelected(selected, port) {
   let profile;
   try { profile = await controlValue(profileResponse); }
   catch (cause) { throw new ClientError('InvalidHostProfile', {cause}); }
-  if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
-  const confirmed = Object.freeze({...profile,
-    capabilities: Object.freeze([...profile.capabilities]),
-    limits: Object.freeze({...profile.limits})});
+  try {
+    // Negotiated scope and limits use the same owned observation as later
+    // replies. Neither validation nor conversion may rebind that context.
+    profile = captureResponse(profile);
+    if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
+    const observation = profile;
+    const observedKey = structuralKey(profile);
+    profile = structuredClone(profile);
+    if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
+    if (structuralKey(profile) !== observedKey) fail('InvalidHostProfile');
+    if (structuralKey(observation) !== observedKey) fail('InvalidHostProfile');
+    profile = observation;
+  } catch { fail('InvalidHostProfile'); }
+  const confirmed = freezeInput(profile);
 
   const execution = admission => {
     if (!validClientAdmission(admission, selected.wire)) {
@@ -1719,7 +1729,16 @@ async function connectSelected(selected, port) {
       let admitted;
       try { admitted = await controlValue(response); }
       catch (cause) { throw new ClientError('InvalidHostAdmission', {cause}); }
-      if (!validRunRef(admitted?.ref)) fail('InvalidHostAdmission');
+      try { admitted = captureResponse(admitted); }
+      catch { fail('InvalidHostAdmission'); }
+      if (!validClientAdmission(admitted, selected.wire)) fail('InvalidHostAdmission');
+      const observedKey = structuralKey(admitted);
+      try {
+        const verification = structuredClone(admitted);
+        if (!validClientAdmission(verification, selected.wire) ||
+            structuralKey(verification) !== observedKey ||
+            structuralKey(admitted) !== observedKey) fail('InvalidHostAdmission');
+      } catch { fail('InvalidHostAdmission'); }
       if (admitted.ref.namespaceId !== requested.namespaceId ||
           admitted.ref.authorityScopeCid !== requested.authorityScopeCid ||
           admitted.ref.runDefinitionCid !== requested.runDefinitionCid) {
