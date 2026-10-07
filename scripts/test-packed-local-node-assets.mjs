@@ -8,6 +8,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {packedClientPackage, pinnedDuckDBPackage} from './packed-client-packages.mjs';
+import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -43,14 +44,7 @@ await writeFile(join(root, 'package.json'),
 run('npm', ['install', '--ignore-scripts', '--no-save', ...artifacts,
   await pinnedDuckDBPackage(repository)], root);
 const moduleRoot = join(root, 'node_modules/@actql/local-node');
-for (const name of [
-  'connectors_builtin_node/connectors_builtin_node.js',
-  'connectors/duckdb/host_node/host_node.js',
-  'connectors/salesforce/host_node/host_node.js',
-  'retained_host_bridge/retained_host_bridge.js',
-  'process_host_bridge/process_host_bridge.js',
-  'checkpoint_runtime_node/checkpoint_runtime_node.js',
-]) {
+for (const name of localNodePackageInputs(repository).runtimeFiles) {
   assert((await readFile(join(moduleRoot, '_build/js/release/build',
     name))).byteLength > 0);
 }

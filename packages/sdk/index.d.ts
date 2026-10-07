@@ -394,7 +394,7 @@ export type DynamicRow = Record<string, unknown>;
 /** Recovery locator using the existing Run and authored Result name. */
 export type ResultReference = Readonly<{run: RunReference; resultName: string}>;
 export type QueryParameters = Record<string, unknown> | null;
-export type QueryOptions = SubmissionOptions & Readonly<{
+export type QueryOptions = SubmissionIdentityOptions & Readonly<{
   signal?: AbortSignal;
   result?: string;
   parameterDeclarations?: Record<string, unknown>;
@@ -474,15 +474,16 @@ export interface Execution {
   result(name: string): Result;
 }
 
-export type SubmissionOptions = Readonly<{
-  parameters?: unknown;
-  signal?: AbortSignal;
-}> & (
+type SubmissionIdentityOptions = (
   /** Omit for deliberate new work; retain getSubmissionInput(promise) before awaiting. */
   Readonly<{submissionRef?: undefined; requestId?: never}> |
   /** requestId only asserts this original nonce; it never allocates an identity. */
   Readonly<{submissionRef: WireSubmissionRef; requestId?: string}>
 );
+export type SubmissionOptions = SubmissionIdentityOptions & Readonly<{
+  parameters?: unknown;
+  signal?: AbortSignal;
+}>;
 
 export interface Client {
   /** Allocate and retain before sending; reconnect never replaces an original ref. */

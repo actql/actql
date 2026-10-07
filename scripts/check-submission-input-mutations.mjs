@@ -1,6 +1,6 @@
 // Bounded SDK input and operation explanations reuse the named-assertion guard.
 // Import, timeout and unselected-test failures never establish detection.
-import {spawnSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 
@@ -11,7 +11,16 @@ const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const sdkAcceptance = 'packages/sdk/index.test.mjs';
 const requestAcceptance = 'packages/sdk/request-observation.test.mjs';
 const preparationAcceptance = 'adapters/host-node/remote-checkpoint-host.test.mjs';
+const operationInputAcceptance = 'adapters/host-node/client-operation-input-rejection.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase.startsWith('operation-input-')) {
+    const inputs = phase === 'operation-input-range' ? ['reversed bound range']
+      : ['empty bound vector query', 'short bound vector query', 'long bound vector query'];
+    return ['local', 'https'].flatMap(entrance => inputs.map(input => ({
+      name: `${entrance}: ${input} is rejected before admission or Compute`,
+      assertions: [{id: assertion, operator: 'strictEqual'}],
+    })));
+  }
   if (phase === 'request-record-loss') return ['local', 'https'].map(entrance => ({
     name: `${entrance}: missing submission record preserves uncertainty despite an already published Run`,
     assertions: [{id: assertion, operator: assertion === 'request-record-loss-kind' ? 'strictEqual' : 'deepStrictEqual'}],
@@ -135,6 +144,12 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['known reversed operation range loses input classification',
+    '        | Ranges(ReversedRange(_))\n', '',
+    'operation-input-range', 'operation-input-public'],
+  ['known vector query shape violation loses input classification',
+    '        | Queries(InvalidQuery(_) | DimensionMismatch(_, _, _))', '',
+    'operation-input-query', 'operation-input-public'],
   ['request record loss is presented as durable nonacceptance',
     "    answer.kind === 'not_found' ? 'lookup_unresolved'",
     "    answer.kind === 'not_found' ? 'not_accepted'",
@@ -373,7 +388,8 @@ const mutations = [
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase === 'request-cancel-preparation' ? preparationAcceptance
+  const file = phase.startsWith('operation-input-') ? operationInputAcceptance
+    : phase === 'request-cancel-preparation' ? preparationAcceptance
     : phase === 'request-record-loss' ? 'adapters/host-node/client-request-record-loss.test.mjs'
     : ['request-cancel-public', 'request-cancel-stop', 'request-cancel-loss'].includes(phase) ? cancellationAcceptance
     : phase === 'request-ended-public' ? preparationAcceptance
@@ -394,7 +410,9 @@ if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
 }
 const selected = mutations.filter(([name]) => args.length === 0 || name.includes(args[1]));
 if (!selected.length) throw new Error('No SDK mutations selected');
-const mutationPath = phase => ['check-expression-type', 'check-operation-parameter', 'check-frame-explanation'].includes(phase)
+const mutationPath = phase => phase.startsWith('operation-input-')
+  ? 'src/program_check/diagnostic_category.mbt'
+  : ['check-expression-type', 'check-operation-parameter', 'check-frame-explanation'].includes(phase)
   ? 'packages/sdk/check-reason-catalog.generated.js' : phase === 'check-schema-pin'
   ? 'packages/client-wire/client-host.generated.js'
   : phase === 'check-locale-fallback' ? 'packages/sdk/check-presentation.mjs' : path;
@@ -408,6 +426,11 @@ const captureFaults = {
   'cancellation-custody': ['try { response = captureResponse(response); }'],
   'check-custody': ['try { outcome = captureResponse(outcome); }'],
 };
+// A parent local gate already owns the worktree lock. Keep this bounded
+// compiler child in its process group rather than acquiring a nested gate.
+const buildOperationInputRuntime = () => execFileSync('moon',
+  ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'],
+  {stdio: 'inherit', timeout: 120000});
 const results = [];
 try {
   for (const [name, from, to, phase, assertion] of selected) {
@@ -422,12 +445,19 @@ try {
       altered = altered.replace(anchor, anchor.replace('captureResponse(answer)', 'answer')
         .replace('captureResponse(response)', 'response').replace('captureResponse(outcome)', 'outcome'));
     }
+    if (phase === 'operation-input-range') {
+      const capacity = '                | InvalidSeriesCount(ReversedRange)\n';
+      if (altered.split(capacity).length !== 2) throw new Error(`Capacity fault anchor not unique: ${name}`);
+      altered = altered.replace(capacity, '');
+    }
     writeFileSync(file, altered);
+    if (phase.startsWith('operation-input-')) buildOperationInputRuntime();
     results.push({name, phase, rejected: !accepted(phase, assertion)});
     writeFileSync(file, original);
   }
 } finally {
   for (const [file, original] of originals) writeFileSync(file, original);
+  if (originals.has('src/program_check/diagnostic_category.mbt')) buildOperationInputRuntime();
 }
 const restorations = new Map(selected.map(([, , , phase, assertion]) =>
   [phase + ':' + (assertion ?? 'submission-input'), {phase, assertion}]));
