@@ -2256,6 +2256,94 @@
         "anchor": "runtime-failure",
         "kind": "prose"
       }
+    },
+    {
+      "requirement_id": "actql.execution/table-actions.binding",
+      "statement_sha256": "919b1612d9fbaeb54950fc31cc3b25b8fdf0a20e04bb15c2845cadb2663b0770",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "table-actions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/table-actions.create-precondition",
+      "statement_sha256": "0077e6e94e5d83490d5db59fc4c565bcd553903c92e181a5bf76c02a1d7a10e2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "table-actions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/table-actions.replace-precondition",
+      "statement_sha256": "e276175ded93c09e38de38e9b4ebb9e68598641df2ae1d611cce5c44221d372b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "table-actions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/table-actions.publication",
+      "statement_sha256": "6cde16d58223c49c6cd1486970e7941093891e594692ba19959adc0cdc6479cb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "table-actions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/table-actions.governance",
+      "statement_sha256": "0b4f239ce7122e9c8f02ad3605daf77759a4bed07b850158b986c7c94cf26898",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "table-actions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/table-actions.presence",
+      "statement_sha256": "c025e58121aab8f5f2c6b6a0ee1c3961e274a9ac5af000f02647ce96729362bf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "table-actions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/table-actions.custody",
+      "statement_sha256": "75fc8117c1f13c033256838af929ae2c54ed41d70918e8ae481f287e87a47a00",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "table-actions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/table-actions.lifetime",
+      "statement_sha256": "87891aaddd971d4133cb0b5994977251f70c551641efc25b347b7b2b0cf7045d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "table-actions",
+        "kind": "prose"
+      }
     }
   ]
 }
