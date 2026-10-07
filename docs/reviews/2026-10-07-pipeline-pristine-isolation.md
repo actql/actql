@@ -1,9 +1,18 @@
 # Pipeline pristine execution isolation
 
-G; final target main; parent #828. Adopt current main
-`71f7a205c1839872c9fdb7c108e993ec2aa53e3b` through normal merge
-`34f9aa80fd9bf7ad778808b3c01bebba06f58663`. Preserve the parent originals,
-fresh obligations and required final check. This unit does not activate reuse.
+G; final target main. The prerequisite #815 and #828 implementations and the
+#842 editing contract are integrated. Submit this execution implementation in a
+new Draft PR targeting main, rather than adding commits to the closed #842.
+Adopt main `ae1f273bc1174e50598d86ab932daa0bc28c5f4d` through normal merge
+`65b9a58145ea6cefade209b71cad2c0c7062164a`, preserving the independently
+integrated Graph, Table and Native observations. No protected merge resolution
+is required against either real parent and all maximal merge bases. That
+inspection is not a substitute for retained-history validation.
+
+The earlier main adoption was `71f7a205c1839872c9fdb7c108e993ec2aa53e3b`
+through `34f9aa80fd9bf7ad778808b3c01bebba06f58663`. Preserve original SHA-bound
+receipts, fresh obligations and the required final check. This unit does not
+activate reuse.
 
 ## Public editing boundary
 
@@ -103,7 +112,9 @@ requested Program that retains the real semantic/log observations: the stronger
 consumer refuses it. Source revision, raw bytes and prior diagnostic results
 remain distinct from subsequent clean-HEAD execution.
 
-Run the unchanged four-case local image command again after the batched-reader
-fix. Keep image acceptance, full mutation/restoration/other-target acceptance,
+The current source includes the subsequent normal main merges. The earlier
+33-test diagnostic and four compiled originals do not establish execution of
+that new source. Run the same four-case local image command after the
+batched-reader fix and main adoption. Keep image acceptance, full mutation/restoration/other-target acceptance,
 Actions qualification, limited activation and inclusive net savings unclaimed
 until their actual evidence exists.
