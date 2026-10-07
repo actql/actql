@@ -8,7 +8,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol, runStateProtocol} from
+  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
@@ -1022,7 +1022,7 @@ async function connectSelected(selected, port) {
         const controller = new AbortController();
         const iterate = async function* () {
           if (state !== 'not_started') fail('ReadAttemptAlreadyStarted');
-          state = 'prefix';
+          state = 'opening';
           const abort = () => controller.abort();
           options.signal?.addEventListener('abort', abort, {once: true});
           if (options.signal?.aborted) controller.abort();
@@ -1053,6 +1053,7 @@ async function connectSelected(selected, port) {
                 if (retainedValueBytes(frame.value) >
                     maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
                 const row = structuredClone(frame.value);
+                state = 'prefix';
                 rowsYielded++;
                 yield row;
               }
@@ -1061,6 +1062,9 @@ async function connectSelected(selected, port) {
             } else {
               stream = response.body?.getReader();
               if (!stream) fail('InvalidResultStream');
+              // The successful HTTP opening response was received. Local
+              // frames open lazily, so their first accepted row is the ack.
+              state = 'prefix';
               const decoder = new TextDecoder('utf-8', {fatal: true});
               const acceptText = function* (text) {
                 line += text;
@@ -1112,6 +1116,9 @@ async function connectSelected(selected, port) {
           } catch (cause) {
             failure = readFailure(cause, context, rowsYielded);
           } finally {
+            // A failed opening has no authoritative no-send proof. Keep the
+            // original attempt for lookup, even when no row was received.
+            if (state === 'opening') state = 'open_unknown';
             options.signal?.removeEventListener('abort', abort);
             if (stream) {
               try {
@@ -1332,8 +1339,8 @@ async function connectSelected(selected, port) {
     })};
     let body;
     try {
-      body = freezeInput(JSON.parse(JSON.stringify({requestId, kind, input,
-        parameters: options.parameters ?? null})));
+      body = freezeInput(snapshotClientRequest({requestId, kind, input,
+        parameters: options.parameters ?? null}));
     } catch { fail('InvalidClientPayload'); }
     const snapshot = freezeInput({...body, connection: selected.wire,
       lookupContext: context.lookupContext});
@@ -1393,7 +1400,7 @@ async function connectSelected(selected, port) {
       let body;
       try {
         // Detach caller-owned objects synchronously, before credentials or I/O.
-        body = freezeInput(snapshotCheckRequest({input: {text, format: options.format,
+        body = freezeInput(snapshotClientRequest({input: {text, format: options.format,
           ...(options.parameterDeclarations === undefined ? {} :
             {parameterDeclarations: options.parameterDeclarations})},
           parameters: options.parameters ?? null}));

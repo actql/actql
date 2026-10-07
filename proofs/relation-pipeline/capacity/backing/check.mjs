@@ -16,10 +16,10 @@ const model = arrayModel + '\n' + mapModel + '\n' + nativeModel + '\n' + nativeA
 const clean = model.replace(/\/\-[\s\S]*?\-\//g, '').replace(/--[^\n]*/g, '');
 assert(!/\b(sorry|admit|axiom|native_decide|unsafe)\b/.test(clean));
 const names = ['initial_fits', 'push_fits', 'reuse_fits', 'growth_overlap', 'clear_keeps_backing', 'wrapped_doubling_triggers_fallback'];
-const mapNames = ['no_growth', 'clear_keeps_slots', 'finite_trace', 'replacement_overlap'];
+const mapNames = ['no_growth', 'clear_keeps_slots', 'finite_trace', 'three_tables'];
 const nativeArrayNames = ['input_bound', 'union_bounded', 'shared_once'];
 assert.deepEqual([...nativeArrayModel.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), nativeArrayNames);
-const nativeNames = ['table_bound', 'empty_extent', 'current_distinct', 'replacement_distinct'];
+const nativeNames = ['table_bound', 'empty_extent', 'current_distinct'];
 assert.deepEqual([...arrayModel.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), names);
 assert.deepEqual([...mapModel.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), mapNames);
 assert.deepEqual([...nativeModel.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), nativeNames);
@@ -54,15 +54,13 @@ example (h : Nat) (s : MapBacking.State) (bound : h ≤ 6)
 example (s : MapBacking.State) : (MapBacking.clear s).slots = s.slots := MapBacking.clear_keeps_slots s
 example (h : Nat) (s : MapBacking.State) (bound : h ≤ 6) (trace : MapBacking.Reach h s) :
   MapBacking.invariant h s := MapBacking.finite_trace h s bound trace
-example : 4 * MapBacking.empty.slots + MapBacking.empty.slots = 40 := MapBacking.replacement_overlap
+example : 3 * MapBacking.empty.slots = 24 := MapBacking.three_tables
 example (slots entries maximum : Nat) (table : slots = 8) (keys : entries ≤ maximum) :
   NativeMapExtent.extent slots entries ≤ NativeMapExtent.admitted maximum :=
   NativeMapExtent.table_bound slots entries maximum table keys
 example : NativeMapExtent.admitted 0 = 120 := NativeMapExtent.empty_extent
-example (w : Nat) : 2 * NativeMapExtent.admitted w + 2 * NativeMapExtent.admitted 0 = 480 + 96 * w :=
+example (w : Nat) : 2 * NativeMapExtent.admitted w + NativeMapExtent.admitted 0 = 360 + 96 * w :=
   NativeMapExtent.current_distinct w
-example (w : Nat) : 2 * NativeMapExtent.admitted w + 3 * NativeMapExtent.admitted 0 = 600 + 96 * w :=
-  NativeMapExtent.replacement_distinct w
 `;
 const result = spawnSync('lean', ['-DwarningAsError=true', '--stdin'], { encoding: 'utf8',
   input: model + expected + names.map(n => `\n#print axioms ArrayBacking.${n}`).join('') +
@@ -76,6 +74,6 @@ for (const [, axioms] of result.stdout.matchAll(/depends on axioms: \[([^\]]*)\]
 }
 console.log('6 array backing model propositions checked; byte representation and holder census remain separate');
 console.log('4 restricted Map model propositions checked; table slots are not allocation bytes');
-console.log('4 conditional native Map extent propositions checked; allocator and parent obligations remain separate');
+console.log('3 conditional native Map extent propositions checked; allocator and parent obligations remain separate');
 
 console.log('3 selected native Array extent propositions checked; complete lifetime and parent bounds remain separate');

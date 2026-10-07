@@ -8,9 +8,9 @@ export function mapBounds(testCase, registry) {
   const obligations = inputs(testCase, registry); assert.equal(obligations.length, 1);
   const w = obligations[0].width;
   assert(w >= 1 && w <= 3, 'Map no-grow premise requires the existing schema domain');
-  return { capacity: { inputOrdinals: 8, bindingOrdinals: 8, projectionOrdinals: 8, snapshot: 8 },
-    entries: { inputOrdinals: w, bindingOrdinals: 0, projectionOrdinals: w, snapshot: 0 },
-    currentTableSlots: 32, replacementOverlapTableSlots: 40,
+  return { capacity: { inputOrdinals: 8, bindingOrdinals: 8, projectionOrdinals: 8 },
+    entries: { inputOrdinals: w, bindingOrdinals: 0, projectionOrdinals: w },
+    currentTableSlots: 24,
     allocationBytes: false };
 }
 export function inspectPipelineMaps(testCase, observation, registry, requestedTarget, executionTarget) {
@@ -49,7 +49,6 @@ export function inspectPipelineMaps(testCase, observation, registry, requestedTa
     physicalBackingIdentityVerified: requestedTarget === 'native', replacementOverlapObserved: false,
     ...(requestedTarget === 'native' ? { conditionalNativeRequestedExtent: {
       currentBound: distinctMapExtent(b.entries.inputOrdinals).toString(),
-      replacementBound: distinctMapExtent(b.entries.inputOrdinals, true).toString(),
       units: 'native Map leaf requested bytes',
       remainingPremises: ['unobserved allocation/assignment overlap and complete lifetime union',
         'borrowed referents and remaining runtime allocations', 'reservation custody'],

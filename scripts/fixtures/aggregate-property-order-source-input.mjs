@@ -106,6 +106,15 @@ export const aggregatePropertyOrderSuccesses = [
     {sourceRows: [], expected: [{names: null}]}),
   success('default-all-null', 'SELECT STRING_AGG(name ORDER BY payload.score NULLS LAST, id) AS names FROM objects',
     {sourceRows: [{id: 4, amount: 40}], expected: [{names: null}]}),
+  success('delimiter-chunks-sql', "SELECT STRING_AGG(name, '' /* separator */ \"|\" '''''' ORDER BY payload.score NULLS LAST, id) AS names FROM objects"),
+  success('delimiter-chunks-pipe-raw', "FROM objects |> AGGREGATE STRING_AGG(name, r'\\n' '\\r' ORDER BY payload.score NULLS LAST, id) AS names", {
+    // The raw chunk contributes a backslash plus n; the next decoded chunk
+    // contributes CR. Neither is LF or a normalized spelling of the other.
+    expected: [{names: 'b\\n\rb\\n\ra\\n\rc'}],
+  }),
+  success('delimiter-chunks-decomposed', "SELECT STRING_AGG(name, 'e' '\\u0301' WHERE id > 0 ORDER BY payload.score NULLS LAST, id) AS names FROM objects", {
+    expected: [{names: 'be\u0301be\u0301ae\u0301c'}],
+  }),
   // ARRAY_AGG requires actual key evidence. The author supplies the existing
   // assertion and a bounded input; the Frontend never invents either condition.
   success('independent-array-json', '', {format: 'json',
@@ -129,6 +138,9 @@ export const aggregatePropertyOrderRefusals = [
   "SELECT STRING_AGG(name, 1 ORDER BY id) AS names FROM objects",
   "SELECT STRING_AGG(name, @p1 ORDER BY id) AS names FROM objects",
   "SELECT STRING_AGG(name, ORDER BY id) AS names FROM objects",
+  "SELECT STRING_AGG(name, 'a'\"b\" ORDER BY id) AS names FROM objects",
+  "SELECT STRING_AGG(name, 'a' '\\400' ORDER BY id) AS names FROM objects",
+  "SELECT STRING_AGG(name, 'a' || 'b' ORDER BY id) AS names FROM objects",
 ].map((tail, index) => ({name: 'aggregate-property-order-refuse-' + index,
   format: 'aql-text', text: data + tail, parameterDeclarations, parameters}));
 export const aggregatePropertyOrderExecutionFailures = [{
