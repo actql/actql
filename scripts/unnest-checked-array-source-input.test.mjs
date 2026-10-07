@@ -16,6 +16,11 @@ test('checked ARRAY controls retain empty schema and NULL elements independently
   assert.deepEqual(named('empty-sql').columns, [
     {name: 'element', contract: {type: 'string', nullable: false}},
     {name: 'position', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(programs.contextual.stages[0].steps[1].derive.array,
+    {if: [{literal: true}, {array: []}, {array: [{literal: 'x'}]}]});
+  assert.deepEqual(named('contextual-empty').columns, [
+    {name: 'element', contract: {type: 'string', nullable: false, max_utf8_bytes: 1}},
+    {name: 'position', contract: {type: 'number', nullable: false}}]);
   assert.deepEqual(named('nullable-sql').expected, [{element: null, position: 0}]);
   assert.deepEqual(programs.computed.stages[0].steps[1].derive.array,
     {if: [{literal: true}, {$param: 'items'}, {$param: 'items'}]});

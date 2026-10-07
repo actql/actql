@@ -20,6 +20,11 @@ const program = (expression, fields = ['element', 'position'], properties = [], 
 });
 const numeric = program({array: [{literal: 2}, {literal: 1}, {literal: 2}]});
 const empty = program({empty_array: {items: scalar('string')}});
+const contextual = program({if: [{literal: true}, {array: []}, {array: [{literal: 'x'}]}]});
+// The admitted literal x consists of exactly one UTF-8 byte. Common IF keeps
+// that element bound when the other ARRAY branch has no elements.
+const contextualColumns = [{name: 'element', contract: {...scalar('string'), max_utf8_bytes: 1}},
+  {name: 'position', contract: number}];
 const nullable = program({if: [{literal: true}, {array: [{literal: null}]},
   {empty_array: {items: scalar('boolean')}}]});
 const declarations = {items: {type: 'array', nullable: true, max_items: 3,
@@ -29,7 +34,7 @@ const declarations = {items: {type: 'array', nullable: true, max_items: 3,
 const values = {items: [{id: 2, label: 'kept'}, null, {id: 2, label: null}]};
 const computed = program({if: [{literal: true}, {$param: 'items'}, {$param: 'items'}]},
   ['id', 'label', 'position'], ['id', 'label'], declarations);
-export const unnestCheckedArrayPrograms = {numeric, empty, nullable, computed};
+export const unnestCheckedArrayPrograms = {numeric, empty, contextual, nullable, computed};
 const numericRows = [{element: 2, position: 0}, {element: 1, position: 1}, {element: 2, position: 2}];
 const objectRows = [{id: 2, label: 'kept', position: 0},
   {id: null, label: null, position: 1}, {id: 2, label: null, position: 2}];
@@ -47,7 +52,8 @@ export const unnestCheckedArraySuccesses = [
     numericRows, columns('number'), {format: 'aql-text'}),
   success('empty-json', JSON.stringify(empty), [], columns('string'), {format: 'json'}),
   success('empty-sql', sql('ARRAY<STRING>[]'), [], columns('string')),
-  success('contextual-empty', sql("IF(TRUE, [], ['x'])"), [], columns('string')),
+  success('contextual-json', JSON.stringify(contextual), [], contextualColumns, {format: 'json'}),
+  success('contextual-empty', sql("IF(TRUE, [], ['x'])"), [], contextualColumns),
   success('nullable-json', JSON.stringify(nullable), [{element: null, position: 0}], columns('boolean', true), {format: 'json'}),
   success('nullable-sql', sql('ARRAY<BOOL>[NULL]'), [{element: null, position: 0}], columns('boolean', true)),
   success('computed-json', JSON.stringify(computed), objectRows, objectColumns, {format: 'json', parameters: values}),

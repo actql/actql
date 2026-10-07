@@ -84,3 +84,20 @@ body will record its producer revision, all five package digests, evidence and
 outcomes after normal packing. These focused checks do not establish full Core,
 Wasm/Native, mandatory CI, correlated UNNEST, ordered GoogleSQL STRUCT support or
 an expanded common ARRAY capability profile.
+
+## First fresh public attempt
+
+The exact `a51ebdf215a27d661a310834a7fa7a606c4c40ac` normal five-package
+producer completed. README Local/reconnect/HTTPS and the first five Local ARRAY
+cases passed. Case six stopped on the contextual-empty fixture's omitted
+`max_utf8_bytes: 1`, not on product execution or rows. An admitted literal `x`
+has one UTF-8 byte; the common IF element contract retains that bound when its
+other ARRAY branch is empty (`expression_typing/signatures.mbt`, and the
+independent string-literal/empty-context examples in its fixed corpus).
+
+The fixture now authors that complete contract and adds an independent JSON
+IF/ARRAY control for the same empty schema. Product typing, source expression,
+expected rows, limits and refusal checks are unchanged. The failure is retained
+at `../.codex-scratch/public-query-evidence-bECuPt/010.stderr.log`; this attempt
+does not prove later cases or the new corpus's HTTPS route. Fresh normal packing
+and acceptance will use the corrected commit, not a relabeled manifest.
