@@ -6,7 +6,7 @@ import {createRequire} from 'node:module';
 import {join} from 'node:path';
 
 import test from 'node:test';
-import {valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
+import {independentCid, valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';
 import {inspect} from 'node:util';
 import * as moon from
@@ -74,7 +74,7 @@ import {authorizeLocalDatabase, revokeLocalDatabase} from
   '../connectors/duckdb/node/session.mjs';
 import {machineCid} from '../../scripts/actql-spec-family.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
-import {valuesPublicationOracle} from '../../scripts/client-values-dependency-oracle.mjs';
+import {valuesProgramOracle, valuesPublicationOracle} from '../../scripts/client-values-dependency-oracle.mjs';
 
 const {DuckDBInstance} = createRequire(new URL(
   '../connectors/duckdb/node/package.json', import.meta.url))(
@@ -189,7 +189,7 @@ test('public source preparation binds installed aliases before checking a Progra
     assert.equal(moon.clientProgramPreparationIssueCode(outcome), code);
   }
 });
-const programCid =
+const preTypedJsonProgramCid =
   'sha256:ed4ad86f18214721af7ba7531060f91b918d4976c5d76737aa0793e188dd0137';
 const parametersCid =
   'sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52';
@@ -1039,6 +1039,13 @@ function checkedValuesPublicationPlan(prepared, control,
 test('Node JS bridge derives the checked named Result and request identity', async () => {
   const {document, environment} = await checkedFixture();
   const expected = valuesPublicationOracle();
+  const expectedProgram = valuesProgramOracle();
+  const {programCid} = expectedProgram;
+  // Retain the pre-typed-JSON Definition from the independent Run vector.
+  assert.equal(independentCid({version: 'actql-program-definition/0.1',
+    id: 'client-values', program_semantics_cid:
+      'sha256:b5aaea89158ff2369b6d3d4a2a9468af6b9a7c7be1fbbf8e653c5f5f986d783f'}),
+  preTypedJsonProgramCid);
   const prepared = moon.clientProgramPrepareEffectFree(
     document, 'json', environment);
   assert.ok(prepared);
@@ -1319,7 +1326,7 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   assert.equal(moon.clientProgramResultRowContractCid(annotatedRow),
     moon.clientProgramResultRowContractCid(resultRow));
   const semanticsCid = moon.clientProgramSemanticsCid(prepared);
-  assert.match(semanticsCid, /^sha256:[a-f0-9]{64}$/u);
+  assert.equal(semanticsCid, expectedProgram.semanticsCid);
   const definition = checked(moon.clientProgramDefinitionJson(prepared));
   assert.deepEqual(JSON.parse(definition), {
     id: 'client-values', program_semantics_cid: semanticsCid,
@@ -1328,6 +1335,7 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   assert.equal(`sha256:${createHash('sha256').update(definition)
     .digest('hex')}`, programCid);
   const semantics = checked(moon.clientProgramSemanticsJson(prepared));
+  assert.deepEqual(JSON.parse(semantics), expectedProgram.semantics);
   assert.equal(`sha256:${createHash('sha256').update(semantics)
     .digest('hex')}`, semanticsCid);
   const stageSemantics = checked(
@@ -1498,8 +1506,15 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   assert.equal(moon.clientRequestParametersCid(request), parametersCid);
   assert.equal(moon.clientRequestScopeCid(request),
     'sha256:2e497e1244d7db59831b0ab81ae7dc89333babea783a102a747a55f3e7890dd3');
-  assert.equal(moon.clientRequestIntentCid(request),
+  const requestIntentCid = program => independentCid({
+    version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: cid('b'), parameter_values_cid: parametersCid,
+    program_definition_cid: program,
+  });
+  // This request vector predates the separate pre-typed-JSON Definition.
+  assert.equal(requestIntentCid(valuesProgramOracle({legacy: true}).programCid),
     'sha256:d526e372e357f6bbd1d804e385fc8d88fad9e538ec5a70058f1205af9a0a7d9d');
+  assert.equal(moon.clientRequestIntentCid(request), requestIntentCid(programCid));
   const yaml = await readFile(new URL('values.yaml', fixture), 'utf8');
   const yamlPrepared = moon.clientProgramPrepareEffectFree(
     yaml, 'yaml', environment);
