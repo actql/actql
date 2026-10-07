@@ -1,33 +1,39 @@
-import {mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
+import {lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildSync} from 'esbuild';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
+import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const destination = join(root, 'packages/local-node');
-const entries = [
-  'adapters/host-node/entry.mjs',
-  'adapters/host-node/embedded-local.mjs',
-  'adapters/host-node/captured-duckdb-source.mjs',
-  'adapters/host-node/installed-source.mjs',
-  'adapters/connectors/salesforce/host/installed-salesforce-source.mjs',
-  'adapters/host-node/installed-effect.mjs',
-  'adapters/connectors/salesforce/host/installed-salesforce-effect.mjs',
-  'adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs',
-  'adapters/host-node/local-account-config.mjs',
-  'adapters/host-node/in-process-client.mjs',
-  'adapters/host-node/client-request-journal.mjs',
-  'adapters/host-node/client-request-lookup.mjs',
-  'adapters/host-node/client-run-start.mjs',
-  'adapters/host-node/client-effect-run.mjs',
-  'adapters/host-node/installed-effect-site.mjs',
-  'adapters/host-node/client-run-attach.mjs',
-  'adapters/host-node/client-program-preparation.mjs',
-  'adapters/host-node/result-access.mjs',
-  'adapters/host-common/run-state-access.mjs',
-  'adapters/store-local/publication-store.mjs',
-];
+const inputs = localNodePackageInputs(root);
+// Validate the publishable data directory before writing through any existing
+// path. In particular, never follow an old symlink before reporting it stale.
+const expectedConnectorData = new Set(inputs.dataFiles.filter(path =>
+  path.startsWith('src/connectors/')));
+const stat = path => {
+  try { return lstatSync(join(destination, path)); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+};
+const checkConnectorData = (path = 'src/connectors') => {
+  const info = stat(path);
+  if (info === undefined) return;
+  if (!info.isDirectory()) throw new Error(`StaleLocalNodeConnectorData:${path}`);
+  for (const entry of readdirSync(join(destination, path), {withFileTypes: true})) {
+    const child = `${path}/${entry.name}`;
+    if (entry.isDirectory()) checkConnectorData(child);
+    else if (!entry.isFile() || !expectedConnectorData.has(child)) {
+      throw new Error(`StaleLocalNodeConnectorData:${child}`);
+    }
+  }
+};
+const dataParent = stat('src');
+if (dataParent && !dataParent.isDirectory()) {
+  throw new Error('StaleLocalNodeConnectorData:src');
+}
+checkConnectorData();
+const entries = inputs.adapterEntries;
 const graph = buildSync({entryPoints: entries, bundle: true,
   packages: 'external', platform: 'node', format: 'esm', target: 'node22',
   metafile: true, write: false, absWorkingDir: root,
@@ -72,17 +78,7 @@ const walk = (directory, prefix = '') => {
   }
 };
 walk(join(destination, 'adapters'));
-for (const path of [
-  'spec/dependencies/aoa-pipeline-registry.json',
-  'spec/dependencies/actql-graph-laws.json',
-  'spec/contracts/actql-aoa.json',
-  'spec/contracts/actql-numeric-reduction.json',
-  'spec/contracts/actql-capacity-host-policy.json',
-  'spec/local-check-environment.json',
-  'spec/contracts/actql-query-acquisition.json',
-  'spec/contracts/actql-query-process-evidence.json',
-  'spec/contracts/actql-query-two-receipt.json',
-]) {
+for (const path of inputs.dataFiles) {
   const bytes = readFileSync(join(root, path));
   const output = join(destination, path);
   if (process.argv.includes('--check')) {
@@ -94,3 +90,6 @@ for (const path of [
     writeFileSync(output, bytes);
   }
 }
+// This generated directory is published wholesale. Refuse a declaration
+// left behind by a removed or renamed manifest asset, even during prepack.
+checkConnectorData();
