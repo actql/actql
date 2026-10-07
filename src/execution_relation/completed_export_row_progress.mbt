@@ -1,0 +1,369 @@
+///|
+priv enum CompletedExportRowPhase {
+  Begin
+  MeasureColumn
+  MeasureName(SteppedValueMeasure)
+  MeasureCell(SteppedValueMeasure)
+  MeasureWire(SteppedRuntimeWire, @encode.Writer)
+  BeginPayload
+  BeginLogical
+  EmitColumn(Bool)
+  EmitKey(@encode.OrderedKeyEmitCursor, Bool)
+  EmitCell(SteppedRuntimeWire, Bool)
+  Complete
+}
+
+///|
+/// One row borrows its immutable source until admission and both existing
+/// canonical writers finish. Measurement precedes emission, preserving the
+/// blocking export's ordered first-failure rules and logical value charges.
+priv struct CompletedExportRowProgress {
+  workspace : RowWorkspace
+  mut column : Int
+  mut phase : CompletedExportRowPhase
+  mut closed : Bool
+}
+
+///|
+pub(all) struct CompletedOutputExportAdvance {
+  batch : String?
+  complete : Bool
+  steps : Int
+}
+
+///|
+/// Container entries for the wrapper, a possible wire handle and the two
+/// continuation frames per permitted nested level, including a spare frame.
+pub fn completed_output_export_workspace_slots(
+  values : ValueLimits,
+  wire : RowWireLimits,
+) -> Int? {
+  let depth = Int::max(values.max_depth, wire.max_depth)
+  if values.max_depth < 0 || wire.max_depth < 0 {
+    None
+  } else {
+    Some(Int64::min(2147483647L, 8L + 2L * depth.to_int64()).to_int())
+  }
+}
+
+///|
+fn close_completed_export_row(cursor : CompletedExportRowProgress) -> Unit {
+  if cursor.closed {
+    return
+  }
+  match cursor.phase {
+    MeasureName(measure) | MeasureCell(measure) =>
+      clear_stepped_measure(measure)
+    MeasureWire(wire, writer) => {
+      close_stepped_runtime_wire(wire)
+      @encode.cancel_writer(writer)
+    }
+    EmitCell(wire, _) => close_stepped_runtime_wire(wire)
+    EmitKey(key, _) => {
+      @encode.cancel_ordered_key(key)
+      release_slots(cursor.workspace, 1)
+    }
+    _ => ()
+  }
+  // This private workspace also retains a speculative key reservation if
+  // creation failed before the successor phase was installed.
+  release_slots(cursor.workspace, cursor.workspace.live)
+  cursor.closed = true
+}
+
+///|
+fn completed_export_progress_cell(
+  stream : CompletedOutputExport,
+  cursor : CompletedExportRowProgress,
+) -> Value {
+  IndexedRows::read_cell(
+    stream.rows,
+    stream.row,
+    stream.order.columns[cursor.column].1,
+  )
+}
+
+///|
+fn completed_export_progress_writer(
+  stream : CompletedOutputExport,
+  logical : Bool,
+) -> @encode.Writer {
+  if logical {
+    stream.logical_writer.unwrap()
+  } else {
+    stream.writer
+  }
+}
+
+///|
+fn begin_completed_export_cell_wire(
+  stream : CompletedOutputExport,
+  cursor : CompletedExportRowProgress,
+  writer : @encode.Writer,
+) -> Result[SteppedRuntimeWire, CompletedExportIssue] {
+  start_stepped_runtime_wire(
+    completed_export_progress_cell(stream, cursor),
+    writer,
+    cursor.workspace,
+  ).map_err(issue => {
+    match issue {
+      Workspace => Admission(CaptureLimit)
+      Encoding(issue) => Wire(Encoding(issue))
+    }
+  })
+}
+
+///|
+fn advance_completed_export_row_frame(
+  stream : CompletedOutputExport,
+  cursor : CompletedExportRowProgress,
+) -> Result[Unit, CompletedExportIssue] {
+  try {
+    match cursor.phase {
+      Begin => {
+        if IndexedRows::row_width(stream.rows, stream.row) !=
+          IndexedRows::column_count(stream.rows) {
+          return Err(Wire(InvalidLayout))
+        }
+        if !charge_node(stream.budget, 1) {
+          return Err(Admission(CaptureLimit))
+        }
+        cursor.phase = MeasureColumn
+      }
+      MeasureColumn =>
+        if cursor.column == stream.order.columns.length() {
+          cursor.column = 0
+          cursor.phase = BeginPayload
+        } else {
+          if !reserve_slots(cursor.workspace, 1) {
+            return Err(Admission(CaptureLimit))
+          }
+          cursor.phase = MeasureName({
+            frames: [SteppedTextNext(stream.order.columns[cursor.column].0, 0)],
+            workspace: cursor.workspace,
+            workspace_failed: false,
+          })
+        }
+      MeasureName(measure) | MeasureCell(measure) =>
+        match advance_stepped_measure_result(measure, stream.budget) {
+          SteppedMeasureContinue => ()
+          SteppedMeasureLimit | SteppedMeasureWorkspaceLimit =>
+            return Err(Admission(CaptureLimit))
+          SteppedMeasureComplete => {
+            clear_stepped_measure(measure)
+            if cursor.phase is MeasureName(_) {
+              let column = stream.order.columns[cursor.column].1
+              if !IndexedRows::cell_present(stream.rows, stream.row, column) {
+                if !charge_node(stream.budget, 2) {
+                  return Err(Admission(CaptureLimit))
+                }
+                cursor.column += 1
+                cursor.phase = MeasureColumn
+              } else {
+                guard start_stepped_measure_result(
+                    completed_export_progress_cell(stream, cursor),
+                    cursor.workspace,
+                  )
+                  is Some(measure) else {
+                  return Err(Admission(CaptureLimit))
+                }
+                cursor.phase = MeasureCell(measure)
+              }
+            } else {
+              let writer = @encode.measuring_writer(
+                stream.measurement_max_bytes,
+                stream.measurement_max_nodes,
+                stream.measurement_max_depth,
+              )
+              let wire = match
+                begin_completed_export_cell_wire(stream, cursor, writer) {
+                Ok(wire) => wire
+                Err(issue) => {
+                  @encode.cancel_writer(writer)
+                  return Err(issue)
+                }
+              }
+              cursor.phase = MeasureWire(wire, writer)
+            }
+          }
+        }
+      MeasureWire(wire, writer) =>
+        match advance_stepped_runtime_wire(wire) {
+          Err(Workspace) => return Err(Admission(CaptureLimit))
+          Err(Encoding(issue)) => return Err(Wire(Encoding(issue)))
+          Ok(false) => ()
+          Ok(true) => {
+            let (bytes, nodes, depth) = @encode.finish_measurement_usage(writer)
+            let column = cursor.column
+            if bytes > 2147483647 - stream.column_bytes[column] ||
+              nodes > 2147483647 - stream.column_nodes[column] {
+              return Err(Admission(CaptureLimit))
+            }
+            stream.column_rows[column] += 1
+            stream.column_bytes[column] += bytes
+            stream.column_nodes[column] += nodes
+            stream.column_max_value_bytes[column] = Int::max(
+              stream.column_max_value_bytes[column],
+              bytes,
+            )
+            stream.column_admitted_depths[column] = Int::max(
+              stream.column_admitted_depths[column],
+              depth,
+            )
+            let cell = completed_export_progress_cell(stream, cursor)
+            if cell is Null || cell is Captured(@admitted.Null) {
+              stream.column_null_rows[column] += 1
+            }
+            cursor.column += 1
+            cursor.phase = MeasureColumn
+          }
+        }
+      BeginPayload | BeginLogical => {
+        let logical = cursor.phase is BeginLogical
+        @encode.begin_ordered_object(
+          completed_export_progress_writer(stream, logical),
+        )
+        cursor.phase = EmitColumn(logical)
+      }
+      EmitColumn(logical) => {
+        let writer = completed_export_progress_writer(stream, logical)
+        if cursor.column == stream.order.columns.length() {
+          @encode.end_object(writer)
+          cursor.column = 0
+          cursor.phase = if !logical && stream.logical_writer is Some(_) {
+            BeginLogical
+          } else {
+            Complete
+          }
+        } else {
+          let (name, column) = stream.order.columns[cursor.column]
+          if !IndexedRows::cell_present(stream.rows, stream.row, column) {
+            cursor.column += 1
+          } else if name.length() > 64 {
+            if !reserve_slots(cursor.workspace, 1) {
+              return Err(Admission(CaptureLimit))
+            }
+            cursor.phase = EmitKey(
+              @encode.start_ordered_key(writer, name),
+              logical,
+            )
+          } else {
+            @encode.ordered_key(writer, name)
+            let wire = match
+              begin_completed_export_cell_wire(stream, cursor, writer) {
+              Ok(wire) => wire
+              Err(issue) => return Err(issue)
+            }
+            cursor.phase = EmitCell(wire, logical)
+          }
+        }
+      }
+      EmitKey(key, logical) =>
+        if @encode.advance_ordered_key(key) {
+          release_slots(cursor.workspace, 1)
+          // Clear key custody before a fallible successor allocation.
+          cursor.phase = EmitColumn(logical)
+          let wire = match
+            begin_completed_export_cell_wire(
+              stream,
+              cursor,
+              completed_export_progress_writer(stream, logical),
+            ) {
+            Ok(wire) => wire
+            Err(issue) => return Err(issue)
+          }
+          cursor.phase = EmitCell(wire, logical)
+        }
+      EmitCell(wire, logical) =>
+        match advance_stepped_runtime_wire(wire) {
+          Err(Workspace) => return Err(Admission(CaptureLimit))
+          Err(Encoding(issue)) => return Err(Wire(Encoding(issue)))
+          Ok(false) => ()
+          Ok(true) => {
+            cursor.column += 1
+            cursor.phase = EmitColumn(logical)
+          }
+        }
+      Complete => ()
+    }
+    Ok(())
+  } catch {
+    issue => Err(Wire(Encoding(issue)))
+  }
+}
+
+///|
+/// A poll yields within a row, not only between rows. Provisional bytes stay
+/// private until the complete row can be returned to the existing Store owner.
+/// Traversal steps do not replace or double-charge logical value work.
+pub fn advance_completed_output_export(
+  stream : CompletedOutputExport,
+  quantum : Int,
+  max_workspace_slots : Int,
+) -> Result[CompletedOutputExportAdvance, CompletedExportIssue] {
+  if stream.reading || quantum <= 0 {
+    return Err(Closed)
+  }
+  if max_workspace_slots < 0 {
+    return Err(Admission(InvalidCaptureLimits))
+  }
+  stream.reading = true
+  let result = (fn() -> Result[
+    CompletedOutputExportAdvance,
+    CompletedExportIssue,
+  ] {
+    guard stream.source is Some(source) else { return Err(Closed) }
+    if !completed_output_available(source) {
+      return Err(Unavailable)
+    }
+    if stream.source is None {
+      return Err(Closed)
+    }
+    if stream.row == IndexedRows::row_count(stream.rows) {
+      return Ok({ batch: None, complete: true, steps: 0, })
+    }
+    if stream.pending_row is None {
+      let workspace = row_workspace(max_workspace_slots)
+      if !reserve_slots(workspace, 1) {
+        return Err(Admission(CaptureLimit))
+      }
+      stream.pending_row = Some({
+        workspace,
+        column: 0,
+        phase: Begin,
+        closed: false,
+      })
+    }
+    let cursor = stream.pending_row.unwrap()
+    if max_workspace_slots != cursor.workspace.limit {
+      return Err(Admission(InvalidCaptureLimits))
+    }
+    for step in 0..<quantum {
+      if stream.source is None {
+        return Err(Closed)
+      }
+      match advance_completed_export_row_frame(stream, cursor) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      if stream.source is None {
+        return Err(Closed)
+      }
+      if cursor.phase is Complete {
+        let batch = @encode.drain_hash_output(stream.writer) catch {
+          issue => return Err(Wire(Encoding(issue)))
+        }
+        close_completed_export_row(cursor)
+        stream.pending_row = None
+        stream.row += 1
+        return Ok({ batch: Some(batch), complete: false, steps: step + 1, })
+      }
+    }
+    Ok({ batch: None, complete: false, steps: quantum, })
+  })()
+  stream.reading = false
+  if result is Err(_) {
+    cancel_completed_output_export(stream)
+  }
+  result
+}
