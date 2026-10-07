@@ -52,6 +52,9 @@ const ownedScratch=`{
   }
   if finalization_values.val is Some(values) {
     @execution.dispose_managed_output_values_scratch(values)
+    if !@execution.managed_output_values_scratch_released(values) {
+      return
+    }
   }
   finalization_values.val = None
   finalization_retention.val = None

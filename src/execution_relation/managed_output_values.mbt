@@ -11,10 +11,10 @@ struct ManagedOutputValues {
   initial : FixedInputGuardMeasureLimits
   mut producer : FixedProducerMeasurement?
   mut managed_producer : ManagedProducerMeasurement?
-  column_usage : Array[(Int, Int)]
-  column_maxima : Array[Int]
-  column_nulls : Array[Int]
-  reference_rows : Array[Array[Array[@admitted.ReferenceValue]]]
+  mut column_usage : Array[(Int, Int)]
+  mut column_maxima : Array[Int]
+  mut column_nulls : Array[Int]
+  mut reference_rows : Array[Array[Array[@admitted.ReferenceValue?]]]
   mut row_measurements : ManagedRowMeasurements?
   max_value_bytes : Int
   max_rows : Int
@@ -23,6 +23,7 @@ struct ManagedOutputValues {
   mut reading : Bool
   mut active_uses : Int
   mut disposal_requested : Bool
+  mut disposal_complete : Bool
   mut issue : FixedInputGuardIssue?
 }
 
@@ -111,6 +112,7 @@ pub fn prepare_managed_output_values(
     reading: false,
     active_uses: 0,
     disposal_requested: false,
+    disposal_complete: false,
     issue: None,
   })
 }
@@ -120,17 +122,18 @@ pub fn cancel_managed_output_values(value : ManagedOutputValues) -> Bool {
   if !value.open {
     return false
   }
-  if value.active_uses != 0 {
-    dispose_managed_output_values_scratch(value)
-    return true
-  }
-  value.open = false
-  if value.row_measurements is Some(index) {
-    discard_managed_row_measurements(index)
-  }
-  value.reference_rows.clear()
-  cancel_admitted_buffer(value.buffer) |> ignore
+  request_managed_output_values_disposal(value)
   true
+}
+
+///|
+fn request_managed_output_values_disposal(value : ManagedOutputValues) -> Unit {
+  if !value.disposal_requested {
+    value.buffer.reclaiming = true
+  }
+  value.disposal_requested = true
+  value.open = false
+  value.buffer.open = false
 }
 
 ///|
@@ -140,35 +143,79 @@ pub fn cancel_managed_output_values(value : ManagedOutputValues) -> Bool {
 pub fn dispose_managed_output_values_scratch(
   value : ManagedOutputValues,
 ) -> Unit {
-  value.disposal_requested = true
-  value.open = false
-  value.buffer.open = false
+  request_managed_output_values_disposal(value)
+  advance_managed_output_values_reclamation(value, 64) |> ignore
+}
+
+///|
+/// Retire at most quantum private entries. Revocation and the release witness
+/// are separate: a caller must retain this owner until reclamation completes.
+/// This bounds reference retirement, not collector or allocator latency.
+pub fn advance_managed_output_values_reclamation(
+  value : ManagedOutputValues,
+  quantum : Int,
+) -> Bool {
+  if value.disposal_complete {
+    return true
+  }
+  if !value.disposal_requested || quantum <= 0 {
+    return false
+  }
   // Revocation is immediate; destructive cleanup waits for stack ownership
   // to unwind, including callbacks within measurement and representation IO.
   if value.active_uses != 0 || value.buffer.reading {
-    return
+    return false
   }
   // A reserved view/verification port also uses reading. Once every active
   // frame has returned, disposal ends that reservation as well.
   value.reading = false
-  if value.row_measurements is Some(index) {
-    discard_managed_row_measurements(index)
-    value.row_measurements = None
+  for _ in 0..<quantum {
+    if value.buffer.reclaiming {
+      advance_admitted_buffer_reclamation(value.buffer, 1) |> ignore
+    } else if value.row_measurements is Some(index) {
+      discard_managed_row_measurements(index)
+      value.row_measurements = None
+    } else if value.reference_rows.last() is Some(row) {
+      if row.last() is Some(references) {
+        if references.is_empty() {
+          row[row.length() - 1] = []
+          row.pop() |> ignore
+        } else {
+          // Native/Wasm backing storage can retain popped entries. Scrub
+          // authority handles without fabricating a replacement reference.
+          references[references.length() - 1] = None
+          references.pop() |> ignore
+        }
+      } else {
+        value.reference_rows[value.reference_rows.length() - 1] = []
+        value.reference_rows.pop() |> ignore
+      }
+    } else if !value.column_usage.is_empty() {
+      value.column_usage.pop() |> ignore
+    } else if !value.column_maxima.is_empty() {
+      value.column_maxima.pop() |> ignore
+    } else if !value.column_nulls.is_empty() {
+      value.column_nulls.pop() |> ignore
+    } else {
+      break
+    }
   }
-  value.buffer.rows.clear()
-  value.buffer.rows.shrink_to_fit()
-  value.buffer.presence_rows.clear()
-  value.buffer.presence_rows.shrink_to_fit()
-  value.reference_rows.clear()
-  value.reference_rows.shrink_to_fit()
-  value.column_usage.clear()
-  value.column_usage.shrink_to_fit()
-  value.column_maxima.clear()
-  value.column_maxima.shrink_to_fit()
-  value.column_nulls.clear()
-  value.column_nulls.shrink_to_fit()
+  if value.buffer.reclaiming ||
+    value.row_measurements is Some(_) ||
+    !value.reference_rows.is_empty() ||
+    !value.column_usage.is_empty() ||
+    !value.column_maxima.is_empty() ||
+    !value.column_nulls.is_empty() {
+    return false
+  }
+  value.reference_rows = []
+  value.column_usage = []
+  value.column_maxima = []
+  value.column_nulls = []
   value.producer = None
   value.managed_producer = None
+  value.disposal_complete = true
+  true
 }
 
 ///|
@@ -427,8 +474,6 @@ fn finish_managed_output_row_active(
   stream : ManagedOutputValues,
 ) -> Result[Unit, ManagedOutputValueIssue] {
   if !stream.open {
-    stream.buffer.rows.clear()
-    stream.buffer.presence_rows.clear()
     return Err(Closed)
   }
   let presence = stream.buffer.presence_rows.get(0)
@@ -495,7 +540,9 @@ fn finish_managed_output_row_active(
   if !stream.open {
     return Err(Closed)
   }
-  stream.reference_rows.push(references)
+  stream.reference_rows.push(
+    references.map(found => found.map(reference => Some(reference))),
+  )
   // Admission keeps running after a deferred measurement failure, as in the old
   // streamed output path. No successful receipt may conceal that failure.
   stream.buffer.rows.clear()
@@ -538,9 +585,12 @@ fn finish_managed_output_values_active(
 ) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue] {
   for row, cells in stream.reference_rows {
     for column, references in cells {
-      if references.any(reference => !@admitted.reference_available(reference)) {
-        cancel_managed_output_values(stream) |> ignore
-        return Err(ReferenceUnavailable(row, column))
+      for reference in references {
+        guard reference is Some(reference) else { return Err(Closed) }
+        if !@admitted.reference_available(reference) {
+          cancel_managed_output_values(stream) |> ignore
+          return Err(ReferenceUnavailable(row, column))
+        }
       }
       if !stream.open {
         return Err(Closed)
@@ -643,7 +693,9 @@ fn finish_managed_output_values_active(
     column_maxima: stream.column_maxima.copy(),
     column_nulls: stream.column_nulls.copy(),
     reference_rows: stream.reference_rows.map(row => {
-      row.map(references => references.copy())
+      // Every entry was checked above while the active frame prevented
+      // reclamation; the receipt never contains cleared scratch entries.
+      row.map(references => references.filter_map(reference => reference))
     }),
     measured_depth: stream.measurement.depth,
     row_measurements: stream.row_measurements,
