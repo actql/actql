@@ -285,6 +285,9 @@ pub(all) enum ResumeClaimAction {
   /// Bound facts changed while waiting: complete the intent together with
   /// `resuming -> failed`, dispatching nothing.
   ClaimInvalidated(Int64)
+  /// A fenced observation lease for a refused Effect Set. It grants no
+  /// dispatch or publication authority and can only settle its old outcomes.
+  ClaimSettlement(Int64, Int64)
 } derive(Eq, Debug)
 
 ///|

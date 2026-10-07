@@ -336,6 +336,15 @@ pub fn resume_completion_allowed(to : String) -> Bool {
 }
 
 ///|
+#export_name("effectSettlementCompletionAllowed")
+pub fn effect_settlement_completion_allowed(to : String) -> Bool {
+  match @checkpoint.parse_run_status(to) {
+    Some(status) => @checkpoint.effect_settlement_completion_allowed(status)
+    None => false
+  }
+}
+
+///|
 #export_name("checkpointExpiredAt")
 pub fn checkpoint_expired_at(checkpoint_wire : String, now : String) -> String {
   let checkpoint = match
@@ -628,14 +637,15 @@ fn binding(text : String) -> @checkpoint.ResumeBinding? {
 }
 
 ///|
-#export_name("resumeClaimDecide")
-pub fn resume_claim_decide(
+fn resume_claim_decide_impl(
   intent_json : String,
   claimant : String,
   now_ms : Double,
   lease_ms : Double,
   bound_json : String,
   current_json : String,
+  effect_settlement : Bool,
+  settlement_only : Bool,
 ) -> String {
   let intent = match intent_view(intent_json) {
     Some(value) => value
@@ -649,10 +659,16 @@ pub fn resume_claim_decide(
     (Some(bound), Some(current)) => (bound, current)
     _ => return fail("InvalidBinding")
   }
-  match
+  let decision = if effect_settlement {
+    @checkpoint.decide_effect_resume_claim(
+      intent, claimant, now, lease, bound, current, settlement_only,
+    )
+  } else {
     @checkpoint.decide_resume_claim(
       intent, claimant, now, lease, bound, current,
-    ) {
+    )
+  }
+  match decision {
     Ok(ClaimIntent(generation, expires)) =>
       ok({
         "action": Json::string("claim"),
@@ -667,8 +683,45 @@ pub fn resume_claim_decide(
         "generation": Json::number(generation.to_double()),
         "run_status": Json::string("failed"),
       })
+    Ok(ClaimSettlement(generation, expires)) =>
+      ok({
+        "action": Json::string("settlement"),
+        "generation": Json::number(generation.to_double()),
+        "lease_expires_ms": Json::number(expires.to_double()),
+      })
     Err(issue) => fail_resume(issue)
   }
+}
+
+///|
+#export_name("resumeClaimDecide")
+pub fn resume_claim_decide(
+  intent_json : String,
+  claimant : String,
+  now_ms : Double,
+  lease_ms : Double,
+  bound_json : String,
+  current_json : String,
+) -> String {
+  resume_claim_decide_impl(
+    intent_json, claimant, now_ms, lease_ms, bound_json, current_json, false, false,
+  )
+}
+
+///|
+#export_name("effectResumeClaimDecide")
+pub fn effect_resume_claim_decide(
+  intent_json : String,
+  claimant : String,
+  now_ms : Double,
+  lease_ms : Double,
+  bound_json : String,
+  current_json : String,
+  settlement_only : Bool,
+) -> String {
+  resume_claim_decide_impl(
+    intent_json, claimant, now_ms, lease_ms, bound_json, current_json, true, settlement_only,
+  )
 }
 
 ///|
