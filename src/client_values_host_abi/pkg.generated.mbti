@@ -3,6 +3,7 @@ package "actql/actql/client_values_host_abi"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/logical_request_scope",
   "actql/actql/program_check",
   "actql/actql/remote_site_protocol",
   "actql/actql/run_publication",
@@ -346,6 +347,24 @@ pub fn client_values_host_seal_run_evidence_value(String, String, Int, Int, Int)
 pub fn client_values_host_source_evidence_facts(@run_publication_host.PreparedClientProgram, Int, Int) -> Array[String]?
 
 pub fn client_values_host_source_free_request_identity(@run_publication_host.PreparedClientProgram, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
+
+pub fn client_values_host_submission_epoch(String, String, Double, Double) -> @logical_request_scope.SubmissionEpoch?
+
+pub fn client_values_host_submission_epoch_cid(@logical_request_scope.SubmissionEpoch) -> String
+
+pub fn client_values_host_submission_epoch_validity(@logical_request_scope.SubmissionEpoch, Double) -> String?
+
+pub fn client_values_host_submission_epoch_wire(@logical_request_scope.SubmissionEpoch) -> String
+
+pub fn client_values_host_submission_request_id(@logical_request_scope.SubmissionEpoch, String) -> String?
+
+pub fn client_values_host_submitted_intent(String, Int, Int, Int) -> @run_publication_host.ClientSubmittedIntent?
+
+pub fn client_values_host_submitted_intent_cid(@run_publication_host.ClientSubmittedIntent) -> String
+
+pub fn client_values_host_submitted_intent_transition(String, String) -> Bool
+
+pub fn client_values_host_submitted_intent_wire(@run_publication_host.ClientSubmittedIntent) -> String
 
 pub fn client_values_host_task_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 
