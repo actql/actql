@@ -37,6 +37,7 @@ async function fixture(t, entry) {
   assert.ifError(setup.error);
   assert.equal(setup.status, 0, setup.stderr);
   const mapping = JSON.parse(await readFile(new URL('../table-iceberg/fixtures/presence-mapping.json', import.meta.url), 'utf8'));
+  const schemaWire = (await readFile(new URL('../table-iceberg/fixtures/presence-schema.json', import.meta.url), 'utf8')).trimEnd();
   const scope = control.logicalRequestScope(cid('a'), 'table-operation', 32);
   const operation = (action = 'create', expected = null, suffix = 'rows') => seal({
     version: 'actql-table-operation/0.1', logical_request_scope_cid: control.logicalRequestScopeCid(scope),
@@ -46,7 +47,7 @@ async function fixture(t, entry) {
     schema_cid: mapping.schema_cid, storage_mapping_cid: mapping.mapping_cid,
     data_policy_cid: cid('6')}, 'request_cid');
   const bridge = createIcebergPhysicalBridge({python, run: 'table-run', catalog, ...(entry ? {entry} : {})});
-  const prepare = (operation, rows) => bridge.prepareWrite({operation, mapping, rows,
+  const prepare = (operation, rows) => bridge.prepareWrite({operation, mapping, rows, schemaWire,
     reservation: {bytes: 1048576, files: 16}});
   const claim = operation => {
     // One logical whole-Relation operation; no per-row content/item key. This
@@ -60,7 +61,7 @@ async function fixture(t, entry) {
   };
   const open = () => openEffectLedger({moon, root: join(root, 'ledger'), authorityScopeCid: cid('a'),
     callerRequestId: 'table-operation', maxEntryBytes: 4096});
-  return {root, catalog, mapping, operation, bridge, prepare, claim, open};
+  return {root, catalog, mapping, schemaWire, operation, bridge, prepare, claim, open};
 }
 
 test('Table managed framing rejects malformed material and performs partial I/O exactly', () => {
@@ -141,7 +142,7 @@ test('Table generation resolution freezes a new reader before later head replace
   const selector = {catalog_identity_cid: f.catalog.catalogCid, namespace: ['test'],
     table_name: 'rows', table_uuid: receipt.table_uuid, schema_cid: f.mapping.schema_cid};
   const resolved = wireValue(await reader.resolveGeneration(selector));
-  assert.deepEqual(resolved, {ok: true, result: {receipt, mapping: f.mapping}});
+  assert.deepEqual(resolved, {ok: true, result: {receipt, mapping: f.mapping, schema_wire: f.schemaWire}});
   const replacement = f.prepare(f.operation('replace', {table_uuid: receipt.table_uuid,
     generation_cid: receipt.generation_cid}), [{id: 9}]);
   const replaced = await f.bridge.execute(replacement, {useCid: cid('7')});
@@ -150,7 +151,7 @@ test('Table generation resolution freezes a new reader before later head replace
   assert.deepEqual(wireValue(await restarted.read(resolved.result.receipt, resolved.result.mapping)),
     {ok: true, result: rows});
   assert.deepEqual(wireValue(await restarted.resolveGeneration(selector)),
-    {ok: true, result: {receipt: nextReceipt, mapping: f.mapping}});
+    {ok: true, result: {receipt: nextReceipt, mapping: f.mapping, schema_wire: f.schemaWire}});
   for (const changed of [{table_uuid: '00000000-0000-0000-0000-000000000000'},
     {schema_cid: cid('9')}]) {
     assert.deepEqual(wireValue(await restarted.resolveGeneration({...selector, ...changed})),
@@ -221,12 +222,15 @@ test('whole transport and unsupported configuration are refused before any proce
   assert.throws(() => createIcebergPhysicalBridge({python: new URL('https://example.invalid/python'),
     run: 'run', catalog}), {code: 'InvalidTablePhysicalConfiguration'});
   const bridge = createIcebergPhysicalBridge({python, run: 'run', catalog});
-  assert.throws(() => bridge.prepareWrite({operation: {request_cid: cid('1')}, mapping: {},
+  assert.throws(() => bridge.prepareWrite({operation: {request_cid: cid('1'), schema_cid: cid('2')},
+    mapping: {}, rows: [], reservation: {bytes: 1048576, files: 16}, schemaWire: '{}'}),
+  {code: 'InvalidTableLogicalSchema'});
+  assert.throws(() => bridge.prepareWrite({operation: {request_cid: cid('1')}, mapping: {}, schemaWire: '{}',
     rows: [{p: 'x'.repeat(4 * 1024 * 1024)}], reservation: {bytes: 1048576, files: 16}}),
   {code: 'FrameByteLimit'});
   let getterCalls = 0;
   const row = {get p() { getterCalls++; return 'value'; }};
-  assert.throws(() => bridge.prepareWrite({operation: {request_cid: cid('1')}, mapping: {},
+  assert.throws(() => bridge.prepareWrite({operation: {request_cid: cid('1')}, mapping: {}, schemaWire: '{}',
     rows: [row], reservation: {bytes: 1048576, files: 16}}), {code: 'InvalidFrameValue'});
   assert.equal(getterCalls, 0);
 });

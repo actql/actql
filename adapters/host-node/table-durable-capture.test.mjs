@@ -89,6 +89,17 @@ await assert.rejects(prepareRecoveredTableInput({...options,
   requestScope: effect.logicalRequestScope('sha256:' + 'e'.repeat(64), 'another-request', 128)}),
   {code: 'MoonBitHostFailure'});
 const original = recovered.connectorRecovery[0];
+assert.equal(table.schemaWire, '{"id":{"nullable":false,"type":"number"}}');
+for (const schema_wire of ['{}', table.schemaWire + ' ']) {
+  await assert.rejects(prepareRecoveredTableInput({...options, recovered: {...recovered,
+    connectorRecovery: [{...original, wire: JSON.stringify({...JSON.parse(original.wire), schema_wire})}]}}),
+    {code: 'MoonBitHostFailure'});
+}
+const missingSchema = JSON.parse(original.wire);
+delete missingSchema.schema_wire;
+await assert.rejects(prepareRecoveredTableInput({...options, recovered: {...recovered,
+  connectorRecovery: [{...original, wire: JSON.stringify(missingSchema)}]}}),
+  {code: 'InvalidTableRecoveryMaterial'});
 const changed = JSON.parse(original.wire);
 changed.operation_wire = changed.operation_wire.replace('rows_0', 'another_table');
 await assert.rejects(prepareRecoveredTableInput({...options, recovered: {...recovered,
@@ -112,7 +123,7 @@ for (const source of inventory.effectSources) {
 const result = {captureCid: recovered.computation.capturedRun.identity,
   previewWire: control.effectComputationPreviewWire(recovered.preview),
   execution: recovered.execution, holdings, table: {operationWire: table.operationWire,
-    mappingWire: table.mappingWire, subjectCid: table.tablePreview.subjectCid,
+    mappingWire: table.mappingWire, schemaWire: table.schemaWire, subjectCid: table.tablePreview.subjectCid,
     memberIndex: tableBinding.memberIndex, rowPreviewCid: tableBinding.rowPreviewCid,
     rows: tableRows}};
 const firstHolding = control.capturedEffectSourceHoldingCid(inventory.effectSources[0]);
@@ -205,7 +216,8 @@ for (const empty of [false, true]) {
         assert.deepEqual(recovered.holdings.map(({manifestCid}) => manifestCid),
           retained.holdings.map(holding => holding.artifact.identity));
         assert.deepEqual(recovered.table, {operationWire: f.tableInput.wire,
-          mappingWire: f.storage.wire, subjectCid: f.tablePreview.subjectCid,
+          mappingWire: f.storage.wire, schemaWire: '{"id":{"nullable":false,"type":"number"}}',
+          subjectCid: f.tablePreview.subjectCid,
           memberIndex: 0,
           rowPreviewCid: control.tablePreviewLedgerBinding(f.tablePreview).rowPreviewCid,
           rows: empty ? [] : [{id: 1}, {id: 2}]});

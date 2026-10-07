@@ -17,6 +17,11 @@ def mapping():
     return json.loads((Path(__file__).parent / "fixtures/presence-mapping.json").read_text())
 
 
+def schema_wire():
+    # Only remove the fixture file's line terminator, not metadata/read bytes.
+    return (Path(__file__).parent / "fixtures/presence-schema.json").read_text().removesuffix("\n")
+
+
 class PhysicalTests(unittest.TestCase):
     def test_three_states_duplicates_and_original_unicode(self):
         contract = mapping()

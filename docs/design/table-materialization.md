@@ -92,6 +92,15 @@ Missing logical metadata is a refusal, not permission to synthesize unconstraine
 primitive types from Iceberg fields. The Source declaration and the runtime input
 must agree even for an empty generation.
 
+The live export supplies its exact canonical schema wire; recovery retains the
+same wire with the original mapping and operation. The common owner checks it
+against the approved schema CID before dispatch. The physical writer requires
+this material and stores it as `actql.logical-schema` in immutable Iceberg
+metadata. It checks correspondence with the sealed field-ID/presence mapping,
+but does not issue logical contracts or infer value constraints. Replace requires
+the same saved schema wire. A reader receives those exact bytes and must still
+admit the complete logical contract through the common Source owner.
+
 Row acquisition uses the existing exact checked-input owner for both required
 and conditional columns. An omitted conditional cell enters presence-aware row
 admission; explicit NULL still goes through the column's nullable value contract.
@@ -172,7 +181,10 @@ approval grant: current installed target validation, permission and approval
 decisions, source availability and durable claims remain required at apply.
 
 For process recovery, the same private capture record retains the original
-sealed storage mapping and operation for each Table member. A recovered typed
+sealed storage mapping, operation and canonical schema wire for each Table
+member. The closed material record contains `mapping_wire`, `operation_wire`
+and `schema_wire`; omitted schema material is refused without reconstruction.
+A recovered typed
 Table view derives the operation from that member's sealed Preview, re-admits
 the exact mapping, and matches the original request scope, semantic Result
 Artifact, schema, logical Relation, policy and physical source occurrence.
@@ -249,7 +261,8 @@ The optional local I/O bridge resolves a read selector containing the installed
 Catalog, namespace/name, Table UUID and schema CID. It reads the Catalog head
 and original publication record in one database snapshot, validates the
 immutable metadata and saved storage mapping, and returns that generation's
-receipt and mapping. Subsequent reads use this frozen generation, not a later
+receipt, mapping and canonical logical schema wire. Subsequent reads use this
+frozen generation, not a later
 head. Unknown tables, mismatched UUID/schema and missing publication records
 are refusals, not empty tables or reconstructed records. This read resolution
 is not reconciliation of an uncertain Effect: the original-operation lookup

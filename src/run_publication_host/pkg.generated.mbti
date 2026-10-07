@@ -132,6 +132,8 @@ pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_pub
 
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
+pub fn check_recovered_client_table_schema_wire(RecoveredClientTablePreview, String, Int, Int, Int) -> Result[Unit, ClientTableInputIssue]
+
 pub fn check_source_free_client_effect_preview_identities(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, ClientEffectLocalIdentityIssue]
 
 pub fn client_acquired_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_relation.BoundPrepared?
@@ -469,6 +471,8 @@ pub fn client_table_input_mapping(ClientTableInput) -> @effect_application.Table
 pub fn client_table_input_matches_source(ClientTableInput, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity) -> Bool
 
 pub fn client_table_input_operation(ClientTableInput) -> @effect_application.TableOperation
+
+pub fn client_table_input_schema_wire(ClientTableInput) -> String
 
 pub fn client_table_preview_commit_outcome(ClientTablePreview, String, Int, Int, Int, Int) -> Result[String, ClientTableInputIssue]
 
