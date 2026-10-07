@@ -5,7 +5,7 @@ test "Pipe grouping-only AGGREGATE retains keys without invented calls" {
       "FROM records |> AGGREGATE GROUP BY id", "FROM records AS original |> AGGREGATE GROUP BY original.id, amount |> ORDER BY id",
     ] {
     let query = parse_query(text, query_limits()).unwrap()
-    guard operation_at(query, 0) is Some(Group(keys, calls, PipeAggregate)) else {
+    guard operation_at(query, 0) is Some(Group(keys, calls, PipeAggregate(_))) else {
       fail("grouping-only AGGREGATE uses the ordinary Pipe group scope")
     }
     assert_true(!keys.is_empty())
@@ -31,7 +31,7 @@ test "Pipe grouping-only AGGREGATE permits an explicit empty key list" {
     "FROM records |> AGGREGATE GROUP BY ()",
     query_limits(),
   ).unwrap()
-  guard operation_at(query, 0) is Some(Group(keys, calls, PipeAggregate)) else {
+  guard operation_at(query, 0) is Some(Group(keys, calls, PipeAggregate(_))) else {
     fail("an empty key list is a global group, not an absent GROUP BY clause")
   }
   assert_eq(keys.length(), 0)
