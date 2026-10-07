@@ -111,3 +111,38 @@ moonbit_string_t actql_proof_current_chain_phase(void *parent,void *state,void *
   current_add(&j,",\"read\":");if(read)current_record(&j,read);else current_add(&j,"null");
   current_add(&j,"}");return current_string(&j);
 }
+
+/* These routes borrow typed cursor/ProducerRead roots. The selected element
+ * representation is eight-byte reference storage; columns use four-byte Int
+ * storage. Read only the first previously initialized slot after clear, never
+ * arbitrary uninitialized capacity or a transitive heap graph. */
+static void current_storage_array(struct current_json *j,const char *name,
+  void *a,int element) {
+  const uint32_t *s=current_shape(a);assert(s[0]==4 && s[1]==1 && s[2]==0);
+  void *b=current_pointer(a,0);int32_t len;memcpy(&len,(uint8_t*)a+8,4);
+  int32_t slots=Moonbit_array_length(b);assert(len>=0 && len<=slots && slots<=128);
+  assert(Moonbit_object_kind(b)==(element==4?moonbit_BLOCK_KIND_VAL_ARRAY:moonbit_BLOCK_KIND_REF_ARRAY));
+  current_add(j,",\"%s\":{\"owner\":\"%" PRIu64 "\",\"backing\":\"%" PRIu64 "\",\"length\":%d,\"slots\":%d,\"elementBytes\":%d,\"ownerBytes\":24,\"backingBytes\":%d,\"staticBacking\":%s,\"firstInitialized\":",name,current_id(a),current_id(b),len,slots,element,8+element*slots,Moonbit_rc_count(Moonbit_object_header(b))<0?"true":"false");
+  if(slots==0)current_add(j,"null");
+  else if(element==4) {int32_t first;memcpy(&first,b,4);current_add(j,"%d",first);}
+  else {void *first=current_pointer(b,0);assert(first);current_add(j,"\"%" PRIu64 "\"",current_id(first));}
+  current_add(j,"}");
+}
+int32_t actql_proof_current_columns_count(void *read) {
+  const uint32_t *s=current_shape(read);assert(s[0]==22 && s[1]==5);
+  void *a=current_pointer(read,16);int32_t len;memcpy(&len,(uint8_t*)a+8,4);return len;
+}
+moonbit_string_t actql_proof_current_preparation_storage(void *prep,void *read,
+  void *transferred,int32_t phase,int32_t ports,int32_t fields) {
+  struct current_json j={.used=0};
+  assert(ports==1 && fields==1); /* fixed independent fixture contract */
+  current_add(&j,"ACTQL_PREPARATION_STORAGE:{\"phase\":%d,\"ports\":%d,\"fields\":%d,\"preparation\":",phase,ports,fields);
+  current_record(&j,prep);current_add(&j,",\"read\":");current_record(&j,read);
+  current_storage_array(&j,"selected",current_pointer(prep,32),8);
+  current_storage_array(&j,"columns",current_pointer(read,16),4);
+  current_add(&j,",\"transferred\":");if(transferred)current_record(&j,transferred);else current_add(&j,"null");
+  current_add(&j,",\"transferredColumns\":");
+  if(transferred)current_add(&j,"\"%" PRIu64 "\"",current_id(current_pointer(transferred,16)));
+  else current_add(&j,"null");
+  current_add(&j,"}");return current_string(&j);
+}

@@ -5,9 +5,11 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { checkParentCensus } from './bounds.mjs';
 import { providerConstructionBound } from './provider-construction.mjs';
+import { checkPreparationArraySource } from './preparation-arrays.mjs';
 const root = fileURLToPath(new URL('../../../../', import.meta.url));
 checkParentCensus(path => readFileSync(join(root, path)));
 providerConstructionBound(path => readFileSync(join(root, path)));
+checkPreparationArraySource(path => readFileSync(join(root, path)));
 const pin = readFileSync(new URL('../../../relation-capacity/lean-toolchain', import.meta.url), 'utf8').trim();
 // Resolve the repository pin before asking an elan shim for its version; a
 // developer's default 'stable' is not this proof's compiler identity.
@@ -18,12 +20,15 @@ const array = readFileSync(new URL('../backing/ArrayBacking.lean', import.meta.u
 const identities = readFileSync(new URL('../../../relation-capacity/Capacity.lean', import.meta.url), 'utf8');
 const model = readFileSync(new URL('./NativeParentCore.lean', import.meta.url), 'utf8');
 const selection = readFileSync(new URL('./ProviderConstruction.lean', import.meta.url), 'utf8');
-assert(!/\b(sorry|admit|axiom|native_decide|unsafe)\b/.test((array + identities + model + selection)
+const preparation = readFileSync(new URL('./PreparationArrays.lean', import.meta.url), 'utf8');
+assert(!/\b(sorry|admit|axiom|native_decide|unsafe)\b/.test((array + identities + model + selection + preparation)
   .replace(/\/\-[\s\S]*?\-\//g, '').replace(/--[^\n]*/g, '')));
 const names = ['phase_bound', 'growth_overlap', 'retired_owner_witness'];
 assert.deepEqual([...model.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), names);
 const selectionNames = ['candidate_component', 'retained_core_union'];
 assert.deepEqual([...selection.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), selectionNames);
+const preparationNames = ['storage_bound', 'same_storage_charge'];
+assert.deepEqual([...preparation.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), preparationNames);
 const consumers = `
 example (n : Nat) (s : NativeParentCore.Footprint)
   (r : s.references ≤ 80) (o : s.owner ≤ 56) (st : s.state ≤ 56) (c : s.callbacks ≤ 240)
@@ -44,11 +49,20 @@ example (n : Nat) (r : RelationCapacity.Registry) (a b : Nat → Bool)
   (sc : RelationCapacity.charge r.ids r.size b ≤ s.bytes) :
   RelationCapacity.charge r.ids r.size (fun id => a id || b id) ≤ NativeParentCore.envelope n + 2344 :=
   ProviderConstruction.retained_core_union n r a b core s c sb cc sc
+example (ports fields : Nat) (s : PreparationArrays.Footprint)
+  (o : s.owners ≤ 48) (h : s.headers ≤ 32)
+  (a : s.selectedSlots ≤ 2 * ArrayBacking.ceiling 0 ports)
+  (b : s.columnsSlots ≤ 2 * ArrayBacking.ceiling 0 fields) :
+  s.bytes ≤ PreparationArrays.envelope ports fields := PreparationArrays.storage_bound ports fields s o h a b
+example (r : RelationCapacity.Registry) (live : Nat → Bool) :
+  RelationCapacity.charge r.ids r.size (fun id => live id || live id) = RelationCapacity.charge r.ids r.size live :=
+  PreparationArrays.same_storage_charge r live
 `;
 const result = spawnSync('lean', ['-DwarningAsError=true', '--stdin'], { encoding: 'utf8',
-  env: environment, input: array + '\n' + identities + '\n' + model + '\n' + selection + consumers +
+  env: environment, input: array + '\n' + identities + '\n' + model + '\n' + selection + '\n' + preparation + consumers +
     names.map(n => `\n#print axioms NativeParentCore.${n}`).join('') +
-    selectionNames.map(n => `\n#print axioms ProviderConstruction.${n}`).join(''),
+    selectionNames.map(n => `\n#print axioms ProviderConstruction.${n}`).join('') +
+    preparationNames.map(n => `\n#print axioms PreparationArrays.${n}`).join(''),
   maxBuffer: 1024 * 1024 });
 process.stdout.write(result.stdout ?? ''); process.stderr.write(result.stderr ?? '');
 assert.equal(result.status, 0);
@@ -57,3 +71,4 @@ for (const [, axioms] of result.stdout.matchAll(/depends on axioms: \[([^\]]*)\]
 }
 console.log('3 conditional retained parent-core propositions checked; complete parent/edge and retirement correspondence remain open');
 console.log('2 conditional provider-construction propositions checked; complete parent/pipeline capacity remains open');
+console.log('2 conditional preparation-array propositions checked; referent and whole-lifetime capacity remain open');
