@@ -35,6 +35,9 @@ pub fn local_export_retention_capacity(limits : LocalExportLimits) -> Int64? {
     return None
   }
   Some(
+    // Eight fixed continuation/owner slots are additional. Nested frame
+    // entries remain within the existing 64-byte-per-depth allowance.
+    512L +
     w.max_bytes.to_int64() +
     8L * limits.max_batch_bytes.to_int64() +
     64L *
@@ -95,6 +98,28 @@ pub fn next_local_output_export(
     return Err(State)
   }
   @execution.next_completed_output_export(stream).map_err(issue => Export(issue))
+}
+
+///|
+pub fn advance_local_output_export(
+  attempt : LocalMaterializingAttempt,
+  quantum : Int,
+) -> Result[@execution.CompletedOutputExportAdvance, LocalMaterializingIssue] {
+  guard !attempt.closed &&
+    attempt.export_stream is Some(stream) &&
+    attempt.output_limits is Some(limits) else {
+    return Err(State)
+  }
+  guard @execution.completed_output_export_workspace_slots(
+      limits.values,
+      limits.wire,
+    )
+    is Some(slots) else {
+    return Err(Capacity)
+  }
+  @execution.advance_completed_output_export(stream, quantum, slots).map_err(issue => {
+    Export(issue)
+  })
 }
 
 ///|

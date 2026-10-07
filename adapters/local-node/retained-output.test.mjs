@@ -18,7 +18,7 @@ import * as portableRuntime from
 
 const ok = value => ({$tag: 1, _0: value});
 function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
-  lease, requireDisposedRefresh = false} = {}) {
+  lease, requireDisposedRefresh = false, exportSteps = 0, onExportAdvance} = {}) {
   const events = [], material = {}, input = {};
   let releaseCheck, closed = false, clean = false, bound = false, allocated = false, index = 0;
   let advanced = 0, stopRequested = false, stopped = false, disposed = false;
@@ -49,6 +49,14 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
     install: check => {events.push('install'); releaseCheck = check; return ok();},
     begin: () => {events.push('begin'); return ok();},
     next: () => ok(index++ === 0 ? '[{"n":1}' : undefined),
+    advance: () => {
+      events.push('export-advance');
+      onExportAdvance?.();
+      if (exportSteps-- > 0) return ok({batch: undefined, complete: false, steps: 1});
+      return ok(index++ === 0
+        ? {batch: '[{"n":1}', complete: false, steps: 1}
+        : {batch: undefined, complete: true, steps: 0});
+    },
     finish: () => ok({cid: `sha256:${createHash('sha256').update('[{"n":1}]').digest('hex')}`,
       bytes: 9, rows: 1, tail: ']',
       bind: available => {
@@ -106,6 +114,35 @@ test('successful retained output closes its execution before cleanup refresh', a
   assert.equal(f.events.filter(event => event === 'advance').length, 1);
   assert.equal(f.events.filter(event => event === 'task-close').length, 1);
   assert.equal(f.released(), true);
+});
+
+test('Local output yields a pending row to cancellation without append or publication', async () => {
+  const controller = new AbortController();
+  let scheduled = false;
+  const f = fixture({exportSteps: 100, onExportAdvance() {
+    if (!scheduled) {
+      scheduled = true;
+      setTimeout(() => controller.abort(new Error('ExportCancelled')), 0);
+    }
+  }});
+  let failure;
+  await assert.rejects(f.entry.run({}, controller.signal), error => {
+    failure = error;
+    return error.message === 'ExportCancelled' || error.cause?.message === 'ExportCancelled';
+  });
+  assert.equal(f.events.filter(event => event === 'export-advance').length, 1);
+  assert.equal(f.events.filter(event => Array.isArray(event) && event[0] === 'append').length, 0);
+  assert.equal(f.events.includes('bind'), false);
+  assert.equal(f.events.includes('complete'), false);
+  assert.equal(f.events.includes('stopped'), true);
+  assert.equal(f.events.includes('task-close'), true);
+  assert.equal(f.released(), false,
+    'the retained holding remains until physical Store cleanup is confirmed');
+  assert.equal(failure.cleanupPending, true);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(f.events.filter(event => event === 'task-close').length, 1);
+  assert.equal(f.released(), true);
+  assert.equal(f.events.filter(event => event === 'advance').length, 1);
 });
 
 test('Local output seals exact content before completion and retains cleanup until physical confirmation', async () => {

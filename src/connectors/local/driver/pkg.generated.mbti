@@ -236,6 +236,7 @@ pub struct LocalOutputTransfer {
   install : (() -> Bool) -> Result[Unit, LocalDispatchIssue]
   begin : () -> Result[Unit, LocalDispatchIssue]
   next : () -> Result[String?, LocalDispatchIssue]
+  advance : (Int) -> Result[@execution_relation.CompletedOutputExportAdvance, LocalDispatchIssue]
   finish : () -> Result[LocalExportContent, LocalDispatchIssue]
   refresh : () -> Result[Bool, LocalDispatchIssue]
 }
