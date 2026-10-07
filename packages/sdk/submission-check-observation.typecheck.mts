@@ -1,5 +1,5 @@
-import {getSubmissionCheckObservation, getCheckInput, resolveCheckLocation} from './index.mjs';
-import type {CheckOutcome} from './index.mjs';
+import {getSubmissionCheckObservation, getCheckInput, resolveCheckLocation} from '@actql/sdk';
+import type {CheckOutcome} from '@actql/sdk';
 const checked: CheckOutcome | undefined = getSubmissionCheckObservation(new Error());
 if (checked?.outcome === 'completed') {
   for (const reason of checked.report.reasons) {
