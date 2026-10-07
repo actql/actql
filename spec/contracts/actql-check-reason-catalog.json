@@ -1,6 +1,6 @@
 {
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-07.1",
+  "revision": "2026-10-07.2",
   "reason_schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
@@ -623,11 +623,121 @@
                 ]
               }
             }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "contract_cid",
+              "schema_cid",
+              "schema_pointer",
+              "supplier",
+              "stage"
+            ],
+            "properties": {
+              "contract_cid": {
+                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+              },
+              "schema_cid": {
+                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+              },
+              "schema_pointer": {
+                "const": "/schema"
+              },
+              "supplier": {
+                "const": "checking_context_owner"
+              },
+              "stage": {
+                "const": "checking"
+              }
+            }
           }
         ]
       }
     },
     "allOf": [
+      {
+        "if": {
+          "properties": {
+            "code": {
+              "const": "host_capacity_policy_required"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "facts"
+          ],
+          "properties": {
+            "facts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "contract_cid",
+                "schema_cid",
+                "schema_pointer",
+                "supplier",
+                "stage"
+              ],
+              "properties": {
+                "contract_cid": {
+                  "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                },
+                "schema_cid": {
+                  "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                },
+                "schema_pointer": {
+                  "const": "/schema"
+                },
+                "supplier": {
+                  "const": "checking_context_owner"
+                },
+                "stage": {
+                  "const": "checking"
+                }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "not": {
+                "required": [
+                  "location"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "fixes"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "code": {
+              "not": {
+                "const": "host_capacity_policy_required"
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "facts": {
+              "not": {
+                "required": [
+                  "schema_pointer"
+                ]
+              }
+            }
+          }
+        }
+      },
       {
         "if": {
           "properties": {
@@ -1345,7 +1455,8 @@
                   "graph_operation_invalid",
                   "operation_parameter_invalid",
                   "expression_type_mismatch",
-                  "implementation_limit"
+                  "implementation_limit",
+                  "host_capacity_policy_required"
                 ]
               }
             }
@@ -1642,6 +1753,31 @@
       ]
     },
     {
+      "code": "checking_context_missing",
+      "condition": "A known checking-context input is missing under the original bound scope; this is not a supplied parameter violation.",
+      "facts_schema": "#/reason_schema",
+      "disclosure": "Known public checking-context selection only; no selected policy values, private Source facts or environment path is disclosed.",
+      "locations": [],
+      "default_severity": "warning",
+      "family": "limit",
+      "examples": [
+        {
+          "file": "adapters/host-node/client-check.test.mjs",
+          "scenario": "Missing public Host capacity selection stays undetermined; supplying a new admitted environment triggers ordinary rechecking."
+        }
+      ],
+      "presentation": {
+        "default": {
+          "key": "reason.checking_context_missing",
+          "english": [
+            "Required checking-context inputs are missing.",
+            "Review the disclosed Requirement with the checking-context owner; supplying an unrelated parameter does not fulfill it."
+          ]
+        },
+        "variants": []
+      }
+    },
+    {
       "code": "expression_type_mismatch",
       "condition": "An expression violates its required argument type.",
       "facts_schema": "#/reason_schema",
@@ -1752,6 +1888,31 @@
           "scenario": "Graph components expose typed argument violations"
         }
       ]
+    },
+    {
+      "code": "host_capacity_policy_required",
+      "condition": "The existing common checker issued HostCapacityPolicy while checking the bound input; it does not prove the remaining Program or a template scope.",
+      "facts_schema": "#/reason_schema",
+      "disclosure": "Known public checking-context selection only; no selected policy values, private Source facts or environment path is disclosed.",
+      "locations": [],
+      "default_severity": "info",
+      "family": "requirement",
+      "examples": [
+        {
+          "file": "adapters/host-node/client-check.test.mjs",
+          "scenario": "Missing public Host capacity selection stays undetermined; supplying a new admitted environment triggers ordinary rechecking."
+        }
+      ],
+      "presentation": {
+        "default": {
+          "key": "reason.host_capacity_policy_required",
+          "english": [
+            "The checking context has no selected Host capacity policy.",
+            "Ask the checking-context owner to supply a policy admitted by the referenced schema, then check the complete bound input again."
+          ]
+        },
+        "variants": []
+      }
     },
     {
       "code": "implementation_limit",
