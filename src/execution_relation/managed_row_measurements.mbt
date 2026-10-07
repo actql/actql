@@ -171,6 +171,7 @@ pub(all) enum ManagedSelectionMeasureIssue {
   MissingIndex
   InvalidSelection
   UnsupportedColumns
+  Closed
 }
 
 ///|
@@ -192,103 +193,20 @@ fn[T] managed_occurrence_measurements(
   selected_rows : ManagedOccurrences,
   max_work : Int,
 ) -> Result[Array[ManagedColumnMeasurement?], ManagedSelectionMeasureIssue] {
-  if max_work < 0 {
-    return Err(InvalidLimits)
+  let cursor = match begin_managed_occurrence_selection(
+    plan, selected_rows, 0, max_work, false, false, fn(_, _) { true },
+  ) {
+    Ok(cursor) => cursor
+    Err(issue) => return Err(issue)
   }
-  if !managed_producer_read_available(plan.input) {
-    return Err(ForeignInput)
-  }
-  let receipt = plan.input.output.material.receipt
-  guard receipt.row_measurements is Some(index) else {
-    return Err(MissingIndex)
-  }
-  if selected_rows.length() > receipt.rows ||
-    (plan.rows != SelectedRows && selected_rows.length() != receipt.rows) {
-    return Err(InvalidSelection)
-  }
-  if selected_rows.length() > max_work {
-    return Err(Limit)
-  }
-  let mut work = max_work - selected_rows.length()
-  let mut increasing = true
-  let mut previous = -1
-  for position in 0..<selected_rows.length() {
-    let row = selected_rows.get(position).unwrap()
-    if row < 0 ||
-      row >= receipt.rows ||
-      row == previous ||
-      (plan.rows == AllRows && position != row) {
-      return Err(InvalidSelection)
-    }
-    if row < previous {
-      increasing = false
-    }
-    previous = row
-  }
-  // Take/filter preserve source occurrence order. Strictly increasing indices
-  // prove uniqueness without allocating a row-sized temporary hash map.
-  // Permutations still need a bounded duplicate check; charge its extra pass.
-  if !increasing {
-    if selected_rows.length() > work {
-      return Err(Limit)
-    }
-    work -= selected_rows.length()
-    let seen : Map[Int, Bool] = Map([])
-    for position in 0..<selected_rows.length() {
-      let row = selected_rows.get(position).unwrap()
-      if seen.contains(row) {
-        return Err(InvalidSelection)
-      }
-      seen[row] = true
+  while true {
+    match advance_managed_view_selection(cursor, 64) {
+      Ok((true, _)) => break
+      Ok((false, _)) => continue
+      Err(issue) => return Err(issue)
     }
   }
-  if plan.columns.length() > work {
-    return Err(Limit)
-  }
-  work -= plan.columns.length()
-  let width = @schema.field_count(receipt.schema)
-  let result = []
-  for origin in plan.columns {
-    guard origin is Some(origin) else {
-      result.push(None)
-      continue
-    }
-    let source_column = plan.input.columns[origin]
-    if selected_rows.length() > work {
-      return Err(Limit)
-    }
-    work -= selected_rows.length()
-    let mut bytes = 0
-    let mut nodes = 0
-    let mut maximum = 0
-    let mut null_rows = 0
-    for position in 0..<selected_rows.length() {
-      let row = selected_rows.get(position).unwrap()
-      // Completed indexes have exactly rows * width cells, checked at sealing.
-      let (cell_bytes, cell_nodes, is_null) = managed_row_measurement_get(
-        index,
-        row * width + source_column,
-      ).unwrap()
-      bytes += cell_bytes
-      nodes += cell_nodes
-      maximum = Int::max(maximum, cell_bytes)
-      if is_null {
-        null_rows += 1
-      }
-    }
-    result.push(
-      Some({
-        rows: selected_rows.length(),
-        bytes,
-        nodes,
-        max_value_bytes: maximum,
-        null_rows,
-        admitted_depth: receipt.measured_depth,
-      }),
-    )
-  }
-  if !managed_producer_read_available(plan.input) {
-    return Err(ForeignInput)
-  }
-  Ok(result)
+  let measurements = cursor.measurements
+  cancel_managed_view_selection_preparation(cursor) |> ignore
+  Ok(measurements)
 }
