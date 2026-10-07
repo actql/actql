@@ -28,7 +28,28 @@ connection string or commit it to source control.
 
 `actql://localhost:port/workspace-id` connects to an already running HTTPS
 Host with normal certificate verification. It does not open a directory or
-start a server. HTTP opt-in is not part of this initial binding. Existing
+start a server. Node applications can explicitly select loopback HTTP:
+
+```js
+const client = await connect('actql://localhost:8080/workspace-id?transport=http', {
+  token: getAccessToken,
+});
+```
+
+Only the exact `?transport=http` query is accepted. `localhost` is pinned to
+`127.0.0.1` without DNS or IPv6 fallback; canonical `127.x.x.x` literals and
+IPv6 `::1` literals also work. Remote hosts, port zero and alternate query
+forms are refused before a token callback or network request. HTTP uses a
+private direct Node connection, not global Fetch/proxy configuration. Browser
+builds contain only an unavailable stub and reject this mode before fetching
+a credential. HTTPS behavior and certificate checks are unchanged.
+
+This plaintext mode trusts the local OS/process boundary; it provides no TLS
+server authentication. Configure the Host's `loopbackHttp: true` ingress and
+explicitly bind its caller-owned HTTP server to a numeric loopback address.
+Bearer authentication and Workspace checks remain required on every request.
+There is no automatic downgrade, redirect, daemon, alternate port or directory.
+Existing
 `connect({mode: 'remote', endpoint, token})` remains available. This is a
 development artifact, not a registry release or a deployed Cloud endpoint.
 See [the connection contract](../../docs/design/client-workspace-connections.md).
