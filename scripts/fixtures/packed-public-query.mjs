@@ -451,8 +451,8 @@ const canonical = value => Array.isArray(value)
     : JSON.stringify(value);
 const environment = JSON.parse(await readFile('source-environment.json', 'utf8'));
 const base = JSON.parse(await readFile('base-environment.json', 'utf8'));
-environment.host_policy_profile = {...base.host_policy_profile,
-  capacity: {...base.host_policy_profile.capacity, ...analyticCapacity}};
+const hostCapacityPolicy = {...base.host_policy_profile.capacity, ...analyticCapacity};
+environment.host_policy_profile = {...base.host_policy_profile, capacity: hostCapacityPolicy};
 environment.connector_capabilities[0].capability_contract_cids.push(
   'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
 environment.connector_capabilities[0].capability_contract_cids.sort();
@@ -613,7 +613,7 @@ async function exercisePublicCheck(options) {
   console.log(`packed public check ${options.mode} passed`);
 }
 await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: localDirectory, sourceProfilePath}});
+  installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}});
 // Extend the same public harness; no second lifecycle/fault matrix. Each
 // physical spelling has independently authored rows and its own explicit Host.
 async function exerciseExactPhysicalTargets() {
@@ -622,7 +622,7 @@ async function exerciseExactPhysicalTargets() {
     const path = resolve(`exact-${field}-source.json`);
     const firstDirectory = resolve(`exact-${field}-local-0`);
     const firstOptions = {mode: 'local', owner: 'local', durability: 'durable',
-      installation: {directory: firstDirectory, sourceProfilePath: path}};
+      installation: {directory: firstDirectory, sourceProfilePath: path, hostCapacityPolicy}};
     for (const [index, target] of targets.entries()) {
       const profile = {...baseProfile, schema: target.schema, table: target.table};
       await writeFile(path, JSON.stringify(profile));
@@ -634,7 +634,7 @@ async function exerciseExactPhysicalTargets() {
           'changing only the physical target must refuse without provider I/O');
       }
       const directory = resolve(`exact-${field}-local-${index}`);
-      const options = {...firstOptions, installation: {directory, sourceProfilePath: path}};
+      const options = {...firstOptions, installation: {directory, sourceProfilePath: path, hostCapacityPolicy}};
       const fixture = {name: `exact-${field}-${index}`, format: 'sql',
         text: 'SELECT id, amount FROM records ORDER BY id',
         expected: target.rows, columns: [
@@ -653,7 +653,7 @@ async function exerciseExactPhysicalTargets() {
         'unchanged target with reordered JSON must reuse without provider I/O');
       const remoteDirectory = resolve(`exact-${field}-remote-${index}`);
       const remoteHost = await openInstalledRemoteHttpHost({directory: remoteDirectory,
-        sourceProfilePath: path, authenticate: header => header === 'Bearer fixture-token'
+        sourceProfilePath: path, hostCapacityPolicy, authenticate: header => header === 'Bearer fixture-token'
           ? userInfo().username : undefined});
       const remoteServer = createServer({key: await readFile('remote.key'),
         cert: await readFile('remote.crt')}, remoteHost.handler);
@@ -678,14 +678,14 @@ const recordString = mode => item => {
 };
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: localDirectory,
-    sourceProfilePath}}, {requestPrefix: 'packed-local',
+    sourceProfilePath, hostCapacityPolicy}}, {requestPrefix: 'packed-local',
   observe: observe(localDirectory), prepareCase, completedCase: recordString('local'), ...scopeInputs});
 assert.equal(observe(localDirectory)().acceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
 console.log(`packed raw SQL/Pipe Embedded Local ${profileName} acceptance passed`);
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
-  directory: remoteDirectory, sourceProfilePath,
+  directory: remoteDirectory, sourceProfilePath, hostCapacityPolicy,
   authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined,
 });

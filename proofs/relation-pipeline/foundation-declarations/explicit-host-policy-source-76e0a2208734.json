@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "explicit-host-policy-source-76e0a2208734",
+  "kind": "change",
+  "revision": "76e0a2208734c5940ab7fdc79c2f5ce301df9c06",
+  "parents": [
+    "166402a74045c8ea10a2e7f311c913982ffef143"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "166402a74045c8ea10a2e7f311c913982ffef143",
+          "digest": "884d396612288dab42b250667faa9010822c8a13d111cb32e131bc216b3d0537",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "469d046b917e69cd3178e35e2907a0e3f26fe2b770eb21ecd0d2ade38cd70ac3",
+      "afterMode": "100644",
+      "reason": "Register the reviewed explicit Host capacity-policy consumer tests in the existing distribution check; no existing test or gate is removed."
+    }
+  ]
+}
