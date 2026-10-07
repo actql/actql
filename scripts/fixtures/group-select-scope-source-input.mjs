@@ -58,3 +58,42 @@ export const groupSelectScopeRefusals = [
   'WITH a AS (SELECT 1 AS x), b AS (SELECT 1 AS k), c AS (SELECT 1 AS z) SELECT COUNT(*) AS n, n + 1 AS next FROM a JOIN b ON a.x = b.k JOIN c ON b.k = c.z',
 ].map((text, index) => ({name: 'group-select-scope-invalid-sibling-' + index,
   format: 'sql', text}));
+
+// FLOAT64 spellings 1.0 and 1e0 have the same admitted value. Grouping and
+// DISTINCT reuse evaluated expressions; neither restores a removed input.
+const numericProgram = structuredClone(program);
+numericProgram.id = 'fixture.group_numeric_reuse';
+numericProgram.stages[1].steps = [
+  {from: 'records', derive: {group_value: {add: [{field: 'id'}, {literal: 1}]}}},
+  {group: {by: ['group_value'], aggregates: {n: {fn: 'count'}}}},
+  {select: [{next: 'group_value'}, 'n']},
+  {sort: [{field: 'next', dir: 'asc', nulls: 'first'}], as: 'summary'},
+];
+numericProgram.stages[1].results.rows.fields = ['next', 'n'];
+const groupedRows = [{next: 2, n: 1}, {next: 3, n: 1}, {next: 4, n: 2}];
+const groupedColumns = [number('next'), number('n')];
+groupSelectScopeSuccesses.push(
+  success('numeric-json-control', 'json', JSON.stringify(numericProgram), {
+    expected: groupedRows, columns: groupedColumns,
+  }),
+  success('numeric-sql-group', 'sql', 'SELECT id + 1.0 AS next, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY id + 1e0 ORDER BY next', {
+    expected: groupedRows, columns: groupedColumns,
+  }),
+  success('numeric-nullable-group', 'sql', 'SELECT amount + 1.0 AS next, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY amount + 1e0 ORDER BY next', {
+    expected: [{next: null, n: 1}, {next: 21, n: 1}, {next: 31, n: 2}],
+    columns: [number('next', true), number('n')],
+  }),
+  success('numeric-distinct-reuse', 'sql', 'SELECT DISTINCT id + 1.0 AS next FROM records WHERE id > 0 ORDER BY records.id + 1e0 DESC LIMIT 2', {
+    expected: [{next: 4}, {next: 3}], columns: [number('next')],
+  }),
+  success('numeric-distinct-alias-guard', 'sql', 'SELECT DISTINCT -amount + 1.0 AS amount FROM records WHERE id > 0 ORDER BY -amount + 1e0', {
+    expected: [{amount: null}, {amount: -19}, {amount: -29}],
+    columns: [number('amount', true)],
+  }),
+);
+groupSelectScopeRefusals.push(
+  {name: 'group-select-scope-numeric-distinct-unselected', format: 'sql',
+    text: 'SELECT DISTINCT id + 1.0 AS next FROM records ORDER BY id + 2e0'},
+  {name: 'group-select-scope-numeric-unsafe-integer', format: 'sql',
+    text: 'SELECT id + 9007199254740992.0 AS next, COUNT(*) AS n FROM records GROUP BY id + 9007199254740992'},
+);
