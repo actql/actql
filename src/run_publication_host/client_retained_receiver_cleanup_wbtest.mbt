@@ -97,6 +97,75 @@ fn receiver_cleanup_admit(
 }
 
 ///|
+test "recorded graph receiver cleanup admits original materials and preserves the exact cancelled receiver" {
+  let f = retained_cleanup_fixture()
+  let materials = f.materials
+  let identity = prepared_client_identity(materials.prepared)
+  let recorded = @publication.prepare_recorded_run_publication(
+    materials.admission,
+    materials.run_definition,
+    @publication.prepare_result_definition(
+      identity.program_definition_cid,
+      "answer",
+    ).unwrap(),
+  ).unwrap()
+  let environment = admit_client_check_environment(
+    multi_source_environment,
+    prepared_client_check_environment_cid(materials.prepared),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let wire = issue_client_run_materials_input(
+    materials.prepared,
+    materials.admission,
+    materials.run_definition,
+    environment,
+    multi_source_environment,
+    retained_input_program,
+    None,
+  ).unwrap()
+  let source = @planning.query_source_evidence_fact_values(
+    prepared_client_source_evidence_facts(materials.prepared, 0, 0).unwrap(),
+  )
+  let graph = admit_recorded_client_source_cleanup_graph(
+    wire,
+    @publication.recorded_run_publication_run_cid(recorded),
+    recorded,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    run_materials_limits(),
+    source[0],
+    source[1],
+  ).unwrap()
+  let (intent, result) = receiver_cleanup_plan(f)
+  let original = @remote.dispatch_record_request(f.consumer)
+  let cancelled = receiver_cleanup_cancelled(original)
+  let cleanup = prepare_recorded_client_retained_receiver_cleanup_from_plan(
+    graph,
+    f.producer,
+    f.producer_evidence,
+    f.producer_subject,
+    f.measurement,
+    intent,
+    result,
+    original,
+    cancelled,
+    100000,
+    4,
+    4096,
+    8L,
+  ).unwrap()
+  assert_eq(
+    @transfer.request_cid(client_retained_input_cleanup_transfer(cleanup)),
+    @transfer.request_cid(f.transfer),
+  )
+  assert_eq(
+    client_retained_input_cleanup_reader_id(cleanup),
+    @remote.dispatch_request_identity(original),
+  )
+}
+
+///|
 test "receiver cleanup before consumer delivery preserves the original address after producer release" {
   let f = retained_cleanup_fixture()
   let (intent, result) = receiver_cleanup_plan(f)
