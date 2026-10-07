@@ -6,6 +6,9 @@ import {createRequire} from 'node:module';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+// Installed Source configuration is bounded before JSON buffering.
+import './source-profile-json.test.mjs';
+import './installed-source-bounds.test.mjs';
 // The installed connector table runs with the installation tests.
 import './installed-connectors.test.mjs';
 // The neutral row source's Site boundary runs with the installation tests.

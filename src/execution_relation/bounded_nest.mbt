@@ -52,8 +52,12 @@ priv struct BoundedNestState {
   accepted : Ref[Bool]
   mut port : TrustedOutputPort[Unit]?
   mut port_preparation : TrustedOutputPreparation?
-  parent_names : Array[String]
-  child_names : Array[String]
+  mut metadata_lookup : ChargedRowMetadataLookup?
+  mut metadata_started : Bool
+  mut metadata_part : Int
+  mut metadata_left : Int
+  mut metadata_offset : Int
+  mut name_charge : RowNameCharge?
   keys : Array[(Int, Int)]
   // Key terms first, then the resolved child order terms.
   terms : Array[ColumnOrder]
@@ -135,6 +139,14 @@ fn bounded_nest_failure(
 
 ///|
 fn cleanup_bounded_nest_state(state : BoundedNestState) -> Bool {
+  if state.metadata_lookup is Some(cursor) {
+    close_row_metadata_lookup(cursor.lookup)
+    state.metadata_lookup = None
+  }
+  if state.name_charge is Some(cursor) {
+    close_row_name_charge(cursor)
+    state.name_charge = None
+  }
   if state.port_preparation is Some(cursor) {
     cancel_trusted_output_preparation(cursor)
     state.port_preparation = None
@@ -151,6 +163,13 @@ fn cleanup_bounded_nest_state(state : BoundedNestState) -> Bool {
   state.seed = []
   state.child_index = []
   state.grouped.clear()
+  state.keys.clear()
+  state.terms.clear()
+  state.term_columns.clear()
+  state.projection.clear()
+  state.names.clear()
+  state.output_columns.clear()
+  state.attachment_columns.clear()
   state.matches.clear()
   bounded_nest_release_value(state)
   state.entries = []
@@ -167,6 +186,42 @@ fn cleanup_bounded_nest_state(state : BoundedNestState) -> Bool {
     state.live.val = false
   }
   true
+}
+
+///|
+fn bounded_nest_metadata_column(
+  state : BoundedNestState,
+  parent : Bool,
+  field : @schema.FieldName,
+) -> Result[Int?, RowIssue] {
+  if state.metadata_lookup is None {
+    guard start_charged_row_metadata_lookup(
+        producer_read_schema(if parent { state.parent } else { state.child }),
+        field,
+        state.workspace,
+        true,
+      )
+      is Some(cursor) else {
+      return Err(RowLimit)
+    }
+    state.metadata_lookup = Some(cursor)
+  }
+  match
+    advance_charged_row_metadata_lookup(
+      state.metadata_lookup.unwrap(),
+      state.control,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(None) => Ok(None)
+    Ok(Some(column)) => {
+      state.metadata_lookup = None
+      if column < 0 {
+        Err(InvalidRows)
+      } else {
+        Ok(Some(column))
+      }
+    }
+  }
 }
 
 ///|
@@ -372,30 +427,48 @@ fn bounded_nest_step(
           state.phase = ResolveOrder
           continue
         }
-        if !reserve_slots(state.workspace, 2) ||
-          !spend_control(state.control, 1) {
-          return row_limit(used)
+        if !state.metadata_started {
+          if !reserve_slots(state.workspace, 2) ||
+            !spend_control(state.control, 1) {
+            return row_limit(used)
+          }
+          state.metadata_started = true
         }
         let pair = @lower.nest_kernel_key_at(kernel, state.index).unwrap()
-        let left = match
-          resolve_column(state.parent_names, pair.left, state.control) {
-          Ok(value) => value
+        match
+          bounded_nest_metadata_column(
+            state,
+            state.metadata_part == 0,
+            if state.metadata_part == 0 {
+              pair.left
+            } else {
+              pair.right
+            },
+          ) {
           Err(issue) =>
             return bounded_nest_failure(Rows(issue), progress, used + 1)
+          Ok(None) => {
+            used += 1
+            continue
+          }
+          Ok(Some(column)) => {
+            if state.metadata_part == 0 {
+              state.metadata_left = column
+              state.metadata_part = 1
+              used += 1
+              continue
+            }
+            state.keys.push((state.metadata_left, column))
+            state.term_columns.push(column)
+          }
         }
-        let right = match
-          resolve_column(state.child_names, pair.right, state.control) {
-          Ok(value) => value
-          Err(issue) =>
-            return bounded_nest_failure(Rows(issue), progress, used + 1)
-        }
-        state.keys.push((left, right))
         state.terms.push({
           column: state.terms.length(),
           descending: false,
           nulls_first: true,
         })
-        state.term_columns.push(right)
+        state.metadata_part = 0
+        state.metadata_started = false
         state.index += 1
         used += 1
       }
@@ -405,14 +478,21 @@ fn bounded_nest_step(
           state.phase = ResolveField
           continue
         }
-        if !reserve_slots(state.workspace, 1) ||
-          !spend_control(state.control, 1) {
-          return row_limit(used)
+        if !state.metadata_started {
+          if !reserve_slots(state.workspace, 1) ||
+            !spend_control(state.control, 1) {
+            return row_limit(used)
+          }
+          state.metadata_started = true
         }
         let term = @lower.nest_kernel_order_at(kernel, state.index).unwrap()
         let column = match
-          resolve_column(state.child_names, term.field, state.control) {
-          Ok(value) => value
+          bounded_nest_metadata_column(state, false, term.field) {
+          Ok(None) => {
+            used += 1
+            continue
+          }
+          Ok(Some(value)) => value
           Err(issue) =>
             return bounded_nest_failure(Rows(issue), progress, used + 1)
         }
@@ -422,6 +502,7 @@ fn bounded_nest_step(
           nulls_first: term.nulls_first,
         })
         state.term_columns.push(column)
+        state.metadata_started = false
         state.index += 1
         used += 1
       }
@@ -436,18 +517,26 @@ fn bounded_nest_step(
           used += 1
           continue
         }
-        if !reserve_slots(state.workspace, 2) ||
-          !spend_control(state.control, 1) {
-          return row_limit(used)
+        if !state.metadata_started {
+          if !reserve_slots(state.workspace, 2) ||
+            !spend_control(state.control, 1) {
+            return row_limit(used)
+          }
+          state.metadata_started = true
         }
         let field = @lower.nest_kernel_field_at(kernel, state.index).unwrap()
         let column = match
-          resolve_column(state.child_names, field.input, state.control) {
-          Ok(value) => value
+          bounded_nest_metadata_column(state, false, field.input) {
+          Ok(None) => {
+            used += 1
+            continue
+          }
+          Ok(Some(value)) => value
           Err(issue) =>
             return bounded_nest_failure(Rows(issue), progress, used + 1)
         }
         state.projection.push((field.output, column))
+        state.metadata_started = false
         state.index += 1
         used += 1
       }
@@ -463,25 +552,72 @@ fn bounded_nest_step(
           continue
         }
         let output = @schema.field_at(state.output_schema, state.index).unwrap()
-        let name = @schema.reference_name(output.name)
-        if !spend_control_text(state.control, name) {
-          return row_limit(used)
+        let name = @schema.field_reference_name_at(
+          state.output_schema,
+          state.index,
+        ).unwrap()
+        if state.metadata_part == 0 {
+          if state.name_charge is None {
+            guard start_row_name_charge(name, state.workspace) is Some(cursor) else {
+              return row_limit(used)
+            }
+            state.name_charge = Some(cursor)
+          }
+          match
+            advance_row_name_charge(
+              state.name_charge.unwrap(),
+              Some(state.control),
+              None,
+            ) {
+            Err(_) => return row_limit(used)
+            Ok(false) => {
+              used += 1
+              continue
+            }
+            Ok(true) => {
+              state.name_charge = None
+              state.metadata_part = 1
+            }
+          }
         }
-        state.names.push(name)
-        if output.name == @schema.Unqualified(into) {
-          state.output_columns.push(None)
-        } else {
-          match resolve_column(state.parent_names, output.name, state.control) {
-            Ok(column) => state.output_columns.push(Some(column))
+        if state.metadata_part == 1 {
+          let (order, offset, _) = @schema.compare_reference_fragment(
+            output.name,
+            @schema.Unqualified(into),
+            state.metadata_offset,
+            64,
+          )
+          state.metadata_offset = offset
+          match order {
+            None => {
+              used += 1
+              continue
+            }
+            Some(0) => state.metadata_part = 3
+            Some(_) => state.metadata_part = 2
+          }
+        }
+        if state.metadata_part == 2 {
+          match bounded_nest_metadata_column(state, true, output.name) {
+            Ok(None) => {
+              used += 1
+              continue
+            }
+            Ok(Some(column)) => state.output_columns.push(Some(column))
             Err(issue) =>
               return bounded_nest_failure(Rows(issue), progress, used + 1)
           }
+        } else {
+          state.output_columns.push(None)
         }
+        state.names.push(name)
         match output.contract.shape {
           @contract.Array(_, ..) | @contract.Object(_) =>
             state.attachment_columns.push(state.index)
           _ => ()
         }
+        state.metadata_part = 0
+        state.metadata_offset = 0
         state.index += 1
         used += 1
       }
@@ -1093,12 +1229,6 @@ pub fn start_bounded_nest(
       return Err(Completion(issue))
     }
   }
-  let names_of = (read : ProducerRead) => {
-    let schema = producer_read_schema(read)
-    Array::makei(@schema.field_count(schema), i => {
-      @schema.reference_name(@schema.field_at(schema, i).unwrap().name)
-    })
-  }
   let state : BoundedNestState = {
     parent,
     child,
@@ -1122,8 +1252,12 @@ pub fn start_bounded_nest(
     accepted,
     port: None,
     port_preparation: Some(port_preparation),
-    parent_names: names_of(parent),
-    child_names: names_of(child),
+    metadata_lookup: None,
+    metadata_started: false,
+    metadata_part: 0,
+    metadata_left: -1,
+    metadata_offset: 0,
+    name_charge: None,
     keys: [],
     terms: [],
     term_columns: [],
