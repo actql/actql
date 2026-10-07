@@ -50,4 +50,5 @@ import {
 
 import {
   "actql/actql/capacity_law",
+  "actql/actql/physical_manifest" @cleanup_manifest,
 } for "wbtest"
