@@ -2831,6 +2831,9 @@ test "bounded selected take admits exact key-completion work" {
   // Control: input 6, sort names 4, rows 3, term 2, sort polls 15,
   // comparisons 3, sorted rows 9, output names 4, copied row 3. Nine
   // comparison-continuation steps add physical resume work, not control cost.
+  // Completion admission adds 29 physical steps: 16 name scalars (limit_0
+  // twice, n and s), seven identity units and six phase/finish transitions.
+  // The exact logical control budget remains 49; one-short remains 48.
   let (execution, input) = bounded_binding_rows_keyed_take_fixture(49)
   let mut completed = false
   while !completed {
@@ -2839,7 +2842,7 @@ test "bounded selected take admits exact key-completion work" {
       BoundedBindingRowsComplete(output, work~, ..) => {
         assert_eq(completed_row_count(output), 1)
         assert_true(completed_cell(output, 0, 0) is Some(Number(1.0)))
-        assert_eq(work, 61L)
+        assert_eq(work, 90L)
         completed = true
       }
       _ => fail("exact key-completion work failed")

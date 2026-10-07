@@ -94,6 +94,9 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     ",\"nameCharge\":" + (state.name_charge is Some(_)).to_string() +
     ",\"snapshotEntries\":" + state.snapshot.length().to_string() +
     ",\"sourceEntries\":" + state.row_sources.length().to_string() +
+    ",\"portPreparation\":" + (state.port_preparation is Some(_)).to_string() +
+    ",\"pendingPortNames\":" + state.port_preparation.map(c => c.names.length()).unwrap_or(0).to_string() +
+    ",\"completedPortNames\":" + state.port.map(p => p.names.length()).unwrap_or(0).to_string() +
     "},\"mapCapacity\":{\"inputOrdinals\":" + state.input_ordinals.capacity().to_string() +
     ",\"bindingOrdinals\":" + state.binding_ordinals.capacity().to_string() +
     ",\"projectionOrdinals\":" + state.projection_ordinals.map(m => m.capacity()).unwrap_or(0).to_string() +
