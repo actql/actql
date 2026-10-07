@@ -642,7 +642,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.equal(literal.report.verdict, 'verified');
       assert.deepEqual(literal.report.reasons, []);
       const bare = await client.check('SELECT missing', {format});
-      assert.deepEqual(bare.report.reasons, [{code: 'query_invalid'}]);
+      assert.deepEqual(bare.report.reasons, [{code: 'query_expression_invalid', facts: {issue: 'unknown_reference'}}]);
       const protectedInput = await client.check('SELECT missing AS n FROM records', {format});
       assert.equal(protectedInput.report.verdict, 'undetermined');
       assert.deepEqual(protectedInput.report.reasons, []);
@@ -4799,6 +4799,86 @@ for (const entrance of ['local', 'http']) {
         assert.deepEqual(outcome.report.reasons, []);
         assert.deepEqual(outcome.report.requirements, []);
         assert.deepEqual(outcome.report.coverage.limits.map(reason => reason.code), ['implementation_limit']);
+      }
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: bare unresolved columns retain owned explanations without invented locations`, async t => {
+    const sourceFree = await contextClient(t, entrance, absentEnvironment);
+    const visible = await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow'});
+    for (const format of ['sql', 'aql-text']) {
+      for (const [client, text, bytes] of [
+        [sourceFree, 'SELECT missing', 14],
+        [sourceFree, '--😀' + String.fromCharCode(13, 10) + 'SELECT missing', 22],
+        [sourceFree, 'SELECT `e\u0301😀`', 16],
+        [visible, 'SELECT missing FROM records', 27],
+        [visible, 'SELECT records.missing FROM records', 35],
+      ]) {
+        assert.equal(Buffer.byteLength(text), bytes);
+        const outcome = await client.check(text, {format});
+        assert.equal(outcome.outcome, 'completed');
+        assert.equal(outcome.report.verdict, 'invalid');
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.deepEqual(outcome.report.requirements, []);
+        assert.deepEqual(outcome.report.reasons, [{code: 'query_expression_invalid',
+          facts: {issue: 'unknown_reference'}}], '[check-mutation:bare-name-reason]');
+        const input = getCheckInput(outcome, 'source');
+        assert.equal(input.text, text);
+        assert.equal(outcome.report.inputs[0].byte_length, bytes);
+        assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location), undefined);
+        assert.equal(resolveCheckTextRange(outcome, outcome.report.reasons[0].location), undefined);
+        const explanation = explainCheckReason(outcome.report.reasons[0]);
+        assert.equal(explanation.kind, 'known');
+        assert.equal(explanation.hint, 'Use a declared reference from the disclosed query context.');
+        const display = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json'}));
+        assert.deepEqual(display.entries[0].facts, {issue: 'unknown_reference'});
+      }
+    }
+    // A wrapped expression already owns its authored occurrence. Its precise
+    // position must survive the added projection for an unlocated column.
+    const authored = await sourceFree.check('SELECT missing AS n', {format: 'sql'});
+    assert.equal(resolveCheckLocation(authored, authored.report.reasons[0].location).text, 'missing');
+    assert.equal(authored.report.reasons[0].location.start_byte, 7);
+    assert.equal(authored.report.reasons[0].location.end_byte, 14);
+  });
+
+  test(`${entrance}: bare column explanations preserve protected Source equivalence and independent violations`, async t => {
+    const clients = [
+      await contextClient(t, entrance, absentEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+      await contextClient(t, entrance, withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
+        {aliases: [rightAlias], readOutcome: 'delegate'}),
+    ];
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of ['SELECT missing FROM records', 'SELECT records.missing FROM records']) {
+        let original;
+        for (const client of clients) {
+          const outcome = await client.check(text, {format});
+          assert.deepEqual({verdict: outcome.report.verdict, reasons: outcome.report.reasons,
+            requirements: outcome.report.requirements, coverage: outcome.report.coverage},
+          {verdict: 'undetermined', reasons: [], requirements: [], coverage: {limits: [], unresolved: protectedSource}},
+          '[check-mutation:bare-name-protected]');
+          if (original) assert.deepEqual(outcome, original, '[check-mutation:bare-name-disclosure]');
+          else original = outcome;
+        }
+      }
+      let original;
+      for (const client of clients) {
+        const outcome = await client.check('SELECT missing, @x AS n FROM records', {format,
+          parameterDeclarations: {x: {type: 'number'}}, parameters: {x: 'private-bare-name-value'}});
+        const input = getCheckInput(outcome, 'parameters');
+        assert.deepEqual({verdict: outcome.report.verdict, reasons: outcome.report.reasons,
+          requirements: outcome.report.requirements, coverage: outcome.report.coverage},
+        {verdict: 'invalid', reasons: [{code: 'supplied_value_type_mismatch',
+          facts: {parameter: 'x', expected_type: 'number', actual_type: 'string'},
+          location: {document_id: 'parameters', revision: input.revision, kind: 'structured', pointer: '/x'}}],
+        requirements: [], coverage: {limits: [], unresolved: protectedSource}}, '[check-mutation:bare-name-public-violation]');
+        assert.doesNotMatch(JSON.stringify(outcome), /private-bare-name-value/);
+        if (original) assert.deepEqual(outcome, original, '[check-mutation:bare-name-disclosure]');
+        else original = outcome;
       }
     }
   });

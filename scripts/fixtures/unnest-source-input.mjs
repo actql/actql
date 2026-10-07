@@ -1,5 +1,7 @@
 // Independent GoogleSQL UNNEST expectations: NULL/empty arrays yield no rows,
 // NULL elements and duplicates remain rows, and explicit offsets restore order.
+import {unnestParameterPathSuccesses, unnestParameterPathRefusals}
+  from './unnest-parameter-path-source-input.mjs';
 const declarations = {items: {type: 'array', nullable: true, max_items: 3,
   items: {type: 'number', nullable: true}}};
 const column = (name, nullable = false) => ({name, contract: {type: 'number', nullable}});
@@ -140,3 +142,6 @@ unnestSuccesses.push(structSuccess('nested-top-level',
   [column('id'), {name: 'nested', contract: {...nested, additional_properties: false}}, column('position')],
   {parameterDeclarations: nestedDeclarations,
     parameters: {items: [{id: 1, nested: {score: null}}, {id: 2, nested: null}]}}));
+
+unnestSuccesses.push(...unnestParameterPathSuccesses);
+unnestRefusals.push(...unnestParameterPathRefusals);

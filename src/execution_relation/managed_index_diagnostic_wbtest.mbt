@@ -191,8 +191,9 @@ test "indexed failure position is the first offending occurrence not the maximum
     nodes: 100,
     depth: 10,
   }
+  let cursor = prepare_managed_output_index_cursor(index, 2, 1, 100, budget).unwrap()
   assert_true(
-    measure_managed_output_index(index, 2, 1, 100, budget)
+    advance_managed_output_index_cursor(cursor, 64)
     is Err(ValueBytes(Output, 0, 0)),
   )
   assert_eq((budget.work, budget.bytes, budget.nodes), (98, 880, 99))
