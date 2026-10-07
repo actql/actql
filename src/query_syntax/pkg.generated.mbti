@@ -128,6 +128,7 @@ pub(all) struct AnalyticFrame {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct AnalyticWindow {
+  reference : (NamePart, Int)?
   partition_by : Array[Expression]
   order_by : Array[SortTerm]
   frame : AnalyticFrame?

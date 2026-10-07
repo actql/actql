@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {starReplaceProgram, starReplaceSuccesses, starReplaceRefusals}
+import {starReplaceProgram, starReplaceSuccesses, starReplaceRefusals, starAggregateSnapshotProgram}
   from './fixtures/star-replace-source-input.mjs';
 
 test('star replacements preserve simultaneous inputs types order NULLs and duplicates', () => {
@@ -30,4 +30,18 @@ test('star REPLACE remains in the normal and narrowly selected packed corpora', 
   assert.ok(driver.includes("['scripts/fixtures/star-replace-source-input.mjs', 'star-replace-source-input.mjs']"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--star-replace-only'/u);
   assert.match(driver, /if \(process\.argv\.includes\('--star-replace-only'\)\) return;/u);
+});
+
+test('star aggregate snapshot oracle distinguishes original input from replaced values', () => {
+  const cases = starReplaceSuccesses.filter(item => item.name.includes('aggregate-snapshot-'));
+  assert.equal(cases.length, 5);
+  assert.deepEqual(JSON.parse(cases[0].text), starAggregateSnapshotProgram);
+  assert.deepEqual(starAggregateSnapshotProgram.stages[1].steps[0].group,
+    {by: ['amount'], aggregates: {id: {fn: 'sum', field: 'amount'}}});
+  for (const item of cases) {
+    assert.deepEqual(item.expected, [{amount: 11, id: 20}, {amount: 31, id: 30}, {amount: null, id: null}]);
+    assert.deepEqual(item.columns.map(entry => [entry.name, entry.contract.nullable]),
+      [['amount', true], ['id', true]]);
+    assert.notDeepEqual(item.expected.map(row => row.id), [22, 31, null]);
+  }
 });
