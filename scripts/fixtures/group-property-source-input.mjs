@@ -115,7 +115,65 @@ export const pipeAggregateOrderRefusals = [
   text('shorthand-alias-collision',
     'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY id AS n'),
 ];
+// Independently authored scalar-aggregate control and row/type expectations.
+const scalarAggregateRows = [{bucket: null, n: 3}, {bucket: 10, n: 2}, {bucket: 20, n: 3}];
+const scalarAggregateJson = {version: 'actql/0.1', id: 'fixture.pipe_aggregate_expression', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload, other}, rows}, as: 'objects'},
+    {from: 'objects', derive: {key: {property: {name: 'score', value: {field: 'payload'}}}}},
+    {group: {by: ['key'], aggregates: {count: {fn: 'count'}}}},
+    {derive: {next: {add: [{field: 'count'}, {literal: 1}]}}},
+    {select: [{bucket: 'key'}, {n: 'next'}]},
+    {sort: [{field: 'bucket', dir: 'asc', nulls: 'first'}]},
+    {select: ['bucket', 'n'], as: 'summary'},
+  ], results: {rows: {from: 'summary', fields: ['bucket', 'n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+export const pipeAggregateExpressionSuccesses = [
+  {name: 'group-property-scalar-independent-json', format: 'json', text: JSON.stringify(scalarAggregateJson),
+    expected: scalarAggregateRows, columns: aliasedColumns, sourceReadCount: 0},
+  text('scalar-null-duplicates',
+    'FROM objects |> AGGREGATE COUNT(*) + 1 AS n GROUP AND ORDER BY payload.score AS bucket',
+    {expected: scalarAggregateRows, columns: aliasedColumns}),
+  text('scalar-repeated-calls',
+    'FROM objects |> AGGREGATE COUNT(*) + COUNT(*) AS n GROUP AND ORDER BY payload.score AS bucket',
+    {expected: [{bucket: null, n: 4}, {bucket: 10, n: 2}, {bucket: 20, n: 4}], columns: aliasedColumns}),
+  text('scalar-key-property-preserves-null',
+    'FROM objects |> AGGREGATE COUNT(*) + objects.payload.score AS n GROUP AND ORDER BY payload.score AS bucket',
+    {expected: [{bucket: null, n: null}, {bucket: 10, n: 11}, {bucket: 20, n: 22}],
+      columns: [aliasedColumns[0], {name: 'n', contract: {...number, nullable: true}}]}),
+  text('scalar-key-expression-reuse',
+    'FROM objects |> AGGREGATE COUNT(*) + (objects.payload.score + 1) AS n GROUP AND ORDER BY payload.score + 1 AS bucket',
+    {expected: [{bucket: null, n: null}, {bucket: 11, n: 12}, {bucket: 21, n: 23}],
+      columns: [aliasedColumns[0], {name: 'n', contract: {...number, nullable: true}}]}),
+  text('scalar-input-output-collision',
+    'FROM objects |> AGGREGATE COUNT(*) + id AS id GROUP AND ORDER BY id AS original',
+    {expected: [1, 2, 3, 4, 5].map(original => ({original, id: original + 1})),
+      columns: [{name: 'original', contract: number}, {name: 'id', contract: number}]}),
+  text('scalar-atomic-input-output-collision',
+    'FROM objects |> AGGREGATE COUNT(*) AS id GROUP AND ORDER BY id AS original',
+    {expected: [1, 2, 3, 4, 5].map(original => ({original, id: 1})),
+      columns: [{name: 'original', contract: number}, {name: 'id', contract: number}]}),
+  text('scalar-predicate-limit',
+    'FROM objects |> AGGREGATE COUNT(*) + 1 AS n DESC GROUP BY payload.score AS bucket DESC NULLS LAST |> WHERE n > 2 |> LIMIT 1',
+    {expected: [{bucket: 20, n: 3}], columns: aliasedColumns}),
+  text('scalar-empty-global',
+    'FROM objects |> WHERE FALSE |> AGGREGATE COALESCE(SUM(id), 0) + 1 AS n',
+    {expected: [{n: 1}], columns: [{name: 'n', contract: number}]}),
+  text('scalar-empty-keyed',
+    'FROM objects |> WHERE FALSE |> AGGREGATE COUNT(*) + 1 AS n GROUP BY id AS original',
+    {expected: [], columns: [{name: 'original', contract: number}, {name: 'n', contract: number}]}),
+];
+export const pipeAggregateExpressionRefusals = [
+  text('scalar-ungrouped-input', 'FROM objects |> AGGREGATE COUNT(*) + id AS n'),
+  text('scalar-sibling-alias', 'FROM objects |> AGGREGATE COUNT(*) AS n, COUNT(*) + n AS next'),
+  text('scalar-key-alias-is-not-input', 'FROM objects |> AGGREGATE COUNT(*) + bucket AS n GROUP BY id AS bucket'),
+  text('scalar-removed-range', 'FROM objects AS old |> AS current |> AGGREGATE COUNT(*) + old.id AS n GROUP BY current.id'),
+  text('scalar-nonaggregate', 'FROM objects |> AGGREGATE id + 1 AS n'),
+  text('scalar-missing-output-name', 'FROM objects |> AGGREGATE COUNT(*) + 1'),
+  text('scalar-window', 'FROM objects |> AGGREGATE COUNT(*) OVER () AS n'),
+];
 export const groupPropertySuccesses = [
+  ...pipeAggregateExpressionSuccesses,
   ...pipeAggregateOrderSuccesses,
   {name: 'group-property-key-alias-independent-json', format: 'json',
     text: JSON.stringify(aliasedJson), expected: aliasedRows, columns: aliasedColumns, sourceReadCount: 0},
@@ -233,4 +291,4 @@ export const groupPropertyRefusals = [
   'FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score',
   'FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score |> SELECT old.payload.score',
 ].map((tail, index) => ({name: 'group-property-invalid-' + index,
-  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals);
+  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals, pipeAggregateExpressionRefusals);

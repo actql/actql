@@ -98,7 +98,7 @@ import {implicitPropertySuccesses, implicitPropertyRefusals}
   from './implicit-property-source-input.mjs';
 import {computedObjectPropertySuccesses, computedObjectPropertyRefusals, computedObjectPropertyExecutionFailures}
   from './computed-object-property-source-input.mjs';
-import {groupPropertySuccesses, groupPropertyRefusals, pipeAggregateOrderSuccesses, pipeAggregateOrderRefusals}
+import {groupPropertySuccesses, groupPropertyRefusals, pipeAggregateOrderSuccesses, pipeAggregateOrderRefusals, pipeAggregateExpressionSuccesses, pipeAggregateExpressionRefusals}
   from './group-property-source-input.mjs';
 import {uniquePublicQueryCases} from './public-query-cases.mjs';
 import {publicQueryProfiles} from './public-query-profiles.mjs';
@@ -179,8 +179,9 @@ const groupOnly = process.env.ACTQL_TEST_GROUP_SCOPE_ONLY === '1';
 const groupSelectScopeOnly = process.env.ACTQL_TEST_GROUP_SELECT_SCOPE_ONLY === '1';
 const implicitPropertyOnly = process.env.ACTQL_TEST_IMPLICIT_PROPERTY_ONLY === '1';
 const computedObjectPropertyOnly = process.env.ACTQL_TEST_COMPUTED_OBJECT_PROPERTY_ONLY === '1';
+const pipeAggregateExpressionOnly = process.env.ACTQL_TEST_PIPE_AGGREGATE_EXPRESSION_ONLY === '1';
 const pipeAggregateOrderOnly = process.env.ACTQL_TEST_PIPE_AGGREGATE_ORDER_ONLY === '1';
-const groupPropertyOnly = process.env.ACTQL_TEST_GROUP_PROPERTY_ONLY === '1' || pipeAggregateOrderOnly;
+const groupPropertyOnly = process.env.ACTQL_TEST_GROUP_PROPERTY_ONLY === '1' || pipeAggregateOrderOnly || pipeAggregateExpressionOnly;
 const havingProjectionOnly = process.env.ACTQL_TEST_HAVING_PROJECTION_ONLY === '1';
 const groupStarOnly = process.env.ACTQL_TEST_GROUP_STAR_ONLY === '1';
 const aggregatePropertyOrderOnly = process.env.ACTQL_TEST_AGGREGATE_PROPERTY_ORDER_ONLY === '1';
@@ -289,6 +290,7 @@ const scopeInputs = inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArrayS
   : computedObjectPropertyOnly ? {successes: computedObjectPropertySuccesses,
     refusals: computedObjectPropertyRefusals, executionFailures: computedObjectPropertyExecutionFailures}
   : groupOrdinalOnly ? {successes: groupOrdinalSuccesses, refusals: groupOrdinalRefusals}
+  : pipeAggregateExpressionOnly ? {successes: pipeAggregateExpressionSuccesses, refusals: pipeAggregateExpressionRefusals}
   : pipeAggregateOrderOnly ? {successes: pipeAggregateOrderSuccesses, refusals: pipeAggregateOrderRefusals}
   : groupPropertyOnly ? {successes: groupPropertySuccesses, refusals: groupPropertyRefusals}
   : havingProjectionOnly ? {successes: havingProjectionSuccesses, refusals: havingProjectionRefusals}

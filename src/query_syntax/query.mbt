@@ -78,7 +78,7 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum GroupingScope {
   SqlSelect
-  PipeAggregate(Array[NamePart?])
+  PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 
 ///|
@@ -416,7 +416,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
           copy_projections(projections),
           match scope {
             SqlSelect => SqlSelect
-            PipeAggregate(names) => PipeAggregate(names.copy())
+            PipeAggregate(names, embedded) =>
+              PipeAggregate(names.copy(), embedded.copy())
           },
         ),
       )
@@ -2223,14 +2224,33 @@ fn QueryParser::pipe_tail(
     } else if self.has("AGGREGATE") {
       self.keyword("AGGREGATE")
       let aggregate_order : Array[PipeAggregateOrder] = []
-      let aggregates = if self.has("GROUP") {
-        []
+      let (aggregates, embedded) = if self.has("GROUP") {
+        ([], [])
       } else {
-        let (values, _) = self.projections(ordering=Some(aggregate_order))
-        values
+        self.projections(
+          aggregate_expressions=true,
+          ordering=Some(aggregate_order),
+        )
       }
-      if aggregates.any(projection => projection.aggregate is None) {
-        raise QueryAbort("AGGREGATE requires named calls", self.peek().start)
+      if aggregates.any(projection => {
+          if projection.name is None ||
+            projection.analytic is Some(_) ||
+            projection.star is Some(_) {
+            return true
+          }
+          if projection.aggregate is Some(_) {
+            return false
+          }
+          guard projection.expression is Some(expression) else { return true }
+          !expression.nodes.any(node => {
+            node.kind is Reference(path) &&
+            embedded.any(pair => path == [pair.0])
+          })
+        }) {
+        raise QueryAbort(
+          "AGGREGATE requires named expressions containing aggregate calls",
+          self.peek().start,
+        )
       }
       let names : Array[NamePart?] = []
       let group_order : Array[PipeAggregateOrder] = []
@@ -2239,7 +2259,22 @@ fn QueryParser::pipe_tail(
       } else {
         []
       }
-      operations.push(Group(keys, aggregates, PipeAggregate(names)))
+      let calls = embedded.map(pair => {
+        expression: None,
+        aggregate: Some(pair.1),
+        analytic: None,
+        name: Some(pair.0),
+        star: None,
+        except_columns: [],
+        replacements: [],
+      })
+      operations.push(
+        Group(
+          keys,
+          aggregates + calls,
+          PipeAggregate(names, embedded.map(pair => pair.0)),
+        ),
+      )
       if !group_order.is_empty() || !aggregate_order.is_empty() {
         let terms : Array[SortTerm] = []
         for item in group_order {
