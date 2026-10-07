@@ -153,6 +153,18 @@ input is not Table publication. Dispatching/Unknown never authorize another
 commit. Recovery reads the original operation's durable Catalog evidence under
 current read/reconciliation authority and uses existing Effect transitions.
 
+Original-operation reconciliation uses the exact checked Table Preview and the
+validated complete history of its original possible dispatch. It does not create
+an intent or claim another send. Current evidence-read authority precedes the
+Catalog lookup and is checked again after it; the physical reader needs only the
+sealed original operation, not reconstructed input or a new writer. An absent
+original record remains unknown. A positive receipt is checked against the
+immutable operation and row count before durable evidence custody, then the
+existing Table outcome and terminal Ledger owners settle that saved evidence.
+Concurrent or delayed observers cannot overwrite the first saved response or
+create a second terminal revision. Saved malformed evidence is retained rather
+than replaced by a lookup; that case remains a separate recovery obligation.
+
 Catalog head publication, the original operation's immutable commit record and
 storage reservation transfer form one durable Catalog transaction. The record
 binds request CID, old/new generation, schema, mapping and the complete owned

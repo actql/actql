@@ -102,7 +102,10 @@ test('real whole-Relation commit is captured once, frozen generations survive la
   const second = f.prepare(replacement, [{id: 9}]);
   const replaced = await f.bridge.execute(second, {useCid: cid('7')});
   assert.equal(JSON.parse(replaced.observation.body).ok, true);
-  const reconciled = await f.bridge.reconcile(prepared);
+  // A reconstructed reader has no writer preparation, input rows or physical
+  // stop token. It still resolves the original commit after a later head.
+  const restarted = createIcebergPhysicalBridge({python, run: 'table-run', catalog: f.catalog});
+  const reconciled = await restarted.reconcileOperation({...operation, table_name: 'rows'});
   assert.deepEqual(wireValue(reconciled), first);
   const old = await f.bridge.read(first.result, f.mapping);
   assert.deepEqual(wireValue(old.result), [{id: 1, p: 'e\u0301\r\n'}, {id: 2, p: null}, {id: 3}, {id: 3}]);
@@ -142,7 +145,8 @@ test('real commit followed by process loss stays possible-dispatch after Ledger 
   const replay = await captureClaimedEffectResponse({ledger: reopened, claim, requestCid: operation.request_cid,
     execute: () => { assert.fail('Unknown physical commit cannot be resent'); }});
   assert.equal(replay.claimed, false);
-  const recovered = await f.bridge.reconcile(prepared);
+  const restarted = createIcebergPhysicalBridge({python, run: 'table-run', catalog: f.catalog});
+  const recovered = await restarted.reconcileOperation(operation);
   assert.equal(recovered.ok, true);
   assert.equal(recovered.result.request_cid, operation.request_cid);
   assert.deepEqual(wireValue((await f.bridge.read(recovered.result, f.mapping)).result), [{id: 1}]);
