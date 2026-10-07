@@ -1,7 +1,7 @@
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import {DatabaseSync} from 'node:sqlite';
-import {createHash} from 'node:crypto';
+import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
 import {closeSync, existsSync, fsyncSync, lstatSync,
   mkdirSync, openSync, readFileSync, readdirSync,
   realpathSync, writeFileSync} from 'node:fs';
@@ -398,6 +398,31 @@ function inspectSubmissionStorage(database, enabled) {
   // observations. Reopening must not reset this counter to the remaining rows.
 }
 
+const epochMarkerName = 'submission-epoch-format.json';
+const epochMarker = Buffer.from(JSON.stringify({
+  version: 'actql-client-request-journal/0.1', feature: 'submission_epochs',
+}));
+const maxEpochTtlMs = 7 * 24 * 60 * 60 * 1000;
+const hexKey = value => typeof value === 'string' && /^[0-9a-f]{64}$/u.test(value);
+function validEpochAuthority(row) {
+  return row?.singleton === 1 && hexKey(row.authentication_key) &&
+    Number.isSafeInteger(row.observed_at) && row.observed_at >= 0 &&
+    row.observed_at <= Number.MAX_SAFE_INTEGER - maxEpochTtlMs;
+}
+function inspectEpochStorage(database, enabled) {
+  const tables = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
+    AND name = 'client_submission_epoch_authority'`).all();
+  if (!enabled && tables.length === 0) return;
+  if (!enabled || tables.length !== 1) fail('UnknownClientRequestJournalFormat');
+  const fields = database.prepare('PRAGMA table_info(client_submission_epoch_authority)')
+    .all().map(field => field.name).sort();
+  const records = database.prepare('SELECT * FROM client_submission_epoch_authority').all();
+  if (JSON.stringify(fields) !== JSON.stringify(['authentication_key', 'observed_at', 'singleton']) ||
+      records.length !== 1 || !validEpochAuthority(records[0])) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+}
+
 function inspectCancellationStorage(database, enabled) {
   const tables = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
     AND name IN ('client_cancellation_operations', 'client_cancellation_custody')`).all();
@@ -432,6 +457,12 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
       !readFileSync(submissionPath).equals(submissionMarker))) {
     fail('UnknownClientRequestJournalFormat');
   }
+  const epochPath = join(directory, epochMarkerName);
+  const epochEnabled = entries.includes(epochMarkerName);
+  if (epochEnabled && (!lstatSync(epochPath).isFile() ||
+      !readFileSync(epochPath).equals(epochMarker))) {
+    fail('UnknownClientRequestJournalFormat');
+  }
   inspectSqliteSnapshot(databasePath, database => {
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
@@ -440,10 +471,12 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
     }
     inspectCancellationStorage(database, enabled);
     inspectSubmissionStorage(database, submissionEnabled);
+    inspectEpochStorage(database, epochEnabled);
   }, {code: 'UnknownClientRequestJournalFormat',
     validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
       (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
       (!submissionEnabled || readFileSync(submissionPath).equals(submissionMarker)) &&
+      (!epochEnabled || readFileSync(epochPath).equals(epochMarker)) &&
       JSON.stringify(readdirSync(directory).sort()) === JSON.stringify(entries)});
 }
 
@@ -483,10 +516,14 @@ function admitJournalDirectory(directory) {
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
   maxRunDefinitionWireBytes = 65_536,
+  submissionEpochTtlMs = maxEpochTtlMs,
+  submissionEpochNow = Date.now,
 } = {}) {
   if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
-      maxRunDefinitionWireBytes < 1024) {
+      maxRunDefinitionWireBytes < 1024 ||
+      !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
+      submissionEpochTtlMs > maxEpochTtlMs || typeof submissionEpochNow !== 'function') {
     fail('InvalidClientRequestJournalConfiguration');
   }
   const current = admitJournalDirectory(directory);
@@ -566,6 +603,23 @@ export function openClientRequestJournal(directory, {
       finally { closeSync(marker); }
       syncDirectory(root);
     }
+    if (!existsSync(join(root, epochMarkerName))) {
+      // One retained authentication key and monotonic expiry watermark suffice
+      // to validate bounded-lifetime tickets. No per-epoch history is evicted.
+      transaction.run(() => {
+        database.exec(`CREATE TABLE client_submission_epoch_authority (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          authentication_key TEXT NOT NULL,
+          observed_at INTEGER NOT NULL CHECK (observed_at >= 0)
+        ) STRICT;`);
+        database.prepare('INSERT INTO client_submission_epoch_authority VALUES (1, ?, 0)')
+          .run(randomBytes(32).toString('hex'));
+      });
+      const marker = openSync(join(root, epochMarkerName), 'wx', 0o600);
+      try {writeFileSync(marker, epochMarker); fsyncSync(marker);}
+      finally {closeSync(marker);}
+      syncDirectory(root);
+    }
     if (!existsSync(join(root, cancellationMarkerName))) {
       transaction.run(() => database.exec(`
         CREATE TABLE client_cancellation_operations (
@@ -635,6 +689,73 @@ export function openClientRequestJournal(directory, {
       fail('ClientRequestSubmissionCustodyLost');
     }
     return n;
+  };
+  const epochAuthority = database.prepare('SELECT * FROM client_submission_epoch_authority WHERE singleton = 1');
+  const advanceEpochTime = database.prepare('UPDATE client_submission_epoch_authority SET observed_at = ? WHERE singleton = 1');
+  const epochClock = () => {
+    const row = epochAuthority.get();
+    if (!validEpochAuthority(row)) fail('ClientSubmissionEpochCustodyLost');
+    const now = submissionEpochNow();
+    if (!Number.isSafeInteger(now) || now < 0 ||
+        now > Number.MAX_SAFE_INTEGER - maxEpochTtlMs) fail('ClientSubmissionEpochClockInvalid');
+    const observedAt = Math.max(now, row.observed_at);
+    advanceEpochTime.run(observedAt);
+    return {...row, observed_at: observedAt};
+  };
+  const epochHandle = (epoch, control) => {
+    if (epoch === null || typeof epoch !== 'object' || Array.isArray(epoch) ||
+        JSON.stringify(Object.keys(epoch).sort()) !== JSON.stringify([
+          'authenticator', 'authorityScopeCid', 'epochNonce', 'expiresAt', 'notBefore', 'version',
+        ])) fail('ClientSubmissionEpochUnverifiable');
+    const captured = Object.freeze({...epoch});
+    if (captured.version !== 'actql-submission-epoch/0.1' ||
+        !cid(captured.authorityScopeCid) || !hexKey(captured.epochNonce) ||
+        !Number.isSafeInteger(captured.notBefore) || !Number.isSafeInteger(captured.expiresAt) ||
+        Object.is(captured.notBefore, -0) || Object.is(captured.expiresAt, -0) ||
+        !hexKey(captured.authenticator)) fail('ClientSubmissionEpochUnverifiable');
+    const handle = control.clientSubmissionEpoch(captured.authorityScopeCid,
+      captured.epochNonce, captured.notBefore, captured.expiresAt);
+    if (handle === undefined) fail('ClientSubmissionEpochUnverifiable');
+    return {captured, handle};
+  };
+  const authenticateEpoch = (key, wire) => createHmac('sha256',
+    Buffer.from(key, 'hex')).update(wire, 'utf8').digest('hex');
+  const verifyEpochLocked = (epoch, {authorityScopeCid, currentAuthorization,
+    purpose}, control) => {
+    ensureOpen();
+    if (currentAuthorization !== true) fail('ClientSubmissionEpochUnauthorized');
+    if (!cid(authorityScopeCid) || !['admit', 'lookup'].includes(purpose)) {
+      fail('InvalidClientSubmissionEpochOperation');
+    }
+    const {captured, handle} = epochHandle(epoch, control);
+    const clock = epochClock();
+    const authenticated = authenticateEpoch(clock.authentication_key,
+      control.clientSubmissionEpochWire(handle));
+    if (!timingSafeEqual(Buffer.from(authenticated, 'hex'),
+      Buffer.from(captured.authenticator, 'hex'))) fail('ClientSubmissionEpochUnverifiable');
+    if (captured.authorityScopeCid !== authorityScopeCid) {
+      fail('ClientSubmissionEpochScopeMismatch');
+    }
+    const validity = control.clientSubmissionEpochValidity(handle, clock.observed_at);
+    if (validity === undefined) fail('ClientSubmissionEpochClockInvalid');
+    return {handle, epoch: captured, validity,
+      epochCid: control.clientSubmissionEpochCid(handle)};
+  };
+  const verifyEpoch = (epoch, fields, control) =>
+    transaction.run(() => verifyEpochLocked(epoch, fields, control));
+  const checkSubmissionBinding = (fields, submission, control, locked = false) => {
+    if (submission === undefined) return 'admissible';
+    const verify = locked ? verifyEpochLocked : verifyEpoch;
+    const verified = verify(submission.epoch, {authorityScopeCid: fields.authorityScopeCid,
+      currentAuthorization: submission.currentAuthorization, purpose: 'admit'}, control);
+    const requestId = control.clientSubmissionRequestId(verified.handle, submission.nonce);
+    if (requestId === undefined) fail('InvalidClientSubmissionNonce');
+    if (requestId !== fields.requestId) fail('ClientSubmissionIdentityMismatch');
+    return verified.validity;
+  };
+  const refuseEpoch = validity => {
+    if (validity !== 'admissible') fail(validity === 'expired'
+      ? 'ClientSubmissionEpochExpired' : 'ClientSubmissionEpochNotYetValid');
   };
   const cancellationCount = database.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations');
   const cancellationIssued = database.prepare('SELECT issued_count FROM client_cancellation_custody WHERE singleton = 1');
@@ -743,7 +864,8 @@ export function openClientRequestJournal(directory, {
   };
 
   const acceptRecord = (identity, {namespaceId, runDefinitionCid,
-    runDefinitionWire, resultNames, runAdmissionEvidence, revision = 0, lookupExpiresAt}, control) => {
+    runDefinitionWire, resultNames, runAdmissionEvidence, revision = 0, lookupExpiresAt,
+    submission}, control) => {
     ensureOpen();
     if (!control || typeof control.clientRequestAdmitRecord !== 'function' ||
         typeof control.clientRequestRelation !== 'function') {
@@ -778,13 +900,20 @@ export function openClientRequestJournal(directory, {
         JSON.parse(runAdmissionEvidence.modelOriginalRunWire).runDefinitionWire !== runDefinitionWire) {
       fail('InvalidClientRunAdmissionEvidence');
     }
-    return transact('accept', 'ClientRequestAcceptanceUnknown',
+    // Retain observed expiry even if another admission fact later conflicts
+    // and rolls its transaction back. The atomic check below still decides
+    // whether this particular Run may be inserted.
+    checkSubmissionBinding(fields, submission, control);
+    const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',
       error => typeof error?.code === 'string' &&
-        error.code.startsWith('ClientRequest'), () => {
+        (error.code.startsWith('ClientRequest') || error.code.startsWith('ClientSubmission')), () => {
       const retainedCount = assertSubmissionCustody();
       const existing = select.get(fields.authorityScopeCid,
         fields.requestId);
       if (existing !== undefined) {
+        // An expired identity may still identify its retained outcome. This
+        // path performs no new issuance; authenticate the original binding.
+        checkSubmissionBinding(fields, submission, control, true);
         if (existing.namespace_id !== namespaceId) {
           fail('ClientRequestOwnerMismatch');
         }
@@ -812,6 +941,13 @@ export function openClientRequestJournal(directory, {
             {runDefinitionWire: existing.run_definition_wire}),
           resultNames: retainedResultNames(existing)});
       }
+      const epochValidity = checkSubmissionBinding(fields, submission, control, true);
+      if (epochValidity !== 'admissible') {
+        // Commit the expiry watermark without admitting a Run. Throwing inside
+        // this transaction would roll the watermark back and let a backwards
+        // clock revive the identity after an awaited issuance.
+        return {epochRejected: epochValidity};
+      }
       if (Number(count.get().n) + assertCancellationCustody() >= maxRecords) {
         fail('ClientRequestJournalCapacity');
       }
@@ -836,6 +972,8 @@ export function openClientRequestJournal(directory, {
       resultNames, runAdmissionEvidence: admissionEvidence === null ? undefined :
         Object.freeze(JSON.parse(admissionEvidence))});
     });
+    if (outcome.epochRejected !== undefined) refuseEpoch(outcome.epochRejected);
+    return outcome;
   };
 
   const lookupRecord = ({namespaceId, authorityScopeCid, requestId}, control) => {
@@ -860,26 +998,52 @@ export function openClientRequestJournal(directory, {
   };
 
   const journal = Object.freeze({
+    issueSubmissionEpoch({authorityScopeCid, currentAuthorization}, control) {
+      ensureOpen();
+      if (currentAuthorization !== true) fail('ClientSubmissionEpochUnauthorized');
+      if (!cid(authorityScopeCid)) fail('InvalidClientSubmissionEpochOperation');
+      return transaction.run(() => {
+        const clock = epochClock();
+        const epoch = {version: 'actql-submission-epoch/0.1', authorityScopeCid,
+          epochNonce: randomBytes(32).toString('hex'), notBefore: clock.observed_at,
+          expiresAt: clock.observed_at + submissionEpochTtlMs};
+        const handle = control.clientSubmissionEpoch(authorityScopeCid,
+          epoch.epochNonce, epoch.notBefore, epoch.expiresAt);
+        if (handle === undefined) fail('InvalidClientSubmissionEpochOperation');
+        return Object.freeze({...epoch, authenticator: authenticateEpoch(
+          clock.authentication_key, control.clientSubmissionEpochWire(handle))});
+      });
+    },
+    verifySubmissionEpoch(epoch, fields, control) {
+      const {handle: _handle, ...verified} = verifyEpoch(epoch, fields, control);
+      return Object.freeze(verified);
+    },
+    submissionIdentity(epoch, nonce, fields, control) {
+      const {handle, ...verified} = verifyEpoch(epoch, fields, control);
+      const requestId = control.clientSubmissionRequestId(handle, nonce);
+      if (requestId === undefined) fail('InvalidClientSubmissionNonce');
+      return Object.freeze({...verified, requestId});
+    },
     // The transaction owns uniqueness and durable acceptance; no task is
     // started here. A duplicate is interpreted only by the common MoonBit
     // relation, never by comparing transport JSON or a local retry counter.
     accept(identity, {namespaceId, runDefinitionCid, revision = 0,
-      lookupExpiresAt}, control) {
+      lookupExpiresAt, submission}, control) {
       return acceptRecord(identity, {namespaceId, runDefinitionCid,
-        revision, lookupExpiresAt}, control);
+        revision, lookupExpiresAt, submission}, control);
     },
     // The complete canonical Run Definition is retained in the same
     // transaction as the request. The caller must have obtained it from the
     // shared Run issuer; re-admission here checks identity, not authority.
     // Reattachment never reissues this identity.
     acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence,
-      revision = 0, lookupExpiresAt}, requestControl, publicationControl) {
+      revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
       const definition = checkedRunDefinition(runDefinition,
         publicationControl, maxRunDefinitionWireBytes);
       const accepted = acceptRecord(identity, {namespaceId,
         runDefinitionCid: definition.identity,
         runDefinitionWire: definition.wire,
-        resultNames, runAdmissionEvidence, revision, lookupExpiresAt}, requestControl);
+        resultNames, runAdmissionEvidence, revision, lookupExpiresAt, submission}, requestControl);
       return Object.freeze({
         inserted: accepted.inserted,
         ref: accepted.ref,
@@ -982,7 +1146,7 @@ export function openClientRequestJournal(directory, {
     // the callback may issue authority but must not start Compute. A racing
     // issuer is discarded when the atomic insert finds an existing Run.
     async admitOrLookupDefinition(identity, {namespaceId, lookupExpiresAt,
-      issueDefinition, resultNames, sourceInventory}, requestControl, publicationControl) {
+      issueDefinition, resultNames, sourceInventory, submission}, requestControl, publicationControl) {
       if (!text(namespaceId) || !instant(lookupExpiresAt) ||
           Date.parse(lookupExpiresAt) <= Date.now() ||
           typeof issueDefinition !== 'function') {
@@ -991,12 +1155,15 @@ export function openClientRequestJournal(directory, {
       if (sourceInventory !== undefined) validateSourceInventory(sourceInventory);
       ensureOpen();
       assertSubmissionCustody();
+      const fields = checkedIdentity(identity, requestControl);
+      const epochValidity = checkSubmissionBinding(fields, submission, requestControl);
       const retained = journal.resolveDefinition(identity, {namespaceId},
         requestControl, publicationControl);
       if (retained !== undefined) {
         assertSourceInventory(retained, sourceInventory);
         return Object.freeze({inserted: false, ...retained});
       }
+      refuseEpoch(epochValidity);
       const issued = await issueDefinition();
       const runDefinition = issued.runDefinition ?? issued;
       if (issued.runAdmissionEvidence?.sourceInventory !== sourceInventory) {
@@ -1004,7 +1171,7 @@ export function openClientRequestJournal(directory, {
       }
       return journal.acceptDefinition(identity, {namespaceId, runDefinition,
         runAdmissionEvidence: issued.runAdmissionEvidence,
-        lookupExpiresAt, resultNames: issued.resultNames ?? resultNames}, requestControl, publicationControl);
+        lookupExpiresAt, resultNames: issued.resultNames ?? resultNames, submission}, requestControl, publicationControl);
     },
     // One physical transaction applies the common MoonBit start decision.
     // A committed reservation records possible dispatch before any work. A
