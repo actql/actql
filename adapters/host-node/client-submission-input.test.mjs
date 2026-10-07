@@ -251,6 +251,12 @@ for (const entrance of ['local', 'https']) {
         const found = await f.client.lookupRequest(snapshot.requestId);
         assert.equal(found.kind, committed ? 'found' : 'not_found');
         if (committed) assert.equal(found.ref.runDefinitionCid, stored[0].run_definition_cid);
+        const lookupExplanation = sdk.explainRequestLookup(found);
+        assert.equal(lookupExplanation.observation, committed ? 'run_reference_received' : 'lookup_unresolved',
+          '[check-mutation:request-public-observation]');
+        assert.equal(Object.hasOwn(lookupExplanation, 'accepted'), false);
+        assert.equal(sdk.explainRequestLookup({...found}), undefined);
+        assert.equal(sdk.getSubmissionInput(found), undefined);
         assert.deepEqual(f.stored(), stored);
         f.revoke();
         await assert.rejects(f.client.lookupRequest(snapshot.requestId), {code: 'ClientConnectionDenied'});

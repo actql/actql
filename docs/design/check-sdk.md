@@ -1521,3 +1521,36 @@ The HTTPS payload terminator still precedes receipt/terminal-record persistence.
 Its transport completion alone does not establish the receipt-backed Complete
 outcome. Opening reconciliation and immutable lookup presentation are useful
 parts of that boundary, not a replacement for its remaining Owner connection.
+
+`explainRequestLookup` and `formatRequestLookup` render this call's original
+admitted lookup or its rejected observation. The existing lookup validator runs
+before and after cloning; recursively frozen snapshots detach nested Checkpoint
+references from reusable Local Host objects. Clone or contract failures retain
+only `lookup_uninterpretable` and the original read-only lookup target. A
+transport failure retains `lookup_unavailable`; neither observation admits raw
+response fields or establishes an acceptance or execution outcome.
+
+An admitted absent record remains `lookup_unresolved`, not NotAccepted. A found
+Run reference supplies `run_reference_received`, not Run success. Durable held
+responses preserve the existing Owner's closed preparation state, attempt ID
+and durability. `waiting_checkpoint`, `resuming` and `ended` describe preparation;
+none establishes physical stop, resource release or a new permission. The
+absence of a returned Run reference does not prove that no internal definition
+was ever created. Open `endReason`, `terminalErrorCode` and store-reason strings
+are not used to classify or render these explanations. Authoritative meanings
+such as PreparationFailed require the owning contract's typed evidence.
+
+Held submit responses are also cloned and revalidated as the same held branch
+before they receive submission explanation custody. Failure retains the
+original submission input and unknown acceptance, never a fabricated held or
+Run result. Lookup responses have no association to a submitted input; copying
+one cannot recover that input or acquire original explanation custody. Snapshots
+and explanations remain in memory while their application references are held;
+weak associations add no fixed retention period, Host persistence or retrieval
+API. Subsequent lookups recheck current authorization. English/Japanese and
+text/HTML/JSON presentation preserve the same facts and perform no I/O.
+
+Lookup failures use fresh SDK errors for each call. Reused credential or
+transport exceptions cannot replace an earlier call's lookup target. Only the
+existing SDK error code and a bounded HTTP status are copied; borrowed exception
+causes and fields receive no explanation custody or outcome authority.
