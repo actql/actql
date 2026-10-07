@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {hash} from '../../inventory.mjs';
 import {inspectParentReferenceCode,referenceHelpers} from './parent-reference-sites.mjs';
 import {inspectParentCaptureCode} from './parent-capture-sites.mjs';
+import {inspectParentCaptureArm64} from './parent-capture-arm64.mjs';
 import {inspectParentReferenceArm64,arm64ReferenceHelpers} from './parent-reference-arm64.mjs';
 import {nativeFunctionEntries,disassembleNativeRanges} from './native-code-disassembly.mjs';
 
@@ -39,7 +40,7 @@ function generated(object,exe,platform) {
     }
     return disassembleNativeRanges(run,objdump,file,all,names,relocation);
   }
-  const captureSymbols=exeEntries.filter(m=>m[2]==='moonbit_decref' || m[2].startsWith(parent[0][2]+'C') || /managed__provider__execution__with__child__work__issue$/.test(m[2]))
+  const captureSymbols=exeEntries.filter(m=>(m[2]===(platform==='darwin-arm64'?'_moonbit_decref':'moonbit_decref') || m[2].startsWith(parent[0][2]+'C') || /managed__provider__execution__with__child__work__issue$/.test(m[2])) && !selected.includes(m[2]))
     .map(m=>`${m[1]} T ${m[2]}`).join('\n')+'\n';
   return {symbols,captureSymbols,object:dump(object,objectEntries,[parent[0][2]],true),
     linked:dump(exe,exeEntries,[parent[0][2],...helpers],false)};
@@ -84,7 +85,6 @@ export function auditParentReferenceCode(report,start,root,read) {
   const inspect=proof.platform==='darwin-arm64'?inspectParentReferenceArm64:inspectParentReferenceCode;
   const result=inspect(start,regenerated.symbols,regenerated.object,regenerated.linked);
   assert(result.references.every(r=>r.requestedBytes<=16),'Primitive Ref exceeds conditional component');
-  return {...result,captures:proof.platform==='darwin-arm64'
-    ? {status:'unresolved',reason:'ordered callback capture decoder currently covers linux-x64 only'}
-    : inspectParentCaptureCode(start,regenerated.symbols+regenerated.captureSymbols,regenerated.object,regenerated.linked)};
+  const captures=proof.platform==='darwin-arm64'?inspectParentCaptureArm64:inspectParentCaptureCode;
+  return {...result,captures:captures(start,regenerated.symbols+regenerated.captureSymbols,regenerated.object,regenerated.linked)};
 }
