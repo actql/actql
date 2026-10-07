@@ -100,8 +100,16 @@ if (action === 'public-success') {
         ? JSON.parse(await readFile(resolve(root, 'retained-output-success.retained-output-success.json'), 'utf8'))
           .records.find(item => item.mode === mode)
         : undefined;
+      const submissionRef = previous === undefined
+        ? client.newSubmission({nonce: requestId}) : previous.submissionRef;
+      const custodyPath = resolve(directory, 'submission-ref.json');
+      if (previous === undefined) {
+        await writeFile(custodyPath, JSON.stringify(submissionRef) + '\n', {flag: 'wx', mode: 0o600});
+      } else {
+        assert.deepEqual(JSON.parse(await readFile(custodyPath, 'utf8')), submissionRef);
+      }
       const execution = previous === undefined
-        ? await client.startSource(fixture.program, {format: 'json', requestId})
+        ? await client.startSource(fixture.program, {format: 'json', submissionRef})
         : await client.attach(previous.ref);
       assert.equal((await execution.wait({signal: AbortSignal.timeout(30_000)})).status, 'succeeded');
       const expected = expectedTwoSourceResults(fixture, 'distinct').joined;
@@ -115,16 +123,21 @@ if (action === 'public-success') {
       const before = provider.snapshot();
       const attached = await client.attach(execution.ref);
       assert.deepEqual(await attached.result('joined').all(), expected.rows);
-      const resent = await client.startSource(fixture.program, {format: 'json', requestId});
+      const lookup = await client.lookupSubmission(submissionRef);
+      assert.equal(lookup.kind, 'ready');
+      assert.deepEqual(lookup.submissionRef, submissionRef);
+      assert.deepEqual(lookup.admission.ref, execution.ref);
+      const resent = await client.startSource(fixture.program, {format: 'json', submissionRef});
       assert.deepEqual(resent.ref, execution.ref);
       assert.deepEqual(provider.snapshot(), before, 'Result reuse never reacquires either source');
-      records.push({mode, ref: execution.ref});
+      records.push({mode, ref: execution.ref, submissionRef});
     } finally { client?.close(); await running.close(); }
   }
   await report({records, provider: provider.snapshot()});
 } else {
   const directory = resolve(root, `${caseName}-state`), requestId = `two-source-${caseName}`;
   const mode = caseName.startsWith('local-') ? 'local' : 'https';
+  let submissionRef;
   let refusalCode;
   let sourceProfilePaths = [installation.profiles.left, installation.profiles.right];
   const events = [], faults = [];
@@ -181,7 +194,10 @@ if (action === 'public-success') {
         }}});
     const client = await preflight.connect();
     try {
-      const execution = await client.startSource(fixture.program, {format: 'json', requestId: 'generation-preflight'});
+      const preflightRef = client.newSubmission({nonce: 'generation-preflight'});
+      await writeFile(resolve(root, `${caseName}-generation-preflight`, 'submission-ref.json'),
+        JSON.stringify(preflightRef) + '\n', {flag: 'wx', mode: 0o600});
+      const execution = await client.startSource(fixture.program, {format: 'json', submissionRef: preflightRef});
       assert.equal((await execution.wait({signal: AbortSignal.timeout(30_000)})).status, 'failed');
       assert.equal(prepared, true, 'changed source generation itself admits and prepares');
       noIo();
@@ -202,7 +218,7 @@ if (action === 'public-success') {
           assert.ok(BigInt(detail.resourceUsage.heldBytes) > 0n);
           assert.equal(provider.snapshot().sourceReadSessions, 1);
         }
-        writeFileSync(reportPath, JSON.stringify({ref: detail.ref, journal,
+        writeFileSync(reportPath, JSON.stringify({ref: detail.ref, submissionRef, journal,
           provider: provider.snapshot(), faults}, null, 2) + '\n');
         // The process owns its scratch, TLS server and native database handles.
         // There is no graceful Host close or fabricated recovery receipt.
@@ -222,40 +238,59 @@ if (action === 'public-success') {
     mode, directory, sourceProfilePaths, tls, authorization});
   const client = await running.connect();
   try {
+    const custodyPath = resolve(directory, 'submission-ref.json');
+    if (action.startsWith('recover-')) {
+      // Lookup and replay require the original custody, never a newly minted epoch.
+      submissionRef = JSON.parse(await readFile(custodyPath, 'utf8'));
+    } else {
+      submissionRef = client.newSubmission({nonce: requestId});
+      await writeFile(custodyPath, JSON.stringify(submissionRef) + '\n', {flag: 'wx', mode: 0o600});
+    }
+    const lookupOriginal = async () => {
+      const found = await client.lookupSubmission(submissionRef);
+      assert.equal(found.kind, 'ready');
+      assert.deepEqual(found.submissionRef, submissionRef);
+      return found.admission;
+    };
     if (action.startsWith('recover-')) {
       const crashAction = action.startsWith('recover-started') ? 'crash-first' : 'crash-before';
       const crash = JSON.parse(await readFile(resolve(root, `${caseName}.${crashAction}.json`), 'utf8'));
+      assert.deepEqual(submissionRef, crash.submissionRef);
       assert.equal(inventory(readTwoSourceJournal(directory)[0]), inventory(crash.journal[0]));
-      assert.deepEqual((await client.lookupRequest(requestId)).ref, crash.ref);
+      assert.deepEqual((await lookupOriginal()).ref, crash.ref);
       const attached = await client.attach(crash.ref);
       noIo();
       if (action.startsWith('recover-changed-')) {
-        await assert.rejects(client.startSource(fixture.program, {format: 'json', requestId}), error => {
-          assert.ok(['ClientRunStartDenied', 'ClientRequestIntentConflict'].includes(error.code), String(error.code));
-          refusalCode = error.code;
+        await assert.rejects(client.startSource(fixture.program, {format: 'json', submissionRef}), error => {
+          assert.equal(error.code, 'SubmissionUnknown');
+          assert.deepEqual(error.submissionRef, submissionRef);
+          assert.ok(['ClientRunStartDenied', 'ClientRequestIntentConflict'].includes(error.cause?.code),
+            String(error.cause?.code));
+          refusalCode = error.cause.code;
           return true;
         });
         noIo();
-        assert.deepEqual((await client.lookupRequest(requestId)).ref, crash.ref,
-          'definitive refusal preserves the original accepted request');
+        assert.deepEqual((await lookupOriginal()).ref, crash.ref,
+          'dispatch refusal preserves the original accepted request');
         assert.deepEqual(readTwoSourceJournal(directory), crash.journal, 'refused replay preserves exact admitted inventory');
       } else if (action.startsWith('recover-started')) {
-        const state = await running.host.inspectAcquisition({requestId, principalId: userInfo().username,
+        const acceptedRequestId = crash.journal[0].caller_request_id;
+        const state = await running.host.inspectAcquisition({requestId: acceptedRequestId, principalId: userInfo().username,
           connection: {mode: 'remote', owner: 'remote'}});
         assert.equal(state.state, 'started_unknown');
         assert.deepEqual(state.ref, crash.ref);
         const status = await attached.status();
         assert.ok(!['succeeded', 'failed', 'cancelled'].includes(status.status), JSON.stringify(status));
-        const resent = await client.startSource(fixture.program, {format: 'json', requestId});
+        const resent = await client.startSource(fixture.program, {format: 'json', submissionRef});
         assert.deepEqual(resent.ref, crash.ref);
-        assert.equal((await running.host.inspectAcquisition({requestId,
+        assert.equal((await running.host.inspectAcquisition({requestId: acceptedRequestId,
           principalId: userInfo().username, connection: {mode: 'remote', owner: 'remote'}})).state, 'started_unknown');
         await assert.rejects(attached.result('joined').all(), {code: 'ResultAccessDenied'});
         noIo();
         assert.deepEqual(readTwoSourceJournal(directory), crash.journal, 'unknown start is never reset or silently reacquired');
       } else {
         assert.equal(action, 'recover-exact');
-        const resent = await client.startSource(fixture.program, {format: 'json', requestId});
+        const resent = await client.startSource(fixture.program, {format: 'json', submissionRef});
         assert.deepEqual(resent.ref, crash.ref);
         assert.equal((await resent.wait({signal: AbortSignal.timeout(30_000)})).status, 'succeeded');
         assert.deepEqual(await resent.result('joined').all(), fixture.expected.rows);
@@ -265,7 +300,7 @@ if (action === 'public-success') {
       await report({journal: readTwoSourceJournal(directory), provider: provider.snapshot(),
         ...(refusalCode === undefined ? {} : {refusalCode}), events, faults});
     } else {
-      const execution = await client.startSource(fixture.program, {format: 'json', requestId});
+      const execution = await client.startSource(fixture.program, {format: 'json', submissionRef});
       if (action === 'cancel-second-boundary') {
         await secondReached;
         assert.equal(provider.snapshot().sourceReadSessions, 1);
@@ -323,8 +358,8 @@ if (action === 'public-success') {
         const beforeRead = provider.snapshot();
         await assert.rejects(execution.result('joined').all(), {code: 'ResultAccessDenied'});
         assert.equal((await (await client.attach(execution.ref)).status()).status, expected);
-        assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
-        assert.deepEqual((await client.startSource(fixture.program, {format: 'json', requestId})).ref, execution.ref);
+        assert.deepEqual((await lookupOriginal()).ref, execution.ref);
+        assert.deepEqual((await client.startSource(fixture.program, {format: 'json', submissionRef})).ref, execution.ref);
         assert.deepEqual(provider.snapshot(), beforeRead);
         if (action === 'cancel-second-boundary') {
           assert.ok(provider.snapshot().sourceProviderOpens.every(database => database === installation.databases.left),
