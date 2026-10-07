@@ -108,7 +108,8 @@ async function terminal(run, observations, t) {
   }
 }
 
-test('Table public concurrent replace commits one expected generation without automatic overwrite', async t => {
+for (const replyMode of ['saved', 'lost']) {
+test(`Table public concurrent replace ${replyMode} noncommit reply preserves the original failure`, async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
   const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
   const launcher = join(f.root, 'concurrent-replace');
@@ -125,6 +126,14 @@ def factory(*args):
             with (root / "writes.log").open("a") as stream:
                 stream.write(args[0]["request_cid"] + "\\n")
             return super().write_claimed(*args, **kwargs)
+        def confirm_noncommit(self, request, reason):
+            result = super().confirm_noncommit(request, reason)
+            if ${replyMode === 'lost' ? 'True' : 'False'} and result["version"] == "actql-table-noncommit-receipt/0.1":
+                # Persist the product's original fact and fence, then lose
+                # the reply. No fixture supplies a receipt or terminal Run.
+                (root / "lost-noncommit-reply").write_text(request["request_cid"])
+                os._exit(9)
+            return result
         def before_publication(self):
             request = self.context[0]
             if request["action"] != "replace":
@@ -207,7 +216,8 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     const loser = await terminal(second.run, observations, t);
     t.diagnostic(JSON.stringify({phase: 'concurrent-replace', loser, commits: commits(f.catalog),
       firstOperation: first.operation, secondOperation: second.operation}));
-    assert.equal(loser.status, 'failed', 'Expected-version conflict is not a successful or unknown commit');
+    assert.equal(loser.status, replyMode === 'lost' ? 'needs_reconciliation' : 'failed',
+      'Reply loss is uncertain until original durable evidence is observed');
     assert.equal(commits(f.catalog).length, 2);
     assert.deepEqual(multiset(await first.run.result('answer').all()), winnerRows);
     const noncommit = await f.bridge.reconcileOperation(second.operation);
@@ -215,7 +225,11 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     assert.equal(noncommit.result.version, 'actql-table-noncommit-receipt/0.1');
     assert.equal(noncommit.result.request_cid, second.operation.request_cid);
     assert.equal(noncommit.result.reason, 'ExpectedGenerationConflict');
-    assert.equal((await second.run.reconcile()).status, 'failed');
+    if (replyMode === 'lost') {
+      assert.equal(await readFile(join(f.root, 'lost-noncommit-reply'), 'utf8'), second.operation.request_cid);
+      assert.equal((await second.run.status()).status, 'needs_reconciliation',
+        'A direct Catalog fixture lookup is not a public Run settlement');
+    } else assert.equal((await second.run.reconcile()).status, 'failed');
     await second.client.close();
     const audit = new DatabaseSync(f.catalog.database, {readOnly: true});
     try {
@@ -225,15 +239,43 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       assert.equal(audit.prepare('SELECT cleanup_complete FROM actql_table_publication_fences WHERE request_cid=?')
         .get(second.operation.request_cid).cleanup_complete, 1);
     } finally { audit.close(); }
+    const later = replyMode === 'lost' ? await open('replace-later', [{id: 30, tag: 'later'}], {
+      table_uuid: original.receipt.table_uuid,
+      generation_cid: commits(f.catalog).find(item => item.operation.request_cid ===
+        first.operation.request_cid).receipt.generation_cid}) : undefined;
+    if (later !== undefined) {
+      await later.approve();
+      // The first two writers still use their barriers; a subsequent operation
+      // is likewise released only after actual staging, not before preflight.
+      const signal = AbortSignal.timeout(30000);
+      for (;;) {
+        signal.throwIfAborted();
+        const ready = await readFile(staged(later), 'utf8').then(wire => {
+          assert.deepEqual(JSON.parse(wire), later.operation);
+          return true;
+        }).catch(error => { if (error.code === 'ENOENT') return false; throw error; });
+        if (ready) break;
+        await delay(20, undefined, {signal});
+      }
+      await writeFile(join(f.root, `release-${later.operation.request_cid.slice(7)}`), 'commit');
+      assert.equal((await terminal(later.run, observations, t)).status, 'succeeded');
+      assert.deepEqual(await later.run.result('answer').all(), [{id: 30, tag: 'later'}]);
+    }
+    const committedBeforeRecovery = commits(f.catalog);
     const restarted = await connectEmbeddedLocal(second.options);
     opened.push(restarted);
     const recovered = await restarted.attach(second.run.ref);
+    assert.equal((await recovered.status()).status, replyMode === 'lost' ? 'needs_reconciliation' : 'failed');
+    assert.deepEqual((await Promise.all([recovered.reconcile(), recovered.reconcile()]))
+      .map(state => state.status), ['failed', 'failed']);
     assert.equal((await recovered.reconcile()).status, 'failed');
     assert.deepEqual(plain(await f.bridge.reconcileOperation(second.operation)), plain(noncommit),
       'The original noncommit receipt remains exact after Host restart and cleanup');
-    assert.equal(commits(f.catalog).length, 2);
+    assert.deepEqual(commits(f.catalog), committedBeforeRecovery,
+      'Concurrent recovery uses original evidence, not the later Table head');
     assert.deepEqual((await readFile(join(f.root, 'writes.log'), 'utf8')).trim().split('\n').sort(),
-      [created.operation.request_cid, first.operation.request_cid, second.operation.request_cid].sort(),
+      [created.operation.request_cid, first.operation.request_cid, second.operation.request_cid,
+        ...(later === undefined ? [] : [later.operation.request_cid])].sort(),
       'Each approved occurrence enters the writer once; conflict never retries');
   } finally {
     // Release either barrier on a failed assertion, then let each existing Host
@@ -244,6 +286,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     for (const client of opened.reverse()) await client.close();
   }
 });
+}
 
 test('Table public lost commit reply reconciles the original Run without another write', async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
