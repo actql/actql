@@ -86,8 +86,9 @@ control-flow correctness by matching names alone.
 ## Executed checks and unresolved verification
 
 All commands below used the bounded `scripts/local-checks.mjs` wrapper and the
-pinned toolchain. Receipts refer to a dirty working tree at the base above,
-not a clean submitted SHA or hosted CI success.
+pinned toolchain. Except for the explicitly identified integrated build,
+receipts refer to a dirty working tree at the base above, not a clean
+submitted SHA or hosted CI success.
 
 - The six-file JS selection (new preparation tests plus the five existing
   kernel fixture files) passed 63/64 at `run-FDimiv` / `focused-test-LKIJED`.
@@ -107,6 +108,12 @@ not a clean submitted SHA or hosted CI success.
   build produced no usable runtime. No old runtime is substituted for it.
   Its stopped owner and process group were independently confirmed absent
   before reclaiming only its residual lock; original receipts were preserved.
+- On clean integrated source `4e3230686acc8e7955710b836e27a0dd8af3e227`,
+  the same required runtime dependency build with `--jobs 2` timed out at
+  180 seconds (`run-AQkAGe`). The execution Relation interface and several
+  dependency outputs were produced, but Builtin, Salesforce and Client ABI
+  entry outputs were still absent. Locks were released normally. This is
+  incomplete preparation, not a public execution result.
 
 The ordinary Host cases and final window correction remain pending.
 Full Core, Wasm/Native, packed Local/HTTPS, stop-latency and
