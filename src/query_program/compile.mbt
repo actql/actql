@@ -3002,13 +3002,17 @@ fn compile_steps(
           derives.push(
             (
               slot,
-              append_pipe_expression(
-                construction,
-                expression,
-                input_scope.visible,
-                input_scope.ranges,
-                max_work,
-              ),
+              if sql_group_expression_input_scope is Some(original_scope) {
+                append_grouped_expression(
+                  construction, expression, grouped_keys,
+                  path => pipe_slot(path, original_scope.visible, original_scope.ranges),
+                  input_scope.visible, input_scope.ranges, max_work,
+                )
+              } else {
+                append_pipe_expression(
+                  construction, expression, input_scope.visible, input_scope.ranges, max_work,
+                )
+              },
             ),
           )
           having_values.push((expression, slot))
