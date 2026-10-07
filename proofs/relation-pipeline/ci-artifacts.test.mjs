@@ -567,7 +567,7 @@ test('workflow partitions complete campaigns into exactly four owners with manda
   }
   assert(runLines('pipeline-capacity').includes('node proofs/relation-pipeline/run.mjs all'));
   assert(!runLines('pipeline-capacity-mutants').includes('node proofs/relation-pipeline/run.mjs all'));
-  for(const command of ['audit.mjs','audit-target-regression.mjs','capacity/audit.mjs','capacity/audit-target-regression.mjs'])
+  for(const command of ['mutation-action-archive.mjs seal','audit-target-regression.mjs','capacity/audit.mjs','capacity/audit-target-regression.mjs'])
     assert(runLines('pipeline-evidence').includes(`node proofs/relation-pipeline/${command}`));
   assert.equal(jobs['pipeline-validation'].if,normalSchedule);
   assert.deepEqual(jobs['pipeline-validation'].needs,['select-targets','preflight']);

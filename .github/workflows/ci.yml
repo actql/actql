@@ -647,8 +647,8 @@ jobs:
         run: |
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
-      - name: Audit complete independent execution records and shrink minima
-        run: node proofs/relation-pipeline/audit.mjs
+      - name: Audit complete independent execution records and seal the fresh action original
+        run: node proofs/relation-pipeline/mutation-action-archive.mjs seal
       - name: Reject internally consistent whole-report target substitutions
         run: node proofs/relation-pipeline/audit-target-regression.mjs
       - name: Audit the complete structural capacity union
@@ -663,6 +663,7 @@ jobs:
           path: |
             .artifacts/relation-pipeline/
             .artifacts/pipeline-ci/join.json
+            .artifacts/pipeline-ci/action-original.json
             .artifacts/relation-pipeline-target-regression/run-*/*.json
             .artifacts/relation-pipeline-target-regression/run-*/*.log
           include-hidden-files: true

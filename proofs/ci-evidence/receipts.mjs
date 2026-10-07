@@ -36,15 +36,7 @@ export function validateReceipt(receipt) {
   // A receipt descriptor is validated independently of its own count labels.
   validateCatalog({version: catalogVersion, family: 'bounded-session',
     actions: [{...receipt.action, dependencies: []}]});
-  const origin = receipt.origin;
-  exact(origin, ['repository', 'repositoryId', 'testedRevision', 'runHeadRevision', 'workflowId',
-    'workflowPath', 'runId', 'runAttempt', 'jobId', 'event', 'branch']);
-  assert(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(origin.repository));
-  assert(['repositoryId', 'workflowId', 'runId', 'runAttempt', 'jobId'].every(key => positive(origin[key])));
-  assert(sha(origin.testedRevision) && sha(origin.runHeadRevision));
-  assert.equal(origin.workflowPath, '.github/workflows/ci.yml');
-  assert(['push', 'pull_request', 'workflow_dispatch'].includes(origin.event));
-  assert(typeof origin.branch === 'string' && origin.branch.length > 0);
+  const origin = validateExecutionOrigin(receipt.origin);
   assert.equal(receipt.inputs.version, inputVersion);
   assert.equal(receipt.inputs.revision, origin.testedRevision);
   assert.equal(encode(receipt.inputs.inputs.action), encode(receipt.action));
@@ -112,10 +104,31 @@ export function sealReceipt({origin, action, inputs, output, status, millisecond
 
 // API responses are obtained by the caller's read-only Actions client, never
 // copied from the receipt itself. The same attempt must own both job and ZIP.
-export async function authenticateOrigin({receipt, artifactId, expected, request, acquisition}) {
-  validateReceipt(receipt);
+export async function authenticateOrigin(options) {
+  validateReceipt(options.receipt);
+  return authenticateExecutionOrigin({...options, origin: options.receipt.origin, family: 'session'});
+}
+
+function validateExecutionOrigin(origin) {
+  exact(origin, ['repository', 'repositoryId', 'testedRevision', 'runHeadRevision', 'workflowId',
+    'workflowPath', 'runId', 'runAttempt', 'jobId', 'event', 'branch']);
+  assert(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(origin.repository));
+  assert(['repositoryId', 'workflowId', 'runId', 'runAttempt', 'jobId'].every(key => positive(origin[key])));
+  assert(sha(origin.testedRevision) && sha(origin.runHeadRevision));
+  assert.equal(origin.workflowPath, '.github/workflows/ci.yml');
+  assert(['push', 'pull_request', 'workflow_dispatch'].includes(origin.event));
+  assert(typeof origin.branch === 'string' && origin.branch.length > 0);
+  return origin;
+}
+
+// Family is selected by the consuming code, never adopted from archive labels.
+// Provenance does not establish input closure, scientific truth or reuse policy.
+export async function authenticateExecutionOrigin({origin, family, artifactId, expected, request, acquisition}) {
+  validateExecutionOrigin(origin);
+  assert(['session', 'pipeline'].includes(family), 'Unregistered execution family');
+  const jobName = family === 'session' ? 'session-evidence' : 'pipeline-evidence';
+  const artifactPrefix = family === 'session' ? 'session-actions' : 'relation-pipeline-evidence';
   assert(positive(artifactId) && ['fresh', 'reused'].includes(acquisition));
-  const origin = receipt.origin;
   assert.equal(origin.repository, expected.repository);
   assert.equal(origin.repositoryId, expected.repositoryId);
   assert.equal(origin.workflowId, expected.workflowId);
@@ -143,7 +156,7 @@ export async function authenticateOrigin({receipt, artifactId, expected, request
   const jobs = data.jobs.filter(job => job.id === origin.jobId);
   assert.equal(jobs.length, 1);
   const job = jobs[0];
-  assert.equal(job.name, 'session-evidence');
+  assert.equal(job.name, jobName);
   assert.equal(job.run_id, origin.runId); assert.equal(job.run_attempt, origin.runAttempt);
   assert.equal(job.head_sha, origin.runHeadRevision);
   assert.equal(job.status, 'completed'); assert.equal(job.conclusion, 'success');
@@ -153,7 +166,7 @@ export async function authenticateOrigin({receipt, artifactId, expected, request
   assert.equal(artifact.workflow_run?.head_sha, origin.runHeadRevision);
   assert.equal(artifact.workflow_run?.repository_id, origin.repositoryId);
   assert.equal(artifact.workflow_run?.head_repository_id, headRepositoryId);
-  assert.equal(artifact.name, `session-actions-${origin.runId}-${origin.runAttempt}-${origin.testedRevision}`);
+  assert.equal(artifact.name, `${artifactPrefix}-${origin.runId}-${origin.runAttempt}-${origin.testedRevision}`);
   assert(/^sha256:[a-f0-9]{64}$/u.test(artifact.digest ?? ''), 'Missing authenticated archive digest');
   assert(positive(artifact.size_in_bytes));
   assert(Number.isFinite(Date.parse(artifact.expires_at)), 'Invalid archive expiry');

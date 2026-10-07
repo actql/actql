@@ -9,13 +9,18 @@ Reuse the existing Actions origin authenticator in `proofs/ci-evidence/receipts.
 with a code-selected pipeline family binding, retaining the existing Session
 binding and all run/attempt/repository/job/digest checks. Add
 `proofs/relation-pipeline/mutation-action-archive.mjs` and focused transport tests.
-Capture the existing checker output in `mutation-actions.mjs`; retain immutable
+Share only controlled sample construction in `fixtures/mutation-action-sample.mjs`
+with the existing adapter tests; update `ci-artifacts.test.mjs` for the consuming
+workflow contract. Capture the existing checker output in `mutation-actions.mjs`; retain immutable
 original reports/receipts and reconstruct the exact required/application plan
 from those originals when consuming the archive. The existing final consumer
 workflow writes the derived record and includes it in its existing artifact.
 Protect the new source/tests through the existing history inventory and exact
 source/parent/blob/mode declarations.
 
+Fresh publication makes no API calls: it runs the existing full scientific audit
+and exclusively writes a derived record with the actual workflow event context.
+The consumer discovers the successful job from independent API facts.
 The consumer requires independently supplied expected repository/run/attempt/SHA,
 authenticates API facts before adopting archive bytes, and uses the bounded
 read-only ZIP reader. No extraction, archive code execution or Actions token
