@@ -7041,3 +7041,32 @@ binding inventories, request/index inventories, long names and computation
 metadata preludes still have synchronous boundaries. Effectful commit,
 Native/direct, packed and all-target acceptance are not closed by these
 checks. This is not whole publication or whole-Local completion.
+
+### Resumed binding and commit inventories (2026-10-08)
+
+The retained Effect-free commit preparation now polls durable binding and
+index membership, request inventory names and namespace equality. Exact
+references and typed refusal precedence remain required; immutable inventories
+are not copied or sorted. Long names use the existing UTF-16 fragment
+comparator, and the inventory child frame is reserved before construction.
+Cancellation retires private cursors without releasing caller-owned evidence
+or Store custody. Durable commit-first reconciliation remains unchanged.
+
+The [commit inventory record](2026-10-08-local-bounded-commit-inventories.md)
+binds common JS 263/263 and selected Node 8/8 to clean source
+`549cf972ef68a1d703f99628377699f8fded64e9`. Six actual retained Host cases
+use matching rebuilt runtimes. Success requires multiple binding/namespace
+polls for a long Unicode namespace and reads all three independently named
+Results with fixed content and exact order. Existing fresh cancellation,
+committed replay, cleanup and no-redispatch assertions remain connected.
+Independent control formulas, exact/one-short frames, partial cursor
+cancellation and typed corruption probes cover the private continuations.
+
+PR #936 remains the unmerged prerequisite at
+`eb9d84996d12bb333b2a9e9ee0e337b24433f9cd`. Computation metadata preludes,
+scalar schema checks, issuance-side inventories, field-name normalization and
+physical allocation latency remain distinct boundaries. Blocking wrappers
+share the same algorithm but do not establish asynchronous issuance or
+Effectful driver connection. This is not all-target, packed/HTTPS, hosted CI,
+whole publication or whole-Local completion. Earlier synchronous descriptions
+remain historical records, not claims about these newly connected scans.
