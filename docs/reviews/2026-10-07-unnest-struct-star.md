@@ -1,8 +1,9 @@
-# Declared STRUCT UNNEST field expansion
+# Declared object UNNEST field expansion and STRUCT coverage boundary
 
 Adopted main: `3a01ebcea5af032bb22cfe5b55132d0e36ad4b77`.
-This independent Frontend unit does not depend on the unmerged Pipe JOIN range
-PR #759 and changes no common Owner, Program wire contract or grammar pin.
+This independent Frontend unit does not depend on Pipe JOIN range PR #759 and
+changes no common Owner or Program wire contract. The normative query-rule
+change updates the compilation grammar manifest and containing Run identities.
 
 ## Counterexample and existing common support
 
@@ -124,3 +125,31 @@ provider I/O 0. Its earlier sandbox invocation stopped at loopback listen
 a product rejection. The final fixture additionally checks a non-NULL string
 property beside a NULL element and NULL property; final-revision execution is
 recorded separately, not inferred from the earlier receipts.
+
+## Integrated public execution and manifest follow-up
+
+Normally merged main `c0f4410834c13e1f6cd878902ad06e1ec5d84846` produced
+`dce6c8d5564652e15e9813fc53adb59d02c9d021`. Focused JS passed 9/9 there,
+including the adopted immutable Pipe JOIN ranges. Normal five-package packing
+and external Embedded Local/HTTPS UNNEST acceptance passed 25 positive and 11
+refusal cases per transport. Independent rows, ordered contracts, NULL behavior,
+non-NULL strings, private-column absence, request reuse and refusal-before-
+admission/I/O assertions were retained. Receipt `public-query-evidence-RLpcHv`
+is complete/passed; command 008 exited 0 within its existing 900,000 ms budget.
+The disposable installation was removed after evidence capture.
+
+The subsequent read-only compilation-manifest check found a missing normative
+rule-pin update. Regenerate with `compilation-manifests.mjs`, update the explicit
+machine/document imports, and regenerate the canonical/spec-family outputs.
+The independently hashed query-rule preimage gives grammar manifest
+`sha256:a395e9d881fd75019ff99db18016a4cf72f19f14f52856b8f313462e0489c09a`.
+The independent hand-assembled Values oracle gives containing Run identity
+`sha256:31dc7d61b6fe40c4662a836eecc194ef96aa50548b8327a49b4d95dd0d32f896`;
+retain its predecessor vector. Values Unit, bound proof and Result Plan are
+unchanged. Old Runs are not reinterpreted under the new grammar identity.
+
+The successful `dce6c8d55` packages precede that pin correction. They are not
+final-revision package evidence; normally generate and check the corrected
+revision before claiming final public execution. Exact-HEAD automatic CI run
+37579755151 failed at select-targets/check with empty steps; product jobs were
+skipped and its cause is not established. Required CI remains unexecuted.
