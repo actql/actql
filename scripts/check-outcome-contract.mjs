@@ -78,9 +78,9 @@ function report(verdicts, reasonSchema = checkReasonSchema) {
         },
       },
       reasons: {type: 'array', maxItems: 1024, items: {...reasonSchema,
-        allOf: [...reasonSchema.allOf, {not: {properties: {code: {enum: ['parameter_value_required', 'host_capacity_policy_required']}}}}]}},
+        allOf: [...reasonSchema.allOf, {not: {properties: {code: {enum: ['parameter_value_required', 'host_capacity_policy_required', 'numeric_reduction_profile_required']}}}}]}},
       requirements: {type: 'array', maxItems: 1024, items: {...reasonSchema,
-        properties: {...reasonSchema.properties, code: {enum: ['parameter_value_required', 'host_capacity_policy_required']}},
+        properties: {...reasonSchema.properties, code: {enum: ['parameter_value_required', 'host_capacity_policy_required', 'numeric_reduction_profile_required']}},
         required: ['code', 'facts']}},
       scope: {type: 'object', additionalProperties: false,
         required: ['kind'], properties: {kind: {const: 'bound_input'}}},
@@ -142,6 +142,9 @@ export function checkReasonSchemaFor(registry) {
   const facts = reason.properties.facts.oneOf.find(value => value.properties.schema_pointer);
   assert.equal(facts.properties.contract_cid.const, machineCid(capacity));
   assert.equal(facts.properties.schema_cid.const, machineCid(capacity.schema));
+  const numeric = JSON.parse(readFileSync('spec/contracts/actql-numeric-reduction.json', 'utf8'));
+  const numericFacts = reason.properties.facts.oneOf.find(value => value.properties.profile_cid);
+  assert.equal(numericFacts.properties.profile_cid.const, machineCid(numeric));
   return reason;
 }
 
@@ -174,7 +177,8 @@ const generatedPins = registry =>
   'let check_outcome_schema_cid = ' + JSON.stringify(machineCid(checkOutcomeSchema(checkReasonSchemaFor(registry)))) + '\n\n///|\nlet check_parameter_contract_schema_cid = ' +
   JSON.stringify(machineCid(registry.schemas.canonical_value_contract)) + '\n\n///|\nlet check_capacity_contract_cid = ' +
   JSON.stringify(machineCid(JSON.parse(readFileSync('spec/contracts/actql-capacity-host-policy.json', 'utf8')))) + '\n\n///|\nlet check_capacity_schema_cid = ' +
-  JSON.stringify(machineCid(JSON.parse(readFileSync('spec/contracts/actql-capacity-host-policy.json', 'utf8')).schema)) + '\n';
+  JSON.stringify(machineCid(JSON.parse(readFileSync('spec/contracts/actql-capacity-host-policy.json', 'utf8')).schema)) + '\n\n///|\nlet check_numeric_profile_cid = ' +
+  JSON.stringify(machineCid(JSON.parse(readFileSync('spec/contracts/actql-numeric-reduction.json', 'utf8')))) + '\n';
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const registry = JSON.parse(readFileSync(path, 'utf8'));

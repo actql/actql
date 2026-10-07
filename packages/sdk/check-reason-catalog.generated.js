@@ -3,8 +3,8 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-07.2",
-  "reasonSchemaCid": "sha256:672a0158dfe91c7525eb7d02efbcf80b0094a05ecfa2b42fe08df945dd26fa53"
+  "revision": "2026-10-07.3",
+  "reasonSchemaCid": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {
@@ -288,7 +288,7 @@ const entries = freeze({
   },
   "checking_context_missing": {
     "code": "checking_context_missing",
-    "condition": "A known checking-context input is missing under the original bound scope; this is not a supplied parameter violation.",
+    "condition": "The existing checker stopped at a known public checking-context input obligation. The remainder is not verified.",
     "facts_schema": "#/reason_schema",
     "disclosure": "Known public checking-context selection only; no selected policy values, private Source facts or environment path is disclosed.",
     "locations": [],
@@ -298,6 +298,10 @@ const entries = freeze({
       {
         "file": "adapters/host-node/client-check.test.mjs",
         "scenario": "Missing public Host capacity selection stays undetermined; supplying a new admitted environment triggers ordinary rechecking."
+      },
+      {
+        "file": "adapters/host-node/client-check.test.mjs",
+        "scenario": "Missing admitted numeric profile stays undetermined until ordinary rechecking in a supplied checking context."
       }
     ],
     "presentation": {
@@ -485,6 +489,31 @@ const entries = freeze({
         "scenario": "unsupported function lowering remains an implementation limit"
       }
     ]
+  },
+  "numeric_reduction_profile_required": {
+    "code": "numeric_reduction_profile_required",
+    "condition": "The existing common checker issued NumericReductionProfile for an aggregate slot; the installed checking context lacks the admitted pinned profile. This does not choose a member, prove the remaining Program or authorize execution.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Only the public repository-pinned profile admission condition; no contributor values, private Source facts, selected reduction member or generated Program path is disclosed.",
+    "locations": [],
+    "default_severity": "info",
+    "family": "requirement",
+    "examples": [
+      {
+        "file": "adapters/host-node/client-check.test.mjs",
+        "scenario": "SUM and AVG require the installed pinned numeric profile; COUNT does not. Selecting the profile triggers ordinary whole-input rechecking."
+      }
+    ],
+    "presentation": {
+      "default": {
+        "key": "reason.numeric_reduction_profile_required",
+        "english": [
+          "The checking context has no admitted numeric reduction profile for this aggregate.",
+          "Ask the checking-context owner to install the referenced pinned profile, then check the complete bound input again. Profile membership does not select a reduction member or authorize execution."
+        ]
+      },
+      "variants": []
+    }
   },
   "operation_parameter_invalid": {
     "code": "operation_parameter_invalid",

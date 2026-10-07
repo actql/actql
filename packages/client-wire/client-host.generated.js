@@ -2713,11 +2713,105 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -3518,7 +3612,8 @@ const schemas = {
                                 "operation_parameter_invalid",
                                 "expression_type_mismatch",
                                 "implementation_limit",
-                                "host_capacity_policy_required"
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required"
                               ]
                             }
                           }
@@ -3538,7 +3633,8 @@ const schemas = {
                           "code": {
                             "enum": [
                               "parameter_value_required",
-                              "host_capacity_policy_required"
+                              "host_capacity_policy_required",
+                              "numeric_reduction_profile_required"
                             ]
                           }
                         }
@@ -3561,7 +3657,8 @@ const schemas = {
                     "code": {
                       "enum": [
                         "parameter_value_required",
-                        "host_capacity_policy_required"
+                        "host_capacity_policy_required",
+                        "numeric_reduction_profile_required"
                       ]
                     },
                     "location": {
@@ -4200,11 +4297,105 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -5005,7 +5196,8 @@ const schemas = {
                                 "operation_parameter_invalid",
                                 "expression_type_mismatch",
                                 "implementation_limit",
-                                "host_capacity_policy_required"
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required"
                               ]
                             }
                           }
@@ -5144,7 +5336,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:672a0158dfe91c7525eb7d02efbcf80b0094a05ecfa2b42fe08df945dd26fa53"
+            "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -6001,11 +6193,105 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -6806,7 +7092,8 @@ const schemas = {
                                 "operation_parameter_invalid",
                                 "expression_type_mismatch",
                                 "implementation_limit",
-                                "host_capacity_policy_required"
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required"
                               ]
                             }
                           }
@@ -6826,7 +7113,8 @@ const schemas = {
                           "code": {
                             "enum": [
                               "parameter_value_required",
-                              "host_capacity_policy_required"
+                              "host_capacity_policy_required",
+                              "numeric_reduction_profile_required"
                             ]
                           }
                         }
@@ -6849,7 +7137,8 @@ const schemas = {
                     "code": {
                       "enum": [
                         "parameter_value_required",
-                        "host_capacity_policy_required"
+                        "host_capacity_policy_required",
+                        "numeric_reduction_profile_required"
                       ]
                     },
                     "location": {
@@ -7488,11 +7777,105 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -8293,7 +8676,8 @@ const schemas = {
                                 "operation_parameter_invalid",
                                 "expression_type_mismatch",
                                 "implementation_limit",
-                                "host_capacity_policy_required"
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required"
                               ]
                             }
                           }
@@ -8450,7 +8834,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:672a0158dfe91c7525eb7d02efbcf80b0094a05ecfa2b42fe08df945dd26fa53"
+            "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -8496,7 +8880,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:672a0158dfe91c7525eb7d02efbcf80b0094a05ecfa2b42fe08df945dd26fa53"
+            "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -9536,8 +9920,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:672a0158dfe91c7525eb7d02efbcf80b0094a05ecfa2b42fe08df945dd26fa53";
-export const checkOutcomeSchemaCid = "sha256:2ceacaa6c399d8020b76c14ebd27a7f2ca5d975137dcdaff6b1907c9b4ef6311";
+export const checkReasonSchemaCid = "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739";
+export const checkOutcomeSchemaCid = "sha256:801971ab7c91652f2e3a606cdae7567fe313ca2931df81d7ab4c24d3d130e0a9";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {
