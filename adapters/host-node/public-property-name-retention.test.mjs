@@ -388,7 +388,7 @@ async function verifyRetainedNames(t,label,makeProgram,rows=expected,
     const source=JSON.stringify(makeProgram(`${label}-name-success`));
     let run;
     try {
-      run=await client.aql(source,{format:'json',requestId:'property-name-success'});
+      run=await client.startSource(source,{format:'json',requestId:'property-name-success'});
     } catch(error) {
       assert.fail(`Public preparation failed: ${JSON.stringify(error.cause, null, 2)}`);
     }
@@ -400,10 +400,10 @@ async function verifyRetainedNames(t,label,makeProgram,rows=expected,
       [{name:'id',contract:{type:'number',nullable:false}},
         {name:'value',contract:valueContract}]);
     const count=dispatches;
-    assert.deepEqual((await client.aql(source,{format:'json',requestId:'property-name-success'})).ref,run.ref);
+    assert.deepEqual((await client.startSource(source,{format:'json',requestId:'property-name-success'})).ref,run.ref);
     assert.equal(dispatches,count);
     cancelling=true;
-    const cancel=await client.aql(JSON.stringify(makeProgram(`${label}-name-cancel`)),
+    const cancel=await client.startSource(JSON.stringify(makeProgram(`${label}-name-cancel`)),
       {format:'json',requestId:'property-name-cancel'});
     await Promise.race([reached.promise,cancel.wait({signal:AbortSignal.timeout(15_000)})
       .then(state=>{throw new Error(`property progress barrier missed: ${JSON.stringify(state)}`);})]);

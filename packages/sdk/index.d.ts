@@ -349,6 +349,11 @@ export declare class ClientError extends Error {
   readonly hint?: string;
   readonly requestId?: string;
   readonly attemptId?: string;
+  /** Present only after a Run was admitted; never fabricated for RequestHeld. */
+  readonly execution?: Execution;
+  readonly executionRef?: RunReference;
+  /** Exact owner observation on a short query failure; omitted from JSON. */
+  readonly observation?: RunState;
   /** Original immutable cancellation target on uncertainty or refusal. */
   readonly cancelRef?: Readonly<CancellationReference>;
   /** Complete rows returned by the failed call; aggregate calls return none. */
@@ -368,6 +373,17 @@ export declare class RequestHeld extends ClientError {
   readonly requestId: string;
   readonly held: HeldRequest;
 }
+
+export type DynamicRow = Record<string, unknown>;
+/** Recovery locator using the existing Run and authored Result name. */
+export type ResultReference = Readonly<{run: RunReference; resultName: string}>;
+export type QueryParameters = Record<string, unknown> | null;
+export type QueryOptions = Readonly<{
+  requestId?: string;
+  signal?: AbortSignal;
+  result?: string;
+  parameterDeclarations?: Record<string, unknown>;
+}>;
 
 export type ReadOptions = {
   signal?: AbortSignal;
@@ -398,15 +414,25 @@ export interface ResultDescriptionOptions {
   maxDepth?: number;
 }
 export interface Result {
+  readonly ref: ResultReference;
+  readonly execution: Execution;
   describe(options?: ResultDescriptionOptions): Promise<ResultDescription>;
-  rows(options?: ReadOptions): Reader<unknown>;
-  batches(options?: ReadOptions): Reader<unknown[]>;
-  all(options?: ReadOptions): Promise<unknown[]>;
-  one(options?: ReadOptions): Promise<unknown>;
+  rows(options?: ReadOptions): Reader<DynamicRow>;
+  batches(options?: ReadOptions): Reader<DynamicRow[]>;
+  all(options?: ReadOptions): Promise<DynamicRow[]>;
+  one(options?: ReadOptions): Promise<DynamicRow>;
   scalar(options?: ReadOptions): Promise<unknown>;
   /** Detached, recursively frozen snapshot of this lookup's admitted response. */
   deliveryAttempt(attemptId: string,
     options?: {signal?: AbortSignal}): Promise<DeliveryAttemptLookup>;
+}
+
+/** One eager submission. Re-awaiting shares its Result; collection opens a fresh read. */
+export interface ResultPromise extends Promise<Result> {
+  readonly requestId: string;
+  all(options?: ReadOptions): Promise<DynamicRow[]>;
+  one(options?: ReadOptions): Promise<DynamicRow>;
+  scalar(options?: ReadOptions): Promise<unknown>;
 }
 
 export interface Execution {
@@ -427,7 +453,10 @@ export interface Execution {
 export interface Client {
   readonly profile: ConfirmedProfile;
   readonly requestedDurability: Durability | null;
-  aql(text: string, options: {
+  sql(text: string, parameters?: QueryParameters, options?: QueryOptions): ResultPromise;
+  aql(text: string, parameters?: QueryParameters, options?: QueryOptions): ResultPromise;
+  /** Low-level source admission without an automatic wait or Result read. */
+  startSource(text: string, options: {
     format: ClientSourceFormat;
     /** The existing Program params map, admitted by the Host checker. */
     parameterDeclarations?: Record<string, unknown>;

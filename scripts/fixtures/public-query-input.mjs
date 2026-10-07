@@ -487,7 +487,7 @@ export async function exercisePublicQueryInput(connect, options,
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const beforeSubmit = await counters();
-      const execution = await client.aql(text, {...input, requestId});
+      const execution = await client.startSource(text, {...input, requestId});
       const state = await execution.wait();
       assert.equal(state.status, 'succeeded', JSON.stringify({name, state}));
       const beforeRead = await counters();
@@ -526,7 +526,7 @@ export async function exercisePublicQueryInput(connect, options,
       for (const [resultName, result] of Object.entries(expectedResults)) {
         compare(await attached.result(resultName).all(), result.rows, result.unordered);
       }
-      const resent = await client.aql(text, {...input, requestId});
+      const resent = await client.startSource(text, {...input, requestId});
       assert.deepEqual(resent.ref, execution.ref);
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
@@ -537,7 +537,7 @@ export async function exercisePublicQueryInput(connect, options,
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),
           {code: 'ResultRetainedLimit'});
-        await assert.rejects(client.aql(text, {...input, requestId,
+        await assert.rejects(client.startSource(text, {...input, requestId,
           parameters: {minimum: 21}}), {code: 'ClientRequestIntentConflict'});
         assert.equal((await execution.status()).status, 'succeeded');
       }
@@ -546,7 +546,7 @@ export async function exercisePublicQueryInput(connect, options,
       await prepareCase?.();
       const requestId = requestPrefix + '-execution-failure-' + name;
       const beforeSubmit = await counters();
-      const execution = await client.aql(text, {...input, requestId});
+      const execution = await client.startSource(text, {...input, requestId});
       const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
       assert.equal(state.status, 'failed', JSON.stringify({name, state}));
       const beforeRead = await counters();
@@ -561,7 +561,7 @@ export async function exercisePublicQueryInput(connect, options,
       }
       const attached = await client.attach(execution.ref);
       assert.equal((await attached.status()).status, 'failed');
-      const resent = await client.aql(text, {...input, requestId});
+      const resent = await client.startSource(text, {...input, requestId});
       assert.deepEqual(resent.ref, execution.ref);
       assert.equal((await resent.status()).status, 'failed');
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
@@ -573,7 +573,7 @@ export async function exercisePublicQueryInput(connect, options,
       await prepareCase?.();
       const requestId = requestPrefix + '-reject-' + name;
       const before = await counters();
-      await assert.rejects(client.aql(text, {...input, requestId}), error => {
+      await assert.rejects(client.startSource(text, {...input, requestId}), error => {
         assert.ok(inputCodes.has(error.code), String(error.code));
         if (expectedCode !== undefined) assert.equal(error.code, expectedCode);
         assert.ok(!String(error.message).includes('secret-value'));

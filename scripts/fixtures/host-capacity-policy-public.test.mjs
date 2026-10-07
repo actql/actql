@@ -34,7 +34,7 @@ test('installed Node package snapshots Host policy before loading Local and bind
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000, ...selected};
   const scope = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root: directory,
     principalId: userInfo().username, hostCapacityPolicyCid: hash(canonical(effective))}));
-  const run = await client.aql('SELECT 1 AS n', {format: 'sql', requestId: 'packed-policy'});
+  const run = await client.startSource('SELECT 1 AS n', {format: 'sql', requestId: 'packed-policy'});
   assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
   assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
   assert.equal(run.ref.authorityScopeCid, scope);
@@ -59,7 +59,7 @@ for (const initial of ['absent', 'undefined']) {
     t.after(async () => {await client.close(); await rm(directory, {recursive: true, force: true});});
     const scope = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root: directory,
       principalId: userInfo().username}));
-    const run = await client.aql('SELECT 1 AS n', {format: 'sql', requestId: 'captured-default'});
+    const run = await client.startSource('SELECT 1 AS n', {format: 'sql', requestId: 'captured-default'});
     assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
     assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
     assert.equal(run.ref.authorityScopeCid, scope, '[host-policy:node-captured-absence]');

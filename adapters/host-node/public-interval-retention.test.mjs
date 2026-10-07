@@ -87,7 +87,7 @@ test('public retained interval join compares long Text keys and excludes NULL',
     t.after(() => client.close());
     const source = JSON.stringify(program);
     const options = {format: 'json', requestId: 'public-interval'};
-    const execution = await client.aql(source, options).catch(error => {
+    const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });
     const state = await execution.wait({signal: AbortSignal.timeout(45_000)});
@@ -104,7 +104,7 @@ test('public retained interval join compares long Text keys and excludes NULL',
     assert.ok(advances > 0);
     assert.equal(completions, 1);
     const savedAdvances = advances;
-    const repeated = await client.aql(source, options);
+    const repeated = await client.startSource(source, options);
     assert.deepEqual(repeated.ref, execution.ref);
     assert.deepEqual(await repeated.result('published').all(), expected);
     assert.equal(advances, savedAdvances);

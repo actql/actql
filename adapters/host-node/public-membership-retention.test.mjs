@@ -75,7 +75,7 @@ test('public retained membership preserves duplicate Text matches and NULL',
     const source = JSON.stringify(program);
     const options = {format: 'json', requestId: 'public-membership',
       parameters: {items: [text, text]}};
-    const execution = await client.aql(source, options).catch(error => {
+    const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });
     const state = await execution.wait({signal: AbortSignal.timeout(45_000)});
@@ -90,7 +90,7 @@ test('public retained membership preserves duplicate Text matches and NULL',
     assert.ok(advances > 0, 'the actual bounded execution yielded');
     assert.equal(completions, 1);
     const completedAdvances = advances;
-    const repeated = await client.aql(source, options);
+    const repeated = await client.startSource(source, options);
     assert.deepEqual(repeated.ref, execution.ref);
     assert.deepEqual(await repeated.result('published').all(), expected);
     assert.equal(advances, completedAdvances,

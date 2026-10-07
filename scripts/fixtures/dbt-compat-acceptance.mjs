@@ -166,7 +166,7 @@ function diagnosticLocation(error) {
 async function submit(client, requestId, text, format) {
   let execution;
   try {
-    execution = await client.aql(text, {format, requestId});
+    execution = await client.startSource(text, {format, requestId});
   } catch (error) {
     if (refusalCodes.has(error?.code)) {
       // The installed Host's preparation issue, where the transport carries
@@ -193,7 +193,7 @@ async function record(client, transport, name, item, text, format) {
       state: {status: 'failed',
         reason: 'injected by ACTQL_DBT_PROBE_INJECT_RUN_FAILURE'}};
   }
-  const entry = {case: name, transport, entry: '@actql/node:client.aql',
+  const entry = {case: name, transport, entry: '@actql/node:client.startSource',
     module, format, input: textIdentity(text), ...outcome,
     ...judge(item, outcome, source.columns)};
   outcomes.push(entry);
