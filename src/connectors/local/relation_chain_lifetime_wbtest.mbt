@@ -144,7 +144,7 @@ fn chain_lifetime_generated(
 
 ///|
 /// The Values source is completed independently. The chain receives one exact
-/// ProducerRead, so Values is not accidentally included in the fast whitelist.
+/// ProducerRead. Separate source-free cases below audit Values and UNNEST.
 fn chain_lifetime_fixture(
   body : String,
   source_name? : String = "id",
@@ -545,4 +545,215 @@ test "unaudited chain steps keep conservative capacity and child custody" {
   assert_true(cleanup_managed_provider(active).unwrap())
   assert_true(state.children.is_empty())
   assert_true(@execution.completed_output_available(source))
+}
+
+///|
+fn expansion_lifetime_sequence() -> @execution.GeneratedSequence raise {
+  chain_lifetime_generated(
+    chain_lifetime_bind(
+      @pipeline.check(
+        chain_lifetime_cursor(
+          "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"items\":{\"type\":\"array\",\"nullable\":true,\"max_items\":3,\"items\":{\"type\":\"number\",\"nullable\":true}}},\"rows\":[{\"id\":2,\"items\":[2,null,2]},{\"id\":1,\"items\":[1]},{\"id\":3,\"items\":[]},{\"id\":4,\"items\":null}]},\"as\":\"parents\"},{\"unnest\":{\"column\":\"items\",\"as\":\"element\",\"with_index\":\"position\"}},{\"filter\":{\"not\":{\"is_null\":{\"field\":\"element\"}}}},{\"sort\":[{\"field\":\"id\",\"dir\":\"asc\",\"nulls\":\"first\"},{\"field\":\"position\",\"dir\":\"asc\",\"nulls\":\"first\"}]},{\"select\":[\"id\",\"element\",\"position\"]},{\"take\":{\"count\":2,\"offset\":0}}]",
+        ),
+        [],
+        None,
+        None,
+        {
+          max_steps: 100,
+          max_work: 10000,
+          max_text_bytes: 10000,
+          max_nodes: 1000,
+          max_tokens: 1000,
+          max_depth: 100,
+        },
+      ).unwrap(),
+    ),
+  )
+}
+
+///|
+fn expansion_lifetime_start(
+  sequence : @execution.GeneratedSequence,
+) -> (ManagedProviderExecution, RelationChainExecutionState) {
+  bounded_relation_chain_execution_state(
+    sequence,
+    [],
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+    10000,
+    None,
+    [],
+  ).unwrap()
+}
+
+///|
+test "Values and UNNEST chains reclaim scratch and preserve accepted output generations" {
+  let sequence = expansion_lifetime_sequence()
+  assert_true(relation_chain_reclaims_completed_scratch(sequence))
+  let count = @execution.generated_sequence_step_count(sequence)
+  let limits = chain_lifetime_limits()
+  let measure = chain_lifetime_measurement()
+  let base = @execution.generated_sequence_capacity(sequence, limits, measure).unwrap()
+  let mut retained = 0L
+  let mut peak = 0L
+  let mut conservative = 0L
+  for index in 0..<count {
+    let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
+    let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
+    let child = @execution.generated_sequence_capacity(
+      selected, limits, measure,
+    ).unwrap()
+    retained += child.retained_bytes
+    peak = Int64::max(peak, child.execution_bytes)
+    conservative += child.execution_bytes
+  }
+  let handles = count.to_int64() * 256L + 512L
+  let required = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
+  assert_eq(
+    required.execution_bytes,
+    Int64::max(base.execution_bytes, retained + peak + handles),
+  )
+  assert_true(required.execution_bytes < retained + conservative + handles)
+  let (active, state) = expansion_lifetime_start(sequence)
+  let cleanups = Array::make(count, 0)
+  let saved : Array[@execution.CompletedOutput] = []
+  let mut watched = -1
+  let mut charged = 0L
+  let mut result = None
+  for _ in 0..<100000 {
+    if result is Some(_) {
+      break
+    }
+    if !state.pending && watched != state.position {
+      chain_lifetime_watch_child(state, cleanups)
+      watched = state.position
+    }
+    let before = state.position
+    match advance_managed_provider(active, 1).unwrap() {
+      Continue(work~, ..) => charged += work
+      Complete(output, work~, ..) => {
+        charged += work
+        result = Some(output)
+      }
+      _ => fail("expanded lifetime chain did not complete")
+    }
+    if state.position != before {
+      assert_eq(cleanups[before], 1)
+      assert_true(state.current is None)
+      assert_true(state.children.is_empty())
+      saved.push(state.completed[before].unwrap())
+    }
+    for output in saved {
+      assert_true(@execution.completed_output_available(output))
+    }
+  }
+  let output = result.unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  for
+    (name, expected) in [
+      ("id", [1.0, 2.0]),
+      ("element", [1.0, 2.0]),
+      ("position", [0.0, 0.0]),
+    ] {
+    let mut column = -1
+    for index in 0..<@execution.completed_column_count(output) {
+      if @execution.completed_column_name(output, index) == Some(name) {
+        column = index
+      }
+    }
+    assert_true(column >= 0)
+    for row in 0..<2 {
+      assert_true(
+        @execution.completed_cell(output, row, column)
+        is Some(@execution.Number(actual)) &&
+        actual == expected[row],
+      )
+    }
+  }
+  assert_eq(managed_provider_cumulative_work(active), Ok(charged))
+  assert_true(cleanup_managed_provider(active).unwrap())
+  assert_true(cleanup_managed_provider(active).unwrap())
+  assert_eq(cleanups, Array::make(count, 1))
+  for earlier in saved {
+    assert_true(@execution.completed_output_available(earlier))
+  }
+  assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "Values and UNNEST cleanup failures retain child custody and retry exactly once" {
+  for injected in [0, 1] {
+    let (active, state) = expansion_lifetime_start(
+      expansion_lifetime_sequence(),
+    )
+    for _ in 0..<100000 {
+      if state.position == injected && !state.pending {
+        break
+      }
+      assert_true(advance_managed_provider(active, 1).unwrap() is Continue(..))
+    }
+    assert_eq(state.position, injected)
+    let child = state.current.unwrap()
+    let calls = Ref(0)
+    let watched = managed_provider_execution(
+      q => advance_managed_provider(child, q),
+      () => cancel_managed_provider(child),
+      () => managed_provider_stopped(child),
+      () => {
+        calls.val += 1
+        match calls.val {
+          1 | 2 => Ok(false)
+          3 => Err(@connector.InvalidLimits)
+          _ => cleanup_managed_provider(child)
+        }
+      },
+    )
+    state.current = Some(watched)
+    state.children = [watched]
+    for _ in 0..<100000 {
+      if state.pending {
+        break
+      }
+      assert_true(advance_managed_provider(active, 1).unwrap() is Continue(..))
+    }
+    assert_true(state.reclaiming)
+    let output = state.completed[injected].unwrap()
+    assert_eq(calls.val, 1)
+    assert_true(
+      advance_managed_provider(active, 1).unwrap() is Waiting(work=0L, ..),
+    )
+    assert_eq(state.position, injected + 1)
+    assert_true(physical_equal(state.current.unwrap(), watched))
+    assert_true(
+      advance_managed_provider(active, 1).unwrap() is Failed(_, work=0L, ..),
+    )
+    assert_true(physical_equal(state.children[0], watched))
+    assert_true(@execution.completed_output_available(output))
+    assert_true(cleanup_managed_provider(active).unwrap())
+    assert_true(cleanup_managed_provider(active).unwrap())
+    assert_eq(calls.val, 4)
+    assert_true(state.children.is_empty())
+    assert_true(@execution.completed_output_available(output))
+  }
+}
+
+///|
+test "cancellation after reclaimed Values does not start UNNEST or publish unfinished output" {
+  let (active, state) = expansion_lifetime_start(expansion_lifetime_sequence())
+  for _ in 0..<100000 {
+    if state.pending {
+      break
+    }
+    assert_true(advance_managed_provider(active, 1).unwrap() is Continue(..))
+  }
+  assert_eq(state.position, 1)
+  assert_true(state.current is None)
+  assert_true(state.children.is_empty())
+  let accepted = state.completed[0].unwrap()
+  assert_true(cancel_managed_provider(active))
+  assert_true(advance_managed_provider(active, 1).unwrap() is Stopped(..))
+  assert_eq(state.position, 1)
+  assert_true(cleanup_managed_provider(active).unwrap())
+  assert_true(state.children.is_empty())
+  assert_true(@execution.completed_output_available(accepted))
 }
