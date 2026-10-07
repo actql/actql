@@ -4203,6 +4203,14 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("consumer-attempt", required=true),
         @argparse.OptionArg("expect-consumer-dispatch", required=true),
       ]),
+      @argparse.Command("recover-cancelled-receiver", options=[
+        @argparse.OptionArg("producer-attempt", required=true),
+        @argparse.OptionArg("expect-producer-dispatch", required=true),
+        @argparse.OptionArg("consumer-attempt", required=true),
+        @argparse.OptionArg("expect-consumer-dispatch", required=true),
+        @argparse.OptionArg("recovery-materials-root", required=true),
+        @argparse.OptionArg("publication-custody-root", required=true),
+      ]),
       @argparse.Command("recover-source-output", options=[
         @argparse.OptionArg("producer-attempt", required=true),
         @argparse.OptionArg("expect-producer-dispatch", required=true),
@@ -4236,6 +4244,8 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
     Some(("recover-output", child)) => recover_output_command(matches, child)
     Some(("recover-retained-input", child)) =>
       recover_retained_input_command(matches, child)
+    Some(("recover-cancelled-receiver", child)) =>
+      recover_retained_input_command(matches, child, cancelled_receiver=true)
     Some(("recover-source-output", child)) =>
       recover_retained_input_command(matches, child, source_output=true)
     Some(("recover-release", child)) => recover_release_command(matches, child)

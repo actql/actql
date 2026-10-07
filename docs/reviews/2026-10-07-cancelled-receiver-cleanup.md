@@ -1,0 +1,58 @@
+# Cancelled consumer receiver cleanup
+
+A retained Transfer can commit its receiver before the consumer dispatch is
+delivered. If that consumer is then durably cancelled, it has no accepted input
+envelope. Completed-consumer cleanup cannot reconstruct its address, and root
+Source cleanup has no incoming input. The committed receiver remains a separate
+responsibility even when both task records report released cleanup.
+
+The cleanup-only API admits the original checked edge, durable producer
+observation, saved intent/plan, exact committed Transfer record and receipt,
+and the original consumer request matched to its cancelled/released record.
+The recorded variant checks the original Program/graph and publication evidence
+without issuing a new Plan, executable input, grant or start claim.
+
+Native admission additionally requires the exact durable cancellation marker,
+current Site identity/generation and delegation, and the real exclusive slot.
+It reuses the existing receiver reader-return/reclamation Owner. An absent
+original reader is allowed only after exact Transfer/receipt admission. Another
+reader fences reclamation; failed cleanup retains the original reservation.
+Every retry rechecks current custody. No task terminal state is changed here.
+
+The original consumer request must come from trusted saved Coordinator custody.
+The retained plan identifies the checked consumer edge, not its task attempt.
+Callers must preserve the saved association; a newly issued request for the
+same task is not a substitute for the original request.
+
+## Explicit recovery operation
+
+`native_remote_resident_site recover-cancelled-receiver` uses the existing Site,
+bundle, executor-slot and Transfer-journal configuration. It requires:
+
+- `--producer-attempt` and `--expect-producer-dispatch` for the original producer.
+- `--consumer-attempt` and `--expect-consumer-dispatch` for the original consumer.
+- `--recovery-materials-root` containing `consumer-request.json` (the saved
+  issued request) and `retained-transfer.json` (the saved common poll envelope).
+- `--publication-custody-root` containing the original publication evidence in
+  the same format as existing recorded Source recovery.
+
+Read these original bytes from their existing custody. Do not regenerate the
+materials, refresh expiry, substitute another attempt or hand-write the wire.
+The operation never creates a consumer envelope or cancellation record. Missing
+or mismatched custody is refused, and cleanup failure remains retryable in the
+existing journals. Confirmation of this physical operation does not establish
+Cloud's durable acceptance or the original Run's formal cancellation terminal.
+
+## Remaining acceptance
+
+See [the evidence record](../evidence/cancelled-receiver-cleanup.json) for exact
+executed and unexecuted scopes. The final Native test build exceeded its bounded
+preparation deadline; the previous executable was not reused. Caller compilation
+and portable Owner tests passed. The original Run's journals, original issued
+bytes and three sealed receiver allocations remain preserved.
+
+After reviewed main adoption, run this exact recovery through existing Owners,
+verify zero receiver reservations and physical allocations without new execution,
+and send/accept the formal cleanup observation through the current Cloud path.
+The separate recovered-release observation fix is OSS #841. A new successful
+Run must not close the original Run or other historical recovery obligations.

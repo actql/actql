@@ -25,6 +25,9 @@ struct StoppedCleanupFixture {
   producer : @remote.DispatchRequest
   consumer : @remote.DispatchRequest
   transfer : @transfer.RemoteTransferRequest
+  cleanup_graph : @host.ClientRecordedSourceCleanup
+  intent : @remote.RemoteRetainedInputIntent
+  plan : @remote.RemoteRetainedInputPlan
   receipt : @transfer.RemoteTransferDestinationReceipt
 }
 
@@ -138,6 +141,7 @@ fn stopped_cleanup_fixture(
   complete_consumer? : Bool = true,
   borrow_input? : Bool = true,
   producer_claim? : Bool = false,
+  deliver_consumer? : Bool = true,
 ) -> StoppedCleanupFixture {
   let sqlite_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap_or_else(() => {
       abort("SQLite required")
@@ -314,20 +318,46 @@ fn stopped_cleanup_fixture(
     input,
     current,
   ).unwrap()
-  journal
-  .retain_dispatch_envelope(
-    consumer,
-    @remote.remote_poll_dispatch_materials_json(
+  let intent = @host.prepare_client_retained_input_intent(producer_owner, {
+    destination_grant_cid: cleanup_cid("b"),
+    route_capability_cid: cleanup_cid("c"),
+    source_grant_cid: cleanup_cid("a"),
+    transfer_attempt: name,
+    transfer_expires_unix_ms: 4102444800000L,
+    transfer_max_bytes: manifest.referenced_bytes,
+  }).unwrap()
+  let plan = @remote.prepare_remote_retained_input_plan(
+    intent, subject, evidence, transfer,
+  ).unwrap()
+  guard admission.source is Some((source_ref, source_contract)) else {
+    abort("original Source contract required")
+  }
+  let cleanup_graph = @host.admit_recorded_client_source_cleanup_graph(
+    wire,
+    @remote.dispatch_request_task_scope(producer).0,
+    recorded,
+    admission.expressions,
+    admission.operations,
+    admission.limits,
+    source_ref,
+    source_contract,
+  ).unwrap()
+  if deliver_consumer {
+    journal
+    .retain_dispatch_envelope(
       consumer,
-      @host.client_retained_task_input_binding(input),
-      wire,
-    ).unwrap(),
-  )
-  .unwrap()
-  if complete_consumer {
-    cleanup_complete(journal, site, consumer, manifest) |> ignore
-  } else {
-    journal.accept(consumer).unwrap() |> ignore
+      @remote.remote_poll_dispatch_materials_json(
+        consumer,
+        @host.client_retained_task_input_binding(input),
+        wire,
+      ).unwrap(),
+    )
+    .unwrap()
+    if complete_consumer {
+      cleanup_complete(journal, site, consumer, manifest) |> ignore
+    } else {
+      journal.accept(consumer).unwrap() |> ignore
+    }
   }
   if borrow_input {
     receiver
@@ -365,6 +395,9 @@ fn stopped_cleanup_fixture(
     consumer,
     transfer,
     receipt,
+    cleanup_graph,
+    intent,
+    plan,
   }
 }
 

@@ -1,0 +1,54 @@
+{
+  "version": "actql-cancelled-receiver-cleanup/0.1",
+  "baseSource": "5a6a0d0cf980c9a7994e5a32d6975c69d3125864",
+  "scope": "Cleanup of the original committed receiver when the exact consumer was cancelled before dispatch delivery. No Source/Compute execution, new input binding or terminal transition is issued.",
+  "portableOwnerTests": {
+    "command": "moon test --target js src/run_publication_host/client_retained_receiver_cleanup_wbtest.mbt",
+    "passed": 5,
+    "receipt": "focused-test-Dz9lNt"
+  },
+  "existingCleanupOwnerTests": {
+    "command": "moon test --target js src/run_publication_host/client_retained_input_cleanup_wbtest.mbt",
+    "passed": 12,
+    "receipt": "focused-test-FMqUPy"
+  },
+  "nativeInitialPhysicalTests": {
+    "passed": 3,
+    "receipt": "native-preconsumer-cleanup-5XRLkP",
+    "scope": "Earlier implementation before the recorded-graph wrapper and maintenance command. Not evidence for execution of the final implementation."
+  },
+  "nativeRecordedPhysicalTests": {
+    "command": "moon test --target native --strip src/platform_native/remote_resident_host/cancelled_receiver_cleanup_native_wbtest.mbt --build-only",
+    "preparationLimitSeconds": 180,
+    "failure": "ETIMEDOUT",
+    "receipt": "native-preconsumer-cleanup-Z0hPhs",
+    "testExecutionStarted": false,
+    "oldExecutableNotReused": true
+  },
+  "nativeCallerCompilation": {
+    "command": "moon check --target native src/cmd/native_remote_resident_site",
+    "passed": true,
+    "receipt": "preconsumer-cleanup-callers-W3dr53"
+  },
+  "publicInterfaces": {
+    "command": "moon info --target native src/run_publication_host src/platform_native/remote_resident_host src/cmd/native_remote_resident_site",
+    "generated": true,
+    "receipt": "preconsumer-cleanup-callers-W3dr53"
+  },
+  "originalRun": {
+    "definitionCid": "sha256:dd7ce10f045dc03dfb9132360a165bf46d5ea97f71031e3280e31ff18b77bcc6",
+    "receiverAllocationsBeforeFix": 3,
+    "stateBeforeFix": "sealed",
+    "recoveryExecutedWithThisChange": false,
+    "formalCloudCancellationVerified": false,
+    "originalCustodyPreserved": true
+  },
+  "notVerified": [
+    "Final Native physical test execution",
+    "Maintenance command execution with the original Run",
+    "Formal adoption from reviewed merged main into all five Cloud packages and Native",
+    "Cloud durable acceptance of the original Run's final cleanup observation",
+    "Public normal/fault acceptance at the final adopted combination",
+    "Actual Preview acceptance"
+  ]
+}
