@@ -495,19 +495,48 @@ for (const fault of ['clone changes a previously valid field', 'reply cannot be 
     const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
       lookup: current => current,
     });
+    const f = await installed(t, 'local', fixture);
+    const reader = f.result.rows();
+    assert.deepEqual(await Array.fromAsync(reader), [{value: 7}]);
+    const clone = globalThis.structuredClone;
+    t.after(() => { globalThis.structuredClone = clone; });
+    globalThis.structuredClone = value => {
+      const copy = clone(value);
+      if (value?.kind === 'found' && value?.record !== undefined) {
+        if (fault === 'reply cannot be cloned') throw new Error('private-clone-failure');
+        copy.record.observed_at = 42;
+      }
+      return copy;
+    };
+    let failure;
+    try {await f.result.deliveryAttempt(reader.attemptId);} catch (error) {failure = error;}
+    assert.equal(failure?.code, 'InvalidHostAttemptLookup', '[check-mutation:delivery-lookup-admission]');
+    assert.deepEqual(f.operations, ['connect', 'attach', 'read', 'delivery-attempt']);
+    assert.equal(fixture.state.grantUses, 1);
+  });
+}
+
+for (const representation of ['getter', 'Proxy']) {
+  test(`local: delivery lookup captures the original ${representation} data`, async t => {
+    let reads = 0, observedAt;
+    const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+      lookup: current => current,
+    });
     const f = await installed(t, 'local', fixture, undefined, value => {
-      if (fault === 'reply cannot be cloned') return new Proxy(value, {});
-      let reads = 0;
-      const observedAt = value.record.observed_at;
+      observedAt = value.record.observed_at;
+      if (representation === 'Proxy') return new Proxy(value, {
+        get(target, key) { if (key === 'record') reads++; return Reflect.get(target, key); },
+      });
       Object.defineProperty(value.record, 'observed_at', {enumerable: true,
-        get() {return ++reads === 1 ? observedAt : 42;}});
+        get() { return ++reads === 1 ? observedAt : 42; }});
       return value;
     });
     const reader = f.result.rows();
     assert.deepEqual(await Array.fromAsync(reader), [{value: 7}]);
-    let failure;
-    try {await f.result.deliveryAttempt(reader.attemptId);} catch (error) {failure = error;}
-    assert.equal(failure?.code, 'InvalidHostAttemptLookup', '[check-mutation:delivery-lookup-admission]');
+    const answer = await f.result.deliveryAttempt(reader.attemptId);
+    assert.equal(reads, 1);
+    assert.equal(answer.record.observed_at, observedAt);
+    assert.equal(explainDeliveryAttempt(answer).observation, 'host_delivery_succeeded');
     assert.deepEqual(f.operations, ['connect', 'attach', 'read', 'delivery-attempt']);
     assert.equal(fixture.state.grantUses, 1);
   });
