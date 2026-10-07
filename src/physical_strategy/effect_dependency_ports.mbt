@@ -69,6 +69,15 @@ fn effect_dependency_ports(
       depth[source.stage] = 0
     }
   }
+  for source in value.table_sources {
+    if work == 0 {
+      return Err(PreviewWorkLimit)
+    }
+    work -= 1
+    if source is Some(source) {
+      depth[source.stage] = 0
+    }
+  }
   let identity = @checked.source_identity(program)
   let incoming = @context.incoming_links_requirements(
     @context.program_incoming_gates_owner(@checked.incoming_gates(program)),

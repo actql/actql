@@ -2381,9 +2381,10 @@ const effectInputExportArgs = limits => [
 ];
 
 async function effectFixture({splitSource = false,
+  graphProfile = false,
   splitEffectSource = 'consumer', writeKind = 'create',
   memberIds = ['save'], target = 'connector://crm/account',
-  mappingRef = 'mapping:crm.account.v1', sourceIds,
+  mappingRef = 'mapping:crm.account.v1', sourceIds, mappingSource = 'id',
   continueMembers = [], minimumApproval = 'none'} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
@@ -2424,7 +2425,7 @@ async function effectFixture({splitSource = false,
     row_mapping: writeKind === 'create' && sourceIds ? {
       Name: {field: 'id', null_behavior: 'reject'},
       External_Key__c: {field: 'id', null_behavior: 'reject'},
-    } : {Name: {field: 'id', null_behavior: 'reject'}},
+    } : {Name: {field: mappingSource, null_behavior: 'reject'}},
     schema: 'actql.mapping_contract/0.1',
     target_ref: target,
     target_schema: targetSchema,
@@ -2443,7 +2444,7 @@ async function effectFixture({splitSource = false,
   mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
     'mapping_contract_cid');
   environmentDocument.mapping_contracts = [mapping];
-  if (splitSource) {
+  if (splitSource || graphProfile) {
     environmentDocument.host_policy_profile.capacity = JSON.parse(
       canonicalJson({
         ...environmentDocument.host_policy_profile.capacity,
@@ -2459,7 +2460,7 @@ async function effectFixture({splitSource = false,
     environmentDocument.evidence_bundle_cid,
     false, false, true, false, false, false, false,
   ];
-  const environment = splitSource
+  const environment = splitSource || graphProfile
     ? moon.clientProgramCheckEnvironmentWithGraphProfile(
       ...environmentArgs,
       machineCid(JSON.parse(await readFile(new URL(
@@ -5671,13 +5672,42 @@ test('Effect source set shares exact owners and retains failed cleanup',
 // owners; it does not clone the source, substitute caller rows or require
 // Python for the ordinary Host suite.
 export async function exerciseEffectSourceSet(t, {distinctResults = false,
-  writeKind = 'store', empty = false, onTablePreview, target,
+  writeKind = 'store', empty = false, privateTableInput = false, sparseTableInput = false, onTablePreview, target,
   mappingRef, minimumApproval} = {}) {
         const fixture = await effectFixture({writeKind, target, mappingRef,
-          minimumApproval,
+          minimumApproval, graphProfile: sparseTableInput,
+          mappingSource: sparseTableInput ? 'k' : 'id',
           memberIds: ['first', 'second']});
         const document = JSON.parse(fixture.document);
         if (empty) document.stages[0].steps[0].values.rows = [];
+        if (sparseTableInput) {
+          assert.equal(privateTableInput, true);
+          document.stages[0].steps = [
+            {values: {schema: {k: {type: 'number', nullable: false},
+              p: {type: 'number', nullable: true}},
+              rows: empty ? [] : [{k: 2, p: null}, {k: 1, p: 7}]}, as: 'persons'},
+            {values: {schema: {k: {type: 'number', nullable: false}},
+              rows: empty ? [] : [{k: 3}]}, as: 'companies'},
+            {graph: {version: 'actql-graph-constructor/0.1', nodes: [
+              {name: 'Person', from: 'persons', key: ['k'], labels: [
+                {name: 'Person', properties: {mode: 'columns', columns: [{from: 'p', to: 'p'}]}}]},
+              {name: 'Company', from: 'companies', key: ['k'], labels: []},
+            ], edges: []}, as: 'g'},
+            {from: 'g', node_rows: true, as: 'graph_rows'},
+            {from: 'graph_rows', sort: [{field: 'k', dir: 'asc', nulls: 'first'}], as: 'selected'},
+          ];
+          document.stages[0].results.rows = {from: 'selected', fields: ['k']};
+        }
+        if (privateTableInput) {
+          assert.equal(writeKind, 'store');
+          assert.equal(distinctResults, false);
+          const {from, fields} = document.stages[0].results.rows;
+          document.stages[0].table_inputs = {rows: {from,
+            fields: sparseTableInput ? ['k', 'p'] : fields}};
+          for (const member of Object.values(document.stages[0].effects)) {
+            member.store.from = {table_input: 'rows'};
+          }
+        }
         if (distinctResults) {
           document.stages[0].results.other = structuredClone(
             document.stages[0].results.rows);
@@ -5686,7 +5716,8 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
         const preparation = moon.clientProgramPrepareEffectComputationWithParameters(
           JSON.stringify(document), 'json', fixture.environment, undefined, []);
         const prepared = moon.clientProgramEffectPreparationReady(preparation);
-        assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(preparation));
+        assert.ok(prepared, inspect(moon.clientProgramEffectPreparationIssue(preparation),
+          {depth: 8}));
         const evidence = publicationEvidence(
           moon.clientProgramEffectDefinitionCid(prepared),
           effectParametersCid(prepared),
@@ -5723,7 +5754,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           1n, 0n, 0n, 0n);
         assert.ok(owned);
         const execution = await runCapturedEffectComputation(owned);
-        const inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+        const inputs = checked(moon.clientProgramPinEffectSources(owned, privateTableInput ? 3 : 2));
         await mkdir(scratch, {recursive: true});
         const directory = await mkdtemp(join(scratch.pathname, 'source-set-'));
         t.after(() => rm(directory, {recursive: true, force: true}));
@@ -5765,8 +5796,11 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             metadata_delete_by: '2026-09-24T04:00:00.000Z',
             clock_contract_cid: cid('0')}), publicationLimits);
         const issuedArguments = [];
+        const issuerName = privateTableInput ?
+          'issueSourceFreeLocalEffectTableArtifact' :
+          'issueSourceFreeLocalEffectResultArtifact';
         const issuerControl = Object.freeze({...control,
-          issueSourceFreeLocalEffectResultArtifact(...args) {
+          [issuerName](...args) {
             if (distinctResults && issuedArguments.length === 1) {
               // Equal Result values do not let the first preparation claim
               // the second Result's live export receipt.
@@ -5776,14 +5810,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
                 .issueSourceFreeLocalEffectResultArtifact(...foreign),
               {code: 'MoonBitHostFailure'});
             }
-            const issued = control.issueSourceFreeLocalEffectResultArtifact(
-              ...args);
+            const issued = control[issuerName](...args);
             issuedArguments.push(args);
             return issued;
           },
         });
         const options = {moon, checkedOwner: prepared, execution, inputs,
-          maxMembers: 2, maxGroupingWork: 3,
+          maxMembers: 2, maxGroupingWork: privateTableInput ? 5 : 3,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: 100000, control: issuerControl,
@@ -5804,11 +5837,17 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           const tableLimits = {maxWireBytes: 65536, maxNodes: 4096,
             maxDepth: 16, maxWork: 1000};
           const artifact = sources.members[0].payload.localResultArtifact;
-          assert.equal(JSON.parse(artifact.wire).actual_row_count, empty ? 0 : 2);
+          const rowCount = empty ? 0 : sparseTableInput ? 3 : 2;
+          assert.equal(JSON.parse(artifact.wire).actual_row_count, rowCount);
           const storage = control.localEffectTableStorageMapping(artifact,
             tableLimits);
           const body = JSON.parse(storage.wire);
-          assert.deepEqual(body.columns, [{name: 'id', nullable: false,
+          assert.deepEqual(body.columns, sparseTableInput ? [
+            {name: 'k', nullable: false, physical_type: 'double', presence: 'required',
+              presence_field_id: null, value_field_id: 1},
+            {name: 'p', nullable: true, physical_type: 'double', presence: 'conditional',
+              presence_field_id: 3, value_field_id: 2},
+          ] : [{name: 'id', nullable: false,
             physical_type: 'double', presence: 'required',
             presence_field_id: null, value_field_id: 1}]);
           assert.equal(body.schema_cid,
@@ -5873,6 +5912,12 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               'store', [], [], ['first', 'second'], [cid('0'), cid('1')],
               scope, {templateOnly: true, ...(target === undefined ? {} : {target}),
                 ...(mappingRef === undefined ? {} : {mapping: mappingRef})}).wire);
+            if (privateTableInput) {
+              for (const member of template.effects) {
+                delete member.source_result;
+                member.source_table_input = 'rows';
+              }
+            }
             const operations = [];
             for (const [index, member] of template.effects.entries()) {
               const localIdentity = index === 0 ? identity : otherIdentity;
@@ -5944,7 +5989,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               storage_mapping_cid: storage.identity,
               table_uuid: '11111111-2222-3333-4444-555555555555',
               generation_cid: cid('b'), metadata_location: 'file:///table/generation.json',
-              snapshot_id: empty ? null : '123', row_count: empty ? 0 : 2,
+              snapshot_id: empty ? null : '123', row_count: rowCount,
             };
             receipt.receipt_cid = canonicalHashWithoutSelf(receipt, 'receipt_cid');
             const responseWire = canonicalJson({ok: true, result: receipt});
@@ -6107,20 +6152,26 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           for (const args of issuedArguments) {
             // The receipt was released by exportPinnedEffectInput before
             // returning the prepared Store owner.
-            assert.throws(() => control
-              .issueSourceFreeLocalEffectResultArtifact(...args),
+            assert.throws(() => control[issuerName](...args),
             {code: 'MoonBitHostFailure'});
           }
-          assert.equal(writers, distinctResults ? 2 : 1);
+          assert.equal(writers, privateTableInput ? 2 : distinctResults ? 2 : 1);
           assert.equal(sources.members[0].payload.summary.logicalCid,
             sources.members[1].payload.summary.logicalCid);
           assert.equal(sources.members[0].payload ===
             sources.members[1].payload, !distinctResults);
           assert.equal(sources.members[0].payload.localManifest,
             sources.members[1].payload.localManifest);
-          assert.deepEqual(Object.keys(JSON.parse(
-            sources.members[0].payload.localManifest.wire).results),
-          distinctResults ? ['other', 'rows'] : ['rows']);
+          const manifestBody = JSON.parse(
+            sources.members[0].payload.localManifest.wire);
+          assert.deepEqual(Object.keys(manifestBody.results),
+            distinctResults ? ['other', 'rows'] : ['rows']);
+          if (privateTableInput) {
+            assert.deepEqual(Object.keys(manifestBody.table_inputs), ['rows']);
+            const sourceBody = JSON.parse(sources.members[0].payload.summary.artifact.wire);
+            assert.equal(sourceBody.source_table_input, 'rows');
+            assert.equal(Object.hasOwn(sourceBody, 'source_result'), false);
+          }
           if (distinctResults) assert.notEqual(
             sources.members[0].payload.localResultDefinition.identity,
             sources.members[1].payload.localResultDefinition.identity);

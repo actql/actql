@@ -69,9 +69,12 @@ pub fn issue_client_effect_result_import_observation(
     ) {
     return Err(ForeignInput)
   }
+  guard artifact.source is ResultSource(borrow, result_definition) else {
+    return Err(ForeignArtifact)
+  }
   if !physical_equal(artifact.inputs, inputs) ||
     !@strategy.captured_any_result_borrows_share_view(
-      artifact.borrow,
+      borrow,
       @strategy.captured_effect_local_result_borrow(producer),
     ) {
     return Err(ForeignArtifact)
@@ -101,10 +104,10 @@ pub fn issue_client_effect_result_import_observation(
     return Err(ForeignInterface)
   }
   if interface.producer_unit_definition_cid !=
-    artifact.definition.unit_definition_cid ||
-    interface.result_name != artifact.definition.result_name ||
+    result_definition.unit_definition_cid ||
+    interface.result_name != result_definition.result_name ||
     !client_effect_local_result_definition_matches(
-      artifact.definition,
+      result_definition,
       owner,
       @strategy.captured_effect_local_result_stage(producer),
       interface.result_name,
@@ -193,6 +196,9 @@ pub fn issue_imported_client_effect_local_invocation(
   let seen : Map[String, Bool] = Map([])
   let cids : Array[String] = []
   for observation in observations {
+    guard observation.artifact.source is ResultSource(borrow, _) else {
+      return Err(ForeignResultImport)
+    }
     let captured = observation.captured
     let producer = @strategy.captured_effect_result_import_producer(captured)
     let interface = @strategy.captured_effect_result_import_interface(captured)
@@ -202,7 +208,7 @@ pub fn issue_imported_client_effect_local_invocation(
         captured, inputs, unit, producer,
       ) ||
       !@strategy.captured_any_result_borrows_share_view(
-        observation.artifact.borrow,
+        borrow,
         @strategy.captured_effect_local_result_borrow(producer),
       ) ||
       !client_effect_local_manifest_matches(

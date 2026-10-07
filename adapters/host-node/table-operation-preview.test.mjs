@@ -7,9 +7,9 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const targetRef = 'connector://table/catalog';
 const mappingRef = 'mapping:table.catalog.v1';
 
-for (const empty of [false,true]) {
-  test(`installed Table authoring ${empty ? 'empty' : 'nonempty'} uses checked whole-Relation operations`,
-    async t => exerciseEffectSourceSet(t, {empty, target: targetRef, mappingRef,
+for (const [empty, privateTableInput, sparseTableInput] of [[false,false], [true,false], [false,true], [true,true], [false,true,true], [true,true,true]]) {
+  test(`installed Table authoring ${empty ? 'empty' : 'nonempty'} ${sparseTableInput ? 'sparse private input' : privateTableInput ? 'private input' : 'Result'} uses checked whole-Relation operations`,
+    async t => exerciseEffectSourceSet(t, {empty, privateTableInput, sparseTableInput, target: targetRef, mappingRef,
       minimumApproval: 'required', onTablePreview: async f => {
         const members = f.sources.members.map((source,index) => ({
           stageIndex: 0, effectId: index === 0 ? 'first' : 'second',

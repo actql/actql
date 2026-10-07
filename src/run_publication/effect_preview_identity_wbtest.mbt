@@ -813,7 +813,7 @@ test "Effect Preview source and captured Artifact cannot be split" {
     admit_effect_preview_identity(
       without_artifact, cid, authoring, 8192, 256, 12,
     )
-    is Err(InvalidMember),
+    is Err(PreviewShape(InvalidField("effect_preview"))),
   )
   let without_source = preview_identity_test_canonical(
     raw.replace(
@@ -823,8 +823,119 @@ test "Effect Preview source and captured Artifact cannot be split" {
   )
   assert_true(
     admit_effect_preview_identity(without_source, cid, authoring, 8192, 256, 12)
-    is Err(InvalidMember),
+    is Err(PreviewShape(InvalidField("effect_preview"))),
   )
+}
+
+///|
+test "Effect Preview keeps private Table and ordinary Result sources distinct" {
+  let cid = preview_identity_test_cid("a")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let base = preview_identity_test_wire(
+    cid,
+    authoring,
+    cid,
+    "target",
+    cid,
+    cid,
+    empty=true,
+  )
+  let table = preview_identity_test_canonical(
+    base
+    .replace(old="\"effect_kind\":\"update\"", new="\"effect_kind\":\"store\"")
+    .replace(
+      old="\"preview_strength\":",
+      new="\"source_table_input\":\"answer\",\"result_artifact_cid\":\"" +
+        cid +
+        "\",\"preview_strength\":",
+    ),
+  )
+  let (wire, preview) = author_effect_preview_semantic_wire(
+    table, cid, authoring, 8192, 256, 12,
+  ).unwrap()
+  // Independently authored Preview/member preimages in the Node contract
+  // test pin the Table namespace, not just inequality with a Result source.
+  assert_eq(
+    effect_preview_member_identity(preview, 0),
+    Some(
+      "sha256:4a197b227fd3034f2f1114f6af987a63029c4098c690c9962a62c7a6e172ee28",
+    ),
+  )
+  assert_eq(
+    effect_preview_semantic_identity(preview),
+    "sha256:41b64ea9c9fb869d5e628db520ea145ced63681487791e9516e1613178153aa8",
+  )
+  assert_eq(
+    effect_preview_member_relation_source(preview, 0),
+    Some(TableInput("answer")),
+  )
+  assert_eq(
+    effect_preview_member_source_table_input(preview, 0),
+    Some("answer"),
+  )
+  assert_eq(effect_preview_member_source_result(preview, 0), None)
+  assert_eq(effect_preview_member_result_artifact_cid(preview, 0), Some(cid))
+  assert_eq(effect_preview_member_relation_source(preview, 1), None)
+  let readmitted = admit_effect_preview_identity(
+    wire, cid, authoring, 8192, 256, 12,
+  ).unwrap()
+  assert_eq(
+    effect_preview_member_relation_source(readmitted, 0),
+    Some(TableInput("answer")),
+  )
+  // Pending private input must not disappear from the recovery inventory just
+  // because the Result-only dependency closure cannot yet admit its Definition.
+  assert_false(captured_effect_source_recovery_inventory_valid(preview, [], []))
+  let (_, result) = author_effect_preview_semantic_wire(
+    preview_identity_test_canonical(
+      table.replace(old="source_table_input", new="source_result"),
+    ),
+    cid,
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(
+    effect_preview_member_relation_source(result, 0),
+    Some(Result("answer")),
+  )
+  assert_eq(effect_preview_member_source_table_input(result, 0), None)
+  assert_true(
+    effect_preview_semantic_identity(result) !=
+    effect_preview_semantic_identity(preview),
+  )
+  for
+    invalid in [
+      table.replace(
+        old="\"source_table_input\":",
+        new="\"source_result\":\"answer\",\"source_table_input\":",
+      ),
+      table.replace(
+        old="\"effect_kind\":\"store\"",
+        new="\"effect_kind\":\"create\"",
+      ),
+      table.replace(old="\"result_artifact_cid\":\"" + cid + "\",", new=""),
+      table.replace(
+        old="\"source_table_input\":\"answer\"",
+        new="\"source_table_input\":null",
+      ),
+      table.replace(
+        old="\"source_table_input\":\"answer\"",
+        new="\"source_table_input\":\"\"",
+      ),
+      table.replace(old="\"source_table_input\":", new="\"unknown_source\":"),
+    ] {
+    assert_true(
+      parse_effect_preview_shape(
+        preview_identity_test_canonical(invalid),
+        8192,
+        256,
+        12,
+      )
+      is Err(InvalidField("effect_preview")),
+    )
+  }
 }
 
 ///|

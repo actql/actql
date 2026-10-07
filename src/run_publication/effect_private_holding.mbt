@@ -107,6 +107,26 @@ pub fn captured_effect_source_inventory_from_results_valid(
   artifacts : Array[PublicationContract],
   results : Array[PublicationContract],
 ) -> Bool {
+  for member_index in member_indices {
+    if effect_preview_member_source_result(preview, member_index) is None {
+      return false
+    }
+  }
+  captured_effect_source_inventory_from_artifacts_valid(
+    preview, member_indices, artifacts, results,
+  )
+}
+
+///|
+/// Validate physical/semantic inventory using each member's typed namespace.
+/// The semantic Artifact's checked producer and live custody are verified by
+/// the Host; this comparison does not replace the durable recovery inventory.
+pub fn captured_effect_source_inventory_from_artifacts_valid(
+  preview : EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[PublicationContract],
+  results : Array[PublicationContract],
+) -> Bool {
   if results.length() != artifacts.length() {
     return false
   }
@@ -154,7 +174,7 @@ pub fn captured_effect_source_inventory_from_capture_valid(
     seen[member_index] = true
   }
   for index in 0..<count {
-    if (effect_preview_member_source_result(preview, index) is Some(_)) !=
+    if (effect_preview_member_relation_source(preview, index) is Some(_)) !=
       seen[index] {
       return false
     }
@@ -180,17 +200,20 @@ fn captured_effect_source_inventory_valid(
       member_index >= count ||
       seen[member_index] ||
       artifacts[index].name != "effect_source_artifact" ||
-      effect_preview_member_source_result(preview, member_index) is None {
+      effect_preview_member_relation_source(preview, member_index) is None {
+      return false
+    }
+    let source = effect_preview_member_relation_source(preview, member_index).unwrap()
+    if effect_source_artifact_relation_source(artifacts[index]) != Some(source) {
       return false
     }
     let expected = if results.is_empty() {
       artifacts[index].identity
     } else {
-      let name = effect_preview_member_source_result(preview, member_index).unwrap()
-      if !effect_source_contract_matches_result_facts(
+      if !effect_source_contract_matches_relation_facts(
           artifacts[index],
           results[index],
-          name,
+          source,
         ) {
         return false
       }
@@ -203,7 +226,7 @@ fn captured_effect_source_inventory_valid(
     seen[member_index] = true
   }
   for index in 0..<count {
-    if (effect_preview_member_source_result(preview, index) is Some(_)) !=
+    if (effect_preview_member_relation_source(preview, index) is Some(_)) !=
       seen[index] {
       return false
     }

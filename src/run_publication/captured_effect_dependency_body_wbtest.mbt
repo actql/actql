@@ -173,3 +173,181 @@ test "Result import dependency reader preserves every bound input coordinate" {
     is Err(InvalidBody),
   )
 }
+
+///|
+test "private Table dependency roles preserve bodies and reject Result substitution" {
+  // Independent Node SHA-256 over the three-field producer preimage.
+  let definition_cid = "sha256:a1083fe142ab863bddb8c24d5187778d015278481a5e9f33c02a9590075e1f06"
+  let definition_wire = "{\"self_cid\":\"" +
+    definition_cid +
+    "\",\"table_input_name\":\"rows\",\"unit_definition_cid\":\"" +
+    relation_fixture_cid("1") +
+    "\",\"version\":\"actql-local-table-input-definition/0.1\"}"
+  let definition = admit_captured_effect_dependency_body(
+    "local_table_input_definition",
+    Some(definition_cid),
+    definition_wire,
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_eq(definition.node.references.map(dependency => (dependency.kind, dependency.identity)), [
+    ("local_dependencies", relation_fixture_cid("1")),
+  ])
+  assert_true(
+    admit_captured_effect_dependency_body(
+      "local_result_definition",
+      None,
+      definition_wire,
+      10000,
+      1000,
+      32,
+    )
+    is Err(InvalidBody),
+  )
+  let evidence = issue_local_result_occurrence_evidence(
+    definition_cid,
+    relation_fixture_cid("2"),
+    relation_fixture_cid("3"),
+    relation_fixture_cid("1"),
+    [],
+    relation_fixture_cid("4"),
+    relation_fixture_cid("5"),
+    "owner",
+    relation_fixture_cid("6"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let derivation = result_ordering_derivation_contract(evidence)
+  let ordering = result_ordering_evidence_contract(evidence)
+  let artifact = issue_complete_local_result_artifact(
+    definition_cid,
+    relation_fixture_cid("7"),
+    evidence,
+    relation_fixture_retention(relation_fixture_cid("5")),
+    1,
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let private_artifact = admit_publication_effect_dependency_body(
+    "table_input_artifact",
+    artifact.wire,
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let private_derivation = admit_publication_effect_dependency_body(
+    "table_input_derivation",
+    derivation.wire,
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let private_ordering = admit_publication_effect_dependency_body(
+    "table_input_ordering",
+    ordering.wire,
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_eq(private_artifact.wire, artifact.wire)
+  assert_eq(private_derivation.wire, derivation.wire)
+  assert_eq(private_ordering.wire, ordering.wire)
+  assert_eq(private_artifact.node.identity, artifact.identity)
+  assert_eq(
+    private_artifact.node.references.map(dependency => (dependency.kind, dependency.identity)),
+    [
+      ("local_table_input_definition", definition_cid),
+      ("local_computation", relation_fixture_cid("7")),
+      ("relation_value", relation_fixture_cid("2")),
+      ("relation_schema", relation_fixture_cid("3")),
+      ("table_input_ordering", ordering.identity),
+      ("data_policy", relation_fixture_cid("5")),
+      (
+        "result_retention_policy",
+        contract_string(artifact, "effective_retention_policy_cid").unwrap(),
+      ),
+      ("table_input_derivation", derivation.identity),
+    ],
+  )
+  assert_eq(
+    private_derivation.node.references[0].kind,
+    "local_table_input_definition",
+  )
+  assert_eq(
+    private_ordering.node.references.map(dependency => (dependency.kind, dependency.identity)),
+    [
+      ("local_table_input_definition", definition_cid),
+      ("table_input_derivation", derivation.identity),
+    ],
+  )
+  let ordinary_artifact = admit_publication_effect_dependency_body(
+    "result_artifact",
+    artifact.wire,
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let limits : CapturedEffectDependencyLimits = {
+    max_entries: 10,
+    max_total_bytes: 10000,
+    max_depth: 8,
+    max_references: 30,
+  }
+  // Same body/CID, wrong role: absence of ordinary producer must not fall back
+  // to the private producer. A proper private role instead needs its real DAG.
+  assert_eq(
+    validate_captured_effect_dependency_bodies(
+      [ordinary_artifact, definition],
+      [ordinary_artifact],
+      0,
+      limits,
+    ),
+    Err(WrongDependencyKind),
+  )
+  assert_eq(
+    validate_captured_effect_dependency_bodies(
+      [private_artifact, definition],
+      [private_artifact],
+      0,
+      limits,
+    ),
+    Err(MissingDependency),
+  )
+  let private_manifest = dependency_test_local_wire(
+    "{\"version\":\"actql-local-result-manifest/0.1\",\"unit_definition_cid\":\"" +
+    relation_fixture_cid("1") +
+    "\",\"local_invocation_cid\":\"" +
+    relation_fixture_cid("7") +
+    "\",\"results\":{},\"table_inputs\":{\"rows\":\"" +
+    artifact.identity +
+    "\"}}",
+  )
+  let manifest = admit_local_effect_dependency_body(
+    "local_manifest", private_manifest, 10000, 1000, 32,
+  ).unwrap()
+  assert_eq(manifest.node.references[2].kind, "table_input_artifact")
+  let body = canonical_value_wire(
+    @json.object_without_field(manifest.value, "self_cid").unwrap(),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_true(
+    admit_local_effect_dependency_body(
+      "local_manifest",
+      dependency_test_local_wire(
+        body.replace(
+          old="\"table_inputs\":{\"rows\":\"" + artifact.identity + "\"}",
+          new="\"table_inputs\":{}",
+        ),
+      ),
+      10000,
+      1000,
+      32,
+    )
+    is Err(InvalidBody),
+  )
+}
