@@ -86,6 +86,24 @@ Pre-commit checks at parent HEAD plus the implementation diff:
 These attempt IDs resolve below `_build/local-checks/attempts` and
 `_build/focused-evidence`. They are local diagnostic evidence, not hosted CI.
 
+### Committed source verification
+
+Clean implementation SHA `ada401af03de7802f86d663423080bbd4c5076f1` passed the
+same focused selections after the explicit scratch-reclamation assertion:
+
+- JS 7/7: `run-BA9RMF`, `focused-test-CeJ8iW`.
+- Node 10/10: `run-4I3ssS`, `focused-test-rJ2bJe`.
+- The actual-runtime manifest fixture prepares the two consumed DuckDB runtime
+  roots from this checkout. No packed package or Native binary is produced or
+  claimed for this change. Native DuckDB operations in Node are not Native
+  MoonBit target execution.
+- Affected API interfaces were canonically regenerated; Node Host and Workers
+  read-only generator checks passed. `git diff --check` and Conventional Commit
+  subject/body width checks passed.
+
+The subsequent commit records these results only; implementation and test blobs
+are unchanged. Hosted CI is not inferred from these local results.
+
 ## Remaining boundaries
 
 This does not close the full retained Local Compute goal. Managed View
