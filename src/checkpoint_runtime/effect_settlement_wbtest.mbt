@@ -108,20 +108,22 @@ test "Effect settlement cannot relax the ordinary claim validation" {
 
 ///|
 test "Effect settlement cannot open execution or erase unknown work as cancellation" {
-  for status in [
-    @publication.RunOutcomeStatus::Failed,
-    @publication.RunOutcomeStatus::NeedsReconciliation,
-  ] {
+  for
+    status in [
+      @publication.RunOutcomeStatus::Failed,
+      @publication.RunOutcomeStatus::NeedsReconciliation,
+    ] {
     assert_true(effect_settlement_completion_allowed(status))
   }
-  for status in [
-    @publication.RunOutcomeStatus::Preparing,
-    @publication.RunOutcomeStatus::Running,
-    @publication.RunOutcomeStatus::WaitingCheckpoint,
-    @publication.RunOutcomeStatus::Resuming,
-    @publication.RunOutcomeStatus::Succeeded,
-    @publication.RunOutcomeStatus::Cancelled,
-  ] {
+  for
+    status in [
+      @publication.RunOutcomeStatus::Preparing,
+      @publication.RunOutcomeStatus::Running,
+      @publication.RunOutcomeStatus::WaitingCheckpoint,
+      @publication.RunOutcomeStatus::Resuming,
+      @publication.RunOutcomeStatus::Succeeded,
+      @publication.RunOutcomeStatus::Cancelled,
+    ] {
     assert_false(effect_settlement_completion_allowed(status))
   }
 }
