@@ -1,0 +1,65 @@
+{
+  "version": "actql-recovered-release-observation-evidence/0.1",
+  "baseSource": "71f7a205c1839872c9fdb7c108e993ec2aa53e3b",
+  "scope": "Native control-process observation after separate stopped-holder release recovery",
+  "originalFailure": {
+    "cloudSource": "b7475e070f7e81ddde5465bcbf1377bb90003846",
+    "ossSource": "fd49db74e8c82c04a1151336e6c0aaabb67b66fd",
+    "runDefinitionCid": "sha256:dd7ce10f045dc03dfb9132360a165bf46d5ea97f71031e3280e31ff18b77bcc6",
+    "producerDispatchCid": "sha256:c0adccdfac1b707b6fd1aecabcc750584ca061e1f6fe32271058b5ccb9cc5bda",
+    "nativeEvents": ["release-recovered", "release-failed:journal"],
+    "siteProducerCleanupState": 2,
+    "cloudProducerCleanupState": "active",
+    "receiverAllocationsStillSealed": 3,
+    "originalRunResolved": false
+  },
+  "executed": {
+    "focusedBoundary": {
+      "command": "moon test --target native --strip src/cmd/native_remote_resident_site/release_observation_wbtest.mbt",
+      "passed": 1,
+      "failed": 0,
+      "receipt": "native-release-observation-CqSOBZ"
+    },
+    "affectedCallers": {
+      "command": "moon test --target native --strip src/cmd/native_remote_resident_site",
+      "passed": 9,
+      "failed": 0,
+      "receipt": "native-release-observation-dF8pLT"
+    },
+    "sqliteLibrary": "system SQLite on Darwin",
+    "assertions": [
+      "The old journal view rejects the externally committed cleanup revision",
+      "A fresh journal view reads exact Succeeded and Released",
+      "Repeated fresh observations retain the same revision",
+      "A foreign Site generation cannot open the saved journal"
+    ]
+  },
+  "unexecuted": {
+    "singleHandoutHttpsRegression": {
+      "command": "node scripts/test-native-resident-site.mjs --release-observation-only",
+      "executed": false,
+      "preparationCommand": "moon build --target native --strip src/cmd/native_remote_resident_site src/cmd/native_runtime_bundle",
+      "preparationLimitSeconds": 180,
+      "preparationFailure": "ETIMEDOUT",
+      "receipt": "release-observation-https-MeDb6l"
+    },
+    "formalCloudAdoption": false,
+    "publicTwoTaskAcceptanceWithThisFix": false,
+    "previewAcceptanceWithThisFix": false
+  },
+  "separateCloudFailure": {
+    "originalStatusFailure": "HostHTTP500",
+    "readOnlyOwnerProjectionPassed": true,
+    "laterOriginalRunHttpStatus": 200,
+    "laterOriginalRunState": "running",
+    "laterPhysicalStop": "unknown",
+    "causeEstablished": false,
+    "newRunSubmitted": false,
+    "nativeStartedDuringStatusDiagnosis": false
+  },
+  "remaining": [
+    "Reclaim the original unborrowed receiver custody through its exact existing Owner",
+    "Confirm the original Run's formal Cloud terminal state",
+    "Investigate the original HTTP 500 independently; a later HTTP 200 is not root-cause resolution"
+  ]
+}

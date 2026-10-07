@@ -79,6 +79,7 @@ const cancelMode = process.argv.includes('--cancel-only') ||
   process.env.ACTQL_TEST_RESIDENT_CANCEL_ONLY === '1';
 const releaseMaintenanceMode = process.argv.includes('--release-maintenance-only') ||
   process.env.ACTQL_TEST_RESIDENT_RELEASE_MAINTENANCE_ONLY === '1';
+const releaseObservationMode = process.argv.includes('--release-observation-only');
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -1505,13 +1506,31 @@ try {
     failing.child.kill('SIGTERM');
     await failing.exited;
     }
-  } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode) {
+  } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode || releaseObservationMode) {
     // The same physical Site and journals must discharge release after a
     // bounded failure, a lost control reply, and loss of the live holder.
-    const releaseModes = releaseMaintenanceMode ? ['maintenance'] :
+    const releaseModes = releaseObservationMode ? ['recovered-observation'] : releaseMaintenanceMode ? ['maintenance'] :
       ['release-failure', 'lost-release', 'holder-exit', 'recovery-interrupted', 'maintenance'];
     for (const [index, mode] of releaseModes.entries()) {
       let lostRelease = false;
+      let releaseDelivered = false, releaseObserved = false;
+      if (mode === 'recovered-observation') {
+        // A second handout must not hide failure to report the first recovered
+        // release. This proxy changes transport only, never the Owner's state.
+        ackLossProxy = await observationAckLossProxy({origin: gateway.origin,
+          key: await readFile(join(root, 'server.key')),
+          cert: await readFile(join(root, 'server.crt')),
+          ca: await readFile(join(root, 'ca.crt')),
+          loseAck: () => false, allowDispatch: () => true, onAckLost: () => {},
+          transformReply: (_body, upstream) => {
+            if (upstream.status === 200 &&
+                JSON.parse(upstream.body.toString('utf8')).version === 'actql-remote-poll-release/0.1') {
+              if (releaseDelivered && !releaseObserved) return {status: 204, body: ''};
+              releaseDelivered = true;
+            }
+            return upstream;
+          }});
+      }
       if (mode === 'lost-release') {
         ackLossProxy = await observationAckLossProxy({origin: gateway.origin,
           key: await readFile(join(root, 'server.key')),
@@ -1528,10 +1547,11 @@ try {
           }});
       }
       let site = startSite(mode === 'release-failure' ? ['--holder-release-failures', '3'] :
+        mode === 'recovered-observation' ? ['--holder-kill-at', 'report-handoff'] :
         mode === 'maintenance' ? ['--holder-kill-at', 'report-handoff'] :
         mode === 'holder-exit' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-close-failures', '1'] :
           mode === 'recovery-interrupted' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-kill-at', 'after-transition'] : [],
-      {controlOrigin: mode === 'lost-release' ? ackLossProxy.origin : gateway.origin});
+      {controlOrigin: mode === 'lost-release' || mode === 'recovered-observation' ? ackLossProxy.origin : gateway.origin});
       currentSite = site;
       const dispatch = dispatchFor(`resident-release-recovery-${mode}`, 200 + index);
       await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
@@ -1540,7 +1560,7 @@ try {
       const terminal = await settledQuery(dispatch, mode);
       await within(requestOutput(dispatch, await planOutput(dispatch, terminal, mode)), `${mode} output`);
       let released = gateway.release({dispatch}).catch(error => error);
-      if (mode === 'holder-exit' || mode === 'recovery-interrupted' || mode === 'maintenance') {
+      if (mode === 'holder-exit' || mode === 'recovery-interrupted' || mode === 'maintenance' || mode === 'recovered-observation') {
         await waitFor(() => site.lines.some(line => line.kind === 'holder-killed'), 'holder exit');
         await waitFor(() => pendingIntents().length === 0 && reservedPayloadBytes() === 0,
           'orphan physical cleanup');
@@ -1551,7 +1571,16 @@ try {
         await released;
         released = gateway.release({dispatch});
       }
-      await within(released, `${mode} release`);
+      const firstRelease = await within(released, `${mode} release`);
+      if (mode === 'recovered-observation') {
+        assert.equal(firstRelease.state[2], 2, 'the first recovery must report formal Released');
+        releaseObserved = true;
+        assert(releaseDelivered);
+        await waitFor(() => site.lines.some(line => line.kind === 'release-observed' &&
+          line.request_cid === siteControl.identity(dispatch)), 'first recovered release observation');
+        assert(site.lines.some(line => line.kind === 'release-recovered'));
+        assert(!site.lines.some(line => line.kind === 'release-failed' && line.reason === 'journal'));
+      }
       if (mode === 'maintenance') {
         await waitFor(() => reportState().pending === 0, 'maintenance durable Output ACK');
         site.child.kill('SIGTERM');
