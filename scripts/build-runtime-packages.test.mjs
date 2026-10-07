@@ -227,6 +227,17 @@ distribution.splice(4, 0, 'node scripts/test-packed-read-opening.mjs',
   'node scripts/check-submission-input-mutations.mjs',
   'node scripts/check-effect-uncertainty-mutations.mjs');
 
+// Retain main's Delivery/request observation and explicit Host policy cases
+// at their registered positions alongside the actual 121-row read regressions.
+distribution[3] = distribution[3].replace(
+  'packages/sdk/read-progress.test.mjs ',
+  'packages/sdk/read-progress.test.mjs packages/sdk/delivery-observation.test.mjs ',
+).replace(
+  'adapters/host-node/client-submission-input.test.mjs ',
+  'adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/client-submission-input.test.mjs ',
+);
+distribution[3] += ' packages/sdk/request-observation.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs';
+
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
   // Both the link and its target belong to this test. Recursive removal of
