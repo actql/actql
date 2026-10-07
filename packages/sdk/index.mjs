@@ -1689,6 +1689,8 @@ async function connectSelected(selected, port) {
       }
       try { answer = await controlValue(response); }
       catch { throw uninterpretableRequestCancellation(context); }
+      try { answer = captureResponse(answer); }
+      catch { throw uninterpretableRequestCancellation(context); }
       if (!validRequestCancellation(answer, requestId)) {
         throw uninterpretableRequestCancellation(context);
       }

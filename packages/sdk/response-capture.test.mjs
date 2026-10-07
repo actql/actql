@@ -62,6 +62,47 @@ async function fixture(t, reply) {
   t.after(() => client.close());
   return {client, run: await client.attach(ref), calls};
 }
+test('request cancellation captures the first kind, Run reference and revision once', async t => {
+  const expected = {kind: 'accepted', requestId: 'saved', ref: {...ref}, revision: 7};
+  const reply = {...expected}, reads = {kind: 0, ref: 0, revision: 0};
+  const replacements = {kind: 'already_terminal',
+    ref: {...ref, runDefinitionCid: cid('d')}, revision: 99};
+  for (const field of Object.keys(reads)) Object.defineProperty(reply, field, {
+    enumerable: true, get() { return ++reads[field] === 1 ? expected[field] : replacements[field]; },
+  });
+  const f = await fixture(t, reply), answer = await f.client.cancelRequest('saved');
+  assert.deepEqual(answer, expected);
+  assert.deepEqual(reads, {kind: 1, ref: 1, revision: 1});
+  const explanation = sdk.explainRequestCancellation(answer);
+  assert.equal(explanation.observation, 'accepted');
+  assert.equal(explanation.revision, 7);
+  assert.deepEqual(explanation.next, {operation: 'status', ref});
+  assert.ok(Object.isFrozen(answer.ref));
+  assert.equal(sdk.explainRequestCancellation(structuredClone(answer)), undefined);
+  assert.deepEqual(f.calls, ['connect', 'attach', 'cancel-request']);
+});
+for (const field of ['kind', 'ref', 'revision']) {
+  test(`request cancellation retains uncertainty when the ${field} capture throws`, async t => {
+    const reply = {kind: 'accepted', requestId: 'saved', ref: {...ref}, revision: 7};
+    let reads = 0;
+    Object.defineProperty(reply, field, {enumerable: true,
+      get() { reads++; throw new Error('private cancellation getter'); }});
+    const f = await fixture(t, reply);
+    await assert.rejects(f.client.cancelRequest('saved'), error => {
+      assert.equal(error.code, 'CancellationUnknown');
+      const explanation = sdk.explainRequestCancellation(error);
+      assert.equal(explanation.observation, 'outcome_unknown');
+      assert.equal(explanation.problem, 'response_uninterpretable');
+      assert.equal(explanation.next.operation, 'lookupRequest');
+      assert.equal(explanation.next.requestId, 'saved');
+      assert.equal(Object.hasOwn(explanation, 'revision'), false);
+      assert.doesNotMatch(JSON.stringify(error), /private cancellation getter/);
+      return true;
+    });
+    assert.equal(reads, 1);
+    assert.deepEqual(f.calls, ['connect', 'attach', 'cancel-request']);
+  });
+}
 for (const item of cases) {
   test(`${item.operation}: capture observes response getters once before admission`, async t => {
     const reply = item.reply(), first = reply[item.field];
