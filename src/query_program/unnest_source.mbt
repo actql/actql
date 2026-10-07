@@ -25,6 +25,11 @@ fn unnest_source_element(
       max_work,
     }) {
     Ok(lowered) => lowered
+    // Relation-bound correlation has no field schema in this scope probe.
+    // The caller lowers it against the actual row/ranges below; explicit
+    // projection does not require guessed element fields. Budget and all
+    // other lowerer errors still propagate. Unknown stars remain refused.
+    Err({ issue: @expression.UnknownReference, .. }) => return None
     Err(diagnostic) => raise Abort(Expression(diagnostic))
   }
   let typed = match
