@@ -95,8 +95,34 @@ Normal fixed-source five-package Local/HTTPS execution remains required:
 `node scripts/test-packed-public-query.mjs --unnest-parameter-path-only`.
 Preparation and checker success are not reported as public execution success.
 The shared heavy lock is retained; no other worktree's build or evidence is
-removed. Full Core, native/Wasm and CI are not claimed. The new worktree borrows
-only the command's YAML dependency at
+removed. Full Core, native/Wasm and CI are not claimed. Initial focused checks borrowed
+the command's YAML dependency at
 `/Users/t14i/workspace/20260822/actql/node_modules/yaml` and the pinned MoonBit
 toolchain under that repository's `.toolchains`; it does not borrow old Client
 wire/runtime packages or patch a distribution for acceptance.
+
+## First executed distribution attempt
+
+Normal five-package prepack from clean `d8efab75a041c30960368e8f3a3c5ec677599d8e`
+succeeded (`run-rd2Gjp`). The fixed manifest and five digests are retained at
+`/private/tmp/actql-b-unnest-parameter-paths-d8efab75a-complete-pack/packed-client-packages.json`.
+The missing build-only esbuild dependency caused the preceding producer to fail
+(`run-Rxe7mm`); version `0.28.1`, matching package-lock, was then borrowed from
+`/Users/t14i/workspace/20260822/worktrees/actql-frontend-graph-definition-scope/node_modules/esbuild`.
+No old wire/runtime was borrowed.
+
+The external consumer launched (`run-l7mUbK`) but failed before the UNNEST
+corpus: the literal README quickstart submitted a bare request ID, which the
+current SDK correctly refused as `SubmissionReferenceRequired`. Its command
+006 stderr and complete source/tarball evidence are retained at
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-peMems`.
+No new UNNEST public case is claimed as executed by that attempt.
+
+The README now creates and saves an epoch-bound submission reference before
+send. Its existing independent Local reconnect control looks up that original
+reference rather than interpreting the nonce under a newly negotiated epoch.
+Both public helpers await Client close. No quickstart gate is skipped, no
+expected rows change, and the next acceptance requires normal packing from the
+new clean source rather than an edited installation or changed manifest.
+The changed command/consumer checks pass 10/10 (`run-DdEy0k`,
+`focused-test-RGp0kS`); this is not a replacement for the next external run.

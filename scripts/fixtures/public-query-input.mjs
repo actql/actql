@@ -605,6 +605,6 @@ export async function exercisePublicQueryInput(connect, options,
       }
     }
   } finally {
-    client.close();
+    await client.close();
   }
 }
