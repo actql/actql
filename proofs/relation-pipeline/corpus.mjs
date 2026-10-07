@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { clone, generate, oracle } from './engine.mjs';
+import {corpusBaseline} from './registry.mjs';
 
 const methods = ['enabled', 'admits', 'generate', 'contract', 'syntax', 'oracle', 'shrinks'];
 export function checkRegistration(registry, registrations) {
@@ -33,7 +34,7 @@ export function coverage(cases, registry, registrations) {
 // Deterministic completion searches the same typed generator used for exploration.
 // It adds only cases which discharge a missing predicate, never a labelled pair
 // or a per-operation handwritten pipeline. Failure to find a witness is fatal.
-export function fixedCorpus(registry, registrations) {
+function completeCorpus(registry, registrations) {
   checkRegistration(registry, registrations);
   const cases = generate(registry);
   const obligations = registry.flatMap(d => registrations[d.name].obligations);
@@ -53,4 +54,23 @@ export function fixedCorpus(registry, registrations) {
   }
   coverage(cases, registry, registrations);
   return cases;
+}
+
+export function fixedCorpus(registry, registrations) {
+  const current = completeCorpus(registry, registrations);
+  if (registry.length <= corpusBaseline.length || !corpusBaseline.every((descriptor, index) =>
+    registry[index] === descriptor)) return current;
+  const retained = completeCorpus(corpusBaseline, registrations);
+  const originalNames = new Set(corpusBaseline.map(descriptor => descriptor.name));
+  const sameCase = value => JSON.stringify({rows: value.rows, steps: value.steps});
+  const contents = new Set(retained.map(sameCase)), ids = new Set(retained.map(value => value.id));
+  for (const candidate of current) {
+    if (candidate.steps.every(step => originalNames.has(step.op))) continue;
+    if (contents.has(sameCase(candidate))) continue;
+    const value = clone(candidate);
+    while (ids.has(value.id)) value.id = `extension:${value.id}`;
+    retained.push(value); ids.add(value.id); contents.add(sameCase(value));
+  }
+  coverage(retained, registry, registrations);
+  return retained;
 }

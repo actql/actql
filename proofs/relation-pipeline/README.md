@@ -36,7 +36,12 @@ The root is checked authored Values with exact ProducedInput ownership and total
 occurrence order. Three numeric fields (`k` nullable), bounded integers, at most
 six rows, NULL, duplicates, empty input/output and distinguishable ties are
 admitted. Sequences have one to five steps; generated sequences have two to four.
-Filter, select, sort, take and simultaneous rename are registered. Unsupported
+Filter, select, sort, take, simultaneous rename, whole-row distinct and the
+numeric snapshot-map `derive` instance are registered. Derive adds one fresh
+field equal to an admitted numeric field plus an integer in -2..2; NULL remains
+NULL and its declared nullability is retained. Other expressions, sequential
+shadowing, demanded failures and arbitrary numeric ranges remain outside this
+successful domain. Unsupported
 variants, strings, arbitrary schemas and candidate-key assertions remain outside
 this domain. Their existing tests stay in place.
 
@@ -142,7 +147,7 @@ review against the fixed first foundation, separately from these initial costs.
 
 The full workflow uses the source-bound `proof-parts.mjs` plan with exactly four
 fresh producers: `L-C0` owns normal/boundary capacity, backing/model evidence,
-custody followed by native-parent evidence, and the full final 86-case corpus on
+custody followed by native-parent evidence, and the full final 114-case corpus on
 three targets. `L-C1` owns all five capacity mutations with unchanged fresh
 search, shrinking, mutated minima and independent instrumented healthy replays.
 `L-M0` and `L-M1` own the reviewed static four-variant groups; fixed and required
@@ -152,7 +157,7 @@ Each mutated root is restored byte-for-byte. Its old executor closes before a
 new owner executes its assigned recovered minima on the same restored root, on
 all three targets. These fresh recovery observations remain separate from the
 original pristine/instrumented healthy replays and are not another execution of
-the 86-case corpus. The new owner closes before the part is sealed. Existing
+the 114-case corpus. The new owner closes before the part is sealed. Existing
 local consistency and custody checks remain mandatory before sealing.
 
 `ci-parts.mjs` seals a PART envelope, never a full scientific success. Receipts
@@ -166,3 +171,29 @@ new derived union binds them by digest and retains their actual owner maps.
 Only that complete union undergoes the full scientific and whole-report negative
 audits and can satisfy `pipeline-evidence`. No build tree or completed proof
 result is cached or shared between producers.
+
+### Numeric derive extension
+
+The original six-descriptor corpus remains the exact first 86 inputs, including
+their identities. The existing typed generator adds only sequences containing
+the new descriptor: 28 inputs, including all 13 new directed adjacent pairs.
+When generated identities collide with retained inputs, only the new input
+gets an `extension:` prefix. No original input or execution receipt is changed.
+The same shrinker retains schema validity when a downstream step reads the
+derived field. Five concrete predicates require NULL propagation, nonzero
+arithmetic with the source retained, downstream use, duplicate/order retention
+and the empty output contract. A missing predicate fails corpus admission.
+
+The real observation harness admits `SnapshotMap` as an additional selected
+kernel route; it contains no derive oracle. Checked/kernel schemas, every
+intermediate output, parent/child work and stopped/cleanup correspondence are
+checked by the existing execution and evidence consumer. No Session/chain law,
+generator or shrink coordinator is copied or extended. Preserving the original
+corpus does require a generic corpus-union change, and it is reported as a
+common change rather than a zero-common-change experiment.
+
+The eight existing mutation campaigns and physical/Host fixtures remain. Their
+past results are not new derive mutation evidence. The arithmetic-expression
+kernel, all unadmitted expression/failure forms, physical capacity and Host
+custody still need their own obligations. This extension does not retire tests,
+authorize another cached action, or establish CI savings.
