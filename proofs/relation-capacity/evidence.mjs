@@ -3,10 +3,14 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import * as chain from '../relation-chain/evidence.mjs';
 export const { targets, artifacts } = chain;
+export const modelExecution = Object.freeze({target: 'model', count: 14,
+  command: Object.freeze([process.execPath, 'proofs/relation-capacity/check.mjs']),
+  summary: 'Checked 14 capacity theorems, expected types and axiom dependencies; child/parent bounds are premises'});
+export const modelObservationUnits = (output, exit) => chain.modelObservationUnits(output, exit, modelExecution);
 export const fixture = 'src/query_integration/relation_chain_capacity_wbtest.mbt';
 export const identityFixture = 'src/execution_relation/relation_capacity_identity_wbtest.mbt';
 const inventoryPath = 'proofs/relation-capacity/allocations.json';
-export const inventoryDigest = '4dfd632af58dd025e44661bc69be6a761328e6666fa6ee0efe78818d57ad2957';
+export const inventoryDigest = '4945d5aebfd02f7865c0e9d20e9dde3015b6ca4fede67d8d1f1b1e740b17bc24';
 const clone = x => JSON.parse(JSON.stringify(x));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const reviewed = Object.freeze(chain.bindings().map(b => Object.freeze({
@@ -32,21 +36,30 @@ export const unresolved = Object.freeze([
 export const guarantee = 'conditional live-allocation upper bound under every declared premise';
 export const coverage = () => ({ fixture, identityFixture, scopes: clone(reviewed) });
 export const bindings = () => reviewed.map(scope => ({ ...clone(scope), premises: [...premises], unresolved: [...unresolved], guarantee }));
-export function checkBindings(root, requested) {
+export function checkBindings(root, requested, {read = path => readFileSync(join(root, path))} = {}) {
   if (!requested.length) throw new Error('Missing capacity bindings');
   for (const b of requested) {
     if (!reviewed.some(scope => Object.keys(scope).every(k => same(b[k], scope[k]))) ||
         !same(b.premises, premises) || !same(b.unresolved, unresolved) || b.guarantee !== guarantee) throw new Error('Unverified or overstated capacity scope');
   }
-  const raw = readFileSync(join(root, inventoryPath));
+  const raw = read(inventoryPath);
   if (hash(raw) !== inventoryDigest) throw new Error('Frozen allocation inventory changed; explicit review required');
   const inventory = JSON.parse(raw);
   if (!inventory.included.some(x => x.id === 'parent-control' && x.status.startsWith('UNPROVED'))) throw new Error('Missing parent allowance obligation');
   for (const entry of inventory.included) {
-    const source = readFileSync(join(root, entry.source), 'utf8');
+    const source = read(entry.source).toString('utf8');
     for (const symbol of entry.symbols) if (!source.includes(symbol)) throw new Error(`Missing inventory connection ${symbol}`);
-    for (const path of entry.additionalSources ?? []) readFileSync(join(root, path));
+    for (const path of entry.additionalSources ?? []) read(path);
   }
+  // The reviewed scopes all start with TimeSeries, so the existing sum-of-child
+  // model must not be silently applied to the built-in-only max-scratch branch.
+  chain.checkBindings(root, chain.bindings(), {read: path => read(path).toString('utf8')});
+  const source = read('src/connectors/local/selected_relation_provider.mbt').toString('utf8').replace(/\s+/gu, '');
+  for (const route of [
+    'scratch+=child.execution_bytes',
+    'letpreparation=ifcount>1{512L}else{0L}',
+    'whilecleanup_index.val>=0{matchcleanup_managed_provider(state.children[cleanup_index.val]){Ok(true)=>cleanup_index.val-=1Ok(false)=>returnOk(false)Err(issue)=>returnErr(issue)}}state.current=Noneifstate.input_preparationisSome(cursor){cancel_relation_chain_inputs(cursor)}state.input_preparation=Nonestate.completed=[]state.children=[]reclaimed.val=true',
+  ]) if (!source.includes(route)) throw new Error('Missing current capacity/cleanup custody connection');
 }
 const hash = b => createHash('sha256').update(b).digest('hex');
 const files = path => readdirSync(path, { withFileTypes: true }).flatMap(e => e.isDirectory() ? files(join(path, e.name)) : e.isFile() ? [join(path, e.name)] : []);
@@ -62,7 +75,7 @@ export function validate(requested, report, current, target) {
   for (const b of requested) if (!bindings().some(x => same(x, b))) throw new Error('Unverified or unconditional capacity claim');
   if (!same(report.coverage, coverage())) throw new Error('Unverified executed coverage');
   const expected = {
-    lean: [process.execPath, 'proofs/relation-capacity/check.mjs'],
+    lean: modelExecution.command,
     [`capacity-${target}`]: ['moon', 'test', fixture, '--target', target, '--deny-warn'],
     [`identity-${target}`]: ['moon', 'test', identityFixture, '--target', target, '--deny-warn'],
     [`ledger-${target}`]: ['moon', 'test', 'src/physical_resources/ledger_wbtest.mbt', '--target', target, '--deny-warn'],
@@ -70,6 +83,8 @@ export function validate(requested, report, current, target) {
   for (const [id, command] of Object.entries(expected)) {
     const run = report.runs[id];
     if (!run?.passed || run.exit !== 0 || run.sourceDigest !== current.digest || !same(run.command, command)) throw new Error('Missing or unrelated execution');
+    if (id === 'lean' && (run.target !== modelExecution.target || run.count !== modelExecution.count))
+      throw new Error('Invalid model target or theorem count');
     if (id !== 'lean') {
       if (run.target !== target || run.count < (id.startsWith('capacity') ? 3 : 1) || !Object.keys(run.artifacts ?? {}).length) throw new Error('Unexecuted correspondence fixture');
       for (const [path, digest] of Object.entries(run.artifacts)) if (current.builtArtifacts?.[path] !== digest) throw new Error('Stale artifact');

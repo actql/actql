@@ -7,7 +7,7 @@ import { oracle } from './engine.mjs';
 import { baseRegistry, registry } from './registry.mjs';
 import { execute, executions, root, environment, toolchain } from './execute.mjs';
 import { snapshot, hash } from './inventory.mjs';
-import { profile, inherited, premises, validate, reviewRoute, compareSemantics } from './evidence.mjs';
+import { modelExecutions, observeModel, profile, inherited, premises, validate, reviewRoute, compareSemantics } from './evidence.mjs';
 const target = process.argv[2] ?? 'all';
 const selected = process.argv[3] === 'base' ? baseRegistry : registry;
 if (!['js', 'wasm', 'native', 'all'].includes(target)) throw new Error('Use js, wasm, native or all');
@@ -16,12 +16,13 @@ const source = snapshot(root);
 const directory = join(root, '.artifacts/relation-pipeline');
 mkdirSync(directory, { recursive: true });
 const models = {};
-for (const [id, path] of [['session', 'proofs/bounded-session/check.mjs'], ['chain', 'proofs/relation-chain/check.mjs']]) {
+for (const [id, expected] of Object.entries(modelExecutions)) {
+  const path = expected.command[1];
   const result = spawnSync(process.execPath, [path], { cwd: root, env: environment, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   const log = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `${id}-model.log`), log);
   if (result.status !== 0) throw new Error(`Existing model check failed ${id}`);
-  models[id] = { command: [process.execPath, path], exit: result.status, passed: true, sourceDigest: source.digest,
+  models[id] = { command: expected.command, target: expected.target, count: observeModel(id, log, result.status), exit: result.status, passed: true, sourceDigest: source.digest,
     logPath: `.artifacts/relation-pipeline/${id}-model.log`, logDigest: hash(log) };
 }
 const cases = fixedCorpus(selected, registrations);
