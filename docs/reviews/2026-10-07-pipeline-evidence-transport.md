@@ -41,6 +41,26 @@ The workflow retains all existing scientific, target and capacity audits.
 Local evidence establishes only decoder/transport/checker correspondence, not
 new three-target campaigns, Linux isolation or actual hosted provenance.
 
+## Final required-check connection boundary
+
+Extend this same Draft with `mutation-action-final.mjs` and its consuming tests.
+The existing required `check` authenticates the current pipeline job's exact
+artifact ID/digest and reconstructs the independent plan before succeeding.
+Keep the existing job-verdict gate first and preserve Draft/target selection.
+
+Retain the entire original pipeline archive for diagnostics. Publish only the
+derived action record and unchanged mutation part reports/raw receipt JSON in a
+small `pipeline-actions-<run>-<attempt>-<tested SHA>` artifact, using the existing
+64 MiB bounded transport instead of transferring unrelated capacity reports or
+raising transport limits. The reader's code-selected pipeline namespace changes
+to this dedicated original; no alternative/old-name fallback is introduced.
+The existing pinned uploader exposes its artifact ID/digest to `check`.
+No producer execution, exploration/capacity corpus or original bytes are removed.
+
+The final reader's API/digest failures are mandatory current-evidence failures,
+distinct from an optional historical main comparison. The latter cannot block
+fresh production, and this connection still does not authorize pipeline reuse.
+
 ## Fixed-source local results
 
 Implementation: `10008d8007bca70cfb0225dc83ee71bfbdc4833c`.

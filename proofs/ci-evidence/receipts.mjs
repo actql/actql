@@ -127,7 +127,7 @@ export async function authenticateExecutionOrigin({origin, family, artifactId, e
   validateExecutionOrigin(origin);
   assert(['session', 'pipeline'].includes(family), 'Unregistered execution family');
   const jobName = family === 'session' ? 'session-evidence' : 'pipeline-evidence';
-  const artifactPrefix = family === 'session' ? 'session-actions' : 'relation-pipeline-evidence';
+  const artifactPrefix = family === 'session' ? 'session-actions' : 'pipeline-actions';
   assert(positive(artifactId) && ['fresh', 'reused'].includes(acquisition));
   assert.equal(origin.repository, expected.repository);
   assert.equal(origin.repositoryId, expected.repositoryId);

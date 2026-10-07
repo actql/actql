@@ -585,6 +585,9 @@ jobs:
     needs: [pipeline-mutations, pipeline-mutations-rest, pipeline-capacity, pipeline-capacity-mutants, pipeline-validation]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      artifact-id: ${{ steps.pipeline-actions.outputs.artifact-id }}
+      artifact-digest: ${{ steps.pipeline-actions.outputs.artifact-digest }}
     steps:
       - name: Require all four producers and mandatory validation before transfer
         env:
@@ -666,6 +669,18 @@ jobs:
             .artifacts/pipeline-ci/action-original.json
             .artifacts/relation-pipeline-target-regression/run-*/*.json
             .artifacts/relation-pipeline-target-regression/run-*/*.log
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain small immutable mutation originals for the required consumer
+        id: pipeline-actions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pipeline-actions-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/pipeline-ci/action-original.json
+            .artifacts/relation-pipeline/fixed-mutations-L-M*.json
+            .artifacts/relation-pipeline/mutations-L-M*.json
+            .artifacts/relation-pipeline/L-M*.json
           include-hidden-files: true
           if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.
@@ -970,7 +985,7 @@ jobs:
           CI_PLAN: ${{ needs.select-targets.outputs.plan }}
         run: node scripts/ci-targets.mjs gate
       - name: Set up pinned Node for the selected evidence consumer
-        if: ${{ needs.session-evidence.result == 'success' }}
+        if: ${{ needs.session-evidence.result == 'success' || needs.pipeline-evidence.result == 'success' }}
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.22.0
@@ -988,6 +1003,21 @@ jobs:
         with:
           name: session-applicability-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
           path: .artifacts/session-applicability/verified-family.json
+          if-no-files-found: error
+      - name: Authenticate current pipeline originals and the executed Lean certificate
+        id: pipeline-action-check
+        if: ${{ needs.pipeline-evidence.result == 'success' }}
+        env:
+          ACTIONS_READ_TOKEN: ${{ github.token }}
+          PIPELINE_ACTION_ARTIFACT_ID: ${{ needs.pipeline-evidence.outputs.artifact-id }}
+          PIPELINE_ACTION_ARTIFACT_DIGEST: ${{ needs.pipeline-evidence.outputs.artifact-digest }}
+        run: node proofs/relation-pipeline/mutation-action-final.mjs
+      - name: Retain current pipeline action acceptance separately from originals
+        if: ${{ needs.pipeline-evidence.result == 'success' && steps.pipeline-action-check.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pipeline-action-acceptance-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-action-consumer/verified-actions.json
           if-no-files-found: error
   spec:
     needs: [select-targets, preflight]

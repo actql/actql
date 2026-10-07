@@ -116,6 +116,17 @@ export async function readMutationActionOriginal({archive, artifactId, expected,
     assert.deepEqual(recordedInputs, sourceInputs, 'Original input inventory differs');
     assert.deepEqual(recorded, records, 'Original action plan or scientific observations differ');
     verifyMutationActionCertificate(carried.admission);
+    // Surround all ZIP/member/certificate processing with the actual attempt,
+    // not only the earlier metadata fetch. A concurrent rerun invalidates it.
+    const current = await request(`/actions/runs/${origin.runId}`);
+    assert.equal(current.id, origin.runId); assert.equal(current.run_attempt, origin.runAttempt);
+    assert.equal(current.head_sha, origin.runHeadRevision); assert.equal(current.workflow_id, origin.workflowId);
+    assert.equal(current.path, origin.workflowPath); assert.equal(current.repository?.id, origin.repositoryId);
+    assert.equal(current.repository?.full_name, origin.repository);
+    assert.equal(current.head_repository?.id, acquisition === 'reused' ? origin.repositoryId : expected.headRepositoryId ?? origin.repositoryId);
+    assert.equal(current.event, origin.event); assert.equal(current.head_branch, origin.branch);
+    assert(acquisition === 'fresh' && current.status === 'in_progress' ||
+      current.status === 'completed' && current.conclusion === 'success', 'Original run no longer successful/current');
     return {original: carried, originalDigest: hash(originalBytes), artifactId, archiveDigest: metadata.digest,
       authority: 'authenticated-successful-pipeline-job', acquisition: 'original-not-reused', reuseAuthorized: false,
       unresolved: sourceInputs.unresolved, verificationMilliseconds: Math.round(performance.now() - started)};
