@@ -8,11 +8,13 @@ test "JOIN DISTINCT ORDER uses expressions over evaluated output aliases" {
     ] {
     let result = compile(
       @query.parse_query(source, syntax_limits()).unwrap(),
-      join_order_context(), construction_limits(),
+      join_order_context(),
+      construction_limits(),
     )
     assert_true(result is Ok(_), msg=source)
     let program = result.unwrap()
-    match @check.check_parsed(program, check_environment(), None, check_limits()) {
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
       Checked(_) => ()
       Rejected(error) => raise @check.diagnostic_cause(error)
       _ => fail(source)
