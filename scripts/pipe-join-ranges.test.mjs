@@ -16,6 +16,9 @@ test('range obligations distinguish current values from original slots and prese
       {current: 12, original: 2, amount: 20, matched: 2}]);
   assert.equal(cases.get('pipe-join-ranges-nullable-left').expected[0].matched, null);
   assert.equal(cases.get('pipe-join-ranges-empty-typed').columns.length, 4);
+  assert.deepEqual(cases.get('pipe-join-ranges-star-visible-row').columns.map(column => column.name),
+    ['amount', 'id', 'k']);
+  assert.deepEqual(cases.get('pipe-join-ranges-parameter-slot').parameters, {increment: 10});
   assert.equal(cases.get('pipe-join-ranges-shared-source').expected.length, 6);
   assert.equal(cases.get('pipe-join-ranges-shared-source').sourceReadSessionCount, 1);
   assert.equal(pipeJoinRangesRefusals.length, 4);

@@ -28,6 +28,12 @@ const success = (name, text, extra = {}) => ({name: 'pipe-join-ranges-' + name,
 export const pipeJoinRangesSuccesses = [
   success('independent-json', JSON.stringify(pipeJoinRangesProgram), {format: 'json'}),
   success('set-original-key', source),
+  success('parameter-slot', source.replace('id + 10', 'id + @increment'),
+    {parameterDeclarations: {increment: number}, parameters: {increment: 10}}),
+  success('star-visible-row', prefix + join + '|> SELECT * |> ORDER BY id',
+    {columns: [{name: 'amount', contract: nullable}, {name: 'id', contract: number},
+      {name: 'k', contract: number}],
+    expected: [{amount: 20, id: 12, k: 2}, {amount: 20, id: 12, k: 2}]}),
   success('drop-original-key', 'FROM records |> AS l |> DROP id ' + join
     + projection.replace('id AS current', 'amount AS current'),
   {columns: [{name: 'current', contract: nullable}, ...columns.slice(1)],
