@@ -312,6 +312,47 @@ pub fn admit_captured_effect_source_from_capture(
 }
 
 ///|
+/// Project the semantic Result only through the exact captured source/member.
+/// This immutable view never restores Compute or grants physical Store custody.
+pub fn captured_effect_source_result_from_capture(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  source : CapturedEffectSourceArtifact,
+  captured : PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  guard admit_captured_effect_source_from_capture(
+      preview,
+      member_index,
+      invocation,
+      source.artifact,
+      captured,
+      store_authority_cid,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    )
+    is Ok(expected) &&
+    expected.effect_id == source.effect_id &&
+    expected.holding_cid == source.holding_cid &&
+    @json.object_field(captured.value, "effect_context") is Some(context) &&
+    @json.object_field(context, "effect_source_local_inventory")
+    is Some(inventory) &&
+    @json.object_field(inventory, source.effect_id) is Some(local_value) &&
+    admitted_nested_local_contract(
+      local_value, "artifact", "result_artifact", max_wire_bytes, max_nodes, max_depth,
+    )
+    is Some(result) else {
+    return Err(CaptureIssuanceReferenceMismatch("effect_source_result"))
+  }
+  Ok(result)
+}
+
+///|
 pub fn admit_captured_local_effect_source(
   source : CapturedEffectSourceArtifact,
   definition_wire : String,

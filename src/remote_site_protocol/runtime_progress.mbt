@@ -82,6 +82,52 @@ pub fn create_remote_runtime_custody() -> RemoteRuntimeCustody {
 }
 
 ///|
+/// Recheck only historical completion evidence for physical cleanup. Unlike
+/// live restoration, releasing or released material need not be available.
+/// This creates no runtime custody, borrow, resource or execution permission,
+/// and does not confirm stop, reclamation, capacity return or a Run terminal.
+/// The physical caller separately verifies current Site/authority and stop.
+pub fn verify_remote_completed_cleanup_observation(
+  record : DispatchRecord,
+  evidence : RemoteExecutionEvidence,
+  subject : RemoteManagedOutputSubject,
+  measurement : RemoteManagedOutputMeasurement,
+) -> Result[Unit, DispatchIssue] {
+  if record.execution != NativeSettled ||
+    record.cleanup == CleanupForceLost ||
+    record.quarantined_capacity {
+    return Err(InvalidTransition)
+  }
+  verify_remote_completed_observation(record, evidence, subject, measurement)
+}
+
+///|
+fn verify_remote_completed_observation(
+  record : DispatchRecord,
+  evidence : RemoteExecutionEvidence,
+  subject : RemoteManagedOutputSubject,
+  measurement : RemoteManagedOutputMeasurement,
+) -> Result[Unit, DispatchIssue] {
+  if !remote_managed_output_subject_matches_evidence(
+      subject,
+      evidence,
+      record.request,
+    ) ||
+    !remote_managed_output_subject_matches_measurement(subject, measurement) {
+    return Err(DispatchIdentityMismatch)
+  }
+  guard record.evidence is EvidenceDurable(material, holding, saved_evidence) else {
+    return Err(InvalidTransition)
+  }
+  if material != subject.material_generation ||
+    holding != subject.holding_evidence_cid ||
+    saved_evidence != evidence.evidence_cid {
+    return Err(DispatchIdentityMismatch)
+  }
+  Ok(())
+}
+
+///|
 /// Restore only the settled-operation fact of an exact completed occurrence.
 /// The caller must separately verify current Site/authority and exclusive
 /// physical custody. No output, holding, bundle, reservation or start permit
@@ -98,21 +144,10 @@ pub fn restore_remote_runtime_completed_custody(
     record.quarantined_capacity {
     return Err(InvalidTransition)
   }
-  if !remote_managed_output_subject_matches_evidence(
-      subject,
-      evidence,
-      record.request,
-    ) ||
-    !remote_managed_output_subject_matches_measurement(subject, measurement) {
-    return Err(DispatchIdentityMismatch)
-  }
-  guard record.evidence is EvidenceDurable(material, holding, saved_evidence) else {
-    return Err(InvalidTransition)
-  }
-  if material != subject.material_generation ||
-    holding != subject.holding_evidence_cid ||
-    saved_evidence != evidence.evidence_cid {
-    return Err(DispatchIdentityMismatch)
+  match
+    verify_remote_completed_observation(record, evidence, subject, measurement) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let custody = create_remote_runtime_custody()
   // NativeSettled plus the exact durable completion proves the original

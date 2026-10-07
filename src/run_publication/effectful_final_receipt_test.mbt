@@ -666,6 +666,35 @@ test "Result-bound Preview survives capture without changing physical custody" {
     4096,
     32,
   ).unwrap()
+  let semantic_result = captured_effect_source_result_from_capture(
+    preview,
+    0,
+    chain.invocation,
+    recovered,
+    captured,
+    ordering_test_cid("d"),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(
+    publication_contract_identity(semantic_result),
+    publication_contract_identity(result),
+  )
+  assert_true(
+    captured_effect_source_result_from_capture(
+      preview,
+      0,
+      chain.invocation,
+      recovered,
+      captured,
+      ordering_test_cid("e"),
+      65536,
+      4096,
+      32,
+    )
+    is Err(_),
+  )
   assert_eq(
     captured_effect_source_artifact_cid(recovered),
     publication_contract_identity(physical),

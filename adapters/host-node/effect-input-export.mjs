@@ -884,10 +884,44 @@ export async function readPinnedEffectTableInput({holding, store, control,
         owner.payload.localResultArtifact, identity) !== true) {
     throw new TypeError('ForeignTableSourceHolding');
   }
+  return readRetainedTableRows({store, holdingCid: holding.holdingCid,
+    physicalCid: owner.payload.physical.cid, physicalBytes: owner.payload.physical.bytes,
+    logicalCid: owner.payload.summary.logicalCid, rowCount: owner.payload.summary.rowCount,
+    maxBytes, signal});
+}
+
+// The recovered typed view must retain this exact source token. Captured
+// computation custody is confirmed by its existing owner before calling here.
+export async function readRecoveredEffectTableInput({store, control, source,
+  artifact, tablePreview, maxBytes, signal, assertAvailable}) {
+  if (control.recoveredTablePreviewMatchesSource(tablePreview, source) !== true ||
+      control.capturedEffectSourceArtifactCid(source) !== artifact.identity ||
+      control.capturedEffectSourceStoreAuthorityCid(source) !== store.storeAuthorityCid ||
+      !Number.isSafeInteger(maxBytes) || maxBytes < 1 ||
+      typeof assertAvailable !== 'function') {
+    throw new TypeError('ForeignRecoveredTableSource');
+  }
+  const holdingCid = control.capturedEffectSourceHoldingCid(source);
+  const holding = await store.inspectPhysicalHolding(holdingCid);
+  if (holding?.namespace !== 'effect-source' || holding.manifest_cid !== artifact.identity ||
+      holding.objects?.length !== 1 || holding.objects[0].byte_count > maxBytes) {
+    throw new TypeError('UnavailableRecoveredTableSource');
+  }
+  assertAvailable();
+  const body = JSON.parse(artifact.wire);
+  return readRetainedTableRows({store, holdingCid,
+    physicalCid: holding.objects[0].cid, physicalBytes: holding.objects[0].byte_count,
+    logicalCid: body.logical_result_cid, rowCount: body.actual_row_count, maxBytes, signal});
+}
+
+// Live and recovered inputs share the same Store read and exact-byte checks;
+// this helper is not another physical read or cleanup owner.
+async function readRetainedTableRows({store, holdingCid, physicalCid, physicalBytes,
+  logicalCid, rowCount, maxBytes, signal}) {
   signal?.throwIfAborted();
   const chunks = [];
   let bytes = 0;
-  const read = await store.consumePhysicalHolding(holding.holdingCid, 0,
+  const read = await store.consumePhysicalHolding(holdingCid, 0,
     chunk => {
       signal?.throwIfAborted();
       bytes += chunk.byteLength;
@@ -899,13 +933,12 @@ export async function readPinnedEffectTableInput({holding, store, control,
   // Relation binding without normalization or defaults for absent columns.
   const logical = createHash('sha256').update('{"sort":"relation","value":')
     .update(body).update('}').digest('hex');
-  if (read.cid !== owner.payload.physical.cid ||
-      read.bytes !== owner.payload.physical.bytes ||
-      `sha256:${logical}` !== owner.payload.summary.logicalCid) {
+  if (read.cid !== physicalCid || read.bytes !== physicalBytes ||
+      `sha256:${logical}` !== logicalCid) {
     throw new TypeError('ForeignTableSourceBytes');
   }
   const rows = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body));
-  if (!Array.isArray(rows) || rows.length !== owner.payload.summary.rowCount) {
+  if (!Array.isArray(rows) || rows.length !== rowCount) {
     throw new TypeError('InvalidTableSourceRows');
   }
   return rows;
