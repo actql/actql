@@ -75,6 +75,45 @@ ActQL's missing-versus-NULL semantics.
 
 ## Binding a captured Relation
 
+### Table-only closed input boundary
+
+An ordinary Named Result continues to require every published column to be
+Required. Its field projection closes both delivery and ordinary Result-backed
+Effect consumption. Table materialization must not weaken that rule or silently
+publish a Conditional column as nullable.
+
+A Table operation instead needs a closed, checked Relation input which can
+retain Conditional columns. Its authored binding and finite selected column set
+must be resolved by the common checker. The complete input schema includes each
+column's value contract, nullability and independent presence guarantee, even
+for empty input. Sample values, `IS NOT NULL`, and a physical mapping cannot
+issue that schema or promote a Conditional column to Required.
+
+The structured declaration is stage-local
+`table_inputs: {name: {from: binding, fields: [column, ...]}}`; a Table `store`
+selects it using `from: {table_input: name}`. Its namespace and checked type are
+separate from ordinary Results, even when names coincide. The closed declaration
+has no order override, publication metadata or authored presence assertion.
+Stage/Program semantics include both the declaration and the private source
+choice. The common declaration-count, work, nodes and text limits include its
+admission and exact source-owned retention; no second accounting owner is added.
+
+This input is private operation material, not another public Named Result. Its
+completed export and capture use the existing Relation, Store, Effect input and
+Table binding owners. The exact source occurrence, closed projection, logical
+schema, content and effective Data Policy must bind the operation and approval;
+an adapter cannot replace them with an equal but foreign export or a fabricated
+Result Artifact. The ordinary Result-derived input remains valid for all-Required
+Tables, but is not a compatibility fallback for the private input.
+
+Omitted cells remain absent, explicit NULL remains present and nullable, and
+actual values retain their checked type. These facts survive capture, durable
+recovery, physical field-ID mapping and a later Table Source read. Unknown commit
+and cleanup custody do not change. A Table-only input capability must not make
+arbitrary row Effects, downstream stage imports or public delivery consumers
+accept sparse Results. Structural Program admission and executable capture must
+both implement this distinction before sparse public materialization is claimed.
+
 Storage mapping issuance consumes the existing completed Relation export
 receipt, not adapter-authored schema JSON or an asserted schema CID. It uses
 the complete checked schema, including conditional columns that no actual row
