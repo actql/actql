@@ -6651,7 +6651,11 @@ The later `868a7fefa0a1d5d627c92c25a607f75818bcaa3e` adds only source-guard
 coverage, with identical runtime inputs; real-Store public Host and exact-source
 guards passed 20/20 there. Public testing required source-local private
 client-wire dependencies; the first borrowed-dependency attempt failed and is
-not counted as successful. #822 remains the accounting-evidence dependency.
+not counted as successful. #822 then merged and was normally adopted from main
+`735ac73c5519753f77de31c26d6233ffc015c088`. The clean integrated SHA
+`71289a8cdb5bd9948499dabcf83a074d69e516ed` passed the same focused public
+Host/source guards 20/20 after rebuilding only their two consuming runtime roots.
+The Local retirement implementation is unchanged; no unmerged parent remains.
 
 Availability callbacks, input cancel/dispose walks, retired-Carrier walks,
 other scratch and Native physical-byte correspondence remain. This is not a

@@ -2,7 +2,8 @@
 
 Implementation: `868a7fefa0a1d5d627c92c25a607f75818bcaa3e`.
 Adopted main: `f39590a3b8f71340e6ddaa4c7e3de6c1bd7f41d5`.
-Accounting evidence #822 remains a parent dependency until it reaches main.
+The unit started from accounting evidence #822. That parent was subsequently
+merged and adopted; the final PR targets main with no unmerged dependency.
 
 ## Existing boundary and change
 
@@ -119,6 +120,25 @@ Host dependency installations now link to this checkout's canonical
 `packages/client-wire`; the shared root dependencies were not modified. The
 second public attempt above passed with those explicit source-local dependencies.
 This remains checkout-boundary evidence, not packed distribution acceptance.
+
+## Final main integration
+
+After #822 merged, main `735ac73c5519753f77de31c26d6233ffc015c088` was
+normally merged without conflicts. Integrated source:
+`71289a8cdb5bd9948499dabcf83a074d69e516ed`. The Local driver/cursor and
+retirement guards are byte-identical to the implementation above. The merge
+also preserves current Graph Frontend and SDK cancellation changes.
+
+The same two-root build command passed (`run-F8b0Wb`), followed by the same
+asset generators/checks. The same focused public/source-guard command passed
+20/20 (`run-I7DtDg`, `focused-test-ddvWGq`) at this clean integrated SHA.
+The Local provider asset is now
+`58e332f4b86c6b5abc9573e5acf586e36ea23eca9f9693d2b54aa4b72c6f2471`;
+the Run Host ABI asset remains
+`226557953b53c84cbf9076f090075d02ecd02199b42dd1307eaf22f90ee85aba`.
+The earlier 31-case JS selection remains evidence at its original SHA; it was
+not relabeled or rerun as an all-Core integration campaign. The later record
+commit changes documentation only and does not replace these source identities.
 
 Installed availability callbacks, cancellation/disposal walks over input
 handles, retired-Carrier walks, other scratch collections and Native physical
