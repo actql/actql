@@ -44,6 +44,21 @@ for (const entrance of ['local', 'https']) {
         assert.doesNotMatch(inspect({error, view}, {showHidden: true, depth: 8}), /InjectedRunObservationLoss|fixture-token/,
           '[check-mutation:run-unavailable-public-disclosure]');
         const sent = [...operations];
+        assert.deepEqual(JSON.parse(sdk.formatRunObservationFailure(error, {format: 'json'})), {
+          domain: 'observation', explanation: expected(operation, run.ref),
+          presentation: {locale: 'en', translationRevision: '2026-10-07.operations.en.7'},
+        }, '[check-mutation:run-format-public]');
+        for (const format of ['text', 'html']) {
+          const output = sdk.formatRunObservationFailure(error, {format});
+          assert.ok(output.includes('observation/unavailable:'));
+          assert.ok(output.includes(run.ref.runDefinitionCid));
+        }
+        const localized = JSON.parse(sdk.formatRunObservationFailure(error, {format: 'json', locale: 'ja'}));
+        assert.deepEqual({kind: localized.explanation.kind, problem: localized.explanation.problem,
+          operation: localized.explanation.operation, next: localized.explanation.next},
+          {kind: 'unavailable', problem: 'observation_unavailable', operation, next: {operation: 'status', ref: run.ref}});
+        assert.equal(sdk.formatRunObservationFailure({...error}), undefined);
+
         error.message = 'Succeeded'; error.kind = 'success'; error.next = {operation: 'submit'};
         assert.deepEqual(sdk.explainRunObservationFailure(error), expected(operation, run.ref));
         assert.equal(sdk.explainRunObservationFailure({...error}), undefined);

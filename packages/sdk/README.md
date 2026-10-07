@@ -1379,3 +1379,11 @@ for that same attempt through `explainDeliveryAttempt(error)` and
 complete; `lookup_uninterpretable` means no response facts were admitted. Neither
 establishes whether the read opened or delivered, permits another opening, or
 changes the Run. Explicit lookup still checks current Host authorization.
+
+`formatRunObservationFailure(error, {format: 'text' | 'html' | 'json', locale, maxBytes})`
+renders only the original SDK error's retained classification and read-only Run
+lookup candidate. Unavailable, unknown-state and malformed/mismatched observations
+remain distinct. It performs no status lookup, resend, cancellation or execution.
+Copies have no formatting custody. The existing operation display byte budget,
+escaping and independent translation revision apply; insufficient budget returns
+`undefined` rather than truncated facts. English is the default.

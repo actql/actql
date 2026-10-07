@@ -2237,3 +2237,7 @@ export function formatDeliveryAttempt(result, options) {
 export function formatEffectUncertainty(result, options) {
   return formatOperationExplanation(explainEffectUncertainty(result), 'effect', options);
 }
+
+export function formatRunObservationFailure(error, options) {
+  return formatOperationExplanation(explainRunObservationFailure(error), 'observation', options);
+}
