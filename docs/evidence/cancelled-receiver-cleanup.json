@@ -1,0 +1,220 @@
+{
+  "version": "actql-cancelled-receiver-cleanup/0.1",
+  "baseSource": "5a6a0d0cf980c9a7994e5a32d6975c69d3125864",
+  "scope": "Cleanup of the original committed receiver when the exact consumer was cancelled before dispatch delivery. No Source/Compute execution, new input binding or terminal transition is issued.",
+  "portableOwnerTests": {
+    "command": "moon test --target js src/run_publication_host/client_retained_receiver_cleanup_wbtest.mbt",
+    "passed": 5,
+    "receipt": "focused-test-kr7V1g",
+    "source": "39b0a5529170303323fbd49b663ccc1e0d0be409"
+  },
+  "existingCleanupOwnerTests": {
+    "command": "moon test --target js src/run_publication_host/client_retained_input_cleanup_wbtest.mbt",
+    "passed": 12,
+    "receipt": "focused-test-mmlEjZ",
+    "source": "39b0a5529170303323fbd49b663ccc1e0d0be409"
+  },
+  "nativeInitialPhysicalTests": {
+    "passed": 3,
+    "receipt": "native-preconsumer-cleanup-5XRLkP",
+    "scope": "Earlier implementation before the recorded-graph wrapper and maintenance command. Not evidence for execution of the final implementation."
+  },
+  "nativeRecordedPhysicalTests": {
+    "command": "moon test --target native --strip src/platform_native/remote_resident_host/cancelled_receiver_cleanup_native_wbtest.mbt --build-only",
+    "preparationLimitSeconds": 180,
+    "failure": "ETIMEDOUT",
+    "receipt": "native-preconsumer-cleanup-Z0hPhs",
+    "testExecutionStarted": false,
+    "oldExecutableNotReused": true
+  },
+  "nativeCallerCompilation": {
+    "command": "moon check --target native src/cmd/native_remote_resident_site",
+    "passed": true,
+    "receipt": "preconsumer-cleanup-callers-7nahSe",
+    "source": "d91a3718b00a048bc640ad5a479eefe5c2cd1c95"
+  },
+  "publicInterfaces": {
+    "command": "moon info --target native src/run_publication_host src/platform_native/remote_resident_host src/cmd/native_remote_resident_site",
+    "generated": true,
+    "receipt": "preconsumer-cleanup-callers-7nahSe",
+    "source": "d91a3718b00a048bc640ad5a479eefe5c2cd1c95"
+  },
+  "normalNativeExecutablePreparation": {
+    "source": "016f79fa7bdbaa5e8402616ff79bc5ae596e7e0a",
+    "sourceClean": true,
+    "command": "moon build --target native --strip src/cmd/native_remote_resident_site",
+    "preparationLimitSeconds": 180,
+    "failure": "ETIMEDOUT",
+    "receipt": "preconsumer-cleanup-runtime-1dhh1y",
+    "acceptanceExecuted": false
+  },
+  "originalRun": {
+    "definitionCid": "sha256:dd7ce10f045dc03dfb9132360a165bf46d5ea97f71031e3280e31ff18b77bcc6",
+    "receiverAllocationsBeforeFix": 3,
+    "stateBeforeFix": "sealed",
+    "recoveryExecutedWithThisChange": false,
+    "formalCloudCancellationVerified": false,
+    "originalCustodyPreserved": true,
+    "initialStatusHttp500Cause": "Unresolved: the captured Worker event collection is empty. Later exact replay HTTP 200 is not cause resolution."
+  },
+  "notVerified": [
+    "Maintenance command execution with the original Run",
+    "Formal adoption from reviewed merged main into all five Cloud packages and Native",
+    "Cloud durable acceptance of the original Run's final cleanup observation",
+    "Public normal/fault acceptance at the final adopted combination",
+    "Actual Preview acceptance"
+  ],
+  "integratedMainSource": "ae1f273bc1174e50598d86ab932daa0bc28c5f4d",
+  "recoveredObservationDependency": {
+    "pr": 841,
+    "mergedMainSource": "4bbad4841574c1b220f70c951bb5fb78ba1f0722",
+    "included": true,
+    "cloudAdoptionExecuted": false
+  },
+  "nativeRecordedReleasePreparation": {
+    "source": "39b0a5529170303323fbd49b663ccc1e0d0be409",
+    "command": "moon test --target native --strip --release src/platform_native/remote_resident_host/cancelled_receiver_cleanup_native_wbtest.mbt --build-only",
+    "preparationLimitSeconds": 180,
+    "failure": "ETIMEDOUT",
+    "receipt": "native-preconsumer-cleanup-release-cNpHoS",
+    "testExecutionStarted": false
+  },
+  "normalNativeReleasePreparation": {
+    "source": "39b0a5529170303323fbd49b663ccc1e0d0be409",
+    "sourceClean": true,
+    "command": "moon build --target native --strip --release src/cmd/native_remote_resident_site",
+    "preparationLimitSeconds": 180,
+    "failure": "ETIMEDOUT",
+    "receipt": "preconsumer-cleanup-runtime-release-MRP6Nj",
+    "acceptanceExecuted": false
+  },
+  "originalRecoveryInputVerification": {
+    "source": "fd49db74e8c82c04a1151336e6c0aaabb67b66fd",
+    "runRevision": 12,
+    "coordinatorCustody": {
+      "originalRunBytesSha256": "8efbe6ec50903a85318ba52b4fa9590f6633afea588cd5e9f22454d664f5f7d5",
+      "originalConsumerRequestMatchesSiteCancellation": true,
+      "originalRunClaimsMatchTransfer": true,
+      "producerPhysicalRevision": 7,
+      "consumerPhysicalRevision": 3,
+      "liveAuthorizationChecked": false
+    },
+    "newRunSubmitted": false,
+    "sourceReacquired": false,
+    "recoveryExecuted": false,
+    "files": {
+      "bound-template.json": {
+        "bytes": 812,
+        "sha256": "5f35add8f9b883dc492e872a7e1d9d72519526f4852f8dc67eaebdbae34e343c"
+      },
+      "compiled-plan.json": {
+        "bytes": 686,
+        "sha256": "f7ce17f783f5d8980c08fc5f0e158fbe39afae394c6e27c7104e51ffc3b709ef"
+      },
+      "prepared-invocation.json": {
+        "bytes": 593,
+        "sha256": "9813100472967a78757b928d9c2be72baaba41793dbeb439c07a69f95a0d8a89"
+      },
+      "run-authorization.json": {
+        "bytes": 450,
+        "sha256": "fc704793b7bbd6917a1b345082ca7148a4d44cf0096165b27bc5534e398732f4"
+      },
+      "run-definition.json": {
+        "bytes": 699,
+        "sha256": "bfbbc3f7027dd32768aa8c59406daede73e3e086425fade5925a974eaf2f3f25"
+      },
+      "result-definition.json": {
+        "bytes": 261,
+        "sha256": "3c66997b1da0dd338b5d9b1a4ea94e6ea1cbe0497975c8dbd523608498176cf3"
+      },
+      "consumer-request.json": {
+        "bytes": 1048,
+        "sha256": "10fbd5c0478822339d83f77242c6c3c6f5de5b2d9e02e91f51be2c2c4bf83e4d"
+      },
+      "retained-transfer.json": {
+        "bytes": 7848,
+        "sha256": "f2008d00dbc71faa876e52ceb9141fd2032aa112aa297f7422fa8aad43013291"
+      }
+    },
+    "receipt": "original-cancel-input-export-LV3pbi",
+    "scope": "Read-only saved Coordinator/Site custody admission. No live authorization or physical recovery is established."
+  },
+  "postIntegrationPortableTests": {
+    "source": "d91a3718b00a048bc640ad5a479eefe5c2cd1c95",
+    "command": "moon test --target js src/run_publication_host/client_retained_receiver_cleanup_wbtest.mbt",
+    "limitSeconds": 60,
+    "failure": "ETIMEDOUT",
+    "receipt": "focused-test-v1Kdo7",
+    "testSummaryAvailable": false,
+    "passed": null,
+    "existingCleanupCallerTestsExecuted": false,
+    "scope": "Compilation/execution could not be separated from this missing summary. Earlier 17/17 is not evidence for this merged source."
+  },
+  "integratedGeneratedJsDiagnostic": {
+    "source": "72aaa1ab43d5d3bf437fd542176dafb54a43546f",
+    "scope": "Direct execution of the unchanged pinned MoonBit-generated JS driver. Distinct from a successful bounded moon test preparation and from Native execution.",
+    "selection": [
+      {
+        "file": "client_retained_receiver_cleanup_wbtest.mbt",
+        "passed": 5
+      },
+      {
+        "file": "client_retained_input_cleanup_wbtest.mbt",
+        "passed": 12
+      }
+    ],
+    "passed": 17,
+    "receipt": "receiver-generated-js-GoKrfM",
+    "command": "node _build/js/debug/test/run_publication_host/run_publication_host.whitebox_test.js <exact file_and_index selection for the two recorded files>",
+    "limitSeconds": 60,
+    "elapsedMs": 40306,
+    "artifactSha256": "4c148a562215cd3c86dc863aef8e91494bb6f810c551016902622b6c286cdae3",
+    "sourceMapSha256": "460f8463fa7ce28fe1f7df7e1f27805d8f3f643db4867282883b0f1d5612e28f",
+    "embeddedSourcesVerified": 782,
+    "generatedDriverEmbedded": false,
+    "generatedDriverSha256": "9258eaa4c2b51fc47a8ac5206596437f2d4748e0bc000027a0aaae4e1e770763",
+    "preparationCompletedWithinBound": false,
+    "originalPreparationFailurePreserved": true,
+    "artifactEdited": false,
+    "nativeCoverageClaimed": false
+  },
+  "currentPortableOwnerTests": {
+    "source": "877b51bd468e47acddc8fd6e31e6ba8c06c39b72",
+    "command": "moon test --target js src/run_publication_host/client_retained_receiver_cleanup_wbtest.mbt",
+    "passed": 6,
+    "receipt": "focused-test-pXKgy6",
+    "scope": "Includes admission from original recorded graph/materials through the new recorded receiver API."
+  },
+  "currentExistingCleanupOwnerTests": {
+    "source": "877b51bd468e47acddc8fd6e31e6ba8c06c39b72",
+    "command": "moon test --target js src/run_publication_host/client_retained_input_cleanup_wbtest.mbt",
+    "passed": 12,
+    "receipt": "focused-test-7IcsDx"
+  },
+  "currentNativePhysicalTests": {
+    "source": "877b51bd468e47acddc8fd6e31e6ba8c06c39b72",
+    "command": "moon test --target native --strip --jobs 1 src/platform_native/remote_resident_host/cancelled_receiver_cleanup_native_wbtest.mbt",
+    "passed": 4,
+    "preparationLimitSeconds": 180,
+    "executionLimitSeconds": 60,
+    "preparationElapsedMs": 81058,
+    "executionElapsedMs": 2989,
+    "receipt": "native-preconsumer-cleanup-serial-be848U",
+    "scope": "Actual SQLite journal and filesystem receiver cleanup. Protocol fixture completion is not a public Native Source/Compute execution or OS-stop proof."
+  },
+  "currentNativeCommandArtifact": {
+    "version": "actql-native-build-candidate/0.1",
+    "source": "877b51bd468e47acddc8fd6e31e6ba8c06c39b72",
+    "sourceClean": true,
+    "probeOverlay": false,
+    "profile": "native-debug-strip",
+    "buildCommand": "moon build --target native --strip --jobs 1 src/cmd/native_remote_resident_site",
+    "receipt": "preconsumer-cleanup-runtime-serial-rZSiiP",
+    "sha256": "5137bcd03a9f17d301d60c112f154df3ffd3b6b103cbe98d4bc4c5a2430eb3ed",
+    "bytes": 21073104,
+    "formalAdoption": false,
+    "originalRunRecoveryExecuted": false,
+    "preparationLimitSeconds": 180,
+    "preparationElapsedMs": 53628
+  }
+}
