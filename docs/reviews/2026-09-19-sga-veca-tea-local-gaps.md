@@ -6399,3 +6399,24 @@ After #731 merged, main `6a083adc55fdf91a3c3f105393ce4eb870b285d7` was
 integrated, including the reviewed observer/census alignment. No unmerged
 parent remains. Its source alignment is not a Native campaign result. See the
 [public ordered binding record](2026-10-07-local-retained-ordered-bindings.md).
+
+### Resumable retained output-port preparation (2026-10-07)
+
+The bounded Relation owner now prepares its trusted completion port inside
+resume, before reading rows. Exact receiving bindings remain admitted by the
+existing owner. Target identity and canonical output names are validated one
+Unicode scalar/code unit at a time with unchanged entry/name limits. Pending
+preparation observes stop, retains borrowed inputs and clears its own names
+once; successful transfer preserves the completed output's name array.
+
+Independent 278/277 ASCII and 282-byte Unicode admission, quanta 1/7/256,
+phase-specific stops and incomplete-port rejection supplement the unchanged
+logical work/workspace boundaries. This dependent unit follows #744 and
+normally merges main `0f3ce2083bbdfca6a5f7de6eb34f8dfb8157d88b`. After
+#744 reached main, its final integration at
+`98718f21f6e8c0993189ccde098ed66fa455e54c` was normally merged too; no
+unmerged parent remains.
+The new fixed cursor/state shape is recorded, not certified as Native byte
+correspondence. General producer preparation, other kernel metadata and
+installed availability callbacks remain separate. See the
+[output-port record](2026-10-07-local-output-port-preparation.md).

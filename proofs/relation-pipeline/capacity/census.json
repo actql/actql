@@ -99,6 +99,7 @@
         "live",
         "accepted",
         "port",
+        "port_preparation",
         "phase",
         "charge_row",
         "charge_column",
@@ -142,7 +143,26 @@
         "metadata_generated_field": "Int",
         "metadata_generated_seen": "Int",
         "bindings": "@lower.PreparedBindings?",
-        "unique_keys": "@lower.PreparedUniqueKeys?"
+        "unique_keys": "@lower.PreparedUniqueKeys?",
+        "port": "TrustedOutputPort[Unit]?",
+        "port_preparation": "TrustedOutputPreparation?"
+      }
+    },
+    {
+      "path": "src/execution_relation/trusted_output.mbt",
+      "struct": "TrustedOutputPreparation",
+      "fields": [
+        "generated", "target", "schema", "id", "input_bindings", "names", "max_entries",
+        "bytes", "phase", "column", "offset", "closed"
+      ],
+      "fieldTypes": {
+        "names": "Array[String]",
+        "input_bindings": "Array[ProducerBindingIdentity]",
+        "bytes": "Int",
+        "phase": "Int",
+        "column": "Int",
+        "offset": "Int",
+        "closed": "Bool"
       }
     },
     {
@@ -237,6 +257,7 @@
     }
   ],
   "metadataCursorScope": "The numeric/NULL short-name DISTINCT pilot has empty row_sources, false stepped_metadata and no metadata_projection, metadata_lookup or name_charge. The observer rejects nonempty/active values as unmodeled; these records do not extend the pilot's byte bound.",
+  "completionPreparationScope": "Output-port preparation retains one fixed cursor record and the existing port's admitted name-reference array, bounded by output schema width and the unchanged byte limit. Preparation transfers that same array to the port, never copies it or retains both owners. The checkpoint reports pending/finished name counts. This changes allocation timing and the state shape; record bytes and port-name backing remain outside the established DISTINCT filled-entry quantities and require the existing physical-byte correspondence review, not a new byte guarantee.",
   "derivedFilledEntryBounds": {
     "metadata": "4*w: input/output names, input ordinals, projection ordinals",
     "index": "2*n: two merge index arrays; result transfer shares one backing",
