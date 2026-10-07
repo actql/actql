@@ -5,6 +5,7 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
   void *seen[128]; int seen_count = 0;
   void *queue[128]; int queued = 0, cursor = 0;
   void *records[11];
+  void *scalar_objects[44]; intptr_t scalar_deltas[44];
   assert(Moonbit_object_kind(candidates) == moonbit_BLOCK_KIND_REGULAR);
   const uint32_t *a = layout(candidates);
   assert(a[0] == 4 && a[1] == 1 && a[2] == 0);
@@ -48,6 +49,12 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
     struct moonbit_object *header = Moonbit_object_header(object);
     uint32_t cls = header->meta >> MOONBIT_REGULAR_LAYOUT_CLASS_SHIFT;
     if (cls == MOONBIT_REGULAR_LAYOUT_CLASS_SCALAR) {
+      /* This is code identity, not a descriptor-derived payload size. The
+       * independent generated-code consumer establishes allocation requests. */
+      uintptr_t code; memcpy(&code, object, sizeof code);
+      assert(scalar < 44);
+      scalar_objects[scalar] = object;
+      scalar_deltas[scalar] = (intptr_t)code - (intptr_t)&actql_proof_provider_construction;
       scalar++; continue;
     }
     const uint32_t *s = layout(object);
@@ -70,12 +77,14 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
       if (capture) { assert(queued < 128); queue[queued++] = capture; }
     }
   }
-  char json[512];
-  int n = snprintf(json, sizeof json,
-    "ACTQL_PIPELINE_FAULT:{\"kind\":\"provider construction observation\",\"providers\":11,\"records\":11,\"arraySlots\":11,\"callbacks\":%d,\"defaultArrays\":%d,\"indexedBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"scalarDynamicCallbacks\":%d}",
+  struct current_json json = {.used = 0};
+  current_add(&json,
+    "ACTQL_PIPELINE_FAULT:{\"kind\":\"provider construction observation\",\"providers\":11,\"records\":11,\"arraySlots\":11,\"callbacks\":%d,\"defaultArrays\":%d,\"indexedBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"scalarDynamicCallbacks\":%d,\"scalarCodes\":[",
     callbacks, arrays, bytes, unclassified, scalar);
-  assert(n > 0 && (size_t)n < sizeof json);
-  moonbit_string_t result = moonbit_make_string_raw(n);
-  for (int i = 0; i < n; i++) result[i] = (uint16_t)(unsigned char)json[i];
-  return result;
+  for (int i = 0; i < scalar; i++) {
+    current_add(&json, "%s{\"identity\":\"%" PRIxPTR "\",\"codeDelta\":\"%" PRIdPTR "\"}",
+      i ? "," : "", (uintptr_t)scalar_objects[i], scalar_deltas[i]);
+  }
+  current_add(&json, "]}");
+  return current_string(&json);
 }

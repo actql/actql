@@ -4,7 +4,7 @@
 /// A single advance either starts one slot or performs one expression
 /// transition; it never drains a second transition implicitly.
 priv struct OrderedBindingsExecution {
-  bindings : Array[(String, @lower.Expression)]
+  bindings : BindingExpressions
   snapshot : ExpressionInput
   control : ControlBudget
   workspace : RowWorkspace
@@ -16,6 +16,32 @@ priv struct OrderedBindingsExecution {
   mut values : Array[Value]
   mut roots : Array[ExpressionRootLease]
   mut finished : Bool
+}
+
+///|
+priv enum BindingExpressions {
+  ArrayBindings(Array[(String, @lower.Expression)])
+  BorrowedBindings(@lower.PreparedBindings)
+}
+
+///|
+fn binding_expression_count(bindings : BindingExpressions) -> Int {
+  match bindings {
+    ArrayBindings(values) => values.length()
+    BorrowedBindings(view) => @lower.bindings_count(view)
+  }
+}
+
+///|
+fn binding_expression_at(
+  bindings : BindingExpressions,
+  index : Int,
+) -> @lower.Expression? {
+  match bindings {
+    ArrayBindings(values) => values.get(index).map(value => value.1)
+    BorrowedBindings(view) =>
+      @lower.binding_at(view, index).map(value => value.1)
+  }
 }
 
 ///|
@@ -46,8 +72,49 @@ fn start_bindings_execution(
 }
 
 ///|
+fn start_prepared_bindings_with_input(
+  bindings : @lower.PreparedBindings,
+  snapshot : ExpressionInput,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  scope : ExpressionRoots,
+  row : Int,
+) -> OrderedBindingsExecution {
+  start_binding_expressions_with_input(
+    BorrowedBindings(bindings),
+    snapshot,
+    control,
+    workspace,
+    scope,
+    row,
+    @lower.bindings_ordered(bindings),
+  )
+}
+
+///|
 fn start_bindings_with_input(
   bindings : Array[(String, @lower.Expression)],
+  snapshot : ExpressionInput,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  scope : ExpressionRoots,
+  row : Int,
+  ordered : Bool,
+) -> OrderedBindingsExecution {
+  start_binding_expressions_with_input(
+    ArrayBindings(bindings),
+    snapshot,
+    control,
+    workspace,
+    scope,
+    row,
+    ordered,
+  )
+}
+
+///|
+fn start_binding_expressions_with_input(
+  bindings : BindingExpressions,
   snapshot : ExpressionInput,
   control : ControlBudget,
   workspace : RowWorkspace,
@@ -145,7 +212,7 @@ fn advance_ordered_bindings_execution(
       }
     }
   }
-  if execution.slot == execution.bindings.length() {
+  if execution.slot == binding_expression_count(execution.bindings) {
     execution.finished = true
     return Ok(OrderedBindingsComplete(execution.values, execution.roots))
   }
@@ -160,7 +227,12 @@ fn advance_ordered_bindings_execution(
     cancel_ordered_bindings_execution(execution)
     return Err(RowLimit)
   }
-  let expression = execution.bindings[execution.slot].1
+  guard binding_expression_at(execution.bindings, execution.slot)
+    is Some(expression) else {
+    release_slots(execution.workspace, 2)
+    cancel_ordered_bindings_execution(execution)
+    return Err(InvalidRows)
+  }
   execution.active = match
     expression_frame_with_input(
       expression,
