@@ -152,8 +152,18 @@ test "ordinary window group chain admits exact work and one-short limits" {
   // four-step NULL/number comparisons. Ranges use the same equal comparison
   // and one unequal comparison. Neither adds work for yielding itself.
   let group = 15 + 92 + 57 + 21 + 17 + 10 + 1
-  let exact = values + window + group + 2 // Two completed child handoffs.
-  assert_eq((values, window, group, exact), (30, 64, 213, 309))
+  let preparation = expected_ascii_completion_port_work("values_0", ["at", "k"]) +
+    expected_ascii_completion_port_work("window_1", [
+      "at", "k", "window_end", "window_start",
+    ]) +
+    expected_ascii_completion_port_work("window_group_2", [
+      "k", "n", "window_end", "window_start",
+    ])
+  let exact = values + window + group + preparation + 2
+  assert_eq(
+    (values, window, group, preparation, exact),
+    (30, 64, 213, 164, 473),
+  )
   for quantum in [1, 7, 256] {
     assert_eq(
       run_window_group_chain_budget(exact, 10000, quantum~),
@@ -174,7 +184,8 @@ test "ordinary window group chain admits exact workspace and one-short limit" {
 
 ///|
 test "ordinary window group chain cancels after bounded work and cleans up" {
-  // Stop inside the window group, after the values and window steps.
+  // Values and Window pay 30+33 and 64+57, with two one-step handoffs.
+  // After 200 advances, the Group child is running its preparation cursor.
   assert_eq(
     run_window_group_chain_budget(100000, 10000, cancel_after=Some(200)).0,
     "cancelled",
