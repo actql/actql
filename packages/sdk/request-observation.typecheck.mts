@@ -29,6 +29,24 @@ if (submission?.observation === 'request_held') {
   const preparation: string = submission.prepareAttemptId;
   void preparation;
 }
+if (submission?.observation === 'not_accepted' || submission?.observation === 'preparation_failed') {
+  const classification: 'invalid_input' | 'requirements' | 'implementation_limit' |
+    'authorization' | 'operation_failed' = submission.problem.classification;
+  const operation: 'lookupSubmission' = submission.next.operation;
+  const nonce: string = submission.next.submissionRef.nonce;
+  void [classification, operation, nonce];
+  // @ts-expect-error Retained terminal facts cannot be rewritten by presentation.
+  submission.problem.classification = 'operation_failed';
+  // @ts-expect-error A preparation outcome supplies no Run reference.
+  const run: string = submission.next.ref.runDefinitionCid;
+}
+if (submission?.observation === 'history_unresolvable' || submission?.observation === 'not_sent' ||
+    submission?.observation === 'lookup_unavailable' || submission?.observation === 'lookup_uninterpretable') {
+  const operation: 'lookupSubmission' = submission.next.operation;
+  void operation;
+  // @ts-expect-error These observations establish no Owner rejection problem.
+  const problem: string = submission.problem.classification;
+}
 const text: string | undefined = formatRequestLookup(lookup, {format: 'json'});
 void text;
 
@@ -42,8 +60,15 @@ if (cancellation) {
   cancellation.requestId = 'another';
   if (cancellation.observation === 'outcome_unknown') {
     const problem: 'exchange_failed' | 'response_uninterpretable' = cancellation.problem;
-    const operation: 'lookupRequest' = cancellation.next.operation;
+    const operation: 'lookupRequest' | 'lookupSubmission' = cancellation.next.operation;
     void [problem, operation];
+    if (cancellation.next.operation === 'lookupSubmission') {
+      const nonce: string = cancellation.next.submissionRef.nonce;
+      void nonce;
+    } else {
+      const requestId: string = cancellation.next.requestId;
+      void requestId;
+    }
     // @ts-expect-error A failed observation has no Run revision.
     const revision: number = cancellation.revision;
   }

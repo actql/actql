@@ -10,7 +10,8 @@ import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
-import {connect as connectRemote, getSubmissionInput, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
+import {connect as connectRemote, getSubmissionInput, getSubmissionOutcome,
+  explainSubmission, formatSubmission} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
 
@@ -88,6 +89,8 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
     if (loseSubmissionReply) {
       await assert.rejects(client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef}), error => {
         assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
+        assert.equal(explainSubmission(error).observation, 'acceptance_unknown');
+        assert.deepEqual(explainSubmission(error).next.submissionRef, submissionRef);
         return error.code === 'SubmissionUnknown';
       });
       const original = await client.lookupSubmission(submissionRef);
@@ -107,6 +110,9 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
     const first = await client.lookupSubmission(submissionRef);
     assert.equal(first.kind, 'ready');
     assert.deepEqual(first.admission.ref, run.ref);
+    assert.deepEqual(explainSubmission(first), {observation: 'run_reference_received',
+      summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+      next: {operation: 'status', ref: run.ref}});
     assert.equal(f.computes, 1);
     await f.close(); await f.open(); client = f.client;
     assert.notDeepEqual(client.newSubmission({nonce: submissionRef.nonce}), submissionRef);
@@ -135,18 +141,69 @@ for (const entrance of ['local', 'https']) {
       assert.deepEqual(outcome.submissionRef, original.submissionRef);
       assert.equal(outcome.problem.code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
       assert.equal(Object.hasOwn(outcome, 'admission'), false);
+      const expected = {observation: 'preparation_failed',
+        summary: 'The Host accepted this submission, then preparation failed. No Run reference was returned; this is not a rejection before acceptance.',
+        hint: 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.',
+        problem: {code: 'ACTQL_E_DELEGATION_UNAVAILABLE', classification: 'operation_failed'},
+        next: {operation: 'lookupSubmission', submissionRef: original.submissionRef,
+          lookupContext: original.lookupContext}};
+      assert.deepEqual(explainSubmission(error), expected, '[check-mutation:submission-public-phase]');
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, expected);
       return true;
     });
     assert.equal(f.computes, 0);
     assert.deepEqual((await f.client.checkpoints()).items, []);
-    assert.deepEqual(await f.client.lookupSubmission(original.submissionRef), outcome);
+    const found = await f.client.lookupSubmission(original.submissionRef);
+    assert.deepEqual(found, outcome);
+    assert.equal(explainSubmission(found).observation, 'preparation_failed');
     await f.close(); await f.open();
-    assert.deepEqual(await f.client.lookupSubmission(original.submissionRef), outcome);
+    const recovered = await f.client.lookupSubmission(original.submissionRef);
+    assert.deepEqual(recovered, outcome);
+    assert.equal(explainSubmission(recovered).observation, 'preparation_failed');
+    assert.deepEqual(explainSubmission(recovered).next.submissionRef, original.submissionRef);
     assert.deepEqual((await f.client.checkpoints()).items, []);
     await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql',
       submissionRef: original.submissionRef}), error => {
       assert.deepEqual(getSubmissionOutcome(error), outcome);
       return error.code === 'SubmissionPreparationFailed';
+    });
+    assert.equal(f.computes, 0);
+  });
+}
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: durable input rejection explains nonacceptance and survives original lookup`, async t => {
+    const f = await installedFixture(t, entrance);
+    const pending = f.client.startSource('SELECT missing AS n', {format: 'sql'});
+    const original = getSubmissionInput(pending);
+    let outcome;
+    await assert.rejects(pending, error => {
+      assert.equal(error.code, 'SubmissionNotAccepted');
+      outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+      const expected = {observation: 'not_accepted',
+        summary: 'The Host durably rejected this submission before acceptance. Its identity is consumed; no Run reference was returned.',
+        hint: 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.',
+        problem: {code: 'ClientProgramInvalidInput', classification: 'invalid_input'},
+        next: {operation: 'lookupSubmission', submissionRef: original.submissionRef,
+          lookupContext: original.lookupContext}};
+      assert.deepEqual(explainSubmission(error), expected, '[check-mutation:submission-public-phase]');
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, expected);
+      assert.equal(explainSubmission({...error}), undefined);
+      return true;
+    });
+    assert.equal(f.computes, 0);
+    await f.close(); await f.open();
+    const found = await f.client.lookupSubmission(original.submissionRef);
+    assert.deepEqual(found, outcome);
+    assert.equal(explainSubmission(found).observation, 'not_accepted');
+    assert.deepEqual(explainSubmission(found).next.submissionRef, original.submissionRef);
+    await assert.rejects(f.client.startSource('SELECT missing AS n', {format: 'sql',
+      submissionRef: original.submissionRef}), error => {
+      assert.deepEqual(getSubmissionOutcome(error), outcome);
+      assert.equal(explainSubmission(error).observation, 'not_accepted');
+      return error.code === 'SubmissionNotAccepted';
     });
     assert.equal(f.computes, 0);
   });
@@ -184,7 +241,14 @@ for (const entrance of ['local', 'https']) {
     assert.equal(f.computes, 1);
     clock = saved.epoch.expiresAt;
     await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef: unaccepted}));
-    assert.equal((await f.client.lookupSubmission(unaccepted)).kind, 'unresolvable');
+    const unresolved = await f.client.lookupSubmission(unaccepted);
+    assert.equal(unresolved.kind, 'unresolvable');
+    assert.deepEqual(explainSubmission(unresolved), {observation: 'history_unresolvable',
+      summary: 'The Host cannot establish the original submission outcome. Work may already have started.',
+      hint: 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.',
+      next: {operation: 'lookupSubmission', submissionRef: unaccepted,
+        lookupContext: {endpoint: f.endpoint ?? 'actql:embedded', scopeRef: f.client.profile.scopeRef}}},
+    '[check-mutation:submission-public-history]');
     assert.deepEqual(await f.client.lookupSubmission(saved), original);
     assert.equal(f.computes, 1);
     await f.close();
