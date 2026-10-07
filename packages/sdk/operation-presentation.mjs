@@ -45,7 +45,7 @@ const readHint = 'この読み取り参照を保持してください。先頭�
 
 export function getOperationPresentationInfo(options) {
   const {locale} = getCheckPresentationInfo(options);
-  return Object.freeze({locale, translationRevision: `2026-10-08.operations.${locale}.9`});
+  return Object.freeze({locale, translationRevision: `2026-10-08.operations.${locale}.10`});
 }
 
 export function localizeOperation(explanation, domain, options) {

@@ -158,7 +158,7 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
   }> | Readonly<{
     observation: 'not_accepted' | 'preparation_failed';
     problem: Extract<SubmissionOutcome, {kind: 'not_accepted'}>['problem'];
-    preparationIssue?: Readonly<{kind: 'analysis_budget_exhausted'; summary: string; hint: string}>;
+    preparationIssue?: Readonly<{kind: 'analysis_budget_exhausted' | 'implementation_limit'; summary: string; hint: string}>;
     hint: string;
     next: RequestObservationTarget & Readonly<{operation: 'lookupSubmission'}>;
   }> | Readonly<{

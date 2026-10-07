@@ -15,7 +15,7 @@ const issueCodes = Object.freeze({
   needs_inputs: 'ClientProgramNeedsInputs',
   check_invalid_input: 'ClientProgramInvalidInput',
   check_invalid_configuration: 'ClientProgramPreparationFailure',
-  check_unsupported: 'ClientProgramUnsupported',
+  check_unsupported: 'ClientProgramImplementationLimit',
   check_compile_limit: 'ClientProgramAnalysisLimit',
   check_missing_input: 'ClientProgramNeedsInputs',
   check_unclassified: 'ClientProgramPreparationFailure',
@@ -27,7 +27,7 @@ const issueCodes = Object.freeze({
   source_invalid_input: 'ClientProgramInvalidInput',
   source_rejected: 'ClientProgramRejected',
   source_unresolved: 'ClientProgramRejected',
-  source_unsupported: 'ClientProgramUnsupported',
+  source_unsupported: 'ClientProgramRejected',
   source_missing_input: 'ClientProgramNeedsInputs',
   source_declarations: 'ClientParametersInvalid',
   source_limit: 'ClientProgramRejected',
@@ -148,13 +148,15 @@ export function installNodeClientProgramPreparation({moon, environment,
     }
     // Raw Source compilation budgets may depend on protected publication.
     // Only the audience-filtered check below may expose that budget.
-    const code = sourceFormat && category === 'check_compile_limit'
+    const sourceCheck = sourceFormat && ['source_invalid_input', 'source_unresolved',
+      'source_unsupported', 'check_invalid_input', 'check_unsupported', 'check_compile_limit'].includes(category);
+    const code = sourceCheck && ['check_compile_limit', 'check_unsupported'].includes(category)
       ? 'ClientProgramRejected' : issueCodes[category];
     if (issue === undefined || code === undefined) {
       fail('ClientProgramPreparationFailure');
     }
     const error = Object.assign(new Error(code, {cause: issue}), {code});
-    if (sourceFormat && ['source_invalid_input', 'source_unresolved'].includes(category)) {
+    if (sourceCheck) {
       sourceCheckFailures.add(error);
     }
     throw error;
@@ -164,7 +166,7 @@ export function installNodeClientProgramPreparation({moon, environment,
   const disclosed = check === undefined ? prepare : async request => {
     try { return prepare(request); }
     catch (error) {
-      if (error?.code !== 'ClientProgramRejected' || request.kind !== 'aql' ||
+      if ((error?.code !== 'ClientProgramRejected' && !sourceCheckFailures.has(error)) || request.kind !== 'aql' ||
           !['aql-text', 'sql'].includes(request.input.format)) throw error;
       // Preparation already refused. The same public check Owner may disclose
       // an independent input violation; it cannot admit or execute this input.
@@ -173,7 +175,7 @@ export function installNodeClientProgramPreparation({moon, environment,
       try { outcome = await check(request); }
       catch (cause) {
         if (request.signal?.aborted) throw cause;
-        throw error;
+        fail('ClientProgramRejected', error);
       }
       if (validCheckOutcome(outcome)) {
         const report = outcome.report ?? outcome.partial_report;
@@ -184,8 +186,12 @@ export function installNodeClientProgramPreparation({moon, environment,
             report.coverage.limits.some(limit => limit.code === 'analysis_budget_exhausted')) {
           fail('ClientProgramAnalysisLimit', error);
         }
+        if (report?.scope.kind === 'bound_input' &&
+            report.coverage.limits.some(limit => limit.code === 'implementation_limit')) {
+          fail('ClientProgramImplementationLimit', error);
+        }
       }
-      throw error;
+      fail('ClientProgramRejected', error);
     }
   };
   return Object.freeze(Object.assign(disclosed, {

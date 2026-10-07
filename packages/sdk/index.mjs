@@ -423,6 +423,12 @@ const retainSubmissionExplanation = (result, outcome, context) => {
       summary: 'Preparation reached an analysis budget before all checking obligations were discharged. This does not establish invalid input.',
       hint: 'Inspect a check report for remaining obligations. Keep the original submission reference; any changed input requires a separate submission identity.'};
   }
+  if (explanation.problem?.code === 'ClientProgramImplementationLimit' &&
+      explanation.problem.classification === 'implementation_limit') {
+    explanation.preparationIssue = {kind: 'implementation_limit',
+      summary: 'Checking encountered an unresolved implementation path during preparation. This does not establish invalid input.',
+      hint: 'Inspect the check report for unresolved support conditions. Keep the original submission reference; any changed input requires a separate submission identity.'};
+  }
   submissionExplanations.set(result, freezeInput(explanation));
   return result;
 };
