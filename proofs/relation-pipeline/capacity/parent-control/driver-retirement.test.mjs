@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {checkDriverRetirementSource, driverPath, strategyPath} from './driver-retirement-source.mjs';
+import {checkDriverRetirementSource, driverPath, strategyPath,blockAfter} from './driver-retirement-source.mjs';
 import {retirementOverlay} from './driver-retirement-overlay.mjs';
 import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
 import {snapshot,hash} from '../../inventory.mjs';
-import {omitUnselectedTests} from './driver-retirement-compilation.mjs';
+import {omitUnselectedTests,helperCompilation,helperImports} from './driver-retirement-compilation.mjs';
 const root = fileURLToPath(new URL('../../../../',import.meta.url));
 const read = p => readFileSync(root+p);
 const changed = (path, from, to) => {
@@ -27,8 +27,27 @@ test('current driver/common owner source and additive Native overlay are admitte
   // Cleanup observers reuse the existing provider Ref and add no setup capture.
   assert(!overlay[driverPath].match(/driver_retirement_probe\(provider_execution, setup.task, [234]\)/));
   const host = 'src/query_integration/graph_host_custody_wbtest.mbt';
-  assert.equal((overlay[host].match(/assert_(?:true|eq)\(/g)??[]).length,
-    (read(host).toString().match(/assert_(?:true|eq)\(/g)??[]).length);
+  for(const name of ['run_current_host_graph_relation_path','retry_graph_host_match_cleanup','assert_graph_host_match_rows']) {
+    assert(boundary.compilation.inputs[host].keptDeclarations.some(d=>d.name===name));
+    assert.equal((blockAfter(overlay[host],'fn '+name+'(').match(/assert_(?:true|eq)\(/g)??[]).length,
+      (blockAfter(read(host).toString(),'fn '+name+'(').match(/assert_(?:true|eq)\(/g)??[]).length);
+  }
+});
+
+test('selected Host helper retains transitive declarations and enum variants without weakening warning checks',()=>{
+  const sources={a:'fn run_current_host_graph_relation_path() { leaf() }\nfn leaf() { accept(Second) }\nfn unused() { leaf() }',
+    b:'enum Kind {\n First\n Second\n}\nfn accept(x : Kind) { ignore(x) }'};
+  const r=helperCompilation(sources,'test { run_current_host_graph_relation_path() }');
+  assert(!r.overlay.a.includes('fn unused'));
+  assert(r.overlay.b.includes('enum Kind'));
+  for(const [path,s] of Object.entries(sources))for(const d of r.inputs[path].keptDeclarations) {
+    assert.equal(r.overlay[path].slice(d.begin,d.end),s.slice(d.begin,d.end));
+  }
+  const pkg='supported_targets = "+native"\nimport {\n "x/used" @used,\n "x/unused" @unused,\n} for "wbtest"\noptions(link: {})\n';
+  const imports=helperImports(pkg,'fn f() { @used.f() }');
+  assert(!imports.text.includes('x/unused'));assert(imports.text.includes('options(link: {})'));
+  assert.deepEqual(imports.omitted,[{path:'x/unused',alias:'unused'}]);
+  assert.throws(()=>helperImports(pkg.replace('"x/used" @used,','dynamic_import()'),r.referencedText));
 });
 
 test('local compilation preserves helpers and ignores braces in literals, interpolation and comments',()=>{

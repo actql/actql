@@ -149,14 +149,21 @@ node proofs/relation-pipeline/capacity/parent-control/driver-retirement-diagnost
 Run the second command on a clean fixed HEAD, in the pinned Native environment,
 through the existing bounded local guard. It selects one Native test containing
 two existing Host cases; it does not run the full Core or packed acceptance.
-In an isolated diagnostic copy, `driver-retirement-compilation.mjs` blanks only
-unselected top-level whitebox test declarations. Every non-test declaration and
-the selected Host helper assertions remain unchanged; the full source inventory,
-omitted declaration ranges (UTF-16 offsets), original/projected digests and exact
-executed overlay are rederived by the final consumer. This is a local compilation
-projection, not removal of repository tests, a CI selection policy or reuse
-authority. Unknown attributes, interpolated raw lines and malformed input reject
-projection. Guard termination restores the owned source after the child exits.
+In an isolated diagnostic copy, `driver-retirement-compilation.mjs` blanks
+unselected top-level whitebox tests and helper declarations outside a conservative
+identifier closure rooted at the selected fixture. Identifiers inside comments,
+literals and interpolation also extend that closure; no invoked helper is omitted
+by excluding textual references. Referenced enum variants retain their declaration.
+Retained helper declarations and their assertions remain unchanged. Imports are
+limited to aliases referenced by the same retained text. Unknown declarations,
+attributes, interpolated raw lines, ambiguous names and malformed input reject
+projection. The compiler still uses `--deny-warn`; projection does not waive
+unused declarations/imports or any other diagnostic. This is a local compilation
+projection, not removal of repository tests, a complete semantic dependency
+analysis, a CI selection policy or reuse authority. The full source inventory,
+kept/omitted declaration ranges (UTF-16 offsets), original/projected digests,
+imports and exact executed overlay are rederived by the final consumer.
+Guard termination restores the owned source after the child exits.
 The pinned Moon summary establishes exactly one executed/passed test; it does
 not report a skipped-case count.
 The observation overlay is bound into a compiled marker, restored byte for byte,
