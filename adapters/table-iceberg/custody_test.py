@@ -173,11 +173,13 @@ class CustodyTests(unittest.TestCase):
             catalog.create_namespace("test")
             operation = request("create", "rows", "c")
             script = """
-import json, select, sys
+import faulthandler, json, select, sys
+faulthandler.dump_traceback_later(10)
 from catalog import TableCatalog
 from physical_test import mapping
 class Staged(TableCatalog):
     def before_publication(self):
+        faulthandler.cancel_dump_traceback_later()
         print('staged', flush=True)
         select.select([sys.stdin], [], [], 10)
         raise RuntimeError('DiagnosticStageEndedWithoutPublication')
@@ -190,7 +192,10 @@ c.write_claimed(json.loads(wire), mapping(), [{'id':1}], {'bytes':1048576, 'file
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             try:
                 readable, _, _ = select.select([child.stdout], [], [], 15)
-                self.assertTrue(readable, "No physical staging observation")
+                if not readable:
+                    child.kill()
+                    child.wait(timeout=5)
+                    self.fail("No physical staging observation; child diagnostic:\n" + child.stderr.read())
                 self.assertEqual(child.stdout.readline().strip(), "staged")
                 self.assertIsNone(catalog.reconcile(operation))
                 self.assertEqual(self.allocation(catalog, operation), (1048576, 16))
