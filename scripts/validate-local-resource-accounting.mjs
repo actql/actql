@@ -1859,7 +1859,7 @@ export function validateResourceAccounting({
       const role = `${kind}_compound_output_port_public`;
       if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
     }
-    const metadataKinds = {nest:'nest', interval_join:'interval', asof_join:'asof'};
+    const metadataKinds = {join:'join', nest:'nest', interval_join:'interval', asof_join:'asof'};
     if (metadataKinds[route.operation] && ['RelA','TEA'].includes(route.family)) {
       const kind = metadataKinds[route.operation];
       const file = path.join(root, `src/execution_relation/bounded_${route.operation}.mbt`);
@@ -1872,6 +1872,11 @@ export function validateResourceAccounting({
           'text_function_scalar(', 'spend_control('].some(marker=>!cursor.includes(marker)) ||
         /let names_of\s*=|let resolve\s*=\s*fn/u.test(source)) {
         fail(`${label}: ${kind} compound metadata production cursor connection is missing`);
+      }
+      if (kind === 'join' && (['start_row_name_charge(', 'advance_row_name_charge(',
+        'close_row_name_charge('].some(marker=>!source.includes(marker)) ||
+        /spend_control_text\s*\(|@schema\.reference_name\s*\(/u.test(source))) {
+        fail(`${label}: join compound metadata production cursor connection is missing`);
       }
       for (const part of ['limit','workspace','quantum','stop']) {
         const role = `${kind}_compound_metadata_${part}`;

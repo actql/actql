@@ -259,7 +259,10 @@ function compoundCompletionProgram(id, kind, longInput=false) {
       ({...row,[inputName]:id}));
     source.results.rows.fields=source.results.rows.fields.map(name=>
       name==='id'?inputName:name);
-    if(kind==='nest')operation.nest.on=[{left:inputName,right:inputName}];
+    if(kind==='join'){
+      operation.join.on=[{left:inputName,right:inputName}];
+      operation.join.select.id=`left.${inputName}`;
+    }else if(kind==='nest')operation.nest.on=[{left:inputName,right:inputName}];
     else if(kind==='interval'){
       operation.interval_join.on=[{left:inputName,right:inputName}];
       operation.interval_join.select.id=`left.${inputName}`;
@@ -465,6 +468,7 @@ test('public retained Values completion names preserve Unicode and preparation c
     expected,{type:'number',nullable:true},0));
 
 for(const [kind,title] of [
+  ['join','public retained join source metadata preserves results and post-progress custody'],
   ['nest','public retained nest source metadata preserves results and post-progress custody'],
   ['interval','public retained interval source metadata preserves results and post-progress custody'],
   ['asof','public retained asof source metadata preserves results and post-progress custody'],
