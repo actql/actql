@@ -17,6 +17,8 @@ import {formatOperationExplanation} from './operation-formats.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
 import {localizeOperation} from './operation-presentation.mjs';
+import {parseConnectionString, connectionStringCredential, validConnectionStringCredential} from
+  './connection-string.mjs';
 export {getOperationPresentationInfo} from './operation-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
@@ -44,6 +46,19 @@ const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunS
     problem, operation, summary: summaries[problem],
     hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
     next: {operation: 'status', ref: {...ref}},
+  }));
+  return error;
+};
+
+const unavailableRunObservation = (failure, ref, operation) => {
+  let error;
+  try { error = requestCancellationCause(failure); }
+  catch { error = new ClientError('ClientTransportUnknown'); }
+  runObservationFailures.set(error, freezeInput({kind: 'unavailable',
+    problem: 'observation_unavailable', operation,
+    next: {operation: 'status', ref: {...ref}},
+    summary: 'The Run observation could not be completed. Its execution, Effect, publication and release outcomes are not established by this failure.',
+    hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
   }));
   return error;
 };
@@ -328,7 +343,7 @@ const retainEffectUncertainty = (state, ref) => {
       physicalStop: state.control?.physical_stop ?? 'unknown',
       ...(state.control === undefined ? {} :
         {controlRevision: state.control.revision}),
-      next: {operation: 'status', ref: {...ref}},
+      next: {operation: 'reconcile', ref: {...ref}},
     }));
   }
   return state;
@@ -818,7 +833,13 @@ export class ClientError extends Error {
     Object.assign(this, details);
   }
 }
-const fail = code => { throw new ClientError(code); };
+const ownedClientFailures = new WeakMap();
+const ownedClientFailure = (code, details) => {
+  const error = new ClientError(code, details);
+  ownedClientFailures.set(error, code);
+  return error;
+};
+const fail = code => { throw ownedClientFailure(code); };
 // Read only own data properties: classification never evaluates untrusted
 // getters or keeps private reply content. Proxy failures give no usable header.
 const rejectedCheckHeader = value => {
@@ -871,11 +892,22 @@ const retainReadExplanation = (result, context, rowsYielded, observation, cleanu
   }));
   return result;
 };
-const readFailure = (cause, context, rowsYielded, prior) => retainReadExplanation(new ClientError(
-  typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown',
-  {attemptId: context.attemptId, rowsYielded, cause,
-    ...(cause?.cleanupError === undefined ? {} : {cleanupError: cause.cleanupError})}),
-context, rowsYielded, prior?.observation ?? 'read_incomplete', prior?.cleanup === 'unknown');
+const readFailure = (cause, context, rowsYielded, prior) => {
+  // Borrowed stream exceptions may have throwing getters as well as private
+  // messages. DSN mode reads only our private original classification/custody.
+  const safe = context.redactErrors === true;
+  const code = safe ? ownedClientFailures.get(cause) ?? 'ResultReadUnknown'
+    : typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown';
+  const cleanupUnknown = prior?.cleanup === 'unknown' ||
+    readExplanations.get(cause)?.cleanup === 'unknown';
+  const error = new ClientError(code, {attemptId: context.attemptId, rowsYielded,
+    ...(safe ? {} : {cause}),
+    ...(safe ? cleanupUnknown ? {cleanupError: new Error('ResultReadCleanupUnknown')} : {}
+      : cause?.cleanupError === undefined ? {} : {cleanupError: cause.cleanupError})});
+  if (safe) ownedClientFailures.set(error, code);
+  return retainReadExplanation(error, context, rowsYielded,
+    prior?.observation ?? 'read_incomplete', cleanupUnknown);
+};
 
 // The Host accepted and durably holds the request, but no Run exists yet:
 // it waits on a `prepare_attempt` Checkpoint, is resuming, or ended without
@@ -965,10 +997,35 @@ function inProcessOptions(options) {
   return Object.freeze({wire, endpoint: 'actql:embedded'});
 }
 
+function connectionStringOptions(input, options = {}) {
+  let keys, parsed, hasToken, token, durability, consentRefs;
+  if (options === null || typeof options !== 'object' || Array.isArray(options)) {
+    fail('InvalidConnectionOptions');
+  }
+  try { keys = Object.keys(options); }
+  catch { fail('InvalidConnectionOptions'); }
+  if (keys.some(key => !['token', 'durability', 'consentRefs'].includes(key))) {
+    fail('InvalidConnectionOptions');
+  }
+  try { parsed = parseConnectionString(input); }
+  catch { fail('InvalidConnectionString'); }
+  const embedded = connectionStringCredential(parsed);
+  try { hasToken = 'token' in options; }
+  catch { fail('InvalidConnectionOptions'); }
+  if (embedded !== undefined && hasToken) fail('ConflictingConnectionCredentials');
+  try {
+    token = embedded ?? options.token;
+    durability = options.durability;
+    consentRefs = options.consentRefs;
+  } catch { fail('InvalidConnectionOptions'); }
+  return {mode: 'remote', endpoint: parsed.endpoint,
+    workspaceId: parsed.workspaceId, token, durability, consentRefs};
+}
+
 function connectionOptions(options) {
   if (options === null || typeof options !== 'object' ||
       Array.isArray(options)) fail('InvalidConnectionOptions');
-  const {mode, owner, endpoint, token, durability, consentRefs, runners,
+  const {mode, owner, endpoint, token, durability, consentRefs, runners, workspaceId,
     movementPolicyRef, cloudConnectionRef} = options;
   if (endpoint === undefined && (mode === 'local' ||
       mode === 'hybrid' && owner === 'local')) {
@@ -1014,6 +1071,7 @@ function connectionOptions(options) {
   }
   const wire = Object.freeze({
     mode, owner: owner ?? 'remote',
+    ...(workspaceId === undefined ? {} : {workspaceId}),
     ...(durability === undefined ? {} : {durability}),
     consentRefs: Object.freeze([...(consentRefs ?? [])]),
     runners: Object.freeze([...(runners ?? [])]),
@@ -1046,8 +1104,19 @@ function retainedValueBytes(value) {
   return new TextEncoder().encode(JSON.stringify(value)).byteLength + nodes * 64;
 }
 
-export async function connect(options) {
-  return connectSelected(connectionOptions(options));
+export async function connect(options, stringOptions) {
+  const connectionString = typeof options === 'string';
+  if (!connectionString && stringOptions !== undefined) fail('InvalidConnectionOptions');
+  let selected;
+  try {
+    selected = connectionOptions(connectionString
+      ? connectionStringOptions(options, stringOptions) : options);
+  } catch (error) {
+    if (connectionString && !ownedClientFailures.has(error)) fail('InvalidConnectionOptions');
+    throw error;
+  }
+  return connectSelected(connectionString
+    ? Object.freeze({...selected, redactCredentialErrors: true}) : selected);
 }
 
 // Only an installed Local provider calls this pure Client facade. The port
@@ -1124,7 +1193,7 @@ async function connectSelected(selected, port) {
         if (cause instanceof ClientError) {
           throw cause;
         }
-        throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
+        throw retainCancellationExplanation(ownedClientFailure('ClientTransportUnknown', {cause}),
           cancellationContext, 'outcome_unknown');
       }
     }
@@ -1132,9 +1201,16 @@ async function connectSelected(selected, port) {
     try { payload = JSON.stringify({connection: selected.wire, ...body}); }
     catch { fail('InvalidClientPayload'); }
     if (typeof payload !== 'string') fail('InvalidClientPayload');
-    const credential = typeof selected.token === 'function'
-      ? await selected.token() : selected.token;
-    if (typeof credential !== 'string' || !credential ||
+    let credential;
+    try {
+      credential = typeof selected.token === 'function'
+        ? await selected.token() : selected.token;
+    } catch (cause) {
+      if (selected.redactCredentialErrors) fail('ClientCredentialUnavailable');
+      throw cause;
+    }
+    if (selected.redactCredentialErrors ? !validConnectionStringCredential(credential)
+      : typeof credential !== 'string' || !credential ||
         /[\r\n]/u.test(credential)) fail('InvalidConnectionToken');
     let response;
     if (cancellationContext !== undefined) {
@@ -1154,9 +1230,11 @@ async function connectSelected(selected, port) {
       });
     } catch (cause) {
       if (operation === 'submit') {
-        throw submissionUnknown(submitContext, cause);
+        throw submissionUnknown(submitContext,
+          selected.redactCredentialErrors ? undefined : cause);
       }
-      throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
+      throw retainCancellationExplanation(ownedClientFailure('ClientTransportUnknown',
+        selected.redactCredentialErrors ? {} : {cause}),
           cancellationContext, 'outcome_unknown');
     }
     if (!response.ok) {
@@ -1173,9 +1251,16 @@ async function connectSelected(selected, port) {
     }
     return response;
   };
+  const responseValue = async (response, maxWireBytes) => {
+    try { return await controlValue(response, maxWireBytes); }
+    catch (cause) {
+      if (selected.redactCredentialErrors) throw new Error('InvalidHostControlResponse');
+      throw cause;
+    }
+  };
   const profileResponse = await exchange('connect');
   let profile;
-  try { profile = await controlValue(profileResponse); }
+  try { profile = await responseValue(profileResponse); }
   catch (cause) { throw new ClientError('InvalidHostProfile', {cause}); }
   try {
     // Negotiated scope and limits use the same owned observation as later
@@ -1203,7 +1288,7 @@ async function connectSelected(selected, port) {
       exchange(operation, {ref, ...body}, signal, undefined, cancellationContext);
     const readControl = async (operation, body, signal, cancellationContext) => {
       const response = await runRequest(operation, body, signal, cancellationContext);
-      try { return await controlValue(response); }
+      try { return await responseValue(response); }
       catch (cause) {
         throw retainCancellationExplanation(new ClientError('InvalidHostResponse', {cause}),
           cancellationContext, 'outcome_unknown');
@@ -1211,11 +1296,13 @@ async function connectSelected(selected, port) {
     };
 
     const readRunObservation = async (operation, body, signal) => {
-      // Credential/transport refusals occur before interpreting a received
-      // observation and retain their existing operation-specific behavior.
-      const response = await runRequest(operation, body, signal);
+      // Failure to obtain an observation admits no Run facts, including when
+      // credentials or a closed connection prevent dispatch entirely.
+      let response;
+      try { response = await runRequest(operation, body, signal); }
+      catch (failure) { throw unavailableRunObservation(failure, ref, operation); }
       let state;
-      try { state = await controlValue(response); }
+      try { state = await responseValue(response); }
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
       try { state = captureResponse(state); }
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }
@@ -1245,6 +1332,7 @@ async function connectSelected(selected, port) {
       const rows = (options = {}) => {
         const attemptId = crypto.randomUUID();
         const context = freezeInput({ref, resultName: name, attemptId,
+          redactErrors: selected.redactCredentialErrors === true,
           lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
         const maxWireBytes = tighter(options.maxWireBytes,
           confirmed.limits.maxReadWireBytes);
@@ -1370,11 +1458,13 @@ async function connectSelected(selected, port) {
                 // its local lock is not a remote cleanup acknowledgment, and
                 // a closed stream supplies no Host cleanup retry witness.
                 if (failure) {
-                  failure.cleanupError = cause;
+                  failure.cleanupError = context.redactErrors
+                    ? new Error('ResultReadCleanupUnknown') : cause;
                   retainReadExplanation(failure, context, rowsYielded, 'read_incomplete', true);
                 }
-                else failure = retainReadExplanation(new ClientError('ResultReadCleanupUnknown',
-                  {attemptId, rowsYielded, cause}), context, rowsYielded, 'cleanup_unknown');
+                else failure = retainReadExplanation(ownedClientFailure('ResultReadCleanupUnknown',
+                  {attemptId, rowsYielded,
+                    ...(context.redactErrors ? {} : {cause})}), context, rowsYielded, 'cleanup_unknown');
               } finally {
                 stream.releaseLock();
               }
@@ -1518,7 +1608,7 @@ async function connectSelected(selected, port) {
             ...limits,
           }, signal);
           let answer;
-          try { answer = await controlValue(response, limits.maxWireBytes); }
+          try { answer = await responseValue(response, limits.maxWireBytes); }
           catch (cause) {
             throw new ClientError('InvalidHostResultDescription', {cause});
           }
@@ -1550,7 +1640,7 @@ async function connectSelected(selected, port) {
             throw retainDeliveryLookupFailure(cause, next, 'lookup_unavailable');
           }
           let answer;
-          try { answer = await controlValue(response); }
+          try { answer = await responseValue(response); }
           catch {
             throw retainDeliveryLookupFailure(new ClientError('InvalidHostAttemptLookup'), next,
               'lookup_uninterpretable');
@@ -1693,7 +1783,7 @@ async function connectSelected(selected, port) {
     submissionContexts.set(context, snapshot);
     const response = await exchange('submit', body, options.signal, context);
     let admitted;
-    try { admitted = await controlValue(response); }
+    try { admitted = await responseValue(response); }
     catch (cause) {
       throw submissionUnknown(context, cause);
     }
@@ -1762,7 +1852,7 @@ async function connectSelected(selected, port) {
       }
       const response = await exchange('check', body, signal);
       let outcome;
-      try { outcome = await controlValue(response); }
+      try { outcome = await responseValue(response); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw rejectedCheck(body, 'malformed_response');
@@ -1828,7 +1918,7 @@ async function connectSelected(selected, port) {
       if (!validRunRef(requested)) fail('InvalidRunReference');
       const response = await exchange('attach', {ref: requested}, signal);
       let admitted;
-      try { admitted = await controlValue(response); }
+      try { admitted = await responseValue(response); }
       catch (cause) { throw new ClientError('InvalidHostAdmission', {cause}); }
       try { admitted = captureResponse(admitted); }
       catch { fail('InvalidHostAdmission'); }
@@ -1855,7 +1945,7 @@ async function connectSelected(selected, port) {
       try { response = await exchange('lookup-request', {requestId}, signal); }
       catch (cause) { throw retainRequestLookupFailure(cause, context, 'lookup_unavailable'); }
       let answer;
-      try { answer = await controlValue(response); }
+      try { answer = await responseValue(response); }
       catch (cause) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
@@ -1902,7 +1992,7 @@ async function connectSelected(selected, port) {
         throw retainRequestCancellationExplanation(error, context,
           'outcome_unknown', 'exchange_failed');
       }
-      try { answer = await controlValue(response); }
+      try { answer = await responseValue(response); }
       catch { throw uninterpretableRequestCancellation(context); }
       try { answer = captureResponse(answer); }
       catch { throw uninterpretableRequestCancellation(context); }
@@ -1936,7 +2026,7 @@ async function connectSelected(selected, port) {
         ...body})) fail('InvalidResourceListing');
       const response = await exchange('resources', body, signal);
       let listing;
-      try { listing = await controlValue(response); }
+      try { listing = await responseValue(response); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostResourceListing', {cause});
@@ -1957,7 +2047,7 @@ async function connectSelected(selected, port) {
         ...body})) fail('InvalidResourceInspection');
       const response = await exchange('resource-inspect', body, signal);
       let inspection;
-      try { inspection = await controlValue(response, jsonPayloadWireBytes(maxBytes)); }
+      try { inspection = await responseValue(response, jsonPayloadWireBytes(maxBytes)); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostResourceInspection', {cause});
@@ -1981,7 +2071,7 @@ async function connectSelected(selected, port) {
         ...body})) fail('InvalidResourcePeek');
       const response = await exchange('resource-peek', body, signal);
       let peek;
-      try { peek = await controlValue(response, jsonPayloadWireBytes(maxBytes)); }
+      try { peek = await responseValue(response, jsonPayloadWireBytes(maxBytes)); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostResourcePeek', {cause});
@@ -2002,7 +2092,7 @@ async function connectSelected(selected, port) {
       const response = await exchange('checkpoints',
         {after: after ?? '', limit}, signal);
       let page;
-      try { page = await controlValue(response); }
+      try { page = await responseValue(response); }
       catch (cause) { throw new ClientError('InvalidHostCheckpointPage', {cause}); }
       if (!validCheckpointPage(page, limit)) fail('InvalidHostCheckpointPage');
       return Object.freeze({items: Object.freeze(page.items.map(item =>
@@ -2027,7 +2117,7 @@ async function connectSelected(selected, port) {
       const response = await exchange('checkpoint-review',
         {checkpointCid, maxBytes}, signal);
       let review;
-      try { review = await controlValue(response,
+      try { review = await responseValue(response,
         4 * Math.ceil(maxBytes / 3) + reviewEnvelopeBytes); }
       catch (cause) { throw new ClientError('ReviewReadUnknown', {cause}); }
       if (!validCheckpointReview(review, {checkpointCid, maxBytes})) {
@@ -2082,7 +2172,7 @@ async function connectSelected(selected, port) {
       let answer;
       try {
         const response = await exchange('resolve', {items: frozen}, signal);
-        answer = await controlValue(response);
+        answer = await responseValue(response);
       } catch (cause) {
         if (cause instanceof ClientError && cause.code !==
             'ClientTransportUnknown' && !(cause.status >= 500)) throw cause;

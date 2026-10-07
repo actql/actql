@@ -75,6 +75,15 @@ The complete examples also require the construction and Result surfaces above.
 DATA references existing producers; it must not force another
 acquisition, materialization, task or local placement.
 
+Current Script connections are listed in the
+[SGA source mapping](frontend-sga-surface.md#current-source-connections).
+The table below retains the whole migration obligation, including unconnected
+`reach`, `shortest_path`, `graft_graph` and generator-style `mean_graphs`.
+It must not be read as a blanket absence of named-call lowering: rows, traversal,
+match, diagnostics, comparison, Delta, Subgraph, union and subtraction have
+explicit current routes. Their operation/profile execution evidence remains
+separate from this source mapping and from historical simple-Graph fixtures.
+
 | Retained independent example | Adopted logical expression / Carrier transition | Required text connection |
 | --- | --- | --- |
 | components | `FROM g \|> components(kind: "weak")`: Graph → Relation | Named call then ordinary Relation SELECT |

@@ -34,6 +34,13 @@ test('installed graph permits an absent declared optional peer', async t => {
   auditPackedPackages(root, ['entry']);
 });
 
+test('installed graph audits a peer installed after an absent optional-peer scan', async t => {
+  const {root, install} = await peerFixture(t);
+  auditPackedPackages(root, ['entry']);
+  await install();
+  auditPackedPackages(root, ['entry']);
+});
+
 test('installed graph verifies a privately installed optional peer', async t => {
   const {root, install} = await peerFixture(t);
   await install();

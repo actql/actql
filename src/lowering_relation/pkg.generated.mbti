@@ -1183,6 +1183,8 @@ pub enum ExpressionBody {
   Field(String, @relation_typing.ReferenceTarget)
   Literal(@value_admission.CheckedValue)
   TypedNull
+  Array(Array[Expression])
+  EmptyArray
   Object(Array[(String, Expression)])
   Property(Expression, String, Int)
   Cast(Expression)

@@ -132,7 +132,7 @@ pub fn prepare_ordered_references(
               bytes -= @scalar.admit_utf8_length(path, bytes).unwrap()
               entries.push({ at: path, target, })
             }
-            Literal(_) | TypedNull => ()
+            Literal(_) | TypedNull | EmptyArray => ()
             Property(child, _, _) | Cast(child) => {
               guard append_path(path, "/body/value") is Some(child_path) else {
                 return Err(ReferenceLimit)
@@ -175,7 +175,7 @@ pub fn prepare_ordered_references(
                 return Err(ReferenceLimit)
               }
             }
-            VectorConcat(children) => {
+            Array(children) | VectorConcat(children) => {
               guard append_path(path, "/body") is Some(body) else {
                 return Err(ReferenceLimit)
               }
