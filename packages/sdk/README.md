@@ -311,6 +311,17 @@ inspection. A held response names request lookup and does not promise a current
 preparation or execution state. These are presentation facts from this call,
 not a new server acceptance contract or an execution/publication/release proof.
 
+For admitted `not_accepted` or `preparation_failed` outcomes with
+`ClientProgramAnalysisLimit` and the `implementation_limit` classification,
+`preparationIssue` explains the existing checker analysis-budget fact. This
+fact does not establish invalid input, successful checking or execution.
+Inspect a check report for outstanding obligations and keep the original
+submission reference. A changed input requires a distinct submission identity;
+the explanation never retries. Source-dependent budget facts are projected
+from the existing audience-filtered public check and rechecked against the
+retained original intent during authorized lookup. Raw private Source limits
+remain generic when no public budget fact can be admitted.
+
 ```js
 import {explainSubmission} from '@actql/sdk';
 

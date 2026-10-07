@@ -58,3 +58,11 @@ The correction follows `docs/spec/language.md`'s AuthorValueContract rules: the 
 Evidence: `worktrees/.codex-scratch/public-query-evidence-wHluwT/summary.json`, `010.stdout.log` and `010.stderr.log`; source is exact 45fe, dirty=false, command output complete, failed overall, artifactsRemoved=true, no evidence errors. Remaining cases, refusals and HTTPS are not counted as passed by this run. Manifest `/private/tmp/actql-b-having-grouped-45fe38801-pack/packed-client-packages.json` remains bound to that historical producer SHA.
 
 After that terminal attempt, main `0bd16841017be364af76f2944fd4e20aa901dc22` is normally merged. Its bounded Result preparation/snapshot binding implementation is retained. The integrated corrected source requires a new normal producer; the historical manifest is not changed or reused across the source difference.
+
+## Integrated public run and current JOIN syntax correction
+
+Normal five-package production from clean `9e95c13d8c1f673e37bd574ad6e99fde6d085305` completes in `run-NQe29c`. Public receipt `worktrees/.codex-scratch/public-query-evidence-WKcRG5/summary.json` retains the exact revision and five tarball digests. The README Local/HTTPS control and real missing-generated-wire-asset rejection pass. No old wire asset or fallback is used.
+
+Selected Local execution passes six normal cases, including both independently expected nullable-object alias/qualified-input controls. The seventh JOIN case is rejected at preparation as `ClientProgramInvalidInput`; later Local cases/refusals and selected HTTPS are not established. The authored fixture incorrectly uses `WITH {"max_output_rows":10}`. Current `docs/spec/query-text.md` and `QueryParser::join_bound` adopt `MAX_OUTPUT_ROWS 10`. This fixture is corrected to that supported surface while preserving bound 10, predicate, grouping, rows, type and ordering expectations. No historical syntax is added to the parser.
+
+The matching focused JOIN/CTE regression uses the same explicit `MAX_OUTPUT_ROWS 10` and passes 1/1 in `run-7slU70`, `focused-test-TZPX3L`. Product lowering is unchanged by this correction. The new clean revision requires a normal pack and selected Local/HTTPS reacceptance; the old manifest is not relabeled. Failure logs remain retained; private installs are reclaimed (`artifactsRemoved: true`, no evidence errors).

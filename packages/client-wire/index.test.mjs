@@ -112,7 +112,7 @@ test('source format selection is explicit and bounded', () => {
 test('submit preparation errors follow the public Host contract', () => {
   for (const code of ['ClientProgramInvalidInput',
     'ClientParametersInvalid', 'ClientParametersTooLarge',
-    'ClientProgramUnsupported', 'ClientProgramNeedsInputs',
+    'ClientProgramUnsupported', 'ClientProgramAnalysisLimit', 'ClientProgramNeedsInputs',
     'ClientProgramRejected']) {
     assert.equal(validSubmitPreparationError({code}), true);
   }

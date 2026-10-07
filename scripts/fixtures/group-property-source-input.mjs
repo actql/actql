@@ -269,7 +269,7 @@ export const havingGroupedSubexpressionSuccesses = [
     'SELECT payload.score + 1 AS bucket, @b AS payload, COUNT(*) AS n FROM objects GROUP BY objects.payload.score + 1 HAVING objects.payload.score + 1 > 12 ORDER BY bucket',
     {expected: [havingAliasRows[2]], columns: havingAliasColumns}),
   text('having-subexpression-join',
-    'SELECT l.payload.score + 1 AS bucket, COUNT(*) AS n FROM objects AS l JOIN objects AS r ON l.id = r.id WITH {"max_output_rows":10} GROUP BY l.payload.score + 1 HAVING n + (l.payload.score + 1) > 12 ORDER BY bucket',
+    'SELECT l.payload.score + 1 AS bucket, COUNT(*) AS n FROM objects AS l JOIN objects AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 GROUP BY l.payload.score + 1 HAVING n + (l.payload.score + 1) > 12 ORDER BY bucket',
     {expected: havingGroupedRows, columns: havingGroupedColumns}),
   text('having-subexpression-empty',
     'SELECT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects WHERE FALSE GROUP BY payload.score + 1 HAVING n + (payload.score + 1) > 12 ORDER BY bucket',
