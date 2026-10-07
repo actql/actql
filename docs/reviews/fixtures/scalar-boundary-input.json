@@ -1,0 +1,78 @@
+[
+  {
+    "name": "sqrt",
+    "text": "SELECT SQRT(9) AS value",
+    "independentProgram": "scalar-boundary-sqrt.program.json",
+    "expectedRows": [
+      {
+        "value": 3
+      }
+    ],
+    "expectedColumns": [
+      {
+        "name": "value",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  {
+    "name": "lower",
+    "text": "SELECT LOWER('É') AS value",
+    "independentProgram": "scalar-boundary-lower.program.json",
+    "expectedRows": [
+      {
+        "value": "é"
+      }
+    ],
+    "expectedColumns": [
+      {
+        "name": "value",
+        "contract": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  {
+    "name": "upper",
+    "text": "SELECT UPPER('é') AS value",
+    "independentProgram": "scalar-boundary-upper.program.json",
+    "expectedRows": [
+      {
+        "value": "É"
+      }
+    ],
+    "expectedColumns": [
+      {
+        "name": "value",
+        "contract": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  {
+    "name": "trim",
+    "text": "SELECT TRIM('\\u2003value\\u2003') AS value",
+    "independentProgram": "scalar-boundary-trim.program.json",
+    "expectedRows": [
+      {
+        "value": "value"
+      }
+    ],
+    "expectedColumns": [
+      {
+        "name": "value",
+        "contract": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    ]
+  }
+]
