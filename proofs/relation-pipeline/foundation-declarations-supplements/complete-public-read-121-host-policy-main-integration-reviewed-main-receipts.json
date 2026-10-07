@@ -1,0 +1,13 @@
+{
+  "version": "actql-foundation-resolution-supplement/0.1",
+  "id": "complete-public-read-121-host-policy-main-integration-reviewed-main-receipts",
+  "target": {
+    "id": "public-read-121-host-policy-main-integration",
+    "digest": "155dbb9cbe026adcac6b4a7282adb9560ca3d5f5d448a1a407a203118fc2100d"
+  },
+  "inputs": [
+    "reviewed-integration-source-475add1ab516",
+    "reviewed-integration-source-96afa381cfa4"
+  ],
+  "reason": "Keep the original declaration and introduction unchanged. Add only independently Git-bound ancestor receipts newly retained by the reviewed main integration, whose files were absent when this declaration was introduced. Preserve source/parent/blob/mode/base bindings and the existing dependency validation rules."
+}
