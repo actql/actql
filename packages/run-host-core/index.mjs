@@ -15,6 +15,7 @@ const preparations = new WeakMap();
 const compilations = new WeakMap();
 const taskCompilations = new WeakMap();
 const requests = new WeakMap();
+const cancellationIdentities = new WeakMap();
 const admissions = new WeakMap();
 const definitions = new WeakMap();
 const publicationContracts = new WeakMap();
@@ -2254,6 +2255,54 @@ export function prepareRunCancellation(definition, definitionCid,
   return checked(owner.clientValuesHostPrepareCancellation(
     requireHandle(definitions, definition), definitionCid, authorized,
     terminal, requested), 'RunHostCancellationRejected');
+}
+
+/** Identity only; this does not request physical stop or return capacity. */
+export function prepareRunCancellationIdentity(definition, scope) {
+  const {namespaceId, authorityScopeCid, cancelId, expectedRevision} = scope ?? {};
+  if ([namespaceId, authorityScopeCid, cancelId].some(value => typeof value !== 'string') ||
+      !Number.isSafeInteger(expectedRevision) || expectedRevision < 0 ||
+      expectedRevision > 2147483647) {
+    throw new TypeError('InvalidRunCancellationIdentity');
+  }
+  return handle(cancellationIdentities, checked(
+    owner.clientValuesHostPrepareCancellationIdentity(namespaceId,
+      authorityScopeCid, cancelId, requireHandle(definitions, definition),
+      expectedRevision), 'RunHostCancellationIdentityRejected'),
+  'cancellation-identity');
+}
+
+/** Stored identity checksum; never storage provenance or execution authority. */
+export function runCancellationIntentCid(identity) {
+  return owner.clientValuesHostCancellationIntentCid(
+    requireHandle(cancellationIdentities, identity));
+}
+
+/** Replay requires the saved immutable outcome, rather than today's Run flags. */
+export function prepareRunCancellationOperation(definition, requested, facts) {
+  const {retained, currentRevision, currentAuthorization,
+    terminalObserved, cancellationRequested} = facts ?? {};
+  if (!Number.isSafeInteger(currentRevision) || currentRevision < 0 ||
+      currentRevision > 2147483647 ||
+      [currentAuthorization, terminalObserved, cancellationRequested].some(value =>
+        typeof value !== 'boolean')) {
+    throw new TypeError('InvalidRunCancellationOperation');
+  }
+  const result = owner.clientValuesHostPrepareCancellationOperation(
+    requireHandle(cancellationIdentities, requested), retained === undefined ?
+      undefined : requireHandle(cancellationIdentities, retained),
+    requireHandle(definitions, definition), currentRevision,
+    currentAuthorization, terminalObserved, cancellationRequested);
+  if (result?.$tag === 0 && ['ClientCancellationIntentConflict',
+    'ClientCancellationOperationMismatch', 'ClientCancellationRevisionConflict',
+    'ClientCancellationDenied', 'ClientCancellationRunMismatch'].includes(result._0)) {
+    throw Object.assign(new Error(result._0), {code: result._0});
+  }
+  const action = checked(result, 'RunHostCancellationOperationRejected');
+  if (!['accepted', 'already_requested', 'already_terminal', 'replay_original'].includes(action)) {
+    throw new Error('InvalidRunHostCancellationOperation');
+  }
+  return action;
 }
 
 export function issueRunControlObservation(revision, observation) {
