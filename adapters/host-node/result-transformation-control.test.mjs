@@ -4,7 +4,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {localOutputLimits} from './local-values-plan.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
-function fixture({advance, finish = () => ok(exported)} = {}) {
+function fixture({advance, finish = () => ok(exported), unselected = false} = {}) {
   const input = {}, selection = {}, preparation = {};
   const calls = {begin: 0, advance: 0, finish: 0, cancel: 0};
   const control = runtimeCore({
@@ -12,14 +12,14 @@ function fixture({advance, finish = () => ok(exported)} = {}) {
     strategyHostResultTransformationBegin(actual, result, ...args) {
       assert.equal(actual, input);
       assert.equal(result, 0);
-      assert.equal(args.at(-1), selection);
+      assert.equal(args.at(-1), unselected ? undefined : selection);
       assert.equal(args.at(-2), undefined);
       calls.begin++;
       return ok(preparation);
     },
     strategyHostManagedResultTransformationBegin(actual, chosen) {
       assert.equal(actual, input);
-      assert.equal(chosen, selection);
+      assert.equal(chosen, unselected ? undefined : selection);
       calls.begin++;
       return ok(preparation);
     },
@@ -51,6 +51,30 @@ test('cell-backed Result uses bounded selected transformation', async () => {
   assert.equal(await f.control.beginResult(f.input, 0, localOutputLimits,
     undefined, f.selection), exported);
   assert.deepEqual(f.calls, {begin: 1, advance: 2, finish: 1, cancel: 0});
+});
+
+test('captured Result without a Client selection polls the common preparation', async () => {
+  const f = fixture({unselected: true});
+  assert.equal(await f.control.beginResult(f.input, 0, localOutputLimits), exported);
+  assert.deepEqual(f.calls, {begin: 1, advance: 2, finish: 1, cancel: 0});
+});
+
+test('managed Result without a Client selection polls the common preparation', async () => {
+  const f = fixture({unselected: true});
+  assert.equal(await f.control.finishManagedResultImport(f.input), exported);
+  assert.deepEqual(f.calls, {begin: 1, advance: 2, finish: 1, cancel: 0});
+});
+
+test('captured Result without a Client selection yields before cancellation', async () => {
+  const abort = new AbortController();
+  const cause = new Error('UnselectedResultPreparationCancelled');
+  const f = fixture({unselected: true, advance: () => {
+    setTimeout(() => abort.abort(cause), 0);
+    return ok(false);
+  }});
+  await assert.rejects(f.control.beginResult(f.input, 0, localOutputLimits,
+    undefined, undefined, abort.signal), error => error === cause);
+  assert.deepEqual(f.calls, {begin: 1, advance: 1, finish: 0, cancel: 1});
 });
 
 test('cell-backed Result cancellation retains the same cleanup path', async () => {

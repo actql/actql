@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { snapshot as sessionSnapshot, artifacts, targets } from '../bounded-session/evidence.mjs';
+import { snapshot as sessionSnapshot, artifacts, targets, includesObligations } from '../bounded-session/evidence.mjs';
 export { artifacts, targets };
 export const fixture = 'src/query_integration/relation_chain_evidence_wbtest.mbt';
 export const pauseFixture = 'src/query_integration/relation_chain_stop_pause_wbtest.mbt';
@@ -76,31 +76,36 @@ const stoppingPremises = binding => isPause(binding) ? pausePremises : stopPremi
 const stoppingGuarantees = binding => isPause(binding) ? pauseGuarantees : stopGuarantees;
 const connectionRun = (binding, target) =>
   `${isPause(binding) ? 'pause-connection' : isStop(binding) ? 'stop-connection' : 'connection'}-${target}`;
-export const pauseBindings = () => [{...clone(reviewedPause), premises: [...pausePremises], residual: [
+export const pauseResidual = Object.freeze([
   'finite diagnostic child only; no arbitrary Model/Store provider refinement or eventual stop',
   'slot/schema authority, machine overflow, invalid reports and physical capacity remain separate obligations',
   'holding marker checks callback custody; it is not a physical allocation measurement',
-]}];
+]);
+export const pauseBindings = () => [{...clone(reviewedPause), premises: [...pausePremises], residual: [...pauseResidual]}];
 export const executedPauseCoverage = () => ({fixture: pauseFixture, scopes: [clone(reviewedPause)]});
-export const stopBindings = () => [{...clone(reviewedStop), premises: [...stopPremises], residual: [
+export const stopResidual = Object.freeze([
   'finite registered diagnostic child only; no arbitrary delayed-stop provider refinement or liveness',
   'machine overflow, invalid-report handling and capacity/physical retirement remain runtime obligations',
   'Waiting/Settling zero-work pause transitions are outside this six-case execution scope; use the separate pause claim',
   'early scratch retirement and semantic values are outside the stop-accounting model',
-]}];
-export const bindings = () => reviewed.map(scope => ({ ...clone(scope),
-  premises: [...premises], residual: [
+]);
+export const stopBindings = () => [{...clone(reviewedStop), premises: [...stopPremises], residual: [...stopResidual]}];
+export const promptResidual = Object.freeze([
     'child semantic and logical work contracts remain operation-specific',
     'capacity sum soundness, machine overflow and physical backend remain separate obligations',
     'finite real traces are tested refinement, not an implementation correspondence proof',
-  ],
+]);
+const residualFor = scope => isPause(scope) ? pauseResidual : isStop(scope) ? stopResidual : promptResidual;
+export const bindings = () => reviewed.map(scope => ({ ...clone(scope),
+  premises: [...premises], residual: [...promptResidual],
 }));
 
 export function checkBindings(root, requested, {read = path => readFileSync(join(root, path), 'utf8')} = {}) {
   if (!requested.length) throw new Error('Missing chain bindings');
   for (const binding of requested) {
     if (!isStopping(binding) && !reviewed.some(scope => matches(binding, scope))) throw new Error('Unverified chain execution scope');
-    if (!(isStopping(binding) ? stoppingPremises(binding) : premises).every(p => binding.premises?.includes(p))) throw new Error('Missing child premise');
+    if (!includesObligations(binding.premises, isStopping(binding) ? stoppingPremises(binding) : premises)) throw new Error('Missing child premise');
+    if (!includesObligations(binding.residual, residualFor(binding))) throw new Error('Missing chain residual obligation');
   }
   // Reviewed real route, not a provider name or a reported capability flag.
   const chain = read(reviewed[0].provider);
@@ -226,8 +231,8 @@ export function validate(nodes, report, current, target) {
     if (node.kind === 'derived') {
       const stopping = isStopping(node.scope);
       if (!stopping && !reviewed.some(scope => matches(node.scope, scope))) throw new Error('Unverified derived execution scope');
-      if (!same(node.guarantees, stopping ? stoppingGuarantees(node.scope) : guarantees) || !(stopping ? stoppingPremises(node.scope) : premises).every(p => node.premises?.includes(p)) ||
-          !node.residual?.length) throw new Error('Missing or unsupported obligations');
+      if (!same(node.guarantees, stopping ? stoppingGuarantees(node.scope) : guarantees) || !includesObligations(node.premises, stopping ? stoppingPremises(node.scope) : premises) ||
+          !includesObligations(node.residual, residualFor(node.scope))) throw new Error('Missing or unsupported obligations');
       for (const id of [stopping ? 'model' : 'session', `${node.id}:connection`]) {
         if (!node.dependencies.includes(id)) throw new Error('Missing derivation premise');
       }

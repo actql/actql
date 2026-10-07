@@ -413,6 +413,12 @@ const retainSubmissionExplanation = (result, outcome, context) => {
       ...(['not_accepted', 'preparation_failed'].includes(outcome.kind)
         ? {problem: {code: outcome.problem.code, classification: outcome.problem.classification}} : {})};
   }
+  if (explanation.problem?.code === 'ClientProgramAnalysisLimit' &&
+      explanation.problem.classification === 'implementation_limit') {
+    explanation.preparationIssue = {kind: 'analysis_budget_exhausted',
+      summary: 'Preparation reached an analysis budget before all checking obligations were discharged. This does not establish invalid input.',
+      hint: 'Inspect a check report for remaining obligations. Keep the original submission reference; any changed input requires a separate submission identity.'};
+  }
   submissionExplanations.set(result, freezeInput(explanation));
   return result;
 };

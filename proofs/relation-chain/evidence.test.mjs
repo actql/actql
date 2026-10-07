@@ -145,3 +145,41 @@ test('actual pause forwarding and distinct zero-work acceptance remain mandatory
     read: p => p === path ? source.replace(from, '_ => Ok(poll)') : readFileSync(root + p, 'utf8'),
   }), /exact stop pause forwarding/);
 });
+
+for (const [label, transform] of [
+  ['unrelated nonempty text', _ => ['no remaining obligations']],
+  ['all obligations embedded in one string', values => [values.join('; ')]],
+  ['string instead of list', values => values.join('; ')],
+  ['duplicate obligation', values => [...values, values[0]]],
+]) test(`all chain scopes preserve independent residual obligations: ${label}`, () => {
+  for (const [b, make] of [[bindings()[0], evidence], [stopBindings()[0], stoppingEvidence], [pauseBindings()[0], pauseEvidence]]) {
+    const changed = transform(b.residual);
+    assert.throws(() => checkBindings(root, [{...b, residual: changed}]), /Missing chain residual/);
+    const e = make();
+    const claim = e.nodes.find(node => node.kind === 'derived' && node.scope.operation === b.operation);
+    claim.residual = changed;
+    assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /Missing or unsupported obligations/);
+  }
+});
+test('each prompt, stop and pause residual is individually required while additional local obligations remain allowed', () => {
+  for (const [b, make] of [[bindings()[0], evidence], [stopBindings()[0], stoppingEvidence], [pauseBindings()[0], pauseEvidence]]) {
+    for (const omitted of b.residual) {
+      const remaining = b.residual.filter(value => value !== omitted);
+      assert.throws(() => checkBindings(root, [{...b, residual: remaining}]), /Missing chain residual/);
+      const e = make();
+      e.nodes.find(node => node.kind === 'derived' && node.scope.operation === b.operation).residual = remaining;
+      assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /Missing or unsupported obligations/);
+    }
+    const expanded = {...b, residual: [...b.residual].reverse().concat('additional explicitly retained local obligation')};
+    checkBindings(root, [expanded]);
+    const e = make();
+    e.nodes.find(node => node.kind === 'derived' && node.scope.operation === b.operation).residual = expanded.residual;
+    assert(validate(e.nodes, e.report, e.current, 'js').some(node => node.scope.operation === b.operation));
+  }
+});
+test('chain common premises cannot be satisfied by a concatenated string', () => {
+  const b = bindings()[0];
+  assert.throws(() => checkBindings(root, [{...b, premises: b.premises.join('; ')}]), /Missing child premise/);
+  const e = evidence(); e.nodes.find(node => node.kind === 'derived').premises = b.premises.join('; ');
+  assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /Missing or unsupported obligations/);
+});

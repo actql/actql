@@ -300,3 +300,38 @@ test('current authorization is checked again after awaited preparation', async t
   f.authorize(true);
   assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon), undefined);
 });
+
+
+test('retained Source analysis budget rechecks original intent and current disclosure without preparation', async t => {
+  const budget = JSON.parse(await readFile(new URL(
+    '../../packages/client-wire/fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+  budget.report.verdict = 'undetermined';
+  budget.report.coverage.limits = [{code: 'analysis_budget_exhausted'}];
+  assert.equal(validCheckOutcome(budget), true);
+  let disclosed = true;
+  const observed = [];
+  const f = await fixture(t, {prepare() {
+    throw Object.assign(new Error('typed budget fixture'), {code: 'ClientProgramAnalysisLimit'});
+  }, async check(value) {
+    observed.push(value.input.text);
+    const outcome = structuredClone(budget);
+    if (!disclosed) {
+      outcome.report.coverage.limits = [];
+      outcome.report.coverage.unresolved = [{boundary: 'source_resolution', reason: 'unresolved_protected'}];
+    }
+    assert.equal(validCheckOutcome(outcome), true);
+    return outcome;
+  }});
+  const first = await f.service.submitIntent(f.body('SELECT original AS n'));
+  assert.deepEqual(first.problem, {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'});
+  f.restart();
+  disclosed = false;
+  const hidden = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
+  assert.equal(hidden.kind, first.kind);
+  assert.deepEqual(hidden.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
+    '[check-mutation:submission-budget-disclosure]');
+  disclosed = true;
+  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+  assert.ok(observed.every(text => text === 'SELECT original AS n'));
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});

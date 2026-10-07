@@ -30,36 +30,128 @@ pub fn start_captured_client_result_transformation(
   if !physical_equal(graph, selection.owner.graph) || selection.result != result {
     return Err(ForeignSelection)
   }
+  start_captured_result_publication_export(
+    run,
+    result,
+    limits,
+    converted_output?,
+    max_pins~,
+  )
+}
+
+///|
+fn captured_result_publication_binding(
+  run : @strategy.CapturedDAG,
+  result : Int,
+) -> Result[
+  (Int, @execution.ManagedResultOccurrence, @publication.PublicationContract),
+  CapturedClientResultTransformationIssue,
+] {
+  let graph = @strategy.captured_dag_graph(run)
   guard @strategy.graph_result_task(graph, result) is Some(task) &&
-    @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
+    @strategy.graph_result_occurrence(graph, result) is Some(occurrence) &&
+    @strategy.graph_result_name(graph, result) is Some(name) else {
     return Err(ForeignSelection)
   }
+  match
+    @publication.prepare_result_definition(
+      @strategy.graph_program_definition_cid(graph),
+      name,
+    ) {
+    Ok(value) =>
+      Ok((task, occurrence, @publication.result_definition_contract(value)))
+    Err(_) => Err(ForeignSelection)
+  }
+}
+
+///|
+/// Acquire the exact checked Result pin before starting bounded preparation.
+/// Source and cell representations use their existing export owner; a retained
+/// managed representation must instead provide its exact re-admission bridge.
+pub fn start_captured_result_publication_export(
+  run : @strategy.CapturedDAG,
+  result : Int,
+  limits : PublicationOutputExportLimits,
+  converted_output? : @execution.CompletedOutput,
+  max_pins? : Int = 0,
+) -> Result[
+  CapturedClientResultTransformation,
+  CapturedClientResultTransformationIssue,
+] {
+  let (task, occurrence, definition) = match
+    captured_result_publication_binding(run, result) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let graph = @strategy.captured_dag_graph(run)
   let ceiling = if max_pins == 0 {
     @strategy.graph_result_count(graph) + 1
   } else {
     max_pins
   }
-  let borrow = match
-    @strategy.borrow_captured_result_completion(run, task, occurrence, ceiling) {
-    Ok(value) => value
-    Err(issue) => return Err(Retain(issue))
-  }
-  let materialized = @strategy.captured_result_borrow_output(borrow)
-  let output = match converted_output {
-    None => materialized
-    Some(converted) => {
-      if !@execution.completed_output_same_occurrence(materialized, converted) {
-        @strategy.release_captured_result_borrow(borrow) |> ignore
-        return Err(ForeignSelection)
-      }
-      converted
+  if task < @strategy.captured_compute_first_task(run) {
+    if converted_output is Some(_) {
+      return Err(ForeignSelection)
     }
-  }
-  match start_client_result_transformation(selection, output, limits) {
-    Ok(preparation) => Ok({ preparation, borrow: Some(Cells(borrow)), })
-    Err(issue) => {
-      @strategy.release_captured_result_borrow(borrow) |> ignore
-      Err(Transform(issue))
+    let borrow = match
+      @strategy.borrow_captured_any_result_output(
+        run, task, occurrence, ceiling,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Retain(issue))
+    }
+    match
+      @strategy.start_captured_any_result_borrow_export(
+        borrow,
+        {
+          max_fields: limits.max_result_fields,
+          max_mapping_work: limits.max_result_mapping_work,
+          max_order_work: limits.max_result_order_work,
+          max_workspace_entries: limits.max_result_workspace_entries,
+        },
+        limits.max_rows,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        limits.max_batch_bytes,
+      ) {
+      Ok(preparation) =>
+        Ok({
+          preparation: { occurrence, definition, preparation, limits, },
+          borrow: Some(Any(borrow)),
+        })
+      Err(issue) => {
+        @strategy.release_captured_any_result_borrow(borrow) |> ignore
+        Err(Transform(Output(issue)))
+      }
+    }
+  } else {
+    let borrow = match
+      @strategy.borrow_captured_result_completion(
+        run, task, occurrence, ceiling,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Retain(issue))
+    }
+    let materialized = @strategy.captured_result_borrow_output(borrow)
+    let output = match converted_output {
+      None => materialized
+      Some(converted) => {
+        if !@execution.completed_output_same_occurrence(materialized, converted) {
+          @strategy.release_captured_result_borrow(borrow) |> ignore
+          return Err(ForeignSelection)
+        }
+        converted
+      }
+    }
+    match
+      start_result_publication_export(output, occurrence, definition, limits) {
+      Ok(preparation) => Ok({ preparation, borrow: Some(Cells(borrow)), })
+      Err(issue) => {
+        @strategy.release_captured_result_borrow(borrow) |> ignore
+        Err(Transform(issue))
+      }
     }
   }
 }
@@ -84,21 +176,45 @@ pub fn[T] start_captured_managed_result_transformation(
   if !physical_equal(graph, selection.owner.graph) || selection.result != result {
     return Err(ForeignSelection)
   }
-  guard @strategy.graph_result_task(graph, result) is Some(task) else {
-    return Err(ForeignSelection)
+  start_captured_managed_result_publication_export(
+    run,
+    result,
+    managed,
+    bridge,
+    output,
+    limits,
+    max_pins~,
+  )
+}
+
+///|
+/// Without an extra Client selection, managed publication must still retain
+/// this Run's exact Result and verify the live bridge's completed generation.
+pub fn[T] start_captured_managed_result_publication_export(
+  run : @strategy.CapturedDAG,
+  result : Int,
+  managed : @execution.ManagedCompletedOutput[T],
+  bridge : @execution.ManagedPublicationBridge[T],
+  output : @execution.CompletedOutput,
+  limits : PublicationOutputExportLimits,
+  max_pins? : Int = 0,
+) -> Result[
+  CapturedClientResultTransformation,
+  CapturedClientResultTransformationIssue,
+] {
+  let (task, occurrence, definition) = match
+    captured_result_publication_binding(run, result) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
+  let graph = @strategy.captured_dag_graph(run)
   let ceiling = if max_pins == 0 {
     @strategy.graph_result_count(graph) + 1
   } else {
     max_pins
   }
   let borrow = match
-    @strategy.borrow_captured_any_result_output(
-      run,
-      task,
-      selection.occurrence,
-      ceiling,
-    ) {
+    @strategy.borrow_captured_any_result_output(run, task, occurrence, ceiling) {
     Ok(value) => value
     Err(issue) => return Err(Retain(issue))
   }
@@ -107,7 +223,7 @@ pub fn[T] start_captured_managed_result_transformation(
     return Err(ForeignSelection)
   }
   let preparation = match
-    start_client_result_transformation(selection, output, limits) {
+    start_result_publication_export(output, occurrence, definition, limits) {
     Ok(value) => value
     Err(issue) => {
       @strategy.release_captured_any_result_borrow(borrow) |> ignore
@@ -118,7 +234,7 @@ pub fn[T] start_captured_managed_result_transformation(
       bridge,
       managed,
       preparation.preparation,
-      selection.occurrence,
+      occurrence,
     ) {
     preparation.cancel() |> ignore
     @strategy.release_captured_any_result_borrow(borrow) |> ignore
