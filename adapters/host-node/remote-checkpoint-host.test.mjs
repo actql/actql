@@ -17,7 +17,7 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {fileURLToPath} from 'node:url';
-import {connect, RequestHeld} from '../../packages/sdk/index.mjs';
+import {connect, RequestHeld, explainRequestLookup, explainSubmission} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
@@ -777,8 +777,14 @@ test('a held request is reviewed, answered and resumed by the Host',
     await assert.rejects(client.aql(JSON.stringify(changed),
       {format: 'json', requestId: 'held-a'}),
     {code: 'ClientRequestIntentConflict'});
-    assert.equal((await client.lookupRequest('held-a')).state,
-      'waiting_checkpoint');
+    const waitingLookup = await client.lookupRequest('held-a');
+    assert.equal(waitingLookup.state, 'waiting_checkpoint');
+    const waitingExplanation = explainRequestLookup(waitingLookup);
+    assert.equal(waitingExplanation.preparationState, 'waiting_checkpoint', '[check-mutation:request-held-public]');
+    assert.equal(explainSubmission(held).preparationState, 'waiting_checkpoint');
+    assert.deepEqual(waitingExplanation.next, {operation: 'lookupRequest', requestId: 'held-a',
+      lookupContext: {endpoint: host.options('owner-token').endpoint, scopeRef: owner}});
+    assert.equal(explainRequestLookup({...waitingLookup}), undefined);
 
     const reviewer = await host.as('reviewer-token');
     const reader = await host.as('reader-token');
@@ -823,6 +829,8 @@ test('a held request is reviewed, answered and resumed by the Host',
       const lookup = await client.lookupRequest('held-a');
       return lookup.kind === 'found' ? lookup : undefined;
     });
+    assert.equal(explainRequestLookup(found).observation, 'run_reference_received');
+    assert.equal(waitingExplanation.preparationState, 'waiting_checkpoint');
     const execution = await client.attach(found.ref);
     // wait() returns the current state; a Client waits again until the Run
     // is terminal.
@@ -2593,6 +2601,13 @@ test('rejected answers end the request without a Run; answers are per item',
       const lookup = await client.lookupRequest(summary.subject.requestId);
       assert.equal(lookup.state, 'ended');
       assert.equal(lookup.endReason, 'rejected');
+      const explanation = explainRequestLookup(lookup);
+      assert.equal(explanation.preparationState, 'ended', '[check-mutation:request-ended-public]');
+      assert.equal(explanation.summary, 'The Host reports that preparation of this held request ended. No Run reference was returned.');
+      assert.equal(explanation.next.requestId, summary.subject.requestId);
+      for (const field of ['runStatus', 'stopped', 'notAccepted', 'endReason', 'terminalErrorCode']) {
+        assert.equal(Object.hasOwn(explanation, field), false);
+      }
     }
     assert.equal(host.dispatches(), 0);
   });

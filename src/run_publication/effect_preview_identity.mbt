@@ -34,6 +34,7 @@ pub struct EffectPreviewIdentity {
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
+  member_approvals : Array[String]
   member_footprints : Array[EffectPreviewFootprintIdentity]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
@@ -42,6 +43,7 @@ pub struct EffectPreviewIdentity {
   row_intended_change_states : Array[Array[String]]
   row_intended_value_wires : Array[Array[String]]
   row_guard_version_cids : Array[Array[String]]
+  row_nonrow_states : Array[Array[Bool]]
   ordered_row_correlation_wires : Array[Array[String]]
   ordered_row_intended_change_states : Array[Array[String]]
   ordered_row_intended_value_wires : Array[Array[String]]
@@ -657,6 +659,7 @@ fn effect_member_row_inventory(
     Array[String],
     Array[String],
     Array[String],
+    Array[Bool],
   ),
   EffectPreviewIdentityIssue,
 ] {
@@ -720,6 +723,7 @@ fn effect_member_row_inventory(
   let intended_states : Array[String] = []
   let intended_values : Array[String] = []
   let guard_versions : Array[String] = []
+  let nonrow_states : Array[Bool] = []
   for row_index in 0..<changes.length() {
     let change = changes[row_index]
     match
@@ -788,6 +792,14 @@ fn effect_member_row_inventory(
           None => return Err(InvalidMember)
         }
         guard_versions.push(guard_version)
+        let before = @json.object_field(change, "before").unwrap()
+        let after = @json.object_field(change, "after").unwrap()
+        nonrow_states.push(
+          @json.object_field(before, "state")
+          is Some(@json.String("not_applicable")) &&
+          @json.object_field(after, "state")
+          is Some(@json.String("not_applicable")),
+        )
       }
       _ => return Err(InvalidMember)
     }
@@ -811,6 +823,7 @@ fn effect_member_row_inventory(
   Ok(
     (
       keys, rows, order, correlations, intended_states, intended_values, guard_versions,
+      nonrow_states,
     ),
   )
 }
@@ -914,6 +927,7 @@ pub fn admit_effect_preview_identity(
   let member_max_items : Array[Int64] = []
   let member_contracts : Array[EffectPreviewResolvedContract] = []
   let member_failure_policies : Array[String] = []
+  let member_approvals : Array[String] = []
   let member_footprints : Array[EffectPreviewFootprintIdentity] = []
   let seen_effect_ids : Map[String, Bool] = Map([])
   let seen_effect_identities : Map[String, Bool] = Map([])
@@ -923,6 +937,7 @@ pub fn admit_effect_preview_identity(
   let row_intended_change_states : Array[Array[String]] = []
   let row_intended_value_wires : Array[Array[String]] = []
   let row_guard_version_cids : Array[Array[String]] = []
+  let row_nonrow_states : Array[Array[Bool]] = []
   let ordered_row_correlation_wires : Array[Array[String]] = []
   let ordered_row_intended_change_states : Array[Array[String]] = []
   let ordered_row_intended_value_wires : Array[Array[String]] = []
@@ -1012,6 +1027,11 @@ pub fn admit_effect_preview_identity(
       _ => return Err(InvalidMember)
     }
     member_failure_policies.push(failure_policy)
+    let approval = match @json.object_field(effect, "approval") {
+      Some(@json.String(value)) => value
+      _ => return Err(InvalidMember)
+    }
+    member_approvals.push(approval)
     let footprint = match retain_effect_preview_footprint(effect) {
       Some(value) => value
       None => return Err(InvalidMember)
@@ -1025,6 +1045,7 @@ pub fn admit_effect_preview_identity(
       member_intended_states,
       member_intended_values,
       member_guard_versions,
+      member_nonrow_states,
     ) = match
       effect_member_row_inventory(
         preview, effect, index, max_wire_bytes, max_nodes, max_depth,
@@ -1061,6 +1082,7 @@ pub fn admit_effect_preview_identity(
     row_intended_change_states.push(member_intended_states)
     row_intended_value_wires.push(member_intended_values)
     row_guard_version_cids.push(member_guard_versions)
+    row_nonrow_states.push(member_nonrow_states)
     ordered_row_correlation_wires.push(ordered_correlations)
     ordered_row_intended_change_states.push(ordered_intended_states)
     ordered_row_intended_value_wires.push(ordered_intended_values)
@@ -1149,6 +1171,7 @@ pub fn admit_effect_preview_identity(
     member_max_items,
     member_contracts,
     member_failure_policies,
+    member_approvals,
     member_footprints,
     row_keys,
     row_cids,
@@ -1157,6 +1180,7 @@ pub fn admit_effect_preview_identity(
     row_intended_change_states,
     row_intended_value_wires,
     row_guard_version_cids,
+    row_nonrow_states,
     ordered_row_correlation_wires,
     ordered_row_intended_change_states,
     ordered_row_intended_value_wires,
@@ -1332,6 +1356,15 @@ pub fn effect_preview_member_failure_policy(
 }
 
 ///|
+/// The declared requirement, not evidence that approval has been granted.
+pub fn effect_preview_member_approval(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  value.member_approvals.get(index)
+}
+
+///|
 pub fn effect_preview_member_footprint(
   value : EffectPreviewIdentity,
   index : Int,
@@ -1437,6 +1470,17 @@ pub fn effect_preview_row_guard_version_cid(
       }
     None => None
   }
+}
+
+///|
+/// Whether both row states are explicitly not applicable in the private item.
+pub fn effect_preview_row_states_not_applicable(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> Bool {
+  value.row_nonrow_states.get(member_index).bind(rows => rows.get(row_index)) ==
+  Some(true)
 }
 
 ///|

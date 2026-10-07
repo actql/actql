@@ -3864,7 +3864,9 @@ fn recover_output_command(
   let attempt = required(child, "attempt")
   let expected = required(child, "expect-dispatch")
   let intent = required(child, "intent-cid")
-  let admission = run_admission(matches)
+  let recorded = load_recorded_publication(
+    required(child, "publication-custody-root"),
+  )
   let delegated = delegation(matches, budget(matches))
   let max_transfers = required_int(matches, "max-transfers")
   let target = required(matches, "target-triple")
@@ -3929,10 +3931,10 @@ fn recover_output_command(
           saved_output_bundle_current(owner.bundles, delegated, target)
         }
         let saved = match
-          @resident_host.prepare_resident_saved_output(
+          @resident_host.prepare_resident_recorded_output(
             owner.journal,
             site,
-            admission,
+            recorded,
             delegated,
             attempt,
             intent,
@@ -4138,6 +4140,7 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("attempt", required=true),
         @argparse.OptionArg("expect-dispatch", required=true),
         @argparse.OptionArg("intent-cid", required=true),
+        @argparse.OptionArg("publication-custody-root", required=true),
       ]),
       @argparse.Command("recover-release", options=[
         @argparse.OptionArg("attempt", required=true),

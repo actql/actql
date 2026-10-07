@@ -26,6 +26,7 @@ struct ClientEffectLocalResultArtifact {
   scope : @publication.PublicationContract?
   physical_cid : String
   physical_bytes : Int
+  export_receipt : @execution.CompletedRelationExportReceipt
 }
 
 ///|
@@ -306,6 +307,7 @@ fn build_client_effect_local_result_artifact(
     scope,
     physical_cid,
     physical_bytes,
+    export_receipt: receipt,
   })
 }
 
