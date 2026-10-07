@@ -3,6 +3,7 @@
 ## Scope and implementation
 
 This unit depends on retained-input cleanup in #846 at
+`e5bce7dda72bbc8a3ffeb336d2449d8a456e81bc`. Earlier preparation below used
 `6557620a76c213478e859f550644b884dfb87b9d`. It is not completion of the entire
 retained Local goal.
 
@@ -33,7 +34,7 @@ claim a new whole-physical-lifetime capacity theorem.
 
 ## Preparation evidence
 
-The following evidence observes dirty source at the dependency SHA above, not
+The following evidence observes dirty source at the earlier preparation SHA, not
 execution of the eventual clean commit. Evidence remains under the worktree's
 `_build/local-checks/attempts` and `_build/focused-evidence` directories.
 
@@ -187,3 +188,60 @@ Before publication, the unpublished merge message was changed to Conventional
 Commits with 72-column lines as `4be58f30a5cbfecb26bdd80792df5960f50a7e18`.
 Its tree and parents are unchanged; the execution receipt stays tied to the
 original merge SHA above, not the message-only successor.
+
+## Installed DuckDB cleanup-hook acceptance
+
+The installed consuming boundary is now exercised separately from the Local
+standard Host selection above. The new regression uses ordinary public Program
+preparation, then the existing checked strategy fixture for task selection and
+input binding. Real native acquisition and a fixed producer create a retained
+managed input. `runManagedColumnStrategyHostCompute` executes the selected group
+task through the installed DuckDB driver and real Store. The fixture does not
+constitute a packed public Named Result campaign.
+
+The source has 50 independent IDs, each with four count outputs. Retained
+downstream rows are read through an actual managed input borrow and compared,
+without sorting, to authored `{id, n: 1, n2: 1, n3: 1, n4: 1}` rows. Acquisition
+transport independently accounts for one catalog row, 50 validation rows and
+50 projection rows. Both data receipts share the existing 100-row conformance
+allowance; neither a product capacity limit nor a failure check is enlarged.
+
+Close releases physical Store capacity but reports pending private admission
+roots. The test requires common execution capacity to remain charged, then
+drives the same cleanup handle until release. Its seven-poll bound derives from
+50 rows with eight buffer/reference-container entries each, 15 column counters
+and one terminal buffer step: 416 entries, with 64-entry disposal slices. The
+hook may drive more than one disposal slice per poll; no wall-clock bound is
+claimed. The native-attempt ledger count stays unchanged across every retry and
+an extra completed retry. The retained source remains usable until separately
+closed. Finally, source cleanup checks the typed refresh result and requires
+transfer, execution, holding and retention reservations to reach zero.
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
+  adapters/connectors/duckdb/node/test/managed-driver-reclamation.test.mjs \
+  adapters/connectors/duckdb/node/test/managed-failure-lifecycle.test.mjs
+```
+
+This selection passed 10/10 at dirty
+`61298497c40a2943753edfd04b75186b5afb8887`, with only the new test untracked:
+`run-eMobrM` / `focused-test-n6mJPv`. The standalone first passing hook receipt
+is `run-PaP8K1` / `focused-test-GgGChO` (1/1). The final selection adds the
+independent seven-poll and source-reservation checks. The nine adjacent cases
+include mocked lifecycle hooks; only the new installed case proves this actual
+driver connection. Reused release runtimes still correspond to the unchanged
+compiled MoonBit inputs at `f104f8ede03f6353481d971ca7ce1a2e77b9f959`.
+
+Earlier fixture attempts are retained, not converted to product-failure claims:
+the pretty environment body needed canonical encoding, native and Node
+acquisition needed their distinct cumulative row accounting, and physical DOUBLE
+bits needed explicit decoding. A two-column fixture correctly completed
+retirement during initial close; the five-column fixture crosses that slice
+boundary under the same limits and confirms genuinely pending cleanup. No
+production change or acceptance weakening was needed for this additional test.
+
+The previously unverified installed DuckDB hook is now covered on JS with real
+DuckDB I/O. Synchronous receipt/availability walks, snapshot cancellation,
+Wasm/Native runtime correspondence, pristine packed/HTTPS acceptance and
+submitted-HEAD CI remain outside the established evidence. This does not close
+the whole retained Local goal or certify a Native physical-byte theorem.
