@@ -642,14 +642,16 @@ for (const {name, family, publicationFault} of [
 }
 
 // Independent scalar phase model, also checked in the portable provider test:
-// Values 11 + filter true 31 + select 19 + two handoffs = 63 work units.
+// Values 20 + filter true 31 + select 19 + port scans 90 + handoffs 2 = 162.
+// Values includes four-step row charging. Port scans for values_0, where_1
+// and select_2 cost 31, 28 and 31, including their lowered IDs and names.
 // Filter's three metadata entries, three roots, snapshot and two predicate
 // slots peak at nine workspace entries. These are not sampled from a run.
 for (const {name, work, workspace, failure} of [
-  {name: 'exact scalar chain budgets', work: 63, workspace: 9},
-  {name: 'one-short scalar chain work', work: 62, workspace: 9,
+  {name: 'exact scalar chain budgets', work: 162, workspace: 9},
+  {name: 'one-short scalar chain work', work: 161, workspace: 9,
     failure: 'work'},
-  {name: 'one-short scalar chain workspace', work: 63, workspace: 8,
+  {name: 'one-short scalar chain workspace', work: 162, workspace: 8,
     failure: 'workspace'},
 ]) {
   test(`retained Values honors ${name}`, async () => retainedRun(
@@ -658,7 +660,7 @@ for (const {name, work, workspace, failure} of [
       if (!failure) {
         const owner = await run();
         assert.equal(owner.status, 'published');
-        assert.equal(observations().producerWork, 63n);
+        assert.equal(observations().producerWork, 162n);
         const inventory = owner.execution.publicationInventory.occurrences;
         assert.deepEqual(inventory.map(value => value.name).sort(),
           [...resultNames].sort());

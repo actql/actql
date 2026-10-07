@@ -900,7 +900,7 @@ pub fn[T] start_local_managed_dispatch(
             SuppliedRelationInput(_) => reads.push(None)
           }
         }
-        let operations : @connector.ManagedExecutionOperations[
+        let operations : @connector.ExecutionLifecycleOperations[
           @strategy.RunIssue,
         ] = {
           cancel: fn() {

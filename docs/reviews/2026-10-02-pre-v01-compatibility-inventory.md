@@ -62,6 +62,22 @@ inventory continues to name the current typed entrypoints in
 
 ## Retained paths and concrete follow-ups
 
+### Current managed lifecycle retirement
+
+The managed lifecycle follow-up below is historical. Managed preparation, bind
+and start now use `ExecutionLifecycleOperations` directly. Local, DuckDB and
+reference-compute drivers construct that common type, and task execution adopts
+the same hooks without a conversion. `ManagedExecutionOperations` and
+`managed_execution_lifecycle` are removed rather than kept as aliases. This
+source API retirement changes no lifecycle fields, completion authority,
+reservation formula or stored identity. Existing stop, settlement and scratch
+release checks remain with their owners.
+
+Materializing preparation is not a backward-compatibility adapter: it is the
+current verified retained-input path to installed bounded execution. Its input
+admission and output custody cannot be deleted merely because earlier reports
+called the path "old".
+
 Paths and line numbers below refer to the inspected main. These are not removals
 in this change.
 
