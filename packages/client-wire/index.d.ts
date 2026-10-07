@@ -85,6 +85,8 @@ export type WireClientBodyByOperation = Readonly<{
   }>}> | Readonly<{kind: 'program'; input: object}>);
   'submit-intent': Omit<WireClientBodyByOperation['submit'], 'requestId'> & Readonly<{
     submissionRef: WireSubmissionRef; intentCid: string}>;
+  'restart-intent': WireClientBodyByOperation['submit-intent'] & Readonly<{
+    unresolvedHistory: WireSubmissionRestart}>;
   'lookup-submission': WireBodyBase & Readonly<{submissionRef: WireSubmissionRef}>;
   check: WireBodyBase & Readonly<{
     input: Readonly<{
