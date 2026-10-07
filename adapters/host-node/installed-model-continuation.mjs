@@ -277,7 +277,20 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       expires_at: run.valid_until, displayed_scope: {model_invocation_scope_cid: scope.identity,
         model_call_slot_cids: inventory.slots.map(slot => slot.slotCid)}, displayed_authoring_context: [],
     }), limits);
-    let gate;
+    let gate, gateOpening;
+    let gateCloseAttempted = false, gateReleased = false;
+    const cleanup = () => {
+      owner.available = false;
+      if (gateOpening !== undefined) return false;
+      if (gate === undefined || gateReleased) return true;
+      const recover = gateCloseAttempted;
+      gateCloseAttempted = true;
+      const result = recover ? gate.cleanup() : gate.close();
+      gateReleased = result !== false && gate.cleanupPending() === false;
+      return gateReleased;
+    };
+    const cleanupPending = () => owner.available || gateOpening !== undefined ||
+      gate !== undefined && !gateReleased;
     const gateOptions = {runId: run.run_id,
       runDefinitionCid: plan.runDefinition.identity, unitId: facts.unitId, scopeCid: scope.identity,
       tuple: {connection: facts.providerId, resource: facts.modelTaskCid, operation: 'infer'},
@@ -290,15 +303,24 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
       entry: slot => owner.entries.get(slot), observe,
       async authorize() {
+        if (!owner.available) fail('ModelContinuationClosed');
         signal?.throwIfAborted();
         if (!owner.currentProvider()) fail('ModelProviderBindingChanged');
         if (selected.egressAdmission === undefined) throw selected.egressFailure ?? new Error('InstalledModelEgressUnavailable');
-        gate ??= await cp.modelAuthorization(gateOptions);
+        if (gate === undefined) {
+          gateOpening ??= cp.modelAuthorization(gateOptions).then(value => { gate = value; })
+            .finally(() => { gateOpening = undefined; });
+          await gateOpening;
+        }
+        if (!owner.available) { cleanup(); fail('ModelContinuationClosed'); }
+        signal?.throwIfAborted();
         const decision = claim === undefined
           ? await gate.authorize({signal})
           : await gate.resume({signal, resumption: {claim: {checkpointCid: existing.checkpointCid, claim}}});
         if (decision.action === 'waiting') return {status: 'waiting_checkpoint', checkpoint: decision.checkpoint};
         if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
+        if (!owner.available) fail('ModelContinuationClosed');
+        signal?.throwIfAborted();
         if (view === undefined) view = cp.journal.registerImmediateModelCallSet({modelCallSet: originals, declaredResults, parentResume});
         owner.decision = decision;
         operation.bindModelDispatch(control, plan, preparedCallSet, bound,
@@ -328,7 +350,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             }});
         return {status: 'dispatch'};
       },
-      close() { owner.available = false; gate?.close(); },
+      // Closing revokes use immediately; a late physical callback remains
+      // this continuation's responsibility until the same gate settles.
+      close: cleanup, cleanup, cleanupPending,
     });
   }
   return Object.freeze({verifier, open, prime, observe,

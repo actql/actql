@@ -78,11 +78,20 @@ export type CheckRequirementFrontier = Readonly<{
   reasonSchemaCid: string;
   scope: CompletedCheckReport['scope'];
   requirements: readonly Readonly<{
-    code: CompletedCheckReport['requirements'][number]['code'];
+    code: 'parameter_value_required';
     facts: ParameterRequirementFacts;
   }>[];
   coverage: CompletedCheckReport['coverage'];
 }>;
+/** Known public context selections from the original completed check; no write permission. */
+export type CheckContextRequirement = Readonly<{
+  code: 'host_capacity_policy_required';
+  facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {schema_pointer: '/schema'}>;
+}> | Readonly<{
+  code: 'numeric_reduction_profile_required';
+  facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {profile_cid: string}>;
+}>;
+export declare function getCheckContextRequirements(outcome: unknown): readonly CheckContextRequirement[] | undefined;
 /** Copied, partial and uninterpretable reports have no comparable frontier. */
 export declare function getCheckRequirementFrontier(outcome: CheckOutcome): CheckRequirementFrontier | undefined;
 /** Structural set equality within the same bound scope/context; never verification. */
@@ -297,7 +306,8 @@ export type ReadOptions = {
 
 export interface Reader<T> extends AsyncIterable<T> {
   readonly attemptId: string;
-  state(): 'not_started' | 'prefix' | 'complete';
+  /** Opening failures retain their attempt; lookup absence is not no-send proof. */
+  state(): 'not_started' | 'opening' | 'open_unknown' | 'prefix' | 'complete';
   /** Complete rows yielded to this reader's caller, excluding buffered rows. */
   rowsYielded(): number;
 }
@@ -318,6 +328,7 @@ export interface Result {
   all(options?: ReadOptions): Promise<unknown[]>;
   one(options?: ReadOptions): Promise<unknown>;
   scalar(options?: ReadOptions): Promise<unknown>;
+  /** Detached, recursively frozen snapshot of this lookup's admitted response. */
   deliveryAttempt(attemptId: string,
     options?: {signal?: AbortSignal}): Promise<DeliveryAttemptLookup>;
 }
