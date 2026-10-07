@@ -9,7 +9,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {tableFixturePublicationPlan} from './fixtures/table-completed-capture.mjs';
-import {createIcebergPhysicalBridge} from './table-iceberg-process.mjs';
+import {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
 import {recoverCompletedEffectfulComputation, suspendCompletedEffectfulComputation,
   releaseCompletedRunPreparedPayloads, retireCompletedEffectfulCapture}
@@ -19,6 +19,7 @@ import {ensureCheckpointRuntime, accountConfiguration, accountEntry,
   fixtureAuthorization} from './authorization-fixture.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
+import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const python = pathToFileURL(process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(
@@ -41,7 +42,7 @@ for (const partial of [false,true]) {
           limits: {bytes: 16777216, files: 128, operations: 16}};
         const setup = spawnSync(fileURLToPath(python), ['-c',
           'import json,sys; from catalog import TableCatalog; c=json.loads(sys.argv[1]); t=TableCatalog(c["database"],c["warehouse"],c["catalogCid"],c["limits"]); t.create_namespace("analytics"); t.engine.dispose()',
-          JSON.stringify(catalog)], {cwd: fileURLToPath(new URL('../table-iceberg/', import.meta.url)),
+          JSON.stringify(catalog)], {cwd: fileURLToPath(new URL('../connectors/local/iceberg/', import.meta.url)),
           encoding: 'utf8', timeout: 20000});
         assert.ifError(setup.error); assert.equal(setup.status, 0, setup.stderr);
         const commits = () => {
@@ -120,6 +121,8 @@ for (const partial of [false,true]) {
           assert.equal(commits(),0);
           const saved = JSON.parse(stage.continuationWire);
           const originalRequests = stage.apply.members.map(member => member.claims[0].canonicalRequestCid);
+          const originalOperations = JSON.parse(control.effectComputationPreviewWire(stage.preview))
+            .effects.map(member => member.changes[0].intended_changes.value);
           await suspendCompletedEffectfulComputation({execution:f.execution,store,control,
             storedResults:stage.storedResults,computation:stage.computation,preview:stage.preview});
           stage.releaseInputs(); await stage.dispose();
@@ -202,8 +205,14 @@ for (const partial of [false,true]) {
           }
           const receipts = recoveredStage.receipt.members.map(member => JSON.parse(
             recoveredStage.apply.ledger.readClaimedOutcome(member.rowOwners[0].claim).outcomeJson).typed_outcome.result);
+          const physicalReceipts = await Promise.all(originalOperations.map(async (operation, index) => {
+            const original = await bridge.reconcileOperation(operation);
+            assert.equal(original.ok, true);
+            assert.deepEqual(receipts[index], expectedLogicalTableReceipt(original.result));
+            return original.result;
+          }));
           const expected = empty ? [] : [{id:1},{id:2}];
-          for (const receipt of receipts) assert.deepEqual(plain((await bridge.read(receipt,JSON.parse(f.storage.wire))).result),expected);
+          for (const receipt of physicalReceipts) assert.deepEqual(plain((await bridge.read(receipt,JSON.parse(f.storage.wire))).result),expected);
           const replay = await applyRecoveredEffectSet({...recoveredStage.apply,authorization:undefined,
             bindDispatch:()=>assert.fail('Settled Table operation resent')});
           assert.equal(replay.dispatched,0); assert.equal(commits(),2);
@@ -218,7 +227,7 @@ for (const partial of [false,true]) {
           await retireCompletedEffectfulCapture({store,control,runDefinition:plan.runDefinition,
             contractLimits:plan.contractLimits});
           assert.equal(store.status().reservedBytes,0);
-          for (const receipt of receipts) assert.deepEqual(plain((await bridge.read(receipt,JSON.parse(f.storage.wire))).result),expected);
+          for (const receipt of physicalReceipts) assert.deepEqual(plain((await bridge.read(receipt,JSON.parse(f.storage.wire))).result),expected);
         } finally {
           gate?.close(); await checkpoint?.close(); readAuthorization.close();
           await recoveredStage?.dispose(); await stage?.dispose();

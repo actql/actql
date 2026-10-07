@@ -18,6 +18,13 @@ truth. A private Relation snapshot, a Named Result and a durable Table have
 different identities and lifetimes. External writers, Catalog migration, schema
 evolution, incremental writes and a dbt adapter are later units.
 
+Local Table Source and Effect installation belongs to the Local Connector.
+Its `host-bundle.json` declares the two roles and the finite physical worker
+assets. The common Host selects those declared roles; there is no second
+Table-only installation table or fallback to an older built-in profile.
+The Python Iceberg implementation stays behind the Local physical boundary,
+while shared validation, approval and Effect governance remain common.
+
 ## Operation and publication identity
 
 `actql-table-operation/0.1` binds the saved logical request scope and Effect
@@ -344,8 +351,8 @@ only temporary acquisition custody, never Catalog-owned files. The optional Host
 installation loader supplies its trusted local Site/read-approval boundary;
 this adapter does not issue authority or implement another scheduler.
 
-The closed `actql-installed-table-source/0.1` and
-`actql-installed-table-effect/0.1` profiles enter the existing generic Host
+The closed `actql-installed-local-table-source/0.1` and
+`actql-installed-local-table-effect/0.1` profiles enter the existing generic Host
 installation tables. Host configuration, never Program input, selects the
 absolute Python path, bounded physical Catalog configuration, logical
 connection, account configuration, finite targets and runtime limits. Loading
@@ -388,6 +395,26 @@ deletes files nor releases capacity early. Original facts survive cleanup and
 later commits independently of current Table head.
 
 ## Implementation boundary
+
+The shared operation and logical receipt bind the original checked input,
+Catalog, immutable Table identity and generation. The logical receipt includes
+the CID of the Connector-validated original physical receipt. Metadata
+locations, Iceberg snapshot IDs and field-ID/presence encoding are owned by the
+Local Connector contract. The Local MoonBit adapter admits the saved physical
+response and projects a separately sealed logical receipt; the common Owner
+then checks operation correspondence and the immutable input measurement.
+Physical response bytes remain under the existing Ledger and Catalog custody.
+Logical and physical receipt CIDs are not interchangeable, and the common
+receipt reader does not accept the physical envelope as a compatibility form.
+
+The selected installed Connector supplies `projectCommitResponse` for both live
+settlement and original-operation reconciliation. It validates its saved
+physical response using its own MoonBit contract before returning the logical
+envelope. The common Table connection has no implicit Local/Iceberg fallback;
+a missing or failed projection leaves the original response and unresolved
+responsibility intact. The Ledger saves the original physical bytes, not the
+projected logical envelope. Projection neither authorizes another send nor
+replaces the original response during recovery.
 
 The narrow machine contract and bounded common admission below specify the
 operation and receipt; they do not claim ordinary Program execution is already

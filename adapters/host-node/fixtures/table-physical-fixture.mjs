@@ -15,10 +15,10 @@ const {runtimeCore} = await tableTestModule(new URL('../../host-common/runtime-c
   'adapters/host-common/runtime-core.mjs');
 const {openEffectLedger} = await tableTestModule(new URL('../effect-ledger.mjs', import.meta.url),
   'adapters/host-node/effect-ledger.mjs');
-const {createIcebergPhysicalBridge} = await tableTestModule(new URL('../table-iceberg-process.mjs', import.meta.url),
-  'adapters/host-node/table-iceberg-process.mjs');
+const {createIcebergPhysicalBridge} = await tableTestModule(new URL('../../connectors/local/host/iceberg-process.mjs', import.meta.url),
+  'adapters/connectors/local/host/iceberg-process.mjs');
 const python = pathToFileURL(process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../../.venv-table/bin/python', import.meta.url)));
-const directory = await tableTestAsset(new URL('../../table-iceberg/', import.meta.url), 'adapters/table-iceberg');
+const directory = await tableTestAsset(new URL('../../connectors/local/iceberg/', import.meta.url), 'adapters/connectors/local/iceberg');
 const cid = digit => 'sha256:'+digit.repeat(64);
 const control = runtimeCore(moon).effectApplicationControl;
 const seal = (value, field) => ({...value, [field]: machineCid(value)});
@@ -34,8 +34,8 @@ export async function tablePhysicalFixture(t, entry) {
     JSON.stringify(catalog)], {cwd: directory, encoding: 'utf8', timeout: 20000});
   assert.ifError(setup.error);
   assert.equal(setup.status, 0, setup.stderr);
-  const mapping = JSON.parse(await readFile(new URL('../../table-iceberg/fixtures/presence-mapping.json', import.meta.url), 'utf8'));
-  const schemaWire = (await readFile(new URL('../../table-iceberg/fixtures/presence-schema.json', import.meta.url), 'utf8')).trimEnd();
+  const mapping = JSON.parse(await readFile(new URL('../../connectors/local/iceberg/fixtures/presence-mapping.json', import.meta.url), 'utf8'));
+  const schemaWire = (await readFile(new URL('../../connectors/local/iceberg/fixtures/presence-schema.json', import.meta.url), 'utf8')).trimEnd();
   const scope = control.logicalRequestScope(cid('a'), 'table-operation', 32);
   const operation = (action = 'create', expected = null, suffix = 'rows') => seal({
     version: 'actql-table-operation/0.1', logical_request_scope_cid: control.logicalRequestScopeCid(scope),

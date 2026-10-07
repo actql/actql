@@ -20,6 +20,21 @@ export const installedConnectors = Object.freeze([
     }),
   }),
   Object.freeze({
+    name: "local", registration: "local",
+    revision: "local/0.1",
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-local-table-source/0.1",
+      load: () => import("../connectors/local/host/installed-local-table.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledTableSourceProfile, identityParts: module.installedTableSourceIdentityParts, load: module.loadInstalledTableSource})),
+    }),
+    effect: Object.freeze({
+      profileVersion: "actql-installed-local-table-effect/0.1",
+      load: () => import("../connectors/local/host/installed-local-table.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledTableEffectProfile, identityParts: module.installedTableEffectIdentityParts, load: module.loadInstalledTableEffect})),
+    }),
+  }),
+  Object.freeze({
     name: "salesforce", registration: "salesforce",
     revision: "salesforce/0.1",
     providerBundle: "connectors/salesforce/host_node",

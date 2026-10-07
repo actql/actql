@@ -14,7 +14,7 @@ Install on the Host that opts into Table support, not in Core or the SDK:
 ```sh
 python3.12 -m venv .venv-table
 uv pip install --python .venv-table/bin/python --require-hashes \
-  -r adapters/table-iceberg/requirements.lock
+  -r adapters/connectors/local/iceberg/requirements.lock
 ```
 
 The lock pins PyIceberg 0.10.0, PyArrow 21.0.0 and all transitive dependencies.
@@ -68,7 +68,7 @@ allocation, charged bytes, fence and deletion records are retained as audit fact
 
 ## Focused diagnostics and remaining integration
 
-The internal `adapters/host-node/table-iceberg-process.mjs` bridge launches the
+The internal `adapters/connectors/local/host/iceberg-process.mjs` bridge launches the
 pinned optional interpreter through the existing managed-process owner. The
 worker uses the existing bounded private execution frames and opens no Catalog
 during its handshake. One write consumes one opaque preparation, including an
@@ -129,7 +129,7 @@ reader reconstruction after reply loss and after a later replacement; do not
 combine these into a claim of an installed public recovery path.
 
 ```sh
-node scripts/local-checks.mjs test node -- adapters/table-iceberg/physical.test.mjs
+node scripts/local-checks.mjs test node -- adapters/connectors/local/iceberg/physical.test.mjs
 node scripts/local-checks.mjs build moon -- --target js --release src/connectors_builtin_node
 node scripts/local-checks.mjs test node -- adapters/host-node/process-channel.test.mjs adapters/host-node/table-iceberg-process.test.mjs
 ```

@@ -4,7 +4,7 @@
 /// availability and authorize continuation; there is no reconstructed Compute.
 struct RecoveredClientTablePreview {
   operation : @effect.TableOperation
-  mapping : @effect.TableStorageMapping
+  mapping : @effect.StorageMappingReference
   preview : @publication.EffectPreviewIdentity
   source : @publication.CapturedEffectSourceArtifact
   member_index : Int
@@ -19,7 +19,7 @@ pub fn bind_recovered_client_table_preview(
   source : @publication.CapturedEffectSourceArtifact,
   captured : @publication.PublicationContract,
   scope : @request_scope.LogicalRequestScope,
-  mapping_wire : String,
+  mapping : @effect.StorageMappingReference,
   store_authority_cid : String,
   max_bytes : Int,
   max_nodes : Int,
@@ -66,13 +66,6 @@ pub fn bind_recovered_client_table_preview(
     Ok(value) => value
     Err(_) => return Err(ForeignInput)
   }
-  let mapping = match
-    @effect.admit_table_storage_mapping(
-      mapping_wire, table_max_bytes, table_max_nodes, table_max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Mapping(issue))
-  }
   let parsed = match
     @source.parse_json(@publication.publication_contract_json(result), {
       max_input_bytes: max_bytes,
@@ -102,7 +95,7 @@ pub fn bind_recovered_client_table_preview(
     is Some(effect_cid) else {
     return Err(ForeignInput)
   }
-  if schema != @effect.table_storage_mapping_schema_cid(mapping) ||
+  if schema != @effect.storage_mapping_reference_schema_cid(mapping) ||
     !@effect.table_operation_matches_input(
       operation,
       scope,
@@ -134,7 +127,7 @@ pub fn recovered_client_table_preview_operation(
 ///|
 pub fn recovered_client_table_preview_mapping(
   value : RecoveredClientTablePreview,
-) -> @effect.TableStorageMapping {
+) -> @effect.StorageMappingReference {
   value.mapping
 }
 
@@ -149,7 +142,7 @@ pub fn check_recovered_client_table_schema_wire(
   max_depth : Int,
 ) -> Result[Unit, ClientTableInputIssue] {
   @publication.validate_result_schema_wire(
-    @effect.table_storage_mapping_schema_cid(value.mapping),
+    @effect.storage_mapping_reference_schema_cid(value.mapping),
     wire,
     max_bytes,
     max_nodes,

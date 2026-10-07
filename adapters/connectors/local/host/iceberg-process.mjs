@@ -5,8 +5,8 @@
 // managed-process owner; none are taken from an IPC acknowledgement.
 import {isAbsolute} from 'node:path';
 import {createHash} from 'node:crypto';
-import {prepareManagedExecution, startManagedExecution} from './process-channel.mjs';
-import {encodeProcessFrame} from './process-frames.mjs';
+import {prepareManagedExecution, startManagedExecution} from '../../../host-node/process-channel.mjs';
+import {encodeProcessFrame} from '../../../host-node/process-frames.mjs';
 
 const frames = Object.freeze({maxBytes: 4 * 1024 * 1024, maxNodes: 100000, maxDepth: 32});
 const preparations = new WeakMap();
@@ -16,8 +16,18 @@ const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(
 const keys = (value, names) => value && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join(',') === names.slice().sort().join(',');
 
+// The selected Local installation admits physical fields through its MoonBit
+// contract. Common Table settlement sees only this logical projection; the
+// original response remains in the existing Ledger and Catalog.
+export function projectIcebergCommitResponse({control, responseWire, statusCode, limits}) {
+  if (typeof control?.localTableCommitResponse !== 'function') {
+    fail('InvalidLocalTableCommitProjector');
+  }
+  return control.localTableCommitResponse(responseWire, statusCode, limits);
+}
+
 export function createIcebergPhysicalBridge({python, run, catalog,
-  entry = new URL('../table-iceberg/process_worker.py', import.meta.url)}) {
+  entry = new URL('../iceberg/process_worker.py', import.meta.url)}) {
   const config = snapshot(catalog);
   if (!(python instanceof URL) || python.protocol !== 'file:' ||
       !keys(config, ['database', 'warehouse', 'catalogCid', 'limits']) ||
@@ -69,6 +79,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     return invoke('reconcile', payload, signal);
   };
   const bridge = Object.freeze({
+    projectCommitResponse: projectIcebergCommitResponse,
     // Pure installed-target validation. A selector binds a Table, not a read
     // grant or a generation; only the authorized resolver freezes a head.
     checkReadSelector(selector) {

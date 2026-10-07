@@ -40,7 +40,6 @@ import {readSourceProfileJson} from './source-profile-json.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
-import {tableInstallation} from './installed-table-installation.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
   capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
@@ -68,7 +67,7 @@ const duckdbInstallation = Object.freeze({
     }),
   }),
 });
-const installations = installedConnectorTable([duckdbInstallation, tableInstallation,
+const installations = installedConnectorTable([duckdbInstallation,
   ...installedConnectors]);
 
 // Select the installed connector of a Host profile and load its

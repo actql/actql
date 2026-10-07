@@ -3,9 +3,10 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
-import {checkTableEffectContract, checkTableOperation} from
+import {checkTableEffectContract, checkTableOperation, localTablePhysicalContract} from
   './table-effect-contract.mjs';
-import {authoredTableVectors, tableMoonVectors} from './table-effect-vectors.mjs';
+import {authoredTableVectors, tableMoonVectors, authoredLocalTableReceiptVectors,
+  localTableMoonVectors} from './table-effect-vectors.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const corpus = read('portability/corpus/table-effect.json');
@@ -17,6 +18,22 @@ const reseal = body => {
 
 test('Table provider envelopes retain their exact narrow contract', () => {
   checkTableEffectContract(read('spec/contracts/actql-table-effect.json'));
+  assert.deepEqual(read('spec/contracts/actql-local-table-iceberg.json'), localTablePhysicalContract());
+  assert.equal(read('spec/contracts/actql-table-effect.json').schemas.receipt.properties.metadata_location, undefined);
+  assert.equal(read('spec/contracts/actql-table-effect.json').schemas.receipt.properties.snapshot_id, undefined);
+});
+
+test('Local physical evidence and logical receipts have separate independently sealed identities', () => {
+  assert.equal(readFileSync('src/connectors/local/table/receipt_vectors.generated_wbtest.mbt', 'utf8'),
+    localTableMoonVectors());
+  for (const {physical, logical} of authoredLocalTableReceiptVectors()) {
+    for (const body of [physical, logical]) {
+      const {receipt_cid, ...preimage} = body;
+      verifyIdentity(preimage, receipt_cid);
+    }
+    assert.notEqual(physical.receipt_cid, logical.receipt_cid);
+    assert.equal(logical.physical_receipt_cid, physical.receipt_cid);
+  }
 });
 
 test('Table request/receipt vectors use independently authored preimages', () => {

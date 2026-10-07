@@ -6,6 +6,7 @@ import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 
 export const tableContractPath = 'spec/contracts/actql-table-effect.json';
+export const localTableContractPath = 'spec/contracts/actql-local-table-iceberg.json';
 const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
 const uuid = {type: 'string',
   pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'};
@@ -29,17 +30,17 @@ export function tableEffectContract() {
       receipt: 'canonical_complete_receipt_excluding_only_receipt_cid',
       noncommit_receipt: 'canonical_complete_noncommit_receipt_excluding_only_receipt_cid',
       mapping: 'canonical_complete_mapping_excluding_only_mapping_cid',
-      generation: 'sha256_of_exact_published_iceberg_metadata_file_bytes',
-      table: 'catalog_identity_and_immutable_iceberg_table_uuid',
-      snapshot_id: 'nullable_decimal_string_not_generation_or_logical_content_cid',
+      generation: 'opaque_immutable_connector_publication_identity',
+      table: 'catalog_identity_and_immutable_table_uuid',
+      physical_receipt: 'opaque_self_cid_of_connector_validated_original_receipt_retained_with_saved_response',
     },
     semantics: {
       input: 'one_complete_checked_relation_per_operation_not_per_row',
       create: 'name_absent_at_atomic_publication',
       replace: 'same_table_uuid_exact_expected_generation_same_schema_cid',
-      empty: 'typed_empty_table_no_fabricated_row_or_snapshot_id',
+      empty: 'typed_empty_table_no_fabricated_row',
       multiplicity: 'preserve_duplicate_rows',
-      ordering: 'no_query_order_from_physical_file_or_iceberg_sort_order',
+      ordering: 'no_query_order_from_backend_storage',
       approval: 'required_before_table_staging_and_publication_current_authority_rechecked',
       unknown: 'reconcile_original_operation_no_resend_no_potentially_published_file_cleanup',
       publication: 'durable_catalog_head_and_original_operation_record_in_one_transaction',
@@ -52,16 +53,10 @@ export function tableEffectContract() {
       external_writers: 'outside_initial_provider_capability',
     },
     presence: {
-      binding: 'sealed_logical_column_to_value_and_companion_iceberg_field_ids',
-      false_null: 'missing_logical_column',
-      true_null: 'present_null_requires_logical_nullable',
-      true_value: 'present_value_requires_checked_type',
-      false_value: 'reject',
-      missing_or_null_companion: 'reject_before_default_projection',
-      missing_value_field: 'reject_before_default_projection',
-      required_column: 'value_field_physically_present_without_companion_nullable_independent',
-      physical_namespace: '__actql_presence_',
-      ordinary_reader: 'physical_companions_visible_no_implicit_actql_presence_semantics',
+      binding: 'sealed_connector_validated_mapping_of_complete_logical_schema',
+      states: 'omission_present_null_present_value_remain_distinct',
+      required: 'absence_rejected_nullable_is_independent',
+      invalid_encoding: 'reject_no_defaulting_or_null_padding',
     },
     schemas: {
       operation: schema('operation', {
@@ -81,15 +76,13 @@ export function tableEffectContract() {
         request_cid: cid,
       }),
       receipt: schema('receipt', {
-        version: {const: 'actql-table-receipt/0.1'},
+        version: {const: 'actql-table-logical-receipt/0.1'},
         request_cid: cid,
         effect_identity_cid: cid,
         catalog_identity_cid: cid,
         table_uuid: uuid,
         generation_cid: cid,
-        metadata_location: {type: 'string', minLength: 1, maxLength: 4096},
-        snapshot_id: nullable({type: 'string',
-          pattern: '^[1-9][0-9]{0,18}$'}),
+        physical_receipt_cid: cid,
         schema_cid: cid,
         storage_mapping_cid: cid,
         row_count: nonnegative,
@@ -105,7 +98,44 @@ export function tableEffectContract() {
         reason: {enum: ['CreateNameConflict', 'ExpectedGenerationConflict']},
         receipt_cid: cid,
       }),
-      storage_mapping: schema('storage-mapping', {
+      storage_mapping: {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $id: 'urn:actql:table-storage-mapping-reference:0.1',
+        type: 'object', required: ['version', 'schema_cid', 'mapping_cid'],
+        properties: {version: {type: 'string', minLength: 1, maxLength: 256},
+          schema_cid: cid, mapping_cid: cid},
+        additionalProperties: true,
+      },
+    },
+  };
+}
+
+// Connector-owned physical representation. The common operation/receipt
+// schemas above do not mandate these fields for another backend.
+export function localTablePhysicalContract() {
+  return {
+    version: 'actql-local-table-iceberg-contract/0.1',
+    identity: {generation: 'sha256_of_exact_published_iceberg_metadata_file_bytes',
+      table: 'immutable_iceberg_table_uuid_projected_to_logical_table_identity'},
+    presence: {binding: 'sealed_logical_column_to_value_and_companion_iceberg_field_ids',
+      false_null: 'missing_logical_column', true_null: 'present_null_requires_logical_nullable',
+      true_value: 'present_value_requires_checked_type', false_value: 'reject',
+      missing_or_null_companion: 'reject_before_default_projection',
+      missing_value_field: 'reject_before_default_projection',
+      required_column: 'value_field_physically_present_without_companion_nullable_independent',
+      physical_namespace: '__actql_presence_',
+      ordinary_reader: 'physical_companions_visible_no_implicit_actql_presence_semantics'},
+    schemas: {
+      receipt: schema('iceberg-physical-receipt', {
+        version: {const: 'actql-table-receipt/0.1'}, request_cid: cid,
+        effect_identity_cid: cid, catalog_identity_cid: cid, table_uuid: uuid,
+        generation_cid: cid,
+        metadata_location: {type: 'string', minLength: 1, maxLength: 4096},
+        snapshot_id: nullable({type: 'string', pattern: '^[1-9][0-9]{0,18}$'}),
+        schema_cid: cid, storage_mapping_cid: cid, row_count: nonnegative,
+        receipt_cid: cid,
+      }),
+      storage_mapping: schema('iceberg-storage-mapping', {
         version: {const: 'actql-table-storage-mapping/0.1'},
         schema_cid: cid,
         iceberg_format_version: {const: 2},
@@ -159,7 +189,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (process.argv.includes('--write')) {
     writeFileSync(tableContractPath,
       JSON.stringify(tableEffectContract(), null, 2) + '\n');
+    writeFileSync(localTableContractPath,
+      JSON.stringify(localTablePhysicalContract(), null, 2) + '\n');
   }
   checkTableEffectContract(JSON.parse(readFileSync(tableContractPath, 'utf8')));
+  assert.deepEqual(JSON.parse(readFileSync(localTableContractPath, 'utf8')), localTablePhysicalContract());
   console.log('Table Effect contract: exact provider envelopes; runtime acceptance not implied.');
 }

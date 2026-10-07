@@ -261,11 +261,17 @@ fn verify_captured_private_table_input(
     @publication_host.client_effect_local_artifact_invocation_cid(artifact),
     @publication_host.client_effect_local_invocation_cid(invocation),
   )
-  let mapping = @publication_host.client_effect_local_table_storage_mapping(
-    artifact, 65536, 4096, 16,
+  let mapping = @local_table.issue_table_storage_mapping(
+    @publication_host.client_effect_local_relation_export_receipt(artifact),
+    65536,
+    4096,
+    16,
+  ).unwrap()
+  let reference = @local_table.storage_mapping_reference(
+    mapping, 65536, 4096, 16,
   ).unwrap()
   assert_eq(
-    @effect.table_storage_mapping_schema_cid(mapping),
+    @local_table.table_storage_mapping_schema_cid(mapping),
     @execution.relation_schema_cid(
       @execution.completed_relation_export_schema_identity(receipt),
     ),
@@ -302,9 +308,9 @@ fn verify_captured_private_table_input(
       @request_scope.logical_request_scope_cid(scope) +
       "\",\"namespace\":[\"analytics\"],"
     let suffix = "\"schema_cid\":\"" +
-      @effect.table_storage_mapping_schema_cid(mapping) +
+      @local_table.table_storage_mapping_schema_cid(mapping) +
       "\",\"storage_mapping_cid\":\"" +
-      @effect.table_storage_mapping_cid(mapping) +
+      @local_table.table_storage_mapping_cid(mapping) +
       "\",\"table_name\":\"private_input\",\"version\":\"actql-table-operation/0.1\"}"
     let request_cid = native_publication_cid(prefix + suffix)
     prefix + "\"request_cid\":\"" + request_cid + "\"," + suffix
@@ -319,6 +325,7 @@ fn verify_captured_private_table_input(
     operation_wire(
       @publication_host.client_effect_local_result_artifact_cid(artifact),
     ),
+    reference,
     8192,
     256,
     8,
@@ -341,6 +348,7 @@ fn verify_captured_private_table_input(
       identity,
       scope,
       operation_wire(native_publication_cid("equal-but-foreign-artifact")),
+      reference,
       8192,
       256,
       8,

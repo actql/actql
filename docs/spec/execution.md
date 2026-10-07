@@ -2343,9 +2343,10 @@ rebase, renewed approval or replacement against another head.
 <!-- requirement-block: table-actions.publication -->
 Success MUST require durable Catalog publication and an immutable original
 operation commit record retained separately from current head. The record and
-head publication are atomic, and identify the request and exact published
-Iceberg metadata generation. Empty typed Tables remain valid with zero rows and
-a nullable data snapshot ID. Staging or HTTP admission is not success.
+head publication are atomic, and identify the request and exact immutable
+generation. The common logical receipt binds a Connector-validated original
+physical receipt CID; it does not interpret metadata locations or snapshot IDs.
+Empty typed Tables remain valid with zero rows. Staging or HTTP admission is not success.
 Confirmed create/expected-generation conflicts require a sealed original
 noncommit receipt and an atomic Catalog publication fence for that exact
 operation. A raw refusal, HTTP status or missing commit record is not such
@@ -2361,13 +2362,15 @@ row-level write decomposition are not used for bulk Table actions.
 
 <!-- requirement-block: table-actions.presence -->
 Storage MUST preserve logical types, duplicate rows, column order and
-Required/Conditional separately from nullable. Conditional value/presence fields
-are bound by Iceberg field IDs: false/NULL restores omission, true/NULL restores
+Required/Conditional separately from nullable. The Local Iceberg encoding binds
+Conditional value/presence fields by field IDs: false/NULL restores omission, true/NULL restores
 present NULL and true/value restores a value. Missing or NULL companions,
 false/value, missing value fields, changed field-ID/type mappings and logical
 type/nullability violations are rejected before default projection. Unsupported
 types are refused before Table writes; sample rows and empty data do not infer
-schema or presence.
+schema or presence. Those physical fields belong to the Local Connector
+contract, not to the shared Table schema. The selected Connector validates its
+sealed storage mapping; the shared Owner retains its content and schema references.
 
 <!-- requirement-block: table-actions.custody -->
 Cleanup MUST retain potentially published files and reservations while commit
@@ -2383,8 +2386,11 @@ metadata, presence, staging and uncertain operations; exhaustion rejects new
 commit without deleting live or uncertain data. Initial automatic old-generation
 GC and external writers are unsupported.
 
-<!-- machine-import: ../../spec/contracts/actql-table-effect.json# sha256:4e749fd39868eabf0d952e5cc8a83257c9d818858bcd964452e7025b13aacc73 -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json# sha256:4dfdfbd895048d5aec0c947dc9614bcfb085931dafc8eb2cc37a85d4b27537a5 -->
 <!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/operation sha256:10b0ef06b14951fb148c84efac69ae2841cd607b8b81f94863cd30169f9f650a -->
-<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/receipt sha256:9cd3c006109871d974554e9916b774246ba3dfdb687889e3c2993976eabdb259 -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/receipt sha256:05afe996705f41ca6fa66aa3a0fa2023b9c5e1638d7cf33babbff6d047dc0fb1 -->
 <!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/noncommit_receipt sha256:d9ff33a005f235cde2f6889c5f841f1e1af4a759c1cc0fc7864443781de929de -->
-<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/storage_mapping sha256:32df7edd7b5ee065d2540d0b225e7acd4ff5a23bf47bcbb22346aa83dfbd2384 -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/storage_mapping sha256:f3536388d44108630672f7b9948ba25e928e8d075132c9b8f051985186891224 -->
+<!-- machine-import: ../../spec/contracts/actql-local-table-iceberg.json# sha256:dd3be000768f1c97dac88f093317e9872e8d5033ef2f16e57fef009f8e1eb9fa -->
+<!-- machine-import: ../../spec/contracts/actql-local-table-iceberg.json#/schemas/receipt sha256:353cc74878dc9edbd93b235c0976b922a000f2cb08b96fd69aa6516b49444432 -->
+<!-- machine-import: ../../spec/contracts/actql-local-table-iceberg.json#/schemas/storage_mapping sha256:684261d68d4f3c71d357c3dd32b9cabc25abf2fa72cc125eeedd17ce4bf81dd1 -->

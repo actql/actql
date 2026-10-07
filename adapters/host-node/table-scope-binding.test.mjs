@@ -1,6 +1,7 @@
 // Actual checked capture and durable Ledger boundaries; no physical Table I/O.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
 import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
@@ -19,7 +20,7 @@ const seal = (body, field) => ({...body, [field]: `sha256:${createHash('sha256')
   .update(canonicalJson(body, {dataKeys: true})).digest('hex')}`});
 
 test('Table scope binding rejects foreign Preview keys and standalone saved settlement', async t =>
-  exerciseEffectSourceSet(t, {onTablePreview: async f => {
+  exerciseEffectSourceSet(t, {prepareCaptureResults: true, onTablePreview: async f => {
     const {sourceControl: control, effect, tableLimits: limits} = f;
     const foreignScope = effect.logicalRequestScope(cid('e'), 'table-bind-foreign', 128);
     assert.notEqual(effect.logicalRequestScopeCid(foreignScope), effect.logicalRequestScopeCid(f.scope));
@@ -68,9 +69,12 @@ test('Table scope binding rejects foreign Preview keys and standalone saved sett
       await captureClaimedEffectResponse({ledger, claim, requestCid: operation.request_cid,
         execute: async () => ({observation: {useCid: cid('7'), statusCode: 200,
           body: Buffer.from(response)}})});
-      assert.equal(control.tablePreviewCommitOutcome(valid, response, 200, limits),
-        canonicalJson({state: 'applied', result: receipt}, {dataKeys: true}));
-      assert.throws(() => settleSavedTableCommit({control, ledger, tablePreview: valid, claim, limits}),
+      assert.equal(control.tablePreviewCommitOutcome(valid,
+        control.localTableCommitResponse(response, 200, limits), 200, limits),
+        canonicalJson({state: 'applied', result: expectedLogicalTableReceipt(receipt)}, {dataKeys: true}));
+      assert.throws(() => settleSavedTableCommit({control, ledger, tablePreview: valid, claim, limits,
+        bridge: {projectCommitResponse: ({responseWire, statusCode, limits}) =>
+          control.localTableCommitResponse(responseWire, statusCode, limits)}}),
         {code: 'MoonBitHostFailure'});
       assert.equal(ledger.readClaimedOutcome(claim), undefined);
       assert.equal(ledger.readClaimedResponse(claim).responseBytes.toString('utf8'), response);

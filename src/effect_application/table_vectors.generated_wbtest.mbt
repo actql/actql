@@ -23,22 +23,22 @@ fn table_vector_replace_cid() -> String {
 
 ///|
 fn table_vector_empty_receipt() -> String {
-  "{\"catalog_identity_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"effect_identity_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"generation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"metadata_location\":\"file:///warehouse/tickets/metadata/00000.json\",\"receipt_cid\":\"sha256:149de5e72a2606adbd663368827a94e5a297aa5105577c8984ed1e97d488290b\",\"request_cid\":\"sha256:c530fd541add2614c3f78d1f7adef22b9d2e10fdc578c194a438a24357b84ed2\",\"row_count\":0,\"schema_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"snapshot_id\":null,\"storage_mapping_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"table_uuid\":\"01234567-89ab-cdef-0123-456789abcdef\",\"version\":\"actql-table-receipt/0.1\"}"
+  "{\"catalog_identity_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"effect_identity_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"generation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"physical_receipt_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"receipt_cid\":\"sha256:dcd1b11271fba43b24fa552a67bb656503bbf92be21f8884dbbb8d8793385b82\",\"request_cid\":\"sha256:c530fd541add2614c3f78d1f7adef22b9d2e10fdc578c194a438a24357b84ed2\",\"row_count\":0,\"schema_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"storage_mapping_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"table_uuid\":\"01234567-89ab-cdef-0123-456789abcdef\",\"version\":\"actql-table-logical-receipt/0.1\"}"
 }
 
 ///|
 fn table_vector_empty_receipt_cid() -> String {
-  "sha256:149de5e72a2606adbd663368827a94e5a297aa5105577c8984ed1e97d488290b"
+  "sha256:dcd1b11271fba43b24fa552a67bb656503bbf92be21f8884dbbb8d8793385b82"
 }
 
 ///|
 fn table_vector_replacement_receipt() -> String {
-  "{\"catalog_identity_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"effect_identity_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"generation_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"metadata_location\":\"file:///warehouse/tickets/metadata/00001.json\",\"receipt_cid\":\"sha256:2ac329ac4d2f26dfd8d0780ee35687d0e085ed8b8b5a9c8a8da65c1a0841dfe0\",\"request_cid\":\"sha256:901222bd0b6207e5c53458ea61fb7c8af814ea7c02eece04975f7afcb8aed57a\",\"row_count\":3,\"schema_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"snapshot_id\":\"9223372036854775807\",\"storage_mapping_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"table_uuid\":\"01234567-89ab-cdef-0123-456789abcdef\",\"version\":\"actql-table-receipt/0.1\"}"
+  "{\"catalog_identity_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"effect_identity_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"generation_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"physical_receipt_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"receipt_cid\":\"sha256:4214983aa1c8938d2ab48a4de25c9660d37dce3658a9d5fbb173729502345adc\",\"request_cid\":\"sha256:901222bd0b6207e5c53458ea61fb7c8af814ea7c02eece04975f7afcb8aed57a\",\"row_count\":3,\"schema_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"storage_mapping_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"table_uuid\":\"01234567-89ab-cdef-0123-456789abcdef\",\"version\":\"actql-table-logical-receipt/0.1\"}"
 }
 
 ///|
 fn table_vector_replacement_receipt_cid() -> String {
-  "sha256:2ac329ac4d2f26dfd8d0780ee35687d0e085ed8b8b5a9c8a8da65c1a0841dfe0"
+  "sha256:4214983aa1c8938d2ab48a4de25c9660d37dce3658a9d5fbb173729502345adc"
 }
 
 ///|

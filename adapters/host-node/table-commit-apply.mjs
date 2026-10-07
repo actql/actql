@@ -173,7 +173,7 @@ export function bindApprovedTableCommitDispatch({control, ledger, prepared,
         {useCid: credentialUseCid, signal})});
     // Only the durably saved, fully matched original Catalog receipt settles
     // the common Ledger. Unknown/error replies preserve reconciliation duty.
-    return settleSavedTableCommit({control, ledger,
+    return settleSavedTableCommit({control, ledger, bridge: material.bridge,
       tablePreview: material.tablePreview, claim, limits});
   };
 }

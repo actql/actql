@@ -112,7 +112,7 @@ pub fn bind_client_effect_compiled_run(PreparedClientEffectComputation, ClientEf
 
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
 
-pub fn bind_client_table_input(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, Int, Int, Int) -> Result[ClientTableInput, ClientTableInputIssue]
+pub fn bind_client_table_input(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, @effect_application.StorageMappingReference, Int, Int, Int) -> Result[ClientTableInput, ClientTableInputIssue]
 
 pub fn bind_client_table_preview(ClientTableInput, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Result[ClientTablePreview, ClientTableInputIssue]
 
@@ -120,7 +120,7 @@ pub fn bind_client_task_run(PreparedClientProgram, ClientTaskCompilation, @run_p
 
 pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectRunIssue]
 
-pub fn bind_recovered_client_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int, Int, Int, Int) -> Result[RecoveredClientTablePreview, ClientTableInputIssue]
+pub fn bind_recovered_client_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, @effect_application.StorageMappingReference, String, Int, Int, Int, Int, Int, Int) -> Result[RecoveredClientTablePreview, ClientTableInputIssue]
 
 pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
 
@@ -238,6 +238,8 @@ pub fn client_effect_local_manifest_json(ClientEffectLocalManifest) -> String
 
 pub fn client_effect_local_manifest_matches(ClientEffectLocalManifest, PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact]) -> Bool
 
+pub fn client_effect_local_relation_export_receipt(ClientEffectLocalResultArtifact) -> @execution_relation.CompletedRelationExportReceipt
+
 pub fn client_effect_local_result_artifact_cid(ClientEffectLocalResultArtifact) -> String
 
 pub fn client_effect_local_result_artifact_json(ClientEffectLocalResultArtifact) -> String
@@ -259,8 +261,6 @@ pub fn client_effect_local_source_matches(PreparedClientEffectComputation, @phys
 pub fn client_effect_local_table_definition_cid(ClientEffectLocalTableDefinition) -> String
 
 pub fn client_effect_local_table_definition_json(ClientEffectLocalTableDefinition) -> String
-
-pub fn client_effect_local_table_storage_mapping(ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@effect_application.TableStorageMapping, ClientTableInputIssue]
 
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), ClientEffectMemberDescriptorIssue]
 
@@ -484,7 +484,7 @@ pub fn client_submitted_intent_transition(String, String) -> Bool
 
 pub fn client_submitted_intent_wire(ClientSubmittedIntent) -> String
 
-pub fn client_table_input_mapping(ClientTableInput) -> @effect_application.TableStorageMapping
+pub fn client_table_input_mapping(ClientTableInput) -> @effect_application.StorageMappingReference
 
 pub fn client_table_input_matches_source(ClientTableInput, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity) -> Bool
 
@@ -958,7 +958,7 @@ pub fn recovered_client_table_preview_commit_outcome(RecoveredClientTablePreview
 
 pub fn recovered_client_table_preview_ledger_identity(RecoveredClientTablePreview) -> @run_publication.EffectPreviewIdentity
 
-pub fn recovered_client_table_preview_mapping(RecoveredClientTablePreview) -> @effect_application.TableStorageMapping
+pub fn recovered_client_table_preview_mapping(RecoveredClientTablePreview) -> @effect_application.StorageMappingReference
 
 pub fn recovered_client_table_preview_matches_source(RecoveredClientTablePreview, @run_publication.CapturedEffectSourceArtifact) -> Bool
 
@@ -1894,7 +1894,8 @@ pub(all) enum ClientTableInputIssue {
   ForeignOwner
   ForeignIdentity
   NotStore
-  Mapping(@effect_application.TableStorageMappingIssue)
+  Mapping(@effect_application.TableContractIssue)
+  PhysicalMapping
   Operation(@effect_application.TableContractIssue)
   ForeignInput
   Preview(@effect_application.TablePreviewIssue)

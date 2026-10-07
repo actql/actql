@@ -6,6 +6,7 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/client_row_source_host",
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/local/table",
   "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors_builtin",
@@ -618,7 +619,9 @@ pub fn client_program_local_effect_table_definition_cid(@run_publication_host.Cl
 
 pub fn client_program_local_effect_table_definition_json(@run_publication_host.ClientEffectLocalTableDefinition) -> String
 
-pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@effect_application.TableStorageMapping, @run_publication_host.ClientTableInputIssue]
+pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
+
+pub fn client_program_local_table_commit_response(String, Int, Int, Int, Int) -> Result[String, @effect_application.TableCommitIssue]
 
 pub fn client_program_local_values_aoa_cid(@run_publication_host.ClientValuesAoAIdentity) -> String
 
@@ -936,9 +939,9 @@ pub fn client_program_table_preview_operation_json(@run_publication_host.ClientT
 
 pub fn client_program_table_preview_subject_cid(@run_publication_host.ClientTablePreview) -> String
 
-pub fn client_program_table_storage_mapping_cid(@effect_application.TableStorageMapping) -> String
+pub fn client_program_table_storage_mapping_cid(@table.IcebergStorageMapping) -> String
 
-pub fn client_program_table_storage_mapping_json(@effect_application.TableStorageMapping) -> String
+pub fn client_program_table_storage_mapping_json(@table.IcebergStorageMapping) -> String
 
 pub fn client_program_task_compilation_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 

@@ -2790,6 +2790,14 @@ function publicationControl(moon) {
       if (owned === undefined) throw new TypeError('Foreign Table Preview');
       return moon.clientProgramTablePreviewInputAvailable(owned);
     },
+    localTableCommitResponse(responseWire, statusCode, limits) {
+      issuanceLimits(limits, 'Local Table physical response');
+      if (typeof responseWire !== 'string' || !Number.isSafeInteger(statusCode)) {
+        throw new TypeError('Invalid Local Table physical response');
+      }
+      return checked(moon.clientProgramLocalTableCommitResponse(responseWire,
+        statusCode, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
     tablePreviewCommitOutcome(preview, responseWire, statusCode, limits) {
       issuanceLimits(limits, 'Table commit outcome');
       const owned = tablePreviewTokens.get(preview);

@@ -360,8 +360,8 @@ return entries.length;
 // header names its drivers read. The common Host selects one entry by the
 // installed profile's version; it never branches on a provider name.
 const hostBundleKeys = ['installation'];
-const installationKeys = ['providerBundle', 'registration', 'responseHeaders', 'revision'];
-const optionalInstallationKeys = ['assets', 'effect', 'source'];
+const installationKeys = ['registration', 'responseHeaders', 'revision'];
+const optionalInstallationKeys = ['assets', 'effect', 'providerBundle', 'source'];
 const sourceKeys = ['exports', 'module', 'profileVersion'];
 // An Effect section may register the identity profile of its durable Effect
 // records: the version of each identity the common installed row Effect
@@ -393,13 +393,15 @@ export function checkHostBundle(root, name, path) {
   if (source === undefined && effect === undefined) throw invalid('Host roles');
   if (registration !== name || !/^[a-z][a-z0-9_]*$/.test(name)) throw invalid('registration');
   if (typeof revision !== 'string' || !new RegExp(`^${name}/\\d+\\.\\d+$`).test(revision)) throw invalid('revision');
-  if (typeof providerBundle !== 'string' ||
-      !new RegExp(`^connectors/${name}/[a-z][a-z0-9_]*$`).test(providerBundle)) throw invalid('providerBundle');
-  const bundlePackage = join(root, 'src', providerBundle, 'moon.pkg');
-  if (!existsSync(bundlePackage)) throw invalid('providerBundle package');
-  const bundleManifest = readFileSync(bundlePackage, 'utf8');
-  if (!/^supported_targets = "js"$/m.test(bundleManifest) ||
-      !/pkgtype\(kind: "foreign_library"\)/.test(bundleManifest)) throw invalid('providerBundle kind');
+  if (providerBundle !== undefined) {
+    if (typeof providerBundle !== 'string' ||
+        !new RegExp(`^connectors/${name}/[a-z][a-z0-9_]*$`).test(providerBundle)) throw invalid('providerBundle');
+    const bundlePackage = join(root, 'src', providerBundle, 'moon.pkg');
+    if (!existsSync(bundlePackage)) throw invalid('providerBundle package');
+    const bundleManifest = readFileSync(bundlePackage, 'utf8');
+    if (!/^supported_targets = "js"$/m.test(bundleManifest) ||
+        !/pkgtype\(kind: "foreign_library"\)/.test(bundleManifest)) throw invalid('providerBundle kind');
+  }
   if (!Array.isArray(responseHeaders) || responseHeaders.length > 16 ||
       new Set(responseHeaders).size !== responseHeaders.length ||
       responseHeaders.some(header => typeof header !== 'string' || !headerName.test(header) ||
@@ -438,18 +440,27 @@ export function checkHostBundle(root, name, path) {
     return {profileVersion: section.profileVersion, module: section.module, exports: {...section.exports},
       ...(identityProfile === undefined || label !== 'effect' ? {} : {identityProfile: {...identityProfile}})};
   };
-  // Only connector-owned static declarations are copied as data. Resolve
-  // their actual location as well as their spelling before packaging.
+  // Connector-owned declarations and explicitly listed physical I/O assets
+  // share one finite inventory. A JS/Python installation needs no dummy Moon
+  // provider bundle. Resolve actual ownership before packaging any asset.
   const prefix = `src/connectors/${name}/`;
   const connectorDirectory = join(root, prefix);
+  const adapterPrefix = `adapters/connectors/${name}/`;
+  const ownedAsset = asset => {
+    const source = asset.startsWith(prefix) && asset.endsWith('.json');
+    const physical = asset.startsWith(adapterPrefix) && /\.(?:py|in|lock|md)$/.test(asset);
+    const owner = source ? connectorDirectory : physical ? join(root, adapterPrefix) : undefined;
+    return owner !== undefined && existsSync(owner) && lstatSync(owner).isDirectory() &&
+      realpathSync(owner) === resolve(realpathSync(root), source ? prefix : adapterPrefix) &&
+      realpathSync(join(root, asset)).startsWith(realpathSync(owner) + '/');
+  };
   if (!lstatSync(connectorDirectory).isDirectory() ||
       realpathSync(connectorDirectory) !== resolve(realpathSync(root), prefix) ||
       !Array.isArray(assets) || new Set(assets).size !== assets.length ||
-      assets.some(asset => typeof asset !== 'string' || !asset.startsWith(prefix) ||
-        !asset.endsWith('.json') || asset.includes('\\') ||
+      assets.some(asset => typeof asset !== 'string' || asset.includes('\\') ||
         asset.split('/').some(part => !part || part === '.' || part === '..') ||
         !existsSync(join(root, asset)) || !lstatSync(join(root, asset)).isFile() ||
-        !realpathSync(join(root, asset)).startsWith(realpathSync(connectorDirectory) + '/'))) {
+        !ownedAsset(asset))) {
     throw invalid('assets');
   }
   const checkedSource = source === undefined ? undefined : checkSection(source, 'source');
@@ -496,7 +507,8 @@ export function generateInstallations(installations, output, root) {
     installations.map(entry => `  Object.freeze({\n` +
         `    name: ${literal(entry.name)}, registration: ${literal(entry.registration)},\n` +
         `    revision: ${literal(entry.revision)},\n` +
-        `    providerBundle: ${literal(entry.providerBundle)},\n` +
+        (entry.providerBundle === undefined ? '' :
+          `    providerBundle: ${literal(entry.providerBundle)},\n`) +
         `    responseHeaders: Object.freeze(${literal(entry.responseHeaders)}),\n` +
         (entry.source === undefined ? '' : section(entry.source, 'source')) +
         (entry.effect === undefined ? '' : section(entry.effect, 'effect')) +

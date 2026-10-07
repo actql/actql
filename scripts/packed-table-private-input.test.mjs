@@ -20,8 +20,8 @@ const fixtures = [
   'adapters/host-node/fixtures/table-test-modules.mjs',
   'adapters/host-common/connector-manifest.fixture.mjs',
   'adapters/host-common/publication-contract-control.fixture.mjs',
-  'adapters/table-iceberg/fixtures/presence-mapping.json',
-  'adapters/table-iceberg/fixtures/presence-schema.json',
+  'adapters/connectors/local/iceberg/fixtures/presence-mapping.json',
+  'adapters/connectors/local/iceberg/fixtures/presence-schema.json',
   'scripts/check-canonical-json.mjs', 'scripts/actql-spec-family.mjs',
   'scripts/actql-requirement-extraction.mjs',
   'scripts/fixtures/graph-presence.program.json',
@@ -95,8 +95,8 @@ test('packed Table commits preserve original operations and sparse inputs throug
   const local = join(application, 'node_modules/@actql/local-node');
   const artifacts = await Promise.all([
     '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
-    'adapters/table-iceberg/process_worker.py', 'adapters/table-iceberg/catalog.py',
-    'adapters/table-iceberg/physical.py', 'adapters/table-iceberg/requirements.lock',
+    'adapters/connectors/local/iceberg/process_worker.py', 'adapters/connectors/local/iceberg/catalog.py',
+    'adapters/connectors/local/iceberg/physical.py', 'adapters/connectors/local/iceberg/requirements.lock',
   ].map(async path => ({path, sha256: digest(await readFile(join(local, path)))})));
   const provenance = {sourceRevision: state.revision, python,
     packages: packages.map(({name, sha256}) => ({name, sha256})),

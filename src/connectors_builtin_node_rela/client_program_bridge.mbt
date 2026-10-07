@@ -3266,11 +3266,14 @@ pub fn client_program_local_effect_table_storage_mapping(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[
-  @effect.TableStorageMapping,
-  @publication_host.ClientTableInputIssue,
+  @local_table.IcebergStorageMapping,
+  @local_table.IcebergStorageMappingIssue,
 ] {
-  @publication_host.client_effect_local_table_storage_mapping(
-    artifact, max_bytes, max_nodes, max_depth,
+  @local_table.issue_table_storage_mapping(
+    @publication_host.client_effect_local_relation_export_receipt(artifact),
+    max_bytes,
+    max_nodes,
+    max_depth,
   )
 }
 
@@ -3291,26 +3294,43 @@ pub fn client_program_bind_table_input(
   @publication_host.ClientTableInput,
   @publication_host.ClientTableInputIssue,
 ] {
+  let physical = match
+    @local_table.issue_table_storage_mapping(
+      @publication_host.client_effect_local_relation_export_receipt(artifact),
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(PhysicalMapping)
+  }
+  let reference = match
+    @local_table.storage_mapping_reference(
+      physical, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Mapping(issue))
+  }
   @publication_host.bind_client_table_input(
-    owner, inputs, member_index, artifact, identity, scope, operation_wire, max_bytes,
-    max_nodes, max_depth,
+    owner, inputs, member_index, artifact, identity, scope, operation_wire, reference,
+    max_bytes, max_nodes, max_depth,
   )
 }
 
 ///|
 #export_name("clientProgramTableStorageMappingJson")
 pub fn client_program_table_storage_mapping_json(
-  value : @effect.TableStorageMapping,
+  value : @local_table.IcebergStorageMapping,
 ) -> String {
-  @effect.table_storage_mapping_json(value)
+  @local_table.table_storage_mapping_json(value)
 }
 
 ///|
 #export_name("clientProgramTableStorageMappingCid")
 pub fn client_program_table_storage_mapping_cid(
-  value : @effect.TableStorageMapping,
+  value : @local_table.IcebergStorageMapping,
 ) -> String {
-  @effect.table_storage_mapping_cid(value)
+  @local_table.table_storage_mapping_cid(value)
 }
 
 ///|
@@ -3338,7 +3358,7 @@ pub fn client_program_table_input_matches_source(
 pub fn client_program_table_input_storage_mapping_json(
   value : @publication_host.ClientTableInput,
 ) -> String {
-  @effect.table_storage_mapping_json(
+  @effect.storage_mapping_reference_json(
     @publication_host.client_table_input_mapping(value),
   )
 }
@@ -3364,8 +3384,22 @@ pub fn client_program_bind_recovered_table_preview(
   @publication_host.RecoveredClientTablePreview,
   @publication_host.ClientTableInputIssue,
 ] {
+  let physical = match
+    @local_table.admit_table_storage_mapping(
+      mapping_wire, table_max_bytes, table_max_nodes, table_max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(PhysicalMapping)
+  }
+  let reference = match
+    @local_table.storage_mapping_reference(
+      physical, table_max_bytes, table_max_nodes, table_max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Mapping(issue))
+  }
   @publication_host.bind_recovered_client_table_preview(
-    preview, member_index, invocation, source, captured, scope, mapping_wire, store_authority_cid,
+    preview, member_index, invocation, source, captured, scope, reference, store_authority_cid,
     max_bytes, max_nodes, max_depth, table_max_bytes, table_max_nodes, table_max_depth,
   )
 }
@@ -3407,7 +3441,7 @@ pub fn client_program_recovered_table_preview_operation_json(
 pub fn client_program_recovered_table_preview_mapping_json(
   value : @publication_host.RecoveredClientTablePreview,
 ) -> String {
-  @effect.table_storage_mapping_json(
+  @effect.storage_mapping_reference_json(
     @publication_host.recovered_client_table_preview_mapping(value),
   )
 }
@@ -3557,6 +3591,22 @@ pub fn client_program_table_operation_commit_outcome(
     operation, response_wire, status_code, expected_row_count, max_bytes, max_nodes,
     max_depth,
   ).map_err(issue => Commit(issue))
+}
+
+///|
+/// Local Connector physical admission is separate from the common logical
+/// commit Owner. Only the selected installation projects its saved response.
+#export_name("clientProgramLocalTableCommitResponse")
+pub fn client_program_local_table_commit_response(
+  response_wire : String,
+  status_code : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @effect.TableCommitIssue] {
+  @local_table.project_iceberg_commit_response(
+    response_wire, status_code, max_bytes, max_nodes, max_depth,
+  )
 }
 
 ///|

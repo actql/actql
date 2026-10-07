@@ -1,20 +1,20 @@
-// Optional same-Host Iceberg installation. The generic Host selects these
-// entries by profile version; Programs cannot supply paths or authority.
+// Local Connector Table Source and Effect installation. The generic Host
+// selects the declared roles; Programs cannot supply paths or authority.
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
-import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
-import {installRowSourceAuthorization} from './installed-row-source.mjs';
-import {createInstalledTableSource} from './installed-table-source.mjs';
-import {createInstalledTableEffect, checkInstalledTableEffectLimits} from './installed-table-effect.mjs';
-import {createIcebergPhysicalBridge} from './table-iceberg-process.mjs';
-import {encodeProcessFrame} from './process-frames.mjs';
+import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
+import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
+import {composeInstalledCheckEnvironment} from '../../../host-node/installed-check-environment.mjs';
+import {installRowSourceAuthorization} from '../../../host-node/installed-row-source.mjs';
+import {createInstalledTableSource} from '../../../host-node/installed-table-source.mjs';
+import {createInstalledTableEffect, checkInstalledTableEffectLimits} from '../../../host-node/installed-table-effect.mjs';
+import {createIcebergPhysicalBridge} from './iceberg-process.mjs';
+import {encodeProcessFrame} from '../../../host-node/process-frames.mjs';
 
-export const INSTALLED_TABLE_SOURCE_VERSION = 'actql-installed-table-source/0.1';
-export const INSTALLED_TABLE_EFFECT_VERSION = 'actql-installed-table-effect/0.1';
-const registration = 'table', revision = 'table/0.1';
+export const INSTALLED_TABLE_SOURCE_VERSION = 'actql-installed-local-table-source/0.1';
+export const INSTALLED_TABLE_EFFECT_VERSION = 'actql-installed-local-table-effect/0.1';
+const registration = 'local', revision = 'local/0.1';
 const fail = (code, cause) => { throw Object.assign(new TypeError(code, {cause}), {code}); };
 const text = value => typeof value === 'string' && value.length > 0;
 const cid = value => /^sha256:[0-9a-f]{64}$/u.test(value ?? '');
@@ -171,7 +171,8 @@ export async function loadInstalledTableSource(profile, {root, principalId, moon
     principalId, targets: () => installedTargets});
   try {
     const adapter = await createInstalledTableSource({moon, baseEnvironmentWire,
-      connectorId: checkedProfile.connectorId, site, authorization,
+      connectorId: checkedProfile.connectorId, connectorRegistration: registration,
+      connectorRevision: revision, site, authorization,
       bridge: bridgeOf(checkedProfile), targets: checkedProfile.targets, limits: checkedProfile.limits});
     installedTargets = adapter.tableReadTargets;
     return Object.freeze({...adapter, connectorBindings: Object.freeze([Object.freeze({
@@ -207,14 +208,3 @@ export async function loadInstalledTableEffect(profile, {root, ledgerRoot, princ
     catalogCid: checkedProfile.catalog.catalogCid, targets: checkedProfile.targets,
     bridge: bridgeOf(checkedProfile), authorization, ledgerRoot, limits: checkedProfile.limits});
 }
-
-// Like the existing built-in DuckDB binding, this requires no connector bundle.
-// Python and its pinned libraries are explicit optional Table installation I/O.
-export const tableInstallation = Object.freeze({name: registration, registration, revision,
-  source: Object.freeze({profileVersion: INSTALLED_TABLE_SOURCE_VERSION,
-    load: async () => Object.freeze({check: checkInstalledTableSourceProfile,
-      identityParts: installedTableSourceIdentityParts, load: loadInstalledTableSource})}),
-  effect: Object.freeze({profileVersion: INSTALLED_TABLE_EFFECT_VERSION,
-    load: async () => Object.freeze({check: checkInstalledTableEffectProfile,
-      identityParts: installedTableEffectIdentityParts, load: loadInstalledTableEffect})}),
-});

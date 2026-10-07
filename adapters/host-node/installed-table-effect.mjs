@@ -91,7 +91,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
     ![runtimeBundleCid, bindingCid, catalogCid].every(cid) ||
     !Array.isArray(targets) || targets.length === 0 ||
     typeof authorization?.authorize !== 'function' ||
-    !['prepareWrite','execute','inspect','cleanup','status','reconcileOperation']
+    !['prepareWrite','execute','inspect','cleanup','status','reconcileOperation',
+      'projectCommitResponse']
       .every(name => typeof bridge?.[name] === 'function') ||
     Object.values(limits).some(value => typeof value === 'object'
       ? Object.values(value).some(bound => !positive(bound)) : !positive(value))) {
@@ -291,7 +292,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
         store, control, maxBytes: limits.maxInputBytes, invocation: plan.invocation,
         retention: plan.results[0].retention, contractLimits: plan.contractLimits,
         localEvidenceContext: plan.localEvidenceContext,
-        sourceBindingCid: hash({version: 'actql-installed-table-source/0.1',
+        sourceBindingCid: hash({version: 'actql-installed-local-table-source/0.1',
           run_invocation_cid: plan.invocation.identity, store_authority_cid: store.storeAuthorityCid}), signal});
       if (sources.dependencies !== undefined) retainPinnedEffectDependencyPayloads({sources,
         execution, store, storedResults, control, runDefinition: plan.runDefinition});

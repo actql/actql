@@ -11,7 +11,7 @@ export async function completedTableCaptureOptions({fixture: f, retained, previe
   const plan = tableFixturePublicationPlan(f);
   const authoringContext = control.admitRunEvidence('authoring_context',
     JSON.stringify(JSON.parse(f.authored._0).authoring_context), limits);
-  const storedResults = await storeCompletedRunResultSet({execution: f.execution,
+  const storedResults = f.capturedResults ?? await storeCompletedRunResultSet({execution: f.execution,
     store: f.physicalStore, control, runDefinition: plan.runDefinition,
     invocation: plan.invocation, results: plan.results,
     outputLimits: f.outputLimits, contractLimits: limits});

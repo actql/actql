@@ -1,18 +1,18 @@
 ///|
-pub(all) enum TableStorageMappingIssue {
+pub(all) enum IcebergStorageMappingIssue {
   InvalidLimits
   UnsupportedColumnCount
   InvalidColumnName(String)
   ColumnCollision(String)
   UnsupportedType(String)
-  SavedMapping(TableContractIssue)
+  SavedMapping(@effect.TableContractIssue)
   Encoding
 } derive(Eq, Debug)
 
 ///|
 /// Physical encoding of the exact schema established by a completed Relation
 /// export. This does not approve publication or establish storage custody.
-struct TableStorageMapping {
+struct IcebergStorageMapping {
   cid : String
   schema_cid : String
   wire : String
@@ -84,7 +84,7 @@ pub fn issue_table_storage_mapping(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[TableStorageMapping, TableStorageMappingIssue] {
+) -> Result[IcebergStorageMapping, IcebergStorageMappingIssue] {
   if max_bytes < 1 ||
     max_bytes > 65536 ||
     max_nodes < 1 ||
@@ -112,7 +112,7 @@ fn issue_table_storage_mapping_schema(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[TableStorageMapping, TableStorageMappingIssue] {
+) -> Result[IcebergStorageMapping, IcebergStorageMappingIssue] {
   let count = @schema.field_count(schema)
   if count < 1 || count > 1024 {
     return Err(UnsupportedColumnCount)
@@ -152,17 +152,19 @@ fn issue_table_storage_mapping_schema(
 }
 
 ///|
-pub fn table_storage_mapping_cid(value : TableStorageMapping) -> String {
+pub fn table_storage_mapping_cid(value : IcebergStorageMapping) -> String {
   value.cid
 }
 
 ///|
-pub fn table_storage_mapping_schema_cid(value : TableStorageMapping) -> String {
+pub fn table_storage_mapping_schema_cid(
+  value : IcebergStorageMapping,
+) -> String {
   value.schema_cid
 }
 
 ///|
-pub fn table_storage_mapping_json(value : TableStorageMapping) -> String {
+pub fn table_storage_mapping_json(value : IcebergStorageMapping) -> String {
   value.wire
 }
 
@@ -175,25 +177,37 @@ pub fn admit_table_storage_mapping(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[TableStorageMapping, TableStorageMappingIssue] {
-  let (value, cid) = match
-    table_sealed_value(
+) -> Result[IcebergStorageMapping, IcebergStorageMappingIssue] {
+  let reference = match
+    @effect.admit_storage_mapping_reference(
+      @carrier.RelationKind,
       wire,
-      "mapping_cid",
       max_bytes,
       max_nodes,
       max_depth,
-      max_allowed_nodes=16384,
     ) {
     Ok(value) => value
     Err(issue) => return Err(SavedMapping(issue))
+  }
+  let cid = @effect.storage_mapping_reference_cid(reference)
+  let parsed = match
+    @source.parse_json(wire, {
+      max_input_bytes: max_bytes,
+      max_nodes,
+      max_depth,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(SavedMapping(@effect.InvalidWire))
+  }
+  let value = @json.from_source(parsed, max_nodes, max_depth, max_bytes) catch {
+    _ => return Err(SavedMapping(@effect.InvalidWire))
   }
   guard @json.object_field_count(value) == Some(5) &&
     ledger_string(value, "version") == Some("actql-table-storage-mapping/0.1") &&
     ledger_integer(value, "iceberg_format_version", 0L) == Some(2L) &&
     ledger_cid(value, "schema_cid") is Some(schema_cid) &&
     @json.object_field(value, "columns") is Some(@json.Array(columns)) else {
-    return Err(SavedMapping(InvalidShape))
+    return Err(SavedMapping(@effect.InvalidShape))
   }
   let count = @json.array_count(columns)
   if count < 1 || count > 1024 {
@@ -211,7 +225,7 @@ pub fn admit_table_storage_mapping(
       ledger_string(column, "presence") is Some(presence) &&
       (presence == "required" || presence == "conditional") &&
       ledger_integer(column, "value_field_id", 1L) == Some(field_id) else {
-      return Err(SavedMapping(InvalidShape))
+      return Err(SavedMapping(@effect.InvalidShape))
     }
     if !table_name_valid(name) {
       return Err(InvalidColumnName(name))
@@ -221,19 +235,19 @@ pub fn admit_table_storage_mapping(
       return Err(ColumnCollision(name))
     }
     if previous is Some(before) && @canonical.compare_utf16(before, name) >= 0 {
-      return Err(SavedMapping(InvalidShape))
+      return Err(SavedMapping(@effect.InvalidShape))
     }
     if kind != "boolean" && kind != "double" && kind != "string" {
       return Err(UnsupportedType(name))
     }
     if presence == "conditional" {
       if ledger_integer(column, "presence_field_id", 1L) != Some(field_id + 1L) {
-        return Err(SavedMapping(InvalidShape))
+        return Err(SavedMapping(@effect.InvalidShape))
       }
       field_id += 2L
     } else {
       guard @json.object_field(column, "presence_field_id") is Some(@json.Null) else {
-        return Err(SavedMapping(InvalidShape))
+        return Err(SavedMapping(@effect.InvalidShape))
       }
       field_id += 1L
     }
@@ -244,32 +258,18 @@ pub fn admit_table_storage_mapping(
 }
 
 ///|
-/// Content-level correspondence only; the Host issuer separately checks the
-/// exact captured owners, approved target and current authority.
-pub fn table_operation_matches_input(
-  value : TableOperation,
-  scope : @request_scope.LogicalRequestScope,
-  effect_cid : String,
-  artifact_cid : String,
-  relation_cid : String,
-  mapping : TableStorageMapping,
-  data_policy_cid : String,
-) -> Bool {
-  value.scope_cid == @request_scope.logical_request_scope_cid(scope) &&
-  value.effect_cid == effect_cid &&
-  value.input_artifact_cid == artifact_cid &&
-  value.input_relation_cid == relation_cid &&
-  value.schema_cid == mapping.schema_cid &&
-  value.mapping_cid == mapping.cid &&
-  value.data_policy_cid == data_policy_cid
-}
-
-///|
-pub fn table_operation_cid(value : TableOperation) -> String {
-  value.cid
-}
-
-///|
-pub fn table_operation_json(value : TableOperation) -> String {
-  value.wire
+/// Only a fully admitted Local Iceberg mapping reaches the shared input Owner.
+pub fn storage_mapping_reference(
+  value : IcebergStorageMapping,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@effect.StorageMappingReference, @effect.TableContractIssue] {
+  @effect.admit_storage_mapping_reference(
+    @carrier.RelationKind,
+    value.wire,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
 }

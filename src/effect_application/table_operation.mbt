@@ -38,7 +38,7 @@ pub struct TableReceipt {
   generation_cid : String
   schema_cid : String
   mapping_cid : String
-  snapshot_id : String?
+  physical_receipt_cid : String
   row_count : Int64
 }
 
@@ -191,30 +191,6 @@ pub fn admit_table_operation(
 }
 
 ///|
-fn table_snapshot_id(
-  value : @json.CanonicalValue,
-) -> Result[String?, TableContractIssue] {
-  match @json.object_field(value, "snapshot_id") {
-    Some(@json.Null) => Ok(None)
-    Some(@json.String(id)) => {
-      if id.is_empty() || id.length() > 19 || id[0] == '0' {
-        return Err(InvalidShape)
-      }
-      for c in id.iter() {
-        if c < '0' || c > '9' {
-          return Err(InvalidShape)
-        }
-      }
-      if id.length() == 19 && id > "9223372036854775807" {
-        return Err(InvalidShape)
-      }
-      Ok(Some(id))
-    }
-    _ => Err(InvalidShape)
-  }
-}
-
-///|
 pub fn admit_table_receipt(
   request : TableOperation,
   wire : String,
@@ -227,8 +203,8 @@ pub fn admit_table_receipt(
     Ok(v) => v
     Err(issue) => return Err(issue)
   }
-  guard @json.object_field_count(value) == Some(12) &&
-    ledger_string(value, "version") == Some("actql-table-receipt/0.1") &&
+  guard @json.object_field_count(value) == Some(11) &&
+    ledger_string(value, "version") == Some("actql-table-logical-receipt/0.1") &&
     ledger_cid(value, "request_cid") is Some(request_cid) &&
     ledger_cid(value, "effect_identity_cid") is Some(effect_cid) &&
     ledger_cid(value, "catalog_identity_cid") is Some(catalog_cid) &&
@@ -237,17 +213,8 @@ pub fn admit_table_receipt(
     ledger_string(value, "table_uuid") is Some(table_uuid) &&
     table_uuid_valid(table_uuid) &&
     ledger_cid(value, "generation_cid") is Some(generation_cid) &&
-    ledger_string(value, "metadata_location") is Some(location) &&
-    !location.is_empty() &&
-    location.length() <= 4096 &&
+    ledger_cid(value, "physical_receipt_cid") is Some(physical_receipt_cid) &&
     ledger_integer(value, "row_count", 0L) is Some(row_count) else {
-    return Err(InvalidShape)
-  }
-  let snapshot_id = match table_snapshot_id(value) {
-    Ok(v) => v
-    Err(issue) => return Err(issue)
-  }
-  if row_count > 0L && snapshot_id is None {
     return Err(InvalidShape)
   }
   if request_cid != request.cid ||
@@ -269,7 +236,7 @@ pub fn admit_table_receipt(
     generation_cid,
     schema_cid,
     mapping_cid,
-    snapshot_id,
+    physical_receipt_cid,
     row_count,
   })
 }

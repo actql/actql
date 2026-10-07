@@ -27,10 +27,10 @@ async function sourceFixture(t, rows, runtime = moon) {
     table_name: 'rows', table_uuid: receipt.table_uuid, schema_cid: f.mapping.schema_cid};
   const allow = await installRowSourceAuthorization({accountConfiguration:
     sourceReadAccountConfiguration({connection, resource: 'rows'}), principalId: 'table-reader',
-  root: f.root, connectorRegistration: 'table'});
+  root: f.root, connectorRegistration: 'local'});
   const deny = await installRowSourceAuthorization({accountConfiguration:
     sourceReadAccountConfiguration({connection, resource: 'rows', outcome: 'deny'}),
-  principalId: 'table-reader', root: f.root, connectorRegistration: 'table'});
+  principalId: 'table-reader', root: f.root, connectorRegistration: 'local'});
   let current = allow, checks = 0, stopAt = Infinity;
   const authorization = {...allow, authorize: async (...args) => {
     checks++;
@@ -52,7 +52,8 @@ async function sourceFixture(t, rows, runtime = moon) {
   };
   const install = async (bridge, sourceLimits = limits) => createInstalledTableSource({moon: runtime,
     baseEnvironmentWire: (await read('spec/local-check-environment.json')).trimEnd(),
-    connectorId: 'table-local', site, authorization, bridge, limits: sourceLimits,
+    connectorId: 'table-local', connectorRegistration: 'local', connectorRevision: 'local/0.1',
+    site, authorization, bridge, limits: sourceLimits,
     targets: [{resource: 'rows', selector, schemaWire: f.schemaWire}]});
   const prepare = async source => {
     const environment = JSON.parse(source.environmentWire);
@@ -293,7 +294,8 @@ test('Table read installation is inert and exact selector values cannot alias un
       const selector = {...f.selector, table_name: name};
       const source = await createInstalledTableSource({moon,
         baseEnvironmentWire: (await read('spec/local-check-environment.json')).trimEnd(),
-        connectorId: 'table-local', site: {connection, issueReadGrant() {}, close() {}},
+        connectorId: 'table-local', connectorRegistration: 'local', connectorRevision: 'local/0.1',
+        site: {connection, issueReadGrant() {}, close() {}},
         authorization: {authorize() {}}, bridge: noIo, limits,
         targets: [{resource: 'rows', selector, schemaWire: f.schemaWire}]});
       sources.push(source);
