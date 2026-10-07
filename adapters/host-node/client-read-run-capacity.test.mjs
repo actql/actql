@@ -12,6 +12,13 @@ import {openReadOpeningFixture, connectOpeningHost} from './client-read-opening.
 const program = JSON.parse(await readFile(new URL('./fixtures/read-121.program.json', import.meta.url), 'utf8'));
 const expected = JSON.parse(await readFile(new URL('./fixtures/read-121.expected.json', import.meta.url), 'utf8'));
 
+function assertSameResult(actual, original) {
+  for (const key of ['run_definition_cid', 'result_name', 'result_manifest_cid',
+    'result_artifact_cid', 'serialization_contract_cid']) {
+    assert.equal(actual.attempt[key], original.attempt[key], key);
+  }
+}
+
 async function attemptBytes(directory) {
   const root = join(directory, 'publication/deliveries');
   const names = (await readdir(root)).filter(name => /^[0-9a-f]{64}$/u.test(name)).sort();
@@ -86,6 +93,7 @@ for (const entrance of ['local', 'https']) {
           assert.equal(fresh.state(), 'complete');
           await host.settled();
           completeAttempt = await result.deliveryAttempt(fresh.attemptId);
+          assertSameResult(completeAttempt, observed);
           assert.equal(completeAttempt.record.state, 'succeeded');
           assert.notEqual(completeAttempt.hostReleaseReceipt, null);
           assert.deepEqual(await result.deliveryAttempt(attemptId), observed);
@@ -127,6 +135,7 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(restored.rows, expected);
         assert.notEqual(restored.readAttempt.attempt.attempt_id, attemptId);
         assert.notEqual(restored.readAttempt.attempt.attempt_id, completeAttempt.attempt.attempt_id);
+        assertSameResult(restored.readAttempt, observed);
         assert.equal(restored.readAttempt.record.state, 'succeeded');
         assert.notEqual(restored.readAttempt.hostReleaseReceipt, null);
         assert.deepEqual(restored.counts, {admissions: 1, readers: 1, computes: 0, definitions: 0});
