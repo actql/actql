@@ -45,7 +45,11 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
   t.after(async () => {
     await close();
     if (certificates) setDefaultCACertificates(originalTrust);
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Submission acceptance fixture retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const open = async () => {
     if (entrance === 'local') client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
