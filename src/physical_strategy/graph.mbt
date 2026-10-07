@@ -31,6 +31,8 @@ struct CheckedDAG {
   program : @checked.CheckedProgram
   source_free_root : Bool
   captured_prefix : Int
+  original_tasks : Array[Int]
+  original_task_count : Int
   owners : Array[@lower.BoundPrepared]
   stage_tasks : Array[Array[Int]]
   targets : Array[@pipeline.Target?]
@@ -764,6 +766,8 @@ fn prepare_checked_dag_owned(
     program,
     source_free_root,
     captured_prefix,
+    original_tasks: Array::makei(count, task => task),
+    original_task_count: count,
     owners: owners.copy(),
     stage_tasks: Array::makei(count, stage => [stage]),
     targets: Array::makei(count, task => {
@@ -922,6 +926,12 @@ pub fn graph_task_count(graph : CheckedDAG) -> Int {
 }
 
 ///|
+/// Original checked physical coordinate retained by an execution view.
+pub fn graph_task_original_index(graph : CheckedDAG, task : Int) -> Int? {
+  graph.original_tasks.get(task)
+}
+
+///|
 /// Checked Unit indices follow authored Stages; physical tasks may split a
 /// Unit into several bounded operations and therefore have different indices.
 pub fn graph_task_unit_index(graph : CheckedDAG, task : Int) -> Int? {
@@ -995,6 +1005,21 @@ pub fn data_edge_consumer(value : DataEdge) -> Int {
 ///|
 pub fn data_edge_input(value : DataEdge) -> Int {
   value.input
+}
+
+///|
+pub fn data_edge_target(value : DataEdge) -> @pipeline.Target {
+  value.target
+}
+
+///|
+pub fn control_edge_predecessor(value : ControlEdge) -> Int {
+  value.predecessor
+}
+
+///|
+pub fn control_edge_consumer(value : ControlEdge) -> Int {
+  value.consumer
 }
 
 ///|
