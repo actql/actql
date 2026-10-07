@@ -2,12 +2,20 @@
 fn bounded_values_fixture(
   max_work? : Int = 15,
   max_entries? : Int = 4,
+  name_bytes? : Int = 100,
+  label_name? : String = "label",
 ) -> (@bounded.Control, Result[BoundedValuesExecution, BoundedValuesIssue]) raise {
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"label\":{\"type\":\"string\",\"nullable\":false}}," +
-    "\"rows\":[{\"id\":1,\"label\":\"one\"}," +
-    "{\"id\":2,\"label\":\"two\"}]},\"as\":\"out\"}]",
+    "\"" +
+    label_name +
+    "\":{\"type\":\"string\",\"nullable\":false}}," +
+    "\"rows\":[{\"id\":1,\"" +
+    label_name +
+    "\":\"one\"}," +
+    "{\"id\":2,\"" +
+    label_name +
+    "\":\"two\"}]},\"as\":\"out\"}]",
   )
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
@@ -27,7 +35,7 @@ fn bounded_values_fixture(
     max_work,
     0,
     max_entries,
-    100,
+    name_bytes,
   )
   (control, active)
 }
@@ -88,11 +96,18 @@ test "bounded values reject one-short work and workspace" {
 test "bounded values stop after cell work without publishing" {
   let (control, started) = bounded_values_fixture()
   let active = started.unwrap()
-  for _ in 0..<4 {
+  // Reach the same cell boundary after resumable completion admission.
+  let mut reached = false
+  for _ in 0..<1000 {
+    if active.state.phase is BuildCell && active.state.column > 0 {
+      reached = true
+      break
+    }
     assert_true(
       advance_bounded_values(active, 1) is Ok(BoundedValuesContinue(..)),
     )
   }
+  assert_true(reached)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     advance_bounded_values(active, 1)
