@@ -6754,3 +6754,22 @@ This follows an actual close-order failure and independently corrected stale
 work-boundary evidence. No public contract check was weakened. This is checkout
 Host acceptance, not pristine packed/HTTPS or CI acceptance. See the
 [publication reclamation record](2026-10-07-local-publication-reclamation.md).
+
+### Bounded managed receipt issuance (2026-10-08)
+
+The Local managed finalizer now resumes reference/input validation and receipt
+copies through the existing admission owner, charging the existing finalization
+budget across polls. Partial copies remain cleanup-owned; successful receipt
+facts and the measurement index transfer once. Independent quantum-one and
+quantum-seven/64 fixtures preserve content usage and bound private retirement.
+The actual standard Host Events-to-Relation route delivers cancellation during
+receipt preparation, before retained material, and confirms stop, non-publication
+and final release without redispatch. Preparation evidence is JS 38/38 plus a
+22-case caller selection and the new Host case 1/1; source and artifact scope are
+recorded separately in the
+[bounded receipt record](2026-10-08-local-bounded-admission-finish.md).
+
+The blocking receipt convenience API, row-file materializing receipt path,
+nested-value admission and trusted availability callbacks remain separate
+boundaries. This does not establish a whole-callback latency or physical-byte
+bound, packed/HTTPS acceptance, all-target CI or whole-Local completion.
