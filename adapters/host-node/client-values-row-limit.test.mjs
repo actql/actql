@@ -32,6 +32,78 @@ test('invalid explicit row configurations are refused before installing a Host',
 });
 
 for (const entrance of ['local', 'https']) {
+  test(`${entrance}: installed 121-row Run keeps a 120-row prefix distinct from its original Delivery receipt across process restart`,
+    {timeout: 40000}, async () => {
+      const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-installed-read-prefix-',
+        label: `${entrance} installed interrupted read recovery`});
+      const directory = scratch.path;
+      execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+        '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
+        '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: directory, stdio: 'ignore'});
+      const initialOutput = join(directory, 'initial.json');
+      await invoke(directory, {directory, entrance, output: initialOutput, interruptAfterRows: 120}, 'initial');
+      // The original Host and execution process have exited before recovery.
+      const initial = JSON.parse(await readFile(initialOutput, 'utf8'));
+      assert.notEqual(initial.pid, process.pid);
+      assert.equal(initial.status.status, 'succeeded');
+      assert.equal(initial.computes, 1);
+      assert.deepEqual(initial.rows, expected.slice(0, 120));
+      assert.equal(initial.rowsYielded, 120);
+      assert.equal(initial.readState, 'prefix');
+      assert.equal(initial.attempts.length, 1);
+      assert.equal(initial.grants.length, 1);
+      assert.equal(initial.grants[0].max_uses, 1);
+      assert.deepEqual(JSON.parse(await readFile(join(directory, 'submission-ref.json'), 'utf8')),
+        initial.submissionRef);
+      const originalAttemptId = initial.attempt.attempt.attempt_id;
+      const restoredOutput = join(directory, 'restored.json');
+      await invoke(directory, {directory, entrance, output: restoredOutput, ref: initial.ref,
+        submissionRef: initial.submissionRef, originalAttemptId}, 'restored');
+      const restored = JSON.parse(await readFile(restoredOutput, 'utf8'));
+      assert.notEqual(restored.pid, process.pid);
+      assert.deepEqual(restored.ref, initial.ref);
+      assert.deepEqual(restored.request.submissionRef, initial.submissionRef);
+      assert.deepEqual(restored.request.admission.ref, initial.ref);
+      assert.equal(restored.status.status, 'succeeded');
+      assert.equal(restored.computes, 0);
+      assert.deepEqual(restored.lookupBefore, initial.attempts);
+      assert.deepEqual(restored.lookupAfter, restored.lookupBefore);
+      assert.deepEqual(restored.originalFirst.attempt, initial.attempt.attempt);
+      assert.deepEqual(restored.originalSecond, restored.originalFirst);
+      assert.deepEqual(restored.originalAfterRead, restored.originalFirst);
+      // The transport can finish before a consumer stops at row 120. Only the
+      // Owner's durable record and receipt establish that Delivery's outcome;
+      // the consumer's prefix is never upgraded to a complete read.
+      assert.ok(['succeeded', 'failed', 'cancelled'].includes(restored.originalFirst.record.state));
+      assert.equal(restored.originalFirst.hostReleaseReceipt !== null,
+        restored.originalFirst.record.state === 'succeeded');
+      assert.deepEqual(restored.rows, expected);
+      assert.equal(restored.rowsYielded, 121);
+      assert.equal(restored.readState, 'complete');
+      assert.deepEqual(restored.description.columns, [{name: 'id', contract: {type: 'number', nullable: false}}]);
+      assert.equal(restored.attempt.record.state, 'succeeded');
+      assert.notEqual(restored.attempt.hostReleaseReceipt, null);
+      assert.notEqual(restored.attempt.attempt.attempt_id, originalAttemptId);
+      assert.notEqual(restored.attempt.attempt.result_read_grant_cid,
+        initial.attempt.attempt.result_read_grant_cid);
+      for (const key of ['run_definition_cid', 'result_name', 'result_manifest_cid',
+        'result_artifact_cid', 'serialization_contract_cid']) {
+        assert.equal(restored.attempt.attempt[key], initial.attempt.attempt[key], key);
+      }
+      assert.equal(restored.attempts.length, 2);
+      assert.ok(restored.attempts.includes(initial.attempts[0]));
+      assert.equal(new Set(restored.grants.map(grant => grant.result_read_grant_cid)).size, 2);
+      for (const grant of restored.grants) assert.equal(grant.max_uses, 1);
+      console.log('INSTALLED_READ_PREFIX_EVIDENCE', JSON.stringify({directory, entrance,
+        ref: initial.ref, originalAttemptId, prefixRows: initial.rowsYielded,
+        originalOwnerState: restored.originalFirst.record.state,
+        originalOwnerReceipt: restored.originalFirst.hostReleaseReceipt,
+        newAttemptId: restored.attempt.attempt.attempt_id, rows: restored.rowsYielded,
+        initialProcess: {pid: initial.pid, exitCode: 0}, restoredProcess: {pid: restored.pid, exitCode: 0},
+        initialComputes: initial.computes, restoredComputes: restored.computes}));
+      scratch.passed();
+    });
+
   test(`${entrance}: installed explicit row capacity publishes 121 rows and restores the original Run under current defaults`,
     {timeout: 40000}, async () => {
       const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-installed-read-121-', label: `${entrance} installed row capacity`});
