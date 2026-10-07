@@ -155,11 +155,12 @@ fn unnest_provider(
               return Ok(true)
             }
             match @execution.cleanup_bounded_unnest(active) {
-              Ok(true) => {
-                reclaimed.val = true
-                Ok(true)
+              Ok(_) => {
+                reclaimed.val = !@execution.bounded_unnest_cleanup_pending(
+                  active,
+                )
+                Ok(reclaimed.val)
               }
-              Ok(false) => Ok(false)
               Err(issue) => Err(bounded_unnest_issue(issue, step))
             }
           },
