@@ -268,9 +268,15 @@ try {
       endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-owner'});
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
   try {
+    const lookupOnly = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss';
+    if (!existsSync(path('submission-ref.json'))) {
+      assert.equal(lookupOnly, false, 'original cancellation lookup must retain submission custody');
+      save('submission-ref.json', client.newSubmission({nonce: 'public-model-resume'}));
+    }
+    const submissionRef = read('submission-ref.json');
     run = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss'
       ? await client.attach(read('run.json'))
-      : await client.start(program, {requestId: 'public-model-resume'});
+      : await client.start(program, {submissionRef});
     if (existsSync(path('run.json'))) {
       const original = read('run.json');
       assert.deepEqual(run.ref, original);
@@ -428,10 +434,10 @@ try {
       output({runId: state.run_id, status: state.status, control: state.control, cancellationRecovery});
     } else if (phase === 'approve-source') {
       const found = await until(async () => {
-        const lookup = await client.lookupRequest('public-model-resume');
-        return lookup.kind === 'found' ? lookup : undefined;
+        const lookup = await client.lookupSubmission(read('submission-ref.json'));
+        return lookup.kind === 'ready' ? lookup : undefined;
       });
-      run = await client.attach(found.ref);
+      run = await client.attach(found.admission.ref);
       save('run.json', run.ref);
       const summary = await until(async () => (await client.checkpoints()).items.find(item => item.kind === 'model_invocation'));
       save('model_invocation-summary.json', summary);

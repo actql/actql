@@ -11,6 +11,8 @@ struct CompletedOutputExportPreparation {
   wire : RowWireLimits
   logical_wire : RowWireLimits?
   schema_limits : RelationSchemaIdentityLimits?
+  mut schema_cursor : RelationSchemaIdentityPreparation?
+  mut schema_identity : RelationSchemaIdentity?
   max_batch_bytes : Int
   mut order : RowWireOrder?
   mut names : Array[String]
@@ -126,6 +128,8 @@ fn start_completed_export_rows_metadata(
     wire,
     logical_wire,
     schema_limits,
+    schema_cursor: None,
+    schema_identity: None,
     max_batch_bytes,
     order: None,
     names: [],
@@ -153,6 +157,11 @@ pub fn cancel_completed_output_export_preparation(
   value.closed = true
   value.source = None
   value.rows = None
+  if value.schema_cursor is Some(cursor) {
+    cancel_relation_schema_identity(cursor) |> ignore
+  }
+  value.schema_cursor = None
+  value.schema_identity = None
   cancel_row_wire_order(value.order_cursor) |> ignore
   value.order = None
   value.names = []
@@ -176,14 +185,7 @@ fn complete_export_metadata(
   source : CompletedOutput,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
   let rows = value.rows.unwrap()
-  let schema_identity = match value.schema_limits {
-    None => None
-    Some(limits) =>
-      match identify_relation_schema(rows.schema, limits) {
-        Ok(value) => Some(value)
-        Err(issue) => return Err(Schema(issue))
-      }
-  }
+  let schema_identity = value.schema_identity
   if value.logical_wire is Some(limits) &&
     (
       limits.max_columns < value.wire.max_columns ||
@@ -293,6 +295,29 @@ pub fn advance_completed_output_export_preparation(
           value.column_admitted_depths.push(0)
           value.column += 1
         }
+      } else if value.phase == 2 && value.schema_limits is Some(limits) {
+        steps += 1
+        value.schema_cursor = Some(
+          match start_relation_schema_identity(rows.schema, limits) {
+            Ok(cursor) => cursor
+            Err(issue) => return Err(Schema(issue))
+          },
+        )
+        value.phase = 3
+      } else if value.phase == 3 {
+        steps += 1
+        let cursor = value.schema_cursor.unwrap()
+        let (done, _) = match advance_relation_schema_identity(cursor, 1) {
+          Ok(progress) => progress
+          Err(issue) => return Err(Schema(issue))
+        }
+        if done {
+          value.schema_identity = Some(
+            finish_relation_schema_identity(cursor).unwrap(),
+          )
+          value.schema_cursor = None
+          value.phase = 4
+        }
       } else {
         steps += 1
         value.stream = Some(
@@ -338,6 +363,8 @@ pub fn finish_completed_output_export_preparation(
   value.stream = None
   value.source = None
   value.rows = None
+  value.schema_cursor = None
+  value.schema_identity = None
   value.order = None
   value.names = []
   value.column_rows = []
