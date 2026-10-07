@@ -50,13 +50,18 @@ fn lower_script_join_relation(
   steps : Array[@builder.Node],
   reserved : Array[String],
   retained : Array[RetainedResult]?,
+  preserved_scope? : Array[JoinChainScope]? = None,
 ) -> Input raise Abort {
   if @query.join_part_count(query) < 1 {
     raise Abort(UnsupportedJoin)
   }
-  if @query.join_part_count(query) > 1 || join_requires_group_scope(query) {
-    let scoped = { ..context, inputs: known, }
-    let selected = selected_input(query, scoped, limits)
+  let scoped = { ..context, inputs: known, }
+  let selected = selected_input(query, scoped, limits)
+  let initial_scope = sources.ranges.get(selected.name)
+  if @query.join_part_count(query) > 1 ||
+    join_requires_group_scope(query) ||
+    initial_scope is Some(_) ||
+    preserved_scope is Some(_) {
     let left = bind_script_input(
       construction, selected, context, sources, steps, reserved,
     )
@@ -70,7 +75,14 @@ fn lower_script_join_relation(
       inputs.push((selected, bound.name))
     }
     let (body, fields, from) = compile_join_chain_steps(
-      construction, query, inputs, limits, reserved, retained,
+      construction,
+      query,
+      inputs,
+      limits,
+      reserved,
+      retained,
+      initial_scope~,
+      preserved_scope~,
     )
     steps.append(body)
     return {

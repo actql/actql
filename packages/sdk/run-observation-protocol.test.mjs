@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess} from './host-port.mjs';
 import {ClientError, explainRunObservationFailure, explainEffectUncertainty} from './index.mjs';
+import {validRunState} from '../client-wire/index.mjs';
 
 const cid = value => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'observation-namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
@@ -92,3 +93,104 @@ test('Run protocol explanations preserve earlier valid observations and transpor
   await assert.rejects(run.reconcile(), current => current === reply && explainRunObservationFailure(current) === undefined);
   assert.equal(explainRunObservationFailure(error).problem, 'unknown_state');
 });
+
+const unresolved = () => ({...running(), status: 'needs_reconciliation',
+  next_action: {kind: 'reconcile', effects: ['e\u0301\r\n', 'é']},
+  control: {revision: 7, cancellation_requested: true, physical_stop: 'unknown'}});
+const copyFaults = [
+  ['execution and publication', copy => {
+    copy.status = 'succeeded'; copy.next_action = {kind: 'read_result', results: ['answer']};
+    copy.result_available = true;
+    copy.result_availability.answer = {state: 'available', reason: 'confirmed_present',
+      observed_at: '2026-10-07T00:00:00.000Z'};
+  }],
+  ['Run identity', copy => { copy.run_id = 'another-run'; }],
+  ['observation time', copy => { copy.updated_at = '2026-10-07T01:00:00.000Z'; }],
+  ['control revision', copy => { copy.control.revision = 8; }],
+  ['physical stop', copy => { copy.control.physical_stop = 'confirmed'; }],
+  ['Effect identity', copy => { copy.next_action.effects[0] = 'é\r\n'; }],
+  ['Result availability', copy => {
+    copy.result_availability.answer = {state: 'unknown', reason: 'verification_pending',
+      observed_at: '2026-10-07T00:00:00.000Z'};
+  }],
+];
+for (const operation of ['status', 'wait', 'reconcile']) {
+  test(`${operation}: equivalent Run copies preserve original strings and explanation custody`, async t => {
+    const original = unresolved();
+    const {run} = await fixture(t, () => original);
+    const clone = globalThis.structuredClone;
+    t.after(() => { globalThis.structuredClone = clone; });
+    globalThis.structuredClone = value => {
+      const copy = clone(value);
+      return value?.version === 'actql-run-state/0.1'
+        ? Object.fromEntries(Object.entries(copy).reverse()) : copy;
+    };
+    const answer = await run[operation]();
+    original.next_action.effects[0] = 'later-host-value';
+    original.control.physical_stop = 'confirmed';
+    assert.deepEqual(answer, unresolved());
+    const view = explainEffectUncertainty(answer);
+    assert.deepEqual({effects: view.effects, physicalStop: view.physicalStop,
+      controlRevision: view.controlRevision}, {
+      effects: ['e\u0301\r\n', 'é'], physicalStop: 'unknown', controlRevision: 7,
+    });
+    answer.control.physical_stop = 'confirmed';
+    assert.equal(explainEffectUncertainty(answer).physicalStop, 'unknown');
+    assert.equal(explainEffectUncertainty({...answer}), undefined);
+    assert.equal(explainEffectUncertainty(clone(answer)), undefined);
+  });
+  for (const [name, alter] of copyFaults) {
+    test(`${operation}: copied Run observation cannot replace ${name}`, async t => {
+      const original = unresolved();
+      const {run, operations} = await fixture(t, () => original);
+      const clone = globalThis.structuredClone;
+      t.after(() => { globalThis.structuredClone = clone; });
+      globalThis.structuredClone = value => {
+        const copy = clone(value);
+        if (value?.version === 'actql-run-state/0.1') {
+          alter(copy);
+          assert.equal(validRunState(copy), true, 'Fault must retain the known wire shape');
+        }
+        return copy;
+      };
+      let rejected;
+      try { await run[operation](); } catch (error) { rejected = error; }
+      assert.equal(rejected?.code, 'InvalidHostRunState', '[check-mutation:run-copy-preservation]');
+      assert.deepEqual(explainRunObservationFailure(rejected)?.next, {operation: 'status', ref});
+      assert.equal(explainEffectUncertainty(rejected), undefined);
+      assert.equal(Object.hasOwn(rejected, 'cause'), false);
+      assert.deepEqual(operations, ['connect', 'attach', operation]);
+      assert.deepEqual(original, unresolved());
+    });
+  }
+  test(`${operation}: later Effect projection cannot replace admitted Run facts`, async t => {
+    const {run} = await fixture(t, () => unresolved());
+    const clone = globalThis.structuredClone;
+    let copies = 0;
+    t.after(() => { globalThis.structuredClone = clone; });
+    globalThis.structuredClone = value => {
+      const copy = clone(value);
+      if (value?.version === 'actql-run-state/0.1' && ++copies > 1) {
+        copy.control.physical_stop = 'confirmed';
+        copy.control.revision = 8;
+        copy.next_action.effects[0] = 'é\r\n';
+      }
+      return copy;
+    };
+    let answer, failure;
+    try { answer = await run[operation](); } catch (error) { failure = error; }
+    if (failure) {
+      assert.equal(failure.code, 'InvalidHostRunState');
+      assert.equal(explainRunObservationFailure(failure).problem, 'malformed_response');
+      return;
+    }
+    const view = explainEffectUncertainty(answer);
+    assert.deepEqual({control: answer.control, effects: answer.next_action.effects,
+      physicalStop: view.physicalStop, controlRevision: view.controlRevision,
+      retainedEffects: view.effects}, {
+      control: {revision: 7, cancellation_requested: true, physical_stop: 'unknown'},
+      effects: ['e\u0301\r\n', 'é'], physicalStop: 'unknown', controlRevision: 7,
+      retainedEffects: ['e\u0301\r\n', 'é'],
+    }, '[check-mutation:run-effect-projection-copy]');
+  });
+}

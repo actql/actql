@@ -10,6 +10,7 @@ fn bounded_set_fixture(
   right_rows? : String = "[{\"id\":3}]",
   input_nodes? : Int = 1000,
   max_rows? : Int = 3,
+  name_bytes? : Int = 1000,
   output_values? : ValueLimits = run_limits().output_values,
 ) -> (
   @bounded.Control,
@@ -103,7 +104,7 @@ fn bounded_set_fixture(
     max_work,
     100,
     max_entries,
-    1000,
+    name_bytes,
   )
   (control, execution, [left, right])
 }
@@ -256,6 +257,7 @@ test "bounded set stops after positive work without publishing" {
     right_rows="[{\"id\":2}]",
   )
   let execution = started.unwrap()
+  finish_binary_port_fixture(Set(execution)) |> ignore
   for _ in 0..<15 {
     assert_true(
       advance_bounded_set(execution, 1).unwrap() is BoundedSetContinue(..),

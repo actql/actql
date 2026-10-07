@@ -145,6 +145,8 @@ fn compile_join_chain_steps(
   limits : Limits,
   reserved : Array[String],
   retained : Array[RetainedResult]?,
+  initial_scope? : JoinChainScope? = None,
+  preserved_scope? : Array[JoinChainScope]? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if inputs.length() != @query.join_part_count(query) + 1 ||
     inputs.length() < 2 ||
@@ -155,22 +157,27 @@ fn compile_join_chain_steps(
   let left = inputs[0]
   let fields = columns(left.0)
   let physical = fields.copy()
-  let visible : Array[(String, String)] = []
+  let slots : Map[String, String] = Map([])
   for field in fields {
     let slot = pipe_physical_name(physical, "aql_chain_column_")
     physical.push(slot)
-    visible.push((field, slot))
+    slots[field] = slot
   }
+  let original = fields.map(field => (field, field))
+  let source_scope = initial_scope.unwrap_or({
+    visible: original,
+    ranges: [(query_range_name(query), original.copy())],
+  })
+  let visible = source_scope.visible.map(entry => (entry.0, slots[entry.1]))
+  let first_ranges = source_scope.ranges.map(range => {
+    (range.0, range.1.map(entry => (entry.0, slots[entry.1])))
+  })
   // The first JOIN's existing projection assigns the private left slots.
   // An extra seed SELECT would retain a needless intermediate relation and
   // consume another bounded provider allowance for exactly the same fields.
   let steps : Array[@builder.Node] = []
   let mut from = left.1
-  let original = fields.map(field => (field, field))
-  let mut scope : JoinChainScope = {
-    visible: original,
-    ranges: [(query_range_name(query), original.copy())],
-  }
+  let mut scope : JoinChainScope = source_scope
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let right = inputs[index + 1]
@@ -208,8 +215,8 @@ fn compile_join_chain_steps(
     // Qualified references keep both USING columns. Only the unqualified
     // visible row merges that key according to the join kind.
     if index == 0 {
-      for (field, slot) in visible {
-        projected.push((slot, construction.text(left_side + field)))
+      for field in fields {
+        projected.push((slots[field], construction.text(left_side + field)))
       }
     } else {
       for slot in physical {
@@ -358,11 +365,7 @@ fn compile_join_chain_steps(
     }
     scope = {
       visible: next_visible,
-      ranges: (if index == 0 {
-        [(query_range_name(query), visible.copy())]
-      } else {
-        scope.ranges
-      }) +
+      ranges: (if index == 0 { first_ranges } else { scope.ranges }) +
       [(qualifier, right_range)],
     }
   }
@@ -381,6 +384,7 @@ fn compile_join_chain_steps(
     final_from,
     retained~,
     initial_scope=Some(scope),
+    preserved_scope~,
   )
   steps.append(tail)
   (steps, output, if tail.is_empty() { from } else { final_from })

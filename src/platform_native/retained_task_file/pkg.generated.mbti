@@ -19,6 +19,7 @@ pub fn restore_native_retained_task_file_cleanup(String, String, @filesystem.Nat
 type NativeRetainedTaskFile
 pub fn NativeRetainedTaskFile::append(Self, String) -> Result[Unit, NativeRetainedTaskFileIssue]
 pub fn NativeRetainedTaskFile::available(Self) -> Bool
+pub fn NativeRetainedTaskFile::confirm_missing_release(Self) -> Result[Bool, NativeRetainedTaskFileIssue]
 pub fn NativeRetainedTaskFile::open_reader(Self) -> Result[NativeRetainedTaskReader, NativeRetainedTaskFileIssue]
 pub fn NativeRetainedTaskFile::reclaim_readers(Self) -> Result[Unit, NativeRetainedTaskFileIssue]
 pub fn NativeRetainedTaskFile::release(Self) -> Result[Unit, NativeRetainedTaskFileIssue]
