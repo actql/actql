@@ -1542,13 +1542,15 @@ async function connectSelected(selected, port) {
       lookupCancellation: async (reference, {signal} = {}) => {
         let cancelRef;
         try {
-          if (!validCancellationRef(reference)) fail('InvalidCancellationReference');
-          cancelRef = freezeInput(structuredClone(reference));
+          const capturedReference = captureResponse(reference);
+          if (!validCancellationRef(capturedReference)) fail('InvalidCancellationReference');
+          cancelRef = freezeInput(detachResponse(capturedReference));
           if (!validCancellationRef(cancelRef) ||
               ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(key => cancelRef[key] !== ref[key])) {
             fail('InvalidCancellationReference');
           }
         } catch { fail('InvalidCancellationReference'); }
+        const context = freezeInput({ref: {...ref}, cancelRef});
         let response;
         try {
           response = await readControl('lookup-cancellation', {
@@ -1556,16 +1558,21 @@ async function connectSelected(selected, port) {
           }, signal);
         } catch (cause) {
           const safe = requestCancellationCause(cause);
-          throw new ClientError(safe.code, {cancelRef,
-            ...(safe.status === undefined ? {} : {status: safe.status})});
+          throw retainCancellationExplanation(new ClientError(safe.code, {cancelRef,
+            ...(safe.status === undefined ? {} : {status: safe.status})}), context, 'outcome_unknown');
         }
         try {
           const captured = captureResponse(response);
           if (!validCancellationLookup(captured, cancelRef)) fail('InvalidHostCancellationLookup');
           const owned = detachResponse(captured);
           if (!validCancellationLookup(owned, cancelRef)) fail('InvalidHostCancellationLookup');
-          return freezeInput(owned);
-        } catch { throw new ClientError('InvalidHostCancellationLookup', {cancelRef}); }
+          return retainCancellationExplanation(freezeInput(owned), context,
+            owned.kind === 'found' ? owned.cancellation.kind : 'outcome_unknown',
+            owned.kind === 'found' ? owned.cancellation.revision : undefined);
+        } catch {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellationLookup', {cancelRef}),
+            context, 'outcome_unknown');
+        }
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host

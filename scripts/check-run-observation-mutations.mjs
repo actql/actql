@@ -42,6 +42,31 @@ const originalSnapshotFaults = [
   [['cancelRequest'], "        if (structuralKey(observation) !== observedKey) throw new ClientError('InvalidHostRequestCancellation');"],
 ];
 const mutations = [
+  {name: 'cancellation lookup drops the admitted explanation', path,
+    file: 'adapters/host-node/client-cancellation-public.test.mjs',
+    from: "return retainCancellationExplanation(freezeInput(owned), context,\n            owned.kind === 'found' ? owned.cancellation.kind : 'outcome_unknown',\n            owned.kind === 'found' ? owned.cancellation.revision : undefined);",
+    to: 'return freezeInput(owned);',
+    targets: ['local', 'https'].flatMap(entrance => ['before-commit', 'after-commit'].map(loss => target(
+      `${entrance}: original cancellation lookup after ${loss} loss and process restart uses a successful Run`,
+      'cancel-lookup-public', 'deepStrictEqual')))},
+  {name: 'cancellation lookup turns unknown custody into a terminal observation', path,
+    file: 'adapters/host-node/client-cancellation-public.test.mjs',
+    from: "owned.kind === 'found' ? owned.cancellation.kind : 'outcome_unknown'",
+    to: "owned.kind === 'found' ? owned.cancellation.kind : 'already_terminal'",
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: original cancellation lookup after before-commit loss and process restart uses a successful Run`,
+      'cancel-lookup-public', 'deepStrictEqual'))},
+  {name: 'cancellation lookup input reobserves the original operation identity', path,
+    file: 'packages/sdk/cancellation-lookup-explanation.test.mjs',
+    from: 'const capturedReference = captureResponse(reference);', to: 'const capturedReference = reference;',
+    targets: [target('cancellation lookup captures the first cancelId before admission',
+      'cancel-lookup-input-once', 'deepStrictEqual')]},
+  {name: 'cancellation lookup input clone substitutes the original operation', path,
+    file: 'packages/sdk/cancellation-lookup-explanation.test.mjs',
+    from: 'cancelRef = freezeInput(detachResponse(capturedReference));',
+    to: 'cancelRef = freezeInput(structuredClone(capturedReference));',
+    targets: ['replacement', 'mutation'].map(fault => target(
+      `cancellation lookup rejects input clone ${fault} before dispatch`, 'cancel-lookup-input-copy'))},
   {name: 'connection profile capture reobserves borrowed context', path,
     file: 'packages/sdk/profile-observation.test.mjs',
     from: '    profile = captureResponse(profile);', to: '',
