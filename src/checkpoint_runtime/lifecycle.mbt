@@ -149,6 +149,34 @@ pub fn decide_resume_claim(
 }
 
 ///|
+/// Effect refusal cannot erase already applied or uncertain rows. Preserve
+/// the ordinary fence/clock rules, but hold a no-send observation lease before
+/// the Set owner decides the terminal outcome. Once recorded, this mode stays
+/// observation-only even if the original configuration is restored.
+pub fn decide_effect_resume_claim(
+  intent : ResumeIntentView,
+  claimant : String,
+  now_ms : Int64,
+  lease_ms : Int64,
+  bound : ResumeBinding,
+  current : ResumeBinding,
+  settlement_only : Bool,
+) -> Result[ResumeClaimAction, ResumeIssue] {
+  match
+    decide_resume_claim(intent, claimant, now_ms, lease_ms, bound, current) {
+    Ok(ClaimInvalidated(generation)) =>
+      Ok(ClaimSettlement(generation, now_ms + lease_ms))
+    Ok(ClaimIntent(generation, expires)) =>
+      if settlement_only {
+        Ok(ClaimSettlement(generation, expires))
+      } else {
+        Ok(ClaimIntent(generation, expires))
+      }
+    result => result
+  }
+}
+
+///|
 /// Fence one mutation of a resume intent or its Run. Only the current
 /// claimant, holding the current generation and an unexpired lease, may renew
 /// or complete. Everything else is stale and must not change durable state.
@@ -173,6 +201,16 @@ pub fn decide_resume_fence(
 /// resumed continuation stays `resuming` until one of these is committed.
 pub fn resume_completion_allowed(to : @publication.RunOutcomeStatus) -> Bool {
   to != Resuming && run_transition_allowed(Resuming, to)
+}
+
+///|
+/// A refused Effect observation can preserve uncertainty or finish refused
+/// work. It cannot cancel away prior outcomes, resume execution, publish a
+/// successful Run, or open a fresh Checkpoint.
+pub fn effect_settlement_completion_allowed(
+  to : @publication.RunOutcomeStatus,
+) -> Bool {
+  to == Failed || to == NeedsReconciliation
 }
 
 ///|
