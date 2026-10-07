@@ -1666,9 +1666,9 @@ test('public submit rejects checker failures before Run admission', async () => 
     });
     for (const [parameters, status, code] of [
       [null, 422, 'ClientProgramNeedsInputs'],
-      [{n: null}, 422, 'ClientProgramRejected'],
-      [{n: 'bad'}, 422, 'ClientProgramRejected'],
-      [{n: 2, extra: true}, 422, 'ClientProgramRejected'],
+      [{n: null}, 400, 'ClientProgramInvalidInput'],
+      [{n: 'bad'}, 400, 'ClientProgramInvalidInput'],
+      [{n: 2, extra: true}, 400, 'ClientProgramInvalidInput'],
       [{n: 'x'.repeat(65536)}, 413, 'ClientParametersTooLarge'],
     ]) {
       const response = await submit(parameters);
@@ -1679,9 +1679,12 @@ test('public submit rejects checker failures before Run admission', async () => 
     const client = await connectClient({mode: 'local', owner: 'local',
       endpoint: origin, token: 'scoped-token'});
     try {
+      // A bare historical request ID cannot select an epoch-bound SDK submit.
+      // Actual SDK input-category recovery is covered by the installed epoch
+      // submission fixture, rather than a fallback to this thin raw service.
       await assert.rejects(client.startSource(document, {format: 'json',
         requestId: 'sdk-invalid-parameter', parameters: {n: null}}),
-      {code: 'ClientProgramRejected'});
+      {code: 'SubmissionReferenceRequired'});
       assert.equal(admissions, 0);
     } finally {
       client.close();
