@@ -49,6 +49,20 @@ constructor start across those labels. Object and executable must expose the
 same scalar site set. There is no historical-layout or old-recipe runtime
 fallback.
 
+GNU code inspection batches nearby selected function ranges into one bounded
+disassembler invocation and extracts only the original exact ranges. Basic-block
+labels are retained inside their enclosing function; the next real symbol still
+defines its end. Far-apart ranges use separate batches, and a selected function
+larger than the batching span is inspected in full rather than truncated.
+The resulting text must match the existing individual-function observations
+byte for byte, including relocations. The executable's existing `nm` output is
+also reused inside that one inspection instead of running `nm` a second time.
+There is no cached acceptance decision or cross-invocation disassembly cache:
+each receipt audit still hashes its current binary/tool/log inputs and executes
+the independent object-to-executable inspection. All source, custody, phase,
+substitution and final-consumer checks remain in place. This changes tool launch
+scheduling, not the verification scope or reuse qualification.
+
 ## Scope and remaining obligations
 
 The new result is a finite point-in-time **requested allocation extent** for the
