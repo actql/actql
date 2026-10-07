@@ -769,8 +769,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('bb311179f5afee3d6e03181b66113f045cbd6190ce4174b32d40ac9a67459a8d'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('af4b746a75926ddcf8a506348a9df55147a10bf9c0b64e4f950d0ec6d513e9d5'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the grouping-output-alias parent as an independent full preimage.
+  assert.equal(vector(pin('4ac55d221c3878197277681acc425497bc6705a864745d4ae004bbcc17915444'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('732a5690b7573d96b3c54114780ee1255ddeab06d15514f65ec24236c1107251'));
+  assert.equal(current.run.run_definition_cid,
+    pin('7b7be234b94ec1a22ed33e054e503320c171d39d58c4ed9cf6246e0988f5a460'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
