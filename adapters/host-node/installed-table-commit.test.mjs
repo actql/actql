@@ -29,7 +29,8 @@ const targetRef = 'connector://table/catalog', mappingRef = 'mapping:table.catal
 const scope = {connection: 'table', resource: 'catalog'};
 
 for (const empty of [false,true]) {
-  test(`installed Table runtime ${empty ? 'empty' : 'nonempty'} commits original operations after approval and recovery`,
+for (const partial of [false,true]) {
+  test(`installed Table runtime ${empty ? 'empty' : 'nonempty'} commits original operations after approval and recovery${partial ? ' with partial apply restart' : ''}`,
     async t => exerciseEffectSourceSet(t, {empty, target: targetRef, mappingRef,
       minimumApproval: 'required', onTablePreview: async f => {
         ensureCheckpointRuntime();
@@ -51,6 +52,23 @@ for (const empty of [false,true]) {
           return Number(observed.stdout.trim());
         };
         const bridge = createIcebergPhysicalBridge({python, run: 'installed-table', catalog});
+        const physicalOperations = new WeakMap();
+        const inspected = [], sent = [];
+        const observedBridge = Object.freeze({...bridge,
+          prepareWrite(options) {
+            const prepared = bridge.prepareWrite(options);
+            physicalOperations.set(prepared, options.operation);
+            return prepared;
+          },
+          inspect(prepared, signal) {
+            inspected.push(physicalOperations.get(prepared).table_name);
+            return bridge.inspect(prepared, signal);
+          },
+          execute(prepared, options) {
+            sent.push(physicalOperations.get(prepared).request_cid);
+            return bridge.execute(prepared, options);
+          },
+        });
         const readAuthorization = await fixtureAuthorization([accountEntry('current-read','allow',
           {...scope,operation:'read'})]);
         const options = {moon, environmentWire: '{}', connectorId: 'table',
@@ -60,7 +78,7 @@ for (const empty of [false,true]) {
             targetRef, mappingRef, mappingCid: f.fixture.mappingCid,
             action: 'create', catalogCid: cid('3'), namespace: ['analytics'], tableName: `rows_${index}`,
             expectedTable: null, permissions: ['scope:store'], footprint: f.template.effects[index].write_footprint})),
-          bridge, authorization: readAuthorization, ledgerRoot: join(f.directory,'installed-table-ledger'),
+          bridge: observedBridge, authorization: readAuthorization, ledgerRoot: join(f.directory,'installed-table-ledger'),
           limits: {maxMembers: 2, maxInputBytes: 100000, material: f.tableLimits,
             reservation: {bytes: 1048576, files: 16}}};
         const factory = await createInstalledTableEffect(options);
@@ -77,7 +95,8 @@ for (const empty of [false,true]) {
         const configuration = accountConfiguration([
           accountEntry('commit','delegate',{...scope,operation:'effect'}),
           accountEntry('target-read','allow',{...scope,operation:'read'})]);
-        const now = () => Date.parse('2026-10-07T00:00:00.000Z');
+        let clock = Date.parse('2026-10-07T00:00:00.000Z');
+        const now = () => clock;
         const openCheckpoint = () => installRemoteCheckpoints({root: join(f.directory,'approval'),
           namespaceId: 'table-host', authorityScopeCid: cid('e'), ownerPrincipal: 'owner',
           siteKey: 'table', realizationKey: 'catalog', environmentCid: moon.clientProgramEffectEnvironmentCid(f.prepared),
@@ -120,10 +139,60 @@ for (const empty of [false,true]) {
             authorityScopeCid:cid('e'),sign:bytes=>sign(null,bytes,reviewer.privateKey)},new Date(now()).toISOString());
           assert.equal((await checkpoint.resolve({principalId:'reviewer',items:[answer]})).results[0].status,'committed');
           gate = await checkpoint.effectAuthorization(continuation());
+          const approved = () => ({gate,scopes:recoveredStage.scopes,
+            resume:{journal:checkpoint.journal,runId:'source-set-run',
+              claimant:'table-resumer',leaseMs:60000,binding:checkpoint.binding}});
+          let firstResponse, firstOutcome;
+          if (partial) {
+            const bind = recoveredStage.apply.bindDispatch;
+            // Interrupt only after the first real commit and durable Applied
+            // outcome. The second member has not entered its send claim.
+            await assert.rejects(applyRecoveredEffectSet({...recoveredStage.apply,
+              authorization:approved(),bindDispatch:binding => {
+                const dispatch = bind(binding);
+                return row => {
+                  if (row.memberIndex === 1) throw Object.assign(new Error('FixturePartialApplyStop'),
+                    {code:'FixturePartialApplyStop'});
+                  return dispatch(row);
+                };
+              }}),{code:'FixturePartialApplyStop'});
+            assert.equal(commits(),1);
+            assert.deepEqual(sent,[originalRequests[0]]);
+            const claims = recoveredStage.receipt.members.map(member => member.rowOwners[0].claim);
+            firstResponse = recoveredStage.apply.ledger.readClaimedResponse(claims[0]).responseBytes;
+            firstOutcome = recoveredStage.apply.ledger.readClaimedOutcome(claims[0]).outcomeJson;
+            assert.equal(JSON.parse(firstOutcome).typed_outcome.state,'applied');
+            assert.equal(recoveredStage.apply.ledger.readClaimedResponse(claims[1]),undefined);
+            assert.equal(recoveredStage.apply.ledger.readClaimedOutcome(claims[1]),undefined);
+            await suspendCompletedEffectfulComputation({execution:null,store,control,
+              storedResults:durable.storedResults,computation:durable.computation,preview:durable.preview});
+            await recoveredStage.dispose();
+            gate.close(); await checkpoint.close(); await store.close();
+            store = await openLocalPublicationStore(f.storeConfiguration,control);
+            f.replaceStoreForCleanup(store);
+            durable = await recoverCompletedEffectfulComputation({store,control,
+              runDefinition:plan.runDefinition,contractLimits:plan.contractLimits});
+            const restartedFactory = await createInstalledTableEffect(options);
+            recoveredStage = await restartedFactory.prepareRecovered({moon,control,store,
+              recovered:{requestIdentity:identity,requestScope:moon.clientRequestLogicalScope(identity),computation:durable},
+              continuation:{provider:saved}});
+            // Expire the interrupted claim's lease; the same durable journal
+            // reconciles its entered admission, never a fresh approval.
+            clock += 60001;
+            checkpoint = await openCheckpoint();
+            gate = await checkpoint.effectAuthorization(continuation());
+            inspected.length = 0; sent.length = 0;
+          }
           const applied = await applyRecoveredEffectSet({...recoveredStage.apply,
-            authorization:{gate,scopes:recoveredStage.scopes,resume:{journal:checkpoint.journal,
-              runId:'source-set-run',claimant:'table-resumer',leaseMs:60000,binding:checkpoint.binding}}});
-          assert.equal(applied.dispatched,2); assert.equal(commits(),2);
+            authorization:approved()});
+          assert.equal(applied.dispatched,partial ? 1 : 2); assert.equal(commits(),2);
+          if (partial) {
+            assert.deepEqual(inspected,['rows_1']);
+            assert.deepEqual(sent,[originalRequests[1]]);
+            const claim = recoveredStage.receipt.members[0].rowOwners[0].claim;
+            assert.deepEqual(recoveredStage.apply.ledger.readClaimedResponse(claim).responseBytes,firstResponse);
+            assert.equal(recoveredStage.apply.ledger.readClaimedOutcome(claim).outcomeJson,firstOutcome);
+          }
           const receipts = recoveredStage.receipt.members.map(member => JSON.parse(
             recoveredStage.apply.ledger.readClaimedOutcome(member.rowOwners[0].claim).outcomeJson).typed_outcome.result);
           const expected = empty ? [] : [{id:1},{id:2}];
@@ -146,4 +215,5 @@ for (const empty of [false,true]) {
             runDefinition:plan.runDefinition,contractLimits:plan.contractLimits});
         }
       }}));
+}
 }
