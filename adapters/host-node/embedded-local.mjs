@@ -2180,8 +2180,23 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             if (result?.status === 'waiting_checkpoint') return;
             const lifecycle = checkpoints.journal.getRunState(runId);
             if (result?.status === 'needs_reconciliation') {
-              const reconciliation = effectRun?.reconciliation(ref);
-              if (reconciliation !== undefined && !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
+              const unresolvedModel = checkpoints.journal.hasUnresolvedModelCalls(runId);
+              const stopped = journal.lookupRunDefinition(ref, moon, control);
+              const effectReconciliation = effectRun?.reconciliation(ref);
+              // This restoration returned only after its physical Owner's
+              // stop and cleanup. Retain its unresolved outcome in the same
+              // Run journal, so later sweeps do not reopen a Running frame.
+              const reconciliation = unresolvedModel && effectReconciliation === undefined &&
+                restorationStopConfirmed &&
+                stopped?.physicalCloseConfirmed === true &&
+                dispatchOwner.operation(ref) === undefined
+                ? issueInstalledUnpublishedRunState(moon, {runId,
+                  observedAt: now(), resultNames: stopped.resultNames,
+                  dispatchReserved: true, preDispatchFailureConfirmed: false,
+                  cancelledBeforeStart: false, observedTerminalOutcome: 'none',
+                  executionUnknown: true})
+                : !unresolvedModel ? effectReconciliation : undefined;
+              if (reconciliation !== undefined) {
                 if (claim !== undefined && lifecycle?.status === 'resuming') {
                   checkpoints.journal.completeResume(claim,
                     {runStateWire: JSON.stringify(reconciliation)});
