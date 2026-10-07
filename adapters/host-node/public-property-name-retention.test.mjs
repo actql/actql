@@ -217,6 +217,43 @@ function unaryCompletionProgram(id, kind) {
   return value;
 }
 
+const completionColumn='x'.repeat(256)+'😀';
+function completionProgram(id,kind='values',duplicates='all') {
+  const schema={id:{type:'number',nullable:false},
+    [completionColumn]:{type:'number',nullable:true}};
+  const rows=[{id:1,[completionColumn]:7},{id:1,[completionColumn]:7},
+    {id:2,[completionColumn]:null}];
+  const producer={id:'producer',inputs:{},steps:[],
+    results:{rows:{from:'out',fields:['id','value']}}};
+  const stages=[];
+  if(kind==='values'){
+    producer.steps.push({values:{schema,rows:[rows[0],rows[2]]},as:'seed'});
+  }else{
+    const cross=kind==='cross_join';
+    stages.push({id:'left',inputs:{},steps:[{values:{
+      schema:cross?{id:schema.id}:schema,
+      rows:cross?[{id:1}]:rows},as:'out'}],
+      results:{rows:{from:'out',fields:cross?['id']:['id',completionColumn]}}},
+    {id:'right',inputs:{},steps:[{values:{
+      schema:cross?{[completionColumn]:schema[completionColumn]}:schema,
+      rows:cross?[{[completionColumn]:7},{[completionColumn]:null}]:[rows[0]]},as:'out'}],
+      results:{rows:{from:'out',fields:cross?[completionColumn]:['id',completionColumn]}}});
+    producer.inputs={l:{result:{stage:'left',result:'rows'}},
+      r:{result:{stage:'right',result:'rows'}}};
+    const operation=kind==='cross_join'?{with:'r',select:{
+      id:'left.id',[completionColumn]:`right.${completionColumn}`}}:
+      kind==='append'?{with:'r'}:{with:'r',duplicates};
+    producer.steps.push({from:'l',[kind]:operation,as:'seed'});
+  }
+  producer.steps.push({from:'seed',rename:{[completionColumn]:'value'},as:'out'});
+  stages.push(producer,...['consumer_a','consumer_b'].map(stage=>({id:stage,
+    inputs:{rows:{result:{stage:'producer',result:'rows'}}},steps:[
+      {select:['id','value'],as:'out'}],results:{rows:{from:'out',fields:['id','value']}}})));
+  return {version:'actql/0.1',id,stages,
+    results:Object.fromEntries(['producer','consumer_a','consumer_b'].map((stage,index)=>
+      [names[index],{from:{stage,result:'rows'}}]))};
+}
+
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
   valueContract={type:'number',nullable:true},producerTask=1){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
@@ -336,3 +373,27 @@ test('public retained unpivot completion names preserve NULL and post-progress c
 test('public retained unnest completion names preserve NULL and post-progress custody',
   {timeout:90_000}, t=>verifyRetainedNames(t,'unary-unnest',
     id=>unaryCompletionProgram(id,'unnest')));
+
+test('public retained Values completion names preserve Unicode and preparation custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'values-completion',completionProgram,
+    expected,{type:'number',nullable:true},0));
+test('public retained Append completion names preserve duplicates and preparation custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'append-completion',
+    id=>completionProgram(id,'append'),
+    // Both Values operands prove their logical order. Append preserves every
+    // left row before every right row, rather than sorting the combined IDs.
+    [{id:1,value:7},{id:1,value:7},{id:2,value:null},{id:1,value:7}],
+    {type:'number',nullable:true},2));
+test('public retained Set completion names preserve ALL DISTINCT and preparation custody',
+  {timeout:180_000},async t=>{
+    for(const [operation,duplicates,rows] of [
+      ['except','all',expected],['except','distinct',[{id:2,value:null}]],
+      ['intersect','all',[{id:1,value:7}]],['intersect','distinct',[{id:1,value:7}]],
+    ])await t.test(`${operation}-${duplicates}`,child=>verifyRetainedNames(child,
+      `${operation}-${duplicates}-completion`,id=>completionProgram(id,operation,duplicates),
+      rows,{type:'number',nullable:true},2));
+  });
+test('public retained Cross Join completion names preserve NULL and preparation custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'cross-completion',
+    id=>completionProgram(id,'cross_join'),[{id:1,value:7},{id:1,value:null}],
+    {type:'number',nullable:true},2));

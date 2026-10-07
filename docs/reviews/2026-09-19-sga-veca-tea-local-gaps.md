@@ -6443,3 +6443,25 @@ acceptance is not full Local Compute or Native capacity completion.
 Join/Nest/interval/as-of/Sequence preparation and Native capacity correspondence
 remain separate. See the
 [unary preparation record](2026-10-07-local-unary-port-preparation.md).
+
+### Resumable Values and binary completion preparation (2026-10-07)
+
+Values, Append, EXCEPT/INTERSECT ALL and DISTINCT, and Cross Join drive the
+same trusted output-port cursor inside their existing bounded sessions. Exact
+input admission remains before execution; finite name admission, stop and
+pending-name cleanup precede input scanning. Completed name arrays transfer
+without copying and survive successful cleanup. Kernel semantics and logical
+work/workspace limits remain unchanged.
+
+Independent name exact/one-short quantities, quanta 1/7/256 and stops in every
+preparation phase supplement existing kernel/output boundaries. Normal public
+Programs, real Store publication and two consumers are connected to the same
+evidence inventory; submitted-source receipts are recorded separately.
+The selected working-tree JS batch passed 58/58. #749 remains a parent until
+its main adoption; main `59786a7d88f5f2c86ce336b8907febcce12137b2` was
+normally merged without conflicts.
+
+Other completion-port starts, downstream name/field resolution scans, installed
+availability callbacks and Native allocation/callback correspondence remain
+distinct. See the
+[Values/binary preparation record](2026-10-07-local-relation-port-preparation.md).

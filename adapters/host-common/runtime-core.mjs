@@ -1717,6 +1717,7 @@ function publicationControl(moon) {
   const localEffectIdentityTokens = new WeakMap();
   const tableInputTokens = new WeakMap();
   const tablePreviewTokens = new WeakMap();
+  const recoveredTablePreviewTokens = new WeakMap();
   const localEffectManifestTokens = new WeakMap();
   const localEffectDependencyTokens = new WeakMap();
   const localEffectImportTokens = new WeakMap();
@@ -2486,6 +2487,32 @@ function publicationControl(moon) {
         ),
       ));
     },
+    capturedEffectSourceMatchesPreview(preview, memberIndex, invocation,
+      source, localEvidence, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'captured Effect source Preview');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Number.isSafeInteger(memberIndex) ||
+          memberIndex < 0 || typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid captured Effect source Preview');
+      }
+      return checked(moon.strategyCapturedEffectSourceMatchesPreview(ownedPreview,
+        memberIndex, token(invocation), effectSourceToken(source),
+        localEffectSourceToken(localEvidence), storeAuthorityCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    admitCapturedEffectSourceFromCapture(preview, memberIndex, invocation,
+      artifact, capturedRun, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'recovered Effect source');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Number.isSafeInteger(memberIndex) ||
+          memberIndex < 0 || typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid recovered Effect source');
+      }
+      return inspectEffectSource(checked(moon.strategyAdmitCapturedEffectSourceFromCapture(
+        ownedPreview, memberIndex, token(invocation), token(artifact),
+        token(capturedRun), storeAuthorityCid, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth)));
+    },
     issueEffectSourceArtifactFromExport(input, receipt, invocation,
       retention, sourceBindingCid, storeAuthorityCid, limits) {
       issuanceLimits(limits, 'Effect source Artifact');
@@ -2648,6 +2675,40 @@ function publicationControl(moon) {
       return moon.clientProgramTableInputMatchesSource(ownedInput,
         ownedArtifact, ownedIdentity);
     },
+    tableInputStorageMappingWire(input) {
+      const owned = tableInputTokens.get(input);
+      if (owned === undefined) throw new TypeError('Foreign Table input');
+      return moon.clientProgramTableInputStorageMappingJson(owned);
+    },
+    bindRecoveredTablePreview(preview, memberIndex, invocation, source,
+      capturedRun, scope, mappingWire, storeAuthorityCid, limits, tableLimits) {
+      issuanceLimits(limits, 'recovered Table Preview');
+      issuanceLimits(tableLimits, 'recovered Table material');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Number.isSafeInteger(memberIndex) ||
+          memberIndex < 0 || typeof mappingWire !== 'string' ||
+          typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid recovered Table Preview');
+      }
+      const issued = checked(moon.clientProgramBindRecoveredTablePreview(
+        ownedPreview, memberIndex, token(invocation), effectSourceToken(source),
+        token(capturedRun), scope, mappingWire, storeAuthorityCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+        tableLimits.maxWireBytes, tableLimits.maxNodes, tableLimits.maxDepth));
+      const value = Object.freeze({
+        subjectCid: moon.clientProgramRecoveredTablePreviewSubjectCid(issued),
+        operationWire: moon.clientProgramRecoveredTablePreviewOperationJson(issued),
+        mappingWire: moon.clientProgramRecoveredTablePreviewMappingJson(issued),
+      });
+      recoveredTablePreviewTokens.set(value, issued);
+      return value;
+    },
+    recoveredTablePreviewMatchesSource(preview, source) {
+      const owned = recoveredTablePreviewTokens.get(preview);
+      if (owned === undefined) throw new TypeError('Foreign recovered Table Preview');
+      return moon.clientProgramRecoveredTablePreviewMatchesSource(owned,
+        effectSourceToken(source));
+    },
     bindTablePreview(input, capturedPreview, memberIndex) {
       const ownedInput = tableInputTokens.get(input);
       if (ownedInput === undefined || !Number.isSafeInteger(memberIndex) ||
@@ -2669,6 +2730,13 @@ function publicationControl(moon) {
     tablePreviewCommitOutcome(preview, responseWire, statusCode, limits) {
       issuanceLimits(limits, 'Table commit outcome');
       const owned = tablePreviewTokens.get(preview);
+      const recovered = recoveredTablePreviewTokens.get(preview);
+      if (recovered !== undefined && typeof responseWire === 'string' &&
+          Number.isSafeInteger(statusCode)) {
+        return checked(moon.clientProgramRecoveredTablePreviewCommitOutcome(
+          recovered, responseWire, statusCode, limits.maxWireBytes,
+          limits.maxNodes, limits.maxDepth));
+      }
       if (owned === undefined || typeof responseWire !== 'string' ||
           !Number.isSafeInteger(statusCode)) {
         throw new TypeError('Invalid Table commit response owner');
@@ -2679,6 +2747,14 @@ function publicationControl(moon) {
     },
     tablePreviewLedgerBinding(preview) {
       const owned = tablePreviewTokens.get(preview);
+      const recovered = recoveredTablePreviewTokens.get(preview);
+      if (recovered !== undefined) {
+        const identity = moon.clientProgramRecoveredTablePreviewLedgerIdentity(recovered);
+        const memberIndex = moon.clientProgramRecoveredTablePreviewMemberIndex(recovered);
+        return Object.freeze({preview: identity, memberIndex,
+          rowPreviewCid: moon.strategyEffectPreviewOrderedRowCid(identity, memberIndex, 0),
+          operationWire: moon.clientProgramRecoveredTablePreviewOperationJson(recovered)});
+      }
       if (owned === undefined) throw new TypeError('Foreign Table Preview');
       const identity = moon.clientProgramTablePreviewLedgerIdentity(owned);
       const memberIndex = moon.clientProgramTablePreviewMemberIndex(owned);
@@ -2873,6 +2949,21 @@ function publicationControl(moon) {
         ownedPreview, sources.map(value => value.memberIndex),
         sources.map(value => token(value.artifact)),
       );
+    },
+    capturedEffectSourceInventoryFromCaptureValid(preview, sources,
+      invocation, capturedRun, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'recovered Effect source inventory');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(sources) ||
+          sources.some(value => !Number.isSafeInteger(value?.memberIndex)) ||
+          typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid recovered Effect source inventory');
+      }
+      return moon.strategyCapturedEffectSourceInventoryFromCaptureValid(
+        ownedPreview, sources.map(value => value.memberIndex),
+        sources.map(value => token(value.artifact)), token(invocation),
+        token(capturedRun), storeAuthorityCid, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth);
     },
     capturedEffectSourceInventoryFromResultsValid(preview, sources, limits) {
       issuanceLimits(limits, 'captured Table source inventory');

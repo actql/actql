@@ -1862,6 +1862,16 @@ export function validateResourceAccounting({
         }
       }
     }
+    if (route.family === 'RelA' &&
+      ['values', 'append', 'except', 'intersect', 'cross_join'].includes(route.operation)) {
+      for (const role of ['completion_port_limit', 'completion_port_quantum',
+        'completion_port_stop']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('completion_port_public')) {
+        fail(`${label}: completion_port_public fixture is missing`);
+      }
+    }
     if (route.family === 'RelA' && route.operation === 'derive') {
       for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
         'derive_field_name_limits', 'derive_field_name_stop',

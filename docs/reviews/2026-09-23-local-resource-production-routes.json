@@ -7240,6 +7240,39 @@
       },
       "boundary_tests": [
         {
+          "role": "completion_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "Append output name admission starts before its one-short resume refusal"
+        },
+        {
+          "role": "completion_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "binary completion names preserve exact bytes logical charges and order across quanta"
+        },
+        {
+          "role": "completion_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "binary completion port stops within each name phase before input scan"
+        },
+        {
           "role": "append_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -7498,6 +7531,15 @@
       ],
       "environment_tests": [
         {
+          "role": "completion_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained Append completion names preserve duplicates and preparation custody"
+        },
+        {
           "role": "retained_append_host_work_workspace",
           "suite": "node:duckdb_standard_host",
           "targets": [
@@ -7712,6 +7754,39 @@
       },
       "boundary_tests": [
         {
+          "role": "completion_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "Values output name admission starts before its one-short resume refusal"
+        },
+        {
+          "role": "completion_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "Values completion Unicode admission preserves exact bytes and logical charges"
+        },
+        {
+          "role": "completion_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "Values completion stops inside every preparation phase before cell demand"
+        },
+        {
           "role": "values_output_values_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -7889,6 +7964,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "completion_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained Values completion names preserve Unicode and preparation custody"
+        },
         {
           "role": "zero_input_node_timer_cancel_cleanup",
           "suite": "node:duckdb_standard_host",
@@ -8112,6 +8196,39 @@
       },
       "boundary_tests": [
         {
+          "role": "completion_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "Set output name admission starts before its one-short resume refusal"
+        },
+        {
+          "role": "completion_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "binary completion names preserve exact bytes logical charges and order across quanta"
+        },
+        {
+          "role": "completion_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "binary completion port stops within each name phase before input scan"
+        },
+        {
           "role": "except_nested_compare_quantum_order",
           "suite": "moon:execution_relation",
           "targets": [
@@ -8224,6 +8341,15 @@
       ],
       "environment_tests": [
         {
+          "role": "completion_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained Set completion names preserve ALL DISTINCT and preparation custody"
+        },
+        {
           "role": "retained_except_distinct_publication",
           "suite": "node:duckdb_standard_host",
           "targets": [
@@ -8295,6 +8421,39 @@
         "symbol": "set_provider"
       },
       "boundary_tests": [
+        {
+          "role": "completion_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "Set output name admission starts before its one-short resume refusal"
+        },
+        {
+          "role": "completion_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "binary completion names preserve exact bytes logical charges and order across quanta"
+        },
+        {
+          "role": "completion_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "binary completion port stops within each name phase before input scan"
+        },
         {
           "role": "intersect_nested_compare_quantum_order",
           "suite": "moon:execution_relation",
@@ -8408,6 +8567,15 @@
       ],
       "environment_tests": [
         {
+          "role": "completion_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained Set completion names preserve ALL DISTINCT and preparation custody"
+        },
+        {
           "role": "retained_intersect_distinct_publication",
           "suite": "node:duckdb_standard_host",
           "targets": [
@@ -8478,6 +8646,39 @@
         "symbol": "cross_join_provider"
       },
       "boundary_tests": [
+        {
+          "role": "completion_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "Cross Join output name admission starts before its one-short resume refusal"
+        },
+        {
+          "role": "completion_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "binary completion names preserve exact bytes logical charges and order across quanta"
+        },
+        {
+          "role": "completion_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/relation_port_preparation_wbtest.mbt",
+          "fixture": "binary completion port stops within each name phase before input scan"
+        },
         {
           "role": "product_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
@@ -8711,6 +8912,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "completion_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained Cross Join completion names preserve NULL and preparation custody"
+        },
         {
           "role": "retained_product_host_work_workspace",
           "suite": "node:duckdb_standard_host",

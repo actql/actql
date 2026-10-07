@@ -548,6 +548,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
       typeof store?.commitPhysicalHolding !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       !['capturedEffectSourceHoldingCid',
+        'capturedEffectSourceMatchesPreview',
         'capturedEffectSourceArtifactCid',
         'capturedEffectSourceStoreAuthorityCid',
         'effectComputationCaptureHoldingCid',
@@ -610,11 +611,10 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     const source = holding.source;
     const record = holding.record;
     if (
-        control.capturedEffectSourceHoldingCid(
-          control.admitCapturedEffectSourceArtifact(
-            preview, holding.memberIndex, invocation,
-            holding.artifact, store.storeAuthorityCid,
-          )) !== record.holding_cid ||
+        control.capturedEffectSourceMatchesPreview(
+          preview, holding.memberIndex, invocation, source,
+          holding.localEvidence, store.storeAuthorityCid, contractLimits,
+        ) !== true ||
         record?.namespace !== 'effect-source' ||
         record?.holding_cid !==
           control.capturedEffectSourceHoldingCid(source) ||
@@ -848,13 +848,15 @@ export async function retireCompletedEffectfulCapture({store, control,
     return Object.freeze({memberIndex: item.member_index,
       artifact: admit('effect_source_artifact', item.artifact)});
   });
-  if (!control.capturedEffectSourceRecoveryInventoryValid(preview,
-    sources)) {
+  if (!control.capturedEffectSourceInventoryFromCaptureValid(preview,
+    sources, chain.invocation, chain.capturedRun, store.storeAuthorityCid,
+    contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureSource');
   }
   const sourceCids = sources.map(({memberIndex, artifact}) => {
-    const source = control.admitCapturedEffectSourceArtifact(preview,
-      memberIndex, chain.invocation, artifact, store.storeAuthorityCid);
+    const source = control.admitCapturedEffectSourceFromCapture(preview,
+      memberIndex, chain.invocation, artifact, chain.capturedRun,
+      store.storeAuthorityCid, contractLimits);
     return control.capturedEffectSourceHoldingCid(source);
   });
   // Validate every remaining record before starting deletion. Missing
@@ -935,13 +937,13 @@ export async function recoverCompletedEffectfulComputation(options) {
         'confirmPrivateEvidence', 'putPreparedResultSchema']
         .every(name => typeof store?.[name] === 'function') ||
       !['admit', 'admitRunEvidence', 'admitEffectComputationPreview',
-        'admitCapturedEffectSourceArtifact',
+        'admitCapturedEffectSourceFromCapture',
         'capturedEffectSourceHoldingCid',
         'capturedEffectSourceArtifactCid',
         'effectComputationCaptureHoldingCid',
         'effectComputationRecordHoldingCid',
         'effectfulComputationEvidenceChainValid',
-        'capturedEffectSourceRecoveryInventoryValid']
+        'capturedEffectSourceInventoryFromCaptureValid']
         .every(name => typeof control?.[name] === 'function')) {
     fail('InvalidCompletedEffectfulRecoveryOptions');
   }
@@ -1053,15 +1055,16 @@ export async function recoverCompletedEffectfulComputation(options) {
       kind: item.kind, observationCid: item.observation_cid,
       wire: item.wire});
   });
-  if (!control.capturedEffectSourceRecoveryInventoryValid(
-    preview, sourceInventory)) {
+  if (!control.capturedEffectSourceInventoryFromCaptureValid(
+    preview, sourceInventory, invocation, capturedRun,
+    store.storeAuthorityCid, contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureSource');
   }
   const sourceHoldings = [];
   for (const {memberIndex, artifact} of sourceInventory) {
-    const source = control.admitCapturedEffectSourceArtifact(
-      preview, memberIndex, invocation, artifact,
-      store.storeAuthorityCid,
+    const source = control.admitCapturedEffectSourceFromCapture(
+      preview, memberIndex, invocation, artifact, capturedRun,
+      store.storeAuthorityCid, contractLimits,
     );
     const holdingCid = control.capturedEffectSourceHoldingCid(source);
     const holding = await store.inspectPhysicalHolding(holdingCid);
@@ -1072,7 +1075,7 @@ export async function recoverCompletedEffectfulComputation(options) {
       fail('CompletedEffectfulCaptureSourceUnavailable');
     }
     await store.commitPhysicalHolding(holding, []);
-    sourceHoldings.push(Object.freeze({source, artifact}));
+    sourceHoldings.push(Object.freeze({source, artifact, memberIndex}));
   }
   const captureHolding = await store.inspectPhysicalHolding(
     captureHoldingCid);
@@ -1203,6 +1206,16 @@ export function prepareCompletedEffectfulPublication(options) {
     sourceArtifacts: Object.freeze(issued.effectSourceHoldings.map(
       value => value.artifact)),
   });
+}
+
+// Preserve the closed publication inventory. Connector recovery projects exact
+// occurrences separately, through the same existing owners and availability
+// checks, rather than extending final publication's accepted argument shape.
+export function prepareCompletedEffectSourceMembers(options) {
+  prepareCompletedEffectfulPublication(options);
+  const issued = completedEffectfulOwners.get(options.computation);
+  return Object.freeze(issued.effectSourceHoldings.map(
+    ({source, artifact, memberIndex}) => Object.freeze({source, artifact, memberIndex})));
 }
 
 // A recovered Preview remains historical evidence until its exact physical

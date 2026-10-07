@@ -116,6 +116,53 @@ pub fn captured_effect_source_inventory_from_results_valid(
 }
 
 ///|
+pub fn captured_effect_source_inventory_from_capture_valid(
+  preview : EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[PublicationContract],
+  invocation : PublicationContract,
+  captured : PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  let count = effect_preview_member_count(preview)
+  if count == 0 || member_indices.length() != artifacts.length() {
+    return false
+  }
+  let seen = Array::make(count, false)
+  for index in 0..<member_indices.length() {
+    let member_index = member_indices[index]
+    if member_index < 0 ||
+      member_index >= count ||
+      seen[member_index] ||
+      admit_captured_effect_source_from_capture(
+        preview,
+        member_index,
+        invocation,
+        artifacts[index],
+        captured,
+        store_authority_cid,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      )
+      is Err(_) {
+      return false
+    }
+    seen[member_index] = true
+  }
+  for index in 0..<count {
+    if (effect_preview_member_source_result(preview, index) is Some(_)) !=
+      seen[index] {
+      return false
+    }
+  }
+  true
+}
+
+///|
 fn captured_effect_source_inventory_valid(
   preview : EffectPreviewIdentity,
   member_indices : Array[Int],

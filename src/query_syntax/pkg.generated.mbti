@@ -145,6 +145,7 @@ pub(all) enum CastType {
 pub(all) struct CtePart {
   name : NamePart
   query : Query
+  carry_ranges : Bool
 }
 
 pub(all) struct DataDeclaration {

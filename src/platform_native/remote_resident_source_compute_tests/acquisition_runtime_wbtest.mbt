@@ -5,6 +5,8 @@
 ///|
 fn acquisition_runtime_case(
   through_consumer : Bool,
+  chain? : Bool = false,
+  cancel_chain_tail? : Bool = false,
   through_resident? : Bool = false,
   through_consumer_holder? : Bool = false,
   cancel_consumer_before_start? : Bool = false,
@@ -26,7 +28,12 @@ fn acquisition_runtime_case(
   let name = "acquisition-runtime-" + @env.now().to_string() + ".duckdb"
   let path = root_path + "/" + name
   resident_compute_database(library, path)
-  let prepared = resident_compute_prepared()
+  let document = if chain {
+    retained_native_chain_document
+  } else {
+    resident_compute_document
+  }
+  let prepared = resident_compute_prepared(document~)
   let configuration = resident_compute_configuration(library, path)
   let source = {
     ..configuration.source,
@@ -133,7 +140,7 @@ fn acquisition_runtime_case(
     definition,
     environment,
     resident_effect_source_environment,
-    resident_compute_document,
+    document,
     None,
   ).unwrap()
   let envelope = @remote.remote_poll_dispatch_materials_json(
@@ -315,6 +322,11 @@ fn acquisition_runtime_case(
       producer_cleanup_at_handoff~,
       cleanup_after_preparation~,
       cancel_producer_before_handoff~,
+      chain_context=if chain {
+        Some({ caller, selected, cancel_tail: cancel_chain_tail, })
+      } else {
+        None
+      },
     )
     assert_eq(
       @host.client_retained_input_producer_available(producer),
@@ -358,6 +370,11 @@ fn acquisition_runtime_case(
   }
   assert_eq(acquisitions.val, 1)
   assert_eq(entries.val, 1)
+  if chain {
+    for index in [3, 5] {
+      assert_eq(@site.site_status(site)[index], 0L)
+    }
+  }
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())
