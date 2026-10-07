@@ -151,7 +151,7 @@ fn binding_row_source(
     Some(projection) =>
       match projection.get(name) {
         Some(index) => Some(InputColumn(index))
-        None => Some(GeneratedColumn)
+        None => small_generated_row_source(state, name)
       }
     None =>
       match state.binding_ordinals.get(name) {
