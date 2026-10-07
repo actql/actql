@@ -147,6 +147,8 @@ pub fn prepare_logical_item_locator(@logical_request_scope.LogicalRequestScope, 
 
 pub fn prepare_logical_request_scope(String, String, Int) -> Result[@logical_request_scope.LogicalRequestScope, EffectIdentityIssue]
 
+pub fn project_table_commit_outcome(TableOperation, String, Int, Int64, Int, Int, Int) -> Result[String, TableCommitIssue]
+
 pub fn recover_effect_claims_from_heads(Array[Array[EffectRecoveryBinding]], Array[Array[EffectLedgerEntry?]], Int) -> Result[Array[Array[EffectRecoveredClaim]], EffectRecoveredClaimIssue]
 
 pub fn recover_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int) -> Result[Array[Array[EffectDispatchKey]], EffectPreviewRecoveryKeysIssue]
@@ -526,6 +528,15 @@ pub struct LogicalItemLocator {
 }
 
 type RecoveredEffectTargetGuards
+
+pub(all) enum TableCommitIssue {
+  InvalidLimits
+  InvalidResponse
+  Unconfirmed
+  Receipt(TableContractIssue)
+  ForeignRowCount
+  Encoding
+} derive(Eq, @debug.Debug)
 
 pub(all) enum TableContractIssue {
   InvalidLimits

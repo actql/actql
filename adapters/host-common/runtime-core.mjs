@@ -2650,6 +2650,26 @@ function publicationControl(moon) {
       if (owned === undefined) throw new TypeError('Foreign Table Preview');
       return moon.clientProgramTablePreviewInputAvailable(owned);
     },
+    tablePreviewCommitOutcome(preview, responseWire, statusCode, limits) {
+      issuanceLimits(limits, 'Table commit outcome');
+      const owned = tablePreviewTokens.get(preview);
+      if (owned === undefined || typeof responseWire !== 'string' ||
+          !Number.isSafeInteger(statusCode)) {
+        throw new TypeError('Invalid Table commit response owner');
+      }
+      return checked(moon.clientProgramTablePreviewCommitOutcome(owned,
+        responseWire, statusCode, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth));
+    },
+    tablePreviewLedgerBinding(preview) {
+      const owned = tablePreviewTokens.get(preview);
+      if (owned === undefined) throw new TypeError('Foreign Table Preview');
+      return Object.freeze({
+        preview: moon.clientProgramTablePreviewLedgerIdentity(owned),
+        memberIndex: moon.clientProgramTablePreviewMemberIndex(owned),
+        operationWire: moon.clientProgramTablePreviewOperationJson(owned),
+      });
+    },
     checkSourceFreeLocalEffectPreviewIdentities(owner, inputs, wire,
       runIdentityCid, authoringContextCid, identities, limits) {
       issuanceLimits(limits, 'local Effect Preview identities');
