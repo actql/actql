@@ -48,9 +48,11 @@ priv struct PublicationCommitInputs {
 priv enum PublicationCommitPhase {
   BeginResultEvidence
   ResultEvidence(ResultEvidencePreparation)
-  Bindings
+  BeginBindings
+  Bindings(DurableBindingPreparation)
   Computation(ComputationEvidenceCheck)
-  References
+  BeginReferences
+  References(PublicationReferencePreparation)
   Done
 }
 
@@ -148,26 +150,30 @@ fn PublicationCommitPreparation::step(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-    Bindings =>
-      match
-        validate_durable_result_bindings(
-          chain.run_definition,
-          chain.invocation,
-          chain.definitions,
-          chain.artifacts,
-          inputs.orderings,
-          inputs.retentions,
-          inputs.bindings,
-          inputs.index_entry,
-        ) {
+    BeginBindings => {
+      let child = start_durable_binding_preparation(
+        {
+          run_definition: chain.run_definition,
+          invocation: chain.invocation,
+          definitions: chain.definitions,
+          artifacts: chain.artifacts,
+          orderings: inputs.orderings,
+          retentions: inputs.retentions,
+          bindings: inputs.bindings,
+          index_entry: inputs.index_entry,
+        },
+        Some(preparation.max_workspace - preparation.live),
+      )
+      preparation.phase = Bindings(child)
+      match preparation.advance_bindings(child, chain) {
         Err(issue) => return Err(issue)
-        Ok(_) =>
-          preparation.phase = Computation(
-            start_computation_evidence_check(
-              chain,
-              preparation.max_workspace - preparation.live,
-            ),
-          )
+        Ok(_) => ()
+      }
+    }
+    Bindings(child) =>
+      match preparation.advance_bindings(child, chain) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
     Computation(child) =>
       match child.advance(1) {
@@ -180,26 +186,36 @@ fn PublicationCommitPreparation::step(
           if done {
             match child.finish() {
               Err(issue) => return Err(CommitEvidence(issue))
-              Ok(_) => preparation.phase = References
+              Ok(_) => preparation.phase = BeginReferences
             }
           }
         }
       }
-    References =>
-      match
-        validate_publication_commit_references(
-          chain.run_definition,
-          chain.invocation,
-          chain.definitions,
-          chain.manifest,
-          chain.receipt,
-          chain.captured_run,
-          inputs.request,
-          inputs.attempt,
-          inputs.index_entry,
-        ) {
+    BeginReferences => {
+      let child = start_publication_reference_preparation(
+        {
+          run_definition: chain.run_definition,
+          invocation: chain.invocation,
+          definitions: chain.definitions,
+          manifest: chain.manifest,
+          receipt: chain.receipt,
+          captured_run: chain.captured_run,
+          request: inputs.request,
+          attempt: inputs.attempt,
+          index_entry: inputs.index_entry,
+        },
+        Some(preparation.max_workspace - preparation.live),
+      )
+      preparation.phase = References(child)
+      match preparation.advance_references(child) {
         Err(issue) => return Err(issue)
-        Ok(_) => preparation.phase = Done
+        Ok(_) => ()
+      }
+    }
+    References(child) =>
+      match preparation.advance_references(child) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
     Done => ()
   }
@@ -221,7 +237,55 @@ fn PublicationCommitPreparation::advance_result_evidence(
       )
       if done {
         child.cancel()
-        preparation.phase = Bindings
+        preparation.phase = BeginBindings
+      }
+    }
+  }
+  Ok(())
+}
+
+///|
+fn PublicationCommitPreparation::advance_bindings(
+  preparation : PublicationCommitPreparation,
+  child : DurableBindingPreparation,
+  chain : ComputationEvidenceInputs,
+) -> Result[Unit, PublicationCommitIssue] {
+  match child.advance(1) {
+    Err(issue) => return Err(issue)
+    Ok((done, _)) => {
+      preparation.peak = Int::max(
+        preparation.peak,
+        preparation.live + child.peak,
+      )
+      if done {
+        child.cancel()
+        preparation.phase = Computation(
+          start_computation_evidence_check(
+            chain,
+            preparation.max_workspace - preparation.live,
+          ),
+        )
+      }
+    }
+  }
+  Ok(())
+}
+
+///|
+fn PublicationCommitPreparation::advance_references(
+  preparation : PublicationCommitPreparation,
+  child : PublicationReferencePreparation,
+) -> Result[Unit, PublicationCommitIssue] {
+  match child.advance(1) {
+    Err(issue) => return Err(issue)
+    Ok((done, _)) => {
+      preparation.peak = Int::max(
+        preparation.peak,
+        preparation.live + child.peak,
+      )
+      if done {
+        child.cancel()
+        preparation.phase = Done
       }
     }
   }
@@ -269,7 +333,9 @@ pub fn PublicationCommitPreparation::cancel(
   }
   match preparation.phase {
     ResultEvidence(child) => child.cancel()
+    Bindings(child) => child.cancel()
     Computation(child) => child.cancel()
+    References(child) => child.cancel()
     _ => ()
   }
   preparation.inputs = None
@@ -304,9 +370,15 @@ pub fn publication_commit_preparation_fixture_phase(
   }
   match preparation.phase {
     BeginResultEvidence | ResultEvidence(_) => "result-evidence"
-    Bindings => "bindings"
+    BeginBindings | Bindings(_) => "bindings"
     Computation(child) => computation_evidence_check_fixture_phase(child)
-    References => "references"
+    References(child) =>
+      match child.phase {
+        Inventory(_) => "request-inventory"
+        Namespace(_) => "namespace-check"
+        _ => "references"
+      }
+    BeginReferences => "references"
     Done => "done"
   }
 }
