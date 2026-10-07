@@ -178,7 +178,7 @@ export type DeliveryObservationExplanation = Readonly<{
   summary: string;
   hint: string;
   next: ReadFailureExplanation['next'];
-}> & (Readonly<{observation: 'lookup_unresolved' | 'attempt_recorded'}> |
+}> & (Readonly<{observation: 'lookup_unresolved' | 'lookup_unavailable' | 'lookup_uninterpretable' | 'attempt_recorded'}> |
   (Readonly<{
     recordSequence: number;
     /** Sink-confirmed Host bytes, never the caller's yielded-row count. */
@@ -194,7 +194,7 @@ export type DeliveryObservationExplanation = Readonly<{
     hostReleaseReceiptCid: string;
     deliveredSha256: string;
   }>)));
-/** Only an original admitted SDK lookup; no Run, received-row or application-persistence proof. */
+/** Original admitted lookup or safe lookup error; no Run, received-row or application-persistence proof. */
 export declare function explainDeliveryAttempt(result: unknown,
   options?: OperationExplanationOptions): DeliveryObservationExplanation | undefined;
 
