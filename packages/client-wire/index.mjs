@@ -153,6 +153,15 @@ export function validSubmitPreparationError(value) {
 
 export const validClientConnection = validConnectionShape;
 
+// A target assertion is separate from authorization. The second argument must
+// come from the Host's authenticated/installed Workspace binding, never from
+// a caller's connection or Run reference. No assertion preserves the existing
+// endpoint contract; a Host with no binding cannot accept an asserted target.
+export const clientWorkspaceMatches = (connection, authenticatedWorkspaceId) =>
+  connection.workspaceId === undefined ||
+  boundedText(authenticatedWorkspaceId) &&
+    connection.workspaceId === authenticatedWorkspaceId;
+
 // Client requests observe the JSON value actually submitted at this boundary.
 // Preserve ordinary JSON serialization, but never replace source numbers.
 function snapshotRequest(value, numberError) {

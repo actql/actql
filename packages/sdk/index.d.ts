@@ -278,6 +278,8 @@ export declare function explainCheckReason(reason: Readonly<{code: string; facts
 type ConnectedEndpoint = Readonly<{
   endpoint: string;
   token: string | (() => string | Promise<string>);
+  /** An expected service Workspace, checked by the authenticated Host on every request. */
+  workspaceId?: string;
   durability?: Durability;
   consentRefs?: readonly string[];
 }>;
@@ -487,6 +489,14 @@ export interface Client {
 }
 
 export declare function connect(options: ConnectionOptions): Promise<Client>;
+/** A credential-bearing actql:// connection string, or one with a separate token provider. */
+export type ConnectionStringOptions = Readonly<{
+  token?: string | (() => string | Promise<string>);
+  durability?: Durability;
+  consentRefs?: readonly string[];
+}>;
+export declare function connect(connectionString: string,
+  options?: ConnectionStringOptions): Promise<Client>;
 
 /** The caller-owned declaration contract/rules, not complete Program verification. */
 export type CheckParameterAdmission = NonNullable<Extract<NonNullable<

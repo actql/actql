@@ -7,7 +7,7 @@ import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {deliverAuthorizedResult,
   describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
-import {clientHostOperations, validCheckpointPage, validCheckpointReview,
+import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, validCheckpointReview,
   validClientAdmission, validClientBody, validClientProfile, validCancellation, validCancellationLookup,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
@@ -151,7 +151,7 @@ function observationAttempt(response) {
 }
 
 export function createClientHttpHandler({
-  authenticate, authorizeConnection, stateService, resultService,
+  authenticate, authorizeConnection, workspaceForPrincipal, stateService, resultService,
   negotiate, submit, attach, lookupRequest, observeRun, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
@@ -196,6 +196,19 @@ export function createClientHttpHandler({
         runners: Object.freeze([...body.connection.runners])});
       const ref = body.ref === undefined ? undefined :
         Object.freeze({...body.ref});
+      // Widening the structural wire schema must not let an old boolean
+      // authorizer silently ignore a new Workspace assertion. Resolve only
+      // from the authenticated principal and trusted installation context.
+      if (connection.workspaceId !== undefined) {
+        let workspaceId;
+        try {
+          workspaceId = typeof workspaceForPrincipal === 'function'
+            ? await workspaceForPrincipal(principal) : undefined;
+        } catch { invalid('ClientConnectionDenied'); }
+        if (!clientWorkspaceMatches(connection, workspaceId)) {
+          invalid('ClientConnectionDenied');
+        }
+      }
       let authorized;
       try {
         authorized = await authorizeConnection(Object.freeze({
