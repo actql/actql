@@ -13,6 +13,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {installNodeClientSubmission} from './client-submission.mjs';
 import {composeInstalledCheckEnvironment} from
   './installed-check-environment.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
@@ -931,9 +932,9 @@ function publicationEvidence(program, parameters, semantics,
 // This fixture provides missing compiler/Host policy evidence. Its checked
 // Program identity and the physical Result bytes come from product owners.
 function checkedValuesPublicationPlan(prepared, control,
-  executionContextCid = cid('a')) {
+  executionContextCid = cid('a'), requestId = 'published-values-request') {
   const request = moon.clientProgramRequestIdentity(
-    prepared, cid('a'), 'published-values-request', cid('b'));
+    prepared, cid('a'), requestId, cid('b'));
   const compilation = checked(moon.clientProgramCompileLocalValues(prepared));
   const template = control.admitRunEvidence('bound_invocation_template',
     moon.clientProgramCompilationTemplateWire(compilation),
@@ -1623,65 +1624,92 @@ test('Node JS bridge binds separately supplied Parameters through the shared che
     assert.ok(ready(prepare(withDefault, 'json', undefined)));
   });
 
-test('public submit rejects checker failures before Run admission', async () => {
+test('public submit rejects checker failures before Run admission', async t => {
   const {environment} = await checkedFixture();
   const document = await readFile(new URL('parameter-values.json', fixture),
     'utf8');
   const prepareSubmit = installNodeClientProgramPreparation({
     moon, environment});
   let admissions = 0;
-  let admittedIdentity;
+  let admittedIdentity, admittedRequestId;
+  await mkdir(scratch, {recursive: true});
+  const directory = await mkdtemp(join(scratch.pathname, 'submission-checker-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const journal = openClientRequestJournal(directory);
+  t.after(() => journal.close());
+  const control = runtimeCore(moon).publicationControl;
+  const lookupRequest = installNodeClientRequestLookup({journal, control: moon,
+    authorizedScope: ({principalId}) => principalId === 'principal-a'
+      ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
+  const submitProgram = async ({preparedProgram, requestId}) => {
+    admissions++;
+    admittedRequestId = requestId;
+    admittedIdentity = moon.clientProgramRequestIdentity(preparedProgram, cid('a'), requestId, cid('b'));
+    const accepted = await journal.admitOrLookupDefinition(admittedIdentity, {
+      namespaceId: 'namespace-a', lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      issueDefinition: () => checkedValuesPublicationPlan(preparedProgram, control, cid('a'), requestId).runDefinition,
+    }, moon, control);
+    return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
+  };
+  const submission = installNodeClientSubmission({journal, moon, prepareSubmit,
+    submit: submitProgram, lookupRequest, authorizedScope: ({principalId}) =>
+      principalId === 'principal-a' ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
   const server = createServer(createClientHttpHandler({
     authenticate: header => header === 'Bearer scoped-token'
       ? 'principal-a' : undefined,
     authorizeConnection: () => true,
-    negotiate: () => ({
+    negotiate: async request => ({
       version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-      durability: 'volatile', scopeRef: 'principal-a', capabilities: [],
+      durability: 'durable', scopeRef: 'principal-a', capabilities: [],
+      submissionEpoch: await submission.issueEpoch(request),
       limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
         maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
         maxRows: 100, maxBatchRows: 10,
         maxBatchRetainedValueBytes: 2048},
     }),
-    prepareSubmit,
+    prepareSubmit, lookupRequest, submit: submitProgram,
+    submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
     maxRequestBytes: 100000,
-    submit: ({preparedProgram, requestId}) => {
-      admissions++;
-      admittedIdentity = moon.clientProgramRequestIdentity(preparedProgram,
-        cid('a'), requestId, cid('b'));
-      return {ref: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
-        runDefinitionCid: cid('c')}, durability: 'volatile', revision: 0};
-    },
   }));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     const origin = `http://127.0.0.1:${server.address().port}/`;
-    const submit = parameters => fetch(new URL('actql/client/0.1/submit',
-      origin), {
-      method: 'POST', headers: {authorization: 'Bearer scoped-token',
-        'content-type': 'application/json'},
-      body: JSON.stringify({connection: {mode: 'local', owner: 'local',
-        runners: [], consentRefs: []}, requestId: 'saved-parameter-id',
-      kind: 'aql', input: {text: document, format: 'json'}, parameters}),
-    });
-    for (const [parameters, status, code] of [
-      [null, 422, 'ClientProgramNeedsInputs'],
-      [{n: null}, 422, 'ClientProgramRejected'],
-      [{n: 'bad'}, 422, 'ClientProgramRejected'],
-      [{n: 2, extra: true}, 422, 'ClientProgramRejected'],
-      [{n: 'x'.repeat(65536)}, 413, 'ClientParametersTooLarge'],
+    const connection = {mode: 'local', owner: 'local', runners: [], consentRefs: []};
+    const epoch = await submission.issueEpoch({principalId: 'principal-a', connection});
+    let nonce = 0;
+    const submit = parameters => {
+      const source = {kind: 'aql', input: {text: document, format: 'json'}, parameters};
+      const intent = moon.clientSubmittedIntent(JSON.stringify(source), 1048576, 65536, 64);
+      assert.ok(intent);
+      return fetch(new URL('actql/client/0.1/submit-intent', origin), {
+        method: 'POST', headers: {authorization: 'Bearer scoped-token', 'content-type': 'application/json'},
+        body: JSON.stringify({connection, submissionRef: {epoch, nonce: `checker-${++nonce}`},
+          intentCid: moon.clientSubmittedIntentCid(intent), ...source}),
+      });
+    };
+    for (const [parameters, code, classification] of [
+      [null, 'ClientProgramNeedsInputs', 'requirements'],
+      [{n: null}, 'ClientProgramRejected', 'operation_failed'],
+      [{n: 'bad'}, 'ClientProgramRejected', 'operation_failed'],
+      [{n: 2, extra: true}, 'ClientProgramRejected', 'operation_failed'],
+      [{n: 'x'.repeat(65536)}, 'ClientParametersTooLarge', 'implementation_limit'],
     ]) {
       const response = await submit(parameters);
-      assert.equal(response.status, status);
-      assert.deepEqual(await response.json(), {code});
+      assert.equal(response.status, 200);
+      const outcome = await response.json();
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code, classification});
+      assert.deepEqual(await submission.lookupSubmission({principalId: 'principal-a', connection,
+        submissionRef: outcome.submissionRef}), outcome);
     }
     assert.equal(admissions, 0);
     const client = await connectClient({mode: 'local', owner: 'local',
       endpoint: origin, token: 'scoped-token'});
     try {
       await assert.rejects(client.startSource(document, {format: 'json',
-        requestId: 'sdk-invalid-parameter', parameters: {n: null}}),
-      {code: 'ClientProgramRejected'});
+        submissionRef: client.newSubmission({nonce: 'sdk-invalid-parameter'}), parameters: {n: null}}),
+      error => error.code === 'SubmissionNotAccepted' &&
+        error.outcome.kind === 'not_accepted' && error.outcome.problem.code === 'ClientProgramRejected');
       assert.equal(admissions, 0);
     } finally {
       client.close();
@@ -1695,10 +1723,11 @@ test('public submit rejects checker failures before Run admission', async () => 
       moon.clientProgramSemanticsCid(prepared));
     const accepted = await submit({n: 2});
     assert.equal(accepted.status, 200);
+    assert.equal((await accepted.json()).kind, 'ready');
     assert.equal(admissions, 1);
     assert.equal(moon.clientRequestParametersCid(admittedIdentity),
       moon.clientRequestParametersCid(moon.clientProgramRequestIdentity(
-        prepared, cid('a'), 'saved-parameter-id', cid('b'))));
+        prepared, cid('a'), admittedRequestId, cid('b'))));
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
@@ -2000,8 +2029,7 @@ test('public Values submit computes and reads its real Local Result',
     };
     const journalDirectory = join(directory, 'requests');
     await mkdir(journalDirectory);
-    const identity = moon.clientProgramRequestIdentity(
-      prepared, cid('a'), 'published-values-request', cid('b'));
+    let identity, originalRequestId, submissionRef;
     let store = await openLocalPublicationStore(configuration, control);
     let published;
     try {
@@ -2022,10 +2050,12 @@ test('public Values submit computes and reads its real Local Result',
       });
       let issues = 0;
       let computes = 0;
-      const negotiate = () => ({
+      let submission;
+      const negotiate = async request => ({
         version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
         durability: 'durable', scopeRef: 'principal-before-restart',
         capabilities: ['result-jsonl'],
+        submissionEpoch: await submission.issueEpoch(request),
         limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
           maxRowRetainedValueBytes: 1024,
           maxRetainedValueBytes: 4096, maxRows: 100,
@@ -2037,12 +2067,13 @@ test('public Values submit computes and reads its real Local Result',
         connection}) => {
         const requested = moon.clientProgramRequestIdentity(
           preparedProgram, cid('a'), requestId, cid('b'));
+        identity = requested; originalRequestId = requestId;
         const accepted = await journal.admitOrLookupDefinition(requested, {
           namespaceId: 'namespace-a',
           lookupExpiresAt: '2099-01-01T00:00:00.000Z',
           issueDefinition: () => {
             issues++;
-            plan = checkedValuesPublicationPlan(preparedProgram, control);
+            plan = checkedValuesPublicationPlan(preparedProgram, control, cid('a'), requestId);
             return plan.runDefinition;
           },
         }, moon, control);
@@ -2060,12 +2091,16 @@ test('public Values submit computes and reads its real Local Result',
         return {ref: start.ref, durability: start.durability,
           revision: start.revision};
       };
+      submission = installNodeClientSubmission({journal, moon, prepareSubmit, submit, lookupRequest,
+        authorizedScope: ({principalId}) => principalId === 'principal-before-restart'
+          ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
       const submitServer = createServer(createClientHttpHandler({
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-before-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
           facts.connection.owner === 'local',
         negotiate, prepareSubmit, lookupRequest, submit,
+        submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
       }));
       await new Promise(resolve => submitServer.listen(0, '127.0.0.1',
         resolve));
@@ -2077,6 +2112,7 @@ test('public Values submit computes and reads its real Local Result',
           authorizeConnection: facts => facts.connection.mode === 'local' &&
             facts.connection.owner === 'local',
           negotiate, prepareSubmit, lookupRequest, submit,
+          submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
           maxRowBytes: 1024,
         }));
         try {
@@ -2085,8 +2121,8 @@ test('public Values submit computes and reads its real Local Result',
             throw new Error('NetworkOnEmbeddedLocalSubmit');
           };
           try {
-            const accepted = await local.startSource(document, {format: 'json',
-              requestId: 'published-values-request'});
+            submissionRef = local.newSubmission({nonce: 'published-values-request'});
+            const accepted = await local.startSource(document, {format: 'json', submissionRef});
             assert.equal(accepted.profile.durability, 'durable');
             assert.equal(issues, 1);
             assert.equal(computes, 1);
@@ -2102,7 +2138,7 @@ test('public Values submit computes and reads its real Local Result',
           let responseLost = false;
           globalThis.fetch = async (url, options) => {
             const reply = await transport(url, options);
-            if (!responseLost && new URL(url).pathname.endsWith('/submit')) {
+            if (!responseLost && new URL(url).pathname.endsWith('/submit-intent')) {
               responseLost = true;
               await reply.arrayBuffer();
               throw new Error('Acceptance response lost after Host send');
@@ -2111,36 +2147,40 @@ test('public Values submit computes and reads its real Local Result',
           };
           try {
             await assert.rejects(client.startSource(document, {format: 'json',
-              requestId: 'published-values-request'}), error =>
+              submissionRef}), error =>
               error.code === 'SubmissionUnknown' &&
               error.requestId === 'published-values-request');
           } finally { globalThis.fetch = transport; }
           assert.equal(responseLost, true);
-          const recovered = await client.lookupRequest(
-            'published-values-request');
-          assert.equal(recovered.kind, 'found');
-          assert.equal(recovered.ref.runDefinitionCid,
+          const recovered = await client.lookupSubmission(submissionRef);
+          assert.equal(recovered.kind, 'ready');
+          assert.equal(recovered.admission.ref.runDefinitionCid,
             plan.runDefinition.identity);
           const submitted = await client.startSource(document, {format: 'json',
-            requestId: 'published-values-request'});
-          assert.deepEqual(submitted.ref, recovered.ref);
+            submissionRef});
+          assert.deepEqual(submitted.ref, recovered.admission.ref);
           assert.equal(submitted.profile.durability, 'durable');
           assert.equal(submitted.ref.runDefinitionCid,
             plan.runDefinition.identity);
           const repeated = await client.startSource(document, {format: 'json',
-            requestId: 'published-values-request'});
+            submissionRef});
           assert.deepEqual(repeated.ref, submitted.ref);
           const changed = document.replace('"id": 2', '"id": 3');
           assert.notEqual(changed, document);
           await assert.rejects(client.startSource(changed, {format: 'json',
-            requestId: 'published-values-request'}),
-          {code: 'ClientRequestIntentConflict'});
-          const found = await client.lookupRequest('published-values-request');
+            submissionRef}),
+          error => error.code === 'SubmissionUnknown' &&
+            error.cause?.code === 'ClientSubmittedIntentConflict' &&
+            error.submissionRef.nonce === submissionRef.nonce);
+          assert.deepEqual(await client.lookupSubmission(submissionRef), recovered);
+          const found = await client.lookupRequest(originalRequestId);
           assert.deepEqual(found.ref, submitted.ref);
           assert.equal(found.durability, 'durable');
           assert.equal(found.lookupExpiresAt, '2099-01-01T00:00:00.000Z');
-          assert.deepEqual(await client.lookupRequest('absent-request'),
-            {kind: 'not_found'});
+          const absent = await client.lookupSubmission(client.newSubmission({nonce: 'absent-request'}));
+          assert.equal(absent.kind, 'unresolvable');
+          assert.equal(issues, 1);
+          assert.equal(computes, 1);
         } finally { client.close(); }
       } finally {
         await new Promise(resolve => submitServer.close(resolve));
@@ -2251,7 +2291,7 @@ test('public Values submit computes and reads its real Local Result',
           token: 'scoped-token',
         });
         const execution = await client.attach(ref);
-        const found = await client.lookupRequest('published-values-request');
+        const found = await client.lookupRequest(originalRequestId);
         assert.deepEqual(found.ref, ref);
         assert.equal(found.durability, 'durable');
         assert.equal(execution.profile.durability, 'durable');
