@@ -6,7 +6,7 @@ import {inspectCurrentChain} from './current-inspect.mjs';
 import {auditParentReferenceCode} from './parent-reference-code.mjs';
 import {auditScalarCode} from './provider-callback-code.mjs';
 import {fileURLToPath} from 'node:url';
-import {inspectProviderConstruction} from './provider-construction.mjs';
+import {inspectProviderConstruction,inspectProviderConstructionPoint} from './provider-construction.mjs';
 import {checkPreparationArraySource,inspectPreparationStorage} from './preparation-arrays.mjs';
 import {nativeProfile} from '../backing/source.mjs';
 import {parseTestExecution} from '../../../../scripts/test-execution.mjs';
@@ -60,15 +60,16 @@ export function auditCurrentChain(report,current,read) {
   const providers=JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json')).providers.map(p=>p.name);
   const providerCallbackExtents=auditScalarCode(report,providerFacts.filter(f=>f.kind==='provider construction observation'),
     fileURLToPath(new URL('../../../../',import.meta.url)),read,providers);
-  if(providerCallbackExtents.scalarAllocationRequestsEstablished)
-    assert(providerCallbackExtents.maxPointRequestedBytes<=provider.recipe.bytes,'Point constructor bytes exceed conditional envelope');
+  const providerConstruction=providerCallbackExtents.scalarAllocationRequestsEstablished
+    ? inspectProviderConstructionPoint(providerFacts.filter(f=>f.kind==='provider construction observation'),
+      providerCallbackExtents,read,'native') : provider;
   const parentPrimitiveReferences=auditParentReferenceCode(report,records.find(r=>r.kind==='startup'),
     fileURLToPath(new URL('../../../../',import.meta.url)),read);
   const pin=JSON.parse(read('toolchain.json'));assert.deepEqual(report.toolchain,pin);
   assert.deepEqual(report.runtime.archive,pin.archives[report.runtime.platform]);
   assert.deepEqual(report.runtime.sources,{...nativeProfile.sources,...nativeProfile.platformBinaries[report.runtime.platform]});
   assert.equal(report.runtime.profileDigest,hash(JSON.stringify(nativeProfile)));
-  return {chain:inspectCurrentChain(records),providerConstruction:provider,preparationStorage,providerCallbackExtents,parentPrimitiveReferences,
+  return {chain:inspectCurrentChain(records),providerConstruction,preparationStorage,providerCallbackExtents,parentPrimitiveReferences,
     scientificExecution:'one fixed-source Native fixture; no new execution is inferred from this audit',
     completePhysicalUpper:false};
 }

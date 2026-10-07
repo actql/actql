@@ -9,7 +9,8 @@ const boundary = 'adapters/host-node/client-effect-uncertainty.test.mjs';
 const unit = 'packages/sdk/effect-uncertainty.test.mjs';
 const publicCases = ['local', 'https'].map(entrance => ({
   name: `${entrance}: unresolved Effect keeps its identity after computation stops`,
-  assertions: [{id: 'effect-explanation', operator: 'deepStrictEqual'}],
+  assertions: [{id: 'effect-explanation', operator: 'deepStrictEqual'},
+    {id: 'operation-effect-public-locale', operator: 'deepStrictEqual'}],
 }));
 const controlCases = ['status', 'wait', 'reconcile'].map(operation => ({
   name: `${operation}: Effect uncertainty retains only validated Owner observations`,
@@ -17,7 +18,8 @@ const controlCases = ['status', 'wait', 'reconcile'].map(operation => ({
 }));
 const custodyCases = [{
   name: 'Local response reuse cannot rebind an earlier Effect explanation to another Run',
-  assertions: [{id: 'effect-custody', operator: 'deepStrictEqual'}],
+  assertions: [{id: 'effect-custody', operator: 'deepStrictEqual'},
+    {id: 'effect-custody', operator: 'strictEqual'}],
 }];
 const copiedShapeCases = kinds => ['status', 'wait', 'reconcile'].flatMap(operation =>
   kinds.map(kind => ({
@@ -30,22 +32,25 @@ const mutations = [
   ['the retained Effect names are erased',
     'effects: [...state.next_action.effects],', 'effects: [],', boundary, publicCases],
   ['read-only advice becomes permission to submit again',
-    "next: {operation: 'status', ref: {...ref}},",
-    "next: {operation: 'submit', ref: {...ref}},", boundary, publicCases],
+    "controlRevision: state.control.revision}),\n      next: {operation: 'status', ref: {...ref}},",
+    "controlRevision: state.control.revision}),\n      next: {operation: 'submit', ref: {...ref}},", boundary, publicCases],
   ['the original Run reference is replaced',
-    "next: {operation: 'status', ref: {...ref}},",
-    "next: {operation: 'status', ref: {...ref, namespaceId: 'wrong-run'}},", boundary, publicCases],
+    "controlRevision: state.control.revision}),\n      next: {operation: 'status', ref: {...ref}},",
+    "controlRevision: state.control.revision}),\n      next: {operation: 'status', ref: {...ref, namespaceId: 'wrong-run'}},", boundary, publicCases],
   ['absent or unknown physical stop is presented as confirmed',
     "physicalStop: state.control?.physical_stop ?? 'unknown',",
     "physicalStop: 'confirmed',", unit, controlCases],
   ['a reused Local response rebinds an earlier observation to another Run',
-    '    try { state = structuredClone(state); }', '    try {}', unit, custodyCases],
+    'const captureResponse = (value, captured = new Map()) => {',
+    'const captureResponse = (value, captured = new Map()) => { return value;', unit, custodyCases, true],
   ['a Local Effect reply clone failure loses the SDK refusal',
-    "    catch { fail('InvalidHostRunState'); }",
-    '    catch (error) { throw error; }', unit, copiedShapeCases(['proxy'])],
-  ['a copied Local Effect reply loses validation before its facts are retained',
-    "    if (!validRunState(state) || state.status !== 'needs_reconciliation' ||\n" +
-      "        state.next_action.kind !== 'reconcile') fail('InvalidHostRunState');",
+    "        if (runObservationFailures.has(cause)) throw cause;\n" +
+      "        throw rejectedRunObservation(ref, operation, 'malformed_response');",
+    "        if (runObservationFailures.has(cause)) throw cause;\n        throw cause;", unit, copiedShapeCases(['proxy'])],
+  ['a Local Effect reply bypasses native shape-loss admission',
+    "        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);\n" +
+      "        if (structuralKey(state) !== observedKey) {\n" +
+      "          throw rejectedRunObservation(ref, operation, 'malformed_response');\n        }",
     '', unit, copiedShapeCases(['date', 'control-date', 'action-date'])],
 ];
 
@@ -60,9 +65,15 @@ const accepted = (file, expected) => {
 const original = readFileSync(path, 'utf8');
 const results = [];
 try {
-  for (const [name, from, to, file, expected] of mutations) {
+  for (const [name, from, to, file, expected, bypassLaterCopy] of mutations) {
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
-    writeFileSync(path, original.replace(from, to));
+    let altered = original.replace(from, to);
+    if (bypassLaterCopy) {
+      const copy = '        state = structuredClone(state);';
+      if (altered.split(copy).length !== 2) throw new Error(`Copy fault anchor not unique: ${name}`);
+      altered = altered.replace(copy, '        state = state;');
+    }
+    writeFileSync(path, altered);
     results.push({name, rejected: !accepted(file, expected)});
   }
 } finally { writeFileSync(path, original); }
