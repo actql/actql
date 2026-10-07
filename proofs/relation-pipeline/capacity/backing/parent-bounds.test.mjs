@@ -39,7 +39,10 @@ test('pending/error cleanup cannot lose the completed occurrence or nested curso
     r=>r[3].completed.elements[0]=null,r=>r[4].completed.completions[0]='1',
     r=>r[3].completed.slots=0,r=>r[3].children.elements[0]='1',
     r=>r[3].completed.backing=r[3].children.backing,
-    r=>r[5].preparation=r[1].preparation,r=>r[6].children.length=1]) {
+    r=>r[5].preparation=r[1].preparation,r=>r[6].children.length=1,
+    r=>r[1].state.captures.find(c=>c.offset===8).id='1',
+    r=>r[6].state.captures.find(c=>c.offset===8).id='1',
+    r=>r[7].state.captures.find(c=>c.offset===8).id='1']) {
     const r=records();mutate(r);assert.throws(()=>inspectCurrentChain(r));
   }
 });
