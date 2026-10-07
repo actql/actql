@@ -698,8 +698,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('3766a009afd7d8e22904ace1507becb871c62c5fb0dd969f7ee0886c17892c55'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('f17353ea4d0b6c8c65a30a3069582c42b396dfebf24bbbe7231423c59e4f5e9f'));
-  assert.equal(current.run.run_definition_cid,
+  // Freeze the abbreviated-edge Run rather than assigning new grammar to it.
+  assert.equal(vector(pin('e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('21982c4ae013552cb120f9e32e35c672b6c23092e8fa47323d4fabbe5ca00033'));
+  assert.equal(current.run.run_definition_cid,
+    pin('ea1d3abc7d1e52de2b35574a26c62cfe8fea84beed67a4e1c6c0afba5d30ffa2'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

@@ -152,3 +152,32 @@ test('abbreviated edge controls preserve unfiltered keyed multiplicity and norma
   assert.ok(consumer.includes('scopeInputs.refusals.push(...graphAbbreviatedRefusals)'));
   assert.ok(consumer.includes('graphAbbreviatedOnly ? {successes: graphAbbreviatedSuccesses, refusals: graphAbbreviatedRefusals}'));
 });
+
+test('finite quantifier source and JSON controls retain exact bounds and transitive staging', async () => {
+  const {graphQuantifierFormsSuccesses: successes, graphQuantifierFormsRefusals: refusals}
+    = await import('./fixtures/graph-quantifier-forms-source-input.mjs');
+  assert.equal(successes.length, 11);
+  assert.equal(refusals.length, 9);
+  assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size, 20);
+  const controls = successes.filter(item => item.format === 'json').map(item => JSON.parse(item.text));
+  assert.deepEqual(controls.map(item => {
+    const t = item.stages[0].steps[5].traverse;
+    return [t.min_hops, t.max_hops, t.path_mode];
+  }), [[2, 2, 'walk'], [0, 2, 'walk']]);
+  assert.deepEqual(successes.find(item => item.name === 'graph-quantifier-fixed-trail').results.matched.rows,
+    [{depth: 2}, {depth: 2}]);
+  assert.deepEqual(successes.find(item => item.name === 'graph-quantifier-fixed-acyclic-empty').results.matched,
+    {rows: [], columns: [{name: 'depth', contract: {type: 'number', nullable: false}}]});
+  assert.deepEqual(successes.find(item => item.name === 'graph-quantifier-full-label-fixed').results.matched.rows,
+    [{depth: 2}]);
+  const scripts = fileURLToPath(new URL('./', import.meta.url));
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  for (const name of ['graph-quantifier-forms-source-input.mjs', 'graph-abbreviated-edge-source-input.mjs']) {
+    assert.ok(driver.includes(`['scripts/fixtures/${name}', '${name}']`));
+  }
+  assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_QUANTIFIER_FORMS_ONLY = '1'"));
+  const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
+  assert.ok(consumer.includes('scopeInputs.successes.push(...graphQuantifierFormsSuccesses)'));
+  assert.ok(consumer.includes('scopeInputs.refusals.push(...graphQuantifierFormsRefusals)'));
+  assert.ok(consumer.includes('graphQuantifierFormsOnly ? {successes: graphQuantifierFormsSuccesses, refusals: graphQuantifierFormsRefusals}'));
+});

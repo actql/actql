@@ -868,6 +868,16 @@ homogeneous `node_where` filters every reached hop, so applying a terminal-only
 condition there would incorrectly prune intermediate nodes. Fixed-hop
 conditions do not add a new evaluator or implicit node-property projection.
 
+Finite edge quantifiers accept `{n}`, `{m,n}`, and `{,n}`. The fixed form
+sets both traversal bounds to `n`; an omitted lower bound is zero. A finite
+upper bound must be positive, and an explicit lower bound must be non-negative
+and no greater than the upper bound. Bounds must be safe integers and remain
+subject to common admission and resource ceilings without clamping. These
+spellings follow the selected [GoogleSQL quantified-path syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/graph-patterns#quantified_path_pattern)
+(consulted 2026-10-07), within the existing homogeneous edge profile. They do
+not add subpath/group-variable support or remove unsupported terminal
+conditions. Open upper bounds and named quantified edges remain unsupported.
+
 Graph variables are compile-time binding names. They do not create new
 runtime Node, Edge, or Path value types.
 
