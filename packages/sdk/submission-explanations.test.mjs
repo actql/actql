@@ -162,3 +162,37 @@ test('submission lookup owns immutable reused replies and formatting cannot acqu
   assert.equal(typeof sdk.formatSubmission(large), 'string');
   assert.equal(sdk.formatSubmission(large, {maxBytes: 1024}), undefined);
 });
+
+
+for (const phase of ['not_accepted', 'preparation_failed']) {
+  test(`submission analysis budget explains ${phase} without choosing the phase from its code`, async t => {
+    const budget = {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'};
+    const f = await fixture(t, (operation, body) => ({...outcome(phase, body), problem: budget}));
+    let result;
+    try {result = await f.client.start({}, {submissionRef: original});}
+    catch (error) {result = error;}
+    const explanation = sdk.explainSubmission(result);
+    assert.equal(explanation.observation, phase);
+    assert.deepEqual(explanation.problem, budget);
+    assert.deepEqual(explanation.preparationIssue, {
+      kind: 'analysis_budget_exhausted',
+      summary: 'Preparation reached an analysis budget before all checking obligations were discharged. This does not establish invalid input.',
+      hint: 'Inspect a check report for remaining obligations. Keep the original submission reference; any changed input requires a separate submission identity.'}, '[check-mutation:submission-budget-guidance]');
+    assert.ok(Object.isFrozen(explanation.preparationIssue));
+    assert.deepEqual(explanation.next, next);
+    const calls = [...f.calls];
+    assert.match(sdk.formatSubmission(result), /analysis_budget_exhausted/);
+    assert.equal(JSON.parse(sdk.formatSubmission(result, {format: 'json'})).explanation.observation, phase);
+    assert.deepEqual(f.calls, calls);
+    assert.equal(sdk.explainSubmission(structuredClone(result)), undefined);
+  });
+}
+
+test('a budget-looking code with a different admitted classification supplies no budget explanation', async t => {
+  const f = await fixture(t, (operation, body) => ({...outcome('not_accepted', body),
+    problem: {code: 'ClientProgramAnalysisLimit', classification: 'invalid_input'}}));
+  let result;
+  try {await f.client.start({}, {submissionRef: original});} catch (error) {result = error;}
+  assert.equal(sdk.explainSubmission(result).preparationIssue, undefined);
+  assert.equal(sdk.explainSubmission(result).problem.classification, 'invalid_input');
+});
