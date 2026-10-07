@@ -471,7 +471,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
   {requestPrefix, observe, successes = querySuccesses,
-    refusals = queryRefusals, executionFailures = [], prepareCase, completedCase}) {
+    refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -487,6 +487,7 @@ export async function exercisePublicQueryInput(connect, options,
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const submissionRef = client.newSubmission({nonce: requestId});
+      await persistSubmission?.({name, submissionRef});
       const beforeSubmit = await counters();
       const execution = await client.startSource(text, {...input, submissionRef});
       const state = await execution.wait();
@@ -535,7 +536,7 @@ export async function exercisePublicQueryInput(connect, options,
       assert.deepEqual(lookup.admission.ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
-      await completedCase?.({name, ref: execution.ref, execution, expected, columns,
+      await completedCase?.({name, ref: execution.ref, submissionRef, execution, expected, columns,
         beforeSubmit, beforeRead});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
