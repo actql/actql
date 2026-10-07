@@ -145,7 +145,7 @@ async function mutations() {
   }
   assert.equal(acquisition.acquisition, 'fresh');
   assert.equal(prepared.owner, `${state.origin.runId}:${state.origin.runAttempt}:${state.origin.jobId}`);
-  const result = executeIsolatedMutation({root, tree: gitTree(root, revision), prepared});
+  const result = await executeIsolatedMutation({root, tree: gitTree(root, revision), prepared});
   process.stdout.write(result.output);
   // Preserve the original mutation artifacts at the existing upload boundary.
   const originalDirectory = join(root, '.artifacts/bounded-session');
