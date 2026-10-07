@@ -1656,3 +1656,20 @@ wording and the separate operation translation revision are updated together.
 This observation supplies no read-opening, Host delivery, receipt, application
 receipt/persistence or cleanup fact. Current authorization is checked on every
 explicit lookup; a retained target does not grant access.
+
+### Passive Run observation failure formats
+
+`formatRunObservationFailure` connects the existing SDK-owned Run-observation
+failure explanation to the shared operation formatter's text, HTML and agent
+JSON forms. Its heading uses the retained `kind`; its complete facts retain
+`problem`, failed operation and original read-only lookup target. It does not
+turn a failed observation into a Run status or infer execution, Effect,
+publication, stop or cleanup facts. Copied/forged errors have no custody.
+
+Locale and display options are read after capturing that immutable explanation.
+Application edits cannot replace its classification or lookup identity. The
+existing output budget refuses incomplete display rather than dropping facts;
+escaping preserves references as data. No lookup, retry, cancellation, read or
+Compute occurs during formatting. Existing operation translation identity and
+wire contracts are unchanged. This connects the bounded failure-display path,
+not the full observation cursor/composite contract or cumulative diagnostics.
