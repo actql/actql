@@ -1,9 +1,11 @@
 # FULL USING: coalesced public row scope
 
 Adopted main: `9d16de8c5101f5b343e048b4279267d495988fcf`.
-Dependency: Draft [#728](https://github.com/actql/actql/pull/728),
-`136977363c915795431d0db01fa6cb4e4556b695`. This child remains based on its
-unmerged parent. Final integration is into main after the parent is adopted.
+Initial dependency: [#728](https://github.com/actql/actql/pull/728),
+`136977363c915795431d0db01fa6cb4e4556b695`. The parent was subsequently
+reviewed at `bece70506a419800cf45ffe9d5d965dcfabea9f8` and merged into main.
+The normal integration and fresh acceptance below supersede that dependency;
+this PR now targets main with no unmerged parent.
 
 ## Missing connection and minimal change
 
@@ -153,3 +155,50 @@ paths remain. Receipt:
 `review-artifacts/b-resume-2026-10-07/cleanup-full-join-pack-caches.json`.
 This is additional to the previously recorded 122 MiB old string build cleanup;
 no other owner's files or shared cache were deleted.
+
+
+## Parent adoption and final main integration
+
+While this PR was being submitted, #728 entered main. Normally merged
+`8f84de5a69c5e4534634fa0faec0852a6f99b112`, without conflicts, into
+`caa8de35916a8348be7c5363c0adb93bf26ba9ae`. The parent final SHA is an ancestor
+of that integration. FULL USING product code and independent fixture values
+were unchanged; main's common runtime/borrowed-path/FLOOR changes were adopted,
+not copied or replaced. Base moves to main only after this parent adoption.
+
+At this exact integration SHA, the same focused JS selection passed 9/9
+(`focused-test-4MVf8D`, `run-UbTSci`) and Node selection passed 7/7
+(`focused-test-3hwWdb`, `run-fHxE5B`). Because compiled runtime inputs changed,
+a fresh normal five-package producer and the **same narrow** public selection
+were used, with no full Core or all-packed repetition:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-full-using-caa8de359-pack
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-graph-composition-probe-e90/npm-cache npm_config_offline=true npm_config_include=optional ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-full-using-caa8de359-pack node scripts/test-packed-public-query.mjs --full-join-scope-only
+```
+
+Local and HTTPS each passed all 13 positives (eight USING, five FULL ON) and
+three refusals with the same expected rows/types/column order and reader,
+acquisition, identity/reuse and zero-admission/zero-I/O checks. This is fresh
+integration-SHA evidence, separate from the earlier 28c5003ca distribution.
+Receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-xwco7x`.
+Command `008`: exit 0, no signal, complete output, elapsed
+231,044.8264 ms. Evidence complete, owned installation removed, no evidence
+errors. No performance claim is made from this acceptance timing.
+
+Integration manifest SHA-256 digests:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `d519367b6ba51f21953d396564ff7b9e08ad8030ac0df336a98719f84b83a84d` |
+| sdk | `844ee1e2a1a1b4be8499630f9d75d144ecb61f94b9252c184361c7f5b7100e9b` |
+| run-host-core | `403cdb3aec731887560aba494a1bfc44e8c500560211dfa6ee9cf853d5c6d76c` |
+| local-node | `21e3f2ed828cb223c79575e4c894e5ad859d47d5c0730a47e00d4524a10d68c6` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The following commit updates this report only; it is not relabeled as a new
+packed execution. Exact submitted-HEAD CI is recorded on Draft #734.
+An additional finished private pack cache was removed; cumulative allocated
+cache size removed in this unit is 16,691,200 bytes
+(about 15.9 MiB). Tarballs, manifests, logs, receipts and borrowed caches remain.
