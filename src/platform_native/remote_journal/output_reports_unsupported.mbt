@@ -56,6 +56,15 @@ pub fn Journal::retry_output_report(
 }
 
 ///|
+pub fn Journal::reserved_output(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+  _key : String,
+) -> Result[@remote.RemotePollOutput?, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::reserve_output_report(
   _self : Journal,
   _output : @remote.RemotePollOutput,
