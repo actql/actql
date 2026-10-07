@@ -115,6 +115,8 @@ pub fn bind_client_task_run(PreparedClientProgram, ClientTaskCompilation, @run_p
 
 pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectRunIssue]
 
+pub fn bind_recovered_client_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int, Int, Int, Int) -> Result[RecoveredClientTablePreview, ClientTableInputIssue]
+
 pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
 
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
@@ -892,6 +894,18 @@ pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
 
 pub fn read_prepared_client_infer_model_execution(PreparedClientProgram, Int, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
+
+pub fn recovered_client_table_preview_commit_outcome(RecoveredClientTablePreview, String, Int, Int, Int, Int) -> Result[String, ClientTableInputIssue]
+
+pub fn recovered_client_table_preview_ledger_identity(RecoveredClientTablePreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn recovered_client_table_preview_mapping(RecoveredClientTablePreview) -> @effect_application.TableStorageMapping
+
+pub fn recovered_client_table_preview_matches_source(RecoveredClientTablePreview, @run_publication.CapturedEffectSourceArtifact) -> Bool
+
+pub fn recovered_client_table_preview_member_index(RecoveredClientTablePreview) -> Int
+
+pub fn recovered_client_table_preview_operation(RecoveredClientTablePreview) -> @effect_application.TableOperation
 
 pub fn restore_client_infer_call_scope(ClientInferSavedCallScope, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt) -> Result[ClientInferCallScope, ClientInferCallScopeIssue]
 
@@ -2166,6 +2180,8 @@ pub fn PublicationOutputReplay::finish(Self) -> Result[String, PublicationOutput
 pub fn PublicationOutputReplay::next(Self) -> Result[String?, PublicationOutputExportIssue]
 
 type PublicationResultRetention
+
+type RecoveredClientTablePreview
 
 // Type aliases
 
