@@ -282,3 +282,102 @@ current repository's retained history. The corrected actual-history start
 owner; no lock/resource was changed. Runtime physical acceptance remains tied
 to `b7a6926588b03251d95df2f2f049dc7901355163`. Actual corrected retained-history
 validation remains the local acceptance item to resume when custody is available.
+
+At `5186abcd443195a78fbdf5a3c9cea745b7181d58`, actual retained history
+resumed (`run-ym34JA`) and rejected the undeclared main packaging source
+`ca5ff0893bdbbe96e9f13b19f23754f9ac59f213: package.json`. The exact failed
+original is `2026-10-08-pipeline-fixed-js-foundation-failed-5186abcd4.json.gz` (raw 38650 bytes, SHA-256
+`b557a211a86333b44877fe429b51af00d6cfb0733a6404a4c805d0642534ca3f`), explicitly not accepted.
+
+A read-only batched actual Git diff scan across all 87 protected paths and
+3,679 post-checkpoint source revisions found this one missing single-parent
+declaration. The packaging change retains its original checks and adds
+manifest input/table asset tests plus installed-connector acceptance.
+Commit `16c16217f` registers its exact source/parent/blob/mode; the only
+affected merge resolution is the inherited `d9088eb9` record. Append the
+existing digest-bound late-input supplement after that new source declaration,
+without changing original record bytes, original inputs or validator rules.
+This scan is preparatory, not retained-history admission. Run the actual
+composer after the supplement and verify its exact current-source manifest.
+The successful compiled campaign remains the original `b7a692658` result;
+no code or independent runtime expectation changed in these history repairs.
+
+## Accepted corrected retained history
+
+At clean submitted correction SHA `986ac17dc349b51c55b4edbaeee33a3630b471c9`, existing late-input
+supplement positive/refusal fixtures passed **17/17** (`run-aJDt0k`,
+`focused-test-MLSPFj`):
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  --test-name-pattern='late receipt supplement' \
+  proofs/relation-pipeline/foundation.test.mjs
+```
+
+The actual retained-history command then passed under `run-hXmfTz` with the
+existing 900-second bound, followed by a nonzero exact-source consumer: **87
+protected files, 230 declarations, 190 integrations**, source revision exactly
+`986ac17dc349b51c55b4edbaeee33a3630b471c9`. The original inherited declaration
+bytes/inputs and every source/parent/blob/mode obligation remain unchanged.
+The guard completed and released locks. Transparent timing observed 6,555
+unchanged Git invocations, 144,662 ms inside those calls; this is a diagnostic,
+not a calibrated savings comparison.
+
+The accepted local history original is
+`evidence/2026-10-08-pipeline-fixed-js-foundation-986ac17dc.json.gz` (raw 1515060 bytes,
+SHA-256 `df390159aa5d69ac045de68ef73a7e835ee6629caeee5110f28de017bccb51ed`). It retains the exact guard,
+output, timing preload, binding consumer and raw generated manifest
+(SHA-256 `e9da750b9770d7157ab52df9f9008c56a19b27b2de85c2c135ed9d380b81f0e0`). The guard invokes
+`node --import /private/tmp/g-foundation-git-timing.mjs
+proofs/relation-pipeline/history.mjs --write`; its transparent preload is
+embedded in the original, and the next consumer checks clean HEAD, nonzero
+files and exact manifest source revision. This is local validation, never
+Actions provenance or reuse authorization.
+
+Publication after this result adds only the evidence archive and this report.
+It does not relabel the physical campaign from `b7a692658` or the accepted
+history from `986ac17dc349b51c55b4edbaeee33a3630b471c9` as execution at a later SHA.
+The compiled/local acceptance unit is now complete; full-part/other-target
+checks and authenticated main qualification, ordinary-PR reuse and inclusive
+net CI savings remain separate obligations.
+
+## Post-integration residual scope
+
+While publication was being finalized, the coordinator integrated #863 and
+advanced its old branch to `a189675f0825383df540598aa071aa69ad6794f6`.
+The attempted push was refused as non-fast-forward; no force push occurred.
+The residual history/evidence work moves to `fix/pipeline-fixed-retained-history`,
+with current main `6ee9b2f0f485b1daf5bd9f5fb4fb7ccac32fec44` normally adopted
+by `c3ea345d3311b2caf4a260613d471a8bebbea3ea`. No #863 implementation is
+resubmitted. Product code, workflow and independent expectations are identical
+to the adopted main.
+
+The new main includes two further single-parent package gate changes without
+source declarations: `e33988626ac1e35b4388b0cb44b4f27fd0b93a62` adds role
+projection/installed-connector tests, and
+`71841fa208249e28d45a1eea0619b603c462cd64` adds durable-submission checks.
+Commit `8b31905f9` records their actual parent/blob/mode and command rationale.
+Three inherited merge declarations need digest-bound late-input supplements
+for these actual ancestor sources and, where ancestral, the earlier `ca5ff089`
+source. Supplements follow source declaration introduction; original records,
+original inputs and validation rules are unchanged. The read-only scan now
+finds no missing single-parent declaration. Actual current-main history
+admission follows separately. Physical originals still prove the exact
+`b7a692658` campaign; current main's later bounded output/Host changes were
+not recompiled or retroactively covered by that original.
+
+At post-integration correction SHA
+`c9f8ade588265a12c42e795fb398c6b22d2af6e2`, the actual-original consumer
+selection passed **10/10** (`run-peIxmX`, `focused-test-2pgF4K`):
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  proofs/ci-evidence/pipeline-fixed-js-replay.test.mjs
+```
+
+This reconsumes the immutable `b7a692658` originals with the current consumer;
+it does not recompile current main or promote local originals. The new
+actual-history start `run-BTL7Fd` was refused before execution by another
+worktree's live heavy owner (`run-n1FGDR`). No other-owner lock was changed.
+Post-integration retained-history acceptance remains pending, separate from
+the accepted pre-integration `986ac17dc` result.
