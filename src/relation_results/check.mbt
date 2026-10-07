@@ -115,6 +115,109 @@ fn order_key(
 }
 
 ///|
+fn definition_fields(
+  b : Budget,
+  pipeline : @pipeline.CheckedPipeline,
+  from : @decode.Cursor,
+  inputs : Map[Int, Map[String, @schema.Field]],
+  steps : Map[Int, Map[String, @schema.Field]],
+) -> (@pipeline.Target, Map[String, @schema.Field]) raise Stop {
+  let from_name = decoded(@decode.text(from), from)
+  valid_name(from, from_name)
+  let target = match @pipeline.lookup(pipeline, from_name) {
+    Some(v) => v
+    None => fail(from, UnknownSource(from_name))
+  }
+  let (cache, id) = match target {
+    Input(i) => (inputs, i)
+    Step(i) => (steps, i)
+  }
+  let fields = match cache.get(id) {
+    Some(v) => v
+    None => {
+      let carrier = @pipeline.carrier_at(pipeline, target).unwrap()
+      let c = match carrier {
+        @carrier.Relation(rows) =>
+          match @carrier.complete_schema(rows) {
+            Some(c) => c
+            None => fail(from, IncompleteSchema)
+          }
+        _ => fail(from, WrongCarrier(@carrier.kind(carrier)))
+      }
+      // The schema root has depth zero, as with an ordinary object contract.
+      spend(b, from, 1)
+      let fields : Map[String, @schema.Field] = Map([])
+      let n = @schema.field_count(c)
+      spend(b, from, n)
+      for i in 0..<n {
+        let f = @schema.field_at(c, i).unwrap()
+        let name = @schema.reference_name(f.name)
+        charge(b, from, name)
+        contract_preflight(b, from, f.contract, depth=1)
+        fields[name] = f
+      }
+      spend(b, from, n)
+      cache[id] = fields
+      fields
+    }
+  }
+  (target, fields)
+}
+
+///|
+priv enum FieldUse {
+  ResultFields
+  TableInputFields
+}
+
+///|
+fn closed_fields(
+  b : Budget,
+  selected : @decode.Cursor,
+  fields : Map[String, @schema.Field],
+  purpose : FieldUse,
+) -> (@schema.Schema, Array[String]) raise Stop {
+  let entries = decoded(@decode.elements(selected), selected)
+  if entries.is_empty() {
+    fail(selected, InvalidBody)
+  }
+  spend(b, selected, entries.length())
+  let projection : Array[
+    (@schema.FieldName, @contract.Contract, @schema.Presence),
+  ] = []
+  let seen : Map[String, Bool] = Map([])
+  let output_names : Array[String] = []
+  let name_budget = b.text
+  for entry in entries {
+    let key = decoded(@decode.text(entry), entry)
+    if seen.contains(key) {
+      fail(entry, DuplicateField(key))
+    }
+    let field = match fields.get(key) {
+      Some(v) => v
+      None => fail(entry, UnknownField(key))
+    }
+    if purpose is ResultFields && field.presence != @schema.Required {
+      fail(entry, PresenceRequired(key))
+    }
+    seen[key] = true
+    charge(b, entry, key)
+    projection.push((field.name, field.contract, field.presence))
+    output_names.push(key)
+  }
+  let output = match
+    @schema.from_presence_fields(
+      projection,
+      max_fields=projection.length(),
+      max_name_bytes=name_budget,
+    ) {
+    Ok(v) => v
+    Err(_) => fail(selected, InvalidBody)
+  }
+  (output, output_names)
+}
+
+///|
 fn check_impl(
   pipeline : @pipeline.CheckedPipeline,
   root : @decode.Cursor,
@@ -156,81 +259,14 @@ fn check_impl(
       source,
     )
     let from = decoded(@decode.required(obj, "from"), source)
-    let from_name = decoded(@decode.text(from), from)
-    valid_name(from, from_name)
-    let target = match @pipeline.lookup(pipeline, from_name) {
-      Some(v) => v
-      None => fail(from, UnknownSource(from_name))
-    }
-    let (cache, id) = match target {
-      Input(i) => (inputs, i)
-      Step(i) => (steps, i)
-    }
-    let fields = match cache.get(id) {
-      Some(v) => v
-      None => {
-        let carrier = @pipeline.carrier_at(pipeline, target).unwrap()
-        let c = match carrier {
-          @carrier.Relation(rows) =>
-            match @carrier.complete_schema(rows) {
-              Some(c) => c
-              None => fail(from, IncompleteSchema)
-            }
-          _ => fail(from, WrongCarrier(@carrier.kind(carrier)))
-        }
-        // The schema root has depth zero, as with an ordinary object contract.
-        spend(b, from, 1)
-        let fields : Map[String, @schema.Field] = Map([])
-        let n = @schema.field_count(c)
-        spend(b, from, n)
-        for i in 0..<n {
-          let f = @schema.field_at(c, i).unwrap()
-          let name = @schema.reference_name(f.name)
-          charge(b, from, name)
-          contract_preflight(b, from, f.contract, depth=1)
-          fields[name] = f
-        }
-        spend(b, from, n)
-        cache[id] = fields
-        fields
-      }
-    }
+    let (target, fields) = definition_fields(b, pipeline, from, inputs, steps)
     let selected = decoded(@decode.required(obj, "fields"), source)
-    let entries = decoded(@decode.elements(selected), selected)
-    if entries.is_empty() {
-      fail(selected, InvalidBody)
-    }
-    spend(b, selected, entries.length())
-    let projection : Array[(@schema.FieldName, @contract.Contract)] = []
-    let seen : Map[String, Bool] = Map([])
-    let output_names : Array[String] = []
-    let name_budget = b.text
-    for entry in entries {
-      let key = decoded(@decode.text(entry), entry)
-      if seen.contains(key) {
-        fail(entry, DuplicateField(key))
-      }
-      let contract = match fields.get(key) {
-        Some(v) => v
-        None => fail(entry, UnknownField(key))
-      }
-      if contract.presence != @schema.Required {
-        fail(entry, PresenceRequired(key))
-      }
-      seen[key] = true
-      charge(b, entry, key)
-      projection.push((contract.name, contract.contract))
-      output_names.push(key)
-    }
-    let output = match
-      @schema.from_fields(
-        projection,
-        max_fields=projection.length(),
-        max_name_bytes=name_budget,
-      ) {
-      Ok(v) => v
-      Err(_) => fail(selected, InvalidBody)
-    }
+    let (output, output_names) = closed_fields(
+      b,
+      selected,
+      fields,
+      ResultFields,
+    )
     let order = match @decode.lookup(obj, "order_by") {
       None => None
       Some(source) => {
