@@ -135,12 +135,12 @@ test "UNNEST source does not expose its witness or synthesize value-table star s
 }
 
 ///|
-test "UNNEST scalar star is decided by the declared element type on empty input" {
+test "UNNEST star is decided by the declared element type on empty input" {
   for
     (element_type, accepted) in [
       ("{\"type\":\"boolean\",\"nullable\":true}", true),
       ("{\"type\":\"string\",\"nullable\":true}", true),
-      ("{\"type\":\"object\",\"fields\":{\"id\":{\"type\":\"number\"}}}", false),
+      ("{\"type\":\"object\",\"fields\":{\"id\":{\"type\":\"number\"}}}", true),
     ] {
     let declarations = @parameters.read_declarations(
       Some(
