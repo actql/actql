@@ -58,8 +58,9 @@ Cloud persistence/transport of these original wires is not included. A caller
 must obtain the exact original Owner-issued evidence and current trusted
 authority; this API does not infer either from an arbitrary archive. Formal
 Cloud adoption requires a reviewed, merged OSS source and matching package and
-Native artifacts. The original failed Run's real ACK, publication and formal
-cleanup remain separate unfinished acceptance obligations.
+Native artifacts. Real report/ACK delivery, publication and formal cleanup
+remain separate acceptance obligations; structural restoration alone does
+not establish them.
 
 ## Focused evidence
 
