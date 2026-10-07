@@ -1765,11 +1765,14 @@ async function connectSelected(selected, port) {
       }
       const observation = answer;
       const observedKey = structuralKey(answer);
-      try { answer = structuredClone(answer); }
-      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
-      if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
-      if (structuralKey(observation) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
-      return retainRequestLookupExplanation(freezeInput(observation), context);
+      try {
+        answer = structuredClone(answer);
+        if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) fail('InvalidHostRequestLookup');
+        if (structuralKey(observation) !== observedKey) fail('InvalidHostRequestLookup');
+        return retainRequestLookupExplanation(freezeInput(observation), context);
+      } catch {
+        throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
+      }
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is
     // cancelled through its own cancellation. `accepted` means the Host
