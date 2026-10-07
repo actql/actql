@@ -10,6 +10,7 @@ priv enum Phase {
   Next
   Waiting
   AfterValue
+  BeforeColon
 } derive(Eq)
 
 ///|
@@ -42,11 +43,12 @@ priv struct JsonDocument {
   frames : Array[Frame]
   mut need_value : Bool
   mut completed : Node?
+  mut string : (JsonString, Bool)?
 }
 
 ///|
 fn JsonDocument::make(parser : Parser) -> JsonDocument {
-  { parser, frames: [], need_value: true, completed: None, }
+  { parser, frames: [], need_value: true, completed: None, string: None, }
 }
 
 ///|
@@ -55,8 +57,58 @@ fn JsonDocument::make(parser : Parser) -> JsonDocument {
 fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
   let self = document.parser
   let frames = document.frames
+  if document.string is Some((cursor, key)) {
+    if cursor.advance(self, self.path) is Some((text, span)) {
+      document.string = None
+      if key {
+        self.path.push(Key(text))
+        let parent = frames[frames.length() - 1]
+        guard parent.container is ObjectFields(_, keys) else {
+          self.fail(ExpectedObjectSeparator, self.path)
+        }
+        if !@shape.admit_key(keys, text) {
+          if self.literal_json {
+            parent.skip_key = true
+          } else {
+            raise ParseAbort({
+              issue: DuplicateKey(text),
+              source_path: self.source_path,
+              location: Source(span),
+              path: Some(self.path.copy()),
+            })
+          }
+        }
+        parent.key = Some((text, span))
+        parent.phase = BeforeColon
+      } else {
+        document.completed = Some({ value: String(text), span, })
+      }
+    }
+    return None
+  }
+  // Preserve whitespace grammar without draining a large gap in one poll.
+  if self.peek() is Some(unit) &&
+    (unit == 0x20 || unit == 0x09 || unit == 0x0a || unit == 0x0d) {
+    for _ in 0..<64 {
+      if self.peek() is Some(unit) &&
+        (unit == 0x20 || unit == 0x09 || unit == 0x0a || unit == 0x0d) {
+        ignore(self.advance_scalar(self.path))
+      } else {
+        break
+      }
+    }
+    return None
+  }
+  if frames.length() > 0 && frames[frames.length() - 1].phase == BeforeColon {
+    if self.peek() != Some(0x3a) {
+      self.fail(ExpectedColon, self.path)
+    }
+    ignore(self.advance_scalar(self.path))
+    frames[frames.length() - 1].phase = Waiting
+    document.need_value = true
+    return None
+  }
   if document.need_value {
-    self.skip_space()
     if self.nodes >= self.limits.max_nodes {
       self.fail(NodeLimit, self.path)
     }
@@ -99,18 +151,20 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
         })
       }
       Some(0x22) => {
-        let (text, span) = self.parse_string(self.path)
-        document.completed = Some({ value: String(text), span, })
+        document.string = Some((self.start_string(self.path), false))
+        return None
       }
       Some(unit) if unit == 0x2d || is_digit(unit) =>
         document.completed = Some(self.parse_number(self.path))
       None => self.fail(UnexpectedEnd, self.path)
       _ => self.fail(UnexpectedToken, self.path)
     }
+    // Consume a following gap before visiting a new container's first item
+    // or attaching a scalar and inspecting its parent's closing delimiter.
+    return None
   }
   if document.completed is Some(node) {
     if frames.is_empty() {
-      self.skip_space()
       if self.peek() != None {
         self.fail(TrailingContent, self.path)
       }
@@ -133,7 +187,6 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
     document.completed = None
   }
   let frame = frames[frames.length() - 1]
-  self.skip_space()
   let closing = match frame.container {
     ArrayItems(_) => 0x5d
     ObjectFields(_, _) => 0x7d
@@ -163,27 +216,9 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
   }
   match frame.container {
     ArrayItems(items) => self.path.push(Index(items.length()))
-    ObjectFields(_, keys) => {
-      let (key, key_span) = self.parse_string(self.path, key=true)
-      self.path.push(Key(key))
-      if !@shape.admit_key(keys, key) {
-        if self.literal_json {
-          frame.skip_key = true
-        } else {
-          raise ParseAbort({
-            issue: DuplicateKey(key),
-            source_path: self.source_path,
-            location: Source(key_span),
-            path: Some(self.path.copy()),
-          })
-        }
-      }
-      self.skip_space()
-      if self.peek() != Some(0x3a) {
-        self.fail(ExpectedColon, self.path)
-      }
-      ignore(self.advance_scalar(self.path))
-      frame.key = Some((key, key_span))
+    ObjectFields(_, _) => {
+      document.string = Some((self.start_string(self.path, key=true), true))
+      return None
     }
   }
   frame.phase = Waiting

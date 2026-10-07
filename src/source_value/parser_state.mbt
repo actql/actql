@@ -182,11 +182,3 @@ fn Parser::peek(self : Parser) -> Int? {
     None
   }
 }
-
-///|
-fn Parser::skip_space(self : Parser) -> Unit raise ParseAbort {
-  while self.peek() is Some(unit) &&
-        (unit == 0x20 || unit == 0x09 || unit == 0x0a || unit == 0x0d) {
-    ignore(self.advance_scalar(self.path))
-  }
-}

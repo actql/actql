@@ -61,18 +61,36 @@ fn Parser::parse_escape_scalar(
 }
 
 ///|
-fn Parser::parse_string(
+/// The same string grammar used by synchronous and resumed JSON readers.
+/// Escapes are finite leaves; long decoded Text yields after 64 scalars.
+priv struct JsonString {
+  start : Point
+  output : StringBuilder
+  key : Bool
+}
+
+///|
+fn Parser::start_string(
   self : Parser,
   path : Array[PathSegment],
   key? : Bool = false,
-) -> (String, Span) raise ParseAbort {
+) -> JsonString raise ParseAbort {
   let start = self.point()
   if self.peek() != Some(0x22) {
     self.fail(InvalidString, path)
   }
   ignore(self.advance_scalar(path))
-  let output = StringBuilder()
-  while true {
+  { start, output: StringBuilder(), key, }
+}
+
+///|
+fn JsonString::advance(
+  cursor : JsonString,
+  self : Parser,
+  path : Array[PathSegment],
+) -> (String, Span)? raise ParseAbort {
+  let output = cursor.output
+  for _ in 0..<64 {
     let unit = match self.peek() {
       Some(value) => value
       None => self.fail(UnexpectedEnd, path)
@@ -80,7 +98,7 @@ fn Parser::parse_string(
     if unit == 0x22 {
       ignore(self.advance_scalar(path))
       let text = output.to_string()
-      let decoded = if key && self.normalize_key() {
+      let decoded = if cursor.key && self.normalize_key() {
         match @canonical.normalize_nfc_lf(text) {
           Ok(value) => value
           Err(_) => self.fail(InvalidUnicodeEscape, path)
@@ -88,7 +106,7 @@ fn Parser::parse_string(
       } else {
         text
       }
-      return (decoded, self.span(start))
+      return Some((decoded, self.span(cursor.start)))
     }
     if unit < 0x20 {
       self.fail(InvalidString, path)
@@ -116,9 +134,8 @@ fn Parser::parse_string(
       0x75 => output.write_char(self.parse_escape_scalar(path).unsafe_to_char())
       _ => raise self.failure_at(InvalidEscape, path, escape_start)
     }
-  } nobreak {
-    self.fail(UnexpectedEnd, path)
   }
+  None
 }
 
 ///|
