@@ -109,6 +109,25 @@ Host-capture tests use explicit response fixtures; separate optional physical
 tests admit actual Catalog receipts. Together these are boundary evidence, not
 a completed Program-to-approved-Catalog execution or public Table reader.
 
+`reconcileOriginalTableCommit` connects an exact checked Table Preview to the
+Catalog's immutable original-operation lookup and the existing Ledger. The Host
+must supply current evidence-read authorization and its credential-use CID, with
+explicit Table wire/history bounds. Only a prior possible dispatch can query;
+there is no write claim, resend, target-head inference or staged-file cleanup.
+The physical `reconcileOperation` entry takes the sealed operation without a
+writer preparation or live input. It is a trusted Host I/O entry, not authority.
+The matched positive lookup observation is durably saved under the original
+dispatch before the existing outcome/terminal transition. Missing records,
+failed evidence persistence and foreign receipts remain unresolved. A late or
+concurrent saved response wins; its bytes and credential use are never replaced.
+An existing malformed saved reply is also not overwritten and remains pending.
+
+The focused reconciliation test uses real checked Previews and SQLite/common
+Ledger owners with independent Catalog reply fixtures. It is not physical
+Catalog or packed public acceptance. Optional physical tests separately exercise
+reader reconstruction after reply loss and after a later replacement; do not
+combine these into a claim of an installed public recovery path.
+
 ```sh
 node scripts/local-checks.mjs test node -- adapters/table-iceberg/physical.test.mjs
 node scripts/local-checks.mjs build moon -- --target js --release src/connectors_builtin_node
