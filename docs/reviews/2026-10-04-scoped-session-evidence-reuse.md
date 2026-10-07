@@ -3,9 +3,9 @@
 ## Acceptance boundary
 
 The first executable reuse scope is the existing `mutations-js` action. Main
-always runs all 26 registered actions fresh. Every selected PR still accounts
-for all 26 obligations, runs the executable Lean plan checker, and authenticates
-the complete inventory at the final required check. The other 25 actions,
+always runs all 30 registered actions fresh. Every selected PR still accounts
+for all 30 obligations, runs the executable Lean plan checker, and authenticates
+the complete inventory at the final required check. The other 29 actions,
 JS/Wasm/native final correspondence, serial-chain and capacity campaigns,
 pipeline partitions, public/Host and physical acceptance remain selected by
 their existing rules. No production owner, ledger or compatibility path changes.
@@ -120,5 +120,96 @@ open profile, not a reusable main origin or a net-savings measurement.
 Completion of the overall task still requires the published policy's exact-SHA
 CI, accepted main comparisons, real ordinary PR reuse and relevant-change
 fresh execution, and positive net runner savings including the added overhead.
-Keep the activation PR Draft until its actual producer/final boundary succeeds;
-do not substitute synthetic fixture success for those results.
+Do not substitute synthetic fixture success for those results. The implemented
+activation path and its outstanding operational acceptance are recorded below.
+
+## External acceptance hold and resumption (2026-10-07)
+
+This handoff was reconciled with main
+`148723200139ced6605223cc703275c0fa71f3a0`. It does not report a new execution
+at that revision. The remaining Actions acceptance is held pending an available,
+successful full-main original. No periodic origin lookup, Actions dispatch/retry,
+empty commit, or repetition of successful local verification is required while
+that condition remains unmet. Independent assigned implementation may continue.
+
+### Completed implementation and local evidence
+
+The action catalog, conservative package input closure, conditional isolated
+runtime, immutable receipt authentication, separate candidate applications,
+fresh/reused acquisition, executable Lean checker and final required consumer
+are implemented. Optional comparison unavailability preserves fresh acceptance;
+identity, digest, run/attempt, target/scope and input inconsistencies are not
+reclassified as transport unavailability. The current independent catalog has
+30 obligations, including four Rows/Events obligations. Main remains fresh;
+only `mutations-js` is a reviewed cross-revision reuse candidate.
+
+The [local isolated acceptance record](2026-10-06-local-isolated-session-acceptance.md)
+and [current experiment contract](2026-10-06-current-isolated-experiment-contract.md)
+retain the executed commands, fixed source revisions, original logs and image
+identities. At `b34f6e5445b731584729a1f8c09ec8c2404ccde6`, the real isolated
+image lacked all four installed core build metadata files, all thirteen mutations
+failed at their intended executed assertions, original bytes were restored, and
+the shared scientific consumer accepted the result. Its immutable original is
+[evidence/2026-10-06-local-isolated-session-b34f6e544.json.gz](evidence/2026-10-06-local-isolated-session-b34f6e544.json.gz);
+the uncompressed SHA-256 is
+`9a2e83e9be1396bedc7410fa11b48a8e8942c39f80098f7baa4b238969454c04`.
+Later fixed-revision records remain separate originals; publication or integration
+does not turn any of these executions into fresh evidence for another revision.
+
+Local physical records retain `reuseAuthorized: false` and do not authenticate
+an Actions origin. The [cost correspondence](2026-10-06-session-evidence-cost-correspondence.md)
+connects immutable collection costs to enclosing producer/check job observations,
+retains missing measurements, and keeps net savings null without comparable real
+samples. Controlled cost/receipt fixtures are neither full action execution nor
+an economic measurement. Native capacity/capture acceptance, including
+[#790](https://github.com/actql/actql/pull/790), is separate evidence: measured
+requested bytes and conditional component bounds do not establish a whole-parent
+physical lifetime upper bound or CI savings.
+
+### Outstanding acceptance and the trigger to resume
+
+Four obligations remain unproved by the local records: authenticated successful
+full-main origin acquisition; compatible later-main fresh comparison; real
+ordinary-PR reuse with related-input changes restoring fresh execution; and
+positive net runner savings including collection, transfer, authentication and
+final verification. The first successful full-main original is a baseline only.
+Neither two executions of the same SHA nor five unchanged action inputs authorize
+reuse. No additional action is qualified by this handoff.
+
+Resume this unit when the coordinator supplies a successful full-main Actions
+original. Preserve the following sequence:
+
+1. Fix the actual main SHA, repository, workflow, event, run URL/ID and attempt,
+   producer/final job owners, archive IDs and digests. Authenticate the complete
+   independent catalog, immutable receipts, runtime inputs, executed certificate,
+   thirteen raw scientific observations and successful final required check.
+   Producer success alone is insufficient. Retain both
+   `session-actions-<run>-<attempt>-<sha>` and
+   `session-applicability-<run>-<attempt>-<sha>` as immutable originals.
+2. Compare against a **different later main revision** running fresh under a
+   compatible policy and complete conditional inputs. Require confirmed scientific
+   correspondence and success of the whole later run and its final check. Record
+   CPU/kernel/toolchain or other blockers and their occurrence counts; do not
+   remove identities to obtain a match. Unavailable comparisons remain unconfirmed;
+   inconsistent evidence is refused.
+3. Observe the normal selected PR acquisition using the qualified later original
+   for `mutations-js` only. Preserve `reused-not-executed`, null current execution
+   counts/time, and separate candidate application/plan/checker records. All other
+   required actions remain fresh under their existing selection rules. Once work
+   has been omitted, its adopted evidence must remain authenticated at final check.
+4. Confirm that related source, fixture/oracle, generator, registration, package
+   membership/mode, toolchain, target or policy changes select fresh execution.
+   Use the existing refusal and input-change cases rather than a new full matrix.
+5. Measure comparable fresh/reused attempts with equal obligations and conditions.
+   Keep parallel wall span separate from summed runner consumption. Include setup,
+   runtime collection, build, archive transfer/authentication and final checking
+   once through their enclosing job intervals; do not add nested phases again or
+   treat missing costs as zero. Complete the CI reduction objective only after an
+   actual positive net reduction is established.
+
+The existing workflow entry points remain `collect.mjs init`, the selected
+Session/chain/capacity and three-target checks, `collect.mjs mutations`,
+`collect.mjs finish`, and `final.mjs` under `proofs/ci-evidence/` (Session checks
+use `proofs/bounded-session/run.mjs`). These are workflow steps, not a replacement
+local command sequence or permission to bypass the Actions-only guard. No Actions
+operation or test execution was performed to create this handoff.
