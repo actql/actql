@@ -3906,6 +3906,43 @@ test('ordered bindings assurance requires its public Plan connection evidence', 
   }), /ordered bindings public fixture is missing/u);
 });
 
+test('compound output ports require operation-specific limit quantum stop and public evidence', () => {
+  for (const [operation, kind] of [['join','join'], ['nest','nest'],
+    ['interval_join','interval'], ['asof_join','asof'], ['sequence','sequence']]) {
+    for (const part of ['limit','quantum','stop','public']) {
+      const role = `${kind}_compound_output_port_${part}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.operation === operation);
+        const collection = part === 'public' ? 'environment_tests' : 'boundary_tests';
+        route[collection] = route[collection].filter(entry => entry.role !== role);
+      }), new RegExp(`${role} fixture is missing`, 'u'));
+    }
+  }
+});
+
+test('compound output ports reject missing production cursor and cleanup connections', () => {
+  const baseline = validateResourceAccounting({root, manifest:manifestTemplate,
+    routes:routesTemplate, sources:sourceTemplate});
+  assert.deepEqual(baseline.errors.filter(error => error.includes('compound output port')), []);
+  for (const kernel of ['join','nest','interval_join','asof_join','sequence_match']) {
+    const file = join(root, `src/execution_relation/bounded_${kernel}.mbt`);
+    for (const marker of ['start_trusted_output_preparation(',
+      'advance_trusted_output_preparation(', 'finish_trusted_output_preparation(',
+      'cancel_trusted_output_preparation(']) {
+      const text = sourceTemplate[file].text;
+      assert.ok(text.includes(marker));
+      const sources = Object.freeze({...sourceTemplate,
+        [file]: Object.freeze({...sourceTemplate[file],
+          text:text.replaceAll(marker, 'missing_cursor_connection(')}),
+      });
+      const result = validateResourceAccounting({root, manifest:manifestTemplate,
+        routes:routesTemplate, sources});
+      assert.match(result.errors.join('\n'),
+        /compound output port production cursor connection is missing/u);
+    }
+  }
+});
+
 test('unary output ports require operation-specific limit quantum stop and public evidence', () => {
   for (const [operation, kinds] of [['group', ['group','count']],
     ['analytic', ['analytic']], ['pivot', ['pivot']], ['row_window', ['window']],

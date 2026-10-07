@@ -3,8 +3,9 @@ import {snapshot, hash} from '../../inventory.mjs';
 import {parseTestExecution} from '../../../../scripts/test-execution.mjs';
 import {retirementOverlay,retirementExecutable} from './driver-retirement-overlay.mjs';
 import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
+import {inspectHoldingCustody} from './holding-custody-inspect.mjs';
 
-export function acceptDriverRetirement(receipt, {root, revision, runtime, read}) {
+export function acceptDriverRetirement(receipt, {root, revision, runtime, read,holdingCustody=false}) {
   assert.equal(receipt.version, 'actql-native-driver-retirement/0.1');
   assert.equal(receipt.authority, 'local Native finite correspondence; no Actions identity');
   assert.equal(receipt.reuseAuthorized, false);
@@ -12,10 +13,11 @@ export function acceptDriverRetirement(receipt, {root, revision, runtime, read})
   assert.equal(receipt.target, 'native');
   assert.equal(receipt.exit, 0);
   assert.equal(receipt.restored, true);
+  assert.equal(receipt.holdingCustody,holdingCustody,'Wrong required holding-custody profile');
   const source = snapshot(root);
   assert.deepEqual(receipt.source, source, 'Changed submitted/restored source');
   assert.deepEqual(receipt.runtime, runtime, 'Changed Native runtime');
-  const {overlay, boundary, buildIdentity} = retirementOverlay(read, source);
+  const {overlay, boundary, buildIdentity} = retirementOverlay(read, source,{holdingCustody});
   assert.deepEqual(receipt.boundary, boundary);
   assert.equal(receipt.buildIdentity, buildIdentity);
   const expectedSources = {...source.sources, ...Object.fromEntries(Object.entries(overlay).map(([p,t]) => [p,hash(t)]))};
@@ -40,5 +42,5 @@ export function acceptDriverRetirement(receipt, {root, revision, runtime, read})
   }
   return {version: 'actql-native-driver-retirement-acceptance/0.1', revision, sourceDigest: source.digest,
     receiptValueDigest: hash(JSON.stringify(receipt)), execution: execution.counts,
-    observation: inspectDriverRetirement(text), reuseAuthorized: false};
+    observation: inspectDriverRetirement(text), ...(holdingCustody?{holdingCustody:inspectHoldingCustody(text)}:{}), reuseAuthorized: false};
 }
