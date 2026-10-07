@@ -91,6 +91,7 @@ const effectUncertainties = new WeakMap();
 // Presentation retains validated Run-control observations, not another owner.
 const cancellationExplanations = new WeakMap();
 const readExplanations = new WeakMap();
+const deliveryExplanations = new WeakMap();
 const readerContexts = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
@@ -210,6 +211,45 @@ export function getSubmissionInput(result) {
 export function explainReadFailure(result, options) {
   return localizeOperation(readExplanations.get(result), 'read', options);
 }
+
+// Only this call's admitted Owner lookup supplies Delivery facts. No row count,
+// Run outcome or application persistence is inferred from a release receipt.
+export function explainDeliveryAttempt(result, options) {
+  return localizeOperation(deliveryExplanations.get(result), 'delivery', options);
+}
+
+const retainDeliveryExplanation = (answer, next) => {
+  const record = answer.kind === 'found' ? answer.record : null;
+  const observation = answer.kind === 'not_found' ? 'lookup_unresolved' :
+    record === null ? 'attempt_recorded' : {
+      streaming: 'delivery_streaming', succeeded: 'host_delivery_succeeded',
+      failed: 'delivery_failed', cancelled: 'delivery_cancelled',
+    }[record.state];
+  const summaries = {
+    lookup_unresolved: 'This lookup found no DeliveryAttempt; whether the read opened remains unresolved.',
+    attempt_recorded: 'The Host recorded this DeliveryAttempt; no delivery outcome is available yet.',
+    delivery_streaming: 'The Host reports that this Delivery is streaming; completion is not confirmed.',
+    host_delivery_succeeded: 'The Host confirmed this Delivery and issued its release receipt.',
+    delivery_failed: 'The Host reports that this Delivery failed; this does not fail the Run.',
+    delivery_cancelled: 'The Host reports that this Delivery was cancelled; this does not cancel the Run.',
+  };
+  deliveryExplanations.set(answer, freezeInput({observation, summary: summaries[observation],
+    hint: 'Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.',
+    ...(record === null ? {} : {
+      recordSequence: record.sequence, hostConfirmedByteCount: record.confirmed_byte_count,
+      exposure: record.exposure,
+      ...(record.possible_unconfirmed_max_bytes === undefined ? {} :
+        {possibleUnconfirmedMaxBytes: record.possible_unconfirmed_max_bytes}),
+      ...(record.cleanup_owner_cids.length ? {cleanup: 'unresolved'} : {}),
+    }),
+    ...(record?.state === 'succeeded' ? {
+      hostReleaseReceiptCid: answer.hostReleaseReceipt.result_delivery_receipt_cid,
+      deliveredSha256: answer.hostReleaseReceipt.delivered_sha256,
+    } : {}),
+    next,
+  }));
+  return answer;
+};
 
 export function explainSubmission(result, options) {
   return localizeOperation(submissionExplanations.get(result), 'submission', options);
@@ -689,7 +729,9 @@ const retainReadExplanation = (result, context, rowsYielded, observation, cleanu
   readExplanations.set(result, freezeInput({observation,
     ...(cleanupUnknown ? {cleanup: 'unknown'} : {}),
     attemptId: context.attemptId, rowsYielded,
-    summary: observation === 'cleanup_unknown'
+    summary: observation === 'read_open_unknown'
+      ? 'Opening this read could not be confirmed. The DeliveryAttempt may already have been recorded.'
+      : observation === 'cleanup_unknown'
       ? `Reader cleanup could not be confirmed after returning ${quantity}.`
       : `This read stopped after returning ${quantity}.`,
     hint: 'Keep this read reference. Look it up before deciding whether to open a new read from the beginning.',
@@ -1114,7 +1156,8 @@ async function connectSelected(selected, port) {
               state = 'complete';
             }
           } catch (cause) {
-            failure = readFailure(cause, context, rowsYielded);
+            failure = readFailure(cause, context, rowsYielded,
+              state === 'opening' ? {observation: 'read_open_unknown'} : undefined);
           } finally {
             // A failed opening has no authoritative no-send proof. Keep the
             // original attempt for lookup, even when no row was received.
@@ -1280,7 +1323,10 @@ async function connectSelected(selected, port) {
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
             answer = structuredClone(answer);
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
-            return freezeInput(answer);
+            return retainDeliveryExplanation(freezeInput(answer), {
+              operation: 'deliveryAttempt', ref, resultName: name, attemptId,
+              lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
+            });
           } catch {
             fail('InvalidHostAttemptLookup');
           }
@@ -1710,6 +1756,9 @@ export function formatCancellation(result, options) {
 }
 export function formatReadFailure(result, options) {
   return formatOperationExplanation(explainReadFailure(result), 'read', options);
+}
+export function formatDeliveryAttempt(result, options) {
+  return formatOperationExplanation(explainDeliveryAttempt(result), 'delivery', options);
 }
 export function formatEffectUncertainty(result, options) {
   return formatOperationExplanation(explainEffectUncertainty(result), 'effect', options);
