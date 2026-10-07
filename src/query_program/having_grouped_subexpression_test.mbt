@@ -76,7 +76,7 @@ test "HAVING grouped subexpressions keep nullable property and range meanings" {
 test "HAVING grouped subexpressions retain JOIN and CTE scope" {
   for
     source in [
-      "SELECT l.x + 1 AS bucket, COUNT(*) AS n FROM t AS l JOIN t AS r ON l.x = r.x GROUP BY l.x + 1 HAVING COUNT(*) + (l.x + 1) > 0 ORDER BY bucket",
+      "SELECT l.x + 1 AS bucket, COUNT(*) AS n FROM t AS l JOIN t AS r ON l.x = r.x MAX_OUTPUT_ROWS 10 GROUP BY l.x + 1 HAVING COUNT(*) + (l.x + 1) > 0 ORDER BY bucket",
       "WITH summarized AS (SELECT x + 1 AS bucket, COUNT(*) AS n FROM t GROUP BY x + 1 HAVING n + (t.x + 1) > 0) SELECT bucket, n FROM summarized ORDER BY bucket",
       "SELECT x + 1 AS bucket, COUNT(*) AS n FROM t GROUP BY x + 1 HAVING n + (x + 1) > 0 |> WHERE n > 0 |> ORDER BY bucket",
     ] {
