@@ -1094,6 +1094,9 @@ against replacement of the application's platform before module initialization.
 Admission, failure classification, input binding and presentation use that owned
 value. Cloning and revalidation additionally reject a well-shaped copy that
 changes any captured fact; comparison never rereads borrowed Host getters.
+The verification copy is not returned or retained for presentation: even a
+getter on that copy that changes after validation cannot replace the first
+captured observation.
 The SDK only then associates the
 call's immutable submitted input and freezes the observation. This matches the
 independent value custody already supplied by HTTPS JSON decoding. Host-owned

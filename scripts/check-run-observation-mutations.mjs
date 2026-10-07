@@ -12,7 +12,32 @@ const unitTargets = id => ['status', 'wait', 'reconcile'].map(operation => targe
   `${operation}: rejected Run observations distinguish unknown state from malformed known facts`, id, 'deepStrictEqual'));
 const publicTargets = ['in-process', 'https'].map(entrance => target(
   `${entrance}: uninterpretable Run observations retain only the original authorized lookup`, 'run-protocol-public-rejection'));
+const validationCopyFaults = [
+  [['status', 'wait', 'reconcile'], 'response-capture-run', 'strictEqual',
+    'return retainEffectUncertainty(observation, ref);', 'return retainEffectUncertainty(state, ref);'],
+  [['lookupRequest'], 'response-capture-lookup', 'deepStrictEqual',
+    'return retainRequestLookupExplanation(freezeInput(observation), context);',
+    'return retainRequestLookupExplanation(freezeInput(answer), context);'],
+  [['held submit'], 'response-capture-held', 'deepStrictEqual',
+    '      admitted = observation;\n      const held', '      const held'],
+  [['cancel'], 'response-capture-cancel', 'deepStrictEqual',
+    'return retainCancellationExplanation(response, context, response.kind, response.revision);',
+    'return retainCancellationExplanation(received, context, received.kind, received.revision);'],
+  [['deliveryAttempt'], 'response-capture-delivery', 'deepStrictEqual',
+    'return retainDeliveryExplanation(freezeInput(observation), {',
+    'return retainDeliveryExplanation(freezeInput(answer), {'],
+  [['check'], 'response-capture-check', 'deepStrictEqual',
+    '        outcome = observation;', ''],
+  [['cancelRequest'], 'response-capture-request-cancel', 'deepStrictEqual',
+    'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
+    'return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);'],
+];
 const mutations = [
+  ...validationCopyFaults.map(([operations, id, operator, from, to]) => ({
+    name: `validation copy replaces the captured ${operations.join('/')} observation`, path, file: unit, from, to,
+    targets: operations.map(operation => target(
+      `${operation}: validation-copy getters cannot rebind admitted facts`, id, operator)),
+  })),
   {name: 'borrowed response getters replace the first captured facts', path, file: unit,
     from: 'const captureHostResponse = value => cloneHostResponse(value);',
     to: 'const captureHostResponse = value => value;',

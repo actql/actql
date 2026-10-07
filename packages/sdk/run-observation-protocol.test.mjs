@@ -323,3 +323,25 @@ for (const path of paths.filter(value => ['lookupRequest', 'held submit', 'cance
     assert.equal(f.operations.length, 3);
   });
 }
+
+for (const path of paths) {
+  test(`${path.name}: validation-copy getters cannot rebind admitted facts`, async t => {
+    const reply = path.reply(); reply[path.key] = path.first;
+    if (path.name === 'deliveryAttempt') reply.hostReleaseReceipt = null;
+    const f = await responseFixture(t, reply);
+    const nativeClone = globalThis.structuredClone;
+    t.after(() => { globalThis.structuredClone = nativeClone; });
+    globalThis.structuredClone = value => {
+      const copy = nativeClone(value);
+      if (value?.[path.key] === undefined) return copy;
+      let settled = false;
+      queueMicrotask(() => { settled = true; });
+      Object.defineProperty(copy, path.key, {enumerable: true, configurable: true,
+        get() { return settled ? path.later : path.first; }});
+      return copy;
+    };
+    const answer = await path.call(f);
+    path.assert(answer);
+    assert.equal(f.operations.length, 3);
+  });
+}

@@ -109,7 +109,7 @@ test('Local response reuse cannot rebind an earlier Effect explanation to anothe
   assert.deepEqual(explainEffectUncertainty(second), {
     ...expected('unknown', 7), effects: ['other-write'],
     next: {operation: 'status', ref: otherRef}}, '[check-mutation:effect-custody]');
-  assert.equal(first.run_id, 'run-a');
+  assert.equal(first.run_id, 'run-a', '[check-mutation:effect-custody]');
   assert.equal(second.run_id, 'run-b');
 });
 

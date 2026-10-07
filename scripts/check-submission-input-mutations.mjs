@@ -158,15 +158,15 @@ const mutations = [
     '    requestId: context.requestId, stopped: true, resourcesReleased: true, ...(problem === undefined ? {} : {problem}),',
     'request-cancel-stop', 'request-cancel-physical-claim'],
   ['request cancellation accepted becomes already terminal',
-    'return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);',
-    "return retainRequestCancellationExplanation(freezeInput(answer), context, 'already_terminal');",
+    'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
+    "return retainRequestCancellationExplanation(freezeInput(observation), context, 'already_terminal');",
     'request-cancel-public', 'request-cancel-public'],
   ['request cancellation response loss becomes accepted',
     "'outcome_unknown', 'exchange_failed');", "'accepted');",
     'request-cancel-loss', 'request-cancel-loss'],
   ['request cancellation preparation response becomes already terminal',
-    'return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);',
-    "return retainRequestCancellationExplanation(freezeInput(answer), context, 'already_terminal');",
+    'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
+    "return retainRequestCancellationExplanation(freezeInput(observation), context, 'already_terminal');",
     'request-cancel-preparation', 'request-cancel-preparation'],
   ['request observation failures reuse the borrowed exception',
     '  const retained = new ClientError(code,\n    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});',
@@ -392,6 +392,7 @@ const captureFaults = {
   'request-cancel-snapshot': ["try { answer = captureHostResponse(answer); }", 'catch { throw uninterpretableRequestCancellation(context); }'],
   'cancellation-custody': ['try { response = captureHostResponse(response); }'],
   'check-custody': ['try { outcome = captureHostResponse(outcome); }'],
+  'check-shape': ['try { outcome = captureHostResponse(outcome); }'],
 };
 const results = [];
 try {
@@ -411,6 +412,11 @@ try {
       const guard = '            structuralKey(received) !== observedKey ||\n';
       if (altered.split(guard).length !== 2) throw new Error(`Copied cancellation guard not unique: ${name}`);
       altered = altered.replace(guard, '');
+    }
+    if (phase === 'check-shape') {
+      const copy = 'try { outcome = structuredClone(outcome); }';
+      if (altered.split(copy).length !== 2) throw new Error(`Copy fault anchor not unique: ${name}`);
+      altered = altered.replace(copy, 'try {}');
     }
     writeFileSync(file, altered);
     results.push({name, phase, rejected: !accepted(phase, assertion)});

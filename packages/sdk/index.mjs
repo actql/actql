@@ -1129,13 +1129,14 @@ async function connectSelected(selected, port) {
       try {
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
         // Each observation owns its value even if a Local port reuses a reply.
+        const observation = state;
         const observedKey = structuralKey(state);
         state = structuredClone(state);
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
         if (structuralKey(state) !== observedKey) {
           throw rejectedRunObservation(ref, operation, 'malformed_response');
         }
-        return retainEffectUncertainty(state, ref);
+        return retainEffectUncertainty(observation, ref);
       } catch (cause) {
         if (runObservationFailures.has(cause)) throw cause;
         throw rejectedRunObservation(ref, operation, 'malformed_response');
@@ -1418,10 +1419,11 @@ async function connectSelected(selected, port) {
           try {
             answer = captureHostResponse(answer);
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
+            const observation = answer;
             const observedKey = structuralKey(answer);
             answer = structuredClone(answer);
             if (!validDeliveryAttemptLookup(answer, expected) || structuralKey(answer) !== observedKey) fail('InvalidHostAttemptLookup');
-            return retainDeliveryExplanation(freezeInput(answer), {
+            return retainDeliveryExplanation(freezeInput(observation), {
               operation: 'deliveryAttempt', ref, resultName: name, attemptId,
               lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
             });
@@ -1471,7 +1473,7 @@ async function connectSelected(selected, port) {
           throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
             context, 'outcome_unknown');
         }
-        return retainCancellationExplanation(received, context, received.kind, received.revision);
+        return retainCancellationExplanation(response, context, response.kind, response.revision);
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host
@@ -1506,11 +1508,13 @@ async function connectSelected(selected, port) {
     catch { throw submissionUnknown(context, new ClientError('InvalidHostAdmission')); }
     if (admitted?.kind === 'held' &&
         validSubmitReply(admitted, selected.wire, requestId)) {
+      const observation = admitted;
       try {
         const observedKey = structuralKey(admitted);
         admitted = structuredClone(admitted);
         if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId) || structuralKey(admitted) !== observedKey) fail('InvalidHostAdmission');
       } catch (cause) { throw submissionUnknown(context, cause); }
+      admitted = observation;
       const held = new RequestHeld(freezeInput(admitted), context.lookupContext);
       submissionInputs.set(held, snapshot);
       submissionExplanations.set(held, heldRequestExplanation(admitted, snapshot));
@@ -1573,6 +1577,7 @@ async function connectSelected(selected, port) {
       catch { throw rejectedCheck(body, 'malformed_response'); }
       const header = rejectedCheckHeader(outcome);
       const reject = () => { throw rejectedCheck(body, rejectedCheckProblem(header)); };
+      const observation = outcome;
       try {
         if (!validCheckOutcome(outcome)) reject();
         const observedKey = structuralKey(outcome);
@@ -1582,6 +1587,7 @@ async function connectSelected(selected, port) {
         catch { reject(); }
         if (!validCheckOutcome(outcome)) reject();
         if (structuralKey(outcome) !== observedKey) reject();
+        outcome = observation;
         const report = outcome.report ?? outcome.partial_report;
         if (report) {
           const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
@@ -1654,11 +1660,12 @@ async function connectSelected(selected, port) {
       if (!validRequestLookup(answer, requestId)) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
+      const observation = answer;
       const observedKey = structuralKey(answer);
       try { answer = structuredClone(answer); }
       catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
       if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
-      return retainRequestLookupExplanation(freezeInput(answer), context);
+      return retainRequestLookupExplanation(freezeInput(observation), context);
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is
     // cancelled through its own cancellation. `accepted` means the Host
@@ -1694,6 +1701,7 @@ async function connectSelected(selected, port) {
       if (!validRequestCancellation(answer, requestId)) {
         throw uninterpretableRequestCancellation(context);
       }
+      const observation = answer;
       const original = {kind: answer.kind, revision: answer.revision,
         ref: answer.ref === undefined ? undefined : {...answer.ref}};
       try {
@@ -1705,7 +1713,7 @@ async function connectSelected(selected, port) {
           throw new ClientError('InvalidHostRequestCancellation');
         }
       } catch { throw uninterpretableRequestCancellation(context); }
-      return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);
+      return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);
     },
     // Resources an installed connection shows to this caller, from the
     // Host's current Catalog observation. A listing is display material:

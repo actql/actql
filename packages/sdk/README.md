@@ -502,15 +502,17 @@ no submission lifecycle, Host input storage, public hash or new wire contract.
 
 The SDK captures response fields once before checking their branch or contract.
 Validation, copied-value comparison and input binding use the same owned facts;
-a getter cannot replace its first value between admission and copying. This
-also applies to submission, request lookup/cancellation, Run observations and
+a getter cannot replace its first value between admission and copying. The
+first capture supplies the returned observation and its explanation; the later
+verification copy cannot change them after validation.
+This also applies to submission, request lookup/cancellation, Run observations and
 cancellation, and DeliveryAttempt lookup. Throwing getters produce the safe
 operation-specific failure without retaining the exception. Request serialization
 remains separate. Run responses remain mutable while private explanations retain
 immutable admitted facts.
 
-The SDK then binds input snapshots and freezes the check observation. A Local Host can reuse its response
-objects; later replies cannot replace an earlier outcome, context, input or
+The SDK then binds input snapshots and freezes the check observation. A Local
+Host can reuse its response objects; later replies cannot replace an earlier outcome, context, input or
 location association. Completed and failed partial reports keep their own
 submitted inputs. Unavailable responses provide no bound report or snapshot.
 Uncloneable replies or replies whose copied shape violates the wire contract
