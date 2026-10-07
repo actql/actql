@@ -1570,6 +1570,27 @@
           "fixture": "metadata resume quantum preserves expression and projection rows and charges"
         },
         {
+          "role": "derive_borrowed_bindings_values",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_row_metadata_wbtest.mbt",
+          "fixture": "borrowed bindings retain canonical values across resume quanta"
+        },
+        {
+          "role": "derive_borrowed_bindings_shadow",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_row_metadata_wbtest.mbt",
+          "fixture": "borrowed ordered bindings preserve prior slots and shadow winners"
+        },
+        {
+          "role": "derive_borrowed_bindings_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_row_metadata_wbtest.mbt",
+          "fixture": "borrowed binding cancellation retains input and reclaims active roots once"
+        },
+        {
           "role": "derive_raw_text_child_limits",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1723,6 +1744,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-property-name-retention.test.mjs",
           "fixture": "public retained wide indexed snapshots preserve rows and post-progress custody"
+        },
+        {
+          "role": "derive_borrowed_bindings_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained borrowed bindings preserve map values NULL and post-progress custody"
         },
         {
           "role": "derive_raw_text_child_public",
