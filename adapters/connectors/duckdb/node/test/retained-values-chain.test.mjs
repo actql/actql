@@ -268,6 +268,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
   const receiptTrace = [];
   const exportTrace = [];
   let exportSteps = 0;
+  let exportPreparationSteps = 0;
+  const exportPreparationTrace = [];
   const observedDispatch = route.cancelDispatch ?? 1;
   const cancellation = new AbortController();
   try {
@@ -345,12 +347,28 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           return {$tag: 1, _0: new Proxy(operations, {
             get(operation, name, receiver) {
               if (name === 'execute') return () => assert.fail('synchronous Compute');
-              if (name === 'output' && route.observeExport && dispatch === observedDispatch) {
+              if (name === 'output' && (route.observeExport || route.observePreparation) &&
+                  dispatch === observedDispatch) {
                 const output = Reflect.get(operation, name, receiver);
                 assert.ok(output, 'this Program must select the actual row-file output');
                 return new Proxy(output, {
                   get(exporter, field, receiver) {
                     if (field === 'next') return () => assert.fail('blocking row export');
+                    if (field === 'prepare') return () => {
+                      const result = exporter.prepare(1);
+                      if (result.$tag === 1) {
+                        exportPreparationSteps += result._0._1;
+                        if (exportPreparationTrace.length < 16) exportPreparationTrace.push({
+                          complete: result._0._0, steps: result._0._1});
+                        if (mode === 'cancel-during-export-preparation' && !scheduled &&
+                            exportPreparationSteps === 10) {
+                          assert.equal(result._0._0, false);
+                          scheduled = true;
+                          setTimeout(() => cancellation.abort(), 0);
+                        }
+                      }
+                      return result;
+                    };
                     if (field !== 'advance') return Reflect.get(exporter, field, receiver);
                     return () => {
                       const result = exporter.advance(1);
@@ -508,7 +526,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     });
     await use({setup, plan, retained, publication, leases, captured,
       observations: () => ({dispatches, producerWork, sawStop, scheduled, receiptProgress, receiptTrace,
-        exportTrace, exportSteps, abortReason: cancellation.signal.reason,
+        exportTrace, exportSteps, exportPreparationTrace, exportPreparationSteps,
+        abortReason: cancellation.signal.reason,
         appendsFailed, finalizationsFailed}),
       permitCleanup() { permitCleanup = true; },
       async run() {
@@ -593,7 +612,7 @@ for (const filtered of [false, true]) {
       }));
 }
 
-for (const mode of ['success', 'cancel-during-export']) {
+for (const mode of ['success', 'cancel-during-export', 'cancel-during-export-preparation']) {
   test(`retained row-file export yields within Unicode Text: ${mode}`, async () => {
     const text = 'a'.repeat(1024) + '😀';
     const document = JSON.parse(program([{id: 1, s: text}, {id: 2, s: null}], 'true'));
@@ -604,11 +623,14 @@ for (const mode of ['success', 'cancel-during-export']) {
       stage.results.out.fields = ['id', 's'];
       if (stage.inputs.r) stage.steps[0].select = ['id', 's'];
     }
-    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
+    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations, leases}) => {
       if (mode === 'success') {
         const owner = await run();
         assert.equal(owner.status, 'published');
         assert.equal(observations().dispatches, 3);
+        assert.ok(observations().exportPreparationSteps > 16);
+        assert.ok(observations().exportPreparationTrace.every(poll =>
+          poll.steps === 1 && !poll.complete));
         assert.ok(observations().exportSteps > 32);
         assert.ok(observations().exportTrace.every(poll =>
           poll.steps === 1 && !poll.complete && !poll.batchReady));
@@ -623,11 +645,22 @@ for (const mode of ['success', 'cancel-during-export']) {
         });
         assert.equal(execution.status, 'host-tasks-failed');
         assert.deepEqual(execution.completed, []);
-        assert.equal(execution.failure.code, 'ManagedExecutionFailed');
-        assert.equal(execution.failure.cause.primaryFailure, observations().abortReason);
-        assert.equal(execution.failure.cause.primaryFailure.name, 'AbortError');
-        assert.equal(execution.failure.cleanupPending, true);
-        assert.equal(observations().exportSteps, 10);
+        if (mode === 'cancel-during-export') {
+          assert.equal(execution.failure.code, 'ManagedExecutionFailed');
+          assert.equal(execution.failure.cause.primaryFailure, observations().abortReason);
+          assert.equal(execution.failure.cause.primaryFailure.name, 'AbortError');
+          assert.equal(execution.failure.cleanupPending, true);
+          assert.equal(observations().exportSteps, 10);
+        } else {
+          assert.equal(execution.failure, observations().abortReason);
+          assert.equal(execution.failure.name, 'AbortError');
+          assert.equal(observations().exportPreparationSteps, 10);
+          assert.equal(observations().exportSteps, 0);
+          assert.deepEqual(observations().exportPreparationTrace,
+            Array.from({length: 10}, () => ({complete: false, steps: 1})));
+          assert.deepEqual(leases, []);
+          assert.equal(observations().exportTrace.length, 0);
+        }
         assert.equal(observations().dispatches, 1);
         assert.equal(observations().scheduled, true);
         assert.equal(observations().sawStop, true);

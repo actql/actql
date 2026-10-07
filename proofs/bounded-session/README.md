@@ -254,3 +254,22 @@ The marginal result is a checked connection, preserved local acceptance and a
 derived protocol claim without repeating common proofs or protocol exploration
 for Nest. Actual implementation/reviewer hours and total CI savings were not
 measured and are not claimed.
+
+
+### Current Nest proof inputs versus its historical introduction comparison
+
+Nest's actual derived claim depends on the shared Session and adapter plus its
+own registered connection. It explicitly excludes straight-line chain proofs
+for the two-input lifetime. Its required common artifacts are therefore the four
+bounded Session proof/checker/toolchain files and two shared contract fixtures;
+the gate rejects omission, alteration or substitution of those six inputs.
+
+The four serial-chain artifacts that were unchanged at the original Nest
+introduction remain byte-pinned under `historicalChainComparison` at the same
+baseline. They describe that retrospective comparison; they are not current
+Nest proof premises. Updating the independent chain checker does not invalidate
+Nest's unchanged Session theorem inputs. No digest is replaced to pretend that
+the historical comparison had different bytes. The exact Nest scopes, local
+semantic/resource suites, ordered input/consumer custody and independent
+connection expectations remain mandatory. No test or Actions obligation is
+retired and no evidence-reuse permission is granted by this dependency correction.

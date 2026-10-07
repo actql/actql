@@ -1,5 +1,5 @@
-// Actual installed Host -> public SDK -> approval -> Iceberg/Catalog. This
-// source-tree diagnostic is not a packed distribution or Hosted CI campaign.
+// Actual installed Host -> public SDK -> approval -> Iceberg/Catalog. The
+// packed runner selects installed product modules, never a source overlay.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, sign} from 'node:crypto';
@@ -13,11 +13,18 @@ import {DatabaseSync} from 'node:sqlite';
 import {inspect} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
-import {canonicalJson, contentCid} from './local-account-config.mjs';
-import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
+import {tableTestModule} from './fixtures/table-test-modules.mjs';
+
+const {connect, getSubmissionOutcome} = await tableTestModule(
+  new URL('../../packages/sdk/index.mjs', import.meta.url), '@actql/sdk');
+const {canonicalJson, contentCid} = await tableTestModule(
+  new URL('./local-account-config.mjs', import.meta.url), 'adapters/host-node/local-account-config.mjs');
+const local = await tableTestModule(new URL('./embedded-local.mjs', import.meta.url), '@actql/local-node');
+const connectEmbeddedLocal = local.connectEmbeddedLocal ?? local.connect;
+const {openInstalledRemoteHttpHost} = await tableTestModule(
+  new URL('./embedded-local.mjs', import.meta.url), '@actql/local-node/http-host');
 
 const baseWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
 const tableContract = JSON.parse(await readFile(new URL('../../spec/contracts/actql-table-effect.json', import.meta.url), 'utf8'));
@@ -552,17 +559,32 @@ test(`Table sparse private input commits through ${transport} after approval whi
     assert.equal((await client.checkpoints()).items.length, 0, 'Checking does not admit a Run');
     const dense = plain(sparse);
     dense.stages[0].steps[4].node_rows = {definition: 'N'};
-    const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+    const moon = await tableTestModule(new URL(
+      '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url),
+    '@actql/local-node/runtime');
     const numericProfile = JSON.parse(await readFile(new URL('../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'));
     const graphLaw = JSON.parse(await readFile(new URL('../../spec/dependencies/actql-graph-laws.json', import.meta.url), 'utf8'));
-    const environment = moon.clientProgramCheckEnvironmentWithGraphProfile(declared.wire,
-      JSON.parse(declared.wire).evidence_bundle_cid, false, true, true, true, true, false, false,
+    // The direct checker control must receive the same explicit construction
+    // ceilings as the installed Host; the bare fixture has no Graph budget.
+    const {evidence_bundle_cid: unusedEvidence, ...checkBody} = JSON.parse(declared.wire);
+    void unusedEvidence;
+    checkBody.host_policy_profile.capacity = {
+      max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+      max_graph_construction_nodes: 1000, ...checkBody.host_policy_profile.capacity};
+    const checkEvidence = contentCid(checkBody);
+    const environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
+      canonicalJson({...checkBody, evidence_bundle_cid: checkEvidence}),
+      checkEvidence, false, true, true, true, true, false, false,
       contentCid(numericProfile), contentCid(graphLaw));
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       JSON.stringify(sparse), 'json', environment, undefined, []);
-    const issue = inspect(moon.clientProgramEffectPreparationIssue(outcome), {depth: 10});
-    assert.match(issue, /PresenceRequired[\s\S]*'p'/,
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(outcome), 'p',
       'The actual common checker rejects Conditional p at Result closure');
+    const invalidFormat = moon.clientProgramPrepareEffectComputationWithParameters(
+      JSON.stringify(sparse), 'invalid-format', environment, undefined, []);
+    assert.equal(moon.clientProgramEffectPreparationIssueCode(invalidFormat), 'invalid_format');
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(invalidFormat), undefined,
+      'A different refusal cannot masquerade as Result presence rejection');
     // Validate the same Graph and selected schemas through ordinary public
     // execution, independently of the Effect computation capability boundary.
     delete dense.stages[0].effects;
@@ -594,6 +616,12 @@ test(`Table sparse private input commits through ${transport} after approval whi
     privateStage.table_inputs.rows.from = 'ordered';
     privateStage.results.answer.from = 'ordered';
     const input = JSON.stringify(privateInput);
+    const privatePreparation = moon.clientProgramPrepareEffectComputationWithParameters(
+      input, 'json', environment, undefined, []);
+    assert.ok(moon.clientProgramEffectPreparationReady(privatePreparation),
+      inspect(moon.clientProgramEffectPreparationIssue(privatePreparation), {depth: 20}));
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(privatePreparation), undefined,
+      'The accepted private input is not an ordinary Result presence refusal');
     const submissionRef = client.newSubmission();
     let run = await client.startSource(input, {format: 'json', submissionRef});
     await waiting(run, observations, t);

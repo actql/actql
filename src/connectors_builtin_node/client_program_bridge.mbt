@@ -2681,6 +2681,28 @@ pub fn client_program_effect_preparation_issue_code(
 }
 
 ///|
+/// Project the existing typed Result-closure refusal without depending on JS
+/// class names, which release packaging may minify. This is not a new check.
+#export_name("clientProgramEffectPreparationResultPresenceField")
+pub fn client_program_effect_preparation_result_presence_field(
+  outcome : ClientEffectProgramBridgeOutcome,
+) -> String? {
+  if outcome
+    is EffectRejected(
+      Preparation(
+        Candidate(
+          Computation(Source(SourceView(Program(Program(Results(_, issue))))))
+        )
+      )
+    ) &&
+    issue.kind is PresenceRequired(field) {
+    Some(field)
+  } else {
+    None
+  }
+}
+
+///|
 #export_name("clientProgramEffectDefinitionCid")
 pub fn client_program_effect_definition_cid(
   value : @publication_host.PreparedClientEffectComputation,
@@ -3138,9 +3160,23 @@ pub fn client_program_issue_source_free_local_effect_table_artifact(
     return Err(ForeignExport)
   }
   @publication_host.issue_source_free_client_effect_local_table_artifact(
-    owner, inputs, member_index, input, importing.output, importing.bridge,
-    preparation, definition, invocation, receipt, retention, admission,
-    run_definition, run_invocation, observation, max_wire_bytes, max_nodes,
+    owner,
+    inputs,
+    member_index,
+    input,
+    importing.output,
+    importing.bridge,
+    preparation,
+    definition,
+    invocation,
+    receipt,
+    retention,
+    admission,
+    run_definition,
+    run_invocation,
+    observation,
+    max_wire_bytes,
+    max_nodes,
     max_depth,
   ).map_err(issue => Issuance(issue))
 }
@@ -5422,8 +5458,12 @@ pub fn client_program_effect_table_managed_input_begin(
   limits : @publication_host.PublicationOutputExportLimits,
 ) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
   begin_client_effect_result_import(
-    None, Some(input), Table(@strategy.captured_effect_table_input_borrow(input)),
-    output, material, limits,
+    None,
+    Some(input),
+    Table(@strategy.captured_effect_table_input_borrow(input)),
+    output,
+    material,
+    limits,
   )
 }
 
@@ -5433,8 +5473,10 @@ fn client_effect_source_borrow_matches(
   output : @execution.ManagedCompletedOutput[Int],
 ) -> Bool {
   match borrow {
-    Result(value) => @strategy.captured_any_result_borrow_matches_managed(value, output)
-    Table(value) => @strategy.captured_table_input_borrow_matches_managed(value, output)
+    Result(value) =>
+      @strategy.captured_any_result_borrow_matches_managed(value, output)
+    Table(value) =>
+      @strategy.captured_table_input_borrow_matches_managed(value, output)
   }
 }
 
@@ -5463,8 +5505,17 @@ fn begin_client_effect_result_import(
     Ok(value) => value
     Err(issue) => return Err(Bridge(issue))
   }
-  Ok({ input, table_input, borrow, output, bridge, limits, preparation: None,
-    table_preparation: None, open: true, })
+  Ok({
+    input,
+    table_input,
+    borrow,
+    output,
+    bridge,
+    limits,
+    preparation: None,
+    table_preparation: None,
+    open: true,
+  })
 }
 
 ///|
@@ -5498,10 +5549,7 @@ pub fn client_program_effect_managed_input_append(
   if !value.open {
     return Err(Closed)
   }
-  if !client_effect_source_borrow_matches(
-      value.borrow,
-      value.output,
-    ) {
+  if !client_effect_source_borrow_matches(value.borrow, value.output) {
     return Err(ForeignOutput)
   }
   @execution.append_managed_publication_bridge_wire(value.bridge, row, {
@@ -5525,10 +5573,7 @@ pub fn client_program_effect_managed_input_finish(
     return Err(Closed)
   }
   value.open = false
-  if !client_effect_source_borrow_matches(
-      value.borrow,
-      value.output,
-    ) {
+  if !client_effect_source_borrow_matches(value.borrow, value.output) {
     @execution.close_managed_publication_bridge(value.bridge)
     return Err(ForeignOutput)
   }
@@ -5577,29 +5622,39 @@ pub fn client_program_effect_table_managed_input_finish(
   ClientEffectManagedInputIssue,
 ] {
   guard value.borrow is Table(borrow) else { return Err(ForeignOutput) }
-  if !value.open { return Err(Closed) }
+  if !value.open {
+    return Err(Closed)
+  }
   value.open = false
   if !client_effect_source_borrow_matches(value.borrow, value.output) {
     @execution.close_managed_publication_bridge(value.bridge)
     return Err(ForeignOutput)
   }
-  let output = match @execution.finish_managed_publication_bridge(value.bridge) {
+  let output = match
+    @execution.finish_managed_publication_bridge(value.bridge) {
     Ok(value) => value
     Err(issue) => {
       @execution.close_managed_publication_bridge(value.bridge)
       return Err(Bridge(issue))
     }
   }
-  match @execution.start_completed_table_input_relation_export(
-    output,
-    @strategy.captured_table_input_borrow_occurrence(borrow),
-    { max_fields: value.limits.max_result_fields,
-      max_mapping_work: value.limits.max_result_mapping_work,
-      max_order_work: value.limits.max_result_order_work,
-      max_workspace_entries: value.limits.max_result_workspace_entries, },
-    value.limits.max_rows, value.limits.values, value.limits.payload_wire,
-    value.limits.logical_wire, value.limits.schema, value.limits.max_batch_bytes,
-  ) {
+  match
+    @execution.start_completed_table_input_relation_export(
+      output,
+      @strategy.captured_table_input_borrow_occurrence(borrow),
+      {
+        max_fields: value.limits.max_result_fields,
+        max_mapping_work: value.limits.max_result_mapping_work,
+        max_order_work: value.limits.max_result_order_work,
+        max_workspace_entries: value.limits.max_result_workspace_entries,
+      },
+      value.limits.max_rows,
+      value.limits.values,
+      value.limits.payload_wire,
+      value.limits.logical_wire,
+      value.limits.schema,
+      value.limits.max_batch_bytes,
+    ) {
     Ok(preparation) => {
       value.table_preparation = Some(preparation)
       Ok(preparation)
@@ -5848,14 +5903,22 @@ pub fn client_program_issue_effect_table_source_artifact(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.EffectSourceArtifactIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.EffectSourceArtifactIssue,
+] {
   @publication.issue_effect_table_input_artifact(
-    invocation, retention, @strategy.captured_effect_table_input_name(input),
-    source_binding_cid, store_authority_cid,
+    invocation,
+    retention,
+    @strategy.captured_effect_table_input_name(input),
+    source_binding_cid,
+    store_authority_cid,
     client_program_effect_input_export_logical_cid(receipt),
     client_program_effect_input_export_schema_cid(receipt),
     client_program_effect_input_export_row_count(receipt),
-    max_wire_bytes, max_nodes, max_depth,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
   )
 }
 

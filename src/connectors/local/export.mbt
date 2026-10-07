@@ -35,9 +35,9 @@ pub fn local_export_retention_capacity(limits : LocalExportLimits) -> Int64? {
     return None
   }
   Some(
-    // Eight fixed continuation/owner slots are additional. Nested frame
-    // entries remain within the existing 64-byte-per-depth allowance.
-    512L +
+    // Sixteen preparation roots bound the largest fixed overlap. The row
+    // cursor's eight roots do not overlap preparation after transfer.
+    1024L +
     w.max_bytes.to_int64() +
     8L * limits.max_batch_bytes.to_int64() +
     64L *
@@ -67,6 +67,7 @@ pub fn begin_local_output_export(
 ) -> Result[Unit, LocalMaterializingIssue] {
   guard !attempt.closed &&
     !attempt.exported &&
+    attempt.export_preparation is None &&
     attempt.export_stream is None &&
     attempt.export_receipt is None &&
     attempt.release_check is Some(_) &&
@@ -74,16 +75,23 @@ pub fn begin_local_output_export(
     attempt.output_limits is Some(limits) else {
     return Err(State)
   }
+  guard @execution.completed_export_preparation_workspace_slots(
+      limits.wire.max_columns,
+    )
+    is Some(slots) else {
+    return Err(Capacity)
+  }
   match
-    @execution.prepare_completed_output_export(
+    @execution.start_completed_output_export(
       output,
       limits.max_rows,
       limits.values,
       limits.wire,
       limits.max_batch_bytes,
+      slots,
     ) {
-    Ok(stream) => {
-      attempt.export_stream = Some(stream)
+    Ok(preparation) => {
+      attempt.export_preparation = Some(preparation)
       Ok(())
     }
     Err(issue) => Err(Export(issue))
@@ -91,9 +99,45 @@ pub fn begin_local_output_export(
 }
 
 ///|
+pub fn advance_local_output_export_preparation(
+  attempt : LocalMaterializingAttempt,
+  quantum : Int,
+) -> Result[(Bool, Int), LocalMaterializingIssue] {
+  if attempt.closed {
+    return Err(State)
+  }
+  if attempt.export_stream is Some(_) {
+    return Ok((true, 0))
+  }
+  guard attempt.export_preparation is Some(preparation) else {
+    return Err(State)
+  }
+  @execution.advance_completed_output_export_preparation(preparation, quantum)
+  .bind(result => {
+    if result.0 {
+      @execution.finish_completed_output_export_preparation(preparation).map(stream => {
+        attempt.export_preparation = None
+        attempt.export_stream = Some(stream)
+        result
+      })
+    } else {
+      Ok(result)
+    }
+  })
+  .map_err(issue => Export(issue))
+}
+
+///|
 pub fn next_local_output_export(
   attempt : LocalMaterializingAttempt,
 ) -> Result[String?, LocalMaterializingIssue] {
+  // Blocking convenience consumers drain the same metadata owner.
+  while attempt.export_preparation is Some(_) {
+    match advance_local_output_export_preparation(attempt, 64) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   guard !attempt.closed && attempt.export_stream is Some(stream) else {
     return Err(State)
   }
