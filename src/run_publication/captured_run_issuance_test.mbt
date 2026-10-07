@@ -152,7 +152,7 @@ test "publication evidence defaults reserve fixed streams without changing node 
     "[{\"value\":7}]",
     ["value"],
     65536,
-    128,
+    256,
     32,
   ).unwrap()
   let captured = issue_effect_free_captured_run(
@@ -167,7 +167,7 @@ test "publication evidence defaults reserve fixed streams without changing node 
     chain.authoring,
     chain.models,
     65536,
-    128,
+    256,
     32,
   ).unwrap()
   validate_effect_free_run_evidence_chain(
@@ -179,9 +179,23 @@ test "publication evidence defaults reserve fixed streams without changing node 
     chain.receipt,
     captured,
     65536,
-    128,
+    256,
     32,
   ).unwrap()
+  let explicit = captured_validation_test_start(chain, captured, workspace=2048)
+  let mut refused = false
+  for _ in 0..<10000 {
+    match explicit.advance(1) {
+      Err(EvidenceInventoryMismatch("result_artifacts")) => {
+        refused = true
+        break
+      }
+      Err(_) => abort("unrelated evidence refusal")
+      Ok((true, _)) => abort("fixed stream buffers require explicit capacity")
+      Ok((false, _)) => ()
+    }
+  }
+  assert_true(refused)
 }
 
 ///|
