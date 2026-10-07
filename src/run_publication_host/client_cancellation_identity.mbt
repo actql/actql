@@ -186,6 +186,12 @@ pub fn prepare_client_cancellation_operation(
       terminal_observed,
       cancellation_requested,
     ) {
+    Ok(AcceptCancellation) =>
+      if current_revision == 2147483647 {
+        Err(RevisionConflict)
+      } else {
+        Ok(RecordCancellation(AcceptCancellation))
+      }
     Ok(action) => Ok(RecordCancellation(action))
     Err(AuthorizationDenied) => Err(AuthorizationDenied)
     Err(_) => Err(ForeignRunDefinition)

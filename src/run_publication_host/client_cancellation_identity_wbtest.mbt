@@ -228,3 +228,57 @@ test "cancellation replay retains current authority and exact Run admission" {
     Err(ForeignRunDefinition),
   )
 }
+
+///|
+test "cancellation revision exhaustion cannot issue a new Run request" {
+  let identity = cancellation_test_identity(revision=2147483647)
+  let definition = start_test_definition()
+  assert_eq(
+    prepare_client_cancellation_operation(
+      identity,
+      None,
+      definition,
+      2147483647,
+      true,
+      false,
+      false,
+    ),
+    Err(RevisionConflict),
+  )
+  assert_eq(
+    prepare_client_cancellation_operation(
+      identity,
+      None,
+      definition,
+      2147483647,
+      true,
+      true,
+      false,
+    ),
+    Ok(RecordCancellation(AlreadyTerminal)),
+  )
+  assert_eq(
+    prepare_client_cancellation_operation(
+      identity,
+      None,
+      definition,
+      2147483647,
+      true,
+      false,
+      true,
+    ),
+    Ok(RecordCancellation(AlreadyRequested)),
+  )
+  assert_eq(
+    prepare_client_cancellation_operation(
+      identity,
+      Some(identity),
+      definition,
+      2147483647,
+      true,
+      false,
+      false,
+    ),
+    Ok(ReplayOriginalCancellation),
+  )
+}

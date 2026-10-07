@@ -396,6 +396,44 @@ for (const transport of ['local', 'https']) {
     assert.equal(f.journal().fences.length, 1);
   });
 
+  test(`public Model ${transport}: lost fence acknowledgement retains original pending cancellation across restart`, async t => {
+    const f = await fixture(t, {transport});
+    const waiting = f.phase('wait');
+    const lost = f.phase('cancel-fence-loss');
+    assertSameRun(waiting, lost);
+    assert.equal(lost.cancellationRecovery.unknownCode, 'CancellationUnknown');
+    const cancelRef = f.read('cancel-ref.json');
+    assert.equal(cancelRef.cancelId, 'model-fence-original-cancel');
+    assert.deepEqual(lost.cancellationRecovery.cancelRef, cancelRef);
+    assertSends(f, []);
+    assert.equal(f.journal().fences.length, 1);
+    assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+    const custody = () => {
+      const database = new DatabaseSync(join(f.root, 'host', 'requests',
+        'client-requests.sqlite3'), {readOnly: true});
+      try {
+        return {operations: database.prepare(`SELECT cancel_id, expected_revision,
+          outcome_wire, outcome_cid FROM client_cancellation_operations`).all().map(row => ({...row})),
+        issued: database.prepare('SELECT issued_count FROM client_cancellation_custody').get().issued_count,
+        requested: database.prepare('SELECT cancellation_requested FROM client_requests').get().cancellation_requested};
+      } finally { database.close(); }
+    };
+    const pending = {operations: [{cancel_id: 'model-fence-original-cancel',
+      expected_revision: cancelRef.expectedRevision, outcome_wire: null, outcome_cid: null}],
+    issued: 1, requested: 0};
+    assert.deepEqual(custody(), pending);
+    // A fresh process only attaches and observes. It cannot finish the pending
+    // request operation or interpret the missing outcome as non-acceptance.
+    const lookup = f.phase('lookup-cancel-fence-loss');
+    assertSameRun(waiting, lookup);
+    assert.deepEqual(lookup.cancellationRecovery.first, {kind: 'unknown', cancelRef});
+    assert.deepEqual(lookup.cancellationRecovery.second, {kind: 'unknown', cancelRef});
+    assert.deepEqual(custody(), pending);
+    assert.equal(f.journal().fences.length, 1);
+    assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+    assertSends(f, []);
+  });
+
   test(`public Model ${transport}: cancellation after one saved response retains it and prevents later sends`, async t => {
     const f = await fixture(t, {transport, count: 3});
     const waiting = f.phase('wait');

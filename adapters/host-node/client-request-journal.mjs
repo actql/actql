@@ -255,7 +255,7 @@ function admissionEvidenceShape(value) {
         Object.keys(original).sort().join(',') !==
           'boundInvocationTemplateWire,compiledPlanWire,preparedInvocationWire,runAuthorizationWire,runDefinitionWire' ||
         Object.values(original).some(wire => typeof wire !== 'string' || wire === '') ||
-        canonicalJson(original) !== value.modelOriginalRunWire ||
+        canonicalValueJson(original) !== value.modelOriginalRunWire ||
         original.preparedInvocationWire !== value.prepared ||
         original.runAuthorizationWire !== value.authorization) return false;
   }
@@ -663,6 +663,7 @@ export function openClientRequestJournal(directory, {
         Object.keys(outcome).sort().join(',') !== 'cancelRef,kind,ref,revision' ||
         !['accepted', 'already_requested', 'already_terminal'].includes(outcome.kind) ||
         !Number.isInteger(outcome.revision) || outcome.revision < cancelRef.expectedRevision ||
+        outcome.kind === 'accepted' && outcome.revision === cancelRef.expectedRevision ||
         outcome.revision > 2147483647 ||
         canonicalValueJson(outcome.cancelRef) !== canonicalValueJson(cancelRef) ||
         canonicalValueJson(outcome.ref) !== canonicalValueJson({namespaceId: cancelRef.namespaceId,

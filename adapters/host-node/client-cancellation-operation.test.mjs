@@ -8,6 +8,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {originalModelRunWire} from './installed-model-originals.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const publication = runtimeCore(moon).publicationControl;
@@ -20,7 +21,8 @@ const fields = {
   intentFingerprintCid: 'sha256:d526e372e357f6bbd1d804e385fc8d88fad9e538ec5a70058f1205af9a0a7d9d',
 };
 
-function admitRun(journal, requestId = 'saved-request', runId = 'saved-run') {
+function admitRun(journal, requestId = 'saved-request', runId = 'saved-run',
+  {evidenceForRun, initialRevision = 17} = {}) {
   // Independent logical-request law, not a product-generated expectation.
   const requestScope = `sha256:${createHash('sha256').update(JSON.stringify({
     authority_scope_cid: scope.authorityScopeCid, caller_request_id: requestId,
@@ -38,13 +40,14 @@ function admitRun(journal, requestId = 'saved-request', runId = 'saved-run') {
   }), limits);
   const accepted = journal.acceptDefinition(identity, {
     namespaceId: scope.namespaceId, runDefinition: definition,
-    revision: 17, lookupExpiresAt: '2099-01-01T00:00:00.000Z', resultNames: ['answer'],
+    runAdmissionEvidence: evidenceForRun?.(definition),
+    revision: initialRevision, lookupExpiresAt: '2099-01-01T00:00:00.000Z', resultNames: ['answer'],
   }, moon, publication);
   journal.reserveDispatch(identity, {namespaceId: scope.namespaceId,
     currentAuthorization: true}, moon, publication);
   journal.reservePhysicalStart(identity, {namespaceId: scope.namespaceId,
     ref: accepted.ref, currentAuthorization: true}, moon, publication);
-  assert.equal(journal.lookupRunDefinition(accepted.ref, moon, publication).revision, 19);
+  assert.equal(journal.lookupRunDefinition(accepted.ref, moon, publication).revision, initialRevision + 2);
   return accepted.ref;
 }
 
@@ -223,6 +226,29 @@ test('changed saved outcome is unknown and cannot become a new accepted result',
   assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).revision, 20);
 });
 
+test('hash-valid accepted outcome without a revision advance is unknown on readmission', async t => {
+  const f = await fixture(t);
+  const ref = admitRun(f.journal);
+  const original = cancel(f.journal, ref);
+  // Independently author the closed canonical order and invalid accepted
+  // revision. A correct digest does not establish the operation's semantics.
+  const orderedRef = {authorityScopeCid: ref.authorityScopeCid,
+    namespaceId: ref.namespaceId, runDefinitionCid: ref.runDefinitionCid};
+  const wire = JSON.stringify({cancelRef: {authorityScopeCid: ref.authorityScopeCid,
+    cancelId: 'original-cancel', expectedRevision: 19,
+    namespaceId: ref.namespaceId, runDefinitionCid: ref.runDefinitionCid},
+  kind: 'accepted', ref: orderedRef, revision: 19});
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  db.prepare('UPDATE client_cancellation_operations SET outcome_wire = ?, outcome_cid = ?')
+    .run(wire, `sha256:${createHash('sha256').update(wire).digest('hex')}`);
+  db.close();
+  f.reopen();
+  assert.throws(() => lookup(f.journal, original.cancelRef),
+    {code: 'ClientCancellationLookupUnknown'});
+  assert.throws(() => cancel(f.journal, ref), {code: 'ClientCancellationUnknown'});
+  assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).revision, 20);
+});
+
 test('additive cancellation custody preserves the prior journal marker and Run original', async t => {
   const f = await fixture(t);
   const ref = admitRun(f.journal);
@@ -269,3 +295,51 @@ test('the physical recording receipt distinguishes first commit from replay', as
   assert.equal(repeated.recorded, false);
   assert.deepEqual(repeated.cancellation, first.cancellation);
 });
+
+
+test('revision exhaustion refuses before retaining cancellation custody or touching a Model fence', async t => {
+  const f = await fixture(t);
+  const ref = admitRun(f.journal, 'exhausted-request', 'exhausted-run',
+    {initialRevision: 2147483645});
+  assert.throws(() => cancel(f.journal, ref, {expectedRevision: 2147483647}),
+    {code: 'ClientCancellationRevisionConflict'});
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations').get().n, 0);
+    assert.equal(db.prepare('SELECT issued_count FROM client_cancellation_custody').get().issued_count, 0);
+  } finally { db.close(); }
+  assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).cancellationRequested, false);
+});
+
+for (const [name, text] of [['composed', 'é'], ['decomposed', 'e\u0301'],
+  ['CR', 'a\rb'], ['LF', 'a\nb'], ['CRLF', 'a\r\nb']]) {
+  test(`Model original ${name} values survive request-journal retention and restart exactly`, async t => {
+    const f = await fixture(t);
+    let expected;
+    const ref = admitRun(f.journal, `original-${name}`, `run-${name}`, {evidenceForRun(definition) {
+      // This test covers opaque original-byte storage, not Model admission.
+      // The real installed Model Owner separately validates every leaf.
+      const templateWire = JSON.stringify({text, nested: {values: [text]}});
+      const preparedWire = 'prepared-owner-wire', authorizationWire = 'authorization-owner-wire';
+      const originals = {boundInvocationTemplateWire: templateWire,
+        compiledPlanWire: 'compiled-plan-owner-wire', preparedInvocationWire: preparedWire,
+        runAuthorizationWire: authorizationWire, runDefinitionWire: definition.wire};
+      // Independent closed-key order; never derive the expected stored bytes
+      // from the original packaging function or journal's returned evidence.
+      expected = JSON.stringify(originals);
+      const wire = originalModelRunWire({template: {wire: templateWire},
+        preparedEvidence: {wire: preparedWire}, authorization: {wire: authorizationWire},
+        compiledPlan: {wire: originals.compiledPlanWire}}, definition);
+      assert.equal(wire, expected);
+      return {prepared: preparedWire, authorization: authorizationWire, modelOriginalRunWire: wire};
+    }});
+    assert.equal(f.journal.lookupRunDefinition(ref, moon, publication)
+      .runAdmissionEvidence.modelOriginalRunWire, expected);
+    f.reopen();
+    const retained = f.journal.lookupRunDefinition(ref, moon, publication)
+      .runAdmissionEvidence.modelOriginalRunWire;
+    assert.equal(retained, expected);
+    assert.deepEqual(JSON.parse(JSON.parse(retained).boundInvocationTemplateWire),
+      {text, nested: {values: [text]}});
+  });
+}
