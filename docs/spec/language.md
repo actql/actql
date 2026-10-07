@@ -7736,6 +7736,41 @@ retention field.
 
 <a id="effects"></a>
 
+### Private Table inputs
+
+A stage may declare private `table_inputs` alongside its ordinary `results`.
+For example, `table_inputs: {material: {from: rows, fields: [id, p]}}`
+closes an authored Relation binding for one whole-Table operation, and that
+stage's Table `store` refers to it with `from: {table_input: material}`.
+This is a structured Program boundary; it adds no SQL syntax or public delivery
+format. Ordinary Result-backed all-Required Table inputs remain valid.
+
+<!-- requirement-block: effects.table-input-closed-fields -->
+Checking MUST resolve a Table input's authored `from` binding and nonempty,
+duplicate-free `fields` against the exact stage pipeline, reject unknown names
+and surplus declaration keys, and derive a closed schema from those selected
+fields including independent presence and nullable contracts even for empty
+input.
+
+<!-- requirement-block: effects.table-input-private-source -->
+A private Table input MUST remain distinct from ordinary Named Results and be
+consumed only by a Table-capable `store` in its declaring stage, with no Result
+export, downstream Result import, mixed `result`/`table_input` source, or implicit
+conversion to an all-Required Result.
+
+<!-- requirement-block: effects.table-input-presence-capture -->
+Capture MUST retain missing, explicit NULL and present values, exact source
+occurrence, field projection and schema through the existing Relation, Store
+and Effect input owners, without NULL filling, inferred presence guarantees,
+or Table writes before approval and current authority.
+
+<!-- requirement-block: effects.table-input-identity-support -->
+The authored Table declaration and source choice MUST bind Stage/Program and
+operation identity; a consumer without the checked private input, completed
+capture and Table capability rejects it rather than treating it as a
+source-free Store or ordinary Result, while structural acceptance alone grants
+no execution, publication or commit authority.
+
 ### Effect declarations
 
 <!-- requirement-block: effects.evaluating-the-computational-part-of-an-actql-program-must-not effects.proposal-and-commit-are-separate-runtime-phases-the-host-must -->
@@ -7780,7 +7815,8 @@ The kind determines its authority class:
 - `delete` removes only addressed rows and carries no field changes;
 - `command` invokes one Connector-owned typed provider operation against
   named-result `resource_ref` values; it is not arbitrary HTTP or generic CRUD;
-- `store` persists one declared named result.
+- `store` persists one declared named result, or one private Table input for a
+  Table-capable Mapping.
 
 <!-- requirement-block: effects.every-data-effect-must-explicitly-declare-target-and-a-typed-qualified effects.every-command-must-explicitly-declare-a-resourceref-result-field-and effects.preview-must-enforce-that-limit-on-the-complete-resolved-scope -->
 Every data effect MUST explicitly declare `target` and a typed-qualified
@@ -7880,15 +7916,17 @@ Literal `ids`, `external_id`, and `where` address the target directly and MUST
 NOT declare `from`. The compiler MUST NOT infer a selector.
 
 <!-- requirement-block: effects.the-runtime-must-correlate-those-two-fields-must-not-assume effects.the-runtime-must-correlate-those-two-fields-must-not-assume.second effects.the-runtime-must-correlate-those-two-fields-must-not-assume.third -->
-`create` and `store` consume `from: {result: name}` unless create uses an explicit
-object `payload`. `upsert` requires `from: {result: name}`, an explicit
+`create` and ordinary `store` consume `from: {result: name}` unless create uses an explicit
+object `payload`; Table `store` may instead consume its stage's closed private
+`from: {table_input: name}`. `upsert` requires `from: {result: name}`, an explicit
 result-side `key`, and a non-empty `set` map. The mapping contract supplies the
 possibly differently named target-side single primary key. The runtime MUST
 correlate those two fields, MUST NOT assume they share a name, and MUST NOT copy
 the remaining result row into the target implicitly. `update` requires a
 non-empty `set` map. `delete` carries no field
 changes. A step alias is an internal dataflow node; an Effect may consume it
-only after stage-local `results` exposes a closed contract for it.
+only after stage-local `results`, or `table_inputs` for Table `store`, exposes
+a closed contract for it.
 
 <!-- requirement-block: effects.its-target-field-must-be-a-value-level-resource-ref-k-whose-kind-equals -->
 A command consumes one named result. Its `target.field` MUST be a
@@ -9937,7 +9975,7 @@ through the pinned expression contract.
 
 <!-- stage-contract-pins:start -->
 ```text
-../../spec/contracts/actql-stage-contracts.json#/source sha256:b98f2467f609677c7b5bfd256892763e4772dd45fe51a494402e56f3a847cdd8
+../../spec/contracts/actql-stage-contracts.json#/source sha256:c9dadd5fbfc5c147b9d4322d70c5373c46bcf4f9aa39da1a3f1c0fd2fa09b4c8
 ../../spec/contracts/actql-stage-contracts.json#/schemas/derive_binding sha256:d74bb697d91a2daf2c51e0d6c492f4bb35fdea5e542d606318683b1c9c5f06f9
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_dependencies sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_contracts sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621
