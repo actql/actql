@@ -53,8 +53,10 @@ mutation result is relabeled as new arithmetic-kernel mutation evidence.
 
 - G; final merge target `actql/actql:main`.
 - Adopted main: `4e384231661558ef693620011d03c147f6792a92`.
-- Unmerged dependency: #930, `fix/composed-model-observations`; its typed/raw-log
-  observation consumer corrections are required rather than duplicated here.
+- Dependency at the original producer: #930, `fix/composed-model-observations`;
+  its typed/raw-log consumer correction was consumed rather than duplicated.
+  #930 and the registration PR #937 are now integrated in main; this supplement
+  has no unmerged parent.
 - Actual clean JS/model source: `ccd6def0376d7f5df08e0059d26c93cca5a96059`.
 - Actual producer source snapshot: `c1f982bf120729c27d270fbd52e783c458da455e0ba358b98f7742c2cbc9b9b9`.
 - Corpus digest: `9420e65ec1e80d508c740c0bc2130588a8f1a21119aa026787f1d2070a269b8f`.
