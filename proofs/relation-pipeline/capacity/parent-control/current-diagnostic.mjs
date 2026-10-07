@@ -7,6 +7,7 @@ import {snapshot,hash} from '../../inventory.mjs';
 import {artifacts} from '../../../bounded-session/evidence.mjs';
 import {checkNativeRuntime} from '../backing/source.mjs';
 import {checkChainCensus} from './bounds.mjs';
+import {inspectProviderConstruction} from './provider-construction.mjs';
 import {currentOverlay,currentPaths,currentHelper,currentStub,currentFixture} from './current-overlay.mjs';
 import {inspectCurrentChain} from './current-inspect.mjs';
 const git=args=>{const r=spawnSync('git',args,{cwd:root,encoding:'utf8'});assert.equal(r.status,0,r.stderr);return r.stdout.trim();};
@@ -39,7 +40,9 @@ try {
     assert.equal(hash(read(archive)),digest);archives[p]=archive;
   }
   assert.deepEqual(checkNativeRuntime(environment.MOON_HOME,toolchain),runtime);
-  result={focused:{exit:run.status,command,logPath:directory+'/native.log',logDigest:hash(log)},claim:inspectCurrentChain(records)};
+  const providerFacts=log.split('\n').filter(l=>l.startsWith('ACTQL_PIPELINE_FAULT:')).map(l=>JSON.parse(l.slice(21)));
+  const providerConstruction=inspectProviderConstruction(providerFacts.filter(f=>f.kind==='provider construction observation'),p=>originals[p] ?? read(p),'native');
+  result={providerConstruction,focused:{exit:run.status,command,logPath:directory+'/native.log',logDigest:hash(log)},claim:inspectCurrentChain(records)};
   // Reject actual-report substitutions; no second Native campaign is needed.
   const reject=(edit,pattern)=>{const bad=structuredClone(records);edit(bad);assert.throws(()=>inspectCurrentChain(bad),pattern);};
   reject(r=>r.find(x=>x.kind==='startup').callbacks[0].captures.pop(),/pointer fields|capture identities/);

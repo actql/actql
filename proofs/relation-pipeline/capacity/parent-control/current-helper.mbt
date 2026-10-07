@@ -35,6 +35,7 @@ extern "C" fn current_chain_start_probe(
 ) -> String = "actql_proof_current_chain_start"
 
 ///|
+#warnings("-unused_value")
 fn current_chain_observe(
   parent : ManagedProviderExecution,
   state : RelationChainExecutionState,
@@ -59,3 +60,11 @@ fn current_chain_observe(
     ),
   )
 }
+
+///|
+#borrow(candidates, execution, measurement)
+extern "C" fn provider_construction_probe(
+  candidates : Array[ManagedProvider],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> String = "actql_proof_provider_construction"
