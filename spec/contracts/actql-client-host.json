@@ -8,7 +8,8 @@
     "lookup-request": ["connection", "requestId"],
     "status": ["connection", "ref"],
     "wait": ["connection", "ref", "until"],
-    "cancel": ["connection", "ref"],
+    "cancel": ["connection", "ref", "cancelId", "expectedRevision"],
+    "lookup-cancellation": ["connection", "ref", "cancelId", "expectedRevision"],
     "reconcile": ["connection", "ref"],
     "read": ["connection", "ref", "resultName", "format", "attemptId"],
     "result-describe": ["connection", "ref", "resultName", "format", "attemptId", "maxWireBytes", "maxNodes", "maxDepth"],
@@ -28,7 +29,8 @@
       "required": [
         "ref",
         "kind",
-        "revision"
+        "revision",
+        "cancelRef"
       ],
       "properties": {
         "ref": {
@@ -67,6 +69,44 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 2147483647
+        },
+        "cancelRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "namespaceId",
+            "authorityScopeCid",
+            "runDefinitionCid",
+            "cancelId",
+            "expectedRevision"
+          ],
+          "properties": {
+            "namespaceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            "authorityScopeCid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "runDefinitionCid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "cancelId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            }
+          }
         }
       }
     },
@@ -815,6 +855,199 @@
           }
         }
       }
+    },
+    "cancellation_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespaceId",
+        "authorityScopeCid",
+        "runDefinitionCid",
+        "cancelId",
+        "expectedRevision"
+      ],
+      "properties": {
+        "namespaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+        },
+        "authorityScopeCid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "runDefinitionCid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "cancelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      }
+    },
+    "cancellation_lookup": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "cancellation"
+          ],
+          "properties": {
+            "kind": {
+              "const": "found"
+            },
+            "cancellation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ref",
+                "kind",
+                "revision",
+                "cancelRef"
+              ],
+              "properties": {
+                "ref": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "namespaceId",
+                    "authorityScopeCid",
+                    "runDefinitionCid"
+                  ],
+                  "properties": {
+                    "namespaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    },
+                    "authorityScopeCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "runDefinitionCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "kind": {
+                  "enum": [
+                    "accepted",
+                    "already_requested",
+                    "already_terminal"
+                  ]
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                },
+                "cancelRef": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "namespaceId",
+                    "authorityScopeCid",
+                    "runDefinitionCid",
+                    "cancelId",
+                    "expectedRevision"
+                  ],
+                  "properties": {
+                    "namespaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    },
+                    "authorityScopeCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "runDefinitionCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "cancelId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    },
+                    "expectedRevision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "cancelRef"
+          ],
+          "properties": {
+            "kind": {
+              "const": "unknown"
+            },
+            "cancelRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "namespaceId",
+                "authorityScopeCid",
+                "runDefinitionCid",
+                "cancelId",
+                "expectedRevision"
+              ],
+              "properties": {
+                "namespaceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                },
+                "authorityScopeCid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "runDefinitionCid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "cancelId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "response_rules": {
