@@ -77,3 +77,22 @@ Fresh normal five-package Local/HTTPS execution remains to be recorded for the
 committed SHA. Selected local tests are not CI success. Full Core, Wasm/native
 runtime, full packed campaign, proof and performance suites are not required
 local diagnostics and have not been run for this change.
+
+## First packed probe and canonical object fixture correction
+
+The normal five-package set at `25302bd878b0d4fb6c930c3e0ea2b0b7879e3b46`
+passed producer generation, twelve profile checks, README Local/HTTPS and the
+expected missing-generated-asset refusal. The UNNEST corpus then passed its
+first nineteen Embedded Local cases, including the independent STRUCT JSON
+control, stars, qualified star, empty and NULL arrays. It stopped at the
+whole-value describe comparison. HTTPS corpus execution was not reached.
+Receipt: `worktrees/.codex-scratch/public-query-evidence-pEJszN`.
+
+The independently authored expected object contract omitted the required
+canonical `additional_properties:false`. Author parameter syntax omits this
+closed-object default, whereas checked contracts must contain it; see
+`value_contract/admission.mbt`, `value_contract/encode.mbt` and the independent
+object vectors in `value_contract/corpus.generated_test.mbt`. Add that field to
+whole-object and nested-object expectations from this common contract, without
+changing input values, expected rows, nullability, order or product code.
+The failed probe remains historical evidence, not completed public acceptance.

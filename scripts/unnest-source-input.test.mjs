@@ -69,6 +69,8 @@ test('STRUCT stars use declared fields and a distinct original value receiver', 
   }
   assert.deepEqual(control.columns.map(value => value.name), ['id', 'label', 'position']);
   assert.equal(byName.get('unnest-struct-whole-value').columns[0].contract.type, 'object');
+  assert.equal(byName.get('unnest-struct-whole-value').columns[0].contract.additional_properties, false);
+  assert.equal(byName.get('unnest-struct-nested-top-level').columns[1].contract.additional_properties, false);
   assert.deepEqual(byName.get('unnest-struct-immutable-range').expected[0],
     {current: 12, original: 2, position: 0});
   assert.equal(unnestRefusals.filter(value => value.name.startsWith('unnest-refusal-struct-')).length, 4);
