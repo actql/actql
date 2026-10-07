@@ -77,8 +77,23 @@ test('terminal capture retirement keeps its record until deletion succeeds',
       effectComputationRecordHoldingCid() { return recordCid; },
       effectComputationCaptureHoldingCid() { return captureCid; },
       effectfulComputationEvidenceChainValid() { return true; },
-      capturedEffectSourceRecoveryInventoryValid() { return true; },
-      admitCapturedEffectSourceArtifact() { return {}; },
+      capturedEffectSourceInventoryFromCaptureValid(preview, sources,
+        invocation, captured, storeAuthorityCid) {
+        assert.equal(captured.identity, capturedCid);
+        assert.equal(invocation.wire, 'invocation');
+        assert.equal(storeAuthorityCid, store.storeAuthorityCid);
+        assert.deepEqual(sources.map(s => s.memberIndex), [0]);
+        return true;
+      },
+      admitCapturedEffectSourceFromCapture(_preview, memberIndex,
+        invocation, artifact, captured, storeAuthorityCid) {
+        assert.equal(memberIndex, 0);
+        assert.equal(artifact.identity, sourceArtifactCid);
+        assert.equal(captured.identity, capturedCid);
+        assert.equal(invocation.wire, 'invocation');
+        assert.equal(storeAuthorityCid, store.storeAuthorityCid);
+        return {};
+      },
       capturedEffectSourceHoldingCid() { return sourceCid; },
       capturedEffectDependencyPayloadBindings(_captured, dependencies) {
         assert.deepEqual(dependencies, []);

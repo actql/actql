@@ -858,9 +858,20 @@ fn issue_captured_computation_run(
           let matches = ordered_sources.filter(source => {
             source.effect_id == identity.member_effect_ids[index]
           })
+          let locals = ordered_local_sources.filter(local_evidence => {
+            local_evidence.effect_id == identity.member_effect_ids[index]
+          })
           if matches.length() != 1 ||
-            matches[0].artifact.identity !=
-            effect_preview_member_result_artifact_cid(identity, index).unwrap() {
+            locals.length() != 1 ||
+            !captured_local_effect_source_matches_preview(
+              identity,
+              index,
+              matches[0].artifact,
+              locals[0].value,
+              max_wire_bytes,
+              max_nodes,
+              max_depth,
+            ) {
             return Err(
               CaptureIssuanceInventoryMismatch("effect_source_artifacts"),
             )

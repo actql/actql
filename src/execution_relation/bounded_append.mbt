@@ -1,5 +1,6 @@
 ///|
 priv enum BoundedAppendPhase {
+  PrepareCompletionPort
   ChargeInput
   ResolveField
   BeginRow
@@ -23,7 +24,8 @@ priv struct BoundedAppendState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut names : Array[String]
   mut left_columns : Array[Int]
   mut right_columns : Array[Int]
@@ -84,6 +86,10 @@ fn bounded_append_failure(
 
 ///|
 fn cleanup_bounded_append_state(state : BoundedAppendState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   cleanup_binary_input_scan(state.input_scan)
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
@@ -127,6 +133,39 @@ fn bounded_append_step(
       return bounded_append_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return bounded_append_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return bounded_append_failure(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return bounded_append_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
+            }
+            state.port_preparation = None
+            state.phase = ChargeInput
+          }
+        }
+        used += 1
+      }
       ChargeInput => {
         match advance_binary_input_scan(state.input_scan) {
           Ok(true) => state.phase = ResolveField
@@ -306,7 +345,10 @@ fn bounded_append_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        guard state.port is Some(port) else {
+          return bounded_append_failure(InvalidExecution, progress, used)
+        }
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) =>
             bounded_append_failure(Completion(issue), progress, used)
@@ -387,14 +429,16 @@ pub fn start_bounded_append(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[left, right],
+      Some([
+        trusted_output_relation_input(left),
+        trusted_output_relation_input(right),
+      ]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -419,11 +463,12 @@ pub fn start_bounded_append(
     rows,
     live,
     accepted,
-    port,
+    port: None,
+    port_preparation: Some(port_preparation),
     names: [],
     left_columns: [],
     right_columns: [],
-    phase: ChargeInput,
+    phase: PrepareCompletionPort,
     field: 0,
     on_left: true,
     left_row: 0,
@@ -486,7 +531,11 @@ pub fn cleanup_bounded_append(
   }
   let state = bounded_append_state(value)
   if !@bounded.cleanup_pending(value.session) &&
-    (state.input_scan.frames.length() != 0 || state.workspace.live != 0) {
+    (
+      state.input_scan.frames.length() != 0 ||
+      state.workspace.live != 0 ||
+      state.port_preparation is Some(_)
+    ) {
     return Err(InvalidExecution)
   }
   Ok(changed)

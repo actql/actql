@@ -18,6 +18,7 @@ import {
   "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
   "actql/actql/platform_native/remote_client" @client,
   "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/retained_task_file" @retained_file,
   "actql/actql/platform_native/remote_resident_host" @resident_host,
   "actql/actql/platform_native/runtime_bundle" @bundle,
   "actql/actql/platform_native/signature",

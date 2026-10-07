@@ -118,6 +118,24 @@ Preview CID, not the Table name or request CID alone. This binding is not an
 approval grant: current installed target validation, permission and approval
 decisions, source availability and durable claims remain required at apply.
 
+For process recovery, the same private capture record retains the original
+sealed storage mapping and operation for each Table member. A recovered typed
+Table view derives the operation from that member's sealed Preview, re-admits
+the exact mapping, and matches the original request scope, semantic Result
+Artifact, schema, logical Relation, policy and physical source occurrence.
+Capture validation and Table material admission have separate explicit limits;
+recovery does not widen the Table contract's limits. Missing material or a
+different operation is a refusal, not a request to regenerate Compute or schema.
+
+This view is immutable content, not live input availability or a send permit.
+Reads recheck the existing capture/Result owners after Store awaits, and use
+the same physical-holding read owner and exact bytes/logical CID checks as live
+Table inputs. Release invalidates read availability; no new capture or cleanup
+owner is created. Receipt projection can still check the original operation and
+captured row count after release, without allowing another dispatch. Approval,
+current target authority, durable claims and Catalog reconciliation remain the
+existing apply owners' separate responsibilities.
+
 Prepared request and captured input are retained by existing owners before any
 dispatch. Table staging, metadata publication and Table writes require approval
 and current write authority; pre-approval Table writes are zero. Retaining Run

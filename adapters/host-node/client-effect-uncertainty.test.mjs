@@ -24,7 +24,13 @@ const localObservation = path => new Promise((resolve, reject) => {
   execFile(process.execPath, [fileURLToPath(new URL(
     '../../scripts/fixtures/client-effect-uncertainty.child.mjs', import.meta.url)), path],
   {timeout: 30_000}, (error, stdout, stderr) => {
-    if (error) { reject(Object.assign(error, {stdout, stderr})); return; }
+    if (error) {
+      const progress = stderr.split(/\r?\n/u)
+        .filter(line => line.startsWith('ACTQL_EFFECT_OBSERVATION_PROGRESS ')).join('\n');
+      error.message += '\nChild process outcome: ' + JSON.stringify({code: error.code,
+        signal: error.signal, killed: error.killed}) + '\n' + progress;
+      reject(Object.assign(error, {stdout, stderr})); return;
+    }
     try { resolve(JSON.parse(stdout.trim().split('\n').at(-1))); }
     catch (cause) { reject(cause); }
   });
