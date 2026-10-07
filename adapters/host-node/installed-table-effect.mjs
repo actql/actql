@@ -129,7 +129,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
   const resolve = descriptor => {
     const target = installed.find(target => target.effectId === descriptor._1 && target.targetRef === descriptor._3 &&
       target.mappingRef === descriptor._4 && target.mappingCid === descriptor._5);
-    if (descriptor._2 !== 'store' || descriptor._6 === undefined || target === undefined) {
+    if (descriptor._2 !== 'store' ||
+        (descriptor._6 === undefined) === (descriptor._8 === undefined) || target === undefined) {
       fail('InstalledTableMappingNotInstalled');
     }
     return target;

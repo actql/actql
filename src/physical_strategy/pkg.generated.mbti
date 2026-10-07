@@ -194,6 +194,8 @@ pub fn captured_effect_table_input_borrow(CapturedEffectTableInput) -> CapturedT
 
 pub fn captured_effect_table_input_member(CapturedEffectTableInput) -> Int
 
+pub fn captured_effect_table_input_name(CapturedEffectTableInput) -> String
+
 pub fn captured_effect_table_input_occurrence(CapturedEffectTableInput) -> @execution_relation.ManagedTableInputOccurrence
 
 pub fn captured_effect_table_input_stage(CapturedEffectTableInput) -> Int

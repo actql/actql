@@ -262,7 +262,7 @@ pub fn client_effect_local_table_definition_json(ClientEffectLocalTableDefinitio
 
 pub fn client_effect_local_table_storage_mapping(ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@effect_application.TableStorageMapping, ClientTableInputIssue]
 
-pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String), ClientEffectMemberDescriptorIssue]
+pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), ClientEffectMemberDescriptorIssue]
 
 pub fn client_effect_result_import_observation_cid(ClientEffectResultImportObservation) -> String
 

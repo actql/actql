@@ -239,7 +239,8 @@ fn verify_captured_private_table_input(
   assert_true(
     @publication_host.issue_source_free_captured_client_effect_local_invocation(
       prepared, inputs, 3, 4096, 32, 8,
-    ) is Err(@publication_host.MissingCapturedInput),
+    )
+    is Err(@publication_host.MissingCapturedInput),
   )
   let (observation, run_invocation, retention) = private_table_artifact_context(
     template,
@@ -893,7 +894,8 @@ fn verify_captured_private_table_input(
   assert_true(
     @publication_host.issue_source_free_captured_client_effect_local_invocation(
       prepared, inputs, 0, 4096, 32, 8,
-    ) is Err(@publication_host.ForeignCapturedInput),
+    )
+    is Err(@publication_host.ForeignCapturedInput),
   )
   assert_false(
     @strategy.captured_effect_preview_inputs_available(captured_preview),
@@ -943,7 +945,7 @@ fn private_table_test_preview(
   result_identity : @publication_host.ClientEffectLocalIdentity,
   operation : @effect.TableOperation,
   scope : @request_scope.LogicalRequestScope,
-) -> (String, @publication.EffectPreviewIdentity, String) {
+) -> (String, @publication.EffectPreviewIdentity, String) raise {
   let definition = @publication_host.prepared_client_effect_computation_definition_cid(
     prepared,
   )
@@ -956,9 +958,10 @@ fn private_table_test_preview(
   let members : Array[String] = []
   for index in 0..<2 {
     let id = if index == 0 { "save" } else { "copy" }
-    let (_, _, kind, target, mapping, mapping_cid, _, failure) = @publication_host.client_effect_member_descriptor(
+    let (_, _, kind, target, mapping, mapping_cid, _, failure, private_source) = @publication_host.client_effect_member_descriptor(
       prepared, 0, id, 100,
     ).unwrap()
+    assert_eq(private_source, if index == 0 { Some("out") } else { None })
     let artifact = if index == 0 { table_artifact } else { result_artifact }
     let identity = if index == 0 { table_identity } else { result_identity }
     let row = "{\"after\":{\"state\":\"not_applicable\"},\"before\":{\"state\":\"not_applicable\"},\"intended_changes\":{\"state\":\"present\",\"value\":" +

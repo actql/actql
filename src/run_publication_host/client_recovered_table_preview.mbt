@@ -48,11 +48,20 @@ pub fn bind_recovered_client_table_preview(
     Ok(_) => ()
     Err(issue) => return Err(Preview(issue))
   }
-  let result = match
-    @publication.captured_effect_source_result_from_capture(
+  let projected = match @publication.effect_preview_member_relation_source(
+    preview, member_index,
+  ) {
+    Some(@publication.Result(_)) => @publication.captured_effect_source_result_from_capture(
       preview, member_index, invocation, source, captured, store_authority_cid, max_bytes,
       max_nodes, max_depth,
-    ) {
+    )
+    Some(@publication.TableInput(_)) => @publication.captured_effect_source_table_input_from_capture(
+      preview, member_index, invocation, source, captured, store_authority_cid, max_bytes,
+      max_nodes, max_depth,
+    )
+    None => return Err(ForeignInput)
+  }
+  let result = match projected {
     Ok(value) => value
     Err(_) => return Err(ForeignInput)
   }

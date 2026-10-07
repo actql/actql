@@ -128,8 +128,9 @@ pub fn issue_source_free_client_effect_local_identity(
     Err(WorkLimit) => return Err(WorkLimit)
     Err(_) => return Err(MissingMapping)
   }
-  let (_, _, _, _, _, resolved_contract_cid, source_result, _) = descriptor
-  if source_result != (if private_input { None } else { Some(name) }) {
+  let (_, _, _, _, _, resolved_contract_cid, source_result, _, source_table_input) = descriptor
+  if source_result != (if private_input { None } else { Some(name) }) ||
+    source_table_input != (if private_input { Some(name) } else { None }) {
     return Err(ForeignArtifact)
   }
   let invocation_cid = artifact.invocation.cid

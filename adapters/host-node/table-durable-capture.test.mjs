@@ -152,9 +152,9 @@ await store.close();
 process.stdout.write(JSON.stringify(result));
 `;
 
-for (const empty of [false, true]) {
-  test(`Table durable capture restores ${empty ? 'empty' : 'nonempty'} semantic Preview in a new process`,
-    async t => exerciseEffectSourceSet(t, {empty, onTablePreview: async f => {
+for (const [empty, privateTableInput] of [[false,false], [true,false], [false,true], [true,true]]) {
+  test(`Table durable capture restores ${empty ? 'empty' : 'nonempty'} ${privateTableInput ? 'private input' : 'Result'} semantic Preview in a new process`,
+    async t => exerciseEffectSourceSet(t, {empty, privateTableInput, onTablePreview: async f => {
       const control = f.sourceControl;
       const limits = f.options.contractLimits;
       const context = f.options.localEvidenceContext;

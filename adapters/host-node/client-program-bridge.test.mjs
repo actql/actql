@@ -5671,13 +5671,22 @@ test('Effect source set shares exact owners and retains failed cleanup',
 // owners; it does not clone the source, substitute caller rows or require
 // Python for the ordinary Host suite.
 export async function exerciseEffectSourceSet(t, {distinctResults = false,
-  writeKind = 'store', empty = false, onTablePreview, target,
+  writeKind = 'store', empty = false, privateTableInput = false, onTablePreview, target,
   mappingRef, minimumApproval} = {}) {
         const fixture = await effectFixture({writeKind, target, mappingRef,
           minimumApproval,
           memberIds: ['first', 'second']});
         const document = JSON.parse(fixture.document);
         if (empty) document.stages[0].steps[0].values.rows = [];
+        if (privateTableInput) {
+          assert.equal(writeKind, 'store');
+          assert.equal(distinctResults, false);
+          const {from, fields} = document.stages[0].results.rows;
+          document.stages[0].table_inputs = {rows: {from, fields}};
+          for (const member of Object.values(document.stages[0].effects)) {
+            member.store.from = {table_input: 'rows'};
+          }
+        }
         if (distinctResults) {
           document.stages[0].results.other = structuredClone(
             document.stages[0].results.rows);
@@ -5723,7 +5732,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           1n, 0n, 0n, 0n);
         assert.ok(owned);
         const execution = await runCapturedEffectComputation(owned);
-        const inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+        const inputs = checked(moon.clientProgramPinEffectSources(owned, privateTableInput ? 3 : 2));
         await mkdir(scratch, {recursive: true});
         const directory = await mkdtemp(join(scratch.pathname, 'source-set-'));
         t.after(() => rm(directory, {recursive: true, force: true}));
@@ -5765,8 +5774,11 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             metadata_delete_by: '2026-09-24T04:00:00.000Z',
             clock_contract_cid: cid('0')}), publicationLimits);
         const issuedArguments = [];
+        const issuerName = privateTableInput ?
+          'issueSourceFreeLocalEffectTableArtifact' :
+          'issueSourceFreeLocalEffectResultArtifact';
         const issuerControl = Object.freeze({...control,
-          issueSourceFreeLocalEffectResultArtifact(...args) {
+          [issuerName](...args) {
             if (distinctResults && issuedArguments.length === 1) {
               // Equal Result values do not let the first preparation claim
               // the second Result's live export receipt.
@@ -5776,14 +5788,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
                 .issueSourceFreeLocalEffectResultArtifact(...foreign),
               {code: 'MoonBitHostFailure'});
             }
-            const issued = control.issueSourceFreeLocalEffectResultArtifact(
-              ...args);
+            const issued = control[issuerName](...args);
             issuedArguments.push(args);
             return issued;
           },
         });
         const options = {moon, checkedOwner: prepared, execution, inputs,
-          maxMembers: 2, maxGroupingWork: 3,
+          maxMembers: 2, maxGroupingWork: privateTableInput ? 5 : 3,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: 100000, control: issuerControl,
@@ -5873,6 +5884,12 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               'store', [], [], ['first', 'second'], [cid('0'), cid('1')],
               scope, {templateOnly: true, ...(target === undefined ? {} : {target}),
                 ...(mappingRef === undefined ? {} : {mapping: mappingRef})}).wire);
+            if (privateTableInput) {
+              for (const member of template.effects) {
+                delete member.source_result;
+                member.source_table_input = 'rows';
+              }
+            }
             const operations = [];
             for (const [index, member] of template.effects.entries()) {
               const localIdentity = index === 0 ? identity : otherIdentity;
@@ -6107,20 +6124,26 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           for (const args of issuedArguments) {
             // The receipt was released by exportPinnedEffectInput before
             // returning the prepared Store owner.
-            assert.throws(() => control
-              .issueSourceFreeLocalEffectResultArtifact(...args),
+            assert.throws(() => control[issuerName](...args),
             {code: 'MoonBitHostFailure'});
           }
-          assert.equal(writers, distinctResults ? 2 : 1);
+          assert.equal(writers, privateTableInput ? 2 : distinctResults ? 2 : 1);
           assert.equal(sources.members[0].payload.summary.logicalCid,
             sources.members[1].payload.summary.logicalCid);
           assert.equal(sources.members[0].payload ===
             sources.members[1].payload, !distinctResults);
           assert.equal(sources.members[0].payload.localManifest,
             sources.members[1].payload.localManifest);
-          assert.deepEqual(Object.keys(JSON.parse(
-            sources.members[0].payload.localManifest.wire).results),
-          distinctResults ? ['other', 'rows'] : ['rows']);
+          const manifestBody = JSON.parse(
+            sources.members[0].payload.localManifest.wire);
+          assert.deepEqual(Object.keys(manifestBody.results),
+            distinctResults ? ['other', 'rows'] : ['rows']);
+          if (privateTableInput) {
+            assert.deepEqual(Object.keys(manifestBody.table_inputs), ['rows']);
+            const sourceBody = JSON.parse(sources.members[0].payload.summary.artifact.wire);
+            assert.equal(sourceBody.source_table_input, 'rows');
+            assert.equal(Object.hasOwn(sourceBody, 'source_result'), false);
+          }
           if (distinctResults) assert.notEqual(
             sources.members[0].payload.localResultDefinition.identity,
             sources.members[1].payload.localResultDefinition.identity);

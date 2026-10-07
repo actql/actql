@@ -135,3 +135,12 @@ pub fn captured_effect_table_input_member(
 ) -> Int {
   value.source.member_index
 }
+
+///|
+pub fn captured_effect_table_input_name(
+  value : CapturedEffectTableInput,
+) -> String {
+  @ports.table_input_name(
+    @execution.managed_table_input_occurrence_definition(value.source.occurrence),
+  )
+}
