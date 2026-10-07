@@ -265,6 +265,18 @@ const mutations = [
     'return Some(UnusedParameter(declaration.name, pointer))',
     'return Some(Limit("analysis_budget_exhausted"))'],
 
+  ['a bare unresolved column loses its owned explanation',
+    'findings.push(ExpressionViolation("unknown_reference", None))',
+    'findings.push(Violation("query_invalid"))'],
+  ['a bare unresolved column invents an authored position',
+    'findings.push(ExpressionViolation("unknown_reference", None))',
+    'findings.push(ExpressionViolation("unknown_reference", Some((0, 0))))'],
+  ['a bare unresolved column is inferred through protected Source resolution',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(ExpressionViolation("unknown_reference", None))'],
+
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -352,6 +364,11 @@ const targets = [
   ...Array.from({length: 4}, () =>
     ['unused Parameter explanations retain original custody without exposing values',
       [strict('unused-custody-verdict'), deep('unused-custody-reason'), strict('unused-disclosure')]]),
+
+  ...Array.from({length: 2}, () =>
+    ['bare unresolved columns retain owned explanations without invented locations', [deep('bare-name-reason')]]),
+  ['bare column explanations preserve protected Source equivalence and independent violations',
+    [deep('bare-name-protected'), deep('bare-name-disclosure'), deep('bare-name-public-violation')]],
 
 ];
 
