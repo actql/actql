@@ -1,6 +1,7 @@
 // Table-specific projections under the existing capture, Store and Effect
 // owners. This module neither recreates Compute nor grants approval/send rights.
-import {prepareCompletedEffectfulPublication, confirmCompletedEffectfulApplySources}
+import {prepareCompletedEffectfulPublication, prepareCompletedEffectSourceMembers,
+  confirmCompletedEffectfulApplySources}
   from '../host-common/completed-run-publication.mjs';
 import {readRecoveredEffectTableInput} from './effect-input-export.mjs';
 
@@ -21,10 +22,12 @@ export function capturedTableRecoveryRecord({control, tableInput, tablePreview})
 export async function prepareRecoveredTableInput({recovered, store, control,
   memberIndex, requestScope, contractLimits, tableLimits, signal}) {
   signal?.throwIfAborted();
-  const inventory = prepareCompletedEffectfulPublication({execution: null,
+  const publicationOptions = {execution: null,
     store, control, storedResults: recovered.storedResults,
-    computation: recovered.computation, preview: recovered.preview});
-  const source = inventory.effectSourceMembers.find(value => value.memberIndex === memberIndex);
+    computation: recovered.computation, preview: recovered.preview};
+  const inventory = prepareCompletedEffectfulPublication(publicationOptions);
+  const source = prepareCompletedEffectSourceMembers(publicationOptions)
+    .find(value => value.memberIndex === memberIndex);
   const records = recovered.connectorRecovery.filter(value => value.memberIndex === memberIndex);
   if (source === undefined || records.length !== 1 || records[0].kind !== 'table_commit') {
     fail('MissingTableRecoveryMaterial');
