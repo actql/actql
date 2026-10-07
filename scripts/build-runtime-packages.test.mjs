@@ -222,7 +222,8 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/client-cancel-response-loss.test.mjs ',
   'adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs ',
 );
-distribution.splice(4, 0, 'node scripts/check-read-row-mutations.mjs',
+distribution.splice(4, 0, 'node scripts/test-packed-read-opening.mjs',
+  'node scripts/check-read-row-mutations.mjs',
   'node scripts/check-submission-input-mutations.mjs',
   'node scripts/check-effect-uncertainty-mutations.mjs');
 
