@@ -21,6 +21,7 @@ struct CompletedOutputExport {
   measurement_max_depth : Int
   mut row : Int
   mut reading : Bool
+  mut pending_row : CompletedExportRowProgress?
 }
 
 ///|
@@ -408,6 +409,7 @@ fn prepare_completed_export_rows(
       measurement_max_depth: wire.max_depth,
       row: 0,
       reading: false,
+      pending_row: None,
     })
   } catch {
     issue => Err(Wire(Encoding(issue)))
@@ -479,6 +481,7 @@ pub fn replay_completed_relation_export(
       measurement_max_depth: wire.max_depth,
       row: 0,
       reading: false,
+      pending_row: None,
     })
   } catch {
     issue => Err(Wire(Encoding(issue)))
@@ -488,6 +491,18 @@ pub fn replay_completed_relation_export(
 ///|
 pub fn cancel_completed_output_export(value : CompletedOutputExport) -> Unit {
   value.source = None
+  // An active callback only revokes; the enclosing poll closes its private
+  // cursor after the current emitter transition has returned.
+  if !value.reading {
+    if value.pending_row is Some(cursor) {
+      close_completed_export_row(cursor)
+    }
+    value.pending_row = None
+    @encode.cancel_writer(value.writer)
+    if value.logical_writer is Some(writer) {
+      @encode.cancel_writer(writer)
+    }
+  }
 }
 
 ///|
@@ -497,13 +512,30 @@ pub fn cancel_completed_output_export(value : CompletedOutputExport) -> Unit {
 pub fn next_completed_output_export(
   value : CompletedOutputExport,
 ) -> Result[String?, CompletedExportIssue] {
-  if value.reading {
-    return Err(Closed)
+  guard completed_output_export_workspace_slots(value.budget.limits, {
+      max_columns: 0,
+      max_order_work: 0,
+      max_bytes: value.measurement_max_bytes,
+      max_nodes: value.measurement_max_nodes,
+      max_depth: value.measurement_max_depth,
+    })
+    is Some(slots) else {
+    return Err(Admission(InvalidCaptureLimits))
   }
-  value.reading = true
-  let result = next_completed_export_row(value)
-  value.reading = false
-  result
+  while true {
+    let result = match advance_completed_output_export(value, 64, slots) {
+      Ok(result) => result
+      Err(issue) => return Err(issue)
+    }
+    if result.batch is Some(batch) {
+      return Ok(Some(batch))
+    }
+    if result.complete {
+      return Ok(None)
+    }
+  } nobreak {
+    Err(Closed)
+  }
 }
 
 ///|
@@ -549,113 +581,6 @@ pub fn next_completed_output_export_canonical_row(
     return Err(CanonicalRow)
   }
   Ok(Some((index, batch, row)))
-}
-
-///|
-fn next_completed_export_row(
-  value : CompletedOutputExport,
-) -> Result[String?, CompletedExportIssue] {
-  guard value.source is Some(source) else { return Err(Closed) }
-  if !completed_output_available(source) {
-    value.source = None
-    return Err(Unavailable)
-  }
-  if value.source is None {
-    return Err(Closed)
-  }
-  if value.row == IndexedRows::row_count(value.rows) {
-    return Ok(None)
-  }
-  let result = export_completed_row(value, value.rows)
-  match result {
-    Ok(text) => {
-      value.row += 1
-      Ok(Some(text))
-    }
-    Err(issue) => {
-      value.source = None
-      Err(issue)
-    }
-  }
-}
-
-///|
-fn export_completed_row(
-  value : CompletedOutputExport,
-  table : CompletedExportRows,
-) -> Result[String, CompletedExportIssue] {
-  if IndexedRows::row_width(table, value.row) !=
-    IndexedRows::column_count(table) {
-    return Err(Wire(InvalidLayout))
-  }
-  if !charge_node(value.budget, 1) {
-    return Err(Admission(CaptureLimit))
-  }
-  try {
-    for index, (name, column) in value.order.columns {
-      if !charge_text(value.budget, name) {
-        return Err(Admission(CaptureLimit))
-      }
-      if !IndexedRows::cell_present(table, value.row, column) {
-        if !charge_node(value.budget, 2) {
-          return Err(Admission(CaptureLimit))
-        }
-        continue
-      }
-      let cell = IndexedRows::read_cell(table, value.row, column)
-      if !measure_result(cell, value.budget) {
-        return Err(Admission(CaptureLimit))
-      }
-      let measurement_writer = @encode.measuring_writer(
-        value.measurement_max_bytes,
-        value.measurement_max_nodes,
-        value.measurement_max_depth,
-      )
-      emit_runtime_value(cell, measurement_writer)
-      let (cell_bytes, cell_nodes, cell_depth) = @encode.finish_measurement_usage(
-        measurement_writer,
-      )
-      value.column_rows[index] += 1
-      value.column_bytes[index] += cell_bytes
-      value.column_nodes[index] += cell_nodes
-      value.column_max_value_bytes[index] = Int::max(
-        value.column_max_value_bytes[index],
-        cell_bytes,
-      )
-      value.column_admitted_depths[index] = Int::max(
-        value.column_admitted_depths[index],
-        cell_depth,
-      )
-      if cell is Null || cell is Captured(@admitted.Null) {
-        value.column_null_rows[index] += 1
-      }
-    }
-    emit_completed_export_row(value, table, value.writer)
-    if value.logical_writer is Some(writer) {
-      emit_completed_export_row(value, table, writer)
-    }
-    Ok(@encode.drain_hash_output(value.writer))
-  } catch {
-    issue => Err(Wire(Encoding(issue)))
-  }
-}
-
-///|
-fn emit_completed_export_row(
-  value : CompletedOutputExport,
-  table : CompletedExportRows,
-  writer : @encode.Writer,
-) -> Unit raise @encode.EncodeFailure {
-  @encode.begin_object(writer)
-  for (name, column) in value.order.columns {
-    if !IndexedRows::cell_present(table, value.row, column) {
-      continue
-    }
-    let cell = IndexedRows::read_cell(table, value.row, column)
-    @encode.key(writer, name)
-    emit_runtime_value(cell, writer)
-  }
-  @encode.end_object(writer)
 }
 
 ///|

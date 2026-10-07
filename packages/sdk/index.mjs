@@ -2033,6 +2033,8 @@ async function connectSelected(selected, port) {
   const retainQueryResult = (execution, result) => {
     const input = submissionInputs.get(execution);
     if (input && result !== undefined) submissionInputs.set(result, input);
+    const outcome = submissionOutcomes.get(execution);
+    if (outcome && result !== undefined) submissionOutcomes.set(result, outcome);
     return input;
   };
   const retainQueryFailure = (execution, error, cause) => {

@@ -1625,6 +1625,7 @@ fn compile_steps(
   input : Input,
   fields : Array[String],
   max_work : Int,
+  source_limits : @builder.Limits,
   max_collection_items : Int64,
   max_collection_bytes : Int64,
   start_at : Int,
@@ -1687,7 +1688,7 @@ fn compile_steps(
   // recover its ranges through the initial query resolver.
   let mut pipe_rebound = projected_input || initial_scope is Some(_)
   let mut pipe_selected = false
-  let mut value_table_receiver : (@query.NamePart, String)? = None
+  let mut value_table_receivers : Array[(@query.NamePart, String)] = []
   let mut distinct_order_scope = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
@@ -1724,7 +1725,7 @@ fn compile_steps(
       pipe_selected = false
       distinct_order_scope = false
       pipe_ranges = []
-      value_table_receiver = None
+      value_table_receivers = []
       sql_group_projection = false
     }
     let entries : Array[(String, @builder.Node)] = []
@@ -1736,23 +1737,43 @@ fn compile_steps(
     }
     match operation {
       UnnestSource(expression, element, offset) => {
-        // No original Source or private Values witness belongs to this scope.
-        if i != 0 || !@query.relation(query).is_empty() {
-          raise Abort(UnsupportedProjection)
+        let correlated = i != 0 || !@query.relation(query).is_empty()
+        if correlated && pipe_ranges.any(range => same_name(range.0, element)) {
+          raise Abort(AmbiguousColumn)
         }
         if offset is Some(name) && same_name(element, name) {
           raise Abort(DuplicateOutput)
         }
-        let element_contract = unnest_parameter_element(
-          expression, parameter_declarations,
+        let element_contract = unnest_source_element(
+          expression, parameter_declarations, source_limits, max_work,
         )
         if selected_projections(query).any(projection => {
-            projection.star is Some(_)
+            if projection.star is None {
+              false
+            } else {
+              match projection.expression {
+                None => true
+                Some(receiver) =>
+                  match
+                    @query.expression_node(
+                      receiver,
+                      @query.expression_root(receiver),
+                    ) {
+                    Some({ kind: Reference(path), .. }) =>
+                      !path.is_empty() && same_name(path[0], element)
+                    _ => false
+                  }
+              }
+            }
           }) &&
           element_contract is None {
           raise Abort(UnsupportedProjection)
         }
-        let physical = ["aql_source_free_unit", element.value]
+        let physical = if correlated {
+          active_fields.copy() + [element.value]
+        } else {
+          ["aql_source_free_unit", element.value]
+        }
         if offset is Some(name) {
           physical.push(name.value)
         }
@@ -1763,8 +1784,16 @@ fn compile_steps(
         let derived = append_pipe_expression(
           construction,
           expression,
-          [],
-          [],
+          if correlated {
+            unnest_expression_columns(pipe_visible, value_table_receivers)
+          } else {
+            []
+          },
+          if correlated {
+            pipe_ranges
+          } else {
+            []
+          },
           max_work,
         )
         entries.push(("derive", construction.object([(column, derived)])))
@@ -1783,9 +1812,13 @@ fn compile_steps(
           None
         }
         entries.push(("unnest", construction.object(arguments)))
-        pipe_visible = []
-        pipe_ranges = []
-        active_fields = [column, element_slot]
+        if !correlated {
+          // The source-free witness is private, not a parent Relation.
+          pipe_visible = []
+          pipe_ranges = []
+          active_fields = []
+        }
+        active_fields.append([column, element_slot])
         if index_slot is Some(slot) {
           active_fields.push(slot)
         }
@@ -1821,10 +1854,16 @@ fn compile_steps(
           if !properties.is_empty() {
             entries.push(("derive", construction.object(properties)))
           }
-          pipe_ranges = [(element, pipe_visible.copy())]
-          value_table_receiver = Some((element, element_slot))
+          let element_fields = properties.map(pair => pair.0)
+          pipe_ranges.push(
+            (
+              element,
+              pipe_visible.filter(pair => element_fields.contains(pair.1)),
+            ),
+          )
+          value_table_receivers.push((element, element_slot))
         } else {
-          pipe_visible = [(element.value, element_slot)]
+          pipe_visible.push((element.value, element_slot))
         }
         if offset is Some(name) && index_slot is Some(slot) {
           pipe_visible.push((name.value, slot))
@@ -1954,7 +1993,7 @@ fn compile_steps(
         entries.clear()
         active_fields = fields.copy()
         output = fields
-        value_table_receiver = None
+        value_table_receivers = []
         pipe_visible = active_fields.map(field => (field, field))
         pipe_ranges = []
         pipe_rebound = true
@@ -1981,7 +2020,7 @@ fn compile_steps(
         entries.clear()
         active_fields = fields.copy()
         output = fields
-        value_table_receiver = None
+        value_table_receivers = []
         pipe_visible = active_fields.map(field => (field, field))
         pipe_ranges = []
         pipe_rebound = true
@@ -1997,7 +2036,7 @@ fn compile_steps(
             append_pipe_expression(
               construction,
               predicate,
-              unnest_expression_columns(pipe_visible, value_table_receiver),
+              unnest_expression_columns(pipe_visible, value_table_receivers),
               pipe_ranges,
               max_work,
             ),
@@ -2029,7 +2068,7 @@ fn compile_steps(
               append_pipe_expression(
                 construction,
                 projection.expression.unwrap(),
-                unnest_expression_columns(snapshot, value_table_receiver),
+                unnest_expression_columns(snapshot, value_table_receivers),
                 pipe_ranges,
                 max_work,
               ),
@@ -2094,7 +2133,7 @@ fn compile_steps(
               append_pipe_expression(
                 construction,
                 assignment.1,
-                unnest_expression_columns(snapshot, value_table_receiver),
+                unnest_expression_columns(snapshot, value_table_receivers),
                 pipe_ranges,
                 max_work,
               ),
@@ -2174,7 +2213,7 @@ fn compile_steps(
         // Pipe AS replaces every preceding range variable with the current
         // visible row. Reusing the same name binds its current value slots.
         pipe_ranges = [(name, pipe_visible.copy())]
-        value_table_receiver = None
+        value_table_receivers = []
         pipe_rebound = true
         pipe_changed = true
         deferred = true
@@ -2312,7 +2351,7 @@ fn compile_steps(
               if scoped {
                 pipe_slot(
                   path,
-                  unnest_expression_columns(pipe_visible, value_table_receiver),
+                  unnest_expression_columns(pipe_visible, value_table_receivers),
                   pipe_ranges,
                 )
               } else {
@@ -2351,6 +2390,7 @@ fn compile_steps(
           key_display_names.push(
             match root.kind {
               Reference(path) => path.last().unwrap().value
+              Property(_, name) => name.value
               _ => name
             },
           )
@@ -2365,7 +2405,7 @@ fn compile_steps(
             if scoped {
               pipe_slot(
                 path,
-                unnest_expression_columns(input_visible, value_table_receiver),
+                unnest_expression_columns(input_visible, value_table_receivers),
                 input_ranges,
               )
             } else {
@@ -2434,7 +2474,7 @@ fn compile_steps(
           if scoped {
             pipe_slot(
               path,
-              unnest_expression_columns(input_visible, value_table_receiver),
+              unnest_expression_columns(input_visible, value_table_receivers),
               input_ranges,
             )
           } else {
@@ -2545,7 +2585,7 @@ fn compile_steps(
             if scoped {
               pipe_slot(
                 path,
-                unnest_expression_columns(input_visible, value_table_receiver),
+                unnest_expression_columns(input_visible, value_table_receivers),
                 input_ranges,
               )
             } else {
@@ -2800,7 +2840,7 @@ fn compile_steps(
         } else {
           pipe_visible = result_fields.map(name => (name, name))
         }
-        value_table_receiver = None
+        value_table_receivers = []
         grouped = true
       }
       Having(predicate, _) => {
@@ -2815,7 +2855,7 @@ fn compile_steps(
         let scope = if pipe_changed || pipe_rebound {
           Some({
             visible: unnest_expression_columns(
-              pipe_visible, value_table_receiver,
+              pipe_visible, value_table_receivers,
             ),
             ranges: pipe_ranges,
           })
@@ -3104,7 +3144,7 @@ fn compile_steps(
         let analytic_visible = pipe_visible.copy()
         analytic_input_scope = Some({
           visible: unnest_expression_columns(
-            analytic_visible, value_table_receiver,
+            analytic_visible, value_table_receivers,
           ).copy(),
           ranges: pipe_ranges.copy(),
         })
@@ -3163,7 +3203,7 @@ fn compile_steps(
           if pipe_changed || pipe_rebound {
             pipe_slot(
               path,
-              unnest_expression_columns(analytic_visible, value_table_receiver),
+              unnest_expression_columns(analytic_visible, value_table_receivers),
               pipe_ranges,
             )
           } else {
@@ -3214,7 +3254,7 @@ fn compile_steps(
         } else {
           {
             visible: unnest_expression_columns(
-              pipe_visible, value_table_receiver,
+              pipe_visible, value_table_receivers,
             ),
             ranges: pipe_ranges,
           }
@@ -3405,7 +3445,9 @@ fn compile_steps(
         // Preserve the SELECT input meaning even when projection/DISTINCT
         // materializes a public name that shadows an original input column.
         selected_input_scope = {
-          visible: unnest_expression_columns(pipe_visible, value_table_receiver).copy(),
+          visible: unnest_expression_columns(
+            pipe_visible, value_table_receivers,
+          ).copy(),
           ranges: pipe_ranges.copy(),
         }
         selected_output_slots = bindings.copy()
@@ -3449,7 +3491,9 @@ fn compile_steps(
         )
         selected_input_fields = select_fields.copy()
         let input_scope : JoinChainScope = {
-          visible: unnest_expression_columns(pipe_visible, value_table_receiver).copy(),
+          visible: unnest_expression_columns(
+            pipe_visible, value_table_receivers,
+          ).copy(),
           ranges: pipe_ranges.copy(),
         }
         let projections = if sql_group_projection {
@@ -3633,7 +3677,7 @@ fn compile_steps(
           // existing projected-scope ORDER path for expressions over those
           // evaluated aliases; removed input columns remain unavailable.
           selected_input_scope = input_scope
-          value_table_receiver = None
+          value_table_receivers = []
           pipe_selected = true
           distinct_order_scope = true
           pipe_ranges = []
@@ -3721,7 +3765,7 @@ fn compile_steps(
           // handled below using the evaluated output slot.
           let current = pipe_slot(
             path,
-            unnest_expression_columns(pipe_visible, value_table_receiver),
+            unnest_expression_columns(pipe_visible, value_table_receivers),
             pipe_ranges,
           ).filter(slot => active_fields.contains(slot))
           if current is Some(_) {
@@ -4004,7 +4048,7 @@ fn compile_steps(
       qualify_values.clear()
       analytic_outputs.clear()
       if pending_select is None {
-        value_table_receiver = None
+        value_table_receivers = []
         // A projected table has its own columns. Input ranges are needed only
         // while the query's deferred ORDER still consumes the input snapshot.
         pipe_ranges = []
@@ -4038,7 +4082,7 @@ fn compile_steps(
         Some(selection) => {
           step_entries.push(selection)
           pending_select = None
-          value_table_receiver = None
+          value_table_receivers = []
           pending_bindings = []
           pipe_ranges = []
           active_fields = output.copy()
@@ -4333,6 +4377,7 @@ pub fn compile(
       input,
       fields,
       limits.max_expression_work,
+      limits.source,
       limits.max_collection_items,
       limits.max_collection_bytes,
       start_at,
@@ -4706,6 +4751,7 @@ fn compile_cte_query(
           cte_input,
           body_output,
           limits.max_expression_work,
+          limits.source,
           limits.max_collection_items,
           limits.max_collection_bytes,
           0,
@@ -4944,6 +4990,7 @@ fn compile_cte_stage(
     input,
     fields,
     limits.max_expression_work,
+    limits.source,
     limits.max_collection_items,
     limits.max_collection_bytes,
     body_start,
@@ -5651,6 +5698,7 @@ fn compile_set_stages(
       input,
       fields,
       limits.max_expression_work,
+      limits.source,
       limits.max_collection_items,
       limits.max_collection_bytes,
       if common_capture_filter {
@@ -6624,6 +6672,7 @@ fn join_order_projection(
                 @query.expression_root(expression),
               ).unwrap().kind {
               Reference(path) => path.last().unwrap().value
+              Property(_, name) => name.value
               _ => raise Abort(UnsupportedJoin)
             }
           None => raise Abort(UnsupportedJoin)
@@ -6807,6 +6856,7 @@ fn append_join_order_steps(
       input,
       visible_names,
       limits.max_expression_work,
+      limits.source,
       limits.max_collection_items,
       limits.max_collection_bytes,
       next,

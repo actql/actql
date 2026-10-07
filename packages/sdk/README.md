@@ -807,7 +807,9 @@ reason's numeric spelling failure. `explainCheckReason` supplies safe summaries
 and advisory correction hints; messages do not determine verdicts. Only existing
 authored origins supply reference, call or numeric ranges. Missing/generated
 origins and protected Source resolution acquire no fabricated span or name.
-Unaliased-column failures lacking a typed expression diagnostic remain generic.
+The existing lowerer's `UnknownColumn` also supplies `unknown_reference` facts,
+including bare column selections. It currently has no retained authored origin,
+so its location is omitted; adding an alias may expose an existing exact origin.
 The SDK uses the same submitted snapshot for syntax and expression ranges.
 `resolveCheckTextRange(outcome, location, currentInput?)` additionally returns
 zero-based `range.start`/`range.end` line and character coordinates with

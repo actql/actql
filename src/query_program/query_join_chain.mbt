@@ -27,7 +27,8 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
     }
   }
   for index in 0..<@query.operation_count(query) {
-    if @query.operation_at(query, index) is Some(Group(_, _, _) | Qualify(_, _)) {
+    if @query.operation_at(query, index)
+      is Some(Group(_, _, _) | Qualify(_, _) | UnnestSource(_, _, _)) {
       return true
     }
     if @query.operation_at(query, index) is Some(Select(projections, distinct)) &&
@@ -377,6 +378,7 @@ fn compile_join_chain_steps(
     { ..left.0, name: from, source: StepReference, },
     physical.filter(field => !fields.contains(field)),
     limits.max_expression_work,
+    limits.source,
     limits.max_collection_items,
     limits.max_collection_bytes,
     0,

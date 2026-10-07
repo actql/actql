@@ -37,7 +37,8 @@ const fieldsFrame = fields => JSON.stringify(fields.map(({name, type}) =>
 
 test('installed DuckDB cleanup retires large admission without another native attempt', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-managed-reclamation-'));
-  let capture, run, output, body, store, result, downstream, cleanupFailure;
+  let capture, run, output, body, store, result, downstream, consumer, cleanupFailure;
+  let selectionCleanupFailure;
   let configured, attempt, port, consume;
   const expectedIds = Array.from({length: 50}, (_, index) => index + 3);
   const outputNames = ['id', 'n', 'n2', 'n3', 'n4'];
@@ -64,9 +65,12 @@ test('installed DuckDB cleanup retires large admission without another native at
             outputNames.slice(1).map(name => [name, {fn: 'count'}]))}, as: 'out'}],
           results: {r: {from: 'out', fields: outputNames}}},
         {id: 'consumer', inputs: {x: {result: {stage: 'grouped', result: 'r'}}},
+          steps: [{filter: 'id > 0'}, {select: outputNames, as: 'out'}],
+          results: {r: {from: 'out', fields: outputNames}}},
+        {id: 'result', inputs: {x: {result: {stage: 'consumer', result: 'r'}}},
           steps: [{select: outputNames, as: 'out'}],
           results: {r: {from: 'out', fields: outputNames}}},
-      ], results: {result: {from: {stage: 'consumer', result: 'r'}}}};
+      ], results: {result: {from: {stage: 'result', result: 'r'}}}};
     const checkEnvironment = hostRuntime.clientProgramCheckEnvironment(
       environment, JSON.parse(environment).evidence_bundle_cid,
       false, false, true, false, false, false, false);
@@ -175,6 +179,48 @@ test('installed DuckDB cleanup retires large admission without another native at
         }
       });
     assert.deepEqual(actual, expectedIds.map(id => ({id, n: 1, n2: 1, n3: 1, n4: 1})));
+    // Execute the registered selection strategy as well as the computed group.
+    // Its 50x5 occurrence metadata requires multiple 64-step Host polls.
+    const selectedRequest = fixture.strategyFixtureManagedRequest(configured, 3, downstream.completed);
+    const selectedConfiguration = fixture.strategyFixtureManagedConfiguration(
+      configured, 3, selectedRequest, profile, 100000n);
+    consumer = await runManagedColumnStrategyHostCompute(selectedConfiguration,
+      downstream.material, managedColumnCodecContractCid, limits,
+      {parentDirectory: directory, maxFrameBytes: 4096});
+    assert.equal(consumer.diagnostics.outputValueAdmissionCells, 0);
+    assert.equal(consumer.diagnostics.reusedMeasurementCells, 250);
+    assert.equal(fixture.strategyFixtureNext(configured), 4);
+    const finalReader = fixture.strategyFixtureManagedInput(configured, 4, consumer.completed);
+    const selectedRows = [];
+    await withManagedInputFile(consumer.material, finalReader, managedColumnCodecContractCid,
+      () => true, async file => {
+        const frames = (await readFile(file.path, 'utf8')).trim().split('\n').map(JSON.parse);
+        for (const frame of frames) for (let row = 0; row < frame.o.length; row++) {
+          selectedRows.push(Object.fromEntries(outputNames.map((name, column) =>
+            [name, Number(frame[`c${column}`][row])])));
+        }
+      });
+    assert.deepEqual(selectedRows, expectedIds.map(id => ({id, n: 1, n2: 1, n3: 1, n4: 1})));
+    const selectedAttempts = fixture.strategyFixtureUsage(configured, 3);
+    try { await consumer.close(); } catch (error) {
+      selectionCleanupFailure = error;
+      assert.equal(error.code, 'ManagedOutputCleanupPending');
+      assert.equal(error.cleanupPending, true);
+    }
+    // Reused metadata can retire within close's initial slices. If private
+    // guards remain, retain the existing handle and bounded retry contract.
+    if (selectionCleanupFailure) {
+      for (let poll = 0; poll < 7 && selectionCleanupFailure.cleanupHandle.status().pending; poll++) {
+        await selectionCleanupFailure.cleanupHandle.retry();
+        assert.equal(fixture.strategyFixtureUsage(configured, 3), selectedAttempts);
+      }
+      assert.equal(selectionCleanupFailure.cleanupHandle.status().pending, false);
+    }
+    assert.equal(fixture.strategyFixtureUsage(configured, 3), selectedAttempts);
+    assert.equal(consumer.storageUsage().reservedBytes, 0);
+    assert.equal(moon.managedCompletedAvailable(downstream.completed), true,
+      'selected consumer cleanup must not retire its source');
+    consumer = undefined;
     const attempts = fixture.strategyFixtureUsage(configured, 3);
     await assert.rejects(downstream.close(), error => {
       cleanupFailure = error;
@@ -201,6 +247,13 @@ test('installed DuckDB cleanup retires large admission without another native at
     assert.equal((await cleanupFailure.cleanupHandle.retry()).pending, false);
     assert.equal(fixture.strategyFixtureUsage(configured, 3), attempts);
   } finally {
+    if (selectionCleanupFailure?.cleanupHandle) {
+      for (let poll = 0; poll < 7 && selectionCleanupFailure.cleanupHandle.status().pending; poll++) {
+        await selectionCleanupFailure.cleanupHandle.retry();
+      }
+      assert.equal(selectionCleanupFailure.cleanupHandle.status().pending, false,
+        `preserve selected cleanup custody in ${directory}`);
+    }
     if (cleanupFailure?.cleanupHandle) {
       for (let poll = 0; poll < 7 && cleanupFailure.cleanupHandle.status().pending; poll++) {
         await cleanupFailure.cleanupHandle.retry();
@@ -208,7 +261,18 @@ test('installed DuckDB cleanup retires large admission without another native at
       assert.equal(cleanupFailure.cleanupHandle.status().pending, false,
         `preserve pending cleanup custody in ${directory}`);
     }
-    if (downstream && !cleanupFailure) await downstream.close();
+    if (consumer && !selectionCleanupFailure) await consumer.close();
+    if (downstream && !cleanupFailure) {
+      try { await downstream.close(); } catch (error) {
+        cleanupFailure = error;
+        assert.equal(error.cleanupPending, true);
+        for (let poll = 0; poll < 7 && error.cleanupHandle.status().pending; poll++) {
+          await error.cleanupHandle.retry();
+        }
+        assert.equal(error.cleanupHandle.status().pending, false,
+          `preserve source cleanup custody in ${directory}`);
+      }
+    }
     if (output) moon.managedOutputCancel(output);
     body?.close(); store?.close(); await store?.cleanup();
     if (run) {

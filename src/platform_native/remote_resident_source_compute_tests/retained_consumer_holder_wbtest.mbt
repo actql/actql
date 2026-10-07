@@ -19,6 +19,7 @@ fn retained_consumer_holder_case(
   destination_bytes : Int64,
   current_query : @remote.RemotePollRetainedCurrent,
   cancel_before_start? : Bool = false,
+  cancel_after_borrow? : Bool = false,
   chain_task? : Int? = None,
   chain_context? : RetainedNativeChainContext? = None,
   output_unavailable? : Bool = false,
@@ -208,6 +209,7 @@ fn retained_consumer_holder_case(
     },
   }
   let entries = Ref(0)
+  let borrows = Ref(0)
   let run = () => {
     owner.execute(
       journal,
@@ -224,7 +226,81 @@ fn retained_consumer_holder_case(
         entries.val += 1
         true
       }),
+      borrow_observe=() => {
+        borrows.val += 1
+        if cancel_after_borrow {
+          // The real destination borrow has been acquired. Persist cancellation
+          // in the original Site journal before Runtime can claim this task.
+          journal.request_cancellation(dispatch).unwrap() |> ignore
+        }
+      },
     )
+  }
+  if cancel_after_borrow {
+    assert_true(run() is Err(_))
+    assert_eq(borrows.val, 1)
+    assert_eq(entries.val, 0)
+    assert_eq(journal.start_claimant(dispatch).unwrap(), None)
+    assert_false(
+      @remote.remote_runtime_record_startable(
+        journal.require(dispatch).unwrap(),
+      ),
+    )
+    // Borrow return and receiver holding reclamation are separate duties.
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      destination_bytes,
+    )
+    assert_true(owner.close())
+    assert_true(owner.close())
+    assert_true(handoff.reclaim().unwrap())
+    assert_false(handoff.reclaim().unwrap())
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    // Replaying this owner cannot pin another borrow or enter Compute.
+    assert_true(run() is Err(_))
+    assert_eq(borrows.val, 1)
+    assert_eq(entries.val, 0)
+    bundles
+    .release(@bundle.native_active_runtime_process_hold_id(active))
+    .unwrap()
+    |> ignore
+    // Exact no-start proof and completed physical cleanup permit the common
+    // release transitions. Neither is inferred from cancellation alone.
+    journal
+    .commit_transition(
+      @remote.prepare_begin_remote_release(journal.require(dispatch).unwrap()).unwrap(),
+    )
+    .unwrap()
+    |> ignore
+    journal
+    .commit_transition(
+      @remote.prepare_confirm_remote_release(journal.require(dispatch).unwrap()).unwrap(),
+    )
+    .unwrap()
+    |> ignore
+    let revision = @remote.dispatch_record_revision(
+      journal.require(dispatch).unwrap(),
+    )
+    assert_eq(
+      @remote.dispatch_record_state_codes(journal.require(dispatch).unwrap())[2],
+      2,
+    )
+    assert_true(owner.close())
+    assert_false(handoff.reclaim().unwrap())
+    assert_eq(
+      @remote.dispatch_record_revision(journal.require(dispatch).unwrap()),
+      revision,
+    )
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_true(journal.close())
+    assert_true(bundles.close().unwrap())
+    return
   }
   if cancel_before_start {
     let cancelled = journal.request_cancellation(dispatch).unwrap()

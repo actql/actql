@@ -1484,6 +1484,25 @@ fn QueryParser::unnest_source(
 }
 
 ///|
+// Correlation expands the current row; it is not an independent JOIN input.
+// Fixed lookahead keeps quoted names out of the operator dispatch.
+fn QueryParser::starts_correlated_unnest(self : QueryParser) -> Bool {
+  self.index + 2 < self.source.tokens.length() &&
+  self.has("CROSS") &&
+  keyword(self.source.tokens[self.index + 1], "JOIN") &&
+  keyword(self.source.tokens[self.index + 2], "UNNEST")
+}
+
+///|
+fn QueryParser::correlated_unnest(
+  self : QueryParser,
+) -> QueryOperation raise QueryAbort {
+  self.keyword("CROSS")
+  self.keyword("JOIN")
+  self.unnest_source()
+}
+
+///|
 fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   self.keyword("SELECT")
   let distinct = self.has("DISTINCT")
@@ -1516,7 +1535,17 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     ([], None, [])
   }
   let joins : Array[JoinPart] = []
-  while !relation.is_empty() && self.starts_join() {
+  while (!relation.is_empty() || !operations.is_empty()) && self.starts_join() {
+    if self.starts_correlated_unnest() {
+      operations.push(self.correlated_unnest())
+      continue
+    }
+    if operations.any(operation => operation is UnnestSource(_, _, _)) {
+      raise QueryAbort(
+        "Relation JOIN after correlated UNNEST is not supported in this profile",
+        self.peek().start,
+      )
+    }
     let (part, join_ctes) = self.join_part()
     joins.push(part)
     for cte in join_ctes {
@@ -2006,6 +2035,14 @@ fn QueryParser::pipe_tail(
         )
       }
       sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
+    } else if self.starts_correlated_unnest() {
+      if !sets.is_empty() {
+        raise QueryAbort(
+          "Correlated UNNEST after Pipe set is not supported",
+          self.peek().start,
+        )
+      }
+      operations.push(self.correlated_unnest())
     } else if self.starts_join() {
       if !sets.is_empty() || operations.length() > 1 {
         raise QueryAbort(

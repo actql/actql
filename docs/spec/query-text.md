@@ -463,6 +463,22 @@ The range `element` also denotes the original object value without adding a
 public column to star. Field access uses ordinary common `property` expressions;
 the common checker determines nullable receivers and field contracts.
 
+The same expansion accepts declared parameter property paths, for example
+`FROM UNNEST(@payload.nested.items) element`. Parentheses and backtick property
+names retain their ordinary expression meaning. The Frontend follows the
+ordinary common expression checker to the ARRAY element contract; it
+does not sample parameter values or fold a nullable receiver to a different type.
+The same lookup admits finite ARRAY constructors, typed empty ARRAYs and
+computed ARRAY expressions such as `IF(TRUE, [], ['x'])` or
+`IF(TRUE, @items, @items)`. It does not invent Frontend-specific types or
+discharge the expression's runtime obligations and required profiles. Ordinary common property and
+UNNEST checking still validates the path, values and declared bounds. A NULL
+object anywhere on this path produces a NULL ARRAY and therefore zero rows,
+with the same element-field contracts and column order as nonempty input.
+Expression lowering and common type inspection use the existing bounded
+construction and expression work limits. Exhaustion remains a work-limit
+error, rather than a guessed or truncated output schema.
+
 NULL or empty arrays produce zero rows with the same declared schema. NULL
 elements produce rows whose projected properties are NULL. Duplicates remain
 rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change
@@ -475,8 +491,37 @@ GoogleSQL's ordered STRUCT type. Reordering that contract's authored JSON keys
 does not change its field order. Anonymous/duplicate STRUCT fields, positional
 STRUCT equality and author-selected STRUCT order remain a common-contract gap,
 not a guarantee supplied by this expansion.
-Unknown array-expression contracts remain explicitly unsupported for star;
-this is not general ARRAY expression or correlated UNNEST support.
+Unresolved, non-ARRAY and inadmissible element contracts remain explicitly
+unsupported for star. ARRAY typing comes from the common expression checker;
+this connection does not extend the common ARRAY constructor capability profile.
+
+`CROSS JOIN UNNEST(array_expression) AS element [WITH OFFSET AS position]`
+expands each current row through the existing common `unnest` operation. SQL
+FROM clauses and Pipe JOIN operators use the same sequential expansion. The
+array expression resolves against preceding input columns and range snapshots,
+not subsequent SELECT aliases. Parent columns and their evaluated slots remain
+available, including the original ARRAY column. NULL and empty arrays produce
+no child rows; NULL elements and duplicates remain child rows. OFFSET is zero
+based and does not by itself promise output order. Use an explicit ORDER BY
+when ordering matters. Type, key transfer and expansion bounds remain the
+common checker's responsibility; a parent key alone is not a unique child key.
+
+The original parent range survives Pipe SET/DROP/RENAME and correlation. A
+SELECT or AS replaces that scope using the existing rules above. Successive
+closed object value-table ranges retain their own receivers; adding another
+expansion does not rebind an earlier object's fields or value. Qualified parent
+stars remain supported independently of an unknown child contract. An unknown
+ARRAY expression's element/whole-result star still requires a common schema
+connection and is explicitly unsupported, rather than inferred from rows.
+
+The first correlated profile supports explicit CROSS JOIN UNNEST after any
+preceding ordinary JOINs and successive CROSS expansions. Ordinary Relation
+JOINs after expansion, INNER/LEFT correlation, implicit comma expansion and
+correlated expansion following a Pipe set expression remain unsupported. These
+are coverage gaps, not GoogleSQL language restrictions. The Frontend rejects
+them rather than moving operations or changing multiplicity. CROSS expansion
+does not accept MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common
+Host capacity policy without raising either limit.
 
 ## Named intermediate Results
 
