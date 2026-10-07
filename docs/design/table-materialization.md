@@ -100,6 +100,24 @@ operation, not zero or one dispatch per row.
 
 ## Durable commit and file custody
 
+The catalog-backed profile binds the complete Table operation to one existing
+Effect Preview item slot, including for typed empty input. Its correlation is
+the request CID string and its intended value is the complete sealed operation.
+It requires `approval: "required"` and `count: 1, max_items: 1`. Replace carries
+the expected generation as the existing version guard; create has no version
+guard and still requires atomic name absence at commit. The existing Preview
+semantic CID and item dispatch-key owner bind that content without introducing
+a Table approval or Ledger owner. Before/after row states are not applicable:
+the item describes a whole-Relation operation, not a fabricated data row.
+
+The Table input binding is paired with the existing checked captured Preview,
+including its exact live source occurrence. A different member, substituted
+operation, row-oriented inventory, missing approval requirement or different
+generation guard is refused. The retained subject is the complete Effect Set
+Preview CID, not the Table name or request CID alone. This binding is not an
+approval grant: current installed target validation, permission and approval
+decisions, source availability and durable claims remain required at apply.
+
 Prepared request and captured input are retained by existing owners before any
 dispatch. Table staging, metadata publication and Table writes require approval
 and current write authority; pre-approval Table writes are zero. Retaining Run

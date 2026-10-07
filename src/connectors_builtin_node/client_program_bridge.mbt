@@ -3211,6 +3211,45 @@ pub fn client_program_table_input_matches_source(
 }
 
 ///|
+#export_name("clientProgramBindTablePreview")
+pub fn client_program_bind_table_preview(
+  input : @publication_host.ClientTableInput,
+  preview : @strategy.CapturedEffectPreviewInputs,
+  member_index : Int,
+) -> Result[
+  @publication_host.ClientTablePreview,
+  @publication_host.ClientTableInputIssue,
+] {
+  @publication_host.bind_client_table_preview(input, preview, member_index)
+}
+
+///|
+#export_name("clientProgramTablePreviewSubjectCid")
+pub fn client_program_table_preview_subject_cid(
+  value : @publication_host.ClientTablePreview,
+) -> String {
+  @publication_host.client_table_preview_subject_cid(value)
+}
+
+///|
+#export_name("clientProgramTablePreviewOperationJson")
+pub fn client_program_table_preview_operation_json(
+  value : @publication_host.ClientTablePreview,
+) -> String {
+  @effect.table_operation_json(
+    @publication_host.client_table_preview_operation(value),
+  )
+}
+
+///|
+#export_name("clientProgramTablePreviewInputAvailable")
+pub fn client_program_table_preview_input_available(
+  value : @publication_host.ClientTablePreview,
+) -> Bool {
+  @publication_host.client_table_preview_input_available(value)
+}
+
+///|
 #export_name("clientProgramLocalEffectResultArtifactCid")
 pub fn client_program_local_effect_result_artifact_cid(
   value : @publication_host.ClientEffectLocalResultArtifact,

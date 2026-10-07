@@ -6,6 +6,8 @@ pub(all) enum ClientTableInputIssue {
   Mapping(@effect.TableStorageMappingIssue)
   Operation(@effect.TableContractIssue)
   ForeignInput
+  Preview(@effect.TablePreviewIssue)
+  Unavailable
   Encoding
 } derive(Eq, Debug)
 
@@ -17,6 +19,15 @@ struct ClientTableInput {
   identity : ClientEffectLocalIdentity
   mapping : @effect.TableStorageMapping
   operation : @effect.TableOperation
+}
+
+///|
+/// Retains the same checked captured Preview and exact Table input owners.
+/// Approval/current authorization and send-once dispatch are not issued here.
+struct ClientTablePreview {
+  input : ClientTableInput
+  preview : @strategy.CapturedEffectPreviewInputs
+  member_index : Int
 }
 
 ///|
@@ -133,4 +144,59 @@ pub fn client_table_input_matches_source(
 ) -> Bool {
   physical_equal(value.artifact, artifact) &&
   physical_equal(value.identity, identity)
+}
+
+///|
+/// Connect a whole-Relation intent to the already checked Run/Preview owner.
+/// Equal Artifact or Preview CIDs cannot replace the live captured occurrence.
+pub fn bind_client_table_preview(
+  input : ClientTableInput,
+  preview : @strategy.CapturedEffectPreviewInputs,
+  member_index : Int,
+) -> Result[ClientTablePreview, ClientTableInputIssue] {
+  guard @strategy.captured_effect_preview_input_at(preview, member_index)
+    is Some(source) else {
+    return Err(Unavailable)
+  }
+  let authored_index = @strategy.captured_effect_input_member_index(source)
+  guard @strategy.captured_effect_input_at(
+      input.artifact.inputs,
+      authored_index,
+    )
+    is Some(expected) &&
+    physical_equal(source, expected) &&
+    authored_index == input.identity.member_index else {
+    return Err(ForeignOwner)
+  }
+  let identity = @strategy.captured_effect_preview_ledger_identity(preview)
+  match
+    @effect.check_table_operation_preview(
+      input.operation,
+      identity,
+      member_index,
+    ) {
+    Ok(_) => Ok({ input, preview, member_index, })
+    Err(issue) => Err(Preview(issue))
+  }
+}
+
+///|
+pub fn client_table_preview_subject_cid(value : ClientTablePreview) -> String {
+  @publication.effect_preview_semantic_identity(
+    @strategy.captured_effect_preview_ledger_identity(value.preview),
+  )
+}
+
+///|
+pub fn client_table_preview_operation(
+  value : ClientTablePreview,
+) -> @effect.TableOperation {
+  value.input.operation
+}
+
+///|
+/// Availability is a live fact and must be checked again at apply admission.
+pub fn client_table_preview_input_available(value : ClientTablePreview) -> Bool {
+  @strategy.captured_effect_preview_input_at(value.preview, value.member_index)
+  is Some(_)
 }
