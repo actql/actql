@@ -27,7 +27,10 @@ assert(part === '' || ['L-C0', 'L-C1', 'L-M0', 'L-M1'].includes(part), 'Unknown 
 const invocation = invocationIdentity(part);
 export const executions = [];
 // All contexts share only receipt storage and serial IDs, never source/build trees.
-export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
+export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {targets = ['js', 'wasm', 'native']} = {}) {
+  assert(Array.isArray(targets) && targets.length > 0 && new Set(targets).size === targets.length &&
+    targets.every(target => ['js', 'wasm', 'native'].includes(target)), 'Invalid execution target scope');
+  const allowedTargets = new Set(targets);
   const workspaceRoot = workspace.root;
   const built = new Map();
   let ownedFixture = null;
@@ -44,7 +47,8 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
   };
   const toolIdentity = () => {
     const inputs = [...['moon', 'moonc', 'moonrun'].map(name => join(home, 'bin', name)),
-      ...[...new Set(['node', 'cc', 'c++', 'ar', environment.CC ?? 'cc', environment.CXX ?? 'c++', environment.AR ?? 'ar'])].map(resolveTool)];
+      ...[...new Set(['node', ...(allowedTargets.has('native')
+        ? ['cc', 'c++', 'ar', environment.CC ?? 'cc', environment.CXX ?? 'c++', environment.AR ?? 'ar'] : [])])].map(resolveTool)];
     const files = directory => readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))
       .flatMap(entry => { const path = join(directory, entry.name);
         if (entry.isSymbolicLink()) {
@@ -81,7 +85,7 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
   process.once('exit', close);
   function execute(cases, registry, target, correspondence = false, label = 'probe') {
     assert(!closed, 'Execution workspace is closed');
-    if (!['js', 'wasm', 'native'].includes(target) || !cases.length) throw new Error('Bad execution request');
+    if (!allowedTargets.has(target) || !cases.length) throw new Error('Bad execution request or target outside owner scope');
     const prefix = receiptBasename(invocation, serial, label, target);
     const source = workspace.check();
     assert.equal(toolIdentity(), expectedTools, 'Execution toolchain changed');
@@ -175,6 +179,11 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
 
   return Object.freeze({ execute, close });
 }
-const normal = createExecutor();
-export const execute = normal.execute;
-export const closeExecutor = normal.close;
+// The default owner retains all targets, but an unused default export must not
+// discover Native tools before an explicitly scoped owner can be constructed.
+let normal, normalClosed = false;
+export const execute = (...arguments_) => {
+  assert(!normalClosed, 'Execution workspace is closed');
+  return (normal ??= createExecutor()).execute(...arguments_);
+};
+export const closeExecutor = () => { normalClosed = true; normal?.close(); };

@@ -11,6 +11,45 @@ is now a semantic verification input and is no longer maintenance-only.
 
 ## Published interface and workflow
 
+### Reusing the execution boundary in another evidence family
+
+The pipeline's local `pipeline-pristine` profile is the first separate family
+using the shared immutable-image owner and original consumer. It is exactly
+L-M0 / fixed / JS / pristine, with four independent existing minima; it grants
+no Actions admission or reuse authority. See the
+[implementation and physical originals](../../docs/reviews/2026-10-07-pipeline-pristine-isolation.md).
+Default Session execution and every full pipeline obligation remain unchanged.
+
+Run it from a clean committed checkout using the repository's checked-in
+toolchain pin, a Linux x64 Moon distribution matching that pin, and an immutable
+Linux x64 Node builder image. The existing entry point checks their actual bytes,
+platform, startup, source membership, and owner custody, and acquires the shared
+heavy lock. Replace the two explicit local paths/identities below with your own
+verified inputs; a mutable image tag or a host Moon binary is not a substitute.
+
+```sh
+node proofs/ci-evidence/local-isolated-acceptance.mjs run \
+  --engine /absolute/path/to/docker \
+  --builder-image sha256:VERIFIED_LINUX_X64_BUILDER_DIGEST \
+  --moon-home /absolute/path/to/pinned-linux-moon-distribution \
+  --profile pipeline-pristine
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  proofs/ci-evidence/pipeline-pristine-replay.test.mjs \
+  proofs/ci-evidence/local-isolated-acceptance.test.mjs
+```
+
+To connect another family, bind its finite action/target/phase, source bytes and
+directory membership, independent oracle and requested Program in the existing
+staging/consumer boundary. Keep that family's original executor and resource
+owner. The pipeline example retains original compiled fixtures, inputs, logs and
+receipts, validates them against its oracle, and uses a separate authority domain.
+Do not copy Session's narrowed closure, issue reuse permission from local success,
+or treat one accepted phase as the complete family's obligations. Preserve each
+full campaign's mutation, restoration, target and final-audit requirements.
+Expanding registration or admission requires a reviewed implementation and actual
+acceptance; callers need no per-run G approval for this already registered local
+profile. It is not yet connected to hosted pipeline action acquisition.
+
 The [contract](CONTRACT.md) describes the eventual closed reuse boundary.
 `cli.mjs catalog`, `plan`, `seal`, and `check` are the public data interface.
 The initial plan returns `execute` for every registered action and explicitly

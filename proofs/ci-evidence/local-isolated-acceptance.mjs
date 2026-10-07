@@ -9,8 +9,12 @@ import {join, resolve, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {gitTree, hash} from './inputs.mjs';
 import {checkIsolatedInputs} from './isolated-runtime.mjs';
-import {prepareLocalIsolatedMutation, executeLocalIsolatedMutation} from './isolated-execution.mjs';
+import {prepareLocalIsolatedMutation, executeLocalIsolatedMutation, validatePipelinePristineOriginal} from './isolated-execution.mjs';
+import {stagePipelinePristineSource, pipelinePristineSourcePaths} from './isolation.mjs';
+import {snapshot} from '../relation-pipeline/inventory.mjs';
+import {validatePristineReport, readPristineFiles, pristineScientificObservation} from '../relation-pipeline/pristine-replay.mjs';
 import {runLocalCheck} from '../../scripts/local-checks-guard.mjs';
+import {setTimeout as delay} from 'node:timers/promises';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const json = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, {flag: 'wx'});
@@ -18,9 +22,18 @@ const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).tri
 const call = (engine, args, timeout = 120000) => {
   const result = spawnSync(engine, args, {encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024});
   if (result.error || result.status !== 0) process.stderr.write((result.stderr ?? '').slice(-4000));
-  assert(!result.error && result.status === 0, 'Local preparation command failed');
+  assert(!result.error && result.status === 0, result.error?.code === 'ETIMEDOUT' ? 'Local preparation command timed out' : 'Local preparation command failed');
   return result.stdout;
 };
+
+// The pipeline preparer also runs the separate normal phase. Its budget must
+// cover preparation plus the bounded replay, rather than only image staging.
+export function localAcceptanceLimits(profile = 'session') {
+  assert(['session', 'pipeline-pristine'].includes(profile), 'Unregistered local profile');
+  return Object.freeze(profile === 'session'
+    ? {preparationMilliseconds: 180000, timeoutSeconds: 1200}
+    : {preparationMilliseconds: 900000, normalReplayMilliseconds: 480000, timeoutSeconds: 1800});
+}
 
 // The Linux preparer receives Git object identities, not an unverified working
 // copy. Only declared regular blobs can be read, with their exact tracked mode.
@@ -59,14 +72,41 @@ export function checkBuilder(image, imageId) {
 function prepareLinux(descriptorFile) {
   const descriptor = JSON.parse(readFileSync(descriptorFile));
   const tree = checkoutTree('/candidate', descriptor);
+  const profile = descriptor.profile ?? 'session';
+  assert(['session', 'pipeline-pristine'].includes(profile));
   const pin = JSON.parse(tree.read('toolchain.json'));
   const versions = [...new Set([...tree.read('.github/workflows/ci.yml').toString().matchAll(/node-version:\s*(\d+\.\d+\.\d+)/gu)].map(match => match[1]))];
   assert.equal(versions.length, 1, 'Ambiguous pinned Node version');
   assert.equal(process.version, `v${versions[0]}`, 'Builder Node differs from the candidate workflow pin');
   assert.equal(call('/toolchain/bin/moonc', ['-v']).trim(), pin.moonc);
   assert.equal(call('/toolchain/bin/moon', ['version']).trim().split(/\r?\n/u)[0], `moon ${pin.moon}`);
-  const prepared = prepareLocalIsolatedMutation({root: '/candidate', tree, owner: descriptor.owner, directory: '/out'});
+  const prepared = prepareLocalIsolatedMutation({root: '/candidate', tree, owner: descriptor.owner, directory: '/out', profile});
   json('/out/prepared.json', prepared);
+  if (profile === 'pipeline-pristine') {
+    // Both phases build in private Linux tmpfs. The preparation output mount
+    // receives only evidence, not the normal source/build tree.
+    const normalPreparationStart = performance.now();
+    mkdirSync('/tmp/pipeline-normal');
+    stagePipelinePristineSource({tree, destination: '/tmp/pipeline-normal'});
+    const directory = '/tmp/pipeline-normal/source', start = performance.now();
+    const sourcePreparationMilliseconds = Math.round(start - normalPreparationStart);
+    json('/out/preparation-phases.json', {imagePreparationMilliseconds: prepared.preparationMilliseconds,
+      normalSourcePreparationMilliseconds: sourcePreparationMilliseconds,
+      normalStartedAt: new Date().toISOString(), normalCompleted: false});
+    const result = spawnSync(process.execPath, ['proofs/relation-pipeline/pristine-replay.mjs'], {
+      cwd: directory, env: process.env, encoding: 'utf8', timeout: localAcceptanceLimits(profile).normalReplayMilliseconds, maxBuffer: 32 * 1024 * 1024,
+    });
+    if (result.error || result.status !== 0) process.stderr.write((result.stderr ?? '').slice(-4000));
+    assert(!result.error && result.status === 0, 'Normal pinned pipeline replay failed');
+    const prefix = 'ACTQL_PIPELINE_PRISTINE ';
+    const summaries = result.stdout.split('\n').filter(line => line.startsWith(prefix)); assert.equal(summaries.length, 1);
+    const summary = JSON.parse(summaries[0].slice(prefix.length));
+    assert(summary.path.startsWith(`${directory}/.artifacts/pipeline-pristine/replay-`));
+    const report = JSON.parse(readFileSync(summary.path)), files = readPristineFiles(directory, report);
+    validatePristineReport(report, snapshot(directory), files);
+    json('/out/normal.json', {report, files, sourcePreparationMilliseconds, milliseconds: Math.round(performance.now() - start)});
+  }
+
 }
 
 export function checkOwnedPreparation(container, {cid, imageId, owner}) {
@@ -76,7 +116,58 @@ export function checkOwnedPreparation(container, {cid, imageId, owner}) {
   return true;
 }
 
-function worker(options) {
+// --rm may already be removing a container when a timed-out client returns.
+// Only tolerate that precise owned-container transition; absence must then be
+// observed. Unknown transport/daemon errors never prove cleanup complete.
+export async function closeOwnedPreparation({engine, cid, imageId, owner}, run = spawnSync) {
+  assert(/^[a-f0-9]{64}$/u.test(cid) && /^sha256:[a-f0-9]{64}$/u.test(imageId) &&
+    /^local-[a-f0-9]{32}$/u.test(owner), 'Invalid owned preparer identity');
+  const deadline = performance.now() + 30000;
+  while (performance.now() < deadline) {
+    const timeout = () => Math.max(1, Math.min(5000, Math.floor(deadline - performance.now())));
+    const inspected = run(engine, ['container', 'inspect', cid], {encoding: 'utf8', timeout: timeout()});
+    if (!inspected.error && inspected.status === 1 && /No such (?:object|container)/u.test(inspected.stderr)) return;
+    assert(!inspected.error && inspected.status === 0, 'Unconfirmed preparer cleanup');
+    const containers = JSON.parse(inspected.stdout); assert.equal(containers.length, 1);
+    checkOwnedPreparation(containers[0], {cid, imageId, owner});
+    const removed = run(engine, ['container', 'rm', '--force', cid], {encoding: 'utf8', timeout: timeout()});
+    assert(!removed.error && (removed.status === 0 || (removed.status === 1 &&
+      new RegExp(`^Error response from daemon: removal of container ${cid} is already in progress\\s*$`, 'u').test(removed.stderr))),
+    'Unconfirmed owned preparer removal');
+    await delay(250);
+  }
+  throw new Error('Owned preparer cleanup timed out; retain CID custody');
+}
+
+// Corrupt actual captured values, never assume the first minimum emits rows.
+// Refuse no-op tamper fixtures as well as a validator accepting changed facts.
+export function verifyPristineTamperRefusals(payload) {
+  const rejected = [];
+  for (const [name, alter] of [
+    ['missing-receipt', p => p.report.receipts.pop()],
+    ['wrong-target', p => p.report.receipts[0].receipt.target = 'native'],
+    ['changed-source', p => p.report.source.digest = '0'.repeat(64)],
+    ['changed-log', p => p.files[p.report.receipts[0].receipt.logPath] += 'changed'],
+    ['changed-input', p => p.files[p.report.receipts[0].receipt.inputPath] = '[]'],
+    ['changed-value', p => {
+      const candidates = p.report.observations.flatMap(({observed}) => observed.wireRows.flatMap(row =>
+        Object.keys(row).filter(key => typeof row[key] === 'number' && Number.isFinite(row[key]))
+          .map(key => ({row, key}))));
+      assert(candidates.length > 0, 'No numeric observed value for the registered pristine tamper fixture');
+      const {row, key} = candidates[0]; row[key] = row[key] === 0 ? 1 : 0;
+    }],
+    ['reuse-promotion', p => p.report.reuseAuthorized = true],
+  ]) {
+    const changed = structuredClone(payload); alter(changed);
+    assert.notDeepEqual(changed, payload, `Tamper fixture made no change: ${name}`);
+    assert.throws(() => validatePipelinePristineOriginal(changed.report, payload.report.source, changed.files), name);
+    rejected.push(name);
+  }
+  return rejected;
+}
+
+async function worker(options) {
+  const workerStarted = performance.now();
   assert.equal(git(['rev-parse', 'HEAD']), options.revision, 'Candidate HEAD changed');
   assert.equal(git(['status', '--porcelain', '--untracked-files=no']), '', 'Use a clean tracked candidate');
   const tree = gitTree(root, options.revision);
@@ -84,7 +175,9 @@ function worker(options) {
   checkBuilder(image, options.builderImage);
   const owner = `local-${randomUUID().replaceAll('-', '')}`;
   const directory = mkdtempSync(join(root, '_build', 'local-isolated-'));
-  const descriptor = {revision: options.revision, owner, entries: [...tree.entries]};
+  const profile = options.profile ?? 'session';
+  assert(['session', 'pipeline-pristine'].includes(profile));
+  const descriptor = {revision: options.revision, owner, profile, entries: [...tree.entries]};
   json(join(directory, 'checkout.json'), descriptor);
   json(join(directory, 'custody.json'), {authority: 'local-physical-acceptance', owner, builderImage: options.builderImage, directory});
   // These mounts exist only during preparation. The actual mutation container
@@ -98,7 +191,7 @@ function worker(options) {
     '--mount', `type=bind,src=${directory},dst=/out`,
     '--env', 'MOON_HOME=/toolchain', '--env', 'ImageVersion=local-linux-amd64',
     '--entrypoint', 'node', options.builderImage,
-    '/candidate/proofs/ci-evidence/local-isolated-acceptance.mjs', 'prepare-linux', '/out/checkout.json'], 180000);
+    '/candidate/proofs/ci-evidence/local-isolated-acceptance.mjs', 'prepare-linux', '/out/checkout.json'], localAcceptanceLimits(profile).preparationMilliseconds);
   } catch (error) { preparationError = error; }
   // A timed-out client does not imply the daemon stopped its container. Keep
   // the CID custody and close only a positively authenticated local preparer.
@@ -106,12 +199,7 @@ function worker(options) {
     let cid;
     try { cid = readFileSync(join(directory, 'preparer.id'), 'utf8').trim(); } catch (error) { assert.equal(error.code, 'ENOENT'); }
     if (cid) {
-      const inspected = spawnSync(options.engine, ['container', 'inspect', cid], {encoding: 'utf8', timeout: 30000});
-      if (inspected.status === 0) {
-        const [container] = JSON.parse(inspected.stdout);
-        checkOwnedPreparation(container, {cid, imageId: options.builderImage, owner});
-        call(options.engine, ['container', 'rm', '--force', cid]);
-      } else assert(!inspected.error && inspected.status === 1 && /No such (?:object|container)/u.test(inspected.stderr), 'Unconfirmed preparer cleanup');
+await closeOwnedPreparation({engine: options.engine, cid, imageId: options.builderImage, owner});
     }
   } catch (error) {
     if (preparationError) console.error('Local preparer cleanup also failed; retain CID custody');
@@ -122,34 +210,60 @@ function worker(options) {
   assert.equal(prepared.owner, owner);
   assert(/^\/out\/isolated-build-[A-Za-z0-9]+$/u.test(prepared.context), 'Unexpected owned context');
   prepared.context = join(directory, prepared.context.slice('/out/'.length));
-  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: true});
-  const answer = executeLocalIsolatedMutation({root, tree, prepared, engine: options.engine});
+  // The Linux preparer has its own Git descriptor, so prime this host tree
+  // through the existing bounded, object-checked cat-file batches.
+  if (profile === 'pipeline-pristine') tree.prefetch(pipelinePristineSourcePaths(tree));
+  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: true, profile});
+  const answer = executeLocalIsolatedMutation({root, tree, prepared, engine: options.engine, profile});
+  if (profile === 'pipeline-pristine') {
+    // Preserve validated image originals before optional cross-phase and
+    // refusal diagnostics. A later diagnostic failure cannot discard them.
+    json(join(directory, 'isolated-result.json'), {authority: 'local-physical-acceptance',
+      revision: options.revision, prepared, answer, comparison: 'not-yet-verified', reuseAuthorized: false});
+  }
+  let comparison = null;
+  if (profile === 'pipeline-pristine') {
+    const normal = JSON.parse(readFileSync(join(directory, 'normal.json')));
+    validatePipelinePristineOriginal(normal.report, answer.payload.report.source, normal.files);
+    const scientific = pristineScientificObservation(answer.payload.report);
+    assert.deepEqual(scientific, pristineScientificObservation(normal.report), 'Normal/image scientific observations differ');
+    // Reconsume actual captured evidence with independently altered grounds.
+    // A green summary cannot conceal missing executions, changed raw logs,
+    // wrong target, changed identity or a changed independent expectation.
+    const rejected = verifyPristineTamperRefusals(answer.payload);
+    comparison = {normalMilliseconds: normal.milliseconds, normalSourcePreparationMilliseconds: normal.sourcePreparationMilliseconds,
+      localElapsedMilliseconds: Math.round(performance.now() - workerStarted), isolatedCosts: answer.costs,
+      scientificDigest: hash(JSON.stringify(scientific)), units: scientific.length,
+      matched: true, rejected, scope: 'two local fresh pristine JS phases; not mutation detection, Actions qualification or net CI savings'};
+  }
   assert.equal(git(['rev-parse', 'HEAD']), options.revision);
   assert.equal(git(['status', '--porcelain', '--untracked-files=no']), '');
   json(join(directory, 'acceptance.json'), {authority: 'local-physical-acceptance', reuseAuthorized: false,
-    revision: options.revision, builderImage: options.builderImage,
-    manifestDigest: hash(JSON.stringify(prepared.manifest)), prepared, answer});
-  console.log(JSON.stringify({directory, revision: options.revision, mutations: answer.payload.report.results.length,
-    restored: answer.payload.restored, imageId: answer.imageId, reuseAuthorized: false}));
+    revision: options.revision, profile, builderImage: options.builderImage,
+    manifestDigest: hash(JSON.stringify(prepared.manifest)), prepared, answer, comparison});
+  console.log(JSON.stringify({directory, revision: options.revision, profile, units: profile === 'session' ? answer.payload.report.results.length : answer.payload.report.units,
+    restored: answer.payload.restored ?? null, sourcePreserved: answer.payload.sourcePreserved ?? null, imageId: answer.imageId, comparison, reuseAuthorized: false}));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [mode, ...args] = process.argv.slice(2);
   if (mode === 'prepare-linux') prepareLinux(args[0]);
-  else if (mode === 'worker') worker(JSON.parse(args[0]));
+  else if (mode === 'worker') await worker(JSON.parse(args[0]));
   else {
     assert.equal(mode, 'run', 'Use run --engine PATH --builder-image sha256:ID --moon-home PATH');
-    assert.equal(args.length, 6); const options = {};
+    assert([6, 8].includes(args.length)); const options = {};
     for (let i = 0; i < args.length; i += 2) {
-      assert(['--engine', '--builder-image', '--moon-home'].includes(args[i]) && !options[args[i]], 'Invalid/duplicate option');
+      assert(['--engine', '--builder-image', '--moon-home', '--profile'].includes(args[i]) && !options[args[i]], 'Invalid/duplicate option');
       options[args[i]] = args[i + 1];
     }
+    const profile = options['--profile'] ?? 'session';
+    assert(['session', 'pipeline-pristine'].includes(profile), 'Unregistered local profile');
     const engine = localEngine(options['--engine']), moonHome = realpathSync(options['--moon-home']);
     assert(lstatSync(moonHome).isDirectory());
     mkdirSync(join(root, '_build'), {recursive: true});
-    process.exitCode = await runLocalCheck({root, heavy: true, timeoutSeconds: 1200, graceSeconds: 10,
-      steps: [{name: 'local isolated Session physical acceptance', command: process.execPath,
-        args: [fileURLToPath(import.meta.url), 'worker', JSON.stringify({engine, moonHome,
+    process.exitCode = await runLocalCheck({root, heavy: true, timeoutSeconds: localAcceptanceLimits(profile).timeoutSeconds, graceSeconds: 10,
+      steps: [{name: `local isolated ${profile} physical acceptance`, command: process.execPath,
+        args: [fileURLToPath(import.meta.url), 'worker', JSON.stringify({engine, moonHome, profile,
           builderImage: options['--builder-image'], revision: git(['rev-parse', 'HEAD'])})]}]});
   }
 }
