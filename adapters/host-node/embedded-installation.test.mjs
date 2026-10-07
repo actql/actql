@@ -167,7 +167,7 @@ test('public source-free Program uses installed retained Relation output',
       {from: 'seed', sort: [{id: 'asc'}], as: 'ordered'}],
       results: {rows: {from: 'ordered', fields: ['id']}}}],
       results: {rows: {from: {stage: 'source', result: 'rows'}}}};
-    const execution = await client.aql(JSON.stringify(program), {format: 'json',
+    const execution = await client.startSource(JSON.stringify(program), {format: 'json',
       requestId: 'public-retained-values'});
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded');
@@ -218,7 +218,7 @@ test('public Events Bridge publishes managed producer and two consumer Results',
     consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
     consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
   }};
-  const execution = await client.aql(JSON.stringify(program), {format: 'json',
+  const execution = await client.startSource(JSON.stringify(program), {format: 'json',
     requestId: 'public-retained-events'});
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -281,7 +281,7 @@ test('public Vectors Bridge publishes managed producer and two consumer Results'
     consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
     consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
   }};
-  const execution = await client.aql(JSON.stringify(program), {format: 'json',
+  const execution = await client.startSource(JSON.stringify(program), {format: 'json',
     requestId: 'public-retained-vectors'});
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
   assert.equal(state.status, 'succeeded', JSON.stringify(state));

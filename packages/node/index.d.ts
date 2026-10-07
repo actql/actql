@@ -5,7 +5,8 @@ import type {Client, ConnectionOptions, Durability} from '@actql/sdk';
 export {ClientError, RequestHeld} from '@actql/sdk';
 export type {Client, Execution, Result, Reader, RunReference,
   ConfirmedProfile, ReadOptions, RequestLookup,
-  DeliveryAttemptLookup} from '@actql/sdk';
+  DeliveryAttemptLookup, ResultPromise, ResultReference, DynamicRow,
+  QueryOptions, QueryParameters} from '@actql/sdk';
 
 export type EmbeddedHostInstallation = Readonly<{
   directory?: string;
@@ -49,3 +50,16 @@ export type NodeConnectionOptions = ConnectionOptions |
   EmbeddedLocalOptions | EmbeddedLocalHybridOptions;
 
 export declare function connect(options: NodeConnectionOptions): Promise<Client>;
+
+export type OpenOptions = Readonly<{
+  /** Absolute or relative state directory; defaults to CWD/.actql. */
+  stateDir?: string;
+  durability?: Durability;
+  consentRefs?: readonly string[];
+  installation?: Omit<EmbeddedHostInstallation, 'directory'>;
+}>;
+export interface LocalSession extends Client {
+  readonly info: Readonly<{stateDir: string}>;
+}
+/** Reuses the installed Local Host and its awaited close/async-dispose owner. */
+export declare function open(options?: OpenOptions): Promise<LocalSession>;

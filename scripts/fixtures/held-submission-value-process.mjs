@@ -51,7 +51,7 @@ try {
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
   if (phase === 'initial') {
     let held;
-    await assert.rejects(client.aql(text, {format: 'json', requestId, parameters}),
+    await assert.rejects(client.startSource(text, {format: 'json', requestId, parameters}),
       error => {held = error; return error instanceof RequestHeld;});
     const [checkpoint] = (await client.checkpoints()).items;
     assert.equal(checkpoint.checkpointCid, held.held.checkpoint.checkpointCid);

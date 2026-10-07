@@ -31,7 +31,7 @@ try {
   const mode = process.argv[2];
   const execution = mode === 'restart'
     ? await client.attach(JSON.parse(await readFile('run.json', 'utf8')))
-    : await client.aql(await readFile('values.json', 'utf8'),
+    : await client.startSource(await readFile('values.json', 'utf8'),
       {format: 'json', requestId: 'without-duckdb'});
   assert.equal((await execution.wait()).status, 'succeeded');
   const result = execution.result('answer');
@@ -63,7 +63,7 @@ try {
     assert.deepEqual(found.ref, execution.ref);
     assert.deepEqual(await (await reopened.attach(found.ref)).result('answer').all(),
       [{id: 1}, {id: 2}]);
-    const repeated = await reopened.aql(await readFile('values.json', 'utf8'),
+    const repeated = await reopened.startSource(await readFile('values.json', 'utf8'),
       {format: 'json', requestId: 'without-duckdb'});
     assert.deepEqual(repeated.ref, execution.ref);
   } finally { await reopened.close(); }

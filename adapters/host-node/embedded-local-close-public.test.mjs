@@ -32,7 +32,7 @@ test('embedded final close releases the physical owner and reopens the same save
   {message: 'InstalledHostConfigurationMismatch'});
   let c;
   t.after(async () => {await a.close(); await b.close(); await c?.close();});
-  const run = await a.aql(text, {format: 'json', requestId: 'original'});
+  const run = await a.startSource(text, {format: 'json', requestId: 'original'});
   assert.equal((await run.wait()).status, 'succeeded');
   await setImmediate();
   assert.equal(computations, 1);
@@ -51,7 +51,7 @@ test('embedded final close releases the physical owner and reopens the same save
   c = await connectEmbeddedLocal(options);
   assert.notEqual(await readFile(ownerPath, 'utf8'), firstOwner);
   assert.deepEqual((await c.lookupRequest('original')).ref, run.ref);
-  const repeated = await c.aql(text, {format: 'json', requestId: 'original'});
+  const repeated = await c.startSource(text, {format: 'json', requestId: 'original'});
   assert.deepEqual(repeated.ref, run.ref);
   assert.deepEqual(await repeated.result('answer').all(), [{id: 1}, {id: 2}]);
   await setImmediate();
@@ -85,7 +85,7 @@ test('embedded close preserves an unanswered Checkpoint for the next Host', asyn
   const first = await connectEmbeddedLocal(options);
   let next;
   t.after(async () => {await first.close(); await next?.close();});
-  await assert.rejects(first.aql(text, {format: 'json', requestId: 'held-original'}),
+  await assert.rejects(first.startSource(text, {format: 'json', requestId: 'held-original'}),
     error => error instanceof RequestHeld);
   const before = await first.lookupRequest('held-original');
   assert.equal(before.kind, 'held');

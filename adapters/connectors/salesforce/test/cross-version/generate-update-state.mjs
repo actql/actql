@@ -121,7 +121,7 @@ async function submitHeld(context, ids) {
   const client = await host.as('owner-token');
   const program = kindProgram(context.kind, context.installation.mappingRef,
     ids);
-  const execution = await client.aql(program, {format: 'json',
+  const execution = await client.startSource(program, {format: 'json',
     requestId: 'cross-version-update'});
   await waitFor(async () => (await execution.status()).status ===
     'waiting_checkpoint');

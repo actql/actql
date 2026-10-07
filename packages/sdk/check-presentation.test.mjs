@@ -63,6 +63,7 @@ test('packed SDK public exports and browser bundle include their presentation mo
     'node_modules/@actql/sdk/json-value-wire.generated.mjs',
     'node_modules/@actql/sdk/operation-formats.mjs',
     'node_modules/@actql/sdk/operation-presentation.mjs',
+      'node_modules/@actql/sdk/source-query.mjs',
   ]);
   assert(Object.values(bundle.metafile.outputs).every(output => output.imports.length === 0));
 });
@@ -87,6 +88,7 @@ test('browser SDK consumer localizes a pinned Problem without I/O or input custo
     'packages/sdk/json-value-wire.generated.mjs',
     'packages/sdk/operation-formats.mjs',
     'packages/sdk/operation-presentation.mjs',
+    'packages/sdk/source-query.mjs',
   ]);
   assert(Object.values(bundle.metafile.outputs).every(output => output.imports.length === 0));
   const sdk = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].contents).toString('base64')}`);

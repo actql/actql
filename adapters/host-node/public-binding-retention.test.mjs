@@ -108,7 +108,7 @@ test('public binding rows retain absent NULL and long Text through Store and two
     const document = bindingProgram();
     const expected = expectedBindingRows(document);
     const wire = canonicalJson(document);
-    const run = await client.aql(wire, {format: 'json', requestId: 'binding-success'});
+    const run = await client.startSource(wire, {format: 'json', requestId: 'binding-success'});
     const state = await run.wait({signal: AbortSignal.timeout(90_000)});
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     for (const name of ['source', 'first', 'second']) {
@@ -130,7 +130,7 @@ test('public binding rows retain absent NULL and long Text through Store and two
     for (const name of ['source', 'first', 'second']) {
       assert.deepEqual(await attached.result(name).all(), expected[name]);
     }
-    const resent = await client.aql(wire, {format: 'json', requestId: 'binding-success'});
+    const resent = await client.startSource(wire, {format: 'json', requestId: 'binding-success'});
     assert.deepEqual(resent.ref, ref);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
   });
@@ -160,7 +160,7 @@ for (const task of [5, 6]) {
       t.after(() => client.close());
       const wire = canonicalJson(bindingProgram());
       const requestId = `binding-cancel-${task}`;
-      const run = await client.aql(wire, {format: 'json', requestId});
+      const run = await client.startSource(wire, {format: 'json', requestId});
       const first = await Promise.race([
         advanced.then(detail => ({kind: 'advance', detail})),
         run.wait({signal: AbortSignal.timeout(90_000)})
@@ -182,7 +182,7 @@ for (const task of [5, 6]) {
       assert.equal(computed, 0);
       assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
       const stoppedAdvances = advances;
-      const resent = await client.aql(wire, {format: 'json', requestId});
+      const resent = await client.startSource(wire, {format: 'json', requestId});
       assert.deepEqual(resent.ref, run.ref);
       assert.equal((await resent.wait()).status, 'cancelled');
       assert.equal(advances, stoppedAdvances);
