@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { currentSlotsCeiling } from '../backing/model.mjs';
 import { parentStartupLayout } from '../backing/parent-layout.mjs';
 import { providerConstructionBound } from './provider-construction.mjs';
+import {checkChainSource} from './chain-source.mjs';
 const inventory = JSON.parse(readFileSync(new URL('./allocations.json', import.meta.url)));
 function fields(source, name) {
   const body = source.match(new RegExp(`(?:priv )?struct ${name} \\{\\n([\\s\\S]*?)\\n\\}`))?.[1];
@@ -12,20 +13,26 @@ function fields(source, name) {
   return matches.map((m, i) => ({ name: m[1], type: clean.slice(m.index + m[0].length,
     matches[i + 1]?.index ?? clean.length).trim().replace(/\s+/g, ' ') }));
 }
-export function checkParentCensus(read) {
+export function checkChainCensus(read) {
   assert.equal(inventory.version, 'actql-native-parent-allocation-census/0.1');
   for (const state of inventory.sourceFields) {
     assert.deepEqual(fields(read(state.path).toString(), state.struct), state.fields,
       `Unreviewed parent/edge field or type ${state.struct}`);
   }
   const source = read('src/connectors/local/selected_relation_provider.mbt').toString();
-  const constructor = source.match(/fn bounded_relation_chain_execution\([\s\S]*?\nfn selected_relation_provider\(/)?.[0];
+  const constructor = source.match(/fn bounded_relation_chain_execution_state\([\s\S]*?\nfn selected_relation_provider\(/)?.[0];
   assert(constructor, 'Missing chain allocation constructor');
   assert.deepEqual([...constructor.matchAll(/^  let (\w+)(?:\s*:[^=\n]+)?\s*=\s*Ref\(/gm)].map(m => m[1]),
     inventory.chainReferences, 'Changed parent Ref ownership');
   const declarations = [...constructor.matchAll(/^  let \w+(?:\s*:[^=\n]+)?\s*=\s*Ref\(([\s\S]*?)\)(?=\n)/gm)]
     .map(match => match[0].trim().replace(/\s+/g, ' '));
   assert.deepEqual(declarations, inventory.chainReferenceDeclarations, 'Changed parent Ref source representation');
+  checkChainSource(source);
+  return inventory;
+}
+export function checkParentCensus(read) {
+  checkChainCensus(read);
+  const source = read('src/connectors/local/selected_relation_provider.mbt').toString();
   const issues = read('src/connectors/local/managed_provider.mbt').toString()
     .match(/enum ManagedProviderWorkIssue \{\n([\s\S]*?)\n\}/)?.[1];
   assert(issues);
