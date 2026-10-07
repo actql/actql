@@ -75,6 +75,30 @@ function privateFrame(op) {
       assert(/\[(?:x29|sp)(?:, #-?0x[0-9a-f]+)?\]$/.test(op), 'ARM64 frame-derived address escapes');
   } else assert(!/\b(?:x29|w29|sp|wsp)\b/.test(op), 'ARM64 frame changes or escapes');
 }
+function callbackRetirement(ins, begin, end, symbols) {
+  const releases = ins.flatMap((i, k) => k >= begin && k < end && callTarget(i, symbols) === '_moonbit_decref' ? [k] : []);
+  if (!releases.length) return;
+  const owners = ins.flatMap((i, k) => k >= begin && k < end && ownerName(callTarget(i, symbols) ?? '') ? [k] : []);
+  assert.equal(owners.length, 1, 'Missing unique ARM64 retaining Owner handoff');
+  const owner = owners[0], args = ins.slice(owner - 5, owner).map((i, n) => i.op.match(new RegExp(`^mov x${n}, (x(?:19|2[0-8]))$`))?.[1]);
+  assert(args.every(Boolean) && new Set(args).size === 5, 'Changed ARM64 callback handoff roles');
+  const allocation = (register, before) => {
+    const number = register.slice(1), definition = ins.slice(begin, before).findLastIndex(i =>
+      new RegExp(`^(?:mov|movk|ldr|ldur|add|adrp) [xw]${number},`).test(i.op));
+    assert(definition >= 0, 'Missing ARM64 callback allocation alias');
+    const k = begin + definition;
+    assert.equal(ins[k].op, `mov ${register}, x0`, 'Changed ARM64 callback allocation alias');
+    assert.equal(callTarget(ins[k - 1], symbols), '_moonbit_malloc', 'ARM64 retirement targets a primitive Ref or unknown allocation');
+    return k;
+  };
+  const allocations = args.map(register => allocation(register, owner));
+  assert.equal(releases.length, 5, 'Changed ARM64 callback retirement count');
+  releases.forEach((k, n) => {
+    assert(k > owner, 'ARM64 callback retirement precedes retaining handoff');
+    assert.equal(ins[k - 1]?.op, `mov x0, ${args[n]}`, 'ARM64 retirement targets a Ref or substitutes callback roles');
+    assert.equal(allocation(args[n], k), allocations[n], 'ARM64 callback identity changed after handoff');
+  });
+}
 function sites(fn, symbols) {
   const ins = fn.instructions;
   const frame = ins[0]?.op.match(/^sub sp, sp, #(0x[0-9a-f]+)$/);
@@ -98,6 +122,7 @@ function sites(fn, symbols) {
   const probes = ins.flatMap((i, k) => callTarget(i, symbols) === observer ? [k] : []);
   assert.equal(probes.length, 1, 'Missing or repeated ARM64 observer'); const end = probes[0], begin = indices[0] - 1;
   assert(end > indices.at(-1), 'ARM64 observer precedes Ref construction');
+  callbackRetirement(ins, begin, end, symbols);
   for (const i of ins.slice(3, begin)) privateFrame(i.op);
   for (let k = begin; k < end; k++) {
     const i = ins[k], op = i.op;

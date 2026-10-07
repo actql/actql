@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {arm64ReferenceHelpers,inspectParentReferenceArm64} from './parent-reference-arm64.mjs';
 const parent='__M0FP45actql5actql10connectors5local42bounded__relation__chain__execution__state';
 const malloc='_moonbit_malloc',incref='_moonbit_incref',observer='_actql_proof_current_chain_start';
+const owner='__M0FP45actql5actql10connectors5local54managed__provider__execution__with__child__work__issue',decref='_moonbit_decref';
 const addresses=new Map([[arm64ReferenceHelpers[0],0x4000],[arm64ReferenceHelpers[1],0x5000],
-  [arm64ReferenceHelpers[2],0x6000],[malloc,0x7000],[incref,0x7100],[observer,0x8000]]);
+  [arm64ReferenceHelpers[2],0x6000],[malloc,0x7000],[incref,0x7100],[observer,0x8000],[owner,0x9a00],[decref,0x9b00]]);
 const slots=['0x48','0x50','0x58','0x60','0x68'];
 const types=[arm64ReferenceHelpers[0],...Array(3).fill(arm64ReferenceHelpers[1]),arm64ReferenceHelpers[2]];
 const prologue=['sub sp, sp, #0x100','stp x29, x30, [sp, #0xf0]','add x29, sp, #0x100'];
@@ -96,4 +97,22 @@ test('ARM64 unknown custody calls and repeated observer cannot be hidden',()=>{
   const changed=[...ops];changed.splice(24,0,{call:'_unreviewed_custody_call'});
   assert.throws(()=>check(changed),/Unreviewed ARM64 custody call/);
   assert.throws(()=>check([...ops,{call:observer}]),/repeated ARM64 observer/);
+});
+
+test('ARM64 callback retirement cannot free a primitive Ref or precede retaining handoff',()=>{
+  const regs=['x24','x23','x25','x26','x27'];
+  const extra=regs.flatMap(r=>['mov x0, #0x10',{call:malloc},`mov ${r}, x0`]);
+  extra.push(...regs.map((r,n)=>`mov x${n}, ${r}`),{call:owner},'mov x28, x0',
+    ...regs.flatMap(r=>[`mov x0, ${r}`,{call:decref}]));
+  const changed=[...ops];changed.splice(24,0,...extra);
+  assert.equal(check(changed).pointRequestedBytes,64);
+  const release=changed.findIndex(v=>v.call===decref);
+  const ref=[...changed];ref[release-1]='ldur x0, [x29, #-0x48]';
+  assert.throws(()=>check(ref),/retirement targets a Ref/);
+  const alias=[...changed];alias.splice(release-1,0,'mov w24, w16');
+  assert.throws(()=>check(alias),/callback allocation alias/);
+  const duplicate=[...changed];duplicate.splice(release+1,0,'mov x0, x24',{call:decref});
+  assert.throws(()=>check(duplicate),/retirement count/);
+  const early=[...changed];early.splice(24,0,'mov x0, x24',{call:decref});
+  assert.throws(()=>check(early),/retirement count|precedes/);
 });

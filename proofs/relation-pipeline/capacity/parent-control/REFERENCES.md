@@ -97,6 +97,10 @@ final admission. Tool identities and executed binary/object digests remain bound
 The trust boundary includes the pinned compiler/runtime, Darwin ARM64 ABI and
 LLVM/Mach-O inspection. The finite admitted calls include the existing provider
 Owner handoff and callback retirement, not arbitrary foreign code. The private
+retirement arguments must be the five distinct malloc-return aliases handed to
+the existing Owner, in order, after that handoff. A primitive Ref, substituted
+callback, changed alias or premature/duplicate retirement rejects correspondence.
+Retaining handoff semantics remain a source/Owner trust assumption. The private
 slot check does not prove callback bodies, arbitrary aliasing or whole lifetime.
 
 Ordered callback capture correspondence remains explicitly unresolved on Darwin
