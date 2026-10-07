@@ -70,10 +70,12 @@ const support = [
   'adapters/host-node/client-submission-custody-public.fixture.mjs',
   'adapters/host-node/submission-epoch-public.test.mjs',
   'adapters/host-node/client-effect-uncertainty.test.mjs',
+  'adapters/host-node/client-effect-cancellation-public.test.mjs',
   'adapters/connectors/salesforce/test/read-compute-effect.fixture.mjs',
   'adapters/connectors/salesforce/test/read-compute-effect.embedded-child.mjs',
   'adapters/connectors/salesforce/test/salesforce-effect-site.fixture.mjs',
   'scripts/fixtures/client-effect-uncertainty.child.mjs',
+  'scripts/fixtures/client-effect-cancellation.child.mjs',
   'adapters/site-node/https-exchange-fixture.mjs',
   'scripts/owned-scratch.mjs',
   'packages/sdk/fixtures/values.json',
@@ -90,6 +92,11 @@ for (const path of support) {
       "import {publishEffect as publishInstalledEffect} from '@actql/local-node';");
     text = text.replace(/import \{connectEmbeddedLocal\} from ['"](?:\.\.\/)+(?:adapters\/)?host-node\/embedded-local\.mjs['"];/gu,
       "import {connect as connectEmbeddedLocal} from '@actql/local-node';");
+    if (path === 'scripts/fixtures/client-effect-cancellation.child.mjs') {
+      text = text.replace(
+        "import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-local.mjs';",
+        "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
+    }
     if (path === 'adapters/host-node/client-values-row-limit.test.mjs' ||
         path === 'adapters/host-node/client-values-row-limit.fixture.mjs' ||
         path === 'adapters/host-node/client-cancellation-public.fixture.mjs' ||
@@ -131,13 +138,14 @@ const groups = [
   {name: 'interrupted-121-run', file: 'client-read-run-capacity.test.mjs', count: 4},
   {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 5},
   {name: 'original-cancellation', file: 'client-cancellation-public.test.mjs', count: 4},
+  {name: 'effect-cancellation', file: 'client-effect-cancellation-public.test.mjs', count: 2},
   {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 2},
   {name: 'submission-input-refusal', file: 'submission-epoch-public.test.mjs',
     pattern: 'durable known-input category|retired pre-Run history|explicit unresolved-history restart', count: 7},
   {name: 'effect-reconciliation', file: 'client-effect-uncertainty.test.mjs', count: 3},
 ];
 const selectedGroups = cancellationOnly
-  ? groups.filter(group => group.name === 'original-cancellation')
+  ? groups.filter(group => ['original-cancellation', 'effect-cancellation'].includes(group.name))
   : submissionCustodyOnly ? groups.filter(group => group.name === 'submission-custody')
   : submissionRefusalOnly ? groups.filter(group => group.name === 'submission-input-refusal')
   : effectReconciliationOnly ? groups.filter(group => group.name === 'effect-reconciliation') : groups;
@@ -160,8 +168,8 @@ for (const group of selectedGroups) {
   assert.equal(checked.counts.passed, group.count);
   passed += checked.counts.passed;
 }
-assert.equal(passed, cancellationOnly ? 4 : submissionCustodyOnly ? 2 : submissionRefusalOnly ? 7
-  : effectReconciliationOnly ? 3 : 33);
+assert.equal(passed, cancellationOnly ? 6 : submissionCustodyOnly ? 2 : submissionRefusalOnly ? 7
+  : effectReconciliationOnly ? 3 : 35);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -171,13 +179,18 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
   selection: cancellationOnly ? 'original-cancellation' : submissionCustodyOnly
     ? 'submission-custody' : submissionRefusalOnly ? 'submission-input-refusal'
     : effectReconciliationOnly ? 'effect-reconciliation' : 'read-cancellation-submission-and-effect',
-  cases: cancellationOnly ? {originalCancellationRecovery: 4}
+  cases: cancellationOnly ? {originalCancellationRecovery: 4, unknownEffectCancellationRecovery: 2}
     : submissionCustodyOnly ? {submissionCustodyLoss: 2}
     : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2}
     : effectReconciliationOnly ? {originalEffectReconciliation: 3}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
       installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
+<<<<<<< HEAD
       submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
+=======
+      unknownEffectCancellationRecovery: 2,
+      submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2,
+>>>>>>> origin/main
       originalEffectReconciliation: 3},
   passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
