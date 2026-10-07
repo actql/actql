@@ -5713,11 +5713,14 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
         const directory = await mkdtemp(join(scratch.pathname, 'source-set-'));
         t.after(() => rm(directory, {recursive: true, force: true}));
         const control = runtimeCore(moon).publicationControl;
-        const physical = await openLocalPublicationStore({directory,
+        const storeConfiguration = {directory,
           storeAuthorityCid: cid('7'), capacityBytes: 1024 * 1024,
           maxObjectBytes: 100000, maxObjects: 10,
           maxContractNodes: 10000, maxContractDepth: 64,
-        }, control);
+          ...(onTablePreview === undefined ? {} : {
+            privateEvidenceKey: Buffer.alloc(32, 4)}),
+        };
+        let physical = await openLocalPublicationStore(storeConfiguration, control);
         let writers = 0;
         let refuseRelease = false;
         const store = Object.freeze({...physical,
@@ -5898,7 +5901,9 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               effect, prepared, inputs, artifact, identity, sources, store,
               captured, tableInput, tablePreview, template, authored, bindPreview,
               operations, scope, storage, directory, options, definition,
-              invocation, fixture, tableLimits});
+              invocation, fixture, tableLimits, execution, evidence, observation, outputLimits,
+              storeConfiguration, physicalStore: physical,
+              replaceStoreForCleanup(value) { physical = value; }});
             assert.equal(tablePreview.subjectCid,
               JSON.parse(authored._0).effect_preview_cid);
             const expectedKey = `sha256:${createHash('sha256').update(
