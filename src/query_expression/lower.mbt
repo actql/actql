@@ -389,6 +389,48 @@ fn append_resolved(
           parameter = parameters[child]
           nodes[child]
         }
+        ArrayConstructor(items, target) => {
+          let value = lowering.arguments(
+            "array",
+            items.map(item => nodes[item]),
+          )
+          match target {
+            None => value
+            Some(target) => {
+              let type_name = match target {
+                Boolean => "boolean"
+                String => "string"
+                Number => "number"
+                Timestamp => "timestamp"
+                Json => "json"
+              }
+              let empty = lowering.form(
+                "empty_array",
+                lowering.object([
+                  (
+                    "items",
+                    lowering.object([
+                      ("type", lowering.add(String(type_name))),
+                      ("nullable", lowering.add(Bool(false))),
+                    ]),
+                  ),
+                ]),
+              )
+              if items.is_empty() {
+                empty
+              } else {
+                // The common checker unifies the declared item contract with
+                // the actual elements. The common lazy IF evaluates the array
+                // once; this is type evidence, never an element CAST.
+                lowering.arguments("if", [
+                  lowering.form("literal", lowering.add(Bool(true))),
+                  value,
+                  empty,
+                ])
+              }
+            }
+          }
+        }
         Unary(op, child) =>
           match op {
             "NOT" => lowering.form("not", nodes[child])
