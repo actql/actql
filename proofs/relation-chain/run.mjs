@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { artifacts, bindings, stopBindings, pauseBindings, pauseFixture, executedPauseCoverage, stopFixture, checkBindings, executedCoverage, executedStopCoverage, graph, snapshot, targets, validate } from './evidence.mjs';
+import { modelExecution, modelObservationUnits, artifacts, bindings, stopBindings, pauseBindings, pauseFixture, executedPauseCoverage, stopFixture, checkBindings, executedCoverage, executedStopCoverage, graph, snapshot, targets, validate } from './evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
@@ -28,7 +28,7 @@ function run(id, command, args, target = 'model', packagePath = null) {
   const milliseconds = Math.round(performance.now() - start);
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `${id}.log`), output);
-  const count = packagePath ? Number(output.match(/Total tests: (\d+), passed: (\d+), failed: 0/)?.[2] ?? 0) : null;
+  const count = packagePath ? Number(output.match(/Total tests: (\d+), passed: (\d+), failed: 0/)?.[2] ?? 0) : modelObservationUnits(output, result.status);
   if (result.error || result.status !== 0 || (packagePath && count === 0)) {
     process.stderr.write(output);
     throw result.error ?? new Error(`${id} failed or executed no tests`);
@@ -41,7 +41,7 @@ function run(id, command, args, target = 'model', packagePath = null) {
   };
 }
 
-const lean = run('lean', process.execPath, ['proofs/relation-chain/check.mjs']);
+const lean = run('lean', modelExecution.command[0], modelExecution.command.slice(1), modelExecution.target);
 for (const target of selected === 'all' ? targets : [selected]) {
   const runs = { lean };
   runs[`session-${target}`] = run(`session-${target}`, moon,

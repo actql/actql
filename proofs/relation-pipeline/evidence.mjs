@@ -2,9 +2,33 @@ import { coverage } from './corpus.mjs';
 import assert from 'node:assert/strict';
 import { inspect, oracle, program } from './engine.mjs';
 import { hash, checkBaseline } from './inventory.mjs';
-import { premises } from '../relation-chain/evidence.mjs';
+import { premises, modelExecution as chainModelExecution, modelObservationUnits } from '../relation-chain/evidence.mjs';
 import { baseRegistry, registry as reviewedRegistry } from './registry.mjs';
 import { registrations } from './obligations.mjs';
+// Independently reviewed model roots used by this family's actual producer/audit.
+export const modelExecutions = Object.freeze({
+  session: Object.freeze({target: 'model', count: 14,
+    command: Object.freeze([process.execPath, 'proofs/bounded-session/check.mjs']),
+    summary: 'Checked 14 theorems, expected claim types and axiom dependencies'}),
+  chain: chainModelExecution,
+});
+export function observeModel(id, output, exit) {
+  assert(Object.hasOwn(modelExecutions, id), 'Unknown pipeline model');
+  return modelObservationUnits(output, exit, modelExecutions[id]);
+}
+export function auditModelLogs(report, readArtifact) {
+  for (const [id, expected] of Object.entries(modelExecutions)) {
+    const model = report.models[id];
+    assert(model, 'Missing pipeline model');
+    assert(model.passed && model.exit === 0, 'Unsuccessful pipeline model');
+    assert.deepEqual(model.command, expected.command, 'Unrelated model checker');
+    assert.equal(model.target, expected.target, 'Model execution target mismatch');
+    assert.equal(model.count, expected.count, 'Model theorem count mismatch');
+    const log = readArtifact(model.logPath);
+    assert.equal(hash(log), model.logDigest, 'Changed model observation bytes');
+    assert.equal(observeModel(id, log, model.exit), model.count, 'Model record differs from observation');
+  }
+}
 export function expectedContracts(testCase, registry) {
   const states = inspect(testCase, registry);
   return testCase.steps.map((step, index) => {
@@ -53,10 +77,12 @@ export function validate(report, current, registry) {
   assert(report.residual.includes('No arbitrary registry/length implementation refinement; capacity remains conditional'));
   assert.deepEqual(report.registry, registry.map(d => d.name));
   assert(['js', 'wasm', 'native'].includes(report.target));
-  for (const [id, file] of [['session', 'proofs/bounded-session/check.mjs'], ['chain', 'proofs/relation-chain/check.mjs']]) {
+  for (const [id, expected] of Object.entries(modelExecutions)) {
     const run = report.models[id];
     assert(run?.passed && run.exit === 0 && run.sourceDigest === current.digest);
-    assert.deepEqual(run.command.slice(1), [file]);
+    assert.deepEqual(run.command, expected.command);
+    assert.equal(run.target, expected.target, 'Model execution target mismatch');
+    assert.equal(run.count, expected.count, 'Model theorem count mismatch');
   }
   assert(report.executions.length > 0);
   let count = 0;
