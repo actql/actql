@@ -282,3 +282,22 @@ current repository's retained history. The corrected actual-history start
 owner; no lock/resource was changed. Runtime physical acceptance remains tied
 to `b7a6926588b03251d95df2f2f049dc7901355163`. Actual corrected retained-history
 validation remains the local acceptance item to resume when custody is available.
+
+At `5186abcd443195a78fbdf5a3c9cea745b7181d58`, actual retained history
+resumed (`run-ym34JA`) and rejected the undeclared main packaging source
+`ca5ff0893bdbbe96e9f13b19f23754f9ac59f213: package.json`. The exact failed
+original is `2026-10-08-pipeline-fixed-js-foundation-failed-5186abcd4.json.gz` (raw 38650 bytes, SHA-256
+`b557a211a86333b44877fe429b51af00d6cfb0733a6404a4c805d0642534ca3f`), explicitly not accepted.
+
+A read-only batched actual Git diff scan across all 87 protected paths and
+3,679 post-checkpoint source revisions found this one missing single-parent
+declaration. The packaging change retains its original checks and adds
+manifest input/table asset tests plus installed-connector acceptance.
+Commit `16c16217f` registers its exact source/parent/blob/mode; the only
+affected merge resolution is the inherited `d9088eb9` record. Append the
+existing digest-bound late-input supplement after that new source declaration,
+without changing original record bytes, original inputs or validator rules.
+This scan is preparatory, not retained-history admission. Run the actual
+composer after the supplement and verify its exact current-source manifest.
+The successful compiled campaign remains the original `b7a692658` result;
+no code or independent runtime expectation changed in these history repairs.
