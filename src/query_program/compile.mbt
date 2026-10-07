@@ -6629,6 +6629,7 @@ fn join_order_projection(
                 @query.expression_root(expression),
               ).unwrap().kind {
               Reference(path) => path.last().unwrap().value
+              Property(_, name) => name.value
               _ => raise Abort(UnsupportedJoin)
             }
           None => raise Abort(UnsupportedJoin)
