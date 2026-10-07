@@ -33,7 +33,7 @@ after(async () => {
 
 async function installed(t, entrance, fixture, invalidRow) {
   const operations = [];
-  let finished;
+  let finished, readResponse;
   const settled = entrance === 'local' ? Promise.resolve()
     : new Promise(resolve => { finished = resolve; });
   const mode = entrance === 'local' ? 'local' : 'remote';
@@ -68,6 +68,7 @@ async function installed(t, entrance, fixture, invalidRow) {
   } else {
     const handler = createClientHttpHandler(services);
     const server = createServer({key, cert}, async (request, response) => {
+      if (request.url.endsWith('/read')) readResponse = response;
       if (invalidRow !== undefined && request.url.endsWith('/read')) {
         // Corrupt one serialized row downstream of the real delivery owner.
         const write = response.write.bind(response);
@@ -87,7 +88,7 @@ async function installed(t, entrance, fixture, invalidRow) {
     client = await connect({mode, endpoint, token: 'scoped-token'});
   }
   t.after(() => client.close());
-  return {result: (await client.attach(ref)).result('answer'), operations, settled, endpoint};
+  return {result: (await client.attach(ref)).result('answer'), operations, settled, endpoint, readResponse: () => readResponse};
 }
 
 function assertReadExplanation(f, failure, attemptId, rowsYielded, observation = 'read_incomplete', cleanupUnknown = false) {
@@ -144,6 +145,43 @@ const invalidRows = [
   {value: [], wire: '[]\n'},
   {value: [{value: 2}], wire: '[{"value":2}]\n'},
 ];
+
+test('https: a normal terminator cannot complete before the owner commits its receipt record',
+  {timeout: 10000}, async t => {
+    let reached, release;
+    const entered = new Promise(resolve => { reached = resolve; });
+    const gate = new Promise(resolve => { release = resolve; });
+    const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+      rows: ['{"value":1}'], maxBytes: 16384,
+      async beforeAppend(record) {
+        if (JSON.parse(record.wire).state === 'succeeded') {
+          reached();
+          await gate;
+        }
+      },
+    });
+    const f = await installed(t, 'https', fixture);
+    const reader = f.result.rows();
+    const iterator = reader[Symbol.asyncIterator]();
+    try {
+      assert.deepEqual(await iterator.next(), {done: false, value: {value: 1}});
+      await entered;
+      assert.equal(JSON.parse(fixture.state.record.wire).state, 'streaming');
+      // Payload termination and HTTP EOF are separate facts. EOF must remain
+      // withheld while the owner still has a pending durable success record.
+      assert.equal(f.readResponse().writableEnded, false);
+      const final = iterator.next();
+      assert.equal(reader.state(), 'prefix');
+      release();
+      assert.deepEqual(await final, {done: true, value: undefined});
+      assert.equal(reader.state(), 'complete');
+      assert.equal(JSON.parse(fixture.state.record.wire).state, 'succeeded');
+    } finally { release(); await iterator.return(); }
+    await f.settled;
+    assert.equal(fixture.state.admissions, 1);
+    assert.equal(fixture.state.grantUses, 1);
+    assert.equal(fixture.state.readers, 1);
+  });
 
 for (const entrance of ['local', 'https']) {
   for (const operation of ['rows', 'all']) {
@@ -251,25 +289,15 @@ for (const entrance of ['local', 'https']) {
   });
 
   test(`${entrance}: normal completion counts 121 rows through the same owner`, {timeout: 10000}, async t => {
-    let release;
-    const clientCompleted = new Promise(resolve => { release = resolve; });
     const rows = Array.from({length: 121}, (_, index) => `{"value":${index + 1}}`);
     const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(),
-      {rows, maxBytes: 16384, async beforeAppend(record) {
-        if (entrance === 'https' && JSON.parse(record.wire).state === 'succeeded') {
-          await clientCompleted;
-        }
-      }});
+      {rows, maxBytes: 16384});
     const f = await installed(t, entrance, fixture);
     const reader = f.result.rows();
-    try {
-      assert.equal((await Array.fromAsync(reader)).length, 121);
-      assert.equal(reader.rowsYielded(), 121);
-      assert.equal(reader.state(), 'complete');
-      if (entrance === 'https') {
-        assert.equal(JSON.parse(fixture.state.record.wire).state, 'streaming');
-      }
-    } finally { release(); }
+    assert.equal((await Array.fromAsync(reader)).length, 121);
+    assert.equal(reader.rowsYielded(), 121);
+    assert.equal(reader.state(), 'complete');
+    assert.equal(JSON.parse(fixture.state.record.wire).state, 'succeeded');
     await f.settled;
     assert.equal(JSON.parse(fixture.state.record.wire).state, 'succeeded');
     assert.equal(fixture.state.grantUses, 1);
@@ -277,54 +305,58 @@ for (const entrance of ['local', 'https']) {
   });
 }
 
-for (const operation of ['rows', 'all']) {
-  test(`local: ${operation} preserves a terminal record failure after all 121 rows`, async t => {
-    const unavailable = Object.assign(new Error('private-delivery-secret'), {
-      stack: 'private-delivery-secret', cause: new Error('private-delivery-secret'),
-      sourceLocator: 'connector://private-delivery-secret',
-    });
-    const rows = Array.from({length: 121}, (_, index) => `{"value":${index + 1}}`);
-    const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
-      rows, maxBytes: 16384, async beforeAppend(record) {
-        if (JSON.parse(record.wire).state === 'succeeded') throw unavailable;
-      },
-    });
-    const f = await installed(t, 'local', fixture);
-    const reader = operation === 'rows' ? f.result.rows() : undefined;
-    const returned = [];
-    let failure;
-    try {
-      if (reader) {
-        for await (const row of reader) returned.push(row);
-      } else {
-        returned.push(...await f.result.all());
+for (const entrance of ['local', 'https']) {
+  for (const operation of ['rows', 'all']) {
+    test(`${entrance}: ${operation} preserves a terminal record failure after all 121 rows`, async t => {
+      const unavailable = Object.assign(new Error('private-delivery-secret'), {
+        stack: 'private-delivery-secret', cause: new Error('private-delivery-secret'),
+        sourceLocator: 'connector://private-delivery-secret',
+      });
+      const rows = Array.from({length: 121}, (_, index) => `{"value":${index + 1}}`);
+      const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+        rows, maxBytes: 16384, async beforeAppend(record) {
+          if (JSON.parse(record.wire).state === 'succeeded') throw unavailable;
+        },
+      });
+      const f = await installed(t, entrance, fixture);
+      const reader = operation === 'rows' ? f.result.rows() : undefined;
+      const returned = [];
+      let failure;
+      try {
+        if (reader) {
+          for await (const row of reader) returned.push(row);
+        } else {
+          returned.push(...await f.result.all());
+        }
+      } catch (error) { failure = error; }
+      assert.equal(failure?.code, entrance === 'local' ? 'ClientHostFailure' : 'ResultReadUnknown',
+        '[check-mutation:local-outcome]');
+      assert.ok(failure instanceof ClientError);
+      assert.equal(failure.rowsYielded, reader ? 121 : 0);
+      assert.equal(failure.attemptId,
+        reader?.attemptId ?? JSON.parse(fixture.state.selected.wire).attempt_id);
+      assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-delivery-secret/u);
+      const publicCause = reader ? failure.cause : failure.cause.cause;
+      if (entrance === 'local') {
+        assert.equal(publicCause.cause, undefined);
+        assert.equal(publicCause.stack, undefined);
+        assert.equal(publicCause.cleanupHandle, undefined);
       }
-    } catch (error) { failure = error; }
-    assert.equal(failure?.code, 'ClientHostFailure', '[check-mutation:local-outcome]');
-    assert.ok(failure instanceof ClientError);
-    assert.equal(failure.rowsYielded, reader ? 121 : 0);
-    assert.equal(failure.attemptId,
-      reader?.attemptId ?? JSON.parse(fixture.state.selected.wire).attempt_id);
-    assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-delivery-secret/u);
-    const publicCause = reader ? failure.cause : failure.cause.cause;
-    assert.equal(publicCause.cause, undefined);
-    assert.equal(publicCause.stack, undefined);
-    assert.equal(publicCause.cleanupHandle, undefined);
-    assert.equal(returned.length, reader ? 121 : 0);
-    const failedAttemptId = failure.attemptId;
-    if (reader) {
-      assert.equal(reader.state(), 'prefix');
-      assert.equal(reader.rowsYielded(), 121);
-    }
-    assert.equal(JSON.parse(fixture.state.record.wire).state, 'streaming');
-    assert.equal(fixture.state.admissions, 1);
-    assert.equal(fixture.state.grantUses, 1);
-    assert.equal(fixture.state.readers, 1);
-    assert.deepEqual(f.operations, ['connect', 'attach', 'read']);
-    assertReadExplanation(f, failure, failedAttemptId, reader ? 121 : 0);
-  });
-}
-
+      assert.equal(returned.length, reader ? 121 : 0);
+      const failedAttemptId = failure.attemptId;
+      if (reader) {
+        assert.equal(reader.state(), 'prefix');
+        assert.equal(reader.rowsYielded(), 121);
+      }
+      assert.equal(JSON.parse(fixture.state.record.wire).state, 'streaming');
+      assert.equal(fixture.state.admissions, 1);
+      assert.equal(fixture.state.grantUses, 1);
+      assert.equal(fixture.state.readers, 1);
+      assert.deepEqual(f.operations, ['connect', 'attach', 'read']);
+      assertReadExplanation(f, failure, failedAttemptId, reader ? 121 : 0,
+        'read_incomplete', entrance === 'https');
+    });
+  }}
 
 for (const entrance of ['local', 'https']) {
   test(`${entrance}: batches count only rows returned before Delivery failure`, {timeout: 10000}, async t => {
