@@ -181,7 +181,7 @@ function borrowedBindingsProgram(id,ordered=false) {
   return value;
 }
 
-function unaryCompletionProgram(id, kind) {
+function unaryCompletionProgram(id, kind, longInput=false) {
   const value = program(id), source = value.stages[0], producer = value.stages[1];
   source.steps[0].values = {schema:{id:{type:'number',nullable:false},
     payload:{type:'number',nullable:true}}, rows:[{id:1,payload:7},{id:2,payload:null}]};
@@ -210,6 +210,15 @@ function unaryCompletionProgram(id, kind) {
     throw new Error(`Unknown unary completion fixture: ${kind}`);
   }
   producer.steps = [operation];
+  if(longInput && kind==='count'){
+    const inputName=`${member}_input_key`;
+    source.steps[0].values={schema:{[inputName]:{type:'number',nullable:false},
+      payload:{type:'number',nullable:true}},
+      rows:[{[inputName]:1,payload:7},{[inputName]:2,payload:null}]};
+    source.results.rows.fields=[inputName,'payload'];
+    operation.group.by=[inputName];
+    producer.steps.push({derive:{id:{field:inputName}},as:'identified'});
+  }
   if (kind !== 'unpivot') {
     producer.steps.push({derive:{value:{field:member}},as:'derived'});
   }
@@ -271,6 +280,10 @@ function compoundCompletionProgram(id, kind, longInput=false) {
       operation.asof_join.left_id=inputName;
       operation.asof_join.right_tie_break=[inputName];
       operation.asof_join.select.id=`left.${inputName}`;
+    }else if(kind==='sequence'){
+      operation.sequence.id=inputName;
+      operation.sequence.pattern[0].where=`${inputName} = 1`;
+      operation.sequence.pattern[1].where=`${inputName} = 2`;
     }else throw new Error(`Unsupported metadata fixture: ${kind}`);
     if(kind==='nest')producer.steps.push({derive:{id:{field:inputName}},as:'identified'});
   }
@@ -434,6 +447,14 @@ test('public retained Group completion names preserve NULL and post-progress cus
 test('public retained COUNT completion names preserve counts and post-progress custody',
   {timeout:90_000}, t=>verifyRetainedNames(t,'unary-count',
     id=>unaryCompletionProgram(id,'count'),[{id:1,value:1},{id:2,value:0}],
+    {type:'number',nullable:false}));
+test('public retained COUNT source metadata preserves counts and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'count-source-metadata',
+    id=>unaryCompletionProgram(id,'count',true),[{id:1,value:1},{id:2,value:0}],
+    {type:'number',nullable:false}));
+test('public retained sequence source metadata preserves results and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'sequence-source-metadata',
+    id=>compoundCompletionProgram(id,'sequence',true),[{id:1,value:2}],
     {type:'number',nullable:false}));
 test('public retained row-window completion names preserve NULL and post-progress custody',
   {timeout:90_000}, t=>verifyRetainedNames(t,'unary-window',
