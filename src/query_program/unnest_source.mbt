@@ -1,66 +1,56 @@
 ///|
-// Inspect admitted parameter contracts, never the rows, to establish a value
-// table's visible STRUCT fields even when the input is empty or NULL.
-fn unnest_parameter_element(
+// Establish a source-free value table's visible fields from the ordinary
+// expression checker, including empty and NULL ARRAYs. This type lookup does
+// not discharge profiles, parameter-value checks or runtime obligations.
+fn unnest_source_element(
   expression : @query.Expression,
   declarations : @parameters.Declarations?,
+  source_limits : @builder.Limits,
   max_work : Int,
 ) -> @contract.Contract? raise Abort {
-  guard declarations is Some(declarations) else { return None }
-  let origin = @query.expression_origin(expression, @query.expression_root(expression))
-  let mut remaining = max_work
-  let spend = fn() -> Unit raise Abort {
-    if remaining <= 0 {
+  let origin = @query.expression_origin(
+    expression,
+    @query.expression_root(expression),
+  )
+  let lowered = match
+    @expression.lower(expression, _ => None, {
+      construction: source_limits,
+      expression: {
+        max_nodes: source_limits.tree.max_nodes,
+        max_depth: source_limits.tree.max_depth,
+        max_text_bytes: source_limits.tree.max_total_string_bytes,
+        max_tokens: source_limits.tree.max_nodes,
+        tree: source_limits.tree,
+      },
+      max_work,
+    }) {
+    Ok(lowered) => lowered
+    Err(diagnostic) => raise Abort(Expression(diagnostic))
+  }
+  let typed = match
+    @typing.check(
+      @expression.expression(lowered),
+      { fields: None, left: None, right: None, parameters: declarations, },
+      {
+        max_nodes: source_limits.tree.max_nodes,
+        max_depth: source_limits.tree.max_depth,
+        max_work,
+        max_text_bytes: source_limits.tree.max_total_string_bytes,
+      },
+    ) {
+    Ok(typed) => typed
+    Err({ kind: BudgetExceeded, .. }) =>
       raise Abort(Expression({ issue: @expression.WorkLimit, origin, }))
-    }
-    remaining -= 1
+    Err({ kind: InvalidLimits, .. }) =>
+      raise Abort(Expression({ issue: @expression.InvalidLimits, origin, }))
+    // No guessed scope for an unresolved, unknown or inadmissible type. The
+    // completed Program still undergoes its normal common admission checks.
+    Err(_) => return None
   }
-  // Follow only declared parameter/property contracts. This is not expression
-  // inference: computed receivers and unknown fields keep ordinary admission.
-  let properties : Array[String] = []
-  let mut root = @query.expression_root(expression)
-  while true {
-    spend()
-    match @query.expression_node(expression, root) {
-      Some({ kind: Parenthesized(child), .. }) => root = child
-      Some({ kind: Property(child, name), .. }) => {
-        properties.push(name.value)
-        root = child
-      }
-      _ => break
-    }
+  match @typing.result_type(typed).shape {
+    @contract.Array(element, ..) => Some(element)
+    _ => None
   }
-  guard @query.expression_node(expression, root)
-    is Some({ kind: ParameterReference(name), .. }) else {
-    return None
-  }
-  for declaration in @parameters.declarations(declarations) {
-    spend()
-    if declaration.name == name {
-      let mut contract = declaration.parameter_type.contract
-      while properties.pop() is Some(property) {
-        guard contract.shape is @contract.Object(fields) else { return None }
-        let mut selected : @contract.Contract? = None
-        for index in 0..<@contract.field_count(fields) {
-          spend()
-          let field = @contract.field_at(fields, index).unwrap()
-          // Match the common property's exact declared name; do not apply
-          // Relation alias rules or infer a field from a parameter value.
-          if field.name == property {
-            selected = Some(field.contract)
-            break
-          }
-        }
-        guard selected is Some(next) else { return None }
-        contract = next
-      }
-      return match contract.shape {
-        @contract.Array(element, ..) => Some(element)
-        _ => None
-      }
-    }
-  }
-  None
 }
 
 ///|

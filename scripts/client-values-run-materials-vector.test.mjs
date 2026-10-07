@@ -757,6 +757,10 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('38b2c821bd3b65aeeac218ef8300f9bc25a8dba90956fdfda1313651fdebef15'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('9bd9abd436fd9564578f921adcb16ba105274cdaaad118717d08b13d30183a2d'));
+  // Preserve the adopted checked-ARRAY parent independently of this integration.
+  assert.equal(vector(pin('865d1183ed31a4fe8b1be4e685563b932b6bc65580ed7968f8883ddc82003722'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('561ebef800dd3c16dbd971fe4c709ebf78678133926ec110d6a60714ae04e9ba'));
   assert.equal(current.run.run_definition_cid,
     pin('4f3652ea4456523532b14c5ad91490f24a6adc441267e4710e6411de99575933'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');

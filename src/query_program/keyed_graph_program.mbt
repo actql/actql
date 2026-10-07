@@ -612,6 +612,7 @@ fn lower_script_keyed_graph_query(
     selected,
     visible,
     limits.max_expression_work,
+    limits.source,
     limits.max_collection_items,
     limits.max_collection_bytes,
     0,
