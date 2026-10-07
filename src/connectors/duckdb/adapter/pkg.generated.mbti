@@ -33,6 +33,8 @@ pub fn admit_physical_chunk(PhysicalResult, Int, Array[@decode_core.Cursor]) -> 
 
 pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.Limits) -> Result[@value_admission.CheckedValue, ValueIssue]
 
+pub fn advance_managed_physical_output_finish(ManagedPhysicalOutput, Int) -> Result[@execution_relation.ManagedOutputFinishAdvance, ManagedPhysicalOutputIssue]
+
 pub fn append_comparison_measurement(ComparisonMeasurement, @value_admission.Value) -> Result[Unit, NativeDemandIssue]
 
 pub fn append_fixed_import_stream(FixedImportStream, String, @execution_relation.RetainedRowDecodeLimits, materialize_parameters? : Bool) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]

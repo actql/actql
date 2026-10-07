@@ -225,6 +225,8 @@ pub fn managed_output_accept(ManagedNodeOutput, Int, String) -> Unit raise NodeH
 
 pub fn managed_output_admission_usage(ManagedNodeOutput) -> Array[Int] raise NodeHostFailure
 
+pub fn managed_output_advance_finish(ManagedNodeOutput, Int) -> (Bool, Int) raise NodeHostFailure
+
 pub fn managed_output_available(ManagedNodeOutput) -> Bool
 
 pub fn managed_output_cancel(ManagedNodeOutput) -> Unit
@@ -320,6 +322,8 @@ pub fn managed_strategy_input_parquet_sql_at(ManagedComputeNodeRun, Int, Int) ->
 pub fn managed_strategy_input_parquet_view_sql_at(ManagedComputeNodeRun, Int, Int) -> String?
 
 pub fn managed_strategy_occurrence_sql(ManagedComputeNodeRun) -> String?
+
+pub fn managed_strategy_output_advance_finish(ManagedComputeNodeRun, ManagedNodeOutput, Int) -> (Bool, Int) raise NodeHostFailure
 
 pub fn managed_strategy_output_begin(ManagedComputeNodeRun, String) -> ManagedNodeOutput raise NodeHostFailure
 

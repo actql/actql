@@ -184,6 +184,7 @@ test "reentrant selected finish does not discard the active verification index" 
   ) => reenter.val.unwrap()()).unwrap()
   reenter.val = Some(fn() {
     finish_managed_view_output(port, ()) is Err(Closed) &&
+    advance_managed_view_output_finish(port, (), 1) is Err(Closed) &&
     selection.index.count == 4
   })
   let receipt = finish_managed_view_output(port, ()).unwrap()

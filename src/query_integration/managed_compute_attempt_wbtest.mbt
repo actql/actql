@@ -35,7 +35,28 @@ test "managed DuckDB output uses selected attempt guards and exact retained rece
     @duckdb_compute.receive_managed_duckdb_compute_output(output, 1, [
       input_cursor("[\"4008000000000000\"]"),
     ]).unwrap()
-    let receipt = @duckdb_compute.finish_managed_duckdb_compute_output(output).unwrap()
+    let receipt = if mode == 0 {
+      @duckdb_compute.finish_managed_duckdb_compute_output(output).unwrap()
+    } else {
+      let mut receipt = None
+      let mut polls = 0
+      while receipt is None {
+        let poll = @duckdb_compute.advance_managed_duckdb_compute_output_finish(
+          output, 1,
+        ).unwrap()
+        assert_eq(poll.steps, 1)
+        polls += 1
+        assert_true(polls <= 20)
+        if poll.receipt is None {
+          assert_true(
+            @duckdb_compute.finish_managed_duckdb_compute_output(output)
+            is Err(InvalidState),
+          )
+        }
+        receipt = poll.receipt
+      }
+      receipt.unwrap()
+    }
     let material = @execution.retain_managed_output(port, receipt).unwrap()
     assert_true(
       @duckdb_compute.verified_managed_duckdb_compute_material(output, material)
