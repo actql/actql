@@ -61,6 +61,19 @@ pub fn install_resident_retained_compute_executor(
     !@remote.remote_input_binding_matches_dispatch(binding, dispatch) {
     return Err(Source(ForeignInput))
   }
+  // A completed consumer must retain its exact output independently of the
+  // process-local Compute owner. Reuse the same physical file/custody path as
+  // the producer; never reacquire input to reconstruct a lost completion.
+  guard configuration.source.retained_output_root is Some(output_root) else {
+    return Err(Source(UnsupportedSource))
+  }
+  let output_storage = () => {
+    @retained_file.begin_native_retained_task_file(
+      output_root,
+      @remote.dispatch_request_identity(dispatch)[7:].to_owned(),
+      output_limits.max_retained_bytes,
+    ).map_err(_ => "consumer-output-storage")
+  }
   let factory = match
     @output.register_native_remote_standard_dispatch_run_factory(
       dispatch,
@@ -88,6 +101,7 @@ pub fn install_resident_retained_compute_executor(
             consumer.compute,
             () => consumer.close(),
             () => true,
+            output_storage=Some(output_storage),
           ),
         )
       },

@@ -19,6 +19,7 @@ fn retained_consumer_holder_case(
   destination_bytes : Int64,
   current_query : @remote.RemotePollRetainedCurrent,
   cancel_before_start? : Bool = false,
+  output_unavailable? : Bool = false,
 ) -> Unit raise {
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
@@ -113,6 +114,19 @@ fn retained_consumer_holder_case(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
     destination_bytes,
   )
+  let configuration = {
+    ..configuration,
+    source: {
+      ..configuration.source,
+      retained_output_root: Some(
+        if output_unavailable {
+          root_path + "/missing-output-root"
+        } else {
+          root_path
+        },
+      ),
+    },
+  }
   let (bundles, active, journal) = retained_runtime_owners(
     sqlite, site, root_path, name,
   )
@@ -189,6 +203,26 @@ fn retained_consumer_holder_case(
     assert_true(bundles.close().unwrap())
     return
   }
+  if output_unavailable {
+    assert_true(run() is Err(_))
+    assert_eq(entries.val, 1)
+    // Missing physical output is not permission to enter Compute again.
+    assert_true(run() is Err(_))
+    assert_eq(entries.val, 1)
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      destination_bytes,
+    )
+    assert_true(owner.close())
+    assert_true(owner.close())
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      destination_bytes,
+    )
+    assert_true(journal.close())
+    assert_true(bundles.close().unwrap())
+    return
+  }
   let executed = run().unwrap()
   assert_true(executed.result_definition_cid is Some(_))
   assert_eq(entries.val, 1)
@@ -215,6 +249,46 @@ fn retained_consumer_holder_case(
     executed.completion.evidence_cid,
   )
   assert_eq(entries.val, 1)
+  // Completion must name the original file custody before it is available for
+  // Output. A process-local completion alone cannot survive holder loss.
+  let custody = @dispatch_journal.recovered_site_dispatch_file_custody(
+    journal.observation(dispatch).unwrap(),
+  ).unwrap()
+  assert_true(
+    @dispatch_journal.native_output_file_custody_matches_request(
+      custody, dispatch,
+    ),
+  )
+  let occurrence = @dispatch_journal.native_output_file_custody_occurrence(
+    custody,
+  )
+  let generation = @dispatch_journal.native_output_file_custody_generation(
+    custody,
+  )
+  let file_root = @filesystem.open_root(root_path).unwrap()
+  assert_true(file_root.verify_generation("output-" + occurrence, generation))
+  let read_back = @dispatch_journal.open_journal(
+    sqlite,
+    root_path + "/" + name + ".runtime/execution.sqlite3",
+    1048576L,
+    @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1").unwrap(),
+  ).unwrap()
+  let durable_custody = @dispatch_journal.recovered_site_dispatch_file_custody(
+    read_back.observation(dispatch).unwrap(),
+  ).unwrap()
+  assert_eq(
+    @dispatch_journal.native_output_file_custody_occurrence(durable_custody),
+    occurrence,
+  )
+  assert_eq(
+    @dispatch_journal.native_output_file_custody_generation(durable_custody),
+    generation,
+  )
+  assert_eq(
+    @dispatch_journal.native_output_file_custody_content_cid(durable_custody),
+    @dispatch_journal.native_output_file_custody_content_cid(custody),
+  )
+  assert_true(read_back.close())
   let subject = @dispatch_journal.recovered_site_dispatch_subject(
     journal.observation(dispatch).unwrap(),
   ).unwrap()
@@ -233,6 +307,7 @@ fn retained_consumer_holder_case(
     .open_output_reader(dispatch, fields[1], 128)
     .unwrap()
   assert_false(owner.close())
+  assert_true(file_root.verify_generation("output-" + occurrence, generation))
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
     destination_bytes,
@@ -255,6 +330,8 @@ fn retained_consumer_holder_case(
   assert_true(reader.finish().unwrap())
   assert_true(owner.close())
   assert_true(owner.close())
+  let file_root = @filesystem.open_root(root_path).unwrap()
+  assert_false(file_root.verify_generation("output-" + occurrence, generation))
   assert_true(run() is Err(_))
   assert_eq(entries.val, 1)
   let (_, _, cleanup, _, _) = @remote.dispatch_record_state(
