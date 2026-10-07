@@ -1239,3 +1239,174 @@ This SDK presentation extension changes neither response schemas nor their
 registered CIDs and pins. The generated vocabulary follows the current schema;
 preceding incompatible SDK/Host contracts still reject explicitly. The English
 and Japanese translation revisions advance independently of wire identities.
+
+
+### Located function-lowering limits
+
+The existing lowerer's UnsupportedFunction conflates unknown names, quoted or
+qualified forms and implementation gaps. Public checking keeps implementation_limit
+in coverage and never infers author blame from that issue. Its optional closed
+facts identify function_lowering_unresolved, with an existing original Authored
+call range. The generic code-only limit and its required payload remain unchanged.
+
+The bridge consumes the typed origin directly. Unknown/generated origins remain
+unlocated; no text search, second parser, rerun resolution or lowered JSON path
+supplies an SQL position. Exact original source revisions/UTF-8 ranges survive
+Local/HTTPS and SDK, including repeated names/comments, non-BMP/combining text and
+CRLF. Located coverage limits receive the same revision, bounds and UTF-8-boundary
+admission as violations/Requirements; malformed transported material is a protocol
+failure. No fix or operation permission follows from this support limit.
+
+A protected relation can stop lowering before a dependent function issue exists.
+It cannot manufacture a function fact or position. Public violations still survive;
+unsupported-only checks remain undetermined. Reason/Outcome schema bodies, pins,
+producer, validators, generated types, SDK and independent fixtures change together.
+Legacy diagnostics and unrelated schema bodies remain separate. No compatibility
+path, new source custody, retention or lowerer implementation is introduced.
+### Reserved reporting and Requirement enumeration
+
+Checking completion is separate from enumeration completion. The existing
+public bridge computes verdict, scope and protected coverage from all projected
+findings. It emits at most 128 known parameter Requirements and can reduce that
+prefix through at most nine independently bounded encoding attempts (128, 64,
+32, 16, 8, 4, 2, 1, 0). Each attempt uses the existing 65,536-byte, 4,096-node,
+depth-16 reporting writer; it does not repeat analysis, parser work or Source
+authorization. Disclosable violations and original document/context bindings
+are never dropped to make a prefix fit. If even that bound report cannot be
+encoded, the separately reserved Problem envelope still returns
+`check_report_unbounded` without a partial report.
+
+The closed public report optionally carries `omissions: {requirements: true}`
+when this enumeration excludes already-public known input obligations. The
+summary contains no count and is independent of inaccessible Source details.
+It cannot accompany `verified`; missing values preserve bound-input scope and
+undetermined, unless an independent public violation establishes invalidity.
+An invalid report retains its disclosed violation. This changes only the
+`actql-check-outcome/0.1` schema body/CID and its dependent pins, generated wire
+and consumers; reason schema/catalog meaning and legacy diagnostics remain
+separate. Mixed outcome identities reject explicitly, without an adapter.
+
+SDK explanation retains the typed omissions summary independently of completed
+or partial reporting. Renderer omissions describe only the disclosed report,
+not the Host's omitted obligations. A truncated Requirement enumeration cannot
+establish a comparable supplementation frontier. Display locale/wording never
+changes the original scope, verdict, input revision or action permission.
+
+
+### Declared parameter admission conditions
+
+A known missing-parameter Requirement can include `facts.admission`. This
+closed `parameter_declaration` representation is emitted from the existing
+admitted `ParameterType` Owner: its complete checked value contract,
+parameter-only numeric/integer, duration and exact-array-length rules, and
+`supplier: "caller"`. The checked-contract schema CID is pinned in the facts
+schema, so changing that referenced schema changes the Reason/Outcome identities.
+Defaults, annotation metadata and supplied values are never projected here.
+
+Rule paths use typed `field` and `items` segments of a type definition. They are
+not source positions or supplied-array indices. The Requirement's separate
+structured location still binds the caller's original declaration document and
+revision. Nullability, object fields, array maxima and decimal precision/scale
+come from the checked contract; parameter-only constraints retain their own
+rules. Conditions describe declaration admission, not all later operations or
+complete Program verification. An absent optional admission object means those
+expanded conditions are not available in that public Reason; no unconstrained
+fallback is invented.
+
+`getCheckParameterAdmission(outcome, name)` returns conditions only for that
+call's original SDK-owned completed response and a disclosed Requirement.
+Copies, forged responses, omitted Requirements and supplied values return
+undefined. The data is immutable and confers no input-write, approval or Run
+permission. Actual supplied values re-enter the existing binder and checker.
+The original unbound report remains bound to its earlier context.
+
+Constraint-row order is not supplementation progress; the existing frontier
+comparison uses its unordered typed set while preserving the semantic order of
+segments within each path. Context changes still consume the total attempt cap.
+If the reserved report budget cannot encode a whole Requirement's conditions,
+the existing omissions marker preserves the complete bound verdict/scope and
+prevents an incomplete frontier. Analysis is not repeated.
+
+`NeedsInputs` remains a partial checking frontier. Preparing declaration types,
+Stage topology or an unbound result wiring cannot certify all remaining static
+obligations as verified(template). A public template scope requires the common
+checker to close those obligations under a scope selected before checking,
+without fabricated values or a second checker. No template success or unsupported
+preparation-write path is introduced by these declaration conditions.
+
+### Passive operation diagnostic formats
+
+`formatSubmission`, `formatCancellation`, `formatReadFailure` and
+`formatEffectUncertainty` render only the original SDK-owned observations used
+by their corresponding explanation helpers. They offer `text`, `html` and
+agent `json` formats, locale selection and a 1,024..1,048,576 UTF-8 byte budget
+(default 65,536). Copies and forged errors/responses have no formatting custody.
+The renderer captures the retained observation before reading display options.
+Locale, wording, severity or edits to an enumerable error never change its facts.
+
+All original lookup references, returned-row counts, unknown outcomes, unresolved
+Effect names and physical-stop/control revisions remain intact. JSON carries the
+whole explanation and independent operation translation revision; text/HTML
+retain those same facts as escaped data. Markup, terminal controls and bidi marks
+are escaped without changing parsed JSON values or semantic identities. No raw
+cause, input, credential or provider message is included. References are data,
+not executable instructions or durable permission.
+
+If the complete observation cannot fit the requested output budget, return
+undefined rather than a success-looking prefix or a reduced unresolved-Effect
+set. Existing explanation helpers remain available independently. Formatting
+performs no lookup, cancel, resend, new read, Compute or provider call. It cannot
+establish durable cancellation-operation reconciliation, Delivery opening or
+receipt-backed completion, or complete template scope; those still require
+facts from their existing authoritative owners. No wire schema, identity,
+persistence or execution path changes are introduced by presentation.
+
+## Rejected Run observations
+
+`status`, `wait` and `reconcile` use the existing registered Run state validator
+before and after detaching the received value. A valid observation retains its
+original facts even if a Local transport reuses an object. A rejected state still
+throws `InvalidHostRunState` for a rejected decoded state, or the existing
+`InvalidHostResponse` for decoding/wire-bound failure;
+`explainRunObservationFailure(error)` distinguishes
+an unknown state under the current version (`uninterpretable/unknown_state`),
+a usable mismatched version (`protocol_failure/contract_mismatch`), and malformed
+known facts or unreadable payload (`protocol_failure/malformed_response`).
+The generated `runStateProtocol` vocabulary comes from the registered schema;
+it neither admits replies nor changes a Run Owner's transitions.
+
+The original SDK error privately retains only safe typed classification, the
+operation name and a read-only `status` candidate bound to the attached Run's
+original reference. A rejected response contributes no state, revision, Effect,
+publication, physical-stop or cleanup fact. Unknown provider text and raw causes
+are omitted from the protocol error. Explanation/locale edits confer no write
+retry, cancellation, Compute restart or reconciliation authority. Status lookup
+continues to enforce current Host authorization; the retained reference grants
+no access. Copies, serialized or forged errors have no explanation custody.
+Credential and transport refusals retain their existing separate behavior and
+are not labelled as received malformed state observations. No automatic lookup
+or additional operation is performed by presentation.
+
+This SDK weak association lasts only while its original error remains reachable;
+there is no timed retention guarantee or new Host persistence/retrieval API.
+The current Graph contracts and their identities are used without old aliases,
+fallbacks or reinterpretation of stored Run identities. This boundary completes
+only the rejected Run-observation part of X6; durable write/cancellation/Delivery
+contracts and their other diagnostic obligations remain separate.
+
+### Catalog representation and presentation
+
+The public check catalog owns the existing closed Reason schema and current
+safe default/conditional English templates. The existing outcome generator
+consumes that schema, and Host wire generation verifies generated SDK metadata,
+types and reference documentation. The catalog does not inspect input, resolve
+names, check expressions or decide verdicts. Typed causes and disclosure remain
+at the existing common projection before serialization.
+
+Catalog revision, public facts schema identity and translation revision are
+separate. Source/Program/Run/Result identities are unchanged by presentation.
+SDK metadata exposes immutable condition, disclosure, location-role, severity
+and family data without authorization or action claims. Unknown codes retain
+safe fallback; malformed known transported facts still reject through the
+existing wire/SDK admission. No legacy compiler catalog or operation outcome
+is relabelled as this public check catalog.

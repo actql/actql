@@ -68,6 +68,7 @@ fn resident_compute_configuration(
       source_ref: "connector://crm/main/r#v",
       source_contract_cid: "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
       library,
+      retained_output_root: None,
       database_path: path,
       memory_bytes: 134217728L,
       database_schema: "main",

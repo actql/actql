@@ -30,12 +30,14 @@ test('missing manifests and modified preimages cannot keep their old pins', () =
 test('sole Graph contract implementation pins the owned Graph law without a legacy fallback', () => {
   const {contract} = loadDependencies();
   const implementation = readFileSync(new URL('../src/graph_contract/contract.mbt', import.meta.url), 'utf8');
-  assert.match(implementation, /pub fn law_cid\(\) -> String \{\s*property_law_cid\(\)/);
-  assert.match(implementation, /admit_graph\(input, limits\)/);
-  assert.ok(!implementation.includes(contract.sga_identity_law_manifest_cid));
-  const propertyImplementation = readFileSync(new URL('../src/graph_contract/definition_contract.mbt', import.meta.url), 'utf8');
-  assert.ok(propertyImplementation.includes('"' + contract.graph_law_manifest_cid + '"'));
-  assert.ok(!propertyImplementation.includes(contract.sga_identity_law_manifest_cid));
+  assert.match(implementation, /pub fn admit_graph\(\s*graph : @carrier\.Graph,\s*limits : Limits,?\s*\) -> Result\[CheckedContract, Issue\] \{\s*admit\(@carrier\.graph_carrier\(graph\), limits\)\s*\}/);
+  const definitionImplementation = readFileSync(new URL('../src/graph_contract/definition_contract.mbt', import.meta.url), 'utf8');
+  const law = definitionImplementation.match(/pub fn law_cid\(\) -> String \{\s*"([^"\n]+)"\s*\}/);
+  assert.equal(law?.[1], contract.graph_law_manifest_cid, 'the Graph law owner returns the exact current pin');
+  for (const source of [implementation, definitionImplementation]) {
+    assert.doesNotMatch(source, /\b(?:property_law_cid|admit_property_graph)\b/);
+    assert.ok(!source.includes(contract.sga_identity_law_manifest_cid));
+  }
   assert.notEqual(contract.graph_law_manifest_cid, contract.sga_identity_law_manifest_cid);
 });
 

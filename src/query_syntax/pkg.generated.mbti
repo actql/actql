@@ -84,6 +84,8 @@ pub fn set_part_count(Query) -> Int
 
 pub fn single_query_script(Query) -> QueryScript
 
+pub fn star_column_projection(Query, Projection, String) -> Projection
+
 pub fn starts_query(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
 
 pub fn starts_sql(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
@@ -126,6 +128,7 @@ pub(all) struct AnalyticFrame {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct AnalyticWindow {
+  reference : (NamePart, Int)?
   partition_by : Array[Expression]
   order_by : Array[SortTerm]
   frame : AnalyticFrame?
@@ -383,6 +386,7 @@ pub(all) struct Projection {
   name : NamePart?
   star : String?
   except_columns : Array[NamePart]
+  replacements : Array[StarReplacement]
 }
 
 type Query
@@ -415,6 +419,7 @@ pub(all) enum QueryOperation {
   Alias(NamePart)
   Group(Array[Expression], Array[Projection], GroupingScope)
   Having(Expression, Array[(NamePart, AggregateCall)])
+  Qualify(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
@@ -458,6 +463,13 @@ pub(all) struct SortTerm {
   expression : Expression
   direction : String
   nulls : String
+}
+
+pub(all) struct StarReplacement {
+  name : NamePart
+  expression : Expression?
+  aggregate : AggregateCall?
+  analytic : AnalyticCall?
 }
 
 pub struct Token {

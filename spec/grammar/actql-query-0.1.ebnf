@@ -41,7 +41,7 @@ cte_pipe      = "FROM", source, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call ;
 select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
                 [ where_clause ], [ group_clause ],
-                [ having_clause ] ;
+                [ having_clause ], [ qualify_clause ], [ window_clause ] ;
 pipe_query    = relation_pipe | graph_pipe ;
 relation_pipe = "FROM", source, { "|>", pipe_item } ;
 graph_pipe    = "FROM", "GRAPH", path, [ graph_labels ],
@@ -68,6 +68,7 @@ source        = path, [ source_alias ]
                 source_alias ;
 source_alias  = [ "AS" ], identifier ;
 join          = [ "INNER" | "LEFT", [ "OUTER" ]
+                | "RIGHT", [ "OUTER" ]
                 | "FULL", [ "OUTER" ] ],
                 "JOIN", source, ( "ON", expression
                 | "USING", "(", identifier, { ",", identifier }, ")" ),
@@ -77,10 +78,22 @@ join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
 group_clause  = "GROUP", "BY", expression, { ",", expression } ;
 having_clause = "HAVING", expression ;
+qualify_clause = "QUALIFY", expression ;
+window_clause = "WINDOW", window_definition, { ",", window_definition } ;
+window_definition = identifier, "AS", window_specification ;
+window_specification = identifier
+                     | "(", [ identifier ], [ partition_clause ],
+                       [ order_clause ], [ rows_frame ], ")" ;
+partition_clause = "PARTITION", "BY", expression, { ",", expression } ;
+rows_frame = "ROWS", "BETWEEN", frame_boundary, "AND", frame_boundary ;
+frame_boundary = "CURRENT", "ROW"
+               | limit_integer, ( "PRECEDING" | "FOLLOWING" ) ;
 select_list   = select_item, { ",", select_item } ;
-select_item   = "*", [ star_except ] | path, ".", "*"
+select_item   = ( "*" | path, ".", "*" ), [ star_except ], [ star_replace ]
               | expression, [ "AS", identifier ] ;
 star_except   = "EXCEPT", "(", identifier, { ",", identifier }, ")" ;
+star_replace  = "REPLACE", "(", expression, "AS", identifier,
+               { ",", expression, "AS", identifier }, ")" ;
 order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
 sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;

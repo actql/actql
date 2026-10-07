@@ -15,8 +15,10 @@ Current Graph support is classified only by the existing
 Blocked operations below point to typed refusal evidence, not successful
 execution. The shared public Host test derives its cases from that inventory
 and checks refusal before Run admission, acquisition I/O and dispatch. The
-retired `graph` constructor is refused; its replacement `graph` has
-its construction, resource and lifecycle evidence in that same inventory.
+legacy tuple-style constructor input remains refused; the current `graph`
+constructor has construction, resource and lifecycle evidence in that same
+inventory. Its pipeline entry below points to executed keyed construction,
+not the public unsupported-operation refusal cases.
 The current `node_rows` / `edge_rows` paths have finite presence-aware schema
 and executed Relation retention evidence. Only schema-guaranteed columns can
 be referenced normally; this does not complete conditional Result delivery.
@@ -41,7 +43,7 @@ be referenced normally; this does not complete conditional Result delivery.
 | calendar_bucket, calendar_series | src/calendar_typing/admission_test.mbt | src/pipeline_typing/calendar_test.mbt | scripts/event-schema.mjs |
 | events, vectors | src/carrier_projection/projection_test.mbt | src/pipeline_typing/bridge_audit_test.mbt | scripts/carrier-projection-schema.mjs |
 | node_rows, edge_rows | src/carrier_projection/graph_rows_test.mbt | src/query_integration/graph_rows_presence_wbtest.mbt | scripts/graph-schema.mjs |
-| graph | src/program_check/graph_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| graph | src/program_check/graph_public_test.mbt | src/query_integration/graph_construction_wbtest.mbt | scripts/graph-schema.mjs |
 | normalize_graph | src/program_check/graph_public_test.mbt | src/query_integration/graph_provider_custody_wbtest.mbt | scripts/graph-schema.mjs |
 | components | src/graph_typing/diagnostics_test.mbt | src/query_integration/graph_components_wbtest.mbt | scripts/graph-schema.mjs |
 | degree, graph_bounds | src/graph_typing/diagnostics_test.mbt | src/query_integration/graph_host_custody_wbtest.mbt | scripts/graph-schema.mjs |

@@ -273,17 +273,40 @@ test "SQL set operators keep explicit multiplicity and final ordering" {
 }
 
 ///|
-test "inline OVER syntax rejects unadopted windows and frame kinds" {
+test "OVER syntax rejects unknown windows and unsupported frame kinds" {
   for
     text in [
-      "SELECT ROW_NUMBER() OVER w AS pos FROM rows", "SELECT ROW_NUMBER() OVER (PARTITION BY id) AS pos FROM rows",
+      "SELECT ROW_NUMBER() OVER w AS pos FROM rows",
       "SELECT ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS pos FROM rows",
       "SELECT ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS pos FROM rows",
       "SELECT ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW EXCLUDE CURRENT ROW) AS pos FROM rows",
-      "SELECT ROW_NUMBER() OVER (ORDER BY id) AS pos FROM rows WINDOW w AS (ORDER BY id)",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
+}
+
+///|
+test "OVER syntax preserves partial specifications and unused WINDOW declarations" {
+  let parsed = parse_query(
+    "SELECT ROW_NUMBER() OVER (PARTITION BY id) AS pos FROM rows",
+    query_limits(),
+  ).unwrap()
+  guard operation_at(parsed, 0) is Some(Analytic(projections)) else {
+    fail("analytic operation")
+  }
+  let window = projections[0].analytic.unwrap().window
+  assert_eq(window.partition_by.length(), 1)
+  assert_eq(window.order_by.length(), 0)
+  assert_true(window.reference is None)
+  let unused = parse_query(
+    "SELECT ROW_NUMBER() OVER (ORDER BY id) AS pos FROM rows WINDOW w AS (ORDER BY id)",
+    query_limits(),
+  ).unwrap()
+  guard operation_at(unused, 0) is Some(Analytic(retained)) else {
+    fail("retained analytic operation")
+  }
+  assert_eq(retained[0].analytic.unwrap().window.order_by.length(), 1)
+  assert_eq(operation_count(unused), 2)
 }
 
 ///|
@@ -317,6 +340,7 @@ test "SQL JOIN retains qualifier and equality condition" {
     "SELECT l.a AS a, r.d AS d FROM left_rows l JOIN right_rows r ON l.a = r.c",
     query_limits(),
   ).unwrap()
+  assert_eq(join_part_at(implicit_alias, 0).unwrap().kind, "inner")
   assert_eq(
     relation_alias(implicit_alias),
     Some({ value: "l", quoted: false, }),
@@ -331,15 +355,48 @@ test "SQL JOIN retains qualifier and equality condition" {
   ).unwrap()
   assert_eq(join_part_count(piped), 1)
   assert_eq(join_part_at(piped, 0).unwrap().kind, "left")
+  assert_true(
+    parse_query(
+      "SELECT l.a FROM left_rows AS l JOIN right_rows AS r ON l.a > r.c",
+      query_limits(),
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "SQL RIGHT JOIN retains its source order aliases and equality condition" {
   for
     text in [
-      "SELECT l.a FROM left_rows AS l JOIN right_rows AS r ON l.a > r.c", "SELECT l.a FROM left_rows AS l RIGHT JOIN right_rows AS r ON l.a = r.c",
+      "SELECT l.a FROM left_rows AS l RIGHT JOIN right_rows AS r ON l.a = r.c", "SELECT l.a FROM left_rows AS l RIGHT OUTER JOIN right_rows AS r ON l.a = r.c",
     ] {
-    let parsed = parse_query(text, query_limits())
-    if text.contains("RIGHT JOIN") {
-      assert_true(parsed is Err(_))
-    } else {
-      assert_true(parsed is Ok(_))
+    let query = parse_query(text, query_limits()).unwrap()
+    assert_eq(relation(query), [{ value: "left_rows", quoted: false, }])
+    assert_eq(relation_alias(query), Some({ value: "l", quoted: false, }))
+    assert_eq(join_part_count(query), 1)
+    let part = join_part_at(query, 0).unwrap()
+    assert_eq(part.kind, "right")
+    assert_eq(part.relation, [{ value: "right_rows", quoted: false, }])
+    assert_eq(part.source_alias, Some({ value: "r", quoted: false, }))
+    let on = part.on.unwrap()
+    match expression_node(on, expression_root(on)).unwrap().kind {
+      Binary("=", left, right) => {
+        assert_eq(
+          expression_node(on, left).unwrap().kind,
+          Reference([
+            { value: "l", quoted: false, },
+            { value: "a", quoted: false, },
+          ]),
+        )
+        assert_eq(
+          expression_node(on, right).unwrap().kind,
+          Reference([
+            { value: "r", quoted: false, },
+            { value: "c", quoted: false, },
+          ]),
+        )
+      }
+      _ => fail("expected source-order qualified equality")
     }
   }
 }

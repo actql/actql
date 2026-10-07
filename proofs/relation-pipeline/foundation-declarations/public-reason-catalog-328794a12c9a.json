@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "public-reason-catalog-328794a12c9a",
+  "kind": "change",
+  "revision": "328794a12c9a000e749d32fc1b7594e359306677",
+  "parents": [
+    "b9e240caf119381b4b58fa721a301f2c528b1f18"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "b9e240caf119381b4b58fa721a301f2c528b1f18",
+          "digest": "8a61318eb57e661583f82dae2b1b0414702988df11b231c78f2ed123d4e2c64a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "884d396612288dab42b250667faa9010822c8a13d111cb32e131bc216b3d0537",
+      "afterMode": "100644",
+      "reason": "Register the actual generated catalog TypeScript consumer beside existing SDK consumers; no verifier, runtime semantics or prior foundation record is changed."
+    }
+  ]
+}

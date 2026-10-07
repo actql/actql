@@ -1,3 +1,4 @@
+import './generate-check-reason-catalog.test.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {test} from 'node:test';
@@ -36,8 +37,9 @@ test('schema and operation mutations invalidate generated Client–Host wire',
     assert.notEqual(buildClientHostWire(changed, protocol).types,
       original.types);
     changed.schemas.profile.properties.limits.properties.maxRows.type = 'number';
+    // Public finite fact numbers do not change Native's integer control limits.
     assert.throws(() => buildClientHostWire(changed, protocol),
-      /UnsupportedPublicationType/);
+      /UnsupportedNativeWireConstraintType:integer/);
     const changedState = structuredClone(protocol);
     changedState.artifact_schemas.run_state.properties.run_id.minLength = 2;
     assert.notEqual(buildClientHostWire(registry, changedState).module,
@@ -289,4 +291,28 @@ test('check protocol discriminants derive from the registered schema without ano
   assert.deepEqual(future.checkOutcomeProtocol.outcomes, ['completed', 'failed', 'unavailable', 'future_fixture']);
   additional.properties.version.const = 'different_fixture';
   assert.throws(() => buildClientHostWire(registry, changed), /InvalidCheckOutcomeDiscriminants/);
+});
+
+test('Requirement fact identities follow their referenced checked-contract schema', async () => {
+  const {applyCheckOutcomeSchema} = await import('./check-outcome-contract.mjs');
+  const changed = structuredClone(protocol);
+  changed.schemas.canonical_value_contract.title += '-independent-fixture';
+  applyCheckOutcomeSchema(changed);
+  assert.notEqual(changed.artifact_schema_cids.check_reason, protocol.artifact_schema_cids.check_reason);
+  assert.notEqual(changed.artifact_schema_cids.check_outcome, protocol.artifact_schema_cids.check_outcome);
+  assert.notEqual(buildClientHostWire(registry, changed).module, buildClientHostWire(registry, protocol).module);
+
+});
+
+test('Run observation vocabulary derives from the registered state schema', async () => {
+  const expected = ['preparing', 'running', 'waiting_checkpoint', 'resuming',
+    'needs_reconciliation', 'succeeded', 'failed', 'cancelled'];
+  const wire = await import('../packages/client-wire/index.mjs');
+  assert.deepEqual(wire.runStateProtocol, {version: 'actql-run-state/0.1', statuses: expected});
+  assert.ok(Object.isFrozen(wire.runStateProtocol.statuses));
+  const future = structuredClone(protocol);
+  future.artifact_schemas.run_state.properties.status.enum.push('future_state');
+  assert.match(buildClientHostWire(registry, future).module, /"cancelled","future_state"/);
+  future.artifact_schemas.run_state.properties.status.enum.push('future_state');
+  assert.throws(() => buildClientHostWire(registry, future), /InvalidRunStateDiscriminants/);
 });

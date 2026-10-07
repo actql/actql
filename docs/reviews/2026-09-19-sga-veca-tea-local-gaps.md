@@ -298,6 +298,26 @@ Existing portable predicate resource and stop fixtures remain the boundary
 evidence for the shared MATCH kernels. These cases do not certify every
 selector, projection or missing-property variant.
 
+### Immutable schema admission facts (2026-10-07)
+
+The common Relation Schema owner retains required-column and qualification
+facts already established during construction. Per-cell retained input, row
+measurement and wire readers now use constant-time fact access instead of
+rescanning all scoped fields. Presence remains independent of nullability;
+no caller array or restored serialized assertion may supply these facts.
+
+The wide 257-column corpus covers qualification/conditional combinations and
+detached array mutation. Existing bounded presence, input/snapshot and fixed
+schema CID regressions pass. The ordinary Graph-to-sparse-Relation Host fixture
+retains and reloads raw absence/NULL/long Text, reads producer/two-consumer
+Results and confirms stop before reclamation in filter/derive cancellation.
+Its Graph identity JSON cells now use the existing normative typed envelope in
+the independent public and snapshot expectations.
+
+General name lookup and binding preparation remain distinct residuals. See the
+[schema-facts record](2026-10-07-local-schema-admission-facts.md) for executed
+evidence and unverified performance/target/distribution coverage.
+
 ## Status interpretation (2026-09-28)
 
 The bounded receiving-input follow-up on 2026-10-07 retains long producer-name
@@ -308,6 +328,57 @@ and the ordinary retained Append/select/two-consumer Program have limited JS
 evidence. Existing Native source/census pins require G review before this unit
 is merge-ready; old receipts are not adopted as new-source evidence. See the
 [receiving-input record](2026-10-07-local-producer-read-preparation.md).
+The 2026-10-07 string aggregation follow-up replaces demanded delimiter/item
+whole-Text sizing and final join with the same finisher's scalar phases and
+existing exact-capacity StringBuilder. Original byte/control totals, raw data,
+unused-delimiter demand and empty-group NULL remain unchanged. Real retained
+Host producer/two-consumer reads and post-progress custody are required evidence,
+alongside exact work/capacity/workspace and four-phase stop fixtures. See the
+[string aggregation record](2026-10-07-local-string-aggregate-cursor.md).
+Initial row-map/name preparation, VM allocation costs and Native stop latency
+are not closed by this algorithmic unit; no all-Local completion is asserted.
+
+The 2026-10-07 raw Text follow-up connects Object child conversion and
+array_agg to the existing resumed Value recheck owner, preserves original byte
+charges/data spelling, and uses the existing ArrayBuilder without a final
+whole-array copy. The real retained Host fixtures read producer/two-consumer
+results and exercise post-progress custody. Exact work/live/workspace and both
+conversion-phase stops are required evidence. See the
+[Text child record](2026-10-07-local-text-child-admission.md). Initial row-map
+preparation, short-name collisions and AggregateString's synchronous scans/join
+remain separate; no all-Local completion is asserted.
+
+The 2026-10-07 constructed-Object follow-up now sizes and charges long member
+names through the existing frame and appends through the existing Value owner
+bound to immutable admitted contract names. The real retained Host harness
+constructs long-prefix members, verifies producer/two-consumer Results and
+delivers post-progress cancellation. Independent work/live/workspace and both
+name-phase cleanup proofs remain required. #681 and #683's Field-only source
+are adopted on main. The Object-name follow-up uses its own main-targeted PR
+on feat/local-object-name-cursor. See the
+[Object-name record](2026-10-07-local-object-name-cursor.md). Initial row-map
+preparation, short-name collision behavior and raw Text child conversion
+remain distinct residuals; no whole-Local completion is asserted.
+
+The dependent 2026-10-07 field-name follow-up now splits long authored Field
+charging and exact input lookup in the same expression frame, preserving
+prior-slot binding, successful work totals and caller-owned input custody.
+The retained public Program shares the existing property harness and verifies
+three independent Named Results plus delivered post-progress cancellation.
+Initial row-map construction, short-name collision behavior and Object
+construction-name measurement are not closed by this unit. See the
+[field-name record](2026-10-07-local-field-name-cursor.md). Its original
+unmerged-parent dependency was subsequently resolved by #681's main adoption.
+
+The 2026-10-07 property-name follow-up now resumes member-name UTF-8 charging
+and exact spelling comparison in the existing expression frame. The receiver
+root survives the scan, successful logical work and NULL semantics are
+unchanged, and name-budget failure still precedes invalid-member/type failure.
+Independent work/live/workspace limits and exact-phase cleanup are connected
+to derive evidence. A normal Program reads three real retained Named Results
+and receives delivered Host cancellation after positive compute progress.
+Field/Map lookup and Object construction-name scans remain separate. See the
+[property-name record](2026-10-07-local-property-name-cursor.md).
 
 This document contains chronological investigation notes as well as later
 closure evidence. The early strict-gate failures below are historical, not
@@ -6179,3 +6250,43 @@ fixtures and their actual public suite connection; full boundary completion is
 still not asserted. Broader physical accounting, remaining execution scans and
 unexecuted packed/target campaigns are not closed by this change. See the
 [record-emission evidence](2026-10-06-local-vector-record-emission.md).
+
+### Opaque JSON member-name runtime rechecks (2026-10-07)
+
+The common runtime recheck now retains long JSON member names across resumes,
+sharing the scalar-safe Text byte scan. This supersedes the earlier opaque
+JSON-name scanning residual; data spelling, including decomposed Unicode and
+CRLF, remains exact. Child and sibling continuations wait for the name to finish.
+
+The existing Relation Pool input owner reaches this cursor. Independent limits
+are 313/312 control, 67/66 startup workspace and 72/71 completed output workspace;
+quanta 1/7/256 and stopped cleanup retain the borrowed producer. An ordinary
+VALUES plus typed JSON literal Program publishes three independently expected
+Named Results through the real retained Store and accepts delivered cancellation
+at poll 256 inside a 513-unit JSON name without early stop or release.
+
+Preparation/schema and availability scans, legacy drains, runtime buffer
+assembly, aggregate physical byte custody and unexecuted target/packed
+campaigns remain distinct. See the
+[JSON-name record](2026-10-07-local-json-name-rechecks.md) for the fixed main,
+counterexample, fixture connection and verification limitations.
+
+### Indexed retained row snapshots (2026-10-07)
+
+The existing Relation owner no longer hashes every input spelling into a new
+Map per row. Indexed snapshots use the existing field-name expression cursor
+for wide/long-name inputs. Input, snapshot, output and capture name accounting
+now yields between scalars; atomic Value charges and borrowed input custody
+remain unchanged. Output-cell sources are cached with admitted metadata slots.
+Small-row exact budgets retain their existing bounded metadata footprint.
+
+A normal nine-field Values -> derive -> select Program publishes three
+independent Named Results through the real Store and delivers cancellation
+after positive fused-task progress. Common fixtures additionally stop inside
+each of the four name phases. The evidence gate requires these fixtures.
+
+Initial metadata/map preparation, sort/key setup, availability scans and the
+installed projected-read metadata ceiling remain separate. This is neither
+all-start boundedness nor Native physical capacity certification. See the
+[indexed row record](2026-10-07-local-indexed-row-snapshots.md) for the
+counterexample, independent budgets, public shape and unverified coverage.

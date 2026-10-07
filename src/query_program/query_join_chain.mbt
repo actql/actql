@@ -8,11 +8,30 @@ priv struct JoinChainScope {
 }
 
 ///|
-// GROUP consumes the complete joined row before SELECT. The projection-only
-// single-JOIN specialization cannot supply that scope or its HAVING values.
+// GROUP, star and DISTINCT projections need the shared joined-row scope.
+// DISTINCT ORDER expressions resolve after materialization, using evaluated
+// output aliases rather than the projection-only specialization's input scope.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
+  let mut has_full = false
+  for index in 0..<@query.join_part_count(query) {
+    let kind = @query.join_part_at(query, index).unwrap().kind
+    if kind == "right" {
+      return true
+    }
+    if kind == "full" {
+      has_full = true
+    }
+  }
   for index in 0..<@query.operation_count(query) {
-    if @query.operation_at(query, index) is Some(Group(_, _, _)) {
+    if @query.operation_at(query, index) is Some(Group(_, _, _) | Qualify(_, _)) {
+      return true
+    }
+    if @query.operation_at(query, index) is Some(Select(projections, distinct)) &&
+      (
+        projections.any(projection => projection.star is Some(_)) ||
+        // FULL retains its existing coalesced-key projection owner.
+        (distinct && !has_full)
+      ) {
       return true
     }
   }
@@ -183,22 +202,25 @@ fn compile_join_chain_steps(
       from = filtered
     }
     let keys = join_chain_keys(part, scope, qualifier, right_fields)
+    let reversed = part.kind == "right"
+    let left_side = if reversed { "right." } else { "left." }
+    let right_side = if reversed { "left." } else { "right." }
     let projected : Array[(String, @builder.Node)] = []
     // Qualified references keep both USING columns. Only the unqualified
     // visible row coalesces that key for the supported INNER/LEFT profiles.
     if index == 0 {
       for (field, slot) in visible {
-        projected.push((slot, construction.text("left." + field)))
+        projected.push((slot, construction.text(left_side + field)))
       }
     } else {
       for slot in physical {
         if !fields.contains(slot) {
-          projected.push((slot, construction.text("left." + slot)))
+          projected.push((slot, construction.text(left_side + slot)))
         }
       }
     }
     let right_range : Array[(String, String)] = []
-    let next_visible = if index == 0 {
+    let mut next_visible = if index == 0 {
       visible.copy()
     } else {
       scope.visible.copy()
@@ -207,15 +229,49 @@ fn compile_join_chain_steps(
       let slot = pipe_physical_name(physical, "aql_chain_column_")
       physical.push(slot)
       right_range.push((field, slot))
-      projected.push((slot, construction.text("right." + field)))
+      projected.push((slot, construction.text(right_side + field)))
       if !part.using_columns.any(name => {
           same_name(name, { value: field, quoted: false, })
         }) {
         next_visible.push((field, slot))
       }
     }
+    if !part.using_columns.is_empty() {
+      // USING keys lead the visible row in authored order. Qualified ranges
+      // retain both originals; RIGHT uses its preserved right key unqualified.
+      let merged : Array[(String, String)] = []
+      for name in part.using_columns {
+        if merged.any(entry => {
+            same_name(name, { value: entry.0, quoted: false, })
+          }) {
+          raise Abort(UnsupportedJoin)
+        }
+        guard pipe_slot(
+            [name],
+            if reversed {
+              right_range
+            } else {
+              next_visible
+            },
+            [],
+          )
+          is Some(slot) else {
+          raise Abort(AmbiguousColumn)
+        }
+        let display = next_visible.filter(entry => {
+            same_name(name, { value: entry.0, quoted: false, })
+          })[0].0
+        merged.push((display, slot))
+      }
+      next_visible = merged +
+        next_visible.filter(entry => {
+          !part.using_columns.any(name => {
+            same_name(name, { value: entry.0, quoted: false, })
+          })
+        })
+    }
     let body = [
-      ("with", construction.text(right.1)),
+      ("with", construction.text(if reversed { from } else { right.1 })),
       (
         "max_output_rows",
         construction.add(Number(authored_join_bound(part, limits).to_double())),
@@ -225,15 +281,23 @@ fn compile_join_chain_steps(
     let operation = if part.kind == "cross" {
       ("cross_join", construction.object(body))
     } else {
-      body.push(("kind", construction.text(part.kind)))
+      body.push(
+        ("kind", construction.text(if reversed { "left" } else { part.kind })),
+      )
       body.push(
         (
           "on",
           construction.array(
             keys.map(pair => {
               construction.object([
-                ("left", construction.text(pair.0)),
-                ("right", construction.text(pair.1)),
+                (
+                  "left",
+                  construction.text(if reversed { pair.1 } else { pair.0 }),
+                ),
+                (
+                  "right",
+                  construction.text(if reversed { pair.0 } else { pair.1 }),
+                ),
               ])
             }),
           ),
@@ -245,7 +309,7 @@ fn compile_join_chain_steps(
     reserved.push(joined)
     steps.push(
       construction.object([
-        ("from", construction.text(from)),
+        ("from", construction.text(if reversed { right.1 } else { from })),
         operation,
         ("as", construction.text(joined)),
       ]),
@@ -375,11 +439,16 @@ fn compile_join_chain_query(
       if index > 0 {
         let part = @query.join_part_at(query, index - 1).unwrap()
         let count = join_values_rows(input).to_int64()
-        let factor = if part.kind == "left" && count == 0L { 1L } else { count }
-        if factor != 0L && bound > 9007199254740991L / factor {
+        let factor = if part.kind == "right" && bound == 0L {
+          1L
+        } else {
+          bound
+        }
+        let count = if part.kind == "left" && count == 0L { 1L } else { count }
+        if count != 0L && factor > 9007199254740991L / count {
           raise Abort(UnsupportedJoin)
         }
-        bound *= factor
+        bound = factor * count
         if limits.max_join_output_rows < 1L ||
           bound > limits.max_join_output_rows {
           raise Abort(UnsupportedJoin)

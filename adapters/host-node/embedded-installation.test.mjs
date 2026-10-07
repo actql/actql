@@ -22,6 +22,7 @@ import './public-distinct-value-retention.test.mjs';
 import './public-expression-comparison-retention.test.mjs';
 import './public-text-functions.test.mjs';
 import './public-aggregate-filter-reuse.test.mjs';
+import './public-star-replace-order.test.mjs';
 import './public-pool-key-retention.test.mjs';
 import './public-vector-record-retention.test.mjs';
 import './public-nearest-key-retention.test.mjs';
@@ -30,6 +31,7 @@ import './public-ranking-key-retention.test.mjs';
 // Public binding-row retention, real Store reload and post-progress stop.
 import './public-binding-retention.test.mjs';
 import './public-producer-read-preparation.test.mjs';
+import './public-property-name-retention.test.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {installedEffectIdentity} from './installed-effect.mjs';

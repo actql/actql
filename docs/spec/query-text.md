@@ -97,10 +97,37 @@ star. They do not restore a removed column or range alias. In SQL GROUP
 queries, the retained star columns must be grouped; excluded columns need not
 be grouped. A GROUP BY ordinal counts the expanded, excluded SELECT list in
 its final order. CTE and DATA relations use their current declared columns.
-Existing restrictions on direct Graph star and unsupported JOIN star remain
-explicit implementation gaps. Qualified or expression star and REPLACE are
-separate unconnected coverage; this exclusion connection does not establish
-their execution support or restrict their adopted GoogleSQL meanings.
+`alias.*`, including an EXCEPT list, expands an existing Relation range alias
+in its declared column order. The receiver is a source Reference with ordinary
+alias quotation/name resolution, not a string interpreted as a schema. SQL,
+Pipe, CTE and JOIN ranges share the same physical-slot scope. SET/DROP/RENAME
+retain the bound range's original values; Pipe AS replaces that range. SELECT
+materialization ends its input range scope, while a deferred query ORDER may
+still consume the admitted SELECT input snapshot before that materialization.
+SQL GROUP ordinals count the expanded and excluded range columns, and every
+retained star column must be grouped. LEFT JOIN nullability belongs to the
+common joined schema. A missing or displaced range is refused, including a
+star that would otherwise appear to be an identity projection. The selected
+[GoogleSQL star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
+also permits expression/STRUCT receivers. Those broader receivers remain
+unconnected coverage; they are not reinterpreted as Relation ranges.
+Direct Graph star and FULL JOIN chains retain explicit implementation gaps,
+not restrictions of the selected reference. Supported INNER/LEFT/RIGHT/CROSS
+joins expand unqualified star from their complete current visible row.
+
+`SELECT * REPLACE (expression AS column, ...)`, also following a supported
+range star and EXCEPT list, changes selected values/types while retaining the
+star's column names and order. Every target must occur exactly once in the
+retained star list; exclusions are applied before replacement, and duplicate
+targets are refused under ordinary field-name resolution. The expressions all
+see the same SELECT input snapshot, rather than earlier replacement values.
+Expansion yields ordinary projections and reuses their checker, GROUP/HAVING,
+analytic and ORDER semantics. A new output alias refers to its evaluated slot;
+qualified input references still denote the input snapshot where that scope is
+available. GROUP ordinals count the final expanded SELECT list. No replacement
+constructs type, identity, uniqueness or order evidence. The
+[GoogleSQL star REPLACE clause](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_replace)
+is distinct from the scalar STRING function of the same spelling.
 
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
 parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
@@ -130,8 +157,8 @@ references and clause scope are preserved. Replacement is literal,
 case-sensitive, non-overlapping and left-to-right; an empty search leaves the
 original value unchanged. Any SQL NULL operand produces SQL NULL. No Unicode
 or line-ending normalization is implicit. The STRING overload is connected;
-BYTES and explicit collation remain separate coverage gaps. This function does
-not implement the independent SELECT star REPLACE clause.
+BYTES and explicit collation remain separate coverage gaps. The scalar function
+is independent of the SELECT star REPLACE clause described above.
 
 In the implemented inline `OVER` profile, `PARTITION BY` accepts ordinary
 row-dependent expressions, including comparisons, CASE and supported scalar
@@ -189,8 +216,50 @@ LIMIT/OFFSET is removed to admit a statistical call.
 
 ## Scope and lowering
 
+SQL `QUALIFY boolean_expression` filters the evaluated inline-window outputs
+after WHERE, grouping/HAVING and analytic computation, before final DISTINCT,
+ORDER and LIMIT/OFFSET. At least one window function must occur in SELECT or
+QUALIFY. Only TRUE retains a row; FALSE and SQL NULL discard it. Calls in
+QUALIFY use the same supported inline OVER signatures and common analytic
+contract as SELECT; their private output slots are omitted from Result fields.
+Window calls need not appear in SELECT. Group aggregates inside the condition
+use the ordinary grouped input and aggregate checking rather than a separate
+query evaluator. Broader OVER signatures remain existing profile gaps. This follows the selected
+[GoogleSQL QUALIFY clause](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#qualify_clause).
+
+SQL `WINDOW name AS specification, ...` declares query-local window
+specifications. `OVER name` and `OVER (name ...clauses...)` resolve against
+that SELECT's declarations and lower to the same ordinary analytic operation
+as an inline specification. Declarations can inherit only earlier declarations;
+name lookup is case-insensitive, including backtick names. Duplicates, unknown
+references, forward references and cycles are refused without falling back to
+a Relation or DATA producer. CTEs, derived tables and set operands each have
+their own window scope. The specifications do not create execution slots,
+acquire data, or add a storage boundary.
+
+Inheriting a window forbids a new PARTITION BY; an inherited ORDER BY cannot
+be replaced or repeated. A specification that inherits a frame cannot add
+ORDER BY or another frame. Plain aliases retain the inherited frame. Names
+inside partition/order/frame expressions continue to use SELECT's input
+snapshot, never its output aliases. Missing ordering, frame and signature
+support remains subject to the current common analytic contract; naming a
+window does not add RANGE, unbounded frames or default aggregate frames.
+Unused declarations are checked for declaration conflicts but do not execute
+their expressions. These rules follow
+[GoogleSQL named windows](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls#rules_for_using_a_named_window_in_the_window_specification)
+and the selected resolver's declaration flattening. Parsed operation snapshots
+copy mutable window/aggregate lists and cannot mutate the admitted syntax owner.
+
+QUALIFY resolves SELECT aliases to their evaluated slots before same-name
+inputs. Qualified input references retain their input meaning. A scalar alias
+needed by the condition is evaluated once against SELECT's input snapshot and
+reused by final projection; unrelated scalar projections are evaluated after
+the condition. No alias is made visible inside its own or a sibling SELECT
+expression, or inside an OVER specification. Ordinary Boolean and aggregate
+typing, failure, capacity and parameter rules remain common-owner decisions.
+
 `WHERE` and siblings in one SELECT list see the input snapshot, not aliases
-introduced by that list. In `GROUP BY`, `HAVING` and the query's final
+introduced by that list. In `GROUP BY`, `HAVING`, `QUALIFY` and the query's final
 `ORDER BY`, a visible SELECT alias takes precedence over an input column of
 the same name. Duplicate aliases, qualified references and aggregate
 visibility still undergo their own ambiguity and validity checks. Names in
@@ -220,6 +289,30 @@ publication. A selected expression is evaluated once; resolving an alias must
 not duplicate its evaluation, failures or resource accounting. Unqualified
 joined fields must be unique. `USING` exposes one coalesced key for FULL JOIN
 and does not invent an arbitrary representative row.
+
+For the supported shared INNER/LEFT/RIGHT JOIN scope, USING columns lead an
+unqualified star in the authored USING order, followed by remaining left then
+right columns. INNER/LEFT use the left key; RIGHT uses the preserved right
+key. Qualified input ranges keep their own original column names/order and
+values, including nullable unmatched-side keys. Duplicate USING names are
+refused under ordinary case-insensitive field lookup. Star/EXCEPT/REPLACE and
+later projections still produce unique Named Result fields; duplicate public
+names are refused rather than silently renamed or discarded. All expansion
+uses existing slot/type/NULL/identity checks, not schema or evidence inference.
+
+`RIGHT [OUTER] JOIN` uses the existing common LEFT JOIN after exchanging
+input ports and equality-key sides. Projection keeps the original SQL range
+names and column meanings: unmatched original-left columns become nullable,
+while the original right side is preserved. Explicit MAX_OUTPUT_ROWS and
+pre-/post-join predicates retain their original logical boundary. RIGHT USING
+exposes the preserved right key unqualified; qualified left/right keys remain
+distinct. Its visible USING columns lead the row in authored USING order,
+followed by remaining left then right columns. Normal checked projection,
+nullability, ordering and output-name rules remain in force, including explicit
+refusal when a public Result cannot represent duplicate field names. No second
+join implementation, source re-acquisition or evidence fabrication is added.
+The selected [GoogleSQL RIGHT JOIN](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#right_outer_join)
+is a logical outer join, not a new placement or authorization instruction.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
 body, named FROM/JOIN subquery and parenthesized query operand use the same

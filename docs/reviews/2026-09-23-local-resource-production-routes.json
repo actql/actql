@@ -1486,6 +1486,83 @@
           "fixture": "ordinary Local derive resumes within quantum and preserves row order"
         },
         {
+          "role": "derive_property_name_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/property_name_cursor_wbtest.mbt",
+          "fixture": "property name cursor retains exact successful accounting and root bounds"
+        },
+        {
+          "role": "derive_property_name_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/property_name_cursor_wbtest.mbt",
+          "fixture": "property name cursor preserves NULL refusal precedence and stop custody"
+        },
+        {
+          "role": "derive_field_name_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/field_name_cursor_wbtest.mbt",
+          "fixture": "field name cursor preserves exact work workspace and NULL boundaries"
+        },
+        {
+          "role": "derive_field_name_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/field_name_cursor_wbtest.mbt",
+          "fixture": "field name cursor keeps missing binding precedence and borrowed input on stop"
+        },
+        {
+          "role": "derive_object_name_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/object_name_cursor_wbtest.mbt",
+          "fixture": "constructed object names preserve exact work live and workspace bounds"
+        },
+        {
+          "role": "derive_indexed_snapshot_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/indexed_snapshot_wbtest.mbt",
+          "fixture": "indexed expression input preserves NULL missing and wide-row work bounds"
+        },
+        {
+          "role": "derive_row_name_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/indexed_snapshot_wbtest.mbt",
+          "fixture": "row name cursor preserves exact UTF8 budgets and atomic Value accounting"
+        },
+        {
+          "role": "derive_row_name_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/indexed_snapshot_wbtest.mbt",
+          "fixture": "retained row names stop in input snapshot output and capture phases"
+        },
+        {
+          "role": "derive_raw_text_child_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/raw_text_child_wbtest.mbt",
+          "fixture": "raw Text Object children retain independent work live and workspace bounds"
+        },
+        {
+          "role": "derive_raw_text_child_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/raw_text_child_wbtest.mbt",
+          "fixture": "raw Text Object validation and charge cancellation keep borrowed roots"
+        },
+        {
+          "role": "derive_object_name_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/object_name_cursor_wbtest.mbt",
+          "fixture": "Object name sizing and charging preserve roots through exact-phase cancellation"
+        },
+        {
           "role": "same_stage_values_derive_two_consumers",
           "suite": "moon:query_integration",
           "targets": [
@@ -1590,6 +1667,41 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "append-long-text-derive-select"
+        },
+        {
+          "role": "derive_property_name_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained property names publish NULL and deliver cancellation after progress"
+        },
+        {
+          "role": "derive_field_name_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained field names publish NULL and deliver cancellation after progress"
+        },
+        {
+          "role": "derive_object_name_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained constructed object names publish NULL and deliver cancellation after progress"
+        },
+        {
+          "role": "derive_indexed_snapshot_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained wide indexed snapshots preserve rows and post-progress custody"
+        },
+        {
+          "role": "derive_raw_text_child_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained raw Text Object children preserve data and post-progress custody"
         }
       ],
       "path_assurance": {
@@ -4854,6 +4966,27 @@
           "fixture": "wide group output is constructed one cell at a time with exact charges"
         },
         {
+          "role": "group_raw_text_array_limits_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/raw_text_child_wbtest.mbt",
+          "fixture": "array Text admission has exact limits transfer and stopped cleanup"
+        },
+        {
+          "role": "group_string_cursor_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/string_aggregate_cursor_wbtest.mbt",
+          "fixture": "string aggregation has independent UTF8 work capacity and buffer limits"
+        },
+        {
+          "role": "group_string_cursor_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/string_aggregate_cursor_wbtest.mbt",
+          "fixture": "string aggregation cancellation closes delimiter item charge and building phases"
+        },
+        {
           "role": "group_stepped_output_cleanup",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5490,6 +5623,20 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "captured-keyed-count-chain-in-flight"
+        },
+        {
+          "role": "group_raw_text_array_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained raw Text array aggregation preserves data and post-progress custody"
+        },
+        {
+          "role": "group_string_cursor_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained string aggregation preserves delimiters data and post-progress custody"
         }
       ],
       "path_assurance": {
@@ -13082,6 +13229,20 @@
           "fixture": "Relation Pool Object names retain independent limits and stop custody"
         },
         {
+          "role": "pool_json_name_limits_stop",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/pool_object_name_recheck_wbtest.mbt",
+          "fixture": "Relation Pool opaque JSON names retain independent limits and stop custody"
+        },
+        {
+          "role": "pool_json_name_shared_limits",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_json_names_wbtest.mbt",
+          "fixture": "opaque JSON name limits cancellation and surrogate boundaries stay exact"
+        },
+        {
           "role": "pool_object_name_shared_limits",
           "suite": "moon:value_admission",
           "targets": [
@@ -13507,6 +13668,13 @@
           ],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside typed Object name admission"
+        },
+        {
+          "role": "pool_json_name_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside opaque JSON name admission"
         },
         {
           "role": "pool_field_binding_public_store",
