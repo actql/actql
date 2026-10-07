@@ -49,7 +49,7 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     state.term_column.map(_ => 1).unwrap_or(0) +
     state.name_charge.map(_ => 1).unwrap_or(0) +
     state.watermark_times.length() + state.lag_values.length() +
-    state.json_path.map(a => a.length()).unwrap_or(0) +
+    state.json_path.map(@lower.json_pick_path_count).unwrap_or(0) +
     state.unique_keys.map(a => a.length()).unwrap_or(0)
   let measure_frames = state.charge_measure.map(c => c.frames.length()).unwrap_or(0) +
     state.sort_measure.map(c => c.frames.length()).unwrap_or(0) +

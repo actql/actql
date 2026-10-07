@@ -151,6 +151,21 @@ function generatedMetadataProgram(id,kind) {
   return value;
 }
 
+function borrowedJsonPathProgram(id) {
+  const value=generatedMetadataProgram(id,'json');
+  const path=['part','a'.repeat(128)+'😀é','leaf'];
+  let contract={type:'number',nullable:false},payload=7;
+  for(let index=path.length-1;index>=0;index--){
+    contract={type:'object',nullable:index===0,fields:{[path[index]]:contract}};
+    payload={[path[index]]:payload};
+  }
+  const source=value.stages[0].steps[0].values;
+  source.schema[member]=contract;
+  source.rows=[{id:1,[member]:payload},{id:2,[member]:null}];
+  value.stages[1].steps[0].json_pick.path=path;
+  return value;
+}
+
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
   valueContract={type:'number',nullable:true},producerTask=1){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
@@ -245,3 +260,5 @@ test('public retained lag metadata preserves generated roles and post-progress c
   {timeout:90_000},t=>verifyRetainedNames(t,'lag-metadata',
     id=>generatedMetadataProgram(id,'lag'),
     [{id:1,value:null},{id:2,value:95},{id:3,value:100}]));
+test('public retained borrowed JSON path preserves Unicode NULL and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'borrowed-json-path',borrowedJsonPathProgram));
