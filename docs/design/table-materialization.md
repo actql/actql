@@ -136,6 +136,16 @@ captured row count after release, without allowing another dispatch. Approval,
 current target authority, durable claims and Catalog reconciliation remain the
 existing apply owners' separate responsibilities.
 
+Recovered Table dispatch uses the same physical preparation and approved
+whole-set dispatch binder as live execution. The recovered input is read only
+through its exact capture/Store handle. Current process-local owners are
+rechecked synchronously after target observation and immediately before the
+durable dispatch claim; the recovered apply owner separately confirms physical
+holdings and current authorization. The immutable Table view itself is never
+used as an availability or permission getter. Terminal release also relinquishes
+the recovered Result/schema leases through the existing result owner; deleting
+durable capture records alone is not release of live prepared handles.
+
 Prepared request and captured input are retained by existing owners before any
 dispatch. Table staging, metadata publication and Table writes require approval
 and current write authority; pre-approval Table writes are zero. Retaining Run

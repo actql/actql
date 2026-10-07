@@ -8,9 +8,9 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {preparePinnedEffectSourceHoldings} from './effect-input-export.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
-import {capturedTableRecoveryRecord} from './table-capture-recovery.mjs';
+import {completedTableCaptureOptions} from './fixtures/table-completed-capture.mjs';
 import {issueCompletedEffectfulComputationEvidence,
-  storeCompletedRunResultSet, suspendCompletedEffectfulComputation,
+  suspendCompletedEffectfulComputation,
   retireCompletedEffectfulCapture} from '../host-common/completed-run-publication.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -156,30 +156,8 @@ for (const empty of [false, true]) {
         store: f.store, control, preview, invocation: context.runInvocation,
         resultArtifacts: f.sources.members.map(({payload}) => payload.localResultArtifact)});
       await retained.commit();
-      const storedResults = await storeCompletedRunResultSet({
-        // The source-export counter belongs to grouped source preparation.
-        // Named Result export is a separate existing owner in the same Store.
-        execution: f.execution, store: f.physicalStore, control,
-        runDefinition: context.runDefinition, invocation: context.runInvocation,
-        results: f.execution.resultInventory.map(() => ({retention: f.options.retention,
-          evidenceContext: {computationContractCid: cid('2'), inputRelationCids: [],
-            scopeCid: cid('3'), effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')}})),
-        outputLimits: f.outputLimits,
-        contractLimits: limits,
-      });
-      const normalizationJournal = control.sealRunEvidence('normalization_journal',
-        JSON.stringify({version: 'actql-normalization-journal/0.1',
-          rule_catalog_cid: cid('1'), entries: []}), limits);
-      const options = {execution: f.execution, store: f.physicalStore, storedResults, control,
-        admission: context.admission, runDefinition: context.runDefinition,
-        invocation: context.runInvocation, observation: context.observation,
-        normalizationJournal, authoringContext: authoring,
-        receiptEvidence: {bindings: [], sourceEvidence: [], modelEvidence: [],
-          barrierAttemptReceiptCids: []},
-        captureEvidence: {pendingSourceStateAdvances: [], modelEvidence: []},
-        preview, plans: [], effectSourceHoldings: retained.holdings,
-        connectorRecovery: [capturedTableRecoveryRecord({control,
-          tableInput: f.tableInput, tablePreview: f.tablePreview})], contractLimits: limits};
+      const options = await completedTableCaptureOptions({fixture: f, retained, preview});
+      const {storedResults} = options;
       let computation;
       let retirementStore = f.physicalStore;
       let storeClosed = false;

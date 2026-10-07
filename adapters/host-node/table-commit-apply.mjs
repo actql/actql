@@ -3,6 +3,8 @@
 // second approval/Run owner, or authority derived from operation content.
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
 import {readPinnedEffectTableInput} from './effect-input-export.mjs';
+import {readRecoveredTableInput, assertRecoveredTableInputAvailable}
+  from './table-capture-recovery.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {settleSavedTableCommit} from './table-commit-outcome.mjs';
 
@@ -30,6 +32,8 @@ export async function cleanupCapturedTableCommit({prepared, signal}) {
   if (!status.attempted) {
     // Preparation performed no Catalog I/O or file allocation. Invalidate
     // this unsent material rather than inventing a stopped-writer observation.
+    // A recovered operation may have earlier staging under another process:
+    // this result covers only this new preparation and deletes no such files.
     materials.delete(prepared);
     return Object.freeze({ok: true,
       result: Object.freeze({retained: false, pending: false, removed: 0})});
@@ -56,9 +60,37 @@ export async function prepareCapturedTableCommit({control, store, holding,
     holding.localResultArtifact, limits).wire);
   // Pure bounded preparation, before any durable send claim. No Catalog I/O.
   const physical = bridge.prepareWrite({operation, mapping, rows, reservation});
+  return retainMaterial({control, bridge, physical, tablePreview, binding,
+    operation, assertAvailable: () => {
+      if (control.tablePreviewInputAvailable(tablePreview) !== true) {
+        fail('UnavailableTableCommitInput');
+      }
+    }});
+}
+
+// A recovered content view never masquerades as a live Compute input. Its
+// exact capture/Store owners supply availability; common apply supplies the
+// current approval and durable dispatch claim before execute.
+export async function prepareRecoveredTableCommit({control, recoveredInput,
+  bridge, reservation, maxBytes, signal}) {
+  assertRecoveredTableInputAvailable(recoveredInput);
+  const {tablePreview, operationWire, mappingWire} = recoveredInput;
+  const binding = control.tablePreviewLedgerBinding(tablePreview);
+  if (binding.operationWire !== operationWire) fail('ForeignTableCommitInput');
+  const rows = await readRecoveredTableInput({prepared: recoveredInput, maxBytes, signal});
+  signal?.throwIfAborted();
+  assertRecoveredTableInputAvailable(recoveredInput);
+  const operation = JSON.parse(operationWire), mapping = JSON.parse(mappingWire);
+  const physical = bridge.prepareWrite({operation, mapping, rows, reservation});
+  return retainMaterial({control, bridge, physical, tablePreview, binding, operation,
+    assertAvailable: () => assertRecoveredTableInputAvailable(recoveredInput)});
+}
+
+function retainMaterial({control, bridge, physical, tablePreview, binding,
+  operation, assertAvailable}) {
   const prepared = Object.freeze({});
   materials.set(prepared, Object.freeze({control, bridge, physical,
-    tablePreview, memberIndex: binding.memberIndex,
+    tablePreview, assertAvailable, memberIndex: binding.memberIndex,
     operation, rowPreviewCid: binding.rowPreviewCid, requestCid: operation.request_cid,
     subjectCid: tablePreview.subjectCid}));
   return prepared;
@@ -91,15 +123,13 @@ export async function refreshCapturedTableTargets({prepared, preflight, signal})
       observedRows.push(material.rowPreviewCid);
       guardVersions.push(current.generation_cid);
     }
-    if (material.control.tablePreviewInputAvailable(material.tablePreview) !== true) {
-      fail('UnavailableTableCommitInput');
-    }
+    material.assertAvailable();
   }
   return Object.freeze({...preflight, observedRows: Object.freeze(observedRows),
     guardVersions: Object.freeze(guardVersions)});
 }
 
-// Called synchronously by applyCapturedEffectSet.bindDispatch only after its
+// Called synchronously by the live/recovered apply owner's bindDispatch after its
 // current-use checks and journal-authoritative approval. An account allow, a
 // copied decision or an approval of another sealed Set cannot send a Table.
 export function bindApprovedTableCommitDispatch({control, ledger, prepared,
@@ -130,9 +160,7 @@ export function bindApprovedTableCommitDispatch({control, ledger, prepared,
     if (rowIndex !== 0 || claim !== members[memberIndex]?.claims[0] ||
         material === undefined) fail('ForeignTableCommitDispatch');
     signal?.throwIfAborted();
-    if (control.tablePreviewInputAvailable(material.tablePreview) !== true) {
-      fail('UnavailableTableCommitInput');
-    }
+    material.assertAvailable();
     await captureClaimedEffectResponse({ledger, claim,
       requestCid: material.requestCid,
       execute: () => material.bridge.execute(material.physical,

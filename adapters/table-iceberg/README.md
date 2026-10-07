@@ -156,21 +156,33 @@ The same opaque preparation retains access to the managed process's stop facts
 and Catalog-fenced cleanup. A cleanup failure leaves it reachable for retry;
 committed files remain retained. Unsent pure material can be invalidated without
 claiming that a writer ran or allocating fictitious cleanup responsibility.
+Recovered input uses `prepareRecoveredTableCommit` over the opaque
+`prepareRecoveredTableInput` handle. It reuses the same physical material,
+target refresh and approved dispatch binder, without calling the live Compute
+availability getter. A synchronous check of the existing capture/Result owners
+after awaits and immediately before the Ledger claim rejects released input;
+physical custody confirmation remains with the existing read/apply owners.
+Invalidating a newly prepared, unsent recovery material deletes no files from
+an earlier uncertain operation and does not declare that operation cleaned up.
 
 The optional `table-approved-commit.test.mjs` uses an actual checked Program,
 capture, sealed Preview, signed approval, reopened Checkpoint service, two
 independent source-member holdings, managed Python process, real Catalog and
 the existing send-once Ledger. It checks no staging/commit before approval,
 one commit per member, empty/nonempty rows, Ledger reopen without resend and
-frozen generation reads after input holdings retire. Its installed target
+frozen generation reads after input holdings retire. The recovered variants
+add private capture, suspension of original source owners, Store/Ledger reopen,
+re-admission of original materials and `applyRecoveredEffectSet`; their terminal
+release also releases recovered schema leases. These are same-process owner
+reconstruction fixtures, not a proof of complete Host reconstruction. Its installed target
 Mapping is a fixture. It does **not** establish public Client installation,
-whole Host/Run reconstruction, origin Run release, a new Run's Table Source,
+whole Host/Run reconstruction, public origin Run release, a new Run's Table Source,
 approved replacement, lost-reply settlement through that installer, or packed
 Local/HTTPS coverage. Those are still required for the full task.
 
 ```sh
 ACTQL_TABLE_PYTHON=/absolute/path/to/.venv-table/bin/python \
 node scripts/local-checks.mjs test node --timeout-seconds 300 -- \
-  --test-name-pattern '^approved captured Table' \
+  --test-name-pattern '^approved recovered Table nonempty' \
   adapters/host-node/table-approved-commit.test.mjs
 ```
