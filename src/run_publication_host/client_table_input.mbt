@@ -167,18 +167,40 @@ pub fn bind_client_table_preview(
   preview : @strategy.CapturedEffectPreviewInputs,
   member_index : Int,
 ) -> Result[ClientTablePreview, ClientTableInputIssue] {
-  guard @strategy.captured_effect_preview_input_at(preview, member_index)
-    is Some(source) else {
-    return Err(Unavailable)
+  let authored_index = match input.artifact.source {
+    ResultSource(_, _) => {
+      guard @strategy.captured_effect_preview_input_at(preview, member_index)
+        is Some(source) else {
+        return Err(Unavailable)
+      }
+      let index = @strategy.captured_effect_input_member_index(source)
+      guard @strategy.captured_effect_input_at(input.artifact.inputs, index)
+        is Some(expected) &&
+        physical_equal(source, expected) else {
+        return Err(ForeignOwner)
+      }
+      index
+    }
+    TableSource(_, _) => {
+      guard @strategy.captured_effect_preview_table_input_at(
+          preview, member_index,
+        )
+        is Some(source) else {
+        return Err(Unavailable)
+      }
+      let index = @strategy.captured_effect_table_input_member(source)
+      guard @strategy.captured_effect_table_input_at(
+          input.artifact.inputs,
+          index,
+        )
+        is Some(expected) &&
+        physical_equal(source, expected) else {
+        return Err(ForeignOwner)
+      }
+      index
+    }
   }
-  let authored_index = @strategy.captured_effect_input_member_index(source)
-  guard @strategy.captured_effect_input_at(
-      input.artifact.inputs,
-      authored_index,
-    )
-    is Some(expected) &&
-    physical_equal(source, expected) &&
-    authored_index == input.identity.member_index else {
+  if authored_index != input.identity.member_index {
     return Err(ForeignOwner)
   }
   let identity = @strategy.captured_effect_preview_ledger_identity(preview)
@@ -223,8 +245,20 @@ pub fn client_table_preview_member_index(value : ClientTablePreview) -> Int {
 ///|
 /// Availability is a live fact and must be checked again at apply admission.
 pub fn client_table_preview_input_available(value : ClientTablePreview) -> Bool {
-  @strategy.captured_effect_preview_input_at(value.preview, value.member_index)
-  is Some(_)
+  match value.input.artifact.source {
+    ResultSource(_, _) =>
+      @strategy.captured_effect_preview_input_at(
+        value.preview,
+        value.member_index,
+      )
+      is Some(_)
+    TableSource(_, _) =>
+      @strategy.captured_effect_preview_table_input_at(
+        value.preview,
+        value.member_index,
+      )
+      is Some(_)
+  }
 }
 
 ///|

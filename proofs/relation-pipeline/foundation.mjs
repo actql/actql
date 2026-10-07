@@ -5,6 +5,7 @@ import { lstatSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { hash } from './inventory.mjs';
+import { populateFoundationTrees } from './foundation-trees.mjs';
 const sha = /^[0-9a-f]{40}$/;
 const digest = /^[0-9a-f]{64}$/;
 const id = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -150,6 +151,18 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     }
     return mergeBaseCache.get(revision);
   }
+  function verifyObjects(objects) {
+    const unchecked = [...new Set(objects)].filter(object => !verifiedObjects.has(object));
+    for (let offset = 0; offset < unchecked.length; offset += 256) {
+      const batch = unchecked.slice(offset, offset + 256);
+      const checked = git(['cat-file', '--batch-check'], { input: `${batch.join('\n')}\n` }).stdout.toString().trim().split('\n');
+      assert.equal(checked.length, batch.length, 'Incomplete foundation Git object check');
+      checked.forEach((line, index) => {
+        assert.match(line, new RegExp(`^${batch[index]} blob [0-9]+$`), 'Missing foundation Git blob');
+        verifiedObjects.add(batch[index]);
+      });
+    }
+  }
   function tree(revision) {
     if (!trees.has(revision)) {
       const output = git(['ls-tree', '-r', '-z', revision, '--', ...inspectedPaths, directory, supplementDirectory]).stdout.toString();
@@ -161,15 +174,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
         assert(type === 'blob' && ['100644', '100755'].includes(mode), `Non-regular foundation file ${path}`);
         entries.set(path, { mode, object });
       }
-      const unchecked = [...new Set([...entries.values()].map(entry => entry.object))].filter(object => !verifiedObjects.has(object));
-      if (unchecked.length) {
-        const checked = git(['cat-file', '--batch-check'], { input: `${unchecked.join('\n')}\n` }).stdout.toString().trim().split('\n');
-        assert.equal(checked.length, unchecked.length, 'Incomplete foundation Git object check');
-        checked.forEach((line, index) => {
-          assert.match(line, new RegExp(`^${unchecked[index]} blob [0-9]+$`), 'Missing foundation Git blob');
-          verifiedObjects.add(unchecked[index]);
-        });
-      }
+      verifyObjects([...entries.values()].map(entry => entry.object));
       trees.set(revision, entries);
     }
     return trees.get(revision);
@@ -182,6 +187,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     const entry = tree(revision).get(path);
     return { revision, digest: entry ? hash(bytes(entry)) : null, mode: entry?.mode ?? null };
   }
+  populateFoundationTrees({revisions, parents,
+    paths: [...inspectedPaths, directory, supplementDirectory], tree, trees, verifyObjects,
+    git: (args, input) => git(args, {input}).stdout});
   const immutableEntries = new Map(immutable.map(entry => {
     const expected = tree(entry.revision).get(entry.sourcePath ?? entry.path);
     assert(expected, `Missing immutable foundation Git object ${entry.path}`);

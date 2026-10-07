@@ -20,6 +20,8 @@ pub fn admit_captured_effect_source_from_capture(EffectPreviewIdentity, Int, Pub
 
 pub fn admit_captured_effect_source_from_result(EffectPreviewIdentity, Int, PublicationContract, PublicationContract, PublicationContract, String) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue]
 
+pub fn admit_captured_effect_source_from_table_input(EffectPreviewIdentity, Int, PublicationContract, PublicationContract, PublicationContract, String) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue]
+
 pub fn admit_captured_local_effect_source(CapturedEffectSourceArtifact, String, String, String, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[CapturedLocalEffectSourceEvidence, CapturedLocalEffectSourceIssue]
 
 pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
@@ -110,6 +112,8 @@ pub fn captured_effect_source_artifact_cid(CapturedEffectSourceArtifact) -> Stri
 
 pub fn captured_effect_source_holding_cid(CapturedEffectSourceArtifact) -> String
 
+pub fn captured_effect_source_inventory_from_artifacts_valid(EffectPreviewIdentity, Array[Int], Array[PublicationContract], Array[PublicationContract]) -> Bool
+
 pub fn captured_effect_source_inventory_from_capture_valid(EffectPreviewIdentity, Array[Int], Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Bool
 
 pub fn captured_effect_source_inventory_from_results_valid(EffectPreviewIdentity, Array[Int], Array[PublicationContract], Array[PublicationContract]) -> Bool
@@ -118,11 +122,15 @@ pub fn captured_effect_source_matches_preview(EffectPreviewIdentity, Int, Public
 
 pub fn captured_effect_source_matches_result_facts(CapturedEffectSourceArtifact, PublicationContract, String) -> Bool
 
+pub fn captured_effect_source_matches_table_input_facts(CapturedEffectSourceArtifact, PublicationContract, String) -> Bool
+
 pub fn captured_effect_source_recovery_inventory_valid(EffectPreviewIdentity, Array[Int], Array[PublicationContract]) -> Bool
 
 pub fn captured_effect_source_result_from_capture(EffectPreviewIdentity, Int, PublicationContract, CapturedEffectSourceArtifact, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn captured_effect_source_store_authority_cid(CapturedEffectSourceArtifact) -> String
+
+pub fn captured_effect_source_table_input_from_capture(EffectPreviewIdentity, Int, PublicationContract, CapturedEffectSourceArtifact, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn captured_local_effect_source_json(CapturedLocalEffectSourceEvidence, Int, Int, Int) -> String?
 
@@ -238,6 +246,8 @@ pub fn effect_preview_member_max_items(EffectPreviewIdentity, Int) -> Int64?
 
 pub fn effect_preview_member_plan_cid(EffectPreviewIdentity, Int) -> String?
 
+pub fn effect_preview_member_relation_source(EffectPreviewIdentity, Int) -> EffectPreviewRelationSource?
+
 pub fn effect_preview_member_resolved_contract(EffectPreviewIdentity, Int) -> EffectPreviewResolvedContract?
 
 pub fn effect_preview_member_resolved_contract_cid(EffectPreviewIdentity, Int) -> String?
@@ -247,6 +257,8 @@ pub fn effect_preview_member_result_artifact_cid(EffectPreviewIdentity, Int) -> 
 pub fn effect_preview_member_source_binding_cid(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_source_result(EffectPreviewIdentity, Int) -> String?
+
+pub fn effect_preview_member_source_table_input(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_ordered_row_correlation_wire(EffectPreviewIdentity, Int, Int) -> String?
 
@@ -296,6 +308,8 @@ pub fn effect_source_artifact_holding_cid(PublicationContract, String, String, S
 
 pub fn effect_source_artifact_preview_binding(PublicationContract, String, String, String) -> Result[(String, String), EffectSourceArtifactIssue]
 
+pub fn effect_table_input_artifact_preview_binding(PublicationContract, String, String, String) -> Result[(String, String), EffectSourceArtifactIssue]
+
 pub fn empty_initial_input_artifact_set_cid() -> String
 
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
@@ -341,6 +355,8 @@ pub fn issue_effect_row_outcome_receipt_from_response(EffectPreviewIdentity, Int
 pub fn issue_effect_set_apply_receipt_from_members(EffectPreviewIdentity, Array[PublicationContract], Array[Bool], Int, Int, Int) -> Result[PublicationContract, EffectSetApplyReceiptIssuanceIssue]
 
 pub fn issue_effect_source_artifact(PublicationContract, PublicationContract, String, String, String, String, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectSourceArtifactIssue]
+
+pub fn issue_effect_table_input_artifact(PublicationContract, PublicationContract, String, String, String, String, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectSourceArtifactIssue]
 
 pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
@@ -981,7 +997,7 @@ pub struct EffectPreviewIdentity {
   member_capability_evidence_cids : Array[String]
   member_authority_scope_cids : Array[String]
   member_effect_plan_cids : Array[String?]
-  member_source_results : Array[String?]
+  member_relation_sources : Array[EffectPreviewRelationSource?]
   member_result_artifact_cids : Array[String?]
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
@@ -1020,6 +1036,11 @@ pub(all) enum EffectPreviewIdentityIssue {
   AuthoringBindingMismatch
   AuthoringIdentityMismatch
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPreviewRelationSource {
+  Result(String)
+  TableInput(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum EffectPreviewResolvedContract {

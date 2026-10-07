@@ -93,7 +93,12 @@ fn json_file(
       max_depth: 32,
     }) {
     Ok(_) => @json.parse(text) catch { _ => stop("invalid JSON file " + name) }
-    Err(_) => stop("invalid JSON file " + name)
+    Err(error) =>
+      match error.issue {
+        InputLimit | NodeLimit | DepthLimit =>
+          stop("JSON file exceeds configured bounds " + name)
+        _ => stop("invalid JSON file " + name)
+      }
   }
 }
 
@@ -603,6 +608,8 @@ fn request_body(
           original_wire, maximum, 8192, 32,
         ) {
         Ok(value) => value
+        Err(@run_host.Limit) =>
+          stop("submitted intent exceeds configured bounds")
         Err(_) => stop("InvalidClientSubmittedIntent")
       }
       fields["intentCid"] = Json::string(

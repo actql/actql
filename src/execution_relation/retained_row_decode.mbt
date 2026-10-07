@@ -262,8 +262,26 @@ pub fn read_retained_relation_row(
   decode_limits : RetainedRowDecodeLimits,
   value_limits : ValueLimits,
 ) -> Result[AdmittedRelationRow, RetainedRowDecodeIssue] {
+  read_retained_relation_row_references(
+    schema, text, decode_limits, value_limits,
+  )
+}
+
+///|
+fn read_retained_relation_row_references(
+  schema : @schema.Schema,
+  text : String,
+  decode_limits : RetainedRowDecodeLimits,
+  value_limits : ValueLimits,
+  reference_cells? : Array[Array[@admitted.ReferenceValue]],
+) -> Result[AdmittedRelationRow, RetainedRowDecodeIssue] {
   let cells = match
-    decode_retained_presence_cells(schema, text, decode_limits) {
+    decode_retained_presence_cells(
+      schema,
+      text,
+      decode_limits,
+      reference_cells?,
+    ) {
     Ok(cells) => cells
     Err(issue) => return Err(issue)
   }
@@ -281,16 +299,29 @@ pub fn append_admitted_output_wire(
   text : String,
   limits : RetainedRowDecodeLimits,
 ) -> Result[Unit, AdmittedOutputWireIssue] {
+  append_admitted_output_wire_references(output, text, limits)
+}
+
+///|
+/// References are reissued only from the exact retained row's prior authority.
+/// Presence decoding cannot invent a missing cell or reference capability.
+fn append_admitted_output_wire_references(
+  output : AdmittedOutput,
+  text : String,
+  limits : RetainedRowDecodeLimits,
+  reference_cells? : Array[Array[@admitted.ReferenceValue]],
+) -> Result[Unit, AdmittedOutputWireIssue] {
   if !output.buffer.open || output.buffer.reading {
     return Err(Admission(ClosedCapture))
   }
   if !@schema.all_fields_required(output.buffer.schema) {
     let row = match
-      read_retained_relation_row(
+      read_retained_relation_row_references(
         output.buffer.schema,
         text,
         limits,
         output.buffer.budget.limits,
+        reference_cells?,
       ) {
       Ok(row) => row
       Err(issue) => {
@@ -302,7 +333,8 @@ pub fn append_admitted_output_wire(
       Admission(issue)
     })
   }
-  let values = match decode_retained_row(output.buffer.schema, text, limits) {
+  let values = match
+    decode_retained_row(output.buffer.schema, text, limits, reference_cells?) {
     Ok(value) => value
     Err(issue) => {
       cancel_admitted_output(output) |> ignore

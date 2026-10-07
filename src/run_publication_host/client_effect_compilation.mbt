@@ -168,8 +168,7 @@ pub fn issue_prepared_client_effect_compilation(
   )
   for index in 0..<count {
     guard @syntax.effect_header_at(headers, index) is Some(header) &&
-      @syntax.effect_header_stage(header) == units - 1 &&
-      @syntax.effect_header_source_result(header) is Some(_) else {
+      @syntax.effect_header_stage(header) == units - 1 else {
       return Err(UnsupportedProgram)
     }
     let name = @syntax.effect_header_id(header)
@@ -181,7 +180,7 @@ pub fn issue_prepared_client_effect_compilation(
     for source_index in 0..<@strategy.checked_effect_source_count(owner.graph) {
       guard @strategy.checked_effect_source_at(owner.graph, source_index)
         is Some(source) else {
-        return Err(UnsupportedProgram)
+        continue
       }
       if @strategy.checked_effect_source_member(source) == index &&
         @strategy.checked_effect_source_stage(source) == units - 1 {
@@ -190,6 +189,26 @@ pub fn issue_prepared_client_effect_compilation(
         }
         source_task = @strategy.checked_effect_source_task(source)
       }
+    }
+    // The same checked inventory owns both namespaces. A private Table input
+    // supplies an Effect root, never an ordinary Result or a send permission.
+    match @strategy.checked_effect_table_input_at(owner.graph, index) {
+      Some(source) => {
+        guard @syntax.effect_header_kind(header) == "store" &&
+          @syntax.effect_header_source_result(header) is None &&
+          @syntax.effect_header_source_table_input(header) is Some(_) &&
+          @strategy.checked_effect_table_input_member(source) == index &&
+          @strategy.checked_effect_table_input_stage(source) == units - 1 &&
+          source_task < 0 else {
+          return Err(UnsupportedProgram)
+        }
+        source_task = @strategy.checked_effect_table_input_task(source)
+      }
+      None =>
+        if @syntax.effect_header_source_result(header) is None ||
+          @syntax.effect_header_source_table_input(header) is Some(_) {
+          return Err(UnsupportedProgram)
+        }
     }
     if source_task < 0 {
       return Err(UnsupportedProgram)

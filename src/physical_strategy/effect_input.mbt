@@ -14,8 +14,10 @@ struct CapturedEffectInput {
 struct CapturedEffectInputs {
   run : CapturedEffectRunDAG
   entries : Array[CapturedEffectInput?]
+  table_entries : Array[CapturedEffectTableInput?]
   local_results : Array[CapturedEffectLocalResult]
   pins : CapturedAnyResultOutputSet
+  table_pins : CapturedTableInputOutputSet
   mut live : Bool
 }
 
@@ -84,6 +86,34 @@ pub fn pin_captured_effect_sources(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let table_requests : Array[(Int, @execution.ManagedTableInputOccurrence)] = []
+  for source in run.checked.computation.table_sources {
+    if source is Some(source) {
+      table_requests.push((source.task, source.occurrence))
+    }
+  }
+  let table_pins = match
+    pin_captured_table_input_output_set(run.captured, table_requests, max_pins) {
+    Ok(value) => value
+    Err(issue) => {
+      release_captured_any_result_output_set(pins) |> ignore
+      return Err(issue)
+    }
+  }
+  let table_entries : Array[CapturedEffectTableInput?] = []
+  let mut table_index = 0
+  for source in run.checked.computation.table_sources {
+    match source {
+      Some(source) => {
+        let borrow = captured_table_input_output_set_borrow_at(
+          table_pins, table_index,
+        ).unwrap()
+        table_entries.push(Some({ source, borrow, }))
+        table_index += 1
+      }
+      None => table_entries.push(None)
+    }
+  }
   let entries : Array[CapturedEffectInput?] = []
   let mut pin_index = 0
   for source in sources {
@@ -108,7 +138,15 @@ pub fn pin_captured_effect_sources(
       ).unwrap(),
     })
   }
-  Ok({ run, entries, local_results, pins, live: true, })
+  Ok({
+    run,
+    entries,
+    table_entries,
+    local_results,
+    pins,
+    table_pins,
+    live: true,
+  })
 }
 
 ///|
@@ -158,23 +196,44 @@ pub fn checked_effect_preview_source_indexes(
       return Err(ForeignCandidate)
     }
     let source = run.computation.sources.get(index).bind(value => value)
-    let expected = @publication.effect_preview_member_source_result(
+    let table = run.computation.table_sources.get(index).bind(value => value)
+    let expected = @publication.effect_preview_member_relation_source(
       identity, preview_index,
     )
-    match source {
-      Some(source) => {
+    match (source, table) {
+      (Some(source), None) => {
         if expected !=
-          Some(@execution.managed_result_occurrence_name(source.occurrence)) {
+          Some(
+            @publication.Result(
+              @execution.managed_result_occurrence_name(source.occurrence),
+            ),
+          ) {
           return Err(ForeignCandidate)
         }
         indexes.push(Some(index))
       }
-      None => {
+      (None, Some(table)) => {
+        if expected !=
+          Some(
+            @publication.TableInput(
+              @ports.table_input_name(
+                @execution.managed_table_input_occurrence_definition(
+                  table.occurrence,
+                ),
+              ),
+            ),
+          ) {
+          return Err(ForeignCandidate)
+        }
+        indexes.push(Some(index))
+      }
+      (None, None) => {
         if expected is Some(_) {
           return Err(ForeignCandidate)
         }
         indexes.push(None)
       }
+      _ => return Err(ForeignCandidate)
     }
   }
   Ok(indexes)
@@ -202,13 +261,27 @@ pub fn bind_captured_effect_preview_inputs(
   }
   for index in indexes {
     if index is Some(index) {
-      guard inputs.entries.get(index).bind(value => value) is Some(input) &&
-        captured_any_result_borrow_available(input.borrow) else {
+      if !captured_effect_source_available(inputs, index) {
         return Err(NotReady)
       }
     }
   }
   Ok({ preview, inputs, source_indexes: indexes, })
+}
+
+///|
+fn captured_effect_source_available(
+  inputs : CapturedEffectInputs,
+  index : Int,
+) -> Bool {
+  match
+    (
+      captured_effect_input_at(inputs, index),
+      captured_effect_table_input_at(inputs, index),
+    ) {
+    (Some(_), None) | (None, Some(_)) => true
+    _ => false
+  }
 }
 
 ///|
@@ -251,6 +324,29 @@ pub fn captured_effect_preview_input_at(
 }
 
 ///|
+/// The private source retains the same checked index and capture owner, but
+/// cannot be borrowed through the ordinary Result accessor.
+pub fn captured_effect_preview_table_input_at(
+  value : CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> CapturedEffectTableInput? {
+  value.source_indexes
+  .get(preview_index)
+  .bind(index => {
+    index.bind(index => captured_effect_table_input_at(value.inputs, index))
+  })
+}
+
+///|
+fn captured_effect_preview_source_available(
+  value : CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> Bool {
+  value.source_indexes.get(preview_index).bind(index => index) is Some(index) &&
+  captured_effect_source_available(value.inputs, index)
+}
+
+///|
 pub(all) enum CapturedEffectPlanIssue {
   InvalidMember
   NotReady
@@ -278,9 +374,6 @@ pub fn captured_effect_preview_plan_terminal(
     return Err(InvalidMember)
   }
   guard source_index is Some(member_index) else { return Ok(None) }
-  guard captured_effect_preview_input_at(value, preview_index) is Some(input) else {
-    return Err(NotReady)
-  }
   let static_candidate = @checked.effect_program_run_static_candidate(
     value.inputs.run.checked.run,
   )
@@ -289,8 +382,31 @@ pub fn captured_effect_preview_plan_terminal(
       @results.effect_static_candidate_results(effects),
       member_index,
     )
-    is Some(binding) &&
-    input.source.member_index == member_index else {
+    is Some(binding) else {
+    return Err(ForeignBinding)
+  }
+  if captured_effect_preview_table_input_at(value, preview_index) is Some(table) {
+    // Whole-Relation Store has its own checked operation proposal, not the
+    // ordinary correlated row-plan terminal. Keep its actual input pinned.
+    guard table.source.member_index == member_index &&
+      @syntax.effect_header_kind(@results.effect_result_binding_header(binding)) ==
+      "store" &&
+      @results.effect_result_binding_result(binding) is None &&
+      @results.effect_result_binding_table_input(binding) is Some(definition) &&
+      physical_equal(
+        definition,
+        @execution.managed_table_input_occurrence_definition(
+          table.source.occurrence,
+        ),
+      ) else {
+      return Err(ForeignBinding)
+    }
+    return Ok(None)
+  }
+  guard captured_effect_preview_input_at(value, preview_index) is Some(input) else {
+    return Err(NotReady)
+  }
+  if input.source.member_index != member_index {
     return Err(ForeignBinding)
   }
   if @syntax.effect_header_kind(@results.effect_result_binding_header(binding)) ==
@@ -338,7 +454,7 @@ pub fn check_captured_effect_preview_target_guards(
   }
   for index in 0..<value.source_indexes.length() {
     if value.source_indexes[index] is Some(_) &&
-      captured_effect_preview_input_at(value, index) is None {
+      !captured_effect_preview_source_available(value, index) {
       return Err(NotReady)
     }
   }
@@ -374,7 +490,7 @@ pub fn captured_effect_preview_inputs_available(
   }
   for index in 0..<value.source_indexes.length() {
     if value.source_indexes[index] is Some(_) &&
-      captured_effect_preview_input_at(value, index) is None {
+      !captured_effect_preview_source_available(value, index) {
       return false
     }
   }
@@ -658,6 +774,10 @@ pub fn close_captured_effect_source_port(
   if !value.live {
     return false
   }
+  if captured_effect_table_input_at(value, member_index) is Some(input) {
+    close_captured_task_output(value.run.captured, input.source.task)
+    return true
+  }
   guard value.entries.get(member_index).bind(entry => entry) is Some(input) &&
     captured_any_result_borrow_available(input.borrow) else {
     return false
@@ -688,14 +808,22 @@ pub fn captured_effect_input_at(
 
 ///|
 /// Two members may consume one canonical row stream only when their checked
-/// Result port, owner, name, and physical producer are the same. Their
-/// publication occurrences remain distinct even when this view is shared;
+/// Result port or private Table declaration, owner and physical producer are
+/// the same. The two namespaces never share a view. Their
+/// consumer occurrences remain distinct even when this view is shared;
 /// equal names or CIDs alone cannot substitute for the owner comparison.
 pub fn captured_effect_inputs_share_view(
   value : CapturedEffectInputs,
   first_index : Int,
   second_index : Int,
 ) -> Bool {
+  if captured_effect_table_input_at(value, first_index) is Some(first) {
+    guard captured_effect_table_input_at(value, second_index) is Some(second) else {
+      return false
+    }
+    return first.source.task == second.source.task &&
+      captured_table_input_borrows_share_view(first.borrow, second.borrow)
+  }
   guard captured_effect_input_at(value, first_index) is Some(first) &&
     captured_effect_input_at(value, second_index) is Some(second) else {
     return false
@@ -724,6 +852,7 @@ pub fn release_captured_effect_inputs(value : CapturedEffectInputs) -> Bool {
   }
   value.live = false
   release_captured_any_result_output_set(value.pins) |> ignore
+  release_captured_table_input_output_set(value.table_pins) |> ignore
   true
 }
 
