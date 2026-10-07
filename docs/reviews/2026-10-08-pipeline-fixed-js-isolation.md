@@ -179,3 +179,67 @@ resolution; inherited declaration/receipt bytes are retained. Only the new
 implementation and its precise ten-path change declaration remain relative to
 current main. Actual history and the complete fixed image campaign are still
 required before acceptance; no Actions original or savings are inferred.
+
+## Complete local physical acceptance
+
+At clean `b7a6926588b03251d95df2f2f049dc7901355163`, the same local command
+completed both actual finite campaigns (guard `run-y6z2HR`): 12 normal and
+12 image originals. Each campaign detected the four anchored mutants, passed
+their independent pristine observations, restored original bytes, closed its
+original owners and passed the same mutable source/build root with a new owner.
+The final consumer reconstructed actual mutation bytes and validated the raw
+receipt/input/log/fixture/Program grounds. Scientific observations agree after
+removing only invocation IDs; their digest is
+`5f2a6f58250923d7a3ba28e19dfb47c50033a21b22169208964a028bf5910a9e`.
+
+Image
+`sha256:785d418300c712d75a7ee63f67b863d397e57fcea81441d40236c04fe9810da7`
+contained 7,149 observed root entries. All four installed-core build-owner
+metadata files were physically absent. Actual read-only root, startup, declared
+environment/platform/root inputs and unchanged source checks passed. The
+executor authenticated its owned container/image before cleanup; the enclosing
+guard completed successfully and released its locks. No inherited credentials,
+network access or host mounts were present in the actual scratch executor.
+
+All 13 altered evidence copies were refused: missing execution/restoration,
+wrong target/phase/owner, old restoration owner, changed source/log/input/Program,
+replaced anchor, re-sealed erased detection and reuse promotion. These are
+consumer-refusal experiments. There were four real mutations in each actual
+campaign, not 13 physical mutations.
+
+| Observed interval | Normal (ms) | Isolated (ms) |
+| --- | ---: | ---: |
+| Mutated replay total | 246217 | 253005 |
+| Pristine replay total | 127647 | 106129 |
+| New-owner post-restoration replay total | 91209 | 93035 |
+| Complete normal campaign / complete isolated execution | 496,256 | 513,005 |
+
+Separate observations: image input preparation 50,052 ms, normal source
+preparation 1,855 ms, image build 18,398 ms, host input verification 1,228 ms,
+final image inspection 3,369 ms and authenticated executor close 807 ms.
+Enclosing elapsed time was 1,094,166 ms (about 18m14s), including preparation,
+normal work, transport, image execution, repeated final consumers and cleanup.
+Rows are nested intervals and are not summed into another wall-clock claim.
+They establish this finite acceptance's actual costs, not a calibrated speedup,
+Actions reuse qualification or inclusive net CI savings.
+
+The exact raw originals (no SHA/receipt rewriting) are published below.
+
+| Archive in `evidence/` | Raw bytes | Raw SHA-256 |
+| --- | ---: | --- |
+| `2026-10-08-local-isolated-pipeline-fixed-js-b7a692658.json.gz` | 11636272 | `4c1fa01de96ea6379f0177d1a619dce68ac368611edf6e929d7ca76a064b528b` |
+| `2026-10-08-pipeline-fixed-js-normal-b7a692658.json.gz` | 7152574 | `002b8069785baeb3b2c2ccce69adbc555205485cc18cbe4bd9dd8c542488c232` |
+| `2026-10-08-pipeline-fixed-js-guard-b7a692658.json.gz` | 5056 | `8d5cb6e8cdd8f3135dc095cf58379d563d9b1f36185d59c1a95471132d2719ca` |
+
+`proofs/ci-evidence/pipeline-fixed-js-replay.test.mjs` reconsumes these actual
+originals through the runtime/image/entrypoint/source/owner and strong phase
+consumer. Its first working-change diagnostic passed 10/10 (`run-Ax5V1m`,
+`focused-test-XcBext`), including re-sealed Program replacement, re-sealed erased
+detection, original preservation, normal/image scientific agreement, metadata
+exclusion and refusal of full-part/Session/Actions promotion. Current committed
+consumer execution and actual retained-history validation follow separately.
+
+The earlier incomplete timeout and execution-before-lock refusals remain
+separate diagnostics. They are not counted among these accepted originals.
+Hosted full pipeline, exploration, other targets, Actions origin/qualification,
+ordinary-PR reuse and inclusive net savings are still outside this local result.

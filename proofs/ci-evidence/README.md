@@ -74,9 +74,20 @@ without discarding values, NULL, schema, ordering or work. Captured normal proce
 status/output remains available when admission fails; partial execution or a
 timeout cannot replace the complete report. See the
 [implementation, actual diagnostics and remaining acceptance](../../docs/reviews/2026-10-08-pipeline-fixed-js-isolation.md).
-This profile's physical acceptance remains incomplete until the entire actual
-image/normal campaign and final consumer succeed. Its separate schema is rejected
-by full-part admission and grants neither Actions authority nor reuse permission.
+Recorded physical acceptance at the linked fixed SHA covers 12 actual normal and
+12 actual image observations, all four anchored mutations, pristine/new-owner
+restoration, normal/image scientific agreement and final refusal of 13 altered
+copies. Reconsume its immutable originals without repeating compilation:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  proofs/ci-evidence/pipeline-fixed-js-replay.test.mjs
+```
+
+The separate schema is rejected by full-part admission and grants neither Actions
+authority nor reuse permission. A new family still needs its own finite source,
+phase, oracle and owner connection evidence; these pipeline observations cannot
+be promoted to a different family, target or full campaign.
 
 The [contract](CONTRACT.md) describes the eventual closed reuse boundary.
 `cli.mjs catalog`, `plan`, `seal`, and `check` are the public data interface.
