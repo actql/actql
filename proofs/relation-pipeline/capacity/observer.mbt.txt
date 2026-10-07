@@ -36,7 +36,7 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
   let temporary = state.snapshot.length() + state.values.length() +
     state.slot_roots.length() + state.output_row.length() +
     state.checked_row.length() + state.capture_row.length()
-  let unmodeled = state.bindings.length() + state.dedupe_orders.length() +
+  let unmodeled = state.bindings.map(@lower.bindings_count).unwrap_or(0) + state.dedupe_orders.length() +
     // These new holdings are outside the restricted short-name DISTINCT
     // model. Count their presence instead of silently extending its scope.
     state.row_sources.length() +
@@ -50,7 +50,7 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     state.name_charge.map(_ => 1).unwrap_or(0) +
     state.watermark_times.length() + state.lag_values.length() +
     state.json_path.map(@lower.json_pick_path_count).unwrap_or(0) +
-    state.unique_keys.map(a => a.length()).unwrap_or(0)
+    state.unique_keys.map(@lower.unique_key_count).unwrap_or(0)
   let measure_frames = state.charge_measure.map(c => c.frames.length()).unwrap_or(0) +
     state.sort_measure.map(c => c.frames.length()).unwrap_or(0) +
     state.output_charge_measure.map(c => c.frames.length()).unwrap_or(0) +
