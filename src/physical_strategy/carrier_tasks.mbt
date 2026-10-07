@@ -1033,6 +1033,8 @@ fn expand_internal_carrier_tasks_with_work(
     program: graph.program,
     source_free_root: graph.source_free_root,
     captured_prefix: graph.captured_prefix,
+    original_tasks: Array::makei(owners.length(), task => task),
+    original_task_count: owners.length(),
     owners,
     stage_tasks,
     targets,

@@ -59,7 +59,7 @@ pub fn explain_captured_strategy(
     @encode.key(w, "ledger")
     emit_strategy_ledger(w, @resources.ledger_usage(run.ledger))
     @encode.key(w, "available_root_statistics")
-    match captured_root_statistics(run) {
+    match captured_execution_root_statistics(run) {
       None => @encode.null_value(w)
       Some(statistics) => {
         @encode.begin_object(w)
