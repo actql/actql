@@ -31,11 +31,13 @@ fn unnest_parameter_element(
 // visible column. Current columns take precedence over a bare range name.
 fn unnest_expression_columns(
   visible : Array[(String, String)],
-  receiver : (@query.NamePart, String)?,
+  receivers : Array[(@query.NamePart, String)],
 ) -> Array[(String, String)] {
-  match receiver {
-    Some((name, slot)) if !pipe_name_exists(visible, name) =>
-      visible + [(name.value, slot)]
-    _ => visible
+  let columns = visible.copy()
+  for (name, slot) in receivers {
+    if !pipe_name_exists(columns, name) {
+      columns.push((name.value, slot))
+    }
   }
+  columns
 }
