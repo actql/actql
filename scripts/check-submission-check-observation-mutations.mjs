@@ -12,7 +12,7 @@ const mutations = [
     path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
     from: "const observesInput = value.kind === 'aql' && value.intentCid === outcome.intentCid;",
     to: 'const observesInput = true;',
-    targets: [target('public Local submission lookup returns a durable pre-admission refusal after restart',
+    targets: [target('retained Source analysis budget rechecks original intent and current disclosure without preparation',
       'submission-check-reference-only')]},
   {name: 'original submission loses its transient checked observation', path: sdk, file: tests,
     from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
