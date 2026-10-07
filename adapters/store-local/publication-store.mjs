@@ -2718,7 +2718,7 @@ export async function openLocalPublicationStore(
     }
     let chainValid = false;
     try {
-      chainValid = contractControl.effectFreeCommitValid(
+      chainValid = await contractControl.effectFreeCommitValid(
         suppliedEvidence.runDefinition,
         suppliedEvidence.invocation,
         suppliedEvidence.definitions,
