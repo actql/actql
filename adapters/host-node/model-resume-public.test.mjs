@@ -96,6 +96,14 @@ const assertSameRun = (first, second) => {
   assert.deepEqual(second.ref, first.ref);
   if (second.runId !== undefined) assert.equal(second.runId, first.runId);
 };
+const assertInputReleased = report => {
+  const usage = report.observations.filter(value => value.name === 'model_input_custody_changed').at(-1)?.detail;
+  assert.ok(usage, 'the installed controller reports its own process-local custody');
+  assert.equal(usage.retainedInputs, 0);
+  assert.equal(usage.retainedInputScopes, 0);
+  assert.equal(usage.retainedInputBytes, 0);
+  assert.equal(usage.retainedInventoryScopes, 1, 'waiting/unknown journal checks retain small receipt metadata');
+};
 const assertSends = (f, expected) => {
   assert.deepEqual(f.lines('provider-calls.jsonl').map(value => value.text), expected);
 };
@@ -234,13 +242,15 @@ for (const transport of ['local', 'https']) {
   });
 
   test(`public Model ${transport}: cancellation retains a sent unknown across restart`, async t => {
-    const f = await fixture(t, {transport, count: 3});
+    const f = await fixture(t, {transport, count: 3, assertModelInputReleased: true});
     const waiting = f.phase('wait');
+    assertInputReleased(waiting);
     f.phase('approve-crash-unknown', {}, 77);
     assertSends(f, ['alpha', 'bravo']);
     assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
     await pause(1100);
     const cancelled = f.phase('cancel-unknown');
+    assertInputReleased(cancelled);
     assertSameRun(waiting, cancelled);
     assert.equal(cancelled.status, 'needs_reconciliation');
     assertSends(f, ['alpha', 'bravo']);
@@ -269,8 +279,9 @@ for (const transport of ['local', 'https']) {
   });
 
   test(`public Model ${transport}: approval and process restart retain one Run and physical calls 0→1→1`, async t => {
-    const f = await fixture(t, {transport});
+    const f = await fixture(t, {transport, assertModelInputReleased: true});
     const waiting = f.phase('wait');
+    assertInputReleased(waiting);
     assert.equal(waiting.status, 'waiting_checkpoint');
     assertSends(f, []);
     const before = f.journal();
@@ -297,8 +308,9 @@ for (const transport of ['local', 'https']) {
   });
 
   test(`public Model ${transport}: saved partial process crash resumes only unsent calls`, async t => {
-    const f = await fixture(t, {transport, count: 3});
+    const f = await fixture(t, {transport, count: 3, assertModelInputReleased: true});
     const waiting = f.phase('wait');
+    assertInputReleased(waiting);
     const crash = f.phase('approve-crash-saved', {}, 77);
     assertSameRun(waiting, crash);
     assert.equal(crash.boundary, 'infer_model_settlement_committed');
@@ -315,8 +327,9 @@ for (const transport of ['local', 'https']) {
   });
 
   test(`public Model ${transport}: stored response before journal acknowledgement is observed without resend`, async t => {
-    const f = await fixture(t, {transport, count: 3});
+    const f = await fixture(t, {transport, count: 3, assertModelInputReleased: true});
     const waiting = f.phase('wait');
+    assertInputReleased(waiting);
     f.phase('approve-crash-response', {}, 77);
     assertSends(f, ['alpha']);
     assert.deepEqual(slotStates(f.journal()), ['EnteredUnknown', 'Unsent', 'Unsent']);

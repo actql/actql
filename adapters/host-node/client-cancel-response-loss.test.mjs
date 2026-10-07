@@ -298,25 +298,25 @@ for (const transport of ['in-process', 'http']) {
 }
 
 
-for (const [scenario, transformCancelReply] of [
-  ['clone erases fields', value => Object.assign(new Date(0), value)],
-  ['clone throws', value => new Proxy(value, {})],
+// Copy faults target the stable captured DTO. Getter/prototype inputs are
+// separate positive cases below; they must not require repeated raw reads.
+for (const [scenario, alterCopy] of [
+  ['clone erases fields', copy => { delete copy.revision; return copy; }],
+  ['clone throws', () => { throw new Error('private-clone-failure'); }],
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field =>
-    [`clone changes ${field}`, value => {
-      const original = value.ref[field];
-      let reads = 0;
-      return {...value, ref: Object.defineProperty({...value.ref}, field, {
-        enumerable: true,
-        // The schema check and Run comparison see the issued field. Cloning
-        // receives a different, still well-formed field from the Local getter.
-        get: () => ++reads <= 2 ? original
-          : field === 'namespaceId' ? 'foreign-namespace' : cid('f'),
-      })};
+    [`clone changes ${field}`, copy => {
+      copy.ref[field] = field === 'namespaceId' ? 'foreign-namespace' : cid('f');
+      return copy;
     }]),
 ]) {
   test(`in-process: cancellation ${scenario} retains original Run uncertainty`, async t => {
-    const f = await fixture(t, 'in-process', undefined, {
-      physicalStart: true, transformCancelReply});
+    const f = await fixture(t, 'in-process', undefined, {physicalStart: true});
+    const clone = globalThis.structuredClone;
+    t.after(() => { globalThis.structuredClone = clone; });
+    globalThis.structuredClone = value => {
+      const copy = clone(value);
+      return value?.kind === 'accepted' && value?.ref !== undefined ? alterCopy(copy) : copy;
+    };
     const ref = {...f.execution.ref};
     const result = await f.execution.cancel().then(value => ({value}), error => ({error}));
     assert.equal(result.error?.code, 'InvalidHostCancellation', '[check-mutation:cancel-clone-invalid]');
@@ -338,6 +338,44 @@ for (const [scenario, transformCancelReply] of [
     assert.deepEqual(f.stored(), committed);
     assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
     assert.deepEqual(f.operations, ['connect', 'attach', 'cancel', 'status']);
+  });
+}
+
+for (const representation of ['Date', 'Proxy', 'namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
+  test(`in-process: cancellation captures the original ${representation} response data`, async t => {
+    let reads = 0, raw;
+    const f = await fixture(t, 'in-process', undefined, {physicalStart: true,
+      transformCancelReply(value) {
+        // The installed Owner freezes its DTO; the Local response container
+        // is independently owned by this transport fixture.
+        value = {...value, ref: {...value.ref}};
+        raw = value;
+        if (representation === 'Date') {
+          raw = Object.assign(new Date(0), value);
+          Object.defineProperty(raw, 'toJSON', {value() { assert.fail('response toJSON must not run'); }});
+          return raw;
+        }
+        if (representation === 'Proxy') return new Proxy(value, {
+          get(target, key) { if (key === 'ref') reads++; return Reflect.get(target, key); },
+        });
+        const original = value.ref[representation];
+        Object.defineProperty(value.ref, representation, {enumerable: true,
+          get() { return ++reads === 1 ? original
+            : representation === 'namespaceId' ? 'foreign-namespace' : cid('f'); }});
+        return value;
+      }});
+    const answer = await f.execution.cancel();
+    assert.equal(answer.kind, 'accepted');
+    assert.deepEqual(answer.ref, f.execution.ref);
+    assert.equal(reads, representation === 'Date' ? 0 : 1);
+    assert.equal(sdk.explainCancellation(answer).observation, 'accepted');
+    raw.kind = 'already_terminal';
+    assert.equal(answer.kind, 'accepted');
+    assert.equal(sdk.explainCancellation(answer).observation, 'accepted');
+    assert.deepEqual(f.stored(), [{...f.before[0], cancellation_requested: 1,
+      revision: f.before[0].revision + 1}]);
+    assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
+    assert.deepEqual(f.operations, ['connect', 'attach', 'cancel']);
   });
 }
 
@@ -538,6 +576,32 @@ for (const transport of ['in-process', 'https']) {
 }
 
 for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']]) {
+  test(`${entrance}: captured Run getters preserve the first real owner observation`, async t => {
+    let reads = 0;
+    const f = await fixture(t, transport, undefined, {physicalStart: true,
+      transformRunReply: reply => {
+        const original = reply.run_id; let observed = false;
+        return {...reply, get run_id() {
+          reads++;
+          if (observed) return 'replacement-run';
+          observed = true;
+          return original;
+        }};
+      }});
+    const answer = await f.execution.status();
+    // HTTPS serializes at the Host boundary; Local hands the accessor directly
+    // to the SDK. Both keep the actual original owner fact exactly once.
+    assert.equal(answer.run_id, 'saved-run');
+    assert.equal(answer.status, 'running');
+    assert.equal(answer.control.physical_stop, 'unknown');
+    assert.equal(reads, 1);
+    assert.deepEqual(f.stored(), f.before);
+    assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
+    f.authorize(false);
+    await assert.rejects(f.execution.status(), error => error.code === 'ClientConnectionDenied');
+    assert.equal(reads, 1);
+    assert.deepEqual(f.stored(), f.before);
+  });
   test(`${entrance}: copied Run observations retain original owner facts`, async t => {
     const f = await fixture(t, transport, undefined, {physicalStart: true});
     const before = await f.execution.status();

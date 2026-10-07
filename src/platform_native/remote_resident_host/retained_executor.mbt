@@ -3,7 +3,8 @@
 /// Registration performs no acquisition, capture or physical input read. The
 /// fixed factory opens its owned borrow only after Runtime admission, current
 /// authorization and the exclusive start claim. Output release returns the
-/// consumer borrow; neither Transfer holding is reclaimed by this executor.
+/// consumer borrow. After a durable independent file handoff, the optional
+/// retained-input cleanup callback reclaims the existing receiver Owner.
 pub fn install_resident_retained_compute_executor(
   materials : @host.ClientRunMaterials,
   configuration : ResidentSourceComputeConfiguration,
@@ -15,6 +16,7 @@ pub fn install_resident_retained_compute_executor(
   current : @output.NativeRemoteRetainedInputCurrent,
   output_limits : @output.NativeRemoteStandardTaskLimits,
   observe_failure? : (ResidentSourceComputeIssue) -> Unit,
+  release_retired_input? : (() -> Bool)? = None,
 ) -> Result[
   @output.NativeRemoteStandardTaskExecutor,
   ResidentSourceComputeIssue,
@@ -22,13 +24,11 @@ pub fn install_resident_retained_compute_executor(
   let prepared = materials.prepared
   let graph = @host.prepared_client_graph(prepared)
   guard materials.compilation is @host.Tasks(compilation) &&
-    @strategy.graph_task_count(graph) == 2 &&
-    !@strategy.graph_program_has_effects(graph) &&
+    resident_linear_graph(graph) &&
     @host.prepared_client_acquisition_count(prepared) == 1 &&
     @host.prepared_client_result_count(prepared) == 1 &&
-    @strategy.graph_result_task(graph, 0) == Some(1) &&
-    @strategy.graph_task_target(graph, 0) is None &&
-    @strategy.graph_task_target(graph, 1) is Some(_) else {
+    resident_linear_task_index(materials, dispatch) is Some(consumer_task) &&
+    consumer_task > 0 else {
     return Err(UnsupportedGraph)
   }
   if @host.bind_client_task_run(
@@ -43,7 +43,7 @@ pub fn install_resident_retained_compute_executor(
   let fragment = match
     @host.issue_prepared_client_task_fragment(
       prepared,
-      1,
+      consumer_task,
       @host.client_standard_values_sequence_limits(),
       1000000,
       100000,
@@ -93,15 +93,16 @@ pub fn install_resident_retained_compute_executor(
             return Err(cleanup)
           }
         }
-        // The synchronous Compute stops before its output is handed to Runtime.
-        // Keep input custody with that output until Runtime authorizes release;
-        // its generic finish-input hook must not return the borrow prematurely.
+        // The independent file must be durably handed off before retiring the
+        // Compute/input owner. A pending cleanup remains owned by the output.
         Ok(
           @output.prepare_native_remote_standard_captured_run_owner(
             consumer.compute,
             () => consumer.close(),
             () => true,
             output_storage=Some(output_storage),
+            retire_run_after_file_handoff=release_retired_input is Some(_),
+            retired_input_cleanup=release_retired_input,
           ),
         )
       },
@@ -110,6 +111,6 @@ pub fn install_resident_retained_compute_executor(
     Err(issue) => return Err(Source(Standard(issue)))
   }
   @output.install_native_remote_standard_bound_task_executor(
-    definition_cid, task_key, 1, factory, output_limits,
+    definition_cid, task_key, consumer_task, factory, output_limits,
   ).map_err(issue => Source(Standard(issue)))
 }

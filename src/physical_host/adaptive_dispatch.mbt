@@ -52,7 +52,7 @@ pub fn[E] open_adaptive_dispatch(
     @strategy.graph_task_count(@strategy.captured_dag_graph(run)) - 1 {
     return Err(InvalidConfiguration)
   }
-  guard @strategy.captured_root_statistics(run) is Some(root) else {
+  guard @strategy.captured_execution_root_statistics(run) is Some(root) else {
     return Err(InvalidConfiguration)
   }
   let registration_limit = if limits.max_offers <

@@ -56,19 +56,27 @@ export async function prepareRecoveredTableInput({recovered, store, control,
   return prepared;
 }
 
+// Synchronous current-owner validation at the final dispatch boundary. This
+// is not a physical custody observation or authorization; preparation/read and
+// the recovered apply owner separately confirm the actual Store holdings.
+export function assertRecoveredTableInputAvailable(prepared) {
+  const owner = owners.get(prepared);
+  if (owner === undefined) fail('ForeignRecoveredTableInput');
+  const {recovered, store, control} = owner;
+  prepareCompletedEffectfulPublication({execution: null, store, control,
+    storedResults: recovered.storedResults, computation: recovered.computation,
+    preview: recovered.preview});
+}
+
 export async function readRecoveredTableInput({prepared, maxBytes, signal}) {
   const owner = owners.get(prepared);
   if (owner === undefined) fail('ForeignRecoveredTableInput');
   const {recovered, store, control, source} = owner;
   // Recheck current owners and custody after awaits and before physical read.
-  prepareCompletedEffectfulPublication({execution: null, store, control,
-    storedResults: recovered.storedResults, computation: recovered.computation,
-    preview: recovered.preview});
+  assertRecoveredTableInputAvailable(prepared);
   await confirmCompletedEffectfulApplySources({store, control,
     computation: recovered.computation, preview: recovered.preview});
-  const assertAvailable = () => prepareCompletedEffectfulPublication({execution: null,
-    store, control, storedResults: recovered.storedResults,
-    computation: recovered.computation, preview: recovered.preview});
+  const assertAvailable = () => assertRecoveredTableInputAvailable(prepared);
   assertAvailable();
   return readRecoveredEffectTableInput({store, control, source: source.source,
     artifact: source.artifact, tablePreview: prepared.tablePreview, maxBytes, signal,
