@@ -11,6 +11,7 @@ fn indexed_snapshot_fixture(
   ordered_binding? : Bool = false,
   work? : Int = 100000,
   entries? : Int = 10000,
+  name_bytes? : Int = 10000,
 ) -> BoundedBindingRowsExecution raise {
   let input_rows = rows.unwrap_or("[{\"id\":1,\"" + name + "\":7}]")
   let source_owner = bound_pipeline(
@@ -84,7 +85,7 @@ fn indexed_snapshot_fixture(
     work,
     100,
     entries,
-    10000,
+    name_bytes,
   ).unwrap()
 }
 

@@ -12,13 +12,15 @@ not measured payload bytes. Relative code addresses permit executable-symbol
 matching without treating ASLR or an address as a size. The observer does not
 retain pointers, change reference counts or interpose on allocation.
 
-On darwin-arm64, the independent consumer reads the archived object and the
-actual executed executable. It runs `nm` and `llvm-objdump` on those bytes and
-checks a deliberately restricted pinned debug-code sequence:
+On darwin-arm64 and linux-x64, the independent consumer reads the archived
+object and the actual executed executable. It runs `nm` and the platform
+disassembler (`llvm-objdump` or GNU `objdump`) on those bytes and checks a
+deliberately restricted pinned debug-code sequence:
 
 1. A constant payload request immediately precedes `moonbit_malloc`.
 2. The returned allocation receives the SCALAR header.
-3. Matching page/offset relocations identify a callback function.
+3. Matching ARM64 page/offset relocations, or an x64 PC-relative relocation,
+   identify a callback function.
 4. That function pointer is stored at payload offset zero.
 5. The linked executable has the same constructor-relative allocation site,
    request, header store and callback target.
@@ -33,10 +35,19 @@ selective object/executable disassembly, symbols and inspection-tool digests are
 content-bound in the original local receipt. The final consumer independently
 regenerates the code observations from the immutable archived bytes.
 
-The Linux diagnostic remains valid for its existing census, custody and model
-checks. This additional code decoder is explicitly unresolved on linux-x64;
-it cannot issue a scalar extent claim there. There is no historical-layout or
-old-recipe runtime fallback.
+The x64 decoder requires the adjacent constant request, malloc call, returned
+allocation alias, 32-bit zero, header store, RIP-relative code address and
+zero-offset code store. Object relocation fields must lie inside the matching
+variable-length instruction; the linked target is computed from the next
+instruction and signed displacement. Unrecognized forms do not receive sizes.
+
+Constructor selection uses exact encoded function names, excluding lifecycle
+functions with similar suffixes. GNU debug functions have zero-size symbols;
+disassembly uses a finite range ending at the next real function and excludes
+basic-block labels from range boundaries. The decoder preserves the actual
+constructor start across those labels. Object and executable must expose the
+same scalar site set. There is no historical-layout or old-recipe runtime
+fallback.
 
 ## Scope and remaining obligations
 

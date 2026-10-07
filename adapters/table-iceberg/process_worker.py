@@ -138,7 +138,7 @@ def dispatch(body, catalog_factory=None):
         raise ProtocolRefusal("TableProcessConfiguration")
     shapes = {"write": {"operation", "mapping", "rows", "reservation"},
               "reconcile": {"operation"}, "read": {"receipt", "mapping"},
-              "cleanup": {"operation"}}
+              "cleanup": {"operation"}, "inspect": {"operation"}}
     if command not in shapes:
         raise ProtocolRefusal("TableProcessCommand")
     exact_keys(payload, shapes[command])
@@ -153,6 +153,8 @@ def dispatch(body, catalog_factory=None):
                 result = catalog.reconcile(payload["operation"])
             elif command == "read":
                 result = catalog.read_generation(payload["receipt"], payload["mapping"])
+            elif command == "inspect":
+                result = catalog.inspect_target(payload["operation"])
             else:
                 result = catalog.cleanup_after_stop(payload["operation"])
             return {"ok": True, "result": result}

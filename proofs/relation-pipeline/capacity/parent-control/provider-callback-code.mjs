@@ -2,14 +2,18 @@ import assert from 'node:assert/strict';
 import {readFileSync, existsSync, mkdirSync, writeFileSync, copyFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {scalarSitesX64} from './provider-callback-x64.mjs';
 import {hash} from '../../inventory.mjs';
 
-const anchorName = '_actql_proof_provider_construction';
 const nm = '/usr/bin/nm';
-const objdump = '/Library/Developer/CommandLineTools/usr/bin/llvm-objdump';
+function toolsFor(platform) {
+  assert(['darwin-arm64','linux-x64'].includes(platform),'Unsupported scalar code platform');
+  return platform==='darwin-arm64'
+    ? {anchorName:'_actql_proof_provider_construction',malloc:'_moonbit_malloc',objdump:'/Library/Developer/CommandLineTools/usr/bin/llvm-objdump'}
+    : {anchorName:'actql_proof_provider_construction',malloc:'moonbit_malloc',objdump:'/usr/bin/objdump'};
+}
 const objectPath = '_build/native/debug/test/connectors/local/__moonbit_link_core__/local.whitebox_test.o';
 const exePath = '_build/native/debug/test/connectors/local/local.whitebox_test.exe';
-const scope = 'dynamic scalar callbacks reachable at the eleven-candidate construction observation on darwin-arm64';
 function run(tool, args) {
   const r = spawnSync(tool, args, {encoding:'utf8', timeout:30000, maxBuffer:32*1024*1024});
   assert.equal(r.status, 0, r.stderr || `Code inspection failed: ${tool}`);
@@ -85,15 +89,18 @@ export function scalarSites(text, linkedSymbols) {
   }
   finish(); return sites;
 }
-export function inspectScalarCode(facts, symbolText, disassembly, linkedDisassembly) {
+export function inspectScalarCode(facts, symbolText, disassembly, linkedDisassembly, platform='darwin-arm64') {
+  const {anchorName}=toolsFor(platform);
+  const decode=platform==='linux-x64'?scalarSitesX64:scalarSites;
   const symbols = codeSymbols(symbolText), anchor = symbols.get(anchorName);
   assert(anchor !== undefined, 'Missing constructor observer code anchor');
   const byAddress = new Map();
   for (const [name,address] of symbols) {
     const key=address.toString(); const names=byAddress.get(key) ?? []; names.push(name); byAddress.set(key,names);
   }
-  const sites=scalarSites(disassembly);
-  const linkedSites=scalarSites(linkedDisassembly,symbols);
+  const sites=decode(disassembly);
+  const linkedSites=decode(linkedDisassembly,symbols);
+  assert.deepEqual([...linkedSites.keys()].sort(),[...sites.keys()].sort(),'Object/linked allocation site sets differ in executed binary');
   for(const [name,site] of sites) assert.deepEqual(linkedSites.get(name),site,'Object allocation site differs from executed binary');
   let maximum=0; const observations=[];
   for (const f of facts) {
@@ -111,41 +118,61 @@ export function inspectScalarCode(facts, symbolText, disassembly, linkedDisassem
     observations.push({scalarRequestedBytes:bytes,indexedRequestedBytes:f.indexedBytes,pointRequestedBytes:f.indexedBytes+bytes,callbacks});
   }
   assert(observations.length>0,'Missing provider observations');
-  return {scope,observations,maxPointRequestedBytes:maximum,
+  return {scope:`dynamic scalar callbacks reachable at the eleven-candidate construction observation on ${platform}`,observations,maxPointRequestedBytes:maximum,
     scalarPayloadBytesMeasured:false,scalarAllocationRequestsEstablished:true,
     completeConstructorLifetimeUpper:false,completeParentUpper:false,completePipelineUpper:false};
 }
 export function providerSymbolText(text) {
-  return text.split('\n').filter(line=>/\s(?:_actql_proof_provider_construction|_moonbit_malloc)$/.test(line) ||
+  return text.split('\n').filter(line=>/\s(?:_?actql_proof_provider_construction|_?moonbit_malloc)$/.test(line) ||
     /\s\S*connectors5local\S*$/.test(line)).join('\n')+'\n';
 }
-function generatedCode(root, object, exe, providerNames) {
-  // Different C translation units legitimately have identically named local
-  // functions. They are outside this provider/code-anchor correspondence.
-  const names=codeSymbols(providerSymbolText(run(nm,['-n',exe])));
-  const constructors=[...names.keys()].filter(name=>providerNames.some(p=>name.endsWith(`${p.replaceAll('_','__')}`)) ||
-    /(?:managed__provider(?:__with__inputs|__with__numeric)?|selected__relation__provider_2einner)$/.test(name));
-  assert(constructors.length>=providerNames.length,'Missing generated provider constructors');
-  const symbols=[...names].filter(([name])=>name===anchorName || name==='_moonbit_malloc' || name.includes('connectors5local'))
+export function providerConstructors(names, providerNames) {
+  const allowed=new Set([...providerNames.map(p=>p.replaceAll('_','__')),
+    'managed__provider','managed__provider__with__inputs','managed__provider__with__numeric',
+    'selected__relation__provider_2einner']);
+  const constructors=[...names].filter(name=>allowed.has(name.match(/connectors5local[0-9]+(.+)$/)?.[1]));
+  assert.equal(constructors.length,allowed.size,'Missing or duplicate generated provider constructors');
+  return constructors;
+}
+function generatedCode(root, object, exe, providerNames, platform) {
+  const {anchorName,malloc,objdump}=toolsFor(platform);
+  const full=run(nm,['-n',exe]);
+  const names=codeSymbols(providerSymbolText(full));
+  const constructors=providerConstructors(names.keys(),providerNames);
+  const symbols=[...names].filter(([name])=>name===anchorName || name===malloc || name.includes('connectors5local'))
     .map(([name,address])=>`${address.toString(16)} T ${name}`).join('\n')+'\n';
-  const raw=run(objdump,['--reloc',`--disassemble-symbols=${constructors.join(',')}`,'--no-show-raw-insn',object]);
-  // The file heading varies with the immutable archive path, not the code.
-  const disassembly=raw.slice(raw.indexOf('Disassembly of section'));
-  assert(disassembly.startsWith('Disassembly of section'),'Missing Native disassembly');
-  const linkedRaw=run(objdump,[`--disassemble-symbols=${constructors.join(',')}`,'--no-show-raw-insn',exe]);
-  const linkedDisassembly=linkedRaw.slice(linkedRaw.indexOf('Disassembly of section'));
-  assert(linkedDisassembly.startsWith('Disassembly of section'),'Missing linked Native disassembly');
-  return {symbols,disassembly,linkedDisassembly,constructors};
+  function dump(file,relocations) {
+    if(platform==='darwin-arm64') {
+      const raw=run(objdump,[...(relocations?['--reloc']:[]),`--disassemble-symbols=${constructors.join(',')}`,'--no-show-raw-insn',file]);
+      assert(raw.includes('Disassembly of section'),'Missing Native disassembly');
+      return raw.slice(raw.indexOf('Disassembly of section'));
+    }
+    // GNU debug symbols have zero size and include basic-block labels. Use
+    // finite ranges ending at the next real function, never its first block.
+    const all=run(nm,['-n',file]).split('\n').map(l=>l.match(/^([0-9a-f]+)\s+[tT]\s+(\S+)$/))
+      .filter(m=>m && !m[2].startsWith('.') && !m[2].includes('$bb'));
+    return constructors.map(name=>{
+      const matches=all.filter(m=>m[2]===name); assert.equal(matches.length,1,'Missing or duplicate constructor range');
+      const start=BigInt('0x'+matches[0][1]);
+      const next=all.find(m=>BigInt('0x'+m[1])>start); assert(next,'Missing constructor range end');
+      const raw=run(objdump,['-d','-Mintel','--section=.text','--no-show-raw-insn',...(relocations?['-r']:[]),
+        `--start-address=0x${start.toString(16)}`,`--stop-address=0x${next[1]}`,file]);
+      assert(raw.includes('Disassembly of section'),'Missing Native disassembly');
+      return raw.slice(raw.indexOf('Disassembly of section'));
+    }).join('\n');
+  }
+  return {symbols,disassembly:dump(object,true),linkedDisassembly:dump(exe,false),constructors};
 }
 export function collectScalarCode(root, runtime, providerNames) {
-  if(runtime.platform !== 'darwin-arm64') return {status:'unresolved',reason:'generated scalar-site decoder currently covers darwin-arm64 only'};
+  if(!['darwin-arm64','linux-x64'].includes(runtime.platform)) return {status:'unresolved',reason:'unsupported generated scalar-site platform'};
+  const {objdump}=toolsFor(runtime.platform);
   assert(existsSync(objdump),'Missing generated-code inspection tool');
   const object=readFileSync(join(root,objectPath)), objectDigest=hash(object);
   const dir='.artifacts/relation-pipeline/current-chain-native/code';mkdirSync(join(root,dir),{recursive:true});
   const archive=`${dir}/${objectDigest}.o`;
   if(!existsSync(join(root,archive)))copyFileSync(join(root,objectPath),join(root,archive));
   assert.equal(hash(readFileSync(join(root,archive))),objectDigest);
-  const generated=generatedCode(root,join(root,archive),join(root,exePath),providerNames);
+  const generated=generatedCode(root,join(root,archive),join(root,exePath),providerNames,runtime.platform);
   const logs={};
   for(const key of ['symbols','disassembly','linkedDisassembly']) {
     const digest=hash(generated[key]),path=`${dir}/${digest}.${key}`;
@@ -158,17 +185,17 @@ export function collectScalarCode(root, runtime, providerNames) {
 export function auditScalarCode(report, facts, root, read, providerNames) {
   const proof=report.providerCallbackCode; assert(proof,'Missing scalar code correspondence status');
   if(proof.status==='unresolved') {
-    assert.notEqual(report.runtime.platform,'darwin-arm64','Supported scalar code correspondence missing');
-    assert.deepEqual(proof,{status:'unresolved',reason:'generated scalar-site decoder currently covers darwin-arm64 only'});
+    assert(!['darwin-arm64','linux-x64'].includes(report.runtime.platform),'Supported scalar code correspondence missing');
+    assert.deepEqual(proof,{status:'unresolved',reason:'unsupported generated scalar-site platform'});
     return {status:'unresolved',completeConstructorLifetimeUpper:false};
   }
-  assert.equal(proof.status,'established'); assert.equal(proof.platform,report.runtime.platform); assert.equal(proof.platform,'darwin-arm64');
+  assert.equal(proof.status,'established'); assert.equal(proof.platform,report.runtime.platform); const {objdump}=toolsFor(proof.platform);
   assert.match(proof.objectDigest,/^[0-9a-f]{64}$/);
   assert.equal(proof.archive,`.artifacts/relation-pipeline/current-chain-native/code/${proof.objectDigest}.o`);
   assert.equal(hash(read(proof.archive)),proof.objectDigest,'Generated provider object changed');
   const exe=report.archives[exePath]; assert(exe,'Missing executed Native executable');
   assert.deepEqual(proof.tools,{nm:hash(readFileSync(nm)),objdump:hash(readFileSync(objdump))},'Code inspection tool changed');
-  const regenerated=generatedCode(root,join(root,proof.archive),join(root,exe),providerNames);
+  const regenerated=generatedCode(root,join(root,proof.archive),join(root,exe),providerNames,proof.platform);
   assert.deepEqual(proof.constructors,regenerated.constructors,'Changed generated constructor selection');
   for(const key of ['symbols','disassembly','linkedDisassembly']) {
     assert.match(proof.logs[key].digest,/^[0-9a-f]{64}$/);
@@ -176,5 +203,5 @@ export function auditScalarCode(report, facts, root, read, providerNames) {
     const text=read(proof.logs[key].path).toString(); assert.equal(hash(text),proof.logs[key].digest);
     assert.equal(text,regenerated[key],'Code observations do not match archived Native bytes');
   }
-  return inspectScalarCode(facts,regenerated.symbols,regenerated.disassembly,regenerated.linkedDisassembly);
+  return inspectScalarCode(facts,regenerated.symbols,regenerated.disassembly,regenerated.linkedDisassembly,proof.platform);
 }
