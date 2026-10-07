@@ -110,6 +110,24 @@ semantic CID and item dispatch-key owner bind that content without introducing
 a Table approval or Ledger owner. Before/after row states are not applicable:
 the item describes a whole-Relation operation, not a fabricated data row.
 
+The Table installation's pure authoring connection resolves each member from
+the checked Program descriptor and matches its target, Mapping reference and
+Mapping contract to the installed binding. It derives operation input facts
+from the actual captured local Result Artifact and issued storage mapping,
+then uses the common Preview authoring and captured-input binding owners.
+The member count is one even for zero input rows. The request CID correlation,
+required approval and expected-generation guard are sealed before apply.
+Authoring does not stage files, dispatch, establish current authorization or
+replace the installed capability's separate admission.
+
+The Table Preview's `result_artifact_cid` names the semantic completed Result
+Artifact bound by the operation. Its separate source binding comes from the
+actual Run-bound physical source Artifact. Substituting the physical Artifact
+CID for the semantic one is a foreign-input refusal, not a transport fallback.
+Durable source holdings retain both through the existing result-aware capture
+owner. Installations must not obtain their requests from per-row write mapping
+or invent a row to represent an empty Table.
+
 The Table input binding is paired with the existing checked captured Preview,
 including its exact live source occurrence. A different member, substituted
 operation, row-oriented inventory, missing approval requirement or different
