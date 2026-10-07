@@ -9,7 +9,8 @@ import {join, resolve, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {gitTree, hash} from './inputs.mjs';
 import {checkIsolatedInputs} from './isolated-runtime.mjs';
-import {prepareLocalIsolatedMutation, executeLocalIsolatedMutation, validatePipelinePristineOriginal} from './isolated-execution.mjs';
+import {prepareLocalIsolatedMutation, executeLocalIsolatedMutation} from './isolated-execution.mjs';
+import {validatePipelinePristineOriginal} from './isolated-pipeline-results.mjs';
 import {stagePipelinePristineSource, pipelinePristineSourcePaths, stagePipelineFixedJsSource, pipelineFixedJsSourcePaths} from './isolation.mjs';
 import {snapshot} from '../relation-pipeline/inventory.mjs';
 import {validatePristineReport, readPristineFiles, pristineScientificObservation} from '../relation-pipeline/pristine-replay.mjs';
@@ -273,7 +274,7 @@ await closeOwnedPreparation({engine: options.engine, cid, imageId: options.build
   // through the existing bounded, object-checked cat-file batches.
   if (profile !== 'session') tree.prefetch(profile === 'pipeline-pristine' ? pipelinePristineSourcePaths(tree) : pipelineFixedJsSourcePaths(tree));
   checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: true, profile});
-  const answer = executeLocalIsolatedMutation({root, tree, prepared, engine: options.engine, profile});
+  const answer = await executeLocalIsolatedMutation({root, tree, prepared, engine: options.engine, profile});
   if (profile !== 'session') {
     // Preserve validated image originals before optional cross-phase and
     // refusal diagnostics. A later diagnostic failure cannot discard them.

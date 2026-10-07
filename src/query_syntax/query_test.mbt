@@ -19,7 +19,7 @@ test "SQL grouping and Pipe aggregation retain their distinct column scopes" {
       ),
       (
         "FROM records |> AGGREGATE COUNT(*) AS n GROUP BY id",
-        GroupingScope::PipeAggregate,
+        GroupingScope::PipeAggregate([None]),
       ),
     ] {
     let query = parse_query(text, query_limits()).unwrap()

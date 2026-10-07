@@ -2320,6 +2320,10 @@ fn compile_steps(
         let hidden_order_derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
         let key_display_names : Array[String] = []
+        let key_aliases = match grouping_scope {
+          SqlSelect => []
+          PipeAggregate(names) => names
+        }
         let by : Array[@builder.Node] = []
         for index in 0..<keys.length() {
           let expression = match
@@ -2388,10 +2392,14 @@ fn compile_steps(
           }
           key_names.push(name)
           key_display_names.push(
-            match root.kind {
-              Reference(path) => path.last().unwrap().value
-              Property(_, name) => name.value
-              _ => name
+            match key_aliases.get(index).bind(value => value) {
+              Some(output_name) => output_name.value
+              None =>
+                match root.kind {
+                  Reference(path) => path.last().unwrap().value
+                  Property(_, name) => name.value
+                  _ => name
+                }
             },
           )
           by.push(construction.text(name))
