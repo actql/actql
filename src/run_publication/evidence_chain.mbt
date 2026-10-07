@@ -181,8 +181,7 @@ fn evidence_string_array(value : @json.CanonicalValue) -> Array[String]? {
 ///|
 fn evidence_empty_object(value : @json.CanonicalValue?) -> Bool {
   match value {
-    Some(child) =>
-      object_fields(child).map(fields => fields.is_empty()).unwrap_or(false)
+    Some(child) => @json.object_field_count(child) == Some(0)
     None => false
   }
 }
@@ -328,12 +327,12 @@ fn publication_inventory_matches(
 }
 
 ///|
-fn computation_evidence_capture_inventory(
+fn computation_evidence_capture_preflight(
   inputs : ComputationEvidenceInputs,
   prelude : ComputationEvidencePrelude,
-) -> Result[(@json.CanonicalValue, @json.CanonicalValue), RunEvidenceChainIssue] {
+) -> Result[Unit, RunEvidenceChainIssue] {
   let { invocation, preview, max_wire_bytes, max_nodes, max_depth, .. } = inputs
-  let { effect_context, manifest_results, .. } = prelude
+  let { effect_context, .. } = prelude
   if !captured_effect_context_dependencies_valid(
       effect_context, max_wire_bytes, max_nodes, max_depth,
     ) {
@@ -371,32 +370,7 @@ fn computation_evidence_capture_inventory(
         return Err(EvidenceInventoryMismatch("captured_effects"))
       }
   }
-  guard @json.object_field(effect_context, "result_artifacts")
-    is Some(captured_artifacts) else {
-    return Err(EvidenceMissingField("result_artifacts"))
-  }
-  if !evidence_value_equal(
-      captured_artifacts, manifest_results, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    return Err(EvidenceInventoryMismatch("captured_result_artifacts"))
-  }
-  let declared_names = evidence_inventory_names(manifest_results).unwrap()
-  for field in ["result_values", "result_fields"] {
-    guard @json.object_field(effect_context, field) is Some(inventory) else {
-      return Err(EvidenceMissingField(field))
-    }
-    guard evidence_inventory_names(inventory) is Some(names) else {
-      return Err(EvidenceInventoryMismatch(field))
-    }
-    if !same_names(declared_names, names) {
-      return Err(EvidenceInventoryMismatch(field))
-    }
-  }
-  guard @json.object_field(effect_context, "result_values") is Some(values) &&
-    @json.object_field(effect_context, "result_fields") is Some(field_inventory) else {
-    return Err(EvidenceMissingField("captured_results"))
-  }
-  Ok((values, field_inventory))
+  Ok(())
 }
 
 ///|
