@@ -1,8 +1,8 @@
 # Bounded Relation row metadata preparation
 
 Branch: feat/local-row-metadata-cursor. Initial implementation parent: #700
-at `de990aa851ce0fbdd0b88b53c6446d3fc2748c2f`. The unmerged parent remains an
-explicit dependency. Final integration target is main, not the parent branch.
+at `de990aa851ce0fbdd0b88b53c6446d3fc2748c2f`. Parent #700 is now merged.
+The final integration target and base are main.
 Initial adopted main: `8a9d39eddff6240868517daaf645d2a5d8e43ed7`. Before
 public acceptance, main advanced; the final adopted main is
 `0916c24a4a0ec3f9652eae4a92770524aec0de58`, also by normal merge without
@@ -77,6 +77,13 @@ availability validation and the installed wide projected-read ceiling remain
 separate. Initial BoundPrepared/producer preparation is not certified by
 this cursor. #677 and its Native physical capacity review are independent.
 No heap upper bound is inferred from logical workspace slots.
+
+The structural census now includes the cached row sources, metadata state and
+both cursor records. The proof-only observer is attached before the actual
+first phase. Its numeric/NULL short-name DISTINCT scope is unchanged: cached
+sources and metadata cursors must be empty/inactive, otherwise they are reported
+as unmodeled and the existing admission rejects them. This does not certify
+Native cursor bytes or repair the separate serial-parent Native layout model.
 
 Only the selected JS and checkout Host boundaries are verified here. Full
 Core, Wasm/native execution, packed Local/HTTPS, stop-latency measurement,

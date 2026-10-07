@@ -2,6 +2,12 @@
 // English Reason defaults come from the generated public catalog; a missing or malformed
 // translation uses that same safe default without changing the observation.
 const japanese = Object.freeze(Object.fromEntries(Object.entries({
+  'reason.numeric_reduction_profile_required': ['この集計に必要な数値還元profileが検査文脈で受理されていません。',
+    '検査文脈の管理者に、参照CIDの固定profileの設定を依頼し、束縛された入力全体を再検査してください。profileへの所属だけでは還元方式の選択や実行は認可されません。'],
+  'reason.host_capacity_policy_required': ['検査文脈でHost容量policyが選択されていません。',
+    '検査文脈の管理者に、参照schemaで受理されるpolicyの設定を依頼し、束縛された入力全体を再検査してください。'],
+  'reason.checking_context_missing': ['必要な検査文脈の入力が不足しています。',
+    '公開されたRequirementを検査文脈の管理者と確認してください。無関係なパラメータ値を補っても充足しません。'],
   'protocol.unknown_outcome': ['このSDKでは検査応答のoutcomeを解釈できません。',
     'HostとSDKの契約対応を確認してください。この観測は検査判定や再試行許可を示しません。'],
   'protocol.contract_mismatch': ['検査応答がこのSDKの登録済みprotocol identityと一致しません。',
@@ -114,7 +120,7 @@ export function getCheckPresentationInfo(options) {
     const requested = options?.locale;
     if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
   } catch { /* Locale lookup cannot hide a validated observation. */ }
-  return Object.freeze({locale, translationRevision: `2026-10-07.${locale}.8`});
+  return Object.freeze({locale, translationRevision: `2026-10-07.${locale}.10`});
 }
 
 export function localizeCheck(key, english, options) {
