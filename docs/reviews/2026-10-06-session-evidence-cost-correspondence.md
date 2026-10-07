@@ -81,10 +81,12 @@ invalid costs under a resealed outer certificate and forged savings/residuals
 through the actual `checkAcceptance()` consumer, as well as independent ZIP/API
 fixtures for push/main and workflow_dispatch/main.
 
-Local real-image mutation acceptance is submitted separately in Draft #605;
-that diagnostic does not authorize hosted reuse or replace authenticated final
-admission. Completion of the overall goal still requires compatible successful
-main originals, ordinary PR reuse, relevant-input fresh execution and positive
+The [local real-image mutation acceptance](2026-10-06-local-isolated-session-acceptance.md)
+retains fixed-revision originals separately; those diagnostics do not authorize
+hosted reuse or replace authenticated final admission. The
+[external acceptance hold and resumption](2026-10-04-scoped-session-evidence-reuse.md#external-acceptance-hold-and-resumption-2026-10-07)
+records the remaining operational acceptance and its restart trigger. Completion
+of the overall goal still requires compatible successful main originals, ordinary PR reuse, relevant-input fresh execution and positive
 net runner savings including producer/final job spans and transfers.
 Controlled cost fixtures are not physical execution or economic evidence.
 
