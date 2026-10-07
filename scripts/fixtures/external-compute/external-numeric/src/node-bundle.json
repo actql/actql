@@ -1,0 +1,6 @@
+{
+  "strategy": {
+    "module": "adapters/strategy-bundle.mjs",
+    "export": "externalNumericContribution"
+  }
+}
