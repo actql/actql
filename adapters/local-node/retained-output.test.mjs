@@ -18,10 +18,10 @@ import * as portableRuntime from
 
 const ok = value => ({$tag: 1, _0: value});
 function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
-  lease} = {}) {
+  lease, requireDisposedRefresh = false} = {}) {
   const events = [], material = {}, input = {};
   let releaseCheck, closed = false, clean = false, bound = false, allocated = false, index = 0;
-  let advanced = 0, stopRequested = false, stopped = false;
+  let advanced = 0, stopRequested = false, stopped = false, disposed = false;
   const configuration = installLocalRetainedStore((key, bytes, frame) => {
     assert.equal(key, 'task-2'); assert.equal(bytes, 100); assert.equal(frame, 64);
     assert.equal(typeof releaseCheck, 'function');
@@ -56,7 +56,11 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
         return ok({material, readable: read => read === input});
       },
     }),
-    refresh: () => {events.push('refresh'); return ok(releaseCheck());},
+    refresh: () => {
+      if (requireDisposedRefresh) assert.equal(disposed, true,
+        'common cleanup refresh requires the execution owner to be closed');
+      events.push('refresh'); return ok(releaseCheck());
+    },
   };
   const operations = {
     inputs: [], output,
@@ -75,7 +79,10 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
     settle: () => {events.push('settle'); return ok();},
     complete: () => {assert(bound); events.push('complete'); return ok();},
     guard_usage: () => [0, 0, 0],
-    close: () => {events.push('task-close');},
+    close: () => {
+      if (!disposed) events.push('task-close');
+      disposed = true;
+    },
     cleanup_refresh: () => true,
   };
   const moon = {...portableRuntime,
@@ -90,6 +97,16 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
   const entry = localStrategyContribution(moon, {}, checked, configuration);
   return {entry, events, configuration, allocated: () => allocated, released: () => releaseCheck?.()};
 }
+
+test('successful retained output closes its execution before cleanup refresh', async () => {
+  const f = fixture({requireDisposedRefresh: true});
+  const result = await f.entry.run({});
+  await result.close();
+  assert(f.events.indexOf('task-close') < f.events.indexOf('refresh'));
+  assert.equal(f.events.filter(event => event === 'advance').length, 1);
+  assert.equal(f.events.filter(event => event === 'task-close').length, 1);
+  assert.equal(f.released(), true);
+});
 
 test('Local output seals exact content before completion and retains cleanup until physical confirmation', async () => {
   let allowCleanup = false;

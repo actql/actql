@@ -107,3 +107,25 @@ failure assertions are unchanged. Changed-file formatter comparison and
 differences in `src/platform_native/executor_slot/executor_slot_native.mbt` and
 `src/query_syntax/query_test.mbt`; those files are outside this change and the
 full formatting check is not claimed as successful.
+
+## Public cleanup ordering regression
+
+Real-Store Host acceptance on child source
+`f104f8ede03f6353481d971ca7ce1a2e77b9f959` exposed a successful-output close
+calling common cleanup refresh before disposing its execution ticket. The
+ticket correctly rejected that call; the identity and disposal check was not
+removed. Node now closes the idempotent execution owner before physical cleanup
+can call that refresh, retaining the physical holding until release succeeds.
+
+The new adapter regression failed before this fix (`run-0QSfdz`, 0/1) and the
+affected three-file Node selection passed afterward (`run-A3b9Wk`, 31/31).
+These are dirty-source receipts based on
+`697b1cf16dc9334b22ed7c7d40260b596746a80e`. The portable failure-progression
+runtime was built from the child SHA above; its compiled interface is unchanged
+for this adapter diagnostic. This is not pristine parent packed acceptance.
+
+The public scalar budget fixture also still used the historical 63-step model.
+Its current independent portable test derives Values 20, filter 31, select 19,
+completion-port scans 90, and two handoffs: 162 total. Host limits now use
+162/161 work and unchanged 9/8 workspace, preserving typed failure checks.
+The integrated real-Store Host rerun is recorded with the child publication unit.

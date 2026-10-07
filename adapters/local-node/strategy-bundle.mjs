@@ -545,6 +545,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             try {
               output?.close();
               if (output) {
+                // The output refresh verifies a disposed execution ticket.
+                // Close is idempotent; physical cleanup still owns the holding.
+                operations.close();
                 await output.cleanupHandle.retry();
                 if (output.cleanupHandle.status().pending) throw new Error('LocalOutputCleanupPending');
               }
