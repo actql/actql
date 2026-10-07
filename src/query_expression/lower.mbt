@@ -508,15 +508,49 @@ fn append_resolved(
           }
         Predicate(op, args) =>
           if op == "IN UNNEST" || op == "NOT IN UNNEST" {
-            // The existing membership operator consumes the array expression
-            // itself. It is not a scalar item wrapped in a literal list.
+            // A literal ARRAY spelling has the same scalar atoms as the
+            // existing IN list. Preserve order, duplicates and immediate
+            // parameter holes; never evaluate an expression to create an atom.
+            // General/annotated arrays retain ordinary common admission.
+            let mut right = args[1]
+            while @query.expression_node(ast, right)
+                  is Some({ kind: Parenthesized(child), .. }) {
+              if work >= max_work {
+                raise Abort(WorkLimit)
+              }
+              work += 1
+              right = child
+            }
+            let mut values = nodes[args[1]]
+            if @query.expression_node(ast, right)
+              is Some({ kind: ArrayConstructor(items, None), .. }) {
+              let raw : Array[@builder.Node] = []
+              let mut atoms = true
+              for item in items {
+                if work >= max_work {
+                  raise Abort(WorkLimit)
+                }
+                work += 1
+                match literals[item] {
+                  Some(value) => raw.push(value)
+                  None if parameters[item] => raw.push(nodes[item])
+                  None => {
+                    atoms = false
+                    break
+                  }
+                }
+              }
+              if atoms {
+                values = lowering.form("literal", lowering.add(Array(raw)))
+              }
+            }
             lowering.arguments(
               if op == "IN UNNEST" {
                 "in"
               } else {
                 "not_in"
               },
-              args.map(i => nodes[i]),
+              [nodes[args[0]], values],
             )
           } else if op == "IN" || op == "NOT IN" {
             let items : Array[@builder.Node] = []

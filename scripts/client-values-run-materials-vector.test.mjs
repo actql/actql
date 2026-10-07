@@ -721,8 +721,13 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('d16ec26dbce7f1c96129d0810e11e437583e31560e3ad7b3e5bf681b0599107a'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the preceding ARRAY grammar closure. Literal membership changes
+  // only the grammar-bound Run preimage, not the Values Unit or Result Plan.
+  assert.equal(vector(pin('3fe077253a1f7ec230316eb1d6cca21d464c5292ea63f95f19ca53052b03ee9f'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('d7a36674c603fb1d3a1b9216e9284222315552dc40d8660b942c308af4c24f48'));
+  assert.equal(current.run.run_definition_cid,
+    pin('1e580903177ae141bc703bead4e9164bd200f4d60e7cde63d89dd04ea5be3bf6'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
