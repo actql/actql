@@ -5,15 +5,23 @@ import {carrierBodyContract} from './carrier-schema.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const protocol=read('spec/contracts/actql-protocol-schemas.json'),aoa=read('spec/contracts/actql-aoa.json');
 const {schema}=carrierBodyContract(protocol,aoa);
-test('four disjoint Carrier bodies reuse checked value grammar without backend layouts',()=>{
+test('five disjoint Carrier bodies reuse checked value grammar and separate Relation presence',()=>{
   const {$defs}=schema;
   const {record,...types}=$defs;
   assert.deepEqual(types,protocol.schemas.canonical_value_contract.$defs);
   assert.equal(record.properties.nullable.const,false);
   assert.equal(record.properties.fields.minProperties,undefined);
-  assert.equal(schema.oneOf.length,4);
-  const [,graph,events,vectors]=schema.oneOf;
-  for(const arm of [graph,events,vectors]) assert.equal(arm.additionalProperties,false);
+  assert.equal(schema.oneOf.length,5);
+  const [,graph,events,vectors,relation]=schema.oneOf;
+  for(const arm of [relation,graph,events,vectors]) assert.equal(arm.additionalProperties,false);
+  assert.deepEqual(relation.required,['version','fields']);
+  assert.equal(relation.properties.version.const,'actql-relation-schema/0.1');
+  assert.deepEqual(relation.properties.fields.propertyNames,record.properties.fields.propertyNames);
+  const [required,conditional]=relation.properties.fields.additionalProperties.oneOf;
+  assert.deepEqual(required,{$ref:'#/$defs/value_contract'});
+  assert.deepEqual(conditional.required,['contract','presence']);
+  assert.equal(conditional.properties.presence.const,'conditional');
+  assert.equal(conditional.additionalProperties,false);
   assert.deepEqual(events.required,['version','records','id','time']);
   assert.deepEqual(vectors.required,['version','records','ids','components']);
   assert.equal(vectors.properties.ids.minItems,1);

@@ -50,6 +50,19 @@ const publishedPrefixes = (consumers, id, operator) => ['local', 'https'].flatMa
     assertions: [{id, operator}],
   })));
 const mutations = [
+  ['lost terminator is treated as a completed HTTPS read', [
+    ["              if (line !== '\\x1e') fail('IncompleteResultStream');", ''],
+  ], ['rows', 'all'].map(consumer => ({
+    name: `https: ${consumer} remains incomplete after all published rows when the terminator is lost`,
+    assertions: [{id: 'read-terminator-failure', operator: 'strictEqual'}],
+  })), 'adapters/host-node/client-read-terminator.test.mjs'],
+  ['lost terminator returns the buffered all value', [
+    ['          throw readFailure(cause, readerContexts.get(reader), 0, readExplanations.get(cause));',
+      '          return values;'],
+  ], ['local', 'https'].map(entrance => ({
+    name: `${entrance}: all remains incomplete after all published rows when the terminator is lost`,
+    assertions: [{id: 'read-terminator-failure', operator: 'strictEqual'}],
+  })), 'adapters/host-node/client-read-terminator.test.mjs'],
   ['published prefix loses the caller-visible row count', [
     ['    attemptId: context.attemptId, rowsYielded,', '    attemptId: context.attemptId, rowsYielded: 0,'],
   ], publishedPrefixes(['rows'], 'read-121-count', 'strictEqual'), publishedRunAcceptance],

@@ -138,6 +138,17 @@ pub fn client_table_input_mapping(
 }
 
 ///|
+/// Exact schema bytes from the completed export, not a physical-type inference.
+/// This projection grants neither source availability nor commit authority.
+pub fn client_table_input_schema_wire(value : ClientTableInput) -> String {
+  @execution.relation_schema_wire(
+    @execution.completed_relation_export_schema_identity(
+      value.artifact.export_receipt,
+    ),
+  )
+}
+
+///|
 /// Equal content is not custody of the exact checked/captured input owners.
 pub fn client_table_input_matches_source(
   value : ClientTableInput,

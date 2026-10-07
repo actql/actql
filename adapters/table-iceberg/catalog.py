@@ -8,6 +8,8 @@ import hashlib
 import json
 import os
 import sqlite3
+import re
+import uuid
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -17,13 +19,53 @@ from pyiceberg.exceptions import NoSuchTableError
 from pyiceberg.table import CommitTableResponse, Table
 from pyiceberg.serializers import FromInputFile
 
-from physical import (PhysicalRefusal, canonical_envelope, decode_physical,
+from physical import (PhysicalRefusal, canonical_envelope, check_mapping, decode_physical,
                       encode_rows, envelope_cid, iceberg_schema, seal)
 from custody import CustodyIO, install_custody, reserve, claim_file, charge_file, cleanup_after_stop
 
 
 class CatalogRefusal(PhysicalRefusal):
     pass
+
+
+def check_logical_schema(mapping, wire):
+    """Check correspondence of common-issued bytes, never infer value contracts.
+
+    The common owner admits and canonicalizes the original logical schema. This
+    physical boundary preserves its exact preimage and only verifies that its
+    columns correspond to the sealed physical mapping. It does not interpret
+    extents, normalize text or replace common value admission.
+    """
+    if not isinstance(wire, str):
+        raise CatalogRefusal("MissingTableLogicalSchema")
+    try:
+        raw = wire.encode("utf-8", errors="strict")
+    except UnicodeError:
+        raise CatalogRefusal("TableLogicalSchemaEncoding") from None
+    if not 1 <= len(raw) <= 65536 or \
+            "sha256:" + hashlib.sha256(raw).hexdigest() != mapping["schema_cid"]:
+        raise CatalogRefusal("TableLogicalSchemaIdentity")
+    from process_worker import check_shape, precheck_depth, unique_object, reject_constant
+    try:
+        precheck_depth(wire)
+        fields = json.loads(wire, object_pairs_hook=unique_object, parse_constant=reject_constant)
+        check_shape(fields)
+    except (ValueError, UnicodeError, RecursionError):
+        raise CatalogRefusal("TableLogicalSchemaShape") from None
+    if not isinstance(fields, dict) or set(fields) != {c["name"] for c in mapping["columns"]}:
+        raise CatalogRefusal("TableLogicalSchemaColumns")
+    types = {"boolean": "boolean", "double": "number", "string": "string"}
+    for column in mapping["columns"]:
+        contract = fields[column["name"]]
+        if column["presence"] == "conditional":
+            if not isinstance(contract, dict) or set(contract) != {"contract", "presence"} or \
+                    contract["presence"] != "conditional":
+                raise CatalogRefusal("TableLogicalSchemaPresence")
+            contract = contract["contract"]
+        if not isinstance(contract, dict) or contract.get("type") != types[column["physical_type"]] or \
+                type(contract.get("nullable")) is not bool or contract["nullable"] != column["nullable"]:
+            raise CatalogRefusal("TableLogicalSchemaContract")
+    return wire
 
 
 class TableCatalog(SqlCatalog):
@@ -124,8 +166,83 @@ class TableCatalog(SqlCatalog):
                 "schema_cid": table.metadata.properties.get("actql.schema-cid"),
                 "storage_mapping_cid": mapping.get("mapping_cid")}
 
-    def write_claimed(self, request, mapping, rows, reservation):
-        """Internal physical boundary; no public installer calls this yet."""
+    def resolve_generation(self, selector):
+        """Bind a new read to one published generation, not an Effect outcome.
+
+        Read head and its original publication record in one SQLite snapshot.
+        Later replacement may change the head, but cannot change this binding.
+        Current read authority belongs to the Host, before and after this I/O.
+        """
+        if not isinstance(selector, dict) or set(selector) != {
+                "catalog_identity_cid", "namespace", "table_name", "table_uuid", "schema_cid"}:
+            raise CatalogRefusal("TableReadSelectorShape")
+        if selector["catalog_identity_cid"] != self.catalog_cid:
+            raise CatalogRefusal("ForeignReadCatalog")
+        namespace, name = selector["namespace"], selector["table_name"]
+        if not isinstance(namespace, list) or not 1 <= len(namespace) <= 32 or \
+                any(not isinstance(part, str) or not 1 <= len(part) <= 256 or
+                    any(char in part for char in ".\0\r\n") for part in namespace) or \
+                not isinstance(name, str) or not 1 <= len(name) <= 256 or \
+                any(char in name for char in "\0\r\n"):
+            raise CatalogRefusal("TableReadSelectorName")
+        try:
+            if str(uuid.UUID(selector["table_uuid"])) != selector["table_uuid"]:
+                raise ValueError()
+        except (ValueError, TypeError, AttributeError):
+            raise CatalogRefusal("TableReadSelectorIdentity") from None
+        if not isinstance(selector["schema_cid"], str) or \
+                not re.fullmatch(r"sha256:[0-9a-f]{64}", selector["schema_cid"]):
+            raise CatalogRefusal("TableReadSelectorIdentity")
+        db = self.connection()
+        try:
+            records = db.execute("""SELECT t.metadata_location,c.receipt_wire,c.request_wire
+                FROM iceberg_tables t LEFT JOIN actql_table_commits c
+                ON c.metadata_location=t.metadata_location
+                WHERE t.catalog_name=? AND t.table_namespace=? AND t.table_name=?""",
+                                 (self.name, ".".join(namespace), name)).fetchmany(2)
+        finally:
+            db.close()
+        if not records:
+            raise CatalogRefusal("TableReadNotFound")
+        if len(records) != 1 or records[0][1] is None:
+            raise CatalogRefusal("TableReadPublicationRecord")
+        location, receipt_wire, request_wire = records[0]
+        receipt, request = json.loads(receipt_wire), json.loads(request_wire)
+        if not isinstance(receipt, dict) or set(receipt) != {
+                "version", "request_cid", "effect_identity_cid", "catalog_identity_cid", "table_uuid",
+                "generation_cid", "metadata_location", "snapshot_id", "schema_cid",
+                "storage_mapping_cid", "row_count", "receipt_cid"} or \
+                receipt.get("receipt_cid") != envelope_cid(
+                {k: v for k, v in receipt.items() if k != "receipt_cid"}) or \
+                receipt.get("version") != "actql-table-receipt/0.1" or \
+                receipt.get("metadata_location") != location or \
+                receipt.get("catalog_identity_cid") != self.catalog_cid or \
+                receipt.get("table_uuid") != selector["table_uuid"] or \
+                receipt.get("schema_cid") != selector["schema_cid"]:
+            raise CatalogRefusal("TableReadPublicationBinding")
+        if not isinstance(request, dict) or request.get("request_cid") != envelope_cid(
+                {k: v for k, v in request.items() if k != "request_cid"}) or \
+                request.get("request_cid") != receipt.get("request_cid") or \
+                request.get("catalog_identity_cid") != self.catalog_cid or \
+                request.get("namespace") != namespace or request.get("table_name") != name or \
+                request.get("schema_cid") != selector["schema_cid"] or \
+                request.get("effect_identity_cid") != receipt.get("effect_identity_cid") or \
+                request.get("storage_mapping_cid") != receipt.get("storage_mapping_cid"):
+            raise CatalogRefusal("TableReadPublicationBinding")
+        if self.generation(location) != receipt.get("generation_cid"):
+            raise CatalogRefusal("ReadGenerationBinding")
+        io = self._load_file_io({}, location)
+        metadata = FromInputFile.table_metadata(io.new_input(location))
+        mapping = json.loads(metadata.properties.get("actql.storage-mapping", "null"))
+        if not isinstance(mapping, dict):
+            raise CatalogRefusal("ForeignTableStorageMapping")
+        check_mapping(mapping)
+        self.generation_table(receipt, mapping, metadata=metadata)
+        schema_wire = check_logical_schema(mapping, metadata.properties.get("actql.logical-schema"))
+        return {"receipt": receipt, "mapping": mapping, "schema_wire": schema_wire}
+
+    def write_claimed(self, request, mapping, rows, reservation, schema_wire):
+        """Internal physical boundary, called only after the original send claim."""
         if self.context is not None:
             raise CatalogRefusal("ConcurrentAdapterUse")
         if len(canonical_envelope(request).encode("utf-8")) > 65536:
@@ -136,6 +253,8 @@ class TableCatalog(SqlCatalog):
             raise CatalogRefusal("InputMappingBinding")
         if envelope_cid({k: v for k, v in request.items() if k != "request_cid"}) != request["request_cid"]:
             raise CatalogRefusal("OperationIdentity")
+        check_mapping(mapping)
+        check_logical_schema(mapping, schema_wire)
         if self.reconcile(request) is not None:
             raise CatalogRefusal("AlreadyCommittedReconcileOnly")
         # SqlCatalog flattens namespace components with dots. Do not alias
@@ -160,12 +279,15 @@ class TableCatalog(SqlCatalog):
             elif request["action"] == "replace":
                 table = self.load_table(identifier)
                 self.check_expected(request, table)
+                if table.metadata.properties.get("actql.logical-schema") != schema_wire:
+                    raise CatalogRefusal("SchemaReplacementUnsupported")
                 transaction = table.transaction()
                 transaction.overwrite(physical)
             else:
                 raise CatalogRefusal("UnsupportedTableAction")
             transaction.set_properties({"actql.last-operation": request["request_cid"],
-                                        "actql.data-policy-cid": request["data_policy_cid"]})
+                                        "actql.data-policy-cid": request["data_policy_cid"],
+                                        "actql.logical-schema": schema_wire})
             transaction.commit_transaction()
             return self.reconcile(request)
         finally:
@@ -273,19 +395,28 @@ class TableCatalog(SqlCatalog):
     def before_publication(self):
         """Physical staging boundary for stop/concurrent-commit diagnostics."""
 
-    def read_generation(self, receipt, mapping):
+    def generation_table(self, receipt, mapping, metadata=None):
+        check_mapping(mapping)
         if receipt["catalog_identity_cid"] != self.catalog_cid or \
                 receipt["storage_mapping_cid"] != mapping["mapping_cid"] or \
                 receipt["schema_cid"] != mapping["schema_cid"] or \
                 self.generation(receipt["metadata_location"]) != receipt["generation_cid"]:
             raise CatalogRefusal("ReadGenerationBinding")
         io = self._load_file_io({}, receipt["metadata_location"])
-        metadata = FromInputFile.table_metadata(io.new_input(receipt["metadata_location"]))
+        if metadata is None:
+            metadata = FromInputFile.table_metadata(io.new_input(receipt["metadata_location"]))
         if str(metadata.table_uuid) != receipt["table_uuid"] or \
                 metadata.properties.get("actql.schema-cid") != mapping["schema_cid"] or \
-                metadata.properties.get("actql.storage-mapping") != canonical_envelope(mapping):
+                metadata.properties.get("actql.storage-mapping") != canonical_envelope(mapping) or \
+                receipt["snapshot_id"] != (str(metadata.current_snapshot_id)
+                                           if metadata.current_snapshot_id is not None else None) or \
+                type(receipt["row_count"]) is not int or not 0 <= receipt["row_count"] <= 9007199254740991:
             raise CatalogRefusal("ReadTableIdentity")
-        table = Table(("immutable", "read"), metadata, receipt["metadata_location"], io, self)
+        check_logical_schema(mapping, metadata.properties.get("actql.logical-schema"))
+        return Table(("immutable", "read"), metadata, receipt["metadata_location"], io, self)
+
+    def read_generation(self, receipt, mapping):
+        table = self.generation_table(receipt, mapping)
         output = []
         for task in table.scan().plan_files():
             if task.delete_files:

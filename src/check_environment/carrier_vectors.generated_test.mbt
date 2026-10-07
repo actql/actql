@@ -10,6 +10,82 @@ test "Carrier schema corpus: empty-relation" {
 }
 
 ///|
+test "Carrier schema corpus: empty-presence-relation" {
+  let modes = carrier_modes(@json.parse("{\"fields\":{},\"version\":\"actql-relation-schema/0.1\"}"), "relation")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), true)
+  assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), "sha256:240a8b36a06c34b536641558c0b63f1d395d48937c965245738050e9130118c5")
+  assert_carrier_dependencies(result.unwrap(), "relation")
+}
+
+///|
+test "Carrier schema corpus: conditional-nullable-text-extent" {
+  let modes = carrier_modes(@json.parse("{\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"},\"p\":{\"contract\":{\"max_utf8_bytes\":32,\"nullable\":true,\"type\":\"string\"},\"presence\":\"conditional\"}},\"version\":\"actql-relation-schema/0.1\"}"), "relation")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), true)
+  assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), "sha256:b2a2a323047fbcd0085d0e16d2710a0f9e2073a576eb43aa75442d37b63e58ce")
+  assert_carrier_dependencies(result.unwrap(), "relation")
+}
+
+///|
+test "Carrier schema corpus: conditional-nonnullable-number" {
+  let modes = carrier_modes(@json.parse("{\"fields\":{\"p\":{\"contract\":{\"nullable\":false,\"type\":\"number\"},\"presence\":\"conditional\"}},\"version\":\"actql-relation-schema/0.1\"}"), "relation")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), true)
+  assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), "sha256:d71a9194fa08ef0b5b2b720c216382af338ddb55a4d6f255d2bba5af2c88e1f9")
+  assert_carrier_dependencies(result.unwrap(), "relation")
+}
+
+///|
+test "Carrier schema corpus: relation-presence-is-not-events" {
+  let modes = carrier_modes(@json.parse("{\"fields\":{},\"version\":\"actql-relation-schema/0.1\"}"), "events")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), false)
+}
+
+///|
+test "Carrier schema corpus: relation-unknown-wrapper-member" {
+  let modes = carrier_modes(@json.parse("{\"extra\":true,\"fields\":{},\"version\":\"actql-relation-schema/0.1\"}"), "relation")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), false)
+}
+
+///|
+test "Carrier schema corpus: conditional-unknown-member" {
+  let modes = carrier_modes(@json.parse("{\"fields\":{\"p\":{\"contract\":{\"nullable\":true,\"type\":\"number\"},\"default\":null,\"presence\":\"conditional\"}},\"version\":\"actql-relation-schema/0.1\"}"), "relation")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), false)
+}
+
+///|
+test "Carrier schema corpus: conditional-invalid-presence" {
+  let modes = carrier_modes(@json.parse("{\"fields\":{\"p\":{\"contract\":{\"nullable\":true,\"type\":\"number\"},\"presence\":\"optional\"}},\"version\":\"actql-relation-schema/0.1\"}"), "relation")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), false)
+}
+
+///|
+test "Carrier schema corpus: conditional-no-nullable-default" {
+  let modes = carrier_modes(@json.parse("{\"fields\":{\"p\":{\"contract\":{\"type\":\"number\"},\"presence\":\"conditional\"}},\"version\":\"actql-relation-schema/0.1\"}"), "relation")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), false)
+}
+
+///|
+test "Carrier schema corpus: conditional-no-contract-default" {
+  let modes = carrier_modes(@json.parse("{\"fields\":{\"p\":{\"presence\":\"conditional\"}},\"version\":\"actql-relation-schema/0.1\"}"), "relation")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), false)
+}
+
+///|
+test "Carrier schema corpus: ordinary-object-has-no-conditional-field" {
+  let modes = carrier_modes(@json.parse("{\"additional_properties\":false,\"fields\":{\"p\":{\"contract\":{\"nullable\":true,\"type\":\"number\"},\"presence\":\"conditional\"}},\"nullable\":false,\"type\":\"object\"}"), "relation")
+  let result = check_carrier_schemas(modes, carrier_limits())
+  assert_eq(result is Ok(_), false)
+}
+
+///|
 test "Carrier schema corpus: retired-endpoint-tuple-graph" {
   let modes = carrier_modes(@json.parse("{\"edge_labels\":null,\"edge_properties\":{},\"identity_law_cid\":\"sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4\",\"node_id_contract\":{\"nullable\":false,\"type\":\"number\"},\"node_properties\":{},\"value_law_cid\":\"sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4\",\"version\":\"actql-graph-contract/0.1\"}"), "graph")
   let result = check_carrier_schemas(modes, carrier_limits())
