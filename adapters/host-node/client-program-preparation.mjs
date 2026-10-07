@@ -26,6 +26,7 @@ const issueCodes = Object.freeze({
   graph_rejected: 'ClientProgramRejected',
   source_invalid_input: 'ClientProgramInvalidInput',
   source_rejected: 'ClientProgramRejected',
+  source_unresolved: 'ClientProgramRejected',
   source_unsupported: 'ClientProgramUnsupported',
   source_missing_input: 'ClientProgramNeedsInputs',
   source_declarations: 'ClientParametersInvalid',
@@ -102,6 +103,7 @@ export function installNodeClientProgramPreparation({moon, environment,
   }
   const owned = new WeakSet();
   const effectOwned = new WeakSet();
+  const sourceCheckFailures = new WeakSet();
   const installedEvidence = Object.freeze([...effectEvidence]);
   const prepareEffect = !allowEffects ? undefined :
     installNodeClientEffectProgramPreparation({moon,
@@ -148,7 +150,11 @@ export function installNodeClientProgramPreparation({moon, environment,
     if (issue === undefined || code === undefined) {
       fail('ClientProgramPreparationFailure');
     }
-    fail(code, issue);
+    const error = Object.assign(new Error(code, {cause: issue}), {code});
+    if (sourceFormat && ['source_invalid_input', 'source_unresolved'].includes(category)) {
+      sourceCheckFailures.add(error);
+    }
+    throw error;
   };
   // The Local planner accepts only this installation's checked owner. This
   // keeps the exact runtime and environment binding without parsing it again.
@@ -176,6 +182,7 @@ export function installNodeClientProgramPreparation({moon, environment,
     }
   };
   return Object.freeze(Object.assign(disclosed, {
+    sourceCheckFailure(error) {return sourceCheckFailures.has(error);},
     assertOwned(prepared) {
       if (!owned.has(prepared) && !effectOwned.has(prepared)) {
         throw new TypeError('Foreign Client preparation');

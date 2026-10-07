@@ -1704,7 +1704,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   };
   const submissionService = installNodeClientSubmission({journal, moon,
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
-    prepareSubmit, submit, lookupRequest: lookupHeld});
+    prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: ({principalId: actual, after, limit}) =>
       checkpoints.listCheckpoints({principalId: actual, after, limit}),
