@@ -181,16 +181,14 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
     : effectReconciliationOnly ? 'effect-reconciliation' : 'read-cancellation-submission-and-effect',
   cases: cancellationOnly ? {originalCancellationRecovery: 4, unknownEffectCancellationRecovery: 2}
     : submissionCustodyOnly ? {submissionCustodyLoss: 2}
-    : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2}
+    : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
+      explicitSubmissionRestart: 3}
     : effectReconciliationOnly ? {originalEffectReconciliation: 3}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
       installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
-<<<<<<< HEAD
-      submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
-=======
       unknownEffectCancellationRecovery: 2,
-      submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2,
->>>>>>> origin/main
+      submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
+      explicitSubmissionRestart: 3,
       originalEffectReconciliation: 3},
   passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
