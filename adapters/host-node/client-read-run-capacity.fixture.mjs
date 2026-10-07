@@ -57,7 +57,7 @@ async function initialRead({directory, entrance, consumer}) {
       observeSubmission: (stage, error) => console.log('READ_121_SUBMISSION', entrance, stage,
         error === undefined ? '' : inspect(error, {depth: 8}))});
   const host = await connectOpeningHost(fixture, entrance, directory);
-  let release, ref, submissionRef, attemptId, observed, originalPolicy, completeAttempt, failure, explanation;
+  let release, ref, submissionRef, attemptId, observed, originalPolicy, failure, explanation;
   const yielded = new Promise(resolve => {release = resolve;});
   if (consumer === 'all') release();
   fixture.beforeRow(async index => {
@@ -119,25 +119,14 @@ async function initialRead({directory, entrance, consumer}) {
     assert.deepEqual(fixture.counts, beforeExplanation);
     assert.deepEqual(await attemptBytes(directory), bytes);
     fixture.authorize(true);
-    const fresh = result.rows();
-    traceReadRecovery('fresh-read:start', {entrance});
-    assert.notEqual(fresh.attemptId, attemptId);
-    assert.deepEqual(await Array.fromAsync(fresh), expected);
-    traceReadRecovery('fresh-read:finished', {entrance});
-    assert.equal(fresh.rowsYielded(), 121);
-    assert.equal(fresh.state(), 'complete');
+    // Stop this Host/Owner after the interrupted attempt. The existing
+    // restoration child owns the explicit new read and its durable receipt.
     assert.deepEqual(sdk.explainReadFailure(failure), explanation);
     assert.equal((await run.status()).status, 'succeeded');
-    await host.settled();
-    completeAttempt = await result.deliveryAttempt(fresh.attemptId);
-    traceReadRecovery('fresh-receipt:finished', {entrance});
-    assertSameResult(completeAttempt, observed);
-    assert.equal(completeAttempt.record.state, 'succeeded');
-    assert.notEqual(completeAttempt.hostReleaseReceipt, null);
     assert.deepEqual(await result.deliveryAttempt(attemptId), observed);
-    assert.deepEqual(fixture.counts, {admissions: 2, readers: 2, computes: 1, definitions: 1});
+    assert.deepEqual(fixture.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});
     const admissions = await attemptBytes(directory);
-    assert.equal(admissions.length, 2);
+    assert.equal(admissions.length, 1);
     for (const wire of admissions) {
       const attempt = JSON.parse(wire);
       const grant = await fixture.store.readPublicationContract(attempt.result_read_grant_cid, 'result_read_grant');
@@ -153,7 +142,7 @@ async function initialRead({directory, entrance, consumer}) {
     traceReadRecovery('initial-121-close:finished', {entrance});
   }
   return {pid: process.pid, ref, submissionRef, attemptId, observed, originalPolicy,
-    completeAttempt, explanation, counts: {...fixture.counts}};
+    explanation, counts: {...fixture.counts}};
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
