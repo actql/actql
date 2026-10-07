@@ -5,6 +5,7 @@ fn bounded_sequence_source(
   extra_columns? : Int = 0,
   text_keys? : Bool = false,
   key_name? : String? = None,
+  source_rows? : String? = None,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
   if extra_columns < 0 || (extra_columns > 0 && !empty) {
     fail("wide sequence source requires empty rows")
@@ -62,6 +63,7 @@ fn bounded_sequence_source(
     key +
     "\":2,\"clock\":3,\"value\":1}]"
   }
+  let rows = source_rows.unwrap_or(rows)
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"" +
     (if text_keys { "string" } else { "number" }) +
@@ -119,6 +121,7 @@ fn bounded_sequence_try_fixture(
   name_bytes? : Int = 10000,
   key_name? : String? = None,
   start_name? : String = "start",
+  source_rows? : String? = None,
 ) -> (
   @bounded.Control,
   Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue],
@@ -130,6 +133,7 @@ fn bounded_sequence_try_fixture(
     extra_columns~,
     text_keys~,
     key_name~,
+    source_rows~,
   )
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -688,7 +692,9 @@ test "bounded sequence initializes allow state one pattern per resume" {
     advance_bounded_sequence_match(execution, 1).unwrap()
     is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
   )
-  assert_true(cleanup_bounded_sequence_match(execution).unwrap())
+  assert_false(cleanup_bounded_sequence_match(execution).unwrap())
+  assert_true(bounded_sequence_match_cleanup_pending(execution))
+  finish_sequence_position_cleanup(execution) |> ignore
   assert_true(producer_read_available(input))
   assert_bounded_sequence_scratch_reclaimed(execution)
 }

@@ -28,6 +28,46 @@ class CatalogRefusal(PhysicalRefusal):
     pass
 
 
+def check_logical_schema(mapping, wire):
+    """Check correspondence of common-issued bytes, never infer value contracts.
+
+    The common owner admits and canonicalizes the original logical schema. This
+    physical boundary preserves its exact preimage and only verifies that its
+    columns correspond to the sealed physical mapping. It does not interpret
+    extents, normalize text or replace common value admission.
+    """
+    if not isinstance(wire, str):
+        raise CatalogRefusal("MissingTableLogicalSchema")
+    try:
+        raw = wire.encode("utf-8", errors="strict")
+    except UnicodeError:
+        raise CatalogRefusal("TableLogicalSchemaEncoding") from None
+    if not 1 <= len(raw) <= 65536 or \
+            "sha256:" + hashlib.sha256(raw).hexdigest() != mapping["schema_cid"]:
+        raise CatalogRefusal("TableLogicalSchemaIdentity")
+    from process_worker import check_shape, precheck_depth, unique_object, reject_constant
+    try:
+        precheck_depth(wire)
+        fields = json.loads(wire, object_pairs_hook=unique_object, parse_constant=reject_constant)
+        check_shape(fields)
+    except (ValueError, UnicodeError, RecursionError):
+        raise CatalogRefusal("TableLogicalSchemaShape") from None
+    if not isinstance(fields, dict) or set(fields) != {c["name"] for c in mapping["columns"]}:
+        raise CatalogRefusal("TableLogicalSchemaColumns")
+    types = {"boolean": "boolean", "double": "number", "string": "string"}
+    for column in mapping["columns"]:
+        contract = fields[column["name"]]
+        if column["presence"] == "conditional":
+            if not isinstance(contract, dict) or set(contract) != {"contract", "presence"} or \
+                    contract["presence"] != "conditional":
+                raise CatalogRefusal("TableLogicalSchemaPresence")
+            contract = contract["contract"]
+        if not isinstance(contract, dict) or contract.get("type") != types[column["physical_type"]] or \
+                type(contract.get("nullable")) is not bool or contract["nullable"] != column["nullable"]:
+            raise CatalogRefusal("TableLogicalSchemaContract")
+    return wire
+
+
 class TableCatalog(SqlCatalog):
     """Pinned PyIceberg staging plus one SQLite head/receipt transaction.
 
@@ -198,10 +238,11 @@ class TableCatalog(SqlCatalog):
             raise CatalogRefusal("ForeignTableStorageMapping")
         check_mapping(mapping)
         self.generation_table(receipt, mapping, metadata=metadata)
-        return {"receipt": receipt, "mapping": mapping}
+        schema_wire = check_logical_schema(mapping, metadata.properties.get("actql.logical-schema"))
+        return {"receipt": receipt, "mapping": mapping, "schema_wire": schema_wire}
 
-    def write_claimed(self, request, mapping, rows, reservation):
-        """Internal physical boundary; no public installer calls this yet."""
+    def write_claimed(self, request, mapping, rows, reservation, schema_wire):
+        """Internal physical boundary, called only after the original send claim."""
         if self.context is not None:
             raise CatalogRefusal("ConcurrentAdapterUse")
         if len(canonical_envelope(request).encode("utf-8")) > 65536:
@@ -212,6 +253,8 @@ class TableCatalog(SqlCatalog):
             raise CatalogRefusal("InputMappingBinding")
         if envelope_cid({k: v for k, v in request.items() if k != "request_cid"}) != request["request_cid"]:
             raise CatalogRefusal("OperationIdentity")
+        check_mapping(mapping)
+        check_logical_schema(mapping, schema_wire)
         if self.reconcile(request) is not None:
             raise CatalogRefusal("AlreadyCommittedReconcileOnly")
         # SqlCatalog flattens namespace components with dots. Do not alias
@@ -236,12 +279,15 @@ class TableCatalog(SqlCatalog):
             elif request["action"] == "replace":
                 table = self.load_table(identifier)
                 self.check_expected(request, table)
+                if table.metadata.properties.get("actql.logical-schema") != schema_wire:
+                    raise CatalogRefusal("SchemaReplacementUnsupported")
                 transaction = table.transaction()
                 transaction.overwrite(physical)
             else:
                 raise CatalogRefusal("UnsupportedTableAction")
             transaction.set_properties({"actql.last-operation": request["request_cid"],
-                                        "actql.data-policy-cid": request["data_policy_cid"]})
+                                        "actql.data-policy-cid": request["data_policy_cid"],
+                                        "actql.logical-schema": schema_wire})
             transaction.commit_transaction()
             return self.reconcile(request)
         finally:
@@ -366,6 +412,7 @@ class TableCatalog(SqlCatalog):
                                            if metadata.current_snapshot_id is not None else None) or \
                 type(receipt["row_count"]) is not int or not 0 <= receipt["row_count"] <= 9007199254740991:
             raise CatalogRefusal("ReadTableIdentity")
+        check_logical_schema(mapping, metadata.properties.get("actql.logical-schema"))
         return Table(("immutable", "read"), metadata, receipt["metadata_location"], io, self)
 
     def read_generation(self, receipt, mapping):

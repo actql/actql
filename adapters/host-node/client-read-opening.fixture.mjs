@@ -135,11 +135,27 @@ export async function openReadOpeningFixture(directory, loss,
     async close() {journal.close(); await store.close();}};
 }
 
-export async function connectOpeningHost(fixture, entrance, tlsDirectory) {
+export async function connectOpeningHost(fixture, entrance, tlsDirectory,
+  {loseReadTerminator = false} = {}) {
+  let armed = loseReadTerminator, terminatorLosses = 0;
   if (entrance === 'local') {
+    const host = createNodeInProcessClientHost(fixture.services);
+    const port = {async perform(operation, ...args) {
+      const response = await host.perform(operation, ...args);
+      if (operation !== 'read' || !armed) return response;
+      armed = false;
+      return {kind: 'rows', frames: {async *[Symbol.asyncIterator]() {
+        yield* response.frames;
+        // Lose only the final iterator acknowledgement, after the actual
+        // delivery owner has committed success and its release receipt.
+        terminatorLosses++;
+        throw new Error('InjectedReadTerminatorLoss');
+      }}};
+    }};
     const client = await connectInProcess({mode: 'local', owner: 'local'},
-      createNodeInProcessClientHost(fixture.services));
-    return {client, endpoint: 'actql:embedded', settled: async () => {}, close: () => client.close()};
+      port);
+    return {client, endpoint: 'actql:embedded', settled: async () => {},
+      terminatorLosses: () => terminatorLosses, close: () => client.close()};
   }
   const [key, cert] = await Promise.all(['host.key', 'host.crt'].map(name => readFile(join(tlsDirectory, name))));
   const originalCAs = getCACertificates('default');
@@ -149,7 +165,22 @@ export async function connectOpeningHost(fixture, entrance, tlsDirectory) {
     negotiate: () => ({...negotiate(), mode: 'remote', owner: 'remote'})});
   const pending = new Set();
   const server = createServer({key, cert}, (request, response) => {
-    if (request.url.endsWith('/read')) fixture.loseReply(() => response.destroy());
+    if (request.url.endsWith('/read')) {
+      fixture.loseReply(() => response.destroy());
+      if (armed) {
+        armed = false;
+        const write = response.write.bind(response);
+        response.write = (bytes, ...args) => {
+          if (bytes.byteLength === 1 && bytes[0] === 0x1e) {
+            // EOF still arrives normally. Remove the payload terminator
+            // downstream of the real owner without changing any row.
+            terminatorLosses++;
+            return write(Buffer.alloc(0), ...args);
+          }
+          return write(bytes, ...args);
+        };
+      }
+    }
     const operation = handler(request, response);
     pending.add(operation);
     operation.finally(() => pending.delete(operation));
@@ -157,7 +188,8 @@ export async function connectOpeningHost(fixture, entrance, tlsDirectory) {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
   const client = await connect({mode: 'remote', token: 'fixture-token', endpoint});
-  return {client, endpoint, settled: () => Promise.all([...pending]), async close() {
+  return {client, endpoint, settled: () => Promise.all([...pending]),
+    terminatorLosses: () => terminatorLosses, async close() {
     await client.close(); server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
     await Promise.all([...pending]);

@@ -363,6 +363,13 @@ fn same_expression(
     match (a, b) {
       (Parenthesized(child), _) => pending.push((child, b_index))
       (_, Parenthesized(child)) => pending.push((a_index, child))
+      (Number(x), Number(y)) =>
+        // Compare the admitted Number values, not decimal/exponent spelling.
+        // Failed admission never proves equivalence or hides an invalid token.
+        match (@expression.numeric_literal(x), @expression.numeric_literal(y)) {
+          (Ok(a), Ok(b)) => if a != b { return false }
+          _ => return false
+        }
       (Reference(x), Reference(y)) => if !references(x, y) { return false }
       (Call(x, ax), Call(y, ay)) => {
         if !same_path(x, y) || ax.length() != ay.length() {
@@ -905,7 +912,6 @@ fn reusable_order_expression(
   selected : Array[(@query.Expression, String)],
   aliases : Array[(String, String)],
   input_slot : (Array[@query.NamePart]) -> String?,
-  resolved_aggregates? : Array[(String, String)] = [],
 ) -> String? {
   for path in join_reference_paths(expression) {
     let selected_reference = order_reference_identity(path, input_slot)
@@ -921,15 +927,10 @@ fn reusable_order_expression(
   }
   for (value, slot) in selected {
     if same_expression(expression, value, references=(left, right) => {
-        // Different parser-owned names can denote the same evaluated call.
-        // Keep existing authored expression spelling/reuse unchanged.
-        same_path(left, right) ||
-        (
-          left.length() == 1 &&
-          right.length() == 1 &&
-          resolved_aggregates.any(entry => entry.0 == left[0].value) &&
-          same_group_reference(left, right, input_slot)
-        )
+        // The preceding check proves ORDER's alias-first meaning. Compare
+        // both expressions' input receivers and remaining property paths,
+        // including qualified columns and parser-owned aggregate slots.
+        same_group_reference(left, right, input_slot)
       }) {
       return Some(slot)
     }
@@ -3752,7 +3753,6 @@ fn compile_steps(
                   selected_input_scope.ranges,
                 )
               },
-              resolved_aggregates=order_aggregate_slots,
             )
           }
           let ordinal = order_ordinal_column(

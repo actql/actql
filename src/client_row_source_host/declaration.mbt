@@ -249,6 +249,28 @@ pub fn generate_row_declaration(
   views : Array[RowViewSpec],
   limits : RowDeclarationLimits,
 ) -> Result[RowDeclaration, RowDeclarationIssue] {
+  generate_row_declaration_impl(
+    connector_id,
+    connector_registration,
+    connector_version,
+    views,
+    None,
+    limits,
+  )
+}
+
+///|
+/// Shared generation preserves the existing primitive declaration bytes.
+/// A complete Relation schema body is admitted separately by the same common
+/// schema reader used for Check Environment Catalogs, not inferred here.
+fn generate_row_declaration_impl(
+  connector_id : String,
+  connector_registration : String,
+  connector_version : String,
+  views : Array[RowViewSpec],
+  schemas : Array[Json]?,
+  limits : RowDeclarationLimits,
+) -> Result[RowDeclaration, RowDeclarationIssue] {
   if !valid_connector_id(connector_id) {
     return Err(InvalidConnectorId)
   }
@@ -257,6 +279,9 @@ pub fn generate_row_declaration(
     return Err(InvalidRegistration)
   }
   if views.is_empty() || views.length() > limits.max_views {
+    return Err(InvalidView)
+  }
+  if schemas is Some(bodies) && bodies.length() != views.length() {
     return Err(InvalidView)
   }
   let resources = []
@@ -273,13 +298,13 @@ pub fn generate_row_declaration(
     resources.push(view.resource)
     let names = []
     for field in view.fields {
-      if !valid_name(field.name, 255) {
+      if schemas is None && !valid_name(field.name, 255) {
         return Err(InvalidView)
       }
       if names.contains(field.name) {
         return Err(DuplicateName(field.name))
       }
-      if !supported_type(field.value_type) {
+      if schemas is None && !supported_type(field.value_type) {
         return Err(UnsupportedType(field.value_type))
       }
       names.push(field.name)
@@ -296,7 +321,7 @@ pub fn generate_row_declaration(
     }
     let declared = []
     let members = []
-    for view in views {
+    for view_index, view in views {
       let source_ref = "connector://" +
         connector_id +
         "/" +
@@ -316,25 +341,29 @@ pub fn generate_row_declaration(
       let row = envelopes.add(
         name + "/row",
         "carrier_schema",
-        object([
-          ("type", "object".to_json()),
-          ("nullable", false.to_json()),
-          ("additional_properties", false.to_json()),
-          (
-            "fields",
-            object(
-              view.fields.map(field => {
-                (
-                  field.name,
-                  object([
-                    ("nullable", Json::boolean(field.nullable)),
-                    ("type", field.value_type.to_json()),
-                  ]),
-                )
-              }),
-            ),
-          ),
-        ]),
+        match schemas {
+          Some(bodies) => bodies[view_index]
+          None =>
+            object([
+              ("type", "object".to_json()),
+              ("nullable", false.to_json()),
+              ("additional_properties", false.to_json()),
+              (
+                "fields",
+                object(
+                  view.fields.map(field => {
+                    (
+                      field.name,
+                      object([
+                        ("nullable", Json::boolean(field.nullable)),
+                        ("type", field.value_type.to_json()),
+                      ]),
+                    )
+                  }),
+                ),
+              ),
+            ])
+        },
       )
       let facts = envelopes.add(name + "/facts", "carrier_facts", object([]))
       let policy = envelopes.add(

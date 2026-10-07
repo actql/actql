@@ -119,11 +119,14 @@ fn cleanup_sequence_match_provider(
     return Ok(true)
   }
   match @execution.cleanup_bounded_sequence_match(state.active) {
-    Ok(true) => {
-      state.reclaimed = true
-      Ok(true)
+    Ok(_) => {
+      // Cleanup's Bool reports change, not completion. Disposal of an
+      // unaccepted result can change state while scratch reclamation waits.
+      state.reclaimed = !@execution.bounded_sequence_match_cleanup_pending(
+        state.active,
+      )
+      Ok(state.reclaimed)
     }
-    Ok(false) => Ok(false)
     Err(_) => Err(sequence_match_provider_issue())
   }
 }
