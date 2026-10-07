@@ -367,6 +367,14 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
                 route.resultEvidencePolls = (route.resultEvidencePolls ?? 0) + 1;
                 assert.equal(result, 0);
               }
+              if (phase === 'bindings') {
+                route.bindingPolls = (route.bindingPolls ?? 0) + 1;
+                assert.equal(result, 0);
+              }
+              if (phase === 'namespace-check') {
+                route.namespacePolls = (route.namespacePolls ?? 0) + 1;
+                assert.equal(result, 0);
+              }
             }
             assert.equal(completedDispatches, 3);
             if (chain && mode === 'cancel-during-publication-validation' &&
@@ -619,7 +627,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     const host = createNodeHostEntry(() => observedMoon, installStrategyContributions);
     const runtime = runtimeCore(observedMoon);
     const options = {moon, control: runtime.publicationControl,
-      preparedProgram: prepared, authorityScopeCid: cid('a'), namespaceId: 'local',
+      preparedProgram: prepared, authorityScopeCid: cid('a'),
+      namespaceId: route.publicationNamespace ?? 'local',
       storeAuthorityCid: cid('c'), now: () => captured
         ? new Date().toISOString() : '2026-09-30T00:00:00.000Z'};
     let plan = captured ? acquiredTaskPublicationPlan({...options,
@@ -1034,7 +1043,8 @@ for (const phase of ['success', 'context-check', 'rows-check']) {
       stage.results.out.order_by = [{id: 'desc'}];
       if (stage.inputs.r) stage.steps[0].select = ['id', 'note'];
     }
-    const route = {observePublicationValidation: true, cancelValidationPhase: phase};
+    const route = {observePublicationValidation: true, cancelValidationPhase: phase,
+      publicationNamespace: `scope-${'é'.repeat(4097)}😀`};
     const mode = phase === 'success' ? 'success' : 'cancel-during-publication-validation';
     await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
       if (mode === 'success') {
@@ -1044,6 +1054,10 @@ for (const phase of ['success', 'context-check', 'rows-check']) {
         assert.ok(route.commitPolls > 1);
         assert.ok(route.resultEvidencePolls > 1,
           'Result dependency resolution must yield within commit validation');
+        assert.ok(route.bindingPolls > 1,
+          'durable binding validation must yield within commit validation');
+        assert.ok(route.namespacePolls > 1,
+          'long namespace comparison must yield within commit validation');
         assert.equal(route.attemptCreates, 1);
       } else {
         await assert.rejects(run(), error => {

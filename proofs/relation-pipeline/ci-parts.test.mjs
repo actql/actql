@@ -19,7 +19,7 @@ const inputs=()=>partIds.map((partId,index)=>({partId,result:'success',artifactI
 test('fixed plan names exactly two capacity and two mutation producers',()=>{
  assert.deepEqual(partIds,['L-C0','L-C1','L-M0','L-M1']);
  assert.equal(Object.keys(plan.parts).length,4);
- assert.equal(plan.parts['L-C0'].obligations.finalNormal.caseCount,86);
+ assert.equal(plan.parts['L-C0'].obligations.finalNormal.caseCount,114);
  assert.equal(plan.parts['L-C1'].obligations.ownerLocalRestoration.caseCount,5);
  assert.equal(plan.parts['L-C1'].obligations.finalNormal,undefined);
 });
