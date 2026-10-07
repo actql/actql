@@ -6698,9 +6698,34 @@ guards 34/34 with regenerated consuming runtimes. The first two-root build timed
 out; separate bounded root diagnostics then completed. No old receipt is relabeled
 as latest-SHA execution.
 
-The old materializing lane still cancels imports synchronously; its cleanup
-connection is the next boundary. Managed publication buffers, an actual cancelled
+At the recorded SHA, the current materializing retained-input path still cancels
+imports synchronously; its cleanup connection is the next boundary. This is not
+a backward-compatibility lane. Managed publication buffers, an actual cancelled
 snapshot-reload acceptance case, availability/Carrier walks, other scratch and
 Native physical allocation correspondence remain. This is not a whole-callback
 wall-clock bound or all-Local completion. See the
 [private import reclamation record](2026-10-07-local-import-buffer-reclamation.md).
+
+### Incremental materializing input cleanup (2026-10-07)
+
+The current retained-input path now uses the existing incremental import
+reclamation owner. Its close revokes use and requests provider stop; later cleanup
+polls retain the same provider and input roots until stop and successful cleanup
+are confirmed. The common scratch witness reads the finished cursor and cannot
+release reservations while retirement is pending. Node and Native dispatch call
+that installed cleanup hook; Node preserves the Store observer even when physical
+release succeeds but its acknowledgement fails.
+
+The focused JS selection passed 11/11 on dirty preparation source; Node adapter
+and physical Store cleanup tests passed 30/30 after fixing fixture task bindings
+and the post-release acknowledgement case. Work boundaries are independently
+derived as 82/81 across quanta 1, 7 and 256, not copied from successful telemetry.
+These results precede the normal adoption of main
+`e5d2be0276f5c79f874ab7b5aa173eb9a5f87902`. Integrated public Host acceptance
+is not yet established. See the
+[materializing cleanup record](2026-10-07-local-materializing-cleanup.md).
+
+Managed publication buffers, actual snapshot-reload cancellation acceptance,
+availability/Carrier walks, other scratch and Native physical-byte correspondence
+remain. Incremental reference retirement does not establish a wall-clock or GC
+latency bound. The full retained Local goal remains open.
