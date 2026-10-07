@@ -237,6 +237,8 @@ pub fn emit_root_evidence(RootEvidence, @encode_core.Writer) -> Unit raise @enco
 
 pub fn emit_root_source(ExpressionRoot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_sequence_node(PreparedSequence, Int, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_sequence_step_range(PreparedSequence, Int, Int, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_sequence_steps(PreparedSequence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

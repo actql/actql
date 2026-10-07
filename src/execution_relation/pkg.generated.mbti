@@ -461,6 +461,8 @@ pub fn discard_managed_output_measurement_index(ManagedOutputValueReceipt) -> Bo
 
 pub fn dispose_managed_output_values_scratch(ManagedOutputValues) -> Unit
 
+pub fn emit_ordered_kernel_node(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_relation_row(AdmittedRelationRow, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

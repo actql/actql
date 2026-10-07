@@ -145,3 +145,12 @@ test('combined packed selection registers every analytic corpus and isolates mut
     assert.ok(driver.includes(`'scripts/${suite}.test.mjs'`), suite);
   }
 });
+
+
+test('packed analytic profiles are selected explicitly by both Host entrances', async () => {
+  const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  assert.ok(fixture.includes('const hostCapacityPolicy = {...base.host_policy_profile.capacity, ...analyticCapacity};'));
+  assert.ok(fixture.includes('environment.host_policy_profile = {...base.host_policy_profile, capacity: hostCapacityPolicy};'));
+  assert.ok(fixture.includes('installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}'));
+  assert.ok(fixture.includes('directory: remoteDirectory, sourceProfilePath, hostCapacityPolicy,'));
+});

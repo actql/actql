@@ -4,7 +4,7 @@
 // Applications use only @actql/node; they never open a journal or owner.
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {once} from 'node:events';
 import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
@@ -73,6 +73,12 @@ await writeFile(join(root, 'source-program.json'), await readFile(join(
 {
   const environment = JSON.parse(await readFile(join(repository,
     'adapters/host-node/fixtures/query-amount-environment.json'), 'utf8'));
+  const base = JSON.parse(await readFile(join(root, 'node_modules', '@actql',
+    'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
+  environment.host_policy_profile = base.host_policy_profile;
+  delete environment.evidence_bundle_cid;
+  environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
+    .update(canonicalText(environment)).digest('hex');
   const database = join(root, 'records.duckdb');
   const {DuckDBInstance} = createRequire(join(root, 'node_modules', '@actql',
     'local-node', 'package.json'))('@duckdb/node-api');

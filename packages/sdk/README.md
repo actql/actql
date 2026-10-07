@@ -159,10 +159,21 @@ without sending payload. It rejects a reply bound to another attempt, Run,
 Result or serialization contract, and invalid record/receipt combinations.
 A reader stays `opening` until it receives the opening response (HTTPS) or
 an accepted row (lazy Local frames). Failure before that observation leaves
-`open_unknown`, the original `attemptId`, and zero returned rows. Inspect
+`open_unknown`, the original `attemptId`, and zero returned rows.
+`explainReadFailure(error)` preserves that opening uncertainty instead of
+describing it as an authoritatively opened and stopped read. Inspect
 that attempt with `deliveryAttempt(id)` before deciding on an explicit new
 read. A `not_found` lookup does not prove that opening never committed, and
 lookup never reopens the payload or consumes another grant use.
+`explainDeliveryAttempt(lookup)` and `formatDeliveryAttempt(lookup, options)`
+explain that original SDK lookup without performing another operation. They
+distinguish an unresolved lookup, a recorded attempt, streaming, failed or
+cancelled Delivery, and Host-confirmed success with its matching release
+receipt. A copied lookup has no explanation custody. Host-confirmed bytes are
+not the caller's yielded-row count, and Delivery failure/cancellation does not
+fail/cancel the Run. The original read reference is retained as a read-only
+lookup candidate, never permission to reopen or rerun Compute. Standard
+wording is English; `locale: 'ja'` selects the existing Japanese localization.
 A release receipt never proves that the Client
 received or saved every value. A reader reaches `complete` only after the
 normal wire terminator and transport EOF; values yielded before a failure
@@ -1116,3 +1127,25 @@ which also checks generated SDK metadata/types and the [reference catalog](../..
 Literal scenario expectations remain independent tests. This public catalog is
 separate from legacy actql-diagnostics/0.1 and runtime operation outcomes; it
 does not claim a legacy compiler catalog body or complete diagnostics coverage.
+
+`explainRequestLookup(lookup)` and `formatRequestLookup(lookup, options)` explain
+only the original SDK lookup or its rejected observation. An absent record does
+not prove non-acceptance; a returned Run reference does not prove Run success.
+Durable held responses retain `preparationState` (`waiting_checkpoint`,
+`resuming`, or `ended`), the preparation attempt ID and durability. An ended
+preparation is separate from physical stop, cleanup, and execution outcomes.
+The helpers ignore open reason/error strings and preserve an original authorized
+lookup candidate without granting permission to resubmit or answer a Checkpoint.
+Held submit results expose the same preparation facts through `explainSubmission`.
+
+Lookup snapshots are cloned, revalidated and recursively frozen. Invalid copies
+and malformed/unknown branches retain an uninterpretable observation and original
+lookup target; transport failures retain lookup uncertainty. Copies receive no
+explanation custody or submitted-input association. Presentation performs no I/O,
+retains the approved English/Japanese localization, and preserves identical facts
+in text, HTML and JSON. There is no new Host storage or timed retention guarantee.
+
+Lookup failures use fresh SDK errors for each call. Reused credential or
+transport exceptions cannot replace an earlier call's lookup target. Only the
+existing SDK error code and a bounded HTTP status are copied; borrowed exception
+causes and fields receive no explanation custody or outcome authority.
