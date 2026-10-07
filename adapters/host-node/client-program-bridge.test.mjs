@@ -5895,12 +5895,12 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             const previewLimits = moon.clientProgramEffectPreviewInputLimits(
               65536, 4096, 16, 1000, 100, 65536, 4096, 16,
               2, 2, 100, 100);
-            const author = draft => checked(moon.clientProgramAuthorEffectPreview(
+            const author = (draft, authorScope = scope) => checked(moon.clientProgramAuthorEffectPreview(
               canonicalJson(draft), draft.run_identity_cid,
-              draft.authoring_context.authoring_context_cid, scope,
+              draft.authoring_context.authoring_context_cid, authorScope,
               65536, 4096, 16, 2, 4, 128, 8, 3));
-            const bindPreview = draft => {
-              const authored = author(draft);
+            const bindPreview = (draft, authorScope = scope) => {
+              const authored = author(draft, authorScope);
               const captured = checked(moon.clientProgramBindEffectPreviewInputs(
                 owned, inputs, invocation, 0, authored._0,
                 draft.authoring_context.authoring_context_cid, previewLimits));

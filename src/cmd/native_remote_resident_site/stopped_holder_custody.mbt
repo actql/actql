@@ -1,4 +1,10 @@
 ///|
+// Acquisition and cleanup address the same exact retained consumer component.
+fn consumer_process_hold_identity(request : @remote.DispatchRequest) -> String {
+  "consumer:" + @remote.dispatch_request_identity(request)
+}
+
+///|
 /// The exclusive holder slot proves that no former process can keep using
 /// these exact files or readers. Historical binding admission selects the
 /// existing cleanup Owners; no payload use or fresh borrow is authorized here.
@@ -50,6 +56,84 @@ fn settle_stopped_holder_custody(
           Err(_) => return false
         }
     }
+    if owner.recorded_source is Some(original) {
+      guard root_path is Some(path) &&
+        root is Some(retained_root) &&
+        owner.recorded_consumer is Some((consumer_attempt, expected_consumer)) else {
+        return false
+      }
+      let envelope = match owner.journal.dispatch_envelope(consumer_attempt) {
+        Ok(Some(value)) => value
+        _ => return false
+      }
+      guard @remote.admit_remote_poll_dispatch_json(envelope) is Ok(consumer) &&
+        @remote.dispatch_request_identity(
+          @remote.remote_poll_dispatch_request(consumer),
+        ) ==
+        expected_consumer else {
+        return false
+      }
+      let delegated = delegation(matches, budget(matches))
+      if !saved_output_bundle_current(
+          owner.bundles,
+          delegated,
+          required(matches, "target-triple"),
+        ) {
+        return false
+      }
+      guard @site.create_site(
+          environment.site_key,
+          environment.site_generation,
+          environment.runtime_bundle_cid,
+          environment.max_operations,
+          environment.max_transfers,
+          environment.max_bytes,
+          environment.max_bytes,
+        )
+        is Some(site) else {
+        return false
+      }
+      let producer_attempt = match
+        @remote.dispatch_request_attempt_identity(request) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      // Source, receiver and borrow responsibility must be discharged before
+      // the existing formal-release owner can return the producer capability.
+      let confirmed = match
+        @resident_host.reclaim_stopped_resident_source_output(
+          owner.journal,
+          run_admission(matches),
+          site,
+          delegated,
+          producer_attempt,
+          consumer_attempt,
+          transfers,
+          retained_root,
+          path,
+          {
+            max_binding_bytes: 1048576,
+            max_chunks: 65536,
+            max_manifest_bytes: 1048576,
+            max_referenced_bytes: environment.max_bytes,
+          },
+          cleanup_current,
+          recorded=Some(original),
+        ) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      let (_, checked_consumer) = @host.client_retained_source_cleanup_requests(
+        confirmed,
+      )
+      // Older recovery used the holder claimant for this component. Use the
+      // same identity as acquisition, from the Owner-confirmed relationship.
+      match
+        owner.bundles.release(consumer_process_hold_identity(checked_consumer)) {
+        Ok(_) => ()
+        Err(_) => return false
+      }
+    }
     let input = match
       @resident_host.prepare_resident_saved_input_cleanup(
         owner.journal,
@@ -59,6 +143,7 @@ fn settle_stopped_holder_custody(
         request,
         environment.max_bytes,
         cleanup_current,
+        recorded_source=owner.recorded_source,
       ) {
       Ok(value) => value
       Err(_) => return false

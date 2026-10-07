@@ -1084,8 +1084,19 @@ the generated validator before SDK input association. When the owner cannot
 establish a location it remains absent; safe future code-only reasons retain
 the generic location contract until their domain is defined.
 
-A public Local Host port may reuse its response objects. The SDK detaches the
-validated check value, validates that owned value and only then associates the
+A public Local Host port may reuse its response objects. The SDK captures each
+enumerable response field once before reading a branch or validating the reply.
+It uses the existing shared data-capture helper without a cached clone, toJSON,
+coercion or borrowed array methods. Valid own DTO data on Date/Proxy containers
+and shared nested objects is captured once into plain data; prototype-named own
+keys remain data. Function, symbol and bigint leaves fail capture.
+Admission, failure classification, input binding and presentation use that owned
+value. Cloning and revalidation additionally reject a well-shaped copy that
+changes any captured fact; comparison never rereads borrowed Host getters.
+The verification copy is not returned or retained for presentation: even a
+getter on that copy that changes after validation cannot replace the first
+captured observation.
+The SDK only then associates the
 call's immutable submitted input and freezes the observation. This matches the
 independent value custody already supplied by HTTPS JSON decoding. Host-owned
 objects do not acquire SDK freezing, and later Host replies cannot rebind a
@@ -1094,10 +1105,19 @@ failure with a valid partial report retains that report's submitted inputs;
 an unavailable outcome establishes no report or input association. Copying a
 report outside the SDK does not reconstruct its private input association.
 
-An uncloneable response or an invalid copied shape fails the existing transport
+Uncapturable response data or an invalid copied shape fails the existing transport
 contract check before any association. This changes neither the checker verdict
 nor the Host's scope/context or disclosure projection. No new source hash,
 persistence, retrieval API, compatibility route or execution state is added.
+
+The same response capture applies to Run status/wait/reconcile, Run and request
+cancellation, request lookup and submission (before its held/admitted branch),
+and DeliveryAttempt lookup. Throwing getters fail through the corresponding
+operation's safe protocol/uncertainty result, without retaining their exception.
+Run responses remain mutable for callers; private explanations keep immutable
+admitted facts. These observations do not certify an atomic join of different
+Owners, and no capture failure establishes stop, release or write retry rights.
+Request JSON serialization retains its separate value-preserving input owner.
 
 ### Reporting Problem references and outcome identity
 
