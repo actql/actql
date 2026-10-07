@@ -571,10 +571,6 @@ test(`Table sparse private input commits through ${transport} after approval whi
       JSON.stringify(sparse), 'json', environment, undefined, []);
     assert.equal(moon.clientProgramEffectPreparationResultPresenceField(outcome), 'p',
       'The actual common checker rejects Conditional p at Result closure');
-    const densePreparation = moon.clientProgramPrepareEffectComputationWithParameters(
-      JSON.stringify(dense), 'json', environment, undefined, []);
-    assert.ok(moon.clientProgramEffectPreparationReady(densePreparation));
-    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(densePreparation), undefined);
     const invalidFormat = moon.clientProgramPrepareEffectComputationWithParameters(
       JSON.stringify(sparse), 'invalid-format', environment, undefined, []);
     assert.equal(moon.clientProgramEffectPreparationIssueCode(invalidFormat), 'invalid_format');
@@ -611,6 +607,12 @@ test(`Table sparse private input commits through ${transport} after approval whi
     privateStage.table_inputs.rows.from = 'ordered';
     privateStage.results.answer.from = 'ordered';
     const input = JSON.stringify(privateInput);
+    const privatePreparation = moon.clientProgramPrepareEffectComputationWithParameters(
+      input, 'json', environment, undefined, []);
+    assert.ok(moon.clientProgramEffectPreparationReady(privatePreparation),
+      moon.clientProgramEffectPreparationIssueCode(privatePreparation));
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(privatePreparation), undefined,
+      'The accepted private input is not an ordinary Result presence refusal');
     const submissionRef = client.newSubmission();
     let run = await client.startSource(input, {format: 'json', submissionRef});
     await waiting(run, observations, t);
