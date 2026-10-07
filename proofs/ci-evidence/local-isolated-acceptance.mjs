@@ -34,7 +34,7 @@ export function localAcceptanceLimits(profile = 'session') {
   return Object.freeze(profile === 'session'
     ? {preparationMilliseconds: 180000, timeoutSeconds: 1200}
     : profile === 'pipeline-pristine' ? {preparationMilliseconds: 900000, normalReplayMilliseconds: 480000, timeoutSeconds: 1800}
-      : {preparationMilliseconds: 900000, normalReplayMilliseconds: 600000, timeoutSeconds: 1800});
+      : {preparationMilliseconds: 1200000, normalReplayMilliseconds: 900000, timeoutSeconds: 2400});
 }
 
 // The Linux preparer receives Git object identities, not an unverified working
@@ -100,8 +100,20 @@ function prepareLinux(descriptorFile) {
     const result = spawnSync(process.execPath, entry, {
       cwd: directory, env: process.env, encoding: 'utf8', timeout: localAcceptanceLimits(profile).normalReplayMilliseconds, maxBuffer: 32 * 1024 * 1024,
     });
-    if (result.error || result.status !== 0) process.stderr.write((result.stderr ?? '').slice(-4000));
-    assert(!result.error && result.status === 0, 'Normal pinned pipeline replay failed');
+    // Save actual process facts before admission, including a timed-out partial
+    // campaign. These diagnostics cannot stand in for a complete phase report.
+    writeFileSync('/out/normal-output.log', result.stdout ?? '', {flag: 'wx'});
+    writeFileSync('/out/normal-error.log', result.stderr ?? '', {flag: 'wx'});
+    const processFacts = {timeoutMilliseconds: localAcceptanceLimits(profile).normalReplayMilliseconds,
+      elapsedMilliseconds: Math.round(performance.now() - start), status: result.status,
+      signal: result.signal, errorCode: result.error?.code ?? null,
+      complete: !result.error && result.status === 0, reuseAuthorized: false};
+    json('/out/normal-process.json', processFacts);
+    if (!processFacts.complete) {
+      process.stderr.write((result.stderr ?? '').slice(-4000));
+      process.stderr.write(`ACTQL_NORMAL_PIPELINE_FAILURE ${JSON.stringify(processFacts)}\n`);
+    }
+    assert(processFacts.complete, 'Normal pinned pipeline replay failed');
     const prefix = profile === 'pipeline-pristine' ? 'ACTQL_PIPELINE_PRISTINE ' : 'ACTQL_PIPELINE_FIXED_JS ';
     const summaries = result.stdout.split('\n').filter(line => line.startsWith(prefix)); assert.equal(summaries.length, 1);
     const summary = JSON.parse(summaries[0].slice(prefix.length));

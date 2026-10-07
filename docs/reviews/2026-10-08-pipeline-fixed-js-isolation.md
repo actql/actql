@@ -110,9 +110,33 @@ that policy requires separating the actual import/execution boundary first.
 The new `pipeline-fixed-js` local profile is distinct from Session and pristine
 admission. It retains the complete source cohort and tested revision in its
 manifest, the existing read-only/networkless/credential-free scratch executor,
-and owner-authenticated cleanup. Preparation is bounded at 900 seconds, its
-separate normal campaign at 600 seconds, actual image execution at 900 seconds,
-and the enclosing local guard at 1,800 seconds. Session and pristine limits stay
+and owner-authenticated cleanup. Preparation is bounded at 1,200 seconds, its
+separate normal campaign at 900 seconds, actual image execution at 900 seconds,
+and the enclosing local guard at 2,400 seconds. Session and pristine limits stay
 unchanged. Both campaigns' original evidence is saved before optional comparison
 or refusal diagnostics. This unit still needs clean-SHA physical acceptance and
 actual retained-history validation; all broader obligations remain unclaimed.
+
+## First actual campaign: incomplete timeout
+
+At clean `bafcdb7dc6e3a6d9f9deb49451198303a1d349cb`, guard
+`run-m8INJT` ran the normal campaign after 67,308 ms of image input preparation
+and 1,483 ms of normal source preparation. The normal process reached its
+600-second bound. Eight captured originals contain the four actual intended
+mutant detections and four healthy observations; post-restoration acceptance,
+image execution and final comparison are incomplete. No timeout is counted as
+detection or a complete accepted campaign. The guard failed and released its
+locks; authenticated preparer cleanup completed. Partial raw receipts, source
+snapshots, compiled fixtures, input bytes and logs are retained in the local
+diagnostic `/private/tmp/g860-partial-normal-bafcdb7dc.json`.
+
+The previous normal limit covered only four pristine observations, whereas this
+profile performs twelve phase observations with four independent source changes
+and a new restoration owner. Following this measured incomplete execution, the
+explicit fixed-profile budget is reviewed as 900 seconds normal, 1,200 seconds
+preparation and 2,400 seconds enclosing execution; its image limit remains 900
+seconds. Session and pristine budgets and the exact four minima remain unchanged.
+This is a finite diagnostic budget correction, not an automatic retry/limit
+escalation or verification reduction. Actual process status, signal, error code,
+elapsed time and captured output are now saved before normal phase admission, so
+a future timeout remains distinguishable from a semantic/compiler failure.
