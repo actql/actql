@@ -51,6 +51,7 @@ import {fileURLToPath} from 'node:url';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
+import {settleSavedTableCommit} from './table-commit-outcome.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import {issueAuthorizedEffectSetReceipt} from './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
@@ -5891,6 +5892,107 @@ test('Effect source set shares exact owners and retains failed cleanup',
             assert.equal(tablePreview.operationWire,
               canonicalJson(operations[0]));
             assert.equal(control.tablePreviewInputAvailable(tablePreview), true);
+            // The Catalog result is an independent fixture, not evidence of a
+            // real physical commit in this Host-capture test. Projection must
+            // bind this exact operation and the captured (including empty)
+            // Relation measurement before the existing Ledger can settle it.
+            const receipt = {
+              version: 'actql-table-receipt/0.1',
+              request_cid: operations[0].request_cid,
+              effect_identity_cid: operations[0].effect_identity_cid,
+              catalog_identity_cid: cid('3'),
+              schema_cid: operations[0].schema_cid,
+              storage_mapping_cid: storage.identity,
+              table_uuid: '11111111-2222-3333-4444-555555555555',
+              generation_cid: cid('b'), metadata_location: 'file:///table/generation.json',
+              snapshot_id: empty ? null : '123', row_count: empty ? 0 : 2,
+            };
+            receipt.receipt_cid = canonicalHashWithoutSelf(receipt, 'receipt_cid');
+            const responseWire = canonicalJson({ok: true, result: receipt});
+            const outcomeWire = canonicalJson({state: 'applied', result: receipt});
+            assert.equal(control.tablePreviewCommitOutcome(tablePreview,
+              responseWire, 200, tableLimits), outcomeWire);
+            assert.throws(() => control.tablePreviewCommitOutcome({...tablePreview},
+              responseWire, 200, tableLimits), {name: 'TypeError'});
+            for (const field of ['request_cid', 'effect_identity_cid',
+              'catalog_identity_cid', 'schema_cid', 'storage_mapping_cid', 'row_count']) {
+              const foreign = {...receipt, [field]: field === 'row_count' ?
+                receipt.row_count + 1 : cid('9')};
+              foreign.receipt_cid = canonicalHashWithoutSelf(foreign, 'receipt_cid');
+              assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
+                canonicalJson({ok: true, result: foreign}), 200, tableLimits),
+              {code: 'MoonBitHostFailure'});
+            }
+            for (const body of [{accepted: true}, {ok: true, result: null},
+              {ok: false, code: 'conflict'}, {ok: true, result: receipt, extra: true}]) {
+              assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
+                canonicalJson(body), 200, tableLimits), {code: 'MoonBitHostFailure'});
+            }
+            const ledgerBinding = control.tablePreviewLedgerBinding(tablePreview);
+            assert.equal(ledgerBinding.memberIndex, 0);
+            const member = JSON.parse(authored._0).effects[0];
+            const key = authored._1[0][0];
+            const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
+              member.effect_id, canonicalJson(operations[0].request_cid),
+              128, 256, 16, 4);
+            const basis = effect.ledgerBasis(scope, locator, key, cid('6'),
+              member.effect_member_preview_cid, member.changes[0].row_preview_cid,
+              operations[0].request_cid, cid('0'), 'unavailable', cid('1'), cid('2'));
+            const claim = {scope, locator, key, basis,
+              intentFingerprintCid: member.changes[0].row_preview_cid,
+              canonicalRequestCid: operations[0].request_cid};
+            const ledgerRoot = join(directory, 'table-ledger');
+            const openTableLedger = () => openEffectLedger({moon, root: ledgerRoot,
+              authorityScopeCid: cid('e'), callerRequestId: 'table-bind',
+              maxEntryBytes: 8192});
+            let tableLedger = openTableLedger();
+            const settle = () => settleSavedTableCommit({control, ledger: tableLedger,
+              tablePreview, claim, limits: tableLimits});
+            try {
+              assert.deepEqual(settle(), {status: 'unknown'});
+              const saved = await captureClaimedEffectResponse({ledger: tableLedger,
+                claim, requestCid: operations[0].request_cid,
+                // Transport-only observation fixture; no approval is implied.
+                execute: async () => ({observation: {useCid: cid('7'),
+                  statusCode: 200, body: Buffer.from(responseWire)}})});
+              assert.equal(saved.claimed, true);
+              tableLedger.close();
+              tableLedger = openTableLedger();
+              const terminal = settle();
+              assert.equal(terminal.status, 'applied');
+              assert.equal(JSON.parse(terminal.receipt.wire).typed_outcome.state, 'applied');
+              assert.deepEqual(JSON.parse(terminal.receipt.wire).typed_outcome.result, receipt);
+              assert.equal(settle().receipt.identity, terminal.receipt.identity);
+              await captureClaimedEffectResponse({ledger: tableLedger, claim,
+                requestCid: operations[0].request_cid,
+                execute: () => assert.fail('Settled operation was resent')});
+              assert.throws(() => settleSavedTableCommit({control, ledger: tableLedger,
+                tablePreview, claim: {...claim, canonicalRequestCid: cid('9')},
+                limits: tableLimits}), {code: 'ForeignTableDispatchRequest'});
+            } finally { tableLedger.close(); }
+            for (const [index, badResponse] of [
+              canonicalJson({accepted: true}),
+              canonicalJson({ok: true, result: {...receipt, request_cid: cid('9')}}),
+            ].entries()) {
+              const uncertain = openEffectLedger({moon,
+                root: join(directory, `table-invalid-reply-${index}`),
+                authorityScopeCid: cid('e'), callerRequestId: 'table-bind',
+                maxEntryBytes: 8192});
+              try {
+                await captureClaimedEffectResponse({ledger: uncertain, claim,
+                  requestCid: operations[0].request_cid,
+                  execute: async () => ({observation: {useCid: cid('7'),
+                    statusCode: 200, body: Buffer.from(badResponse)}})});
+                assert.throws(() => settleSavedTableCommit({control, ledger: uncertain,
+                  tablePreview, claim, limits: tableLimits}), {code: 'MoonBitHostFailure'});
+                assert.equal(uncertain.readClaimedResponse(claim).responseBytes
+                  .toString('utf8'), badResponse);
+                assert.equal(uncertain.readClaimedOutcome(claim), undefined);
+                assert.equal((await captureClaimedEffectResponse({ledger: uncertain,
+                  claim, requestCid: operations[0].request_cid,
+                  execute: () => assert.fail('Invalid reply permitted resend')})).claimed, false);
+              } finally { uncertain.close(); }
+            }
             assert.throws(() => control.bindTablePreview({...tableInput},
               captured, 0), {name: 'TypeError'});
             assert.throws(() => control.tablePreviewInputAvailable(
@@ -5955,6 +6057,8 @@ test('Effect source set shares exact owners and retains failed cleanup',
               staleReplacement, 0), {code: 'MoonBitHostFailure'});
             assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
             assert.equal(control.tablePreviewInputAvailable(tablePreview), false);
+            assert.equal(control.tablePreviewCommitOutcome(tablePreview,
+              responseWire, 200, tableLimits), outcomeWire);
             assert.throws(() => control.bindTablePreview(tableInput, captured, 0),
               {code: 'MoonBitHostFailure'});
           } else {
