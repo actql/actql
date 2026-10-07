@@ -47,6 +47,9 @@ const fail = (code, detail) => { throw coded(code, detail); };
 const without = (value, ...keys) => Object.fromEntries(
   Object.entries(value).filter(([key]) => !keys.includes(key)));
 const hex = value => createHash('sha256').update(value).digest('hex');
+// Captured caller input is opaque data, not an installation identity.
+const capturedValueWire = value => canonicalValueJson(value, {dataKeys: true});
+const capturedValueCid = value => `sha256:${hex(capturedValueWire(value))}`;
 
 // This is an installed Host-private bounded capture, not a new Run schema.
 // A plural capture is never inferred by reinterpreting the singular field.
@@ -413,11 +416,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
       authorities,
       binding,
       async describe(view) {
-        const capturedWire = canonicalJson(captured);
+        const capturedWire = capturedValueWire(captured);
         const invocation = {
           version: 'actql-remote-prepared-invocation/0.1',
           request_cid: requestCid,
-          captured_submission_cid: contentCid(captured),
+          captured_submission_cid: capturedValueCid(captured),
           site_key: siteKey,
           realization_key: realizationKey,
         };
@@ -452,12 +455,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
           displayed_scope: displayed,
           displayed_authoring_context: [{principal: captured.principalId}],
         };
-        projection.review_projection_cid = contentCid(projection);
-        const reviewWire = canonicalJson(projection);
+        projection.review_projection_cid = capturedValueCid(projection);
+        const reviewWire = capturedValueWire(projection);
         if (Buffer.byteLength(reviewWire, 'utf8') > maxReviewBytes) {
           fail('CheckpointReviewTooLarge');
         }
-        const reviewCid = contentCid(JSON.parse(reviewWire));
+        const reviewCid = capturedValueCid(JSON.parse(reviewWire));
         const items = [
           {name: 'captured_input', wire: capturedWire},
           {name: 'invocation_request', wire: canonicalJson(request)},
@@ -510,7 +513,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       ? 'actql-remote-multi-source-acquisition-intent/0.1'
       : 'actql-remote-acquisition-intent/0.1',
     request_cid: requestCid,
-    captured_submission_cid: contentCid(captured),
+    captured_submission_cid: capturedValueCid(captured),
     ...(captured.version === MULTI_SOURCE_SUBMISSION
       ? {occurrence: occurrenceIdentity(occurrence)} : {}),
     checked_source: occurrence.checkedSource,
@@ -564,14 +567,14 @@ export async function installRemoteCheckpoints({root, namespaceId,
           },
           displayed_authoring_context: [{principal: captured.principalId}],
         };
-        projection.review_projection_cid = contentCid(projection);
-        const reviewWire = canonicalJson(projection);
+        projection.review_projection_cid = capturedValueCid(projection);
+        const reviewWire = capturedValueWire(projection);
         if (Buffer.byteLength(reviewWire, 'utf8') > maxReviewBytes) {
           fail('CheckpointReviewTooLarge');
         }
-        const reviewCid = contentCid(JSON.parse(reviewWire));
+        const reviewCid = capturedValueCid(JSON.parse(reviewWire));
         const items = [
-          {name: 'captured_input', wire: canonicalJson(captured)},
+          {name: 'captured_input', wire: capturedValueWire(captured)},
           {name: 'invocation_request', wire: canonicalJson(request)},
           // The Store's prepared-invocation slot holds the acquisition
           // intent (a distinct version), never a fabricated invocation.
@@ -683,7 +686,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     const invocation = await opened.record('prepared_invocation',
       references.get('prepared_invocation'));
     if (contentCid(invocation) !== continuation.invocation_cid ||
-        invocation.captured_submission_cid !== contentCid(captured) ||
+        invocation.captured_submission_cid !== capturedValueCid(captured) ||
         invocation.request_cid !== opened.requestCid ||
         contentCid(request) !== opened.requestCid ||
         continuation.prepare_attempt_id !== prepareAttemptId) {
@@ -713,7 +716,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       if (view.kind !== 'read_access') continue;
       const prior = await continuationOf(prepareAttemptId,
         view.continuationStateCid);
-      if (contentCid(prior.captured) !== contentCid(captured)) {
+      if (capturedValueCid(prior.captured) !== capturedValueCid(captured)) {
         fail('HeldAcquisitionChanged');
       }
       const occurrence = continuedOccurrence(captured, prior.continuation);
@@ -1739,8 +1742,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
           const original = await ledger.record('captured_input', captures[0]);
           if ((captured.version === MULTI_SOURCE_SUBMISSION ||
               original.version === MULTI_SOURCE_SUBMISSION) &&
-              contentCid(acquisitionsOf(original)) !==
-                contentCid(acquisitionsOf(captured))) {
+              capturedValueCid(acquisitionsOf(original)) !==
+                capturedValueCid(acquisitionsOf(captured))) {
             fail('HeldAcquisitionChanged');
           }
         }
@@ -1768,7 +1771,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           sealed = contentCid({
             version: 'actql-remote-prepared-invocation/0.1',
             request_cid: requestCid,
-            captured_submission_cid: contentCid(captured),
+            captured_submission_cid: capturedValueCid(captured),
             site_key: siteKey,
             realization_key: realizationKey,
           });

@@ -70,6 +70,9 @@ export const graphHopNodePredicateSuccesses = [
   sourceCase('quoted', '(a:Node WHERE id = 1)-[:R]->(b:Node WHERE `B`.`PAYLOAD`.`score` > 10)'),
   sourceCase('anonymous', '(a:Node WHERE id = 1)-[:R]->(:Node WHERE payload.score > 10)'),
   sourceCase('property-map', '(a:Node WHERE id = 1)-[:R]->(b:Node {id: 3})'),
+  sourceCase('combined-edge-node', '(a:Node WHERE id = 1)-[:R WHERE key = 10]->(b:Node WHERE payload.score > 10)', [],
+    {text: data + mapping.replace('LABEL R NO PROPERTIES', 'LABEL R PROPERTIES (key)')
+      + tail('(a:Node WHERE id = 1)-[:R WHERE key = 10]->(b:Node WHERE payload.score > 10)')}),
   sourceCase('intermediate', '(a:Node WHERE id = 1)-[:R]->(b:Node WHERE payload.score > 10)-[:R]->(c:Node {id: 2})', [{depth: 2}]),
   sourceCase('incoming', '(a:Node WHERE id = 2)<-[:R]-(b:Node WHERE payload.score > 10)'),
   sourceCase('null-object-and-member', '(a:Node WHERE id = 1)-[:R]->(b:Node WHERE payload.score IS NULL)', [{depth: 1}, {depth: 1}]),

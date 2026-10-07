@@ -101,6 +101,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-match-source-input.mjs', 'graph-match-source-input.mjs'],
   ['scripts/fixtures/graph-property-predicate-source-input.mjs', 'graph-property-predicate-source-input.mjs'],
   ['scripts/fixtures/graph-hop-node-predicate-source-input.mjs', 'graph-hop-node-predicate-source-input.mjs'],
+  ['scripts/fixtures/graph-edge-predicate-source-input.mjs', 'graph-edge-predicate-source-input.mjs'],
   ['scripts/fixtures/graph-traverse-source-input.mjs', 'graph-traverse-source-input.mjs'],
   ['scripts/fixtures/graph-traverse-path-source-input.mjs', 'graph-traverse-path-source-input.mjs'],
   ['scripts/fixtures/graph-diagnostics-source-input.mjs', 'graph-diagnostics-source-input.mjs'],

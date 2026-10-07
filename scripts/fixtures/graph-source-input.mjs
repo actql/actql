@@ -153,7 +153,7 @@ export const graphSourceExecutionFailures = [
 ];
 export const graphSourceRefusals = [
   ...['WALK', 'TRAIL', 'ACYCLIC'].flatMap(mode => [
-    ['named-edge', '-[e:R]->{1,2}'], ['edge-predicate', '-[:R WHERE key > 0]->{1,2}'],
+    ['named-edge', '-[e:R]->{1,2}'], ['missing-edge-property', '-[:R WHERE key > 0]->{1,2}'],
     ['reversed-bounds', '-[:R]->{2,1}'], ['zero-upper-bound', '-[:R]->{0,0}'],
   ].map(([name, edge]) => ({name: 'keyed-bounded-invalid-' + mode.toLowerCase() + '-' + name,
     format: 'aql-text', text: parallel + 'FROM GRAPH g |> MATCH p = ' + mode +

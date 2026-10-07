@@ -276,3 +276,38 @@ test "Graph hop scope does not invent property presence in other reached definit
     is Err(UnsupportedGraph),
   )
 }
+
+///|
+test "Graph fixed hop retains both node and edge predicates after integration" {
+  let source = graph_hop_node_source(
+    "(a:Node WHERE id = 1)-[:R WHERE key = 10]->(b:Node WHERE payload.score > 10)",
+  ).replace(old="LABEL R NO PROPERTIES", new="LABEL R PROPERTIES (key)")
+  let program = compile_query_script(
+    @query.parse_query_script(source, syntax_limits()).unwrap(),
+    graph_hop_node_context(),
+    construction_limits(),
+  ).unwrap()
+  let body = semantic(program)
+  assert_true(
+    body.contains(
+      "\"edge_where\":{\"eq\":[{\"field\":\"key\"},{\"literal\":10}]}",
+    ),
+  )
+  assert_true(
+    body.contains(
+      "\"node_where\":{\"gt\":[{\"property\":{\"name\":\"score\",\"value\":{\"field\":\"payload\"}}},{\"literal\":10}]}",
+    ),
+  )
+  match
+    @check.check_parsed_with_evidence(
+      program,
+      graph_rows_environment(),
+      None,
+      [],
+      graph_rows_check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(diagnostic) => graph_rows_rejected(diagnostic)
+    NeedsInputs(_) => fail("Bound Values require no acquisition")
+  }
+}
