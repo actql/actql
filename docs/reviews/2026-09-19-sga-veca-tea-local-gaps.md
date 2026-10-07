@@ -6736,8 +6736,15 @@ Private managed-admission buffers now retire in bounded slices while pending
 capacity remains charged. Focused admission/caller fixtures preserve finished
 receipts and validate cancellation, reference cleanup and retry. These close the
 private admission retirement boundary, not the still-synchronous receipt creation
-or availability walks. The installed DuckDB cleanup hook requires separate
-runtime acceptance; Native physical-byte correspondence is not established.
+or availability walks. The installed DuckDB cleanup hook now has a separate
+real-DuckDB/Store regression: physical release preserves pending admission
+capacity, retries reach release within an independently derived bound, and
+native attempts do not increase. The retained source survives downstream
+retirement; its own final cleanup clears all reservations. The hook and adjacent
+lifecycle selection passed 10/10 on dirty source at
+`61298497c40a2943753edfd04b75186b5afb8887` (`run-eMobrM`). This uses public
+preparation and the existing checked task fixture, not full public Named Result
+acceptance. Native physical-byte correspondence is not established.
 
 The standard Host with real retained/publication Stores passed a focused 13-case
 selection at `c87106aa97d5587691acd93a12b1ead806110f8d`, including normal mixed
