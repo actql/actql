@@ -243,7 +243,10 @@ const havingGroupedJson = {version: 'actql/0.1', id: 'fixture.having_grouped_exp
     {select: [{bucket: 'key'}, 'n'], as: 'summary'},
   ], results: {rows: {from: 'summary', fields: ['bucket', 'n']}}},
 ], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
-const havingAliasColumns = [havingGroupedColumns[0], {name: 'payload', contract: payload}, havingGroupedColumns[1]];
+// The common checked object descriptor explicitly states closedness. The
+// author declaration shorthand is not the complete Result.describe contract.
+const havingAliasColumns = [havingGroupedColumns[0],
+  {name: 'payload', contract: {...payload, additional_properties: false}}, havingGroupedColumns[1]];
 const havingAliasRows = [{bucket: null, payload: {score: 20}, n: 2},
   {bucket: 11, payload: {score: 20}, n: 1}, {bucket: 21, payload: {score: 20}, n: 2}];
 export const havingGroupedSubexpressionSuccesses = [

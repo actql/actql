@@ -1,6 +1,6 @@
 # HAVING grouped subexpressions: evaluated-key connection
 
-Date: 2026-10-08. Owner: B. Stacked on #915 (`fix/frontend-sql-grouped-subexpressions`), which depends on #910. Final target is main after those dependencies are merged. Main `db4f80870345c48744f44023df5fe8c9617b30ed` was normally merged before work. No PR merge or history rewrite.
+Date: 2026-10-08. Owner: B. Final target/base: main. #910 and #915 are now merged; their normal main integration `0bd16841017be364af76f2944fd4e20aa901dc22` is adopted in `9348811cf0373d92b7a77fdf7adab103a2a884f3`. No unmerged dependency remains. Main `db4f80870345c48744f44023df5fe8c9617b30ed` was normally merged before work. No PR merge or history rewrite.
 
 ## Defect and independent control
 
@@ -48,3 +48,13 @@ Required exact-HEAD CI, Wasm/native/full Core/full packed/proof/performance and 
 The hidden COUNT/input-name probe did not reproduce a defect. `QueryParser::fresh_producer` scans authored Word/QuotedName tokens and allocates a different placeholder. The independent complete expected Program and explicit placeholder inequality pass: `run-HX1c2D`, `focused-test-b3nv3m`, 1/1. A public control retains input `aql_having_aggregate_0=100` while requiring COUNT+1=2 not to pass >10. No guard is relaxed.
 
 The first selected fresh-pack attempt `run-OgWeSA` stopped at shared-heavy lock acquisition. D's cancellation work held the lock; no package producer or consumer started (`steps: []`). It is neither a product failure nor execution success. The other owner's lock/artifacts are untouched.
+
+## First pristine public run and independent descriptor correction
+
+The normal producer at clean `45fe3880118a43fbb258c4139294141a30a11221` completes in `run-uRb8cU`. Its selected Local execution succeeds through independent JSON, direct COUNT/key, hidden COUNT/key and computed alias. The fifth case stops at Result.describe comparison: the expected object descriptor omitted `additional_properties: false`. No row, predicate, key, ordering, bound or execution assertion is weakened.
+
+The correction follows `docs/spec/language.md`'s AuthorValueContract rules: the object shorthand is compiled to the sole 0.1 closed meaning, `additional_properties: false`. The retained checked description must state that member explicitly, as required by the canonical typed descriptor contract and already asserted by the existing nullable-object fixture. It is not an expected value copied from the product serializer.
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-wHluwT/summary.json`, `010.stdout.log` and `010.stderr.log`; source is exact 45fe, dirty=false, command output complete, failed overall, artifactsRemoved=true, no evidence errors. Remaining cases, refusals and HTTPS are not counted as passed by this run. Manifest `/private/tmp/actql-b-having-grouped-45fe38801-pack/packed-client-packages.json` remains bound to that historical producer SHA.
+
+After that terminal attempt, main `0bd16841017be364af76f2944fd4e20aa901dc22` is normally merged. Its bounded Result preparation/snapshot binding implementation is retained. The integrated corrected source requires a new normal producer; the historical manifest is not changed or reused across the source difference.
