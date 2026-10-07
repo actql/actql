@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "table-effect-contract-registration",
+  "kind": "change",
+  "revision": "7f344a0df21e3bbcf8e55836d8593498c2346363",
+  "parents": [
+    "edaa27e9733572b8b26944a28d5d646f6d827381"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "edaa27e9733572b8b26944a28d5d646f6d827381",
+          "digest": "884d396612288dab42b250667faa9010822c8a13d111cb32e131bc216b3d0537",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "22a073c98703f421c632d77bf45a77e561e83669ade4d9a8b20d8578b3e4242d",
+      "afterMode": "100644",
+      "reason": "Register the generated bulk Table Effect envelope and independent vector freshness checks in the existing contract gate, preserving every existing check. Pure contract admission is not Catalog publication or public Table execution evidence."
+    }
+  ]
+}
