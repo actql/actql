@@ -25,6 +25,19 @@ async function localProvider() {
 export async function connect(options) {
   if ((options?.mode === 'local' || options?.mode === 'hybrid' &&
       options?.owner === 'local') && options.endpoint === undefined) {
+    // Detach this new Host-only value before lazy provider loading. Admission
+    // stays with the installed Host; connected Remote loads no Local module.
+    const installation = options.installation;
+    if (installation !== undefined && installation !== null &&
+        typeof installation === 'object' && 'hostCapacityPolicy' in installation) {
+      try {
+        const {hostCapacityPolicy: selected, ...rest} = installation;
+        if (selected !== undefined) {
+          const hostCapacityPolicy = Object.freeze(structuredClone(selected));
+          options = {...options, installation: {...rest, hostCapacityPolicy}};
+        }
+      } catch { throw new ClientError('InvalidInstalledHostCapacityPolicy'); }
+    }
     return (await localProvider()).connect(options);
   }
   return connectHost(options);

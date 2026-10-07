@@ -25,7 +25,7 @@ import {createNodeAuthorizationGate} from './authorization.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -92,6 +92,13 @@ const configurations = Object.freeze({
 
 async function installedSource(root, {readOutcome, aliases,
   environment = sourceEnvironment}) {
+  // This is an adapter publication for the installed Host, not a standalone
+  // checker profile. Preserve the Host's own policy when adding Source facts.
+  const base = JSON.parse(await readFile(join(repository,
+    'spec/local-check-environment.json'), 'utf8'));
+  environment = {...environment, host_policy_profile: base.host_policy_profile};
+  delete environment.evidence_bundle_cid;
+  environment.evidence_bundle_cid = contentCid(environment);
   const database = join(root, 'records.duckdb');
   const instance = await DuckDBInstance.create(database);
   const connection = await instance.connect();

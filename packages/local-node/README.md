@@ -64,3 +64,31 @@ or make a Cloud request. The installed profile guarantees durable request and
 Result metadata only within the Store's configured retention policy. It does
 not claim uninterrupted Compute or indefinite Result retention. Local-owned
 embedded Hybrid is not yet installed and reports `LocalHybridUnavailable`.
+
+
+## Explicit Host capacity policy
+
+Embedded Local accepts `installation.hostCapacityPolicy`; the Remote Host
+factory accepts `hostCapacityPolicy`. Supply the complete existing
+`actql-capacity-host-policy/0.1` object, including its required fields. This
+Host-owned option is detached before asynchronous installation and admitted
+by the existing checker. Adapter publications must carry the same selected
+policy; a single adapter cannot replace it implicitly. `publishEffect` accepts
+the same option when publishing its policy-dependent generation. Source
+publication contains connector declarations; Source loading extends the
+selected Host base.
+
+Omitting the option preserves the installed defaults and historical authority
+scope. An explicit selection is bound into installation identity and the
+Host-issued authority scope used by request journals and Run references. Its
+policy CID covers the effective checker-consumed capacity body, including
+built-in defaults for omitted optional graph limits.
+The explicit-policy connection also reports that opaque scope in `scopeRef`,
+so retained SDK lookup context distinguishes the selection.
+Equivalent explicit policy values retain identity across restarts; a different
+selection is a different request/authority scope, including for the same caller
+request ID. Existing references are not translated into that scope: use the
+original configuration to access its Runs. Embedded Local refuses changing the
+policy of an already open installation. Selection does not grant Source,
+Effect or Model authorization. Declared graph-construction limits are retained;
+omitted graph limits keep the existing built-in defaults.
