@@ -40,7 +40,7 @@ test('retained row metadata fields cannot disappear from the reviewed census', (
   const original = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
   for (const field of ['row_sources', 'stepped_metadata', 'metadata_projection',
     'metadata_projection_field', 'metadata_binding', 'metadata_offset',
-    'metadata_lookup', 'name_charge']) {
+    'metadata_lookup', 'name_charge', 'port_preparation']) {
     const pattern = new RegExp(`^  (?:mut )?${field} :[^\\n]*\\n`, 'm');
     assert(pattern.test(original), `Missing expected source field ${field}`);
     assert.throws(() => checkCensus(root, file => file === path
@@ -51,6 +51,7 @@ test('retained row metadata fields cannot disappear from the reviewed census', (
   for (const [file, name] of [
     ['row_metadata_cursor.mbt', 'RowMetadataLookup'],
     ['row_name_charge.mbt', 'RowNameCharge'],
+    ['trusted_output.mbt', 'TrustedOutputPreparation'],
   ]) {
     const cursorPath = `src/execution_relation/${file}`;
     assert.throws(() => checkCensus(root, path => {
@@ -84,6 +85,7 @@ test('typed census refuses an old snapshot Map or changed cursor workspace owner
     ['bounded_binding_rows.mbt', 'snapshot : Array[(String, Value)]', 'snapshot : Map[String, Value]'],
     ['row_metadata_cursor.mbt', 'workspace : RowWorkspace', 'workspace : RowWorkspace?'],
     ['row_name_charge.mbt', 'closed : Bool', 'closed : Int'],
+    ['trusted_output.mbt', 'mut bytes : Int', 'mut bytes : Int64'],
   ]) {
     assert.throws(() => checkCensus(root, path => {
       const source = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
