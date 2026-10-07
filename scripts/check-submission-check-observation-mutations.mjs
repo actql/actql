@@ -8,6 +8,12 @@ const phases = ['not_accepted', 'preparation_failed'];
 const sdk = 'packages/sdk/index.mjs';
 const tests = 'packages/sdk/submission-check-observations.test.mjs';
 const mutations = [
+  {name: 'reference-only lookup acquires original input observation',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
+    from: "const observesInput = value.kind === 'aql' && value.intentCid === outcome.intentCid;",
+    to: 'const observesInput = true;',
+    targets: [target('public Local submission lookup returns a durable pre-admission refusal after restart',
+      'submission-check-reference-only')]},
   {name: 'original submission loses its transient checked observation', path: sdk, file: tests,
     from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
     to: 'void checkObservation;',
