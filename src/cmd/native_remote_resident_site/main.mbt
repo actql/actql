@@ -2009,8 +2009,17 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("release-recovered", [("request_cid", identity)])
           }
         }
+        // Recovery commits through a separate journal Owner. The pre-recovery
+        // view has already restored this dispatch and cannot admit its newer
+        // cleanup revision. Report only from a new exact durable view, as the
+        // cancellation recovery path does; do not relax reconstruction.
+        guard fresh_journal(environment) is Some(current) else {
+          report("release-failed", [("reason", "journal")])
+          ignore(journal.close())
+          continue
+        }
         match
-          @client.acknowledge_status(journal, client, observation_url, request) {
+          @client.acknowledge_status(current, client, observation_url, request) {
           Ok(_) =>
             report("release-observed", [
               ("request_cid", @remote.dispatch_request_identity(request)),
@@ -2018,6 +2027,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Err(issue) =>
             report("release-failed", [("reason", client_code(issue))])
         }
+        ignore(current.close())
       }
       Ok(Some(@remote.RetainedPlan(input))) => {
         backoff_ms = 0
