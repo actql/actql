@@ -203,7 +203,6 @@ fn QueryParser::graph_edge(self : QueryParser) -> GraphEdgePattern raise QueryAb
     max_hops = self.safe_integer(true)
     self.graph_symbol(125)
     if variable is Some(_) ||
-      constraint is Some(_) ||
       min_hops > max_hops ||
       max_hops == 0L {
       raise QueryAbort(

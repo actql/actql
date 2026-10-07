@@ -1,5 +1,7 @@
 // Independent typed rows and a handwritten machine control. No compiler or
 // provider output is used to construct these expectations.
+import {graphEdgePredicateSuccesses, graphEdgePredicateRefusals}
+  from './graph-edge-predicate-source-input.mjs';
 const number = {type: 'number', nullable: false};
 const payload = {type: 'object', nullable: true,
   fields: {score: {...number, nullable: true}}};
@@ -38,6 +40,7 @@ const program = {version: 'actql/0.1', id: 'fixture.graph_property_predicate',
   ], results: {rows: {from: 'ordered', fields: ['id']}}}],
   results: {matched: {from: {stage: 'main', result: 'rows'}}}};
 export const graphPropertyPredicateSuccesses = [
+  ...graphEdgePredicateSuccesses,
   {name: 'graph-property-predicate-independent-json', format: 'json',
     text: JSON.stringify(program), results: result(selected), sourceReadCount: 0},
   sourceCase('qualified', '(a:Person WHERE a.payload.score > 10)'),
@@ -54,7 +57,7 @@ export const graphPropertyPredicateSuccesses = [
   sourceCase('parameter', '(a:Person WHERE payload.score > @min)', selected,
     {parameterDeclarations: {...declarations, min: number}, parameters: {...parameters, min: 10}}),
 ];
-export const graphPropertyPredicateRefusals = [
+export const graphPropertyPredicateRefusals = [...graphEdgePredicateRefusals, ...[
   ['foreign-receiver', 'other.payload.score > 0'],
   ['missing-receiver', 'missing.score > 0'],
   ['missing-member', 'payload.missing > 0'],
@@ -62,4 +65,4 @@ export const graphPropertyPredicateRefusals = [
   ['selected-alias', 'chosen > 0'],
 ].map(([name, predicate]) => ({name: 'graph-property-predicate-invalid-' + name,
   format: 'aql-text', text: data + mapping + tail(`(a:Person WHERE ${predicate})`, 'a.id', 'chosen'),
-  parameterDeclarations: declarations, parameters}));
+  parameterDeclarations: declarations, parameters}))];

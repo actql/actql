@@ -27,9 +27,9 @@ fn keyed_start_definitions(
 ///|
 // This is schema-name projection, not Graph admission. The common owner
 // still validates global property types, label sets, keys and identities.
-fn keyed_node_fields(
-  definition : @query.GraphNodeDefinition,
-  node : @query.GraphNodePattern,
+fn keyed_label_fields(
+  labels : Array[@query.GraphLabel],
+  requested_label : @query.NamePart?,
   input : Input,
 ) -> Array[String] raise Abort {
   // The common constructor retains the first spelling of each property in
@@ -39,8 +39,8 @@ fn keyed_node_fields(
   let seen : Map[String, Bool] = Map([])
   let selected : Array[String] = []
   let mut matched = false
-  for label in definition.labels {
-    let selected_label = match node.label {
+  for label in labels {
+    let selected_label = match requested_label {
       Some(name) => same_name(label.name, name)
       None => true
     }
@@ -80,6 +80,44 @@ fn keyed_node_fields(
 }
 
 ///|
+fn keyed_node_fields(
+  definition : @query.GraphNodeDefinition,
+  node : @query.GraphNodePattern,
+  input : Input,
+) -> Array[String] raise Abort {
+  keyed_label_fields(definition.labels, node.label, input)
+}
+
+///|
+fn keyed_edge_fields(
+  graph : ScriptGraph,
+  edge : @query.GraphEdgePattern,
+) -> Array[String] raise Abort {
+  let fields : Array[String] = []
+  let seen : Map[String, Bool] = Map([])
+  for definition in graph.mapping.edges {
+    let selected = match edge.label {
+      Some(name) => definition.labels.any(label => same_name(label.name, name))
+      None => true
+    }
+    if selected {
+      let input = property_mapping_input(definition.producer, graph.inputs)
+      // Traversal predicates use each candidate definition's full property
+      // scope. The common checker establishes presence and compatible types
+      // across every candidate; this union only resolves authored names.
+      for field in keyed_label_fields(definition.labels, None, input) {
+        let folded = ascii_upper(field)
+        if !seen.contains(folded) {
+          seen[folded] = true
+          fields.push(field)
+        }
+      }
+    }
+  }
+  fields
+}
+
+///|
 fn keyed_property_field(
   path : Array[@query.NamePart],
   variable : @query.NamePart?,
@@ -107,16 +145,17 @@ fn keyed_property_field(
 }
 
 ///|
-fn keyed_node_constraint(
+fn keyed_constraint(
   construction : Construction,
-  node : @query.GraphNodePattern,
+  constraint : @query.GraphConstraint?,
+  variable : @query.NamePart?,
   fields : Array[String],
   max_work : Int,
 ) -> @builder.Node raise Abort {
   // Only property predicates become ordinary expressions. Static labels are
-  // passed independently to match_nodes and never compared with a property.
+  // passed independently to the Graph owner, never compared with a property.
   let resolve = fn(path : Array[@query.NamePart]) -> String? {
-    keyed_property_field(path, node.variable, fields)
+    keyed_property_field(path, variable, fields)
   }
   let append = fn(expression : @query.Expression) -> @builder.Node raise Abort {
     match
@@ -130,13 +169,13 @@ fn keyed_node_constraint(
       Err(error) => raise Abort(Expression(error))
     }
   }
-  match node.constraint {
+  match constraint {
     None => construction.object([("literal", construction.add(Bool(true)))])
     Some(Predicate(expression)) => append(expression)
     Some(Properties(properties)) => {
       let predicates : Array[@builder.Node] = []
       for (field, expression) in properties {
-        let name = match keyed_property_field([field], node.variable, fields) {
+        let name = match keyed_property_field([field], variable, fields) {
           Some(name) => name
           None => raise Abort(UnknownColumn)
         }
@@ -176,9 +215,10 @@ fn keyed_start_match(
 ) -> @builder.Node raise Abort {
   // Label membership belongs to match_nodes. Never replace it by a
   // comparison with a property, even if a property has the same name.
-  let predicate = keyed_node_constraint(
+  let predicate = keyed_constraint(
     construction,
-    node,
+    node.constraint,
+    node.variable,
     fields,
     limits.max_expression_work,
   )
@@ -373,9 +413,7 @@ fn lower_script_keyed_graph_query(
   } else {
     let bounded = pattern.edges.length() == 1 && pattern.edges[0].quantified
     if pattern.nodes.length() != pattern.edges.length() + 1 ||
-      pattern.edges.any(edge => {
-        edge.variable is Some(_) || edge.constraint is Some(_)
-      }) ||
+      pattern.edges.any(edge => edge.variable is Some(_)) ||
       (pattern.edges.any(edge => edge.quantified) && !bounded) {
       raise Abort(UnsupportedGraph)
     }
@@ -427,6 +465,12 @@ fn lower_script_keyed_graph_query(
           ("edge_types", construction.array([construction.text(label.value)])),
         )
       }
+      if edge.constraint is Some(_) {
+        params.push(("edge_where", keyed_constraint(
+          construction, edge.constraint, None, keyed_edge_fields(graph, edge),
+          limits.max_expression_work,
+        )))
+      }
     } else {
       params.push(
         (
@@ -441,6 +485,12 @@ fn lower_script_keyed_graph_query(
                     construction.array([construction.text(label.value)]),
                   ),
                 )
+              }
+              if edge.constraint is Some(_) {
+                hop.push(("edge_where", keyed_constraint(
+                  construction, edge.constraint, None, keyed_edge_fields(graph, edge),
+                  limits.max_expression_work,
+                )))
               }
               construction.object(hop)
             }),
