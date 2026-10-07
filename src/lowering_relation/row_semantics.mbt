@@ -28,14 +28,6 @@ pub fn projection_field_count(view : PreparedProjection) -> Int {
 }
 
 ///|
-pub fn projection_field_at(
-  view : PreparedProjection,
-  index : Int,
-) -> @relation.ProjectionField? {
-  @relation.projection_field_at(view.checked, index)
-}
-
-///|
 /// Defensive copy. Callers charge projection_field_count before requesting it.
 pub fn projection_fields(
   view : PreparedProjection,
