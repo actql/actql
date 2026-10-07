@@ -25,10 +25,14 @@ test('executed chain checker admits both original and stop-inclusive typed laws'
   });
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.match(result.stdout, /Checked 50 theorems, expected claim types and axiom dependencies/);
+  assert.match(result.stdout, /Checked 54 theorems, expected claim types and axiom dependencies/);
 });
 
 for (const [label, theorem, replacement] of [
+  ['pause custody guarantee omitted', 'pause_reporting',
+    'theorem pause_reporting (s : State) (work : Nat) : True := by trivial'],
+  ['zero-work pause changes state', 'zero_pause_identity',
+    'theorem zero_pause_identity (s : State) : True := by trivial'],
   ['terminal stop work omitted', 'stop_poll_reporting',
     'theorem stop_poll_reporting (s : State) (work : Nat) (done : Bool) : True := by trivial'],
   ['stop request treated as physical stop', 'request_not_stopped',
