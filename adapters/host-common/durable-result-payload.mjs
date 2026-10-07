@@ -169,7 +169,8 @@ export async function storeCompletedResultPayload(
   return storeCompletedPayload(
     store,
     control,
-    () => control.beginResult(host, result, limits),
+    () => control.beginResult(host, result, limits,
+      undefined, undefined, signal),
     limits,
     signal,
   );
@@ -209,7 +210,8 @@ export async function storeCompletedResultPublicationPayload(
     control,
     () => typeof beginResult === 'function'
       ? beginResult(host, result, limits)
-      : control.beginResult(host, result, limits),
+      : control.beginResult(host, result, limits,
+        undefined, undefined, signal),
     limits,
     signal,
     handle => {

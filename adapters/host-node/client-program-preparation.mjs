@@ -16,7 +16,7 @@ const issueCodes = Object.freeze({
   check_invalid_input: 'ClientProgramInvalidInput',
   check_invalid_configuration: 'ClientProgramPreparationFailure',
   check_unsupported: 'ClientProgramUnsupported',
-  check_compile_limit: 'ClientProgramRejected',
+  check_compile_limit: 'ClientProgramAnalysisLimit',
   check_missing_input: 'ClientProgramNeedsInputs',
   check_unclassified: 'ClientProgramPreparationFailure',
   missing_checked_stage: 'ClientProgramRejected',
@@ -146,7 +146,10 @@ export function installNodeClientProgramPreparation({moon, environment,
       effectOwned.add(effect);
       return effect;
     }
-    const code = issueCodes[category];
+    // Raw Source compilation budgets may depend on protected publication.
+    // Only the audience-filtered check below may expose that budget.
+    const code = sourceFormat && category === 'check_compile_limit'
+      ? 'ClientProgramRejected' : issueCodes[category];
     if (issue === undefined || code === undefined) {
       fail('ClientProgramPreparationFailure');
     }
@@ -176,6 +179,10 @@ export function installNodeClientProgramPreparation({moon, environment,
         const report = outcome.report ?? outcome.partial_report;
         if (report?.scope.kind === 'bound_input' && report.verdict === 'invalid') {
           fail('ClientProgramInvalidInput', error);
+        }
+        if (report?.scope.kind === 'bound_input' &&
+            report.coverage.limits.some(limit => limit.code === 'analysis_budget_exhausted')) {
+          fail('ClientProgramAnalysisLimit', error);
         }
       }
       throw error;
