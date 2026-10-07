@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import {hash} from '../../inventory.mjs';
 import {blockAfter,checkDriverRetirementSource,driverPath} from './driver-retirement-source.mjs';
 import {retirementCompilation} from './driver-retirement-compilation.mjs';
+import {holdingCustodyOverlay} from './holding-custody-overlay.mjs';
 export const retirementHelper='src/connectors/local/driver/driver_retirement_native.mbt';
 export const retirementStub='src/connectors/local/driver/driver_retirement_stub.c';
 export const retirementFixture='src/query_integration/driver_retirement_native_wbtest.mbt';
@@ -17,7 +18,7 @@ const hostPath='src/query_integration/graph_host_custody_wbtest.mbt';
 const pkg='src/connectors/local/driver/moon.pkg';
 export const retirementPaths=[driverPath,pkg,hostPath,'src/query_integration/moon.pkg'];
 const once=(s,from,to)=>{assert.equal(s.split(from).length,2,'Changed retirement observation attachment');return s.replace(from,to);};
-export function retirementOverlay(read,source) {
+export function retirementOverlay(read,source,{holdingCustody=false}={}) {
   checkDriverRetirementSource(read);
   let driver=read(driverPath).toString();
   const body=blockAfter(driver,'let release_provider_scratch = fn()');
@@ -41,9 +42,10 @@ export function retirementOverlay(read,source) {
   // The generated fixture is selected only on Native; no other backend gains
   // a declaration referencing the Native-only borrowed observer.
   overlay['src/query_integration/moon.pkg']=once(read('src/query_integration/moon.pkg').toString(), 'options(\n', 'options(\n  targets: {"driver_retirement_native_wbtest.mbt": ["native"]},\n');
+  if (holdingCustody) holdingCustodyOverlay(read,overlay);
   const compilation = retirementCompilation(read,source,overlay);
   const boundary={sourceDigest:source.digest,target:'native',command:['moon','test','--target','native',retirementFixture,'--deny-warn'],
-    compilation,observationInputs:Object.fromEntries(Object.entries(overlay).map(([p,t])=>[p,hash(t)]))};
+    compilation,holdingCustody,observationInputs:Object.fromEntries(Object.entries(overlay).map(([p,t])=>[p,hash(t)]))};
   const buildIdentity=hash(JSON.stringify(boundary));
   overlay[retirementFixture]=once(overlay[retirementFixture],'  for variant','  println("ACTQL_DRIVER_BUILD:'+buildIdentity+'")\n  for variant');
   return {overlay,boundary,buildIdentity};
