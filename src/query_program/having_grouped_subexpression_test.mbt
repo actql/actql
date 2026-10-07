@@ -174,3 +174,52 @@ test "HAVING grouped subexpressions compare alias property receivers in their ow
     assert_eq(body.split("\"$param\":").length() - 1, 1)
   }
 }
+
+///|
+test "HAVING grouped subexpressions distinguish hidden calls from private-looking input names" {
+  let seed = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"aql_having_aggregate_0":{"type":"number","nullable":false}},"rows":[{"aql_having_aggregate_0":100}]},"as":"t"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = {
+    ..join_order_context(),
+    inputs: [
+      {
+        relation: [{ value: "t", quoted: false, }],
+        name: "t",
+        source: GeneratedValues(seed),
+        visible_fields: ["aql_having_aggregate_0"],
+        graph_bindings: [],
+      },
+    ],
+  }
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_having_aggregate_0":{"type":"number","nullable":false}},"rows":[{"aql_having_aggregate_0":100}]},"as":"t"},{"from":"t","derive":{"aql_group_key_0":{"add":[{"field":"aql_having_aggregate_0"},{"literal":1}]}}},{"group":{"by":["aql_group_key_0"],"aggregates":{"n":{"fn":"count"}}}},{"filter":{"gt":[{"add":[{"field":"n"},{"literal":1}]},{"literal":10}]}},{"select":["n"],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  match
+    @check.check_parsed(expected, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("independent COUNT filter reads count 1, not key 101")
+  }
+  let query = @query.parse_query(
+    "SELECT COUNT(*) AS n FROM t GROUP BY aql_having_aggregate_0 + 1 HAVING COUNT(*) + 1 > 10",
+    syntax_limits(),
+  ).unwrap()
+  guard @query.operation_at(query, 1) is Some(Having(_, calls)) else {
+    fail("the authored source has one hidden COUNT")
+  }
+  assert_eq(calls.length(), 1)
+  assert_true(calls[0].0.value != "aql_having_aggregate_0")
+  let actual = compile(query, context, construction_limits()).unwrap()
+  assert_eq(semantic(actual), semantic(expected))
+}

@@ -37,8 +37,14 @@ The property matrix also probed object-valued GROUP keys. Ordinary checker const
 
 ## Public acceptance
 
-Ten normal cases and four preparation refusals are registered in the ordinary group-property corpus. `--having-grouped-subexpression-only` selects those same cases for bounded public acceptance. They include independently authored JSON, direct and hidden COUNT, alias/input collisions, nullable keys/objects, duplicate groups, qualified/backtick paths, JOIN, empty input and negative scalar alias controls. Existing acceptance verifies Result.describe type/nullability/column order, rows and completion, hidden-field absence, owned-request resend/attach/reread and rejection admission/provider-I/O counts.
+Eleven normal cases and four preparation refusals are registered in the ordinary group-property corpus. `--having-grouped-subexpression-only` selects those same cases for bounded public acceptance. They include independently authored JSON, direct and hidden COUNT, alias/input collisions, nullable keys/objects, duplicate groups, qualified/backtick paths, JOIN, empty input and negative scalar alias controls. Existing acceptance verifies Result.describe type/nullability/column order, rows and completion, hidden-field absence, owned-request resend/attach/reread and rejection admission/provider-I/O counts.
 
 Fresh normal five-package Local/HTTPS execution is pending at this document revision. Parser/checker success alone is not claimed as public execution. Use a clean fixed source revision and preserve its manifest/digests; do not patch generated Programs, install an old wire fallback, or relabel an earlier manifest. Successful private install/Store artifacts are reclaimed by the existing evidence runner.
 
 Required exact-HEAD CI, Wasm/native/full Core/full packed/proof/performance and broader HAVING/ORDER coverage remain unverified. No manual CI run/rerun or merge.
+
+## Internal-name control and shared heavy capacity
+
+The hidden COUNT/input-name probe did not reproduce a defect. `QueryParser::fresh_producer` scans authored Word/QuotedName tokens and allocates a different placeholder. The independent complete expected Program and explicit placeholder inequality pass: `run-HX1c2D`, `focused-test-b3nv3m`, 1/1. A public control retains input `aql_having_aggregate_0=100` while requiring COUNT+1=2 not to pass >10. No guard is relaxed.
+
+The first selected fresh-pack attempt `run-OgWeSA` stopped at shared-heavy lock acquisition. D's cancellation work held the lock; no package producer or consumer started (`steps: []`). It is neither a product failure nor execution success. The other owner's lock/artifacts are untouched.

@@ -280,6 +280,10 @@ export const havingGroupedSubexpressionSuccesses = [
       + 'SELECT -x AS x, COUNT(*) AS n FROM samples GROUP BY samples.x HAVING samples.x + 1 > 0 ORDER BY x',
     expected: [{x: -2, n: 1}, {x: -1, n: 1}],
     columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
+  {name: 'group-property-having-subexpression-private-looking-input', format: 'aql-text',
+    text: 'DATA samples = SELECT 100 AS aql_having_aggregate_0; '
+      + 'SELECT COUNT(*) AS n FROM samples GROUP BY aql_having_aggregate_0 + 1 HAVING COUNT(*) + 1 > 10',
+    expected: [], columns: [{name: 'n', contract: number}], sourceReadCount: 0},
 ];
 export const havingGroupedSubexpressionRefusals = [
   text('having-subexpression-key-does-not-revive-receiver',
