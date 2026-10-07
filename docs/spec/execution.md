@@ -2346,6 +2346,11 @@ operation commit record retained separately from current head. The record and
 head publication are atomic, and identify the request and exact published
 Iceberg metadata generation. Empty typed Tables remain valid with zero rows and
 a nullable data snapshot ID. Staging or HTTP admission is not success.
+Confirmed create/expected-generation conflicts require a sealed original
+noncommit receipt and an atomic Catalog publication fence for that exact
+operation. A raw refusal, HTTP status or missing commit record is not such
+evidence. The fact remains queryable after restart, cleanup and later commits;
+it uses the existing Effect outcome/Receipt owners and never authorizes resend.
 
 <!-- requirement-block: table-actions.governance -->
 Table staging and publication MUST use the existing approval, current authority,
@@ -2378,7 +2383,8 @@ metadata, presence, staging and uncertain operations; exhaustion rejects new
 commit without deleting live or uncertain data. Initial automatic old-generation
 GC and external writers are unsupported.
 
-<!-- machine-import: ../../spec/contracts/actql-table-effect.json# sha256:8d682a4829f35589e7c1f6baf95fe8952d7deb5fdd6a2446155971c8f4adebe4 -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json# sha256:4e749fd39868eabf0d952e5cc8a83257c9d818858bcd964452e7025b13aacc73 -->
 <!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/operation sha256:10b0ef06b14951fb148c84efac69ae2841cd607b8b81f94863cd30169f9f650a -->
 <!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/receipt sha256:9cd3c006109871d974554e9916b774246ba3dfdb687889e3c2993976eabdb259 -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/noncommit_receipt sha256:d9ff33a005f235cde2f6889c5f841f1e1af4a759c1cc0fc7864443781de929de -->
 <!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/storage_mapping sha256:32df7edd7b5ee065d2540d0b225e7acd4ff5a23bf47bcbb22346aa83dfbd2384 -->

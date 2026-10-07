@@ -107,6 +107,8 @@ import {graphRowSourceSuccesses, graphRowSourceRefusals}
   from './graph-row-source-input.mjs';
 import {graphPropertyPredicateSuccesses, graphPropertyPredicateRefusals}
   from './graph-property-predicate-source-input.mjs';
+import {graphHopNodePredicateSuccesses, graphHopNodePredicateRefusals}
+  from './graph-hop-node-predicate-source-input.mjs';
 import {graphTraverseSourceSuccesses, graphTraverseSourceRefusals}
   from './graph-traverse-source-input.mjs';
 import {graphTraversePathSuccesses, graphTraversePathRefusals}
@@ -254,7 +256,8 @@ const scopeInputs = pipeJoinRangesOnly ? {successes: pipeJoinRangesSuccesses, re
   : aggregatePropertyOrderOnly ? {successes: aggregatePropertyOrderSuccesses, refusals: aggregatePropertyOrderRefusals, executionFailures: aggregatePropertyOrderExecutionFailures}
   : orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
   : graphProjectionPropertyOnly ? {successes: graphProjectionPropertySuccesses, refusals: graphProjectionPropertyRefusals}
-  : graphPropertyPredicateOnly ? {successes: graphPropertyPredicateSuccesses, refusals: graphPropertyPredicateRefusals}
+  : graphPropertyPredicateOnly ? {successes: [...graphPropertyPredicateSuccesses, ...graphHopNodePredicateSuccesses],
+    refusals: [...graphPropertyPredicateRefusals, ...graphHopNodePredicateRefusals]}
   : implicitPropertyOnly ? {successes: implicitPropertySuccesses, refusals: implicitPropertyRefusals}
   : computedObjectPropertyOnly ? {successes: computedObjectPropertySuccesses,
     refusals: computedObjectPropertyRefusals, executionFailures: computedObjectPropertyExecutionFailures}
@@ -391,8 +394,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...aggregatePropertyRefusals);
   scopeInputs.successes.push(...graphProjectionPropertySuccesses);
   scopeInputs.refusals.push(...graphProjectionPropertyRefusals);
-  scopeInputs.successes.push(...graphPropertyPredicateSuccesses);
-  scopeInputs.refusals.push(...graphPropertyPredicateRefusals);
+  scopeInputs.successes.push(...graphPropertyPredicateSuccesses, ...graphHopNodePredicateSuccesses);
+  scopeInputs.refusals.push(...graphPropertyPredicateRefusals, ...graphHopNodePredicateRefusals);
   scopeInputs.successes.push(...implicitPropertySuccesses);
   scopeInputs.refusals.push(...implicitPropertyRefusals);
   scopeInputs.successes.push(...groupPropertySuccesses);

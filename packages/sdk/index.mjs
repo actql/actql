@@ -253,6 +253,18 @@ export function explainDeliveryAttempt(result, options) {
   return localizeOperation(deliveryExplanations.get(result), 'delivery', options);
 }
 
+const retainDeliveryLookupFailure = (cause, next, observation) => {
+  const error = requestCancellationCause(cause);
+  deliveryExplanations.set(error, freezeInput({observation,
+    summary: observation === 'lookup_unavailable'
+      ? 'The DeliveryAttempt lookup could not be completed. Read opening and delivery remain unresolved.'
+      : 'This SDK could not interpret the DeliveryAttempt lookup response. Read opening and delivery remain unresolved.',
+    hint: 'Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.',
+    next,
+  }));
+  return error;
+};
+
 const retainDeliveryExplanation = (answer, next) => {
   const record = answer.kind === 'found' ? answer.record : null;
   const observation = answer.kind === 'not_found' ? 'lookup_unresolved' :
@@ -1529,13 +1541,19 @@ async function connectSelected(selected, port) {
           if (typeof attemptId !== 'string' || !attemptId) {
             fail('InvalidReadAttempt');
           }
-          const response = await runRequest('delivery-attempt', {
-            resultName: name, attemptId,
-          }, signal);
+          const next = freezeInput({operation: 'deliveryAttempt', ref, resultName: name, attemptId,
+            lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
+          let response;
+          try {
+            response = await runRequest('delivery-attempt', {resultName: name, attemptId}, signal);
+          } catch (cause) {
+            throw retainDeliveryLookupFailure(cause, next, 'lookup_unavailable');
+          }
           let answer;
           try { answer = await controlValue(response); }
-          catch (cause) {
-            throw new ClientError('InvalidHostAttemptLookup', {cause});
+          catch {
+            throw retainDeliveryLookupFailure(new ClientError('InvalidHostAttemptLookup'), next,
+              'lookup_uninterpretable');
           }
           const expected = {
             attemptId, runDefinitionCid: ref.runDefinitionCid,
@@ -1554,7 +1572,8 @@ async function connectSelected(selected, port) {
               lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
             });
           } catch {
-            fail('InvalidHostAttemptLookup');
+            throw retainDeliveryLookupFailure(new ClientError('InvalidHostAttemptLookup'), next,
+              'lookup_uninterpretable');
           }
         },
       });

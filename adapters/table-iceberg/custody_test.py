@@ -153,15 +153,15 @@ class CustodyTests(unittest.TestCase):
                            for catalog, operation, number in zip([left, right], operations, [1, 2])]
                 outcomes = []
                 for future in futures:
-                    try:
-                        outcomes.append(future.result(timeout=15))
-                    except CatalogRefusal as error:
-                        self.assertEqual(str(error), "ExpectedGenerationConflict")
-                        outcomes.append(None)
-            self.assertEqual(sum(result is not None for result in outcomes), 1)
+                    outcomes.append(future.result(timeout=15))
+            self.assertEqual(sum(result["version"] == "actql-table-receipt/0.1" for result in outcomes), 1)
             for operation, result in zip(operations, outcomes):
                 cleanup = initial.cleanup_after_stop(operation)
-                self.assertEqual(cleanup["retained"], result is not None)
+                committed = result["version"] == "actql-table-receipt/0.1"
+                self.assertEqual(cleanup["retained"], committed)
+                if not committed:
+                    self.assertEqual(result["reason"], "ExpectedGenerationConflict")
+                    self.assertEqual(initial.reconcile(operation), result)
                 self.assertFalse(cleanup["pending"])
             self.assertEqual(initial.read_generation(receipt, mapping()), [{"id": 0}])
             for catalog in [initial, left, right]:

@@ -11,12 +11,14 @@ import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const cancellationOnly = process.argv.slice(2).includes('--cancellation-only');
-if (process.argv.slice(2).some(option => option !== '--cancellation-only')) {
+const submissionCustodyOnly = process.argv.slice(2).includes('--submission-custody-only');
+if (cancellationOnly && submissionCustodyOnly ||
+    process.argv.slice(2).some(option => !['--cancellation-only', '--submission-custody-only'].includes(option))) {
   throw new Error('Unknown public recovery acceptance selection');
 }
 const state = checkoutState(repository);
 if (!state.clean) throw new Error('Build inputs differ from HEAD');
-const names = ['client-wire', 'sdk', 'run-host-core', 'local-node'];
+const names = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
 const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 const scratch = await createOwnedScratch({parent: join(repository, '..', '.codex-scratch'),
   prefix: 'packed-read-opening-', label: 'packed original Delivery lookup',
@@ -61,6 +63,8 @@ const support = [
   'adapters/host-node/client-values-row-limit.fixture.mjs',
   'adapters/host-node/client-cancellation-public.test.mjs',
   'adapters/host-node/client-cancellation-public.fixture.mjs',
+  'adapters/host-node/client-submission-custody-public.test.mjs',
+  'adapters/host-node/client-submission-custody-public.fixture.mjs',
   'scripts/owned-scratch.mjs',
   'packages/sdk/fixtures/values.json',
   'packages/sdk/fixtures/values.environment.json',
@@ -95,14 +99,20 @@ for (const path of support) {
   }
   await writeFile(output, text);
 }
+const custodyInputs = join(root, 'submission-custody-inputs.json');
+await writeFile(custodyInputs, JSON.stringify({scratch: root, runtime: {
+  client: '@actql/node', sdk: '@actql/sdk', httpHost: '@actql/local-node/http-host'}}));
+environment.ACTQL_SUBMISSION_CUSTODY_ACCEPTANCE_INPUTS = custodyInputs;
 const groups = [
   {name: 'opening-and-receipt', file: 'client-read-opening.test.mjs', count: 8},
   {name: 'interrupted-121-run', file: 'client-read-run-capacity.test.mjs', count: 4},
   {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 3},
   {name: 'original-cancellation', file: 'client-cancellation-public.test.mjs', count: 4},
+  {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 2},
 ];
 const selectedGroups = cancellationOnly
-  ? groups.filter(group => group.name === 'original-cancellation') : groups;
+  ? groups.filter(group => group.name === 'original-cancellation')
+  : submissionCustodyOnly ? groups.filter(group => group.name === 'submission-custody') : groups;
 const logs = [];
 let passed = 0;
 // Reuse one installation and the existing per-invocation bound. Preserve each
@@ -120,16 +130,20 @@ for (const group of selectedGroups) {
   assert.equal(checked.counts.passed, group.count);
   passed += checked.counts.passed;
 }
-assert.equal(passed, cancellationOnly ? 4 : 19);
+assert.equal(passed, cancellationOnly ? 4 : submissionCustodyOnly ? 2 : 21);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
-  packageNames: names, productOverlay: false, expectedRows: [{id: 1}, {id: 2}],
+  packageNames: names, productOverlay: false,
+  expectedRows: submissionCustodyOnly ? [{id: 1}] : [{id: 1}, {id: 2}],
   expected121Rows: JSON.parse(await readFile(join(root, 'adapters/host-node/fixtures/read-121.expected.json'), 'utf8')),
-  selection: cancellationOnly ? 'original-cancellation' : 'read-and-cancellation',
+  selection: cancellationOnly ? 'original-cancellation' : submissionCustodyOnly
+    ? 'submission-custody' : 'read-cancellation-and-submission',
   cases: cancellationOnly ? {originalCancellationRecovery: 4}
+    : submissionCustodyOnly ? {submissionCustodyLoss: 2}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
-      installedCapacity: 2, invalidCapacity: 1, originalCancellationRecovery: 4},
+      installedCapacity: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
+      submissionCustodyLoss: 2},
   passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
 scratch.passed();

@@ -1243,3 +1243,10 @@ The existing error recovery fields remain available, but formatters never render
 raw causes. Recovery causes retain only public Client code/status metadata,
 not borrowed messages, locators, cleanup handles or nested causes. English/default and approved Japanese localization preserve the same
 facts, and formatting performs no lookup, retry, execution or release.
+
+A failed `result.deliveryAttempt(attemptId)` lookup keeps safe read-only advice
+for that same attempt through `explainDeliveryAttempt(error)` and
+`formatDeliveryAttempt(error)`. `lookup_unavailable` means the exchange did not
+complete; `lookup_uninterpretable` means no response facts were admitted. Neither
+establishes whether the read opened or delivered, permits another opening, or
+changes the Run. Explicit lookup still checks current Host authorization.
