@@ -1871,6 +1871,10 @@ export function validateResourceAccounting({
       if (!environmentRoles.has('derive_ordered_bindings_public')) {
         fail(`${label}: ordered bindings public fixture is missing`);
       }
+      for (const role of ['derive_output_port_limit', 'derive_output_port_quantum',
+        'derive_output_port_stop']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
       if (!fs.readFileSync(path.join(root, 'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
         .includes("import './public-property-name-retention.test.mjs';")) {
         fail(`${label}: property name public fixture is not suite-connected`);

@@ -12,6 +12,10 @@ pub fn checkpoint_seal_body(String) -> String
 
 pub fn checkpoint_waiting_state(String, String, String, String) -> String
 
+pub fn effect_resume_claim_decide(String, String, Double, Double, String, String, Bool) -> String
+
+pub fn effect_settlement_completion_allowed(String) -> Bool
+
 pub fn model_call_attempt_admit(String, Int, String, String, Double) -> String
 
 pub fn model_call_set_admit(String) -> String

@@ -1577,6 +1577,27 @@
           "fixture": "borrowed bindings retain canonical values across resume quanta"
         },
         {
+          "role": "derive_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/output_port_preparation_wbtest.mbt",
+          "fixture": "bounded output port name refusal is observed before any row is evaluated"
+        },
+        {
+          "role": "derive_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/output_port_preparation_wbtest.mbt",
+          "fixture": "bounded output port preparation borrows Unicode names within exact bytes"
+        },
+        {
+          "role": "derive_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/output_port_preparation_wbtest.mbt",
+          "fixture": "output port stops between name scalars without releasing borrowed input"
+        },
+        {
           "role": "derive_borrowed_bindings_shadow",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
