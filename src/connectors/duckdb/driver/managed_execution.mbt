@@ -233,3 +233,15 @@ pub fn[T] close_captured_managed_duckdb_task(
 ) -> Unit {
   @strategy.close_task_execution(task.run, task.execution)
 }
+
+///|
+/// Drive private reclamation before asking the common owner to return capacity.
+/// The release predicate remains read-only and native settlement is unchanged.
+pub fn[T] refresh_captured_managed_duckdb_cleanup(
+  task : CapturedManagedDuckDBTask[T],
+) -> Result[Bool, @resources.LedgerIssue] {
+  if task.disposed.val {
+    @compute.dispose_managed_input_duckdb_completion(task.completion)
+  }
+  @strategy.refresh_task_execution_cleanup(task.run, task.execution)
+}
