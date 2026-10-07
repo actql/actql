@@ -26,6 +26,7 @@ import {
   "actql/actql/remote_bundle" @bundle_protocol,
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/run_publication_host" @host,
+  "actql/actql/run_publication" @publication,
   "actql/actql/connectors/duckdb/adapters/native" @duckdb,
   "moonbitlang/core/argparse",
   "moonbitlang/core/env",

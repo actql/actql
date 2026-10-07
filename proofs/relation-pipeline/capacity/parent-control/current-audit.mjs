@@ -3,7 +3,10 @@ import {hash} from '../../inventory.mjs';
 import {boundCurrentOverlay,currentFixture} from './current-overlay.mjs';
 import {checkParentCensus} from './bounds.mjs';
 import {inspectCurrentChain} from './current-inspect.mjs';
+import {auditScalarCode} from './provider-callback-code.mjs';
+import {fileURLToPath} from 'node:url';
 import {inspectProviderConstruction} from './provider-construction.mjs';
+import {checkPreparationArraySource,inspectPreparationStorage} from './preparation-arrays.mjs';
 import {nativeProfile} from '../backing/source.mjs';
 import {parseTestExecution} from '../../../../scripts/test-execution.mjs';
 export function auditCurrentChain(report,current,read) {
@@ -17,6 +20,7 @@ export function auditCurrentChain(report,current,read) {
   assert.equal(report.source.digest,hash(JSON.stringify(report.source.sources)));
   assert.deepEqual(report.source,current,'Stale or changed source');
   checkParentCensus(read);
+  checkPreparationArraySource(read);
   const {overlay:overlays,boundary,buildIdentity}=boundCurrentOverlay(read,current);
   assert.deepEqual(report.boundary,boundary,'Changed compiled source boundary');
   assert.equal(report.buildIdentity,buildIdentity);
@@ -34,6 +38,10 @@ export function auditCurrentChain(report,current,read) {
   assert(parsed.success);assert.equal(parsed.counts.tests,1);assert.equal(parsed.counts.passed,1);assert.equal(parsed.counts.failed,0);
   const records=log.split('\n').filter(l=>l.startsWith('ACTQL_CHAIN_NATIVE:')).map(l=>JSON.parse(l.slice(19)));
   assert.deepEqual(report.records,records,'Facts differ from actual archived log');
+  const prefix='ACTQL_PREPARATION_STORAGE:';
+  const storageFacts=log.split('\n').filter(l=>l.startsWith(prefix)).map(l=>JSON.parse(l.slice(prefix.length)));
+  assert.deepEqual(report.preparationStorageFacts,storageFacts,'Preparation facts differ from actual archived log');
+  const preparationStorage=inspectPreparationStorage(storageFacts);
   const providerFacts=log.split('\n').filter(l=>l.startsWith('ACTQL_PIPELINE_FAULT:')).map(l=>JSON.parse(l.slice(21)));
   const provider=inspectProviderConstruction(providerFacts.filter(f=>f.kind==='provider construction observation'),read,'native');
   assert.equal(Object.keys(report.artifacts).length>0,true,'Missing actual executed binary');
@@ -48,11 +56,16 @@ export function auditCurrentChain(report,current,read) {
   assert(binary.includes(marker),'Compiled fixture marker absent from executed binary');
   if(report.runtime.platform==='darwin-arm64') {assert.equal(binary.readUInt32LE(0),0xfeedfacf);assert.equal(binary.readUInt32LE(4),0x0100000c);}
   else {assert.equal(report.runtime.platform,'linux-x64');assert.equal(binary.subarray(0,4).toString('hex'),'7f454c46');assert.equal(binary[4],2);assert.equal(binary.readUInt16LE(18),62);}
+  const providers=JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json')).providers.map(p=>p.name);
+  const providerCallbackExtents=auditScalarCode(report,providerFacts.filter(f=>f.kind==='provider construction observation'),
+    fileURLToPath(new URL('../../../../',import.meta.url)),read,providers);
+  if(providerCallbackExtents.scalarAllocationRequestsEstablished)
+    assert(providerCallbackExtents.maxPointRequestedBytes<=provider.recipe.bytes,'Point constructor bytes exceed conditional envelope');
   const pin=JSON.parse(read('toolchain.json'));assert.deepEqual(report.toolchain,pin);
   assert.deepEqual(report.runtime.archive,pin.archives[report.runtime.platform]);
   assert.deepEqual(report.runtime.sources,{...nativeProfile.sources,...nativeProfile.platformBinaries[report.runtime.platform]});
   assert.equal(report.runtime.profileDigest,hash(JSON.stringify(nativeProfile)));
-  return {chain:inspectCurrentChain(records),providerConstruction:provider,
+  return {chain:inspectCurrentChain(records),providerConstruction:provider,preparationStorage,providerCallbackExtents,
     scientificExecution:'one fixed-source Native fixture; no new execution is inferred from this audit',
     completePhysicalUpper:false};
 }

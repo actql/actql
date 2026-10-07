@@ -121,6 +121,12 @@ pub fn asof_join_uses_timestamp(PreparedAsOfJoin, Bool) -> Bool
 
 pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters~ : Int, max_name_bytes~ : Int, expression_profiles? : ExpressionProfileAdmission) -> Result[BoundPrepared, BindingIssue]
 
+pub fn binding_at(PreparedBindings, Int) -> (String, Expression)?
+
+pub fn bindings_count(PreparedBindings) -> Int
+
+pub fn bindings_ordered(PreparedBindings) -> Bool
+
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
 pub fn bound_values_cell(BoundPrepared, Int, Int, Int) -> Result[@value_admission.CheckedValue, ValuesIssue]
@@ -230,6 +236,8 @@ pub fn emit_ordered_references(OrderedReferences, @encode_core.Writer) -> Unit r
 pub fn emit_root_evidence(RootEvidence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_root_source(ExpressionRoot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_sequence_node(PreparedSequence, Int, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_sequence_step_range(PreparedSequence, Int, Int, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -553,6 +561,8 @@ pub fn json_pick_path_count(PreparedJsonPick) -> Int
 
 pub fn kernel_analytic(PreparedKernel) -> PreparedAnalytic?
 
+pub fn kernel_bindings(PreparedKernel) -> PreparedBindings?
+
 pub fn kernel_body(PreparedKernel) -> KernelBody
 
 pub fn kernel_checked(PreparedKernel) -> @relation_typing.CheckedOperation
@@ -601,6 +611,8 @@ pub fn kernel_owner(PreparedKernel) -> BoundPrepared
 
 pub fn kernel_pivot(PreparedKernel) -> PreparedPivot?
 
+pub fn kernel_projection(PreparedKernel) -> PreparedProjection?
+
 pub fn kernel_sort_term_at(PreparedKernel, Int) -> (@relation_schema.FieldName, Bool, Bool)?
 
 pub fn kernel_sort_term_count(PreparedKernel) -> Int
@@ -614,6 +626,8 @@ pub fn kernel_top_k_count(PreparedKernel) -> Int64?
 pub fn kernel_top_k_partition_at(PreparedKernel, Int) -> @relation_schema.FieldName?
 
 pub fn kernel_top_k_partition_count(PreparedKernel) -> Int
+
+pub fn kernel_unique_keys(PreparedKernel) -> PreparedUniqueKeys?
 
 pub fn kernel_unnest(PreparedKernel) -> (@relation_schema.FieldName, String, String?, Bool, Int64?)?
 
@@ -922,6 +936,10 @@ pub fn time_series_row_count(PreparedTimeSeries) -> Int
 pub fn time_series_start(PreparedTimeSeries) -> String
 
 pub fn time_series_step(PreparedTimeSeries) -> Int64
+
+pub fn unique_key_at(PreparedUniqueKeys, Int) -> @relation_schema.FieldName?
+
+pub fn unique_key_count(PreparedUniqueKeys) -> Int
 
 pub fn usage(Prepared) -> Usage
 
@@ -1547,6 +1565,8 @@ type PreparedAppendKernel
 
 type PreparedAsOfJoin
 
+type PreparedBindings
+
 type PreparedCarrierProjection
 
 pub struct PreparedCount {
@@ -1673,6 +1693,8 @@ pub enum PreparedStep {
 }
 
 type PreparedTimeSeries
+
+type PreparedUniqueKeys
 
 type PreparedValues
 
@@ -1822,6 +1844,7 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  Floor
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

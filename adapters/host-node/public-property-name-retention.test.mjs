@@ -166,6 +166,21 @@ function borrowedJsonPathProgram(id) {
   return value;
 }
 
+function borrowedBindingsProgram(id,ordered=false) {
+  const value=fieldProgram(id);
+  // More than eight authored occurrences use the resumable metadata lane.
+  // The first occurrence shadows the input column; relay binds that slot.
+  // New output names remain unique, as required by the common checker.
+  const bindings=[{[member]:{field:member}},{relay:{field:member}},
+    {value:{field:'relay'}}];
+  for(let index=0;index<7;index++)bindings.push({[`unused${index}`]:{literal:index}});
+  // The ordered form is the independent public Plan compilation regression.
+  value.stages[1].steps[0].derive=ordered ? bindings : Object.fromEntries(
+    bindings.slice(1).map(binding=>{const [name,expression]=Object.entries(binding)[0];
+      return [name,name==='relay' || name==='value' ? {field:member} : expression];}));
+  return value;
+}
+
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
   valueContract={type:'number',nullable:true},producerTask=1){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
@@ -262,3 +277,9 @@ test('public retained lag metadata preserves generated roles and post-progress c
     [{id:1,value:null},{id:2,value:95},{id:3,value:100}]));
 test('public retained borrowed JSON path preserves Unicode NULL and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'borrowed-json-path',borrowedJsonPathProgram));
+test('public retained borrowed bindings preserve map values NULL and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'borrowed-bindings',borrowedBindingsProgram));
+
+test('public retained ordered bindings preserve prior slots NULL and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'ordered-bindings',
+    id=>borrowedBindingsProgram(id,true)));

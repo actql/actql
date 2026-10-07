@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash, createPublicKey, generateKeyPairSync, sign, verify}
   from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync, statSync, writeFileSync} from 'node:fs';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -10,6 +10,8 @@ import test from 'node:test';
 import * as runtime from
   '../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js';
 import {openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
+import {upgradeCheckpointEffectSettlement} from
+  '../../scripts/upgrade-checkpoint-effect-settlement.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const T0 = Date.parse('2026-09-25T10:00:00.000Z');
@@ -1766,3 +1768,209 @@ test('a request cancellation is durable and ends or marks the preparation',
     assert.throws(() => journal.requestPreparationCancellation('attempt-x'),
       {code: 'PreparationNotFound'});
   });
+
+test('Effect settlement-only claims fence observations and permanently refuse dispatch', async t => {
+  const {clock, open} = await workspace(t);
+  let journal = open();
+  const waiting = persist(journal);
+  await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+    ...resolve(stored(journal), 'approved')});
+  const original = journal.claimResume('run-1', {claimant: 'original', leaseMs: 1000, binding});
+  journal.enterResumedDispatch(original.claim, {checkpointCid: waiting.checkpointCid,
+    dispatchIdentity: 'original-effect-set'});
+  journal.close();
+  clock.ms += 1001;
+  journal = open();
+  const changed = {...binding, authorizationContextCid: cid('e')};
+  const settlement = journal.claimResume('run-1', {claimant: 'observer', leaseMs: 1000,
+    binding: changed, settleEffectRevalidation: true});
+  assert.equal(settlement.action, 'settlement');
+  assert.equal(journal.getRunState('run-1').status, 'resuming');
+  const forbidden = current => {
+    assert.throws(() => journal.admitResume(current.claim), {code: 'ResumeSettlementOnly'});
+    assert.throws(() => journal.enterResumedDispatch(current.claim), {code: 'ResumeSettlementOnly'});
+    assert.throws(() => journal.enterResumedReconciliation(current.claim,
+      {dispatchIdentity: 'original-effect-set'}), {code: 'ResumeSettlementOnly'});
+    assert.throws(() => journal.completeResume(current.claim, {status: 'cancelled'}),
+      {code: 'InvalidEffectSettlementOutcome'});
+  };
+  forbidden(settlement);
+  const competitor = open();
+  assert.equal(competitor.claimResume('run-1', {claimant: 'competitor', leaseMs: 1000,
+    binding}).action, 'busy');
+  assert.throws(() => journal.completeResume(original.claim, {status: 'failed'}),
+    {code: 'ResumeClaimStale'});
+  journal.close();
+  clock.ms += 1001;
+  journal = open();
+  // Restoring the original configuration cannot turn observation custody
+  // back into execution permission after the refusal was durably recorded.
+  const resumed = journal.claimResume('run-1', {claimant: 'next-observer', leaseMs: 1000, binding});
+  assert.equal(resumed.action, 'settlement');
+  assert.ok(resumed.claim.generation > settlement.claim.generation);
+  forbidden(resumed);
+  assert.throws(() => journal.renewResume(settlement.claim, 1000), {code: 'ResumeClaimStale'});
+  journal.completeResume(resumed.claim, {status: 'failed'});
+  assert.equal(journal.getRunState('run-1').status, 'failed');
+  assert.equal(journal.getRunState('run-1').runState.terminal_error.code,
+    'ACTQL_E_RESUME_REVALIDATION_FAILED');
+  assert.equal(journal.currentResume(waiting.checkpointCid).state, 'completed');
+});
+
+test('Effect settlement refusal and claim commit atomically', async t => {
+  const {open} = await workspace(t);
+  let inject = true;
+  const journal = open({beforeCommit(step) {
+    if (step === 'claimEffectSettlement' && inject) throw new Error('SettlementCommitLost');
+  }});
+  const waiting = persist(journal);
+  await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+    ...resolve(stored(journal), 'approved')});
+  assert.throws(() => journal.claimResume('run-1', {claimant: 'observer', leaseMs: 1000,
+    binding: {...binding, environmentBindingCid: cid('e')}, settleEffectRevalidation: true}),
+  /SettlementCommitLost/);
+  assert.equal(journal.currentResume(waiting.checkpointCid).state, 'pending');
+  assert.equal(journal.getRunState('run-1').status, 'resuming');
+  inject = false;
+  const current = journal.claimResume('run-1', {claimant: 'original', leaseMs: 1000, binding});
+  assert.equal(current.action, 'claimed');
+  assert.doesNotThrow(() => journal.admitResume(current.claim));
+});
+
+test('pre-settlement checkpoint layout is refused without altering durable records', async t => {
+  const {open} = await workspace(t);
+  const journal = open();
+  persist(journal);
+  journal.close();
+  const prior = new DatabaseSync(journal.path);
+  prior.exec('DROP TABLE resume_effect_settlements');
+  prior.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?')
+    .run('actql-checkpoint-journal/0.1;model-call-provenance=1', 'schema_version');
+  prior.close();
+  const before = readFileSync(journal.path);
+  assert.throws(() => open(), {code: 'UnsupportedCheckpointJournal'});
+  assert.deepEqual(readFileSync(journal.path), before);
+});
+
+function checkpointTableRows(path) {
+  const database = new DatabaseSync(path, {readOnly: true});
+  try {
+    return Object.fromEntries(database.prepare(
+      "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+    ).all().map(({name}) => [name, database.prepare(
+      `SELECT * FROM "${name.replaceAll('"', '""')}"`,
+    ).all().map(row => canonical(row)).sort()]));
+  } finally { database.close(); }
+}
+
+async function priorSettlementLayout(t) {
+  const space = await workspace(t);
+  const journal = space.open();
+  const waiting = persist(journal);
+  await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+    ...resolve(stored(journal), 'approved')});
+  const claimed = journal.claimResume('run-1', {claimant: 'prior-host', leaseMs: 1000, binding});
+  journal.enterResumedDispatch(claimed.claim, {dispatchIdentity: 'prior-send'});
+  journal.close();
+  const prior = new DatabaseSync(journal.path);
+  prior.exec('DROP TABLE resume_effect_settlements');
+  prior.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?')
+    .run('actql-checkpoint-journal/0.1;model-call-provenance=1', 'schema_version');
+  prior.close();
+  return {...space, path: journal.path, waiting, claimed};
+}
+
+test('offline Effect settlement upgrade backs up and preserves every existing journal record', async t => {
+  const {root, path, open, clock, waiting} = await priorSettlementLayout(t);
+  const prior = checkpointTableRows(path);
+  const backupPath = join(root, 'before-effect-settlement.sqlite3');
+  const result = upgradeCheckpointEffectSettlement({root, backupPath, offline: true});
+  assert.equal(result.from, 'actql-checkpoint-journal/0.1;model-call-provenance=1');
+  assert.equal(result.to, 'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1');
+  assert.equal(result.backupSha256, createHash('sha256').update(readFileSync(backupPath)).digest('hex'));
+  assert.equal(statSync(backupPath).mode & 0o777, 0o600);
+  assert.deepEqual(checkpointTableRows(backupPath), prior);
+  const updated = checkpointTableRows(path);
+  assert.deepEqual(updated.resume_effect_settlements, []);
+  delete updated.resume_effect_settlements;
+  updated.journal_metadata = updated.journal_metadata.map(row => row.replace(';effect-settlement=1', ''));
+  assert.deepEqual(updated, prior);
+  clock.ms += 1001;
+  const journal = open();
+  assert.equal(journal.currentResume(waiting.checkpointCid).generation, 1);
+  const claim = journal.claimResume('run-1', {claimant: 'new-host', leaseMs: 1000,
+    binding: {...binding, authorizationContextCid: cid('e')}, settleEffectRevalidation: true});
+  assert.equal(claim.action, 'settlement');
+  assert.throws(() => journal.enterResumedDispatch(claim.claim), {code: 'ResumeSettlementOnly'});
+});
+
+test('offline Effect settlement upgrade refuses missing confirmation and existing backups unchanged', async t => {
+  const {root, path} = await priorSettlementLayout(t);
+  const backupPath = join(root, 'protected-backup.sqlite3');
+  const before = checkpointTableRows(path);
+  assert.throws(() => upgradeCheckpointEffectSettlement({root, backupPath}), /OfflineCheckpointUpgradeRequired/);
+  assert.equal(existsSync(backupPath), false);
+  writeFileSync(backupPath, 'existing backup');
+  assert.throws(() => upgradeCheckpointEffectSettlement({root, backupPath, offline: true}), {code: 'EEXIST'});
+  assert.equal(readFileSync(backupPath, 'utf8'), 'existing backup');
+  assert.deepEqual(checkpointTableRows(path), before);
+});
+
+test('offline Effect settlement upgrade refuses a live writer without changing its journal', async t => {
+  const {root, path} = await priorSettlementLayout(t);
+  const backupPath = join(root, 'before.sqlite3');
+  const before = checkpointTableRows(path);
+  const writer = new DatabaseSync(path);
+  try {
+    writer.exec('BEGIN IMMEDIATE');
+    assert.throws(() => upgradeCheckpointEffectSettlement({root, backupPath, offline: true}),
+      /CheckpointUpgradeBusy|database is locked/);
+    assert.equal(existsSync(backupPath), false);
+    writer.exec('ROLLBACK');
+  } finally { writer.close(); }
+  assert.deepEqual(checkpointTableRows(path), before);
+});
+
+test('offline Effect settlement upgrade does not create a journal at a wrong root', async t => {
+  const {root} = await workspace(t);
+  const backupPath = join(root, 'before.sqlite3');
+  assert.throws(() => upgradeCheckpointEffectSettlement({root, backupPath, offline: true}), {code: 'ENOENT'});
+  assert.equal(existsSync(join(root, 'checkpoint-journal.sqlite3')), false);
+  assert.equal(existsSync(backupPath), false);
+});
+
+test('competing fresh journal initializers share the same completed layout', async t => {
+  const {open} = await workspace(t);
+  const originalExec = DatabaseSync.prototype.exec;
+  let competitor;
+  let raced = false;
+  // Deterministically complete another real connection after this opener's
+  // empty-schema observation but before its initialization transaction.
+  DatabaseSync.prototype.exec = function(sql, ...args) {
+    if (sql === 'PRAGMA synchronous = FULL' && !raced) {
+      raced = true;
+      competitor = open();
+    }
+    return originalExec.call(this, sql, ...args);
+  };
+  let journal;
+  try { journal = open(); }
+  finally { DatabaseSync.prototype.exec = originalExec; }
+  assert.equal(raced, true);
+  const checkpoint = persist(journal);
+  assert.equal(competitor.inspect(checkpoint.checkpointCid).checkpointCid,
+    checkpoint.checkpointCid);
+});
+
+test('a current layout missing its settlement table is refused without repairing evidence', async t => {
+  const {open} = await workspace(t);
+  const journal = open();
+  persist(journal);
+  journal.close();
+  const damaged = new DatabaseSync(journal.path);
+  damaged.exec('DROP TABLE resume_effect_settlements');
+  damaged.close();
+  const before = readFileSync(journal.path);
+  assert.throws(() => open(), /no such table: resume_effect_settlements/);
+  assert.deepEqual(readFileSync(journal.path), before);
+});

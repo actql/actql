@@ -6320,8 +6320,9 @@ A normal retained-Store sort -> take -> derive -> select Program publishes
 three fixed ordered Named Results, feeds two consumers, reuses a repeated
 request and delivers cancellation after positive progress. This does not
 close initial preparation, availability, JSON/window metadata or Native
-physical capacity correspondence. The unmerged #704 owner remains a
-dependency. See the [order metadata record](2026-10-07-local-row-order-metadata.md).
+physical capacity correspondence. The #704 owner is now adopted by main;
+#708 remains independently unmerged. See the
+[order metadata record](2026-10-07-local-row-order-metadata.md).
 
 ### Resumable generated row metadata (2026-10-07)
 
@@ -6353,3 +6354,48 @@ and normal retained-Store publication are connected to the evidence gate.
 This dependent unit follows #717. Other copied kernel views, initial producer
 preparation, availability/static analysis and Native capacity correspondence
 remain distinct. See the [borrowed path record](2026-10-07-local-borrowed-json-path.md).
+
+### Borrowed bindings, unique keys and lowered projections (2026-10-07)
+
+Selected row start, capability and obligation inspection borrow typed metadata
+without exporting complete binding/key/projection arrays. The existing
+expression owner reads one prepared binding per transition; map order,
+authored prior slots, shadow winners, unique tuples and projection aliases
+remain unchanged. Checked rename/drop use the actual lowered projection view,
+including wide/long-name consumers. Original entry, work and workspace limits
+remain in force; this is not a physical-capacity reduction claim.
+
+Independent 64-binding and shadow results, later-binding cancellation and
+long rename/drop supplement the unchanged exact/one-short caller fixtures.
+The affected JS batch passed 100/100. The nine-binding map derive publishes
+through the normal Host and real Store; its public test and evidence gate
+passed 2/2. At #731, ordered derive failed public Plan encoding before execution;
+private ordered execution does not certify that public connection. Submitted-SHA
+evidence is recorded separately in the dependent PR. Native observer/census
+correspondence for the new opaque views remains unreviewed; #723/#717/#708
+remain dependencies. Initial preparation and availability checks are not
+certified by this unit. See the
+[borrowed row record](2026-10-07-local-borrowed-row-bindings.md).
+
+### Public retained ordered binding compilation (2026-10-07)
+
+The former ordered Plan refusal is closed through the existing selected-body,
+OrderedParams and fragment owners. Logical nodes retain their checked input
+edges; fragment-local preimages and complete runtime evidence stay unchanged.
+Raw lowering without registered params still refuses. The normal retained
+Store Host publishes ten-binding ordered shadow/relay results to the producer
+and two consumers, with fixed NULL/order/schema expectations, request reuse,
+post-progress cancellation and final reclamation. The resource gate requires
+this public evidence separately from the map and private ordered cases.
+Plan output limits are independent of finite selected-body admission; a
+hand-assembled small Plan verifies exact bytes and one-short refusal. Frozen
+historical registry bodies retain their original CIDs rather than attempting
+to reconstruct them from the current Graph identity domain.
+
+Focused JS passed 18/18 and targeted Node passed 5/5 on the working tree.
+These do not certify packed/HTTPS or Native Host cancellation, initial
+metadata preparation, or the parent's Native allocation correspondence.
+After #731 merged, main `6a083adc55fdf91a3c3f105393ce4eb870b285d7` was
+integrated, including the reviewed observer/census alignment. No unmerged
+parent remains. Its source alignment is not a Native campaign result. See the
+[public ordered binding record](2026-10-07-local-retained-ordered-bindings.md).

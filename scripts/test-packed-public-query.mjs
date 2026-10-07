@@ -40,10 +40,12 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/unnest-source-input.mjs', 'unnest-source-input.mjs'],
   ['scripts/fixtures/named-window-source-input.mjs', 'named-window-source-input.mjs'],
   ['scripts/fixtures/qualify-source-input.mjs', 'qualify-source-input.mjs'],
   ['scripts/fixtures/join-star-source-input.mjs', 'join-star-source-input.mjs'],
   ['scripts/fixtures/right-join-source-input.mjs', 'right-join-source-input.mjs'],
+  ['scripts/fixtures/full-join-scope-source-input.mjs', 'full-join-scope-source-input.mjs'],
   ['scripts/fixtures/star-replace-source-input.mjs', 'star-replace-source-input.mjs'],
   ['scripts/fixtures/qualified-star-source-input.mjs', 'qualified-star-source-input.mjs'],
   ['scripts/fixtures/replace-call-source-input.mjs', 'replace-call-source-input.mjs'],
@@ -75,6 +77,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+  ['scripts/fixtures/ceiling-source-input.mjs', 'ceiling-source-input.mjs'],
   ['scripts/fixtures/unary-plus-source-input.mjs', 'unary-plus-source-input.mjs'],
   ['scripts/fixtures/ifnull-source-input.mjs', 'ifnull-source-input.mjs'],
   ['scripts/fixtures/grouped-in-source-input.mjs', 'grouped-in-source-input.mjs'],
@@ -175,6 +178,9 @@ if (process.argv.includes('--typed-json-literal-only')) {
 if (process.argv.includes('--having-object-property-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_OBJECT_PROPERTY_ONLY = '1';
 }
+if (process.argv.includes('--ceiling-only')) {
+  runtimeEnvironment.ACTQL_TEST_CEILING_ONLY = '1';
+}
 if (process.argv.includes('--unary-plus-only')) {
   runtimeEnvironment.ACTQL_TEST_UNARY_PLUS_ONLY = '1';
 }
@@ -253,6 +259,9 @@ if (process.argv.includes('--having-aggregate-only')) {
 if (process.argv.includes('--analytic-countif-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY = '1';
 }
+if (process.argv.includes('--unnest-source-only')) {
+  runtimeEnvironment.ACTQL_TEST_UNNEST_SOURCE_ONLY = '1';
+}
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
 }
@@ -300,6 +309,9 @@ if (process.argv.includes('--star-exclusion-only')) {
 }
 if (process.argv.includes('--qualified-star-only')) {
   runtimeEnvironment.ACTQL_TEST_QUALIFIED_STAR_ONLY = '1';
+}
+if (process.argv.includes('--full-join-scope-only')) {
+  runtimeEnvironment.ACTQL_TEST_FULL_JOIN_SCOPE_ONLY = '1';
 }
 if (process.argv.includes('--right-join-only')) {
   runtimeEnvironment.ACTQL_TEST_RIGHT_JOIN_ONLY = '1';
@@ -419,9 +431,10 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--unnest-source-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
+  '--full-join-scope-only',
   '--join-star-only',
   '--star-replace-only',
   '--qualify-only',
@@ -471,9 +484,12 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+if (process.argv.includes('--unnest-source-only')) return;
+if (process.argv.includes('--ceiling-only')) return;
 if (process.argv.includes('--unary-plus-only')) return;
 if (process.argv.includes('--qualified-star-only')) return;
 if (process.argv.includes('--right-join-only')) return;
+if (process.argv.includes('--full-join-scope-only')) return;
 if (process.argv.includes('--join-star-only')) return;
 if (process.argv.includes('--star-replace-only')) return;
 if (process.argv.includes('--qualify-only')) return;

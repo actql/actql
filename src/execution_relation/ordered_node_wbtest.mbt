@@ -21,6 +21,14 @@ test "ordered node identity covers complete graph step while source excludes mac
   assert_true(source.contains("\"bindings\""))
   assert_true(source.contains("\"in\":[\"input\"]"))
   assert_true(artifact.source.cid != artifact.graph.cid)
+  let logical = @encode.writer(100000, 10000, 100)
+  emit_ordered_kernel_node(params, logical)
+  let logical_wire = @encode.finish(logical)
+  assert_true(logical_wire.contains("\"in\":[\"values_0\"]"))
+  assert_eq(
+    logical_wire.replace(old="\"values_0\"", new="\"input\""),
+    @identity.stringify_value(artifact.graph.value, 100000, 10000, 100),
+  )
   let exact = {
     ..registry_limits(),
     max_body_bytes: artifact.source.bytes + artifact.graph.bytes,
