@@ -154,11 +154,12 @@ fn row_window_provider(
               return Ok(true)
             }
             match @execution.cleanup_bounded_row_window(active) {
-              Ok(true) => {
-                reclaimed.val = true
-                Ok(true)
+              Ok(_) => {
+                reclaimed.val = !@execution.bounded_row_window_cleanup_pending(
+                  active,
+                )
+                Ok(reclaimed.val)
               }
-              Ok(false) => Ok(false)
               Err(issue) => Err(bounded_row_window_issue(issue, step))
             }
           },

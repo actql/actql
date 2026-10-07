@@ -157,7 +157,9 @@ fn cleanup_bounded_nest_state(state : BoundedNestState) -> Bool {
     state.sorter = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.seed = []
@@ -1110,7 +1112,6 @@ fn bounded_nest_step(
         guard state.output is Some(output) else {
           return bounded_nest_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -1200,7 +1201,7 @@ pub fn start_bounded_nest(
     return Err(InvalidExecution)
   }
   let output = match
-    prepare_admitted_output(
+    prepare_bounded_admitted_output(
       owner,
       @pipeline.Step(step),
       max_rows,
@@ -1345,6 +1346,12 @@ pub fn advance_bounded_nest(
       Ok(BoundedNestStopped(reason, progress~, work~))
     }
   }
+}
+
+///|
+/// Observe outstanding custody independently from cleanup's change result.
+pub fn bounded_nest_cleanup_pending(value : BoundedNestExecution) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
 
 ///|
