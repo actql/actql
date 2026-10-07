@@ -1005,7 +1005,7 @@ export async function createInstalledRowEffect({moon, mappings,
       captureEvidence: plan.captureEvidence, preview: admittedPreview,
       plans: plans.map(({name, wire}) => ({name, wire})),
       effectSourceHoldings: holdings, connectorRecovery,
-      contractLimits: plan.contractLimits});
+      contractLimits: plan.contractLimits, signal});
     for (const payload of sourceSet.payloads) {
       if (payload.prepared.status().pending) await payload.prepared.release();
     }

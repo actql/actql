@@ -1235,7 +1235,7 @@ test('portable control validates Receipt and Captured Run references',
     ['value'],
     limits,
   );
-  const captured = control.issueEffectFreeCapturedRun({
+  const captured = await control.issueEffectFreeCapturedRun({
     runDefinition: run,
     invocation: invoked,
     definitions: [definition],
@@ -1327,7 +1327,7 @@ test('portable control validates Receipt and Captured Run references',
     effectSources: [control.admitCapturedEffectSourceArtifact(
       preview, 0, invoked, sourceArtifact, cid('a'))],
     pendingSourceStateAdvances: [], authoringContext, modelEvidence: []};
-  assert.throws(() => control.issueEffectfulCapturedRun(
+  await assert.rejects(() => control.issueEffectfulCapturedRun(
     computationChain, computationEvidence, preview,
     [{name: 'WriteOne', wire: '{}'}], limits),
   {name: 'TypeError', message: 'Invalid Effectful Captured Run request'});

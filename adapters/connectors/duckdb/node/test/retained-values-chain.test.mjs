@@ -345,6 +345,40 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       first + expectedSteps.length), undefined);
     const observedMoon = new Proxy(moon, {
       get(target, property, receiver) {
+        if (route.observeCapturePreparation &&
+            ['strategyIssueEffectFreeCapturedRun',
+              'strategyIssueEffectfulCapturedRun'].includes(property)) {
+          return () => assert.fail('blocking Captured Run issuance');
+        }
+        if (route.observeCapturePreparation &&
+            property === 'strategyCapturedRunAdvance') {
+          return preparation => {
+            const result = target[property](preparation, 32);
+            const complete = checked(result);
+            const phase = target.strategyCapturedRunFixturePhase(preparation);
+            route.capturePolls = (route.capturePolls ?? 0) + 1;
+            (route.capturePhases ??= new Set()).add(phase);
+            assert.equal(completedDispatches, 3);
+            if (mode === 'cancel-during-captured-run' && !scheduled &&
+                phase === route.cancelCapturePhase) {
+              assert.equal(complete, false);
+              assert.ok(route.capturePolls > 1);
+              scheduled = true;
+              setTimeout(() => cancellation.abort(), 0);
+            }
+            return result;
+          };
+        }
+        if (route.observeCapturePreparation &&
+            property === 'strategyCapturedRunCancel') {
+          return preparation => {
+            target[property](preparation);
+            route.captureCancels = (route.captureCancels ?? 0) + 1;
+            assert.equal(target.strategyCapturedRunFixturePhase(preparation), 'closed');
+            assert.equal(preparation.live, 0);
+            assert.equal(preparation.inputs, undefined);
+          };
+        }
         if (route.observeSnapshotPreparation &&
             property === 'strategyHostOutputSnapshotAdvance') {
           return value => {
@@ -439,7 +473,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           return {$tag: 1, _0: new Proxy(operations, {
             get(operation, name, receiver) {
               if (name === 'execute') return () => assert.fail('synchronous Compute');
-              if (route.observeResultPreparation && name === 'complete') {
+              if ((route.observeResultPreparation || route.observeCapturePreparation) &&
+                  name === 'complete') {
                 return (...args) => {
                   const result = operation.complete(...args);
                   if (result.$tag === 1) completedDispatches++;
@@ -620,9 +655,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         },
         close() {
           if (cancellation.signal.aborted) {
-            if (route.observeResultPreparation) assert.equal(completedDispatches, 3,
+            if (route.observeResultPreparation || route.observeCapturePreparation) {
+              assert.equal(completedDispatches, 3,
               'Result preparation follows physically completed Compute');
-            else assert.equal(sawStop, true);
+            } else assert.equal(sawStop, true);
           }
           closed = true;
           writer?.cancel();
@@ -681,7 +717,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         assert.equal(retained.status().holdings, 0);
         assert.equal(retained.status().reservedReadBufferBytes, 0);
       }
-      if ((route.publicationFault || route.observeResultPreparation) && publication) {
+      if ((route.publicationFault || route.observeResultPreparation ||
+          route.observeCapturePreparation) && publication) {
         assert.equal(publication.status().reservedBytes, 0);
         assert.equal(publication.status().reservedObjects, 0);
       }
@@ -875,6 +912,52 @@ for (const mode of ['success', 'cancel-during-result-snapshot']) {
           runDefinitionCid: plan.runDefinition.identity,
         }, () => true), /PublicationLookupDenied/);
       }
+      assert.equal(observations().dispatches, 3);
+      assert.equal(observations().completedDispatches, 3);
+    }, mode, undefined, undefined, false, route);
+  });
+}
+
+for (const phase of ['success', 'context-check', 'rows-check']) {
+  test(`retained Captured Run issuance yields through final evidence checking: ${phase}`, async () => {
+    const first = {id: 1, note: `${'é'.repeat(257)}e\u0301\r\n😀`};
+    const second = {id: 2, note: null};
+    const document = JSON.parse(program([first, second], 'true'));
+    document.id = 'retained-captured-run-progress';
+    document.stages[0].steps[0].values.schema.note = {type: 'string', nullable: true};
+    document.stages[0].steps[2].select = ['id', 'note'];
+    for (const stage of document.stages) {
+      stage.results.out.fields = ['id', 'note'];
+      stage.results.out.order_by = [{id: 'desc'}];
+      if (stage.inputs.r) stage.steps[0].select = ['id', 'note'];
+    }
+    const route = {observeCapturePreparation: true, cancelCapturePhase: phase};
+    const mode = phase === 'success' ? 'success' : 'cancel-during-captured-run';
+    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
+      if (mode === 'success') {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.ok(route.capturePhases.has('context-check'));
+        assert.ok(route.capturePhases.has('rows-check'));
+        await assertPublishedRows(publication, plan, owner.execution, [second, first]);
+        assert.equal(route.captureCancels ?? 0, 0);
+      } else {
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          assert.equal(error.cause, observations().abortReason);
+          assert.deepEqual(error.execution.completed.map(task => task.task), [0, 1, 2]);
+          return true;
+        });
+        assert.ok(route.capturePhases.has(phase));
+        assert.equal(route.captureCancels, 1);
+        assert.equal(observations().scheduled, true);
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+      assert.ok(route.capturePolls > 1);
       assert.equal(observations().dispatches, 3);
       assert.equal(observations().completedDispatches, 3);
     }, mode, undefined, undefined, false, route);
