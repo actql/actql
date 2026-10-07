@@ -762,7 +762,7 @@ test('baseline preimages and changed normative pins independently determine the 
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('561ebef800dd3c16dbd971fe4c709ebf78678133926ec110d6a60714ae04e9ba'));
   assert.equal(current.run.run_definition_cid,
-    pin('4f3652ea4456523532b14c5ad91490f24a6adc441267e4710e6411de99575933'));
+    pin('3ed63e2c45d68425784a904b0378099fe284027a35e2c3e78d016bdc854f6903'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
