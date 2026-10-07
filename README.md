@@ -122,7 +122,7 @@ import {connect} from '@actql/node';
 const client = await connect({mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: resolve('actql-state')}});
 try {
-  const execution = await client.aql(await readFile('query.aql', 'utf8'),
+  const execution = await client.startSource(await readFile('query.aql', 'utf8'),
     {format: 'yaml', requestId: 'customer-open-orders'});
   const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
   if (state.status !== 'succeeded') throw new Error(JSON.stringify(state));

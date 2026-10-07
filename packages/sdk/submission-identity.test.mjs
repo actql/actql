@@ -23,7 +23,7 @@ test('SDK saves exact submission ref and original source before a lost response'
   const submissionRef = client.newSubmission({nonce: 'original-nonce'});
   const parameters = {nested: ['e\u0301', 'é', '\r', '\n', '\r\n']};
   const source = "SELECT 'e\u0301\r\n' AS value";
-  const pending = client.aql(source, {format: 'aql-text', submissionRef, parameters});
+  const pending = client.startSource(source, {format: 'aql-text', submissionRef, parameters});
   parameters.nested[0] = 'changed after call';
   let error;
   await assert.rejects(pending, value => {error = value; return value.code === 'SubmissionUnknown';});
@@ -104,7 +104,7 @@ test('ordinary SDK submission exposes its original identity and input before fir
     },
   });
   const parameters = {value: 'e\u0301\r\n'};
-  const pending = client.aql('SELECT @value AS n', {format: 'sql', parameters});
+  const pending = client.startSource('SELECT @value AS n', {format: 'sql', parameters});
   const input = getSubmissionInput(pending);
   try {
     assert.ok(input, 'the pending operation must expose its pre-send original');

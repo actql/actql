@@ -1,3 +1,4 @@
+import {resolve} from 'node:path';
 import {connect as connectHost, ClientError} from '@actql/sdk';
 
 export {ClientError, RequestHeld} from '@actql/sdk';
@@ -22,7 +23,9 @@ async function localProvider() {
   return provider;
 }
 
-export async function connect(options) {
+export async function connect(options, stringOptions) {
+  if (typeof options === 'string') return connectHost(options, stringOptions);
+  if (stringOptions !== undefined) throw new ClientError('InvalidConnectionOptions');
   if ((options?.mode === 'local' || options?.mode === 'hybrid' &&
       options?.owner === 'local') && options.endpoint === undefined) {
     // Detach this new Host-only value before lazy provider loading. Admission
@@ -51,4 +54,26 @@ export async function connect(options) {
     return (await localProvider()).connect(options);
   }
   return connectHost(options);
+}
+
+// The new short Local entry chooses a project-local state directory explicitly.
+// Existing connect() retains its environment/home-directory defaults.
+export async function open(options = {}) {
+  if (options === null || typeof options !== 'object' || Array.isArray(options) ||
+      Object.keys(options).some(key => !['stateDir', 'installation',
+        'durability', 'consentRefs'].includes(key)) ||
+      options.stateDir !== undefined &&
+        (typeof options.stateDir !== 'string' || !options.stateDir) ||
+      options.installation !== undefined &&
+        (options.installation === null || typeof options.installation !== 'object' ||
+        Array.isArray(options.installation) ||
+        Object.hasOwn(options.installation, 'directory'))) {
+    throw new ClientError('InvalidOpenOptions');
+  }
+  const stateDir = resolve(options.stateDir ?? '.actql');
+  const client = await connect({mode: 'local', owner: 'local',
+    ...(options.durability === undefined ? {} : {durability: options.durability}),
+    ...(options.consentRefs === undefined ? {} : {consentRefs: options.consentRefs}),
+    installation: {...options.installation, directory: stateDir}});
+  return Object.freeze({...client, info: Object.freeze({stateDir})});
 }

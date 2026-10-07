@@ -31,7 +31,8 @@ export function formatOperationExplanation(explanation, domain, options) {
   if (format === 'json') output = safeJson({domain, explanation: localized, presentation});
   else {
     const {summary, hint, ...facts} = localized;
-    const heading = domain + '/' + facts.observation + ': ' + summary;
+    const classification = domain === 'observation' ? facts.kind : facts.observation;
+    const heading = domain + '/' + classification + ': ' + summary;
     const data = safeJson(facts);
     output = format === 'html'
       ? '<section><h2>' + html(heading) + '</h2>' +

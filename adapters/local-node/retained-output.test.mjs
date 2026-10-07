@@ -18,10 +18,10 @@ import * as portableRuntime from
 
 const ok = value => ({$tag: 1, _0: value});
 function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
-  lease} = {}) {
+  lease, requireDisposedRefresh = false} = {}) {
   const events = [], material = {}, input = {};
   let releaseCheck, closed = false, clean = false, bound = false, allocated = false, index = 0;
-  let advanced = 0, stopRequested = false, stopped = false;
+  let advanced = 0, stopRequested = false, stopped = false, disposed = false;
   const configuration = installLocalRetainedStore((key, bytes, frame) => {
     assert.equal(key, 'task-2'); assert.equal(bytes, 100); assert.equal(frame, 64);
     assert.equal(typeof releaseCheck, 'function');
@@ -56,7 +56,11 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
         return ok({material, readable: read => read === input});
       },
     }),
-    refresh: () => {events.push('refresh'); return ok(releaseCheck());},
+    refresh: () => {
+      if (requireDisposedRefresh) assert.equal(disposed, true,
+        'common cleanup refresh requires the execution owner to be closed');
+      events.push('refresh'); return ok(releaseCheck());
+    },
   };
   const operations = {
     inputs: [], output,
@@ -75,19 +79,34 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
     settle: () => {events.push('settle'); return ok();},
     complete: () => {assert(bound); events.push('complete'); return ok();},
     guard_usage: () => [0, 0, 0],
-    close: () => {events.push('task-close');},
+    close: () => {
+      if (!disposed) events.push('task-close');
+      disposed = true;
+    },
+    cleanup_refresh: () => true,
   };
   const moon = {...portableRuntime,
     strategyModule_local_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'local-test',
     strategyModule_local_NextCarrierPath: () => false,
     strategyHostNextTask: () => 2,
+    strategyHostTask: value => value,
     strategyHostManagedProducers: () => [],
     strategyHostManagedInputCount: () => 0,
     strategyModule_local_Dispatch: () => {events.push('reserved'); return ok(operations);}};
   const entry = localStrategyContribution(moon, {}, checked, configuration);
   return {entry, events, configuration, allocated: () => allocated, released: () => releaseCheck?.()};
 }
+
+test('successful retained output closes its execution before cleanup refresh', async () => {
+  const f = fixture({requireDisposedRefresh: true});
+  const result = await f.entry.run({});
+  await result.close();
+  assert(f.events.indexOf('task-close') < f.events.indexOf('refresh'));
+  assert.equal(f.events.filter(event => event === 'advance').length, 1);
+  assert.equal(f.events.filter(event => event === 'task-close').length, 1);
+  assert.equal(f.released(), true);
+});
 
 test('Local output seals exact content before completion and retains cleanup until physical confirmation', async () => {
   let allowCleanup = false;
@@ -116,7 +135,9 @@ test('physical Local output recovery releases Site holdings and permits full cap
   const site = createInProcessExecutionSite({key: 'local-output-reuse',
     generation: 1, runtimeRevision: 'test/1', maxRetainedBytes: 100n,
     maxExecutionBytes: 0n});
-  for (const failCleanup of ['before', 'after', undefined]) {
+  for (const failCleanup of ['before', 'after', 'before-frozen', 'after-frozen', undefined]) {
+    const before = failCleanup?.startsWith('before') ?? false;
+    const frozen = failCleanup?.endsWith('frozen') ?? false;
     const store = await createLocalRetainedStore({parentDirectory: directory,
       capacityBytes: 100, maxFrameBytes: 64, maxEntries: 1});
     let injected = failCleanup, retries = 0;
@@ -124,9 +145,17 @@ test('physical Local output recovery releases Site holdings and permits full cap
       status: store.status, reserve: store.reserve, close: store.close,
       async cleanup() {
         retries++;
-        if (injected === 'before') { injected = false; throw new Error('LocalCleanupInjected'); }
+        if (injected && before) {
+          injected = false;
+          const error = new Error('LocalCleanupInjected');
+          throw frozen ? Object.freeze(error) : error;
+        }
         const result = await store.cleanup();
-        if (injected === 'after') { injected = false; throw new Error('LocalCleanupInjected'); }
+        if (injected && !before) {
+          injected = false;
+          const error = new Error('LocalCleanupInjected');
+          throw frozen ? Object.freeze(error) : error;
+        }
         return result;
       },
     };
@@ -146,8 +175,16 @@ test('physical Local output recovery releases Site holdings and permits full cap
     assert.equal(executionSiteStatus(site).holdings, 1);
     assert.equal(executionSiteStatus(site).heldBytes, 100n);
     if (failCleanup) {
-      await assert.rejects(report.close(), /LocalCleanupInjected/);
-      const physicallyPending = failCleanup === 'before';
+      await assert.rejects(report.close(), error => {
+        const primary = before ? error.primaryFailure : error.primaryFailure ?? error;
+        assert.equal(primary?.message, 'LocalCleanupInjected');
+        if (before) {
+          assert.equal(error.cleanupHandle.status().pending, true);
+          assert.equal(typeof error.cleanupHandle.retry, 'function');
+        }
+        return true;
+      });
+      const physicallyPending = before;
       assert.equal(report.cleanupPending(), physicallyPending);
       assert.equal(executionSiteStatus(site).holdings, physicallyPending ? 1 : 0);
       assert.equal(executionSiteStatus(site).heldBytes, physicallyPending ? 100n : 0n);
@@ -161,7 +198,7 @@ test('physical Local output recovery releases Site holdings and permits full cap
     assert.deepEqual(await readdir(directory), []);
     assert.equal(f.events.filter(event => event === 'advance').length, 1);
     assert.equal(f.events.filter(event => event === 'task-close').length, 1);
-    assert.equal(retries, failCleanup === 'before' ? 2 : 1);
+    assert.equal(retries, before ? 2 : 1);
   }
 });
 

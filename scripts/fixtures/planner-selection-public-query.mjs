@@ -205,7 +205,7 @@ export async function exerciseRetainedPlannerPublicQuery({connect, root,
     });
     const requestId = 'retained-public-planner';
     const program = plannerSelectionProgram();
-    const execution = await client.aql(program, {format: 'json', requestId});
+    const execution = await client.startSource(program, {format: 'json', requestId});
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', JSON.stringify({state,
       events: events.map(event => ({name: event.name,
@@ -218,7 +218,7 @@ export async function exerciseRetainedPlannerPublicQuery({connect, root,
     'the public Host must select a real retained-file output');
     const attached = await client.attach(execution.ref);
     assert.deepEqual(await attached.result('selected').all(), expectedRows);
-    const resent = await client.aql(program, {format: 'json', requestId});
+    const resent = await client.startSource(program, {format: 'json', requestId});
     assert.deepEqual(resent.ref, execution.ref);
   } finally { client?.close(); await running.close(); }
 }
@@ -375,7 +375,7 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
         client = await running.connect();
         if (item.denyRead || item.deferred) {
           let refusalCode;
-          await assert.rejects(client.aql(text, {format: 'json', requestId}), error => {
+          await assert.rejects(client.startSource(text, {format: 'json', requestId}), error => {
             refusalCode = error.code;
             if (item.denyRead) assert.equal(refusalCode, 'ACTQL_E_ACCOUNT_DENIED');
             else assert.equal(refusalCode, 'ClientProgramRejected',
@@ -396,7 +396,7 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
             provider: {sourceIo: 0, sourceReads: 0, sourceProviderOpens: []}});
           continue;
         }
-        const execution = await client.aql(text, {format: 'json', requestId});
+        const execution = await client.startSource(text, {format: 'json', requestId});
         const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
         assert.equal(state.status, 'succeeded', JSON.stringify({mode, name: item.name, state}));
         const result = execution.result('selected');
@@ -417,7 +417,7 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
         const commands = assertSourceCommands(before, after, installation.database, item);
         const attached = await client.attach(execution.ref);
         assert.deepEqual(await attached.result('selected').all(), expectedRows);
-        const resent = await client.aql(text, {format: 'json', requestId});
+        const resent = await client.startSource(text, {format: 'json', requestId});
         assert.deepEqual(resent.ref, execution.ref);
         assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
         assert.deepEqual(provider.snapshot(), after, 'retained reads and duplicate submission do not reacquire');

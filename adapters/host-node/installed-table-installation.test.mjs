@@ -252,7 +252,7 @@ test('Table public Local reader acquires a real generation and leaves it after R
     assert.fail(error.primaryFailure?.stack ?? error.cause?.stack ?? error.stack);
   });
   try {
-    const run = await client.aql(JSON.stringify(program), {format: 'json', requestId: 'table-read-1'});
+    const run = await client.startSource(JSON.stringify(program), {format: 'json', requestId: 'table-read-1'});
     const state = await run.wait({signal: AbortSignal.timeout(30000)});
     if (state.status !== 'succeeded') t.diagnostic(inspect(observations, {depth: 8}));
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -263,7 +263,7 @@ test('Table public Local reader acquires a real generation and leaves it after R
   assert.deepEqual(JSON.parse(JSON.stringify((await f.bridge.read(receipt, f.mapping)).result)), expected);
   const later = await connectEmbeddedLocal(options);
   try {
-    const run = await later.aql(JSON.stringify(program), {format: 'json', requestId: 'table-read-2'});
+    const run = await later.startSource(JSON.stringify(program), {format: 'json', requestId: 'table-read-2'});
     const state = await run.wait({signal: AbortSignal.timeout(30000)});
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(await rows(run.result('answer')), expectedResult);

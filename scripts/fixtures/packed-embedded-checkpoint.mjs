@@ -22,7 +22,7 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 25));
 
 try {
   if (step === 'hold') {
-    await assert.rejects(client.aql(document, {format: 'json', requestId}),
+    await assert.rejects(client.startSource(document, {format: 'json', requestId}),
       error => {
         assert.equal(error instanceof RequestHeld, true);
         assert.equal(error.requestId, requestId);

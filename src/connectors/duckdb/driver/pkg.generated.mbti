@@ -173,6 +173,8 @@ pub fn record_managed_duckdb_output_reclaim_attempted(ManagedDuckDBFailureProgre
 
 pub fn record_managed_duckdb_output_retry_attempted(ManagedDuckDBFailureRetryProgress) -> Bool
 
+pub fn[T] refresh_captured_managed_duckdb_cleanup(CapturedManagedDuckDBTask[T]) -> Result[Bool, @physical_resources.LedgerIssue]
+
 pub fn resident_input_scan_reuse(DuckDBResidentInputs, Int, @execution_relation.ProducerRead) -> @execution_relation.RetainedScanReuse?
 
 pub fn resident_inputs_read_plans(DuckDBResidentInputs) -> Array[@compute.DuckDBResidentRead]

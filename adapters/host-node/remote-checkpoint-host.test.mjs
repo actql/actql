@@ -638,7 +638,7 @@ test('allow runs without a Checkpoint; deny and missing configuration start noth
   async t => {
     const allowed = await remoteHost(t, protectedHost('allow'));
     const client = await allowed.as('owner-token');
-    const execution = await client.aql(document, {format: 'json',
+    const execution = await client.startSource(document, {format: 'json',
       requestId: 'allow-a'});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(),
@@ -651,7 +651,7 @@ test('allow runs without a Checkpoint; deny and missing configuration start noth
     ]) {
       const host = await remoteHost(t, authorization);
       const denied = await host.as('owner-token');
-      await assert.rejects(denied.aql(document, {format: 'json',
+      await assert.rejects(denied.startSource(document, {format: 'json',
         requestId: `${label}-a`}), {code}, label);
       assert.equal(host.dispatches(), 0, label);
       assert.deepEqual(await denied.lookupRequest(`${label}-a`),
@@ -671,7 +671,7 @@ test('a claimed start with lost execution observation reconciles after restart',
       },
     }), {directory});
     const client = await first.as('owner-token');
-    const execution = await client.aql(document, {format: 'json',
+    const execution = await client.startSource(document, {format: 'json',
       requestId: 'unknown-start'});
     const unknown = await waitFor(async () => {
       const state = await execution.status();
@@ -698,7 +698,7 @@ test('a late Host observation failure does not overwrite publication',
       },
     }));
     const client = await host.as('owner-token');
-    const execution = await client.aql(document, {format: 'json',
+    const execution = await client.startSource(document, {format: 'json',
       requestId: 'late-observation'});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(),
@@ -719,14 +719,14 @@ test('installed Host bounds unfinished decisions across distinct requests',
     }));
     const client = await host.as('owner-token');
     for (const requestId of ['unfinished-one', 'unfinished-two']) {
-      await assert.rejects(client.aql(document, {format: 'json', requestId}),
+      await assert.rejects(client.startSource(document, {format: 'json', requestId}),
         {code: 'ACTQL_E_DELEGATION_UNAVAILABLE'});
     }
     assert.equal(calls, 1);
     assert.equal(host.dispatches(), 0);
     finish({decision: 'unavailable'});
     await new Promise(resolve => setImmediate(resolve));
-    await assert.rejects(client.aql(document, {format: 'json',
+    await assert.rejects(client.startSource(document, {format: 'json',
       requestId: 'unfinished-three'}),
     {code: 'ACTQL_E_DELEGATION_UNAVAILABLE'});
     assert.equal(calls, 2);
@@ -743,11 +743,11 @@ test('delegate immediate permit runs and immediate reject records nothing',
       decide: view => ({...decide(view), decision: answer}),
       answeringAuthorities: ['host-policy']}));
     const client = await host.as('owner-token');
-    const permitted = await client.aql(document, {format: 'json',
+    const permitted = await client.startSource(document, {format: 'json',
       requestId: 'permit-a'});
     assert.equal((await permitted.wait()).status, 'succeeded');
     answer = 'reject';
-    await assert.rejects(client.aql(document, {format: 'json',
+    await assert.rejects(client.startSource(document, {format: 'json',
       requestId: 'reject-a'}), {code: 'ACTQL_E_DELEGATION_REJECTED'});
     assert.deepEqual(await client.lookupRequest('reject-a'),
       {kind: 'not_found'});
@@ -761,20 +761,20 @@ test('a held request is reviewed, answered and resumed by the Host',
     const client = await host.as('owner-token');
     let held;
     try {
-      await client.aql(document, {format: 'json', requestId: 'held-a'});
+      await client.startSource(document, {format: 'json', requestId: 'held-a'});
     } catch (error) { held = error; }
     assert.equal(held instanceof RequestHeld, true);
     assert.equal(held.held.state, 'waiting_checkpoint');
     assert.equal(host.dispatches(), 0);
     // The same request again is the same held request, not a new one.
-    await assert.rejects(client.aql(document, {format: 'json',
+    await assert.rejects(client.startSource(document, {format: 'json',
       requestId: 'held-a'}), error => error instanceof RequestHeld &&
       error.held.checkpoint.checkpointCid ===
         held.held.checkpoint.checkpointCid);
     // The same request ID with another intent conflicts.
     const changed = JSON.parse(document);
     changed.stages[0].steps[0].values.rows = [{id: 9}];
-    await assert.rejects(client.aql(JSON.stringify(changed),
+    await assert.rejects(client.startSource(JSON.stringify(changed),
       {format: 'json', requestId: 'held-a'}),
     {code: 'ClientRequestIntentConflict'});
     const waitingLookup = await client.lookupRequest('held-a');
@@ -783,7 +783,7 @@ test('a held request is reviewed, answered and resumed by the Host',
     assert.equal(waitingExplanation.preparationState, 'waiting_checkpoint', '[check-mutation:request-held-public]');
     assert.equal(explainSubmission(held).preparationState, 'waiting_checkpoint');
     assert.deepEqual(waitingExplanation.next, {operation: 'lookupRequest', requestId: 'held-a',
-      lookupContext: {endpoint: host.options('owner-token').endpoint, scopeRef: owner}});
+      lookupContext: {endpoint: host.options('owner-token').endpoint, scopeRef: client.profile.scopeRef}});
     assert.equal(explainRequestLookup({...waitingLookup}), undefined);
 
     const reviewer = await host.as('reviewer-token');
@@ -796,7 +796,7 @@ test('a held request is reviewed, answered and resumed by the Host',
     await assert.rejects(host.as('stranger-token'), {code:
       'ClientConnectionDenied'});
     // A reviewer is not the request owner: no Run operation.
-    await assert.rejects(reviewer.aql(document, {format: 'json',
+    await assert.rejects(reviewer.startSource(document, {format: 'json',
       requestId: 'reviewer-own'}), {code: 'ClientConnectionDenied'});
     await assert.rejects(reviewer.lookupRequest('held-a'),
       {code: 'ClientConnectionDenied'});
@@ -843,7 +843,7 @@ test('a held request is reviewed, answered and resumed by the Host',
       [{id: 1}, {id: 2}]);
     assert.equal(host.dispatches(), 1);
     // The submit is now the existing Run.
-    assert.deepEqual((await client.aql(document, {format: 'json',
+    assert.deepEqual((await client.startSource(document, {format: 'json',
       requestId: 'held-a'})).ref, found.ref);
     assert.deepEqual((await reviewer.checkpoints()).items, []);
   });
@@ -876,7 +876,7 @@ test('installed Effect owner resumes one approved Run acceptance',
     const first = await remoteHost(t, protectedHost('delegate',
       {resumeAfterAnswer: false}), {directory, effectInstallation});
     const client = await first.as('owner-token');
-    await assert.rejects(client.aql(fixture.document, {format: 'json',
+    await assert.rejects(client.startSource(fixture.document, {format: 'json',
       requestId: 'effect-held-a'}), error => error instanceof RequestHeld);
     assert.equal(starts, 0);
     assert.equal((await client.lookupRequest('effect-held-a')).state,
@@ -897,7 +897,7 @@ test('installed Effect owner resumes one approved Run acceptance',
     await waitFor(async () => (await execution.status()).status ===
       'needs_reconciliation');
     assert.equal(starts, 1);
-    assert.deepEqual((await ownerClient.aql(fixture.document,
+    assert.deepEqual((await ownerClient.startSource(fixture.document,
       {format: 'json', requestId: 'effect-held-a'})).ref, found.ref);
     assert.equal(starts, 1);
     await restarted.close();
@@ -939,7 +939,7 @@ test('installed Effect factory resumes an approved captured Set',
         observe: (name, detail) => diagnostics.push({name, detail})}),
     {directory, effectInstallation});
     const client = await host.as('owner-token');
-    const execution = await client.aql(fixture.document, {format: 'json',
+    const execution = await client.startSource(fixture.document, {format: 'json',
       requestId: 'effect-factory-a'});
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint').catch(async error => {
@@ -1000,7 +1000,7 @@ test('installed Effect factory resumes an approved captured Set',
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
     assert.deepEqual(await attached.result('answer').all(),
       [{id: 1}, {id: 2}]);
-    assert.deepEqual((await resumedClient.aql(fixture.document,
+    assert.deepEqual((await resumedClient.startSource(fixture.document,
       {format: 'json', requestId: 'effect-factory-a'})).ref,
     execution.ref);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
@@ -1120,7 +1120,7 @@ test('installed Effect retries a transient capture read without recompute',
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
     const submitted = await (await first.as('owner-token'))
-      .aql(fixture.document, {format: 'json',
+      .startSource(fixture.document, {format: 'json',
         requestId: 'effect-read-retry'});
     await waitFor(async () => (await submitted.status()).status ===
       'waiting_checkpoint');
@@ -1166,7 +1166,7 @@ test('installed Effect allow publishes without a commit Checkpoint',
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
     const client = await first.as('owner-token');
-    const submitted = await client.aql(fixture.document, {format: 'json',
+    const submitted = await client.startSource(fixture.document, {format: 'json',
       requestId: 'effect-direct-allow-a'});
     await waitFor(async () => (await submitted.status()).status ===
       'succeeded');
@@ -1222,7 +1222,7 @@ for (const readDecision of ['deny']) {
       const options = {directory, sourceProfilePath, effectInstallation};
       const first = await remoteHost(t, authorization(), options);
       const client = await first.as('owner-token');
-      const submitted = await client.aql(canonicalJson(program), {
+      const submitted = await client.startSource(canonicalJson(program), {
         format: 'json', requestId: `acquired-effect-${readDecision}`});
       await waitFor(async () => (await submitted.status()).status === 'failed');
       assert.equal(providerPreparations, 0);
@@ -1301,7 +1301,7 @@ test(uncertain
       t.diagnostic(String(error.cause?.stack ?? error));
       throw error;
     });
-    const submitted = await (await host.as('owner-token')).aql(JSON.stringify(program),
+    const submitted = await (await host.as('owner-token')).startSource(JSON.stringify(program),
       {format: 'json', requestId: 'source-effect-approval'});
     const wait = async (execution, expected) => waitFor(async () =>
       (await execution.status()).status === expected).catch(async error => {
@@ -1425,7 +1425,7 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     });
     const options = {directory, sourceProfilePaths, effectInstallation};
     let host = await remoteHost(t, account(), options);
-    const submitted = await (await host.as('owner-token')).aql(JSON.stringify(program),
+    const submitted = await (await host.as('owner-token')).startSource(JSON.stringify(program),
       {format: 'json', requestId: `second-source-${realization}`});
     const wait = async (execution, expected) => waitFor(async () =>
       (await execution.status()).status === expected).catch(async error => {
@@ -1570,7 +1570,7 @@ test(outcome === 'cancel' || outcome === 'reject'
         'effect-capture-custody'))).length === 0);
       assert.deepEqual(await readdir(join(publication, 'physical-holdings')), []);
       assert.deepEqual(await readdir(join(publication, 'objects')), []);
-      const duplicate = await client.aql(canonicalJson(program),
+      const duplicate = await client.startSource(canonicalJson(program),
         {format: 'json', requestId: 'acquired-effect'});
       assert.deepEqual(duplicate.ref, found.ref);
       assert.equal((await duplicate.status()).status, 'needs_reconciliation');
@@ -1586,7 +1586,7 @@ test(outcome === 'cancel' || outcome === 'reject'
       await reopened.close();
       return;
     }
-    const execution = await (await first.as('owner-token')).aql(
+    const execution = await (await first.as('owner-token')).startSource(
       canonicalJson(program), {format: 'json', requestId: 'acquired-effect'});
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint').catch(async error => {
@@ -1709,10 +1709,10 @@ test(`a ${damage} acquired input rejects only its Run after Host restart`,
     };
     const first = await remoteHost(t, account(), options);
     const client = await first.as('owner-token');
-    const healthy = await client.aql(document, {format: 'json', requestId: 'healthy'});
+    const healthy = await client.startSource(document, {format: 'json', requestId: 'healthy'});
     assert.equal((await healthy.wait()).status, 'succeeded');
     const expectedRows = await healthy.result('answer').all();
-    const damaged = await client.aql(canonicalJson(program),
+    const damaged = await client.startSource(canonicalJson(program),
       {format: 'json', requestId: 'damaged'});
     await waitFor(async () => (await damaged.status()).status === 'waiting_checkpoint');
     await first.close();
@@ -1782,12 +1782,12 @@ test('one installed Host reads and applies independent Effects', async t => {
   };
   const first = await remoteHost(t, account(), options);
   const client = await first.as('owner-token');
-  const read = await client.aql(readDocument, {format: 'json',
+  const read = await client.startSource(readDocument, {format: 'json',
     requestId: 'coinstalled-read', parameters: {minimum: 1}});
   assert.equal((await read.wait()).status, 'succeeded');
   assert.deepEqual((await read.result('b').all()).map(row => row.id)
     .sort(), [2, 3, 3]);
-  const effect = await client.aql(fixture.document, {format: 'json',
+  const effect = await client.startSource(fixture.document, {format: 'json',
     requestId: 'coinstalled-effect'});
   await waitFor(async () => (await effect.status()).status === 'succeeded');
   assert.deepEqual(await effect.result('answer').all(),
@@ -1828,10 +1828,10 @@ test('coinstalled read and commit approvals survive the same Host restart',
     const first = await remoteHost(t, account({resumeAfterAnswer: false}),
       options);
     const client = await first.as('owner-token');
-    await assert.rejects(client.aql(readDocument, {format: 'json',
+    await assert.rejects(client.startSource(readDocument, {format: 'json',
       requestId: 'coinstalled-held-read', parameters: {minimum: 1}}),
     RequestHeld);
-    const effect = await client.aql(fixture.document, {format: 'json',
+    const effect = await client.startSource(fixture.document, {format: 'json',
       requestId: 'coinstalled-held-effect'});
     await waitFor(async () => (await effect.status()).status ===
       'waiting_checkpoint');
@@ -1895,12 +1895,12 @@ test('coinstalled read denial cannot authorize or suppress independent commit',
       {accountConfiguration: canonicalJson(configuration)}),
     {directory, sourceProfilePath, effectInstallation});
     const client = await host.as('owner-token');
-    await assert.rejects(client.aql(readDocument, {format: 'json',
+    await assert.rejects(client.startSource(readDocument, {format: 'json',
       requestId: 'coinstalled-denied-read', parameters: {minimum: 1}}),
     {code: 'ACTQL_E_ACCOUNT_DENIED'});
     assert.deepEqual(await client.lookupRequest('coinstalled-denied-read'),
       {kind: 'not_found'});
-    const applied = await client.aql(fixture.document, {format: 'json',
+    const applied = await client.startSource(fixture.document, {format: 'json',
       requestId: 'coinstalled-allowed-effect'});
     await waitFor(async () => (await applied.status()).status ===
       'succeeded');
@@ -1931,7 +1931,7 @@ test('public Effect dispatch waits for and obeys the Host barrier',
       {accountConfiguration: effectCommitConfiguration('allow', 'allow')});
     const first = await remoteHost(t, account, {directory,
       effectInstallation: installed, beforeDispatch: () => barrier});
-    const run = await (await first.as('owner-token')).aql(fixture.document,
+    const run = await (await first.as('owner-token')).startSource(fixture.document,
       {format: 'json', requestId: 'effect-barrier-wait'});
     assert.equal(captures, 0);
     assert.deepEqual(sends, []);
@@ -1958,7 +1958,7 @@ test('public Effect dispatch waits for and obeys the Host barrier',
         throw new Error('ExecutionBarrierDenied');
       }});
     const rejected = await (await denied.as('owner-token'))
-      .aql(fixture.document, {format: 'json',
+      .startSource(fixture.document, {format: 'json',
         requestId: 'effect-barrier-refused'});
     await waitFor(async () => (await rejected.status()).status === 'failed');
     assert.equal(refusedCaptures, 0);
@@ -1984,7 +1984,7 @@ test('installed Effect deny sends nothing and reclaims captured inputs',
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
     const submitted = await (await first.as('owner-token'))
-      .aql(fixture.document, {format: 'json',
+      .startSource(fixture.document, {format: 'json',
         requestId: 'effect-direct-deny-a'});
     await waitFor(async () => (await submitted.status()).status === 'failed');
     assert.deepEqual(sends, []);
@@ -2025,7 +2025,7 @@ test('terminal Checkpoints retire captured Effect payloads after restart',
         const first = await remoteHost(child, account(), {directory,
           effectInstallation});
         const run = await (await first.as('owner-token'))
-          .aql(fixture.document, {format: 'json',
+          .startSource(fixture.document, {format: 'json',
             requestId: `effect-retire-${outcome}`});
         await waitFor(async () => (await run.status()).status ===
           'waiting_checkpoint');
@@ -2081,7 +2081,7 @@ test('an expired Effect Checkpoint retires the captured payload',
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
     const run = await (await first.as('owner-token'))
-      .aql(fixture.document, {format: 'json',
+      .startSource(fixture.document, {format: 'json',
         requestId: 'effect-expiry-retirement'});
     await waitFor(async () => (await run.status()).status ===
       'waiting_checkpoint');
@@ -2131,7 +2131,7 @@ test('installed Effect rechecks account denial after an approved answer',
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
     const submitted = await (await first.as('owner-token'))
-      .aql(fixture.document, {format: 'json', requestId: 'current-deny-a'});
+      .startSource(fixture.document, {format: 'json', requestId: 'current-deny-a'});
     await waitFor(async () => (await submitted.status()).status ===
       'waiting_checkpoint');
     assert.deepEqual(sends, []);
@@ -2197,7 +2197,7 @@ test('installed Effect reply loss retains the unknown row after restart',
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
     const submitted = await (await first.as('owner-token'))
-      .aql(fixture.document, {format: 'json',
+      .startSource(fixture.document, {format: 'json',
         requestId: 'effect-reply-loss-a'});
     await waitFor(async () => (await submitted.status()).status ===
       'waiting_checkpoint');
@@ -2272,7 +2272,7 @@ test('installed Effect keeps independent members after a halted row',
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
     const submitted = await (await first.as('owner-token'))
-      .aql(fixture.document, {format: 'json', requestId: 'row-failure-a'});
+      .startSource(fixture.document, {format: 'json', requestId: 'row-failure-a'});
     await waitFor(async () => (await submitted.status()).status ===
       'waiting_checkpoint');
     assert.deepEqual(sends, []);
@@ -2410,7 +2410,7 @@ test('installed Effect commit resumes the same Run without resending',
         throw error.primaryFailure ?? error;
       });
     const client = await first.as('owner-token');
-    const execution = await client.aql(fixture.document, {format: 'json',
+    const execution = await client.startSource(fixture.document, {format: 'json',
       requestId: 'effect-commit-a'});
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint');
@@ -2451,7 +2451,7 @@ test('installed Effect commit resumes the same Run without resending',
     const duplicate = await thirdReviewer.resolveCheckpoints(answered.signed);
     assert.deepEqual(duplicate.results.map(item => item.status),
       ['duplicate']);
-    assert.deepEqual((await restartedClient.aql(fixture.document,
+    assert.deepEqual((await restartedClient.startSource(fixture.document,
       {format: 'json', requestId: 'effect-commit-a'})).ref, originalRef);
     await third.close();
     const fourth = await remoteHost(t, authorization,
@@ -2461,7 +2461,7 @@ test('installed Effect commit resumes the same Run without resending',
       'needs_reconciliation');
     assert.equal(sends, 1);
     assert.equal(computes, 1);
-    const cancelledRun = await lastClient.aql(fixture.document,
+    const cancelledRun = await lastClient.startSource(fixture.document,
       {format: 'json', requestId: 'effect-cancel-a'});
     await waitFor(async () => (await cancelledRun.status()).status ===
       'waiting_checkpoint');
@@ -2475,7 +2475,7 @@ test('installed Effect commit resumes the same Run without resending',
       .checkpoints()).items, []);
     assert.equal(sends, 1);
     assert.equal(computes, 2);
-    const approvedThenCancelled = await lastClient.aql(fixture.document,
+    const approvedThenCancelled = await lastClient.startSource(fixture.document,
       {format: 'json', requestId: 'effect-approved-cancel-a'});
     await waitFor(async () => (await approvedThenCancelled.status()).status ===
       'waiting_checkpoint');
@@ -2547,7 +2547,7 @@ test('deferred target read starts no Effect and leaves no held Checkpoint',
     const host = await remoteHost(t, authorization,
       {directory, effectInstallation});
     const client = await host.as('owner-token');
-    const run = await client.aql(fixture.document,
+    const run = await client.startSource(fixture.document,
       {format: 'json', requestId: 'effect-target-read-deferred'});
     const state = await waitFor(async () => {
       const current = await run.status();
@@ -2576,7 +2576,7 @@ test('rejected answers end the request without a Run; answers are per item',
     for (const requestId of ['batch-a', 'batch-b']) {
       const changed = JSON.parse(document);
       changed.id = requestId;
-      await assert.rejects(client.aql(JSON.stringify(changed),
+      await assert.rejects(client.startSource(JSON.stringify(changed),
         {format: 'json', requestId}), error => error instanceof RequestHeld);
     }
     const reviewer = await host.as('reviewer-token');
@@ -2616,7 +2616,7 @@ async function heldRequests(client, ids) {
   for (const requestId of ids) {
     const changed = JSON.parse(document);
     changed.id = requestId;
-    await assert.rejects(client.aql(JSON.stringify(changed),
+    await assert.rejects(client.startSource(JSON.stringify(changed),
       {format: 'json', requestId}), error => error instanceof RequestHeld);
   }
 }
@@ -2823,7 +2823,7 @@ async function resubmittedWhileStalled(t, {leaseMs = 60_000,
     Math.max(0, until - Date.now())));
   const changed = JSON.parse(document);
   changed.id = 'again-a';
-  const again = await client.aql(JSON.stringify(changed), {format: 'json',
+  const again = await client.startSource(JSON.stringify(changed), {format: 'json',
     requestId: 'again-a'});
   // The resubmit returns the existing Run and starts nothing by itself.
   await new Promise(resolve => setTimeout(resolve, 200));
@@ -2904,24 +2904,24 @@ test('a held request resubmit is matched to its intent, whatever the evidence',
     };
     // Normal: the same request returns the same Run; another intent conflicts.
     const found = await client.lookupRequest('done-a');
-    const again = await client.aql(variant('done-a'), {format: 'json',
+    const again = await client.startSource(variant('done-a'), {format: 'json',
       requestId: 'done-a'});
     assert.deepEqual(again.ref, found.ref);
-    await assert.rejects(client.aql(variant('done-a', [{id: 999}]),
+    await assert.rejects(client.startSource(variant('done-a', [{id: 999}]),
       {format: 'json', requestId: 'done-a'}),
     {code: 'ClientRequestIntentConflict'});
     // A Run exists: the request journal's identity decides, even with the
     // held evidence ledger corrupt.
     await writeFile(await ledgerOf('done-a'), '{broken');
-    await assert.rejects(client.aql(variant('done-a', [{id: 999}]),
+    await assert.rejects(client.startSource(variant('done-a', [{id: 999}]),
       {format: 'json', requestId: 'done-a'}),
     {code: 'ClientRequestIntentConflict'});
-    assert.deepEqual((await client.aql(variant('done-a'), {format: 'json',
+    assert.deepEqual((await client.startSource(variant('done-a'), {format: 'json',
       requestId: 'done-a'})).ref, found.ref);
     // No Run yet: the held request's durable fingerprint must be readable.
     const held = await ledgerOf('held-b');
     const original = await readFile(held);
-    await assert.rejects(client.aql(variant('held-b', [{id: 999}]),
+    await assert.rejects(client.startSource(variant('held-b', [{id: 999}]),
       {format: 'json', requestId: 'held-b'}),
     {code: 'ClientRequestIntentConflict'});
     const unavailable = error => error.code === 'SubmissionUnknown' &&
@@ -2936,13 +2936,13 @@ test('a held request resubmit is matched to its intent, whatever the evidence',
     ]) {
       await damage();
       for (const text of [variant('held-b'), variant('held-b', [{id: 999}])]) {
-        await assert.rejects(client.aql(text, {format: 'json',
+        await assert.rejects(client.startSource(text, {format: 'json',
           requestId: 'held-b'}), unavailable, label);
       }
     }
     await chmod(held, 0o600);
     await writeFile(held, original);
-    await assert.rejects(client.aql(variant('held-b'), {format: 'json',
+    await assert.rejects(client.startSource(variant('held-b'), {format: 'json',
       requestId: 'held-b'}), error => error instanceof RequestHeld);
     // Nothing was started by any of these submits.
     assert.equal(host.dispatches(), 1);
@@ -3375,7 +3375,7 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
     });
     if (phase === 'seed') {
       let host = await remoteHost(t, account(), {directory, effectInstallation});
-      const run = await (await host.as('owner-token')).aql(fixture.document,
+      const run = await (await host.as('owner-token')).startSource(fixture.document,
         {format: 'json', requestId: 'partial-effect-refusal'});
       await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
       const [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;

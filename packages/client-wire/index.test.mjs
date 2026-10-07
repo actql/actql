@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './workspace-binding.test.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {snapshotClientRequest, snapshotCheckRequest, checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,

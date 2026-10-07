@@ -7,7 +7,7 @@ const options = JSON.parse(await readFile(process.argv[2] ??
 const client = await connect(options);
 try {
   const program = await readFile(new URL('two-source-join.program.json', import.meta.url), 'utf8');
-  const execution = await client.aql(program,
+  const execution = await client.startSource(program,
     {format: 'json', requestId: 'two-source-join-example'});
   const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
   if (state.status !== 'succeeded') throw new Error(JSON.stringify(state));

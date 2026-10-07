@@ -71,7 +71,7 @@ test('public retained wire preserves long column and Object keys across consumer
     t.after(() => client.close());
     const source = JSON.stringify(program);
     const options = {format: 'json', requestId: 'public-wire'};
-    const execution = await client.aql(source, options).catch(error => {
+    const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });
     const state = await execution.wait({signal: AbortSignal.timeout(45_000)});
@@ -90,7 +90,7 @@ test('public retained wire preserves long column and Object keys across consumer
     await client.close();
     client = await connectEmbeddedLocal(configuration);
     const restored = await client.attach(ref);
-    const repeated = await client.aql(source, options);
+    const repeated = await client.startSource(source, options);
     assert.deepEqual(repeated.ref, ref);
     for (const name of ['published', 'consumed_a', 'consumed_b']) {
       assert.deepEqual(await restored.result(name).all(), expected, name);

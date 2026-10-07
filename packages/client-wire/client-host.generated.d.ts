@@ -296,6 +296,7 @@ export type WireRunRefShape = Readonly<{
 export type WireConnectionShape = Readonly<{
   mode: "local" | "remote" | "hybrid";
   owner: "local" | "remote" | "cloud";
+  workspaceId?: string;
   consentRefs: readonly string[];
   runners: readonly string[];
   durability?: "volatile" | "durable";
@@ -317,6 +318,7 @@ export type WireProfileShape = Readonly<{
   authenticator: string;
 }>;
   scopeRef: string;
+  workspaceId?: string;
   capabilities: readonly string[];
   limits: Readonly<{
   maxReadWireBytes: number;

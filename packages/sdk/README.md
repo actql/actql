@@ -1,5 +1,59 @@
 # `@actql/sdk` development artifact
 
+## Workspace connection strings
+
+An installed Host can expose an explicit service Workspace. Connect with the
+application's secret connection string:
+
+```js
+import {connect} from '@actql/sdk';
+const client = await connect(process.env.ACTQL_URL);
+// ACTQL_URL: actql://token:<percent-encoded-bearer>@host/workspace-id
+```
+
+Or keep the credential separate:
+
+```js
+const client = await connect('actql://host/workspace-id', {
+  token: getAccessToken,
+});
+```
+
+The Workspace must match the credential's authenticated target on every
+request. A token getter can refresh a credential for that same target; it
+does not acquire renewal permission or switch Workspaces. An embedded DSN
+credential and a separate token conflict. Credentials must be percent-encoded
+as a component, never by encoding or decoding the entire URL. Do not log the
+connection string or commit it to source control.
+
+`actql://localhost:port/workspace-id` connects to an already running HTTPS
+Host with normal certificate verification. It does not open a directory or
+start a server. Node applications can explicitly select loopback HTTP:
+
+```js
+const client = await connect('actql://localhost:8080/workspace-id?transport=http', {
+  token: getAccessToken,
+});
+```
+
+Only the exact `?transport=http` query is accepted. `localhost` is pinned to
+`127.0.0.1` without DNS or IPv6 fallback; canonical `127.x.x.x` literals and
+IPv6 `::1` literals also work. Remote hosts, port zero and alternate query
+forms are refused before a token callback or network request. HTTP uses a
+private direct Node connection, not global Fetch/proxy configuration. Browser
+builds contain only an unavailable stub and reject this mode before fetching
+a credential. HTTPS behavior and certificate checks are unchanged.
+
+This plaintext mode trusts the local OS/process boundary; it provides no TLS
+server authentication. Configure the Host's `loopbackHttp: true` ingress and
+explicitly bind its caller-owned HTTP server to a numeric loopback address.
+Bearer authentication and Workspace checks remain required on every request.
+There is no automatic downgrade, redirect, daemon, alternate port or directory.
+Existing
+`connect({mode: 'remote', endpoint, token})` remains available. This is a
+development artifact, not a registry release or a deployed Cloud endpoint.
+See [the connection contract](../../docs/design/client-workspace-connections.md).
+
 This lightweight package implements the public Client, Execution and Result
 transport API for an already installed Client Host. It contains no Local
 kernel, native binding, DuckDB adapter or Cloud policy. The installed Node Host supports Program submission within its
@@ -37,13 +91,149 @@ than ignoring a possible rejection.
 
 ## Connections
 
+## Short source queries
+
+`sql(text, parameters?, options?)` and `aql(text, parameters?, options?)`
+start exactly one source admission immediately. SQL selects `sql`; AQL selects
+`aql-text`. Their native `ResultPromise` resolves one selected, available Result
+after the existing Run wait. They do not read rows until explicitly requested.
+
+```js
+const submissionRef = client.newSubmission({nonce: 'example-1'});
+// Save submissionRef before sending.
+const query = client.sql('SELECT 1 AS id', undefined, {submissionRef});
+const requestId = query.requestId; // available before credentials or transport
+const result = await query;
+const rows = await query.all();
+for await (const row of result.rows()) console.log(row);
+```
+
+Source, parameter declarations, parameters and query options are captured at
+invocation. Collection shortcuts capture read options when called, preserving
+the live AbortSignal. Re-awaiting, `Promise.resolve`, and `Promise.all` with the
+same query share the same Result. A collection shortcut always observes that
+query, even if argument capture failed: the original query rejection takes
+precedence; after query success it rejects the captured argument error without
+reading. Repeated `all()` calls open independent reads
+of that Result, with independent attempt IDs; they never repeat Compute.
+The resolved Result is not thenable. An ignored query does not cancel accepted
+work, and an ignored rejection follows ordinary native Promise behavior.
+
+The second argument is always the named parameters map. Parameter names such as
+`format`, `result` or `requestId` are not interpreted as options. The third
+argument accepts `parameterDeclarations`, `submissionRef`, `signal` and `result`.
+`requestId` may assert the original nonce only when `submissionRef` is supplied.
+`getSubmissionInput(query)` and collection Promises retain the original before send.
+There is no parameter interpolation or automatic declaration inference. Raw rows
+have `DynamicRow` type; `sql<MyRow>()` and assertion-only `all<MyRow>()` are not
+supported. Pass a Standard Schema V1 schema to validate and infer a Result view.
+
+### Validated Result views
+
+`result.all(schema, options?)`, `result.rows(schema, options?)` and
+`query.all(schema, options?)` accept a
+[Standard Schema V1](https://standardschema.dev/) schema. Types are inferred from
+its Output, including transformations. No schema library is installed by the
+SDK. Compatible `StandardSchemaV1` declarations are bundled and exported for
+custom adapters; schemas from supporting libraries work structurally.
+
+```ts
+import type {StandardSchemaV1} from '@actql/sdk';
+const ids: StandardSchemaV1<unknown, number> = {
+  '~standard': {version: 1, vendor: 'example', validate(row) {
+    if (row === null || typeof row !== 'object' || !('id' in row) ||
+        typeof row.id !== 'number') {
+      return {issues: [{message: 'Expected a numeric id', path: ['id']}]};
+    }
+    return {value: row.id};
+  }},
+};
+const numbers = await client.sql('SELECT 1 AS id').all(ids); // number[]
+const result = await client.sql('SELECT 2 AS id');
+for await (const id of result.rows(ids)) console.log(id); // number
+```
+
+Validation is client-side, serial and backpressured. Sync and async validators
+are supported; empty Results need no validator call. Each view uses the original
+Run/Result and one ordinary read attempt. It does not change Host schemas,
+serialization, publication, receipts or Compute. It never rereads or reruns on
+validation failure. `one()`, `scalar()` and `batches()` remain raw views.
+
+The selected `~standard` receiver, validation method and all supported read
+options are captured when the view/shortcut is called, before waiting for a
+query. Inherited and non-enumerable options are preserved. The AbortSignal stays
+live. Capturing a function does not freeze its closure or library internals.
+
+All wire, raw-row and collection ceilings still apply. Raw decoded-value bytes
+and collected-row count are charged before application validation, so mutation
+or shrinking transforms cannot evade them. Output is not JSON-accounted:
+transforms may return Date, Map, bigint, cycles, functions, `undefined`, or even
+Promise/thenable values. The SDK preserves those values without awaiting their
+contents. Application code that explicitly awaits an output may assimilate it.
+Arbitrary callback time, allocation and transformed-output size are outside
+raw accounting; `maxRows` still bounds the number collected by `all()`.
+`rows()` retains its streaming limits rather than a total collected-row limit.
+
+Schema issues (including an empty issues array), callback exceptions/rejections,
+and malformed validation results reject with `ResultValidationFailed` and
+`validationKind: 'issues' | 'exception' | 'invalid_result'`. Errors preserve the
+original `resultRef`, `attemptId`, zero-based `rowIndex`, and `rowsYielded`.
+`issues` retains schema paths for explicit inspection; exceptions remain in the
+cause chain. Issues and original callback exceptions are omitted from default
+JSON serialization. An invalid schema is `InvalidResultSchema` before reading.
+Typed `rows()` counts only validated outputs actually yielded. Failed `all()`
+returns none and reports zero, even when earlier rows validated successfully.
+
+Validation failures use the existing reader cleanup owner. A cleanup failure
+keeps the primary error plus `cleanupError` and `explainReadFailure(error)`'s
+cleanup uncertainty. Multiple cleanup failures are retained as an AggregateError. Aborting a pending validation, or `await client.close()`,
+stops the SDK's wait and releases that read through the same cleanup path,
+even if the callback's Promise never settles. It does not stop arbitrary
+JavaScript, reverse its effects or free allocations still owned by the callback.
+
+Omit `result` only for a Run with exactly one declared Result. Multiple or no
+Results yield `ResultSelectionRequired`; an absent selected name yields
+`UnknownResultName`. Selection never removes another Result, stage or Effect.
+A succeeded Run whose selected storage is unavailable or unknown yields
+`ResultUnavailable`, not a new execution.
+
+`result.execution` is the original low-level Execution, and `result.ref` is the
+frozen recovery locator `{run, resultName}` using the existing Run reference and
+authored Result name. Explicit recovery can `attach(result.ref.run)` and select
+`result.ref.resultName` under current authorization. The locator introduces no
+new wire identity and grants no read or replay permission.
+
+A returned nonterminal wait is honest: `ExecutionPending` retains preparing,
+running or resuming; `ExecutionBlocked` retains a Checkpoint or reconciliation
+stop. `ExecutionUnsuccessful` retains failed/cancelled, and
+`QueryObservationUnknown` retains an unconfirmed observation. These errors
+provide `executionRef` and a non-enumerable live `execution`; an available exact
+`observation` and the underlying cause are also non-enumerable. They never change
+Run state or automatically poll, submit, reconcile, approve or cancel. A failed
+query stays rejected after later approval; follow its original Execution instead.
+
+Before a Run exists, the original `RequestHeld` or `SubmissionUnknown` is
+propagated unchanged, retaining its request ID, input and lookup context.
+There is no fabricated Execution for a held preparation. Use explicit
+`lookupSubmission` with the saved reference and attach only after the existing
+owner returns `ready`. Historical held requests retain their separate lookup.
+
+### Development API migration
+
+The former `aql(text, {format, parameters, requestId, signal})` submission method
+is now `startSource` with explicit `submissionRef` and a `Promise<Execution>` result.
+It supports the existing JSON/YAML/text formats and does not start a wait or
+read. Existing Program `start(program, options)` is unchanged. Migrate old calls
+explicitly; the new AQL method never guesses whether parameters are old options.
+Source admission uses the epoch-bound submission owner described below.
+
 `connect(options)` authenticates with the selected Host and returns its
 confirmed owner, durability and capability snapshot. The SDK captures the
 profile's scope, limits and capabilities once, validates their unchanged
 observation, and retains detached immutable data. Capture or verification
 failure rejects the connection with `InvalidHostProfile`; it establishes no
 check verdict. The negotiated `scopeRef` identifies connection scope, separately
-from a check report's `context_ref` and input revisions. `aql(text,
+from a check report's `context_ref` and input revisions. `startSource(text,
 {format: "json" | "yaml"})` and `start(program)` send one immutable submission
 intent. The Host supplies an authenticated epoch in its negotiated profile.
 `client.newSubmission({nonce})` captures that epoch and a caller nonce before
@@ -77,7 +267,7 @@ is inferred from an HTTP error, message or missing record. `preparing` is not a
 Run admission. `SubmissionNotSent` reports a local failure before dispatch and
 has no Owner outcome; a lost response is `SubmissionUnknown`.
 
-`check`, `start` and `aql` share numeric-preserving JSON request serialization.
+`check`, `start` and `startSource` share numeric-preserving JSON request serialization.
 NaN, infinities and negative zero are refused, including nested parameters,
 Program values, declaration defaults, boxed Numbers and `toJSON` results.
 The snapshot is made once before credentials or transport. A submit refusal
@@ -169,13 +359,16 @@ import {explainEffectUncertainty} from '@actql/sdk';
 const state = await execution.status();
 const explanation = explainEffectUncertainty(state);
 // Display the unresolved Effects and physical stop separately. Any explicit
-// follow-up status request must use the original Client and current authority.
+// reconciliation must use the original Client and current authority.
 ```
 
-The helper performs no transport or write, and its only advice is to observe
-the original Run's current status. It does not promise that the Host offers
-reconciliation, authorize resubmission, infer rollback or assert resource
-release. The immutable explanation preserves what this response reported;
+The helper performs no transport or write. Its `next` candidate is the existing
+`Execution.reconcile()` operation on the original Run. The Host checks current
+authority and original Effect custody when explicitly called. Inconclusive
+evidence leaves the Effect outcome unknown. This candidate does not guarantee
+that reconciliation will resolve the outcome, authorize resubmission, infer
+rollback or assert resource release. The immutable explanation preserves what
+this response reported;
 later observations do not rewrite it. Copied/deserialized states, malformed
 responses, other Run-state branches and user-created errors have no association
 and return `undefined`. This weak association adds no Host storage, execution
@@ -340,7 +533,7 @@ returned by that operation.
 
 An earlier Host may have held a request before any Run existed. For example, its account
 configuration can delegate Run acceptance on a protected Site, and the Host
-defers the decision to a durable Checkpoint. Its original `aql()` or `start()` call
+defers the decision to a durable Checkpoint. Its original `startSource()` or `start()` call
 rejected with `RequestHeld`. That is a control result, not a failure and not an
 unknown submission. The request is stored durably, so it never needs to be
 submitted again. `error.held` carries the `prepareAttemptId` and the
@@ -1200,9 +1393,16 @@ are omitted from the protocol error. Explanation/locale edits confer no write
 retry, cancellation, Compute restart or reconciliation authority. Status lookup
 continues to enforce current Host authorization; the retained reference grants
 no access. Copies, serialized or forged errors have no explanation custody.
-Credential and transport refusals retain their existing separate behavior and
-are not labelled as received malformed state observations. No automatic lookup
-or additional operation is performed by presentation.
+Failure to obtain an observation, including credential, transport or closed-Client
+refusal, retains `unavailable/observation_unavailable` separately from received
+malformed facts. The error preserves only public Client code/status metadata;
+borrowed messages, nested causes and provider details are discarded. Unreadable
+error metadata retains only generic `ClientTransportUnknown`, without its cause.
+A fresh error owns each call's original target even if the transport reuses an
+exception.
+No dispatch, acceptance, Run outcome or current access is certified by this
+classification. No automatic lookup or additional operation is performed by
+presentation.
 
 This SDK weak association lasts only while its original error remains reachable;
 there is no timed retention guarantee or new Host persistence/retrieval API.
@@ -1273,3 +1473,11 @@ for that same attempt through `explainDeliveryAttempt(error)` and
 complete; `lookup_uninterpretable` means no response facts were admitted. Neither
 establishes whether the read opened or delivered, permits another opening, or
 changes the Run. Explicit lookup still checks current Host authorization.
+
+`formatRunObservationFailure(error, {format: 'text' | 'html' | 'json', locale, maxBytes})`
+renders only the original SDK error's retained classification and read-only Run
+lookup candidate. Unavailable, unknown-state and malformed/mismatched observations
+remain distinct. It performs no status lookup, resend, cancellation or execution.
+Copies have no formatting custody. The existing operation display byte budget,
+escaping and independent translation revision apply; insufficient budget returns
+`undefined` rather than truncated facts. English is the default.

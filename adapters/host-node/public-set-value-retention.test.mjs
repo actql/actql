@@ -99,7 +99,7 @@ test('public retained Set compares nested values before scalar publication',
       const program = retainedSetProgram(id, operation, duplicates);
       const source = JSON.stringify(program);
       const options = {format: 'json', requestId: id};
-      const execution = await client.aql(source, options).catch(error => {
+      const execution = await client.startSource(source, options).catch(error => {
         assert.fail(inspect(error, {depth: 8}));
       });
       const state = await execution.wait({signal: AbortSignal.timeout(45_000)});
@@ -111,7 +111,7 @@ test('public retained Set compares nested values before scalar publication',
         value.representation === 'retained-file'));
       const savedAdvances = advances;
       const savedCompletions = completions;
-      const repeated = await client.aql(source, options);
+      const repeated = await client.startSource(source, options);
       assert.deepEqual(repeated.ref, execution.ref);
       assert.deepEqual(await repeated.result('published').all(), expected);
       assert.equal(advances, savedAdvances);
@@ -165,7 +165,7 @@ test('public retained Set cancellation interrupts a confirmed nested Text scan',
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(retainedSetProgram('public-set-cancel', 'except', 'all'));
     const options = {format: 'json', requestId: 'public-set-cancel'};
-    const execution = await client.aql(source, options);
+    const execution = await client.startSource(source, options);
     await reached.promise;
     assert.equal(setWork, 2048n);
     assert.equal(sealed, 2);
@@ -193,7 +193,7 @@ test('public retained Set cancellation interrupts a confirmed nested Text scan',
     assert.equal(sealed, 2);
     assert.equal(dispatches, 1);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
-    const repeated = await client.aql(source, options);
+    const repeated = await client.startSource(source, options);
     assert.deepEqual(repeated.ref, execution.ref);
     assert.equal((await repeated.status()).status, 'cancelled');
     assert.equal(dispatches, 1);

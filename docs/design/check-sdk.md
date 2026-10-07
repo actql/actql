@@ -952,22 +952,25 @@ The explanation copies those names, the received physical-stop fact and its
 optional control revision into an immutable weak association. An absent
 control observation remains unknown. The control revision is local to that
 component and does not certify atomicity across owners. Old explanations
-remain observations of their original response, with read-only current-status
-advice; no revision is used as an authorization grant or write precondition.
+remain observations of their original response, with a candidate for the
+existing `Execution.reconcile()` operation on the original Run; no revision
+is used as an authorization grant or write precondition.
 
 The helper has no transport or mutation side effect and adds no Host input
 storage, provider evidence, Effect ledger or public input hash. It does not
 infer rollback, resource release, execution success or permission to resend
-from computation stop. Its advice is the existing `status` operation on the
-original Run, requiring current authority if explicitly called. It does not
-advertise reconciliation availability: an installed Host without that
-operation can still report unresolved Effects. Connecting authorized
-reconciliation to that Host belongs to the existing Effect/execution owner.
+from computation stop. The candidate follows the validated Owner-issued
+`next_action.kind === 'reconcile'` branch and retains its original Run reference.
+The existing Host/Effect owners recheck current authority and original
+continuation custody if the user explicitly calls it. Inconclusive evidence
+preserves uncertainty. A candidate neither guarantees that an installed Host
+can resolve the outcome nor supplies a new operation identity or permission
+to resend. The SDK does not implement provider reconciliation.
 
-This SDK presentation addition leaves `actql-run-state/0.1`,
+This SDK presentation change leaves `actql-run-state/0.1`,
 `actql-diagnostics/0.1` and the public check contracts unchanged. It does not
-establish the complete S9 authorized-reconciliation path or the cumulative
-S1–S9/X1–X17/invariant completion gate.
+replace the actual Local/HTTPS authorized-reconciliation acceptance required
+by S9 or the cumulative S1–S9/X1–X17/invariant completion gate.
 
 ### Run cancellation explanations
 
@@ -1428,9 +1431,16 @@ are omitted from the protocol error. Explanation/locale edits confer no write
 retry, cancellation, Compute restart or reconciliation authority. Status lookup
 continues to enforce current Host authorization; the retained reference grants
 no access. Copies, serialized or forged errors have no explanation custody.
-Credential and transport refusals retain their existing separate behavior and
-are not labelled as received malformed state observations. No automatic lookup
-or additional operation is performed by presentation.
+Failure to obtain an observation, including credential, transport or closed-Client
+refusal, retains `unavailable/observation_unavailable` separately from received
+malformed facts. The error preserves only public Client code/status metadata;
+borrowed messages, nested causes and provider details are discarded. Unreadable
+error metadata retains only generic `ClientTransportUnknown`, without its cause.
+A fresh error owns each call's original target even if the transport reuses an
+exception.
+No dispatch, acceptance, Run outcome or current access is certified by this
+classification. No automatic lookup or additional operation is performed by
+presentation.
 
 This SDK weak association lasts only while its original error remains reachable;
 there is no timed retention guarantee or new Host persistence/retrieval API.
@@ -1646,3 +1656,20 @@ wording and the separate operation translation revision are updated together.
 This observation supplies no read-opening, Host delivery, receipt, application
 receipt/persistence or cleanup fact. Current authorization is checked on every
 explicit lookup; a retained target does not grant access.
+
+### Passive Run observation failure formats
+
+`formatRunObservationFailure` connects the existing SDK-owned Run-observation
+failure explanation to the shared operation formatter's text, HTML and agent
+JSON forms. Its heading uses the retained `kind`; its complete facts retain
+`problem`, failed operation and original read-only lookup target. It does not
+turn a failed observation into a Run status or infer execution, Effect,
+publication, stop or cleanup facts. Copied/forged errors have no custody.
+
+Locale and display options are read after capturing that immutable explanation.
+Application edits cannot replace its classification or lookup identity. The
+existing output budget refuses incomplete display rather than dropping facts;
+escaping preserves references as data. No lookup, retry, cancellation, read or
+Compute occurs during formatting. Existing operation translation identity and
+wire contracts are unchanged. This connects the bounded failure-display path,
+not the full observation cursor/composite contract or cumulative diagnostics.

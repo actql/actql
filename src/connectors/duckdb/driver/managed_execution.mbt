@@ -74,7 +74,7 @@ pub fn[T] start_captured_managed_duckdb_task(
           Err(issue) => return Err(compute_failure(issue))
         }
         completion.val = Some(prepared_completion)
-        let operations : @connector.ManagedExecutionOperations[
+        let operations : @connector.ExecutionLifecycleOperations[
           @strategy.RunIssue,
         ] = {
           cancel: fn() {
@@ -232,4 +232,16 @@ pub fn[T] close_captured_managed_duckdb_task(
   task : CapturedManagedDuckDBTask[T],
 ) -> Unit {
   @strategy.close_task_execution(task.run, task.execution)
+}
+
+///|
+/// Drive private reclamation before asking the common owner to return capacity.
+/// The release predicate remains read-only and native settlement is unchanged.
+pub fn[T] refresh_captured_managed_duckdb_cleanup(
+  task : CapturedManagedDuckDBTask[T],
+) -> Result[Bool, @resources.LedgerIssue] {
+  if task.disposed.val {
+    @compute.dispose_managed_input_duckdb_completion(task.completion)
+  }
+  @strategy.refresh_task_execution_cleanup(task.run, task.execution)
 }

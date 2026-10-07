@@ -144,12 +144,17 @@ export async function openReadOpeningFixture(directory, loss,
 }
 
 export async function connectOpeningHost(fixture, entrance, tlsDirectory,
-  {loseReadTerminator = false, deliveryLookupReply} = {}) {
+  {loseReadTerminator = false, deliveryLookupReply, runObservationReply} = {}) {
   let armed = loseReadTerminator, terminatorLosses = 0;
   if (entrance === 'local') {
     const host = createNodeInProcessClientHost(fixture.services);
     const port = {async perform(operation, ...args) {
       const response = await host.perform(operation, ...args);
+      if (operation === 'status' && runObservationReply) {
+        const replacement = runObservationReply(response);
+        if (replacement === undefined) throw new Error('InjectedRunObservationLoss');
+        return replacement;
+      }
       if (operation === 'delivery-attempt' && deliveryLookupReply) {
         const replacement = deliveryLookupReply(response);
         if (replacement === undefined) throw new Error('InjectedDeliveryLookupLoss');
@@ -178,6 +183,14 @@ export async function connectOpeningHost(fixture, entrance, tlsDirectory,
     negotiate: async () => ({...await negotiate(), mode: 'remote', owner: 'remote'})});
   const pending = new Set();
   const server = createServer({key, cert}, (request, response) => {
+    if (request.url.endsWith('/status') && runObservationReply) {
+      const end = response.end.bind(response);
+      response.end = (bytes, ...args) => {
+        const replacement = runObservationReply(JSON.parse(bytes));
+        if (replacement === undefined) {response.destroy(); return response;}
+        return end(JSON.stringify(replacement), ...args);
+      };
+    }
     if (request.url.endsWith('/delivery-attempt') && deliveryLookupReply) {
       const end = response.end.bind(response);
       response.end = (bytes, ...args) => {

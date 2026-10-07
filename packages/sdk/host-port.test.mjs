@@ -40,7 +40,7 @@ test('one Client facade reads typed Local frames without HTTP or JSONL',
     }};
     const client = await connectInProcess({mode: 'local', owner: 'local'},
       port);
-    const execution = await client.aql('{"version":"actql/0.1"}',
+    const execution = await client.startSource('{"version":"actql/0.1"}',
       {format: 'json', submissionRef: originalSubmission('local-request')});
     const result = execution.result('answer');
     assert.deepEqual(await result.all(), [

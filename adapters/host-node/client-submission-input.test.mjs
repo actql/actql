@@ -196,7 +196,7 @@ for (const entrance of ['local', 'https']) {
         const program = JSON.parse(document), parameters = {};
         const options = {submissionRef: f.client.newSubmission({nonce: 'saved-request'}), parameters};
         const operation = kind === 'program' ? f.client.start(program, options)
-          : f.client.aql(document, {...options, format: 'json'});
+          : f.client.startSource(document, {...options, format: 'json'});
         program.stages[0].steps[0].values.rows[0].id = 9999;
         parameters.changed = 'private-edit';
         let result;
@@ -312,7 +312,7 @@ for (const entrance of ['local', 'https']) {
       for (const kind of ['program', 'aql-json']) {
         const options = {submissionRef: f.client.newSubmission({nonce: `${kind}-${index}`}), parameters: {n}};
         await assert.rejects(kind === 'program' ? f.client.start(program, options)
-          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+          : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}),
         error => {
           assert.equal(error.code, 'SubmissionNotAccepted');
           assert.equal(sdk.getSubmissionOutcome(error).problem.code, 'ClientProgramRejected',
@@ -365,7 +365,7 @@ for (const entrance of ['local', 'https']) {
         for (const kind of ['program', 'aql-json']) {
           const options = {submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-${index}`}), parameters: {n}};
           await assert.rejects(kind === 'program' ? f.client.start(program, options)
-            : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+            : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}),
           error => {
             assert.equal(error.code, 'SubmissionNotAccepted');
             assert.equal(sdk.getSubmissionOutcome(error).problem.code, 'ClientProgramRejected',
@@ -379,11 +379,11 @@ for (const entrance of ['local', 'https']) {
       for (const kind of ['program', 'aql-json']) {
         const options = {submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-missing`}), parameters: {}};
         await assert.rejects(kind === 'program' ? f.client.start(program, options)
-          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+          : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}),
         notAccepted('ClientProgramNeedsInputs'));
         await assert.rejects(kind === 'program'
           ? f.client.start(program, {...options, submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-null`}), parameters: {n: null}})
-          : f.client.aql(JSON.stringify(program), {...options, submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-null`}), parameters: {n: null}, format: 'json'}),
+          : f.client.startSource(JSON.stringify(program), {...options, submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-null`}), parameters: {n: null}, format: 'json'}),
         notAccepted('ClientProgramRejected'));
       }
       assert.deepEqual(f.counts(), {submits: 0, issues: 0});
@@ -408,7 +408,7 @@ for (const entrance of ['local', 'https']) {
       for (const kind of ['program', 'aql-json']) {
         const options = {submissionRef: f.client.newSubmission({nonce: `signed-${kind}-${index}`}), parameters: {n}};
         const result = await (kind === 'program' ? f.client.start(program, options)
-          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}));
+          : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}));
         assert.equal(typeof result.ref.runDefinitionCid, 'string');
         assert.equal(sdk.explainSubmission(result).observation, 'run_reference_received');
       }
@@ -448,10 +448,10 @@ const numericInputCases = value => {
       {submissionRef: client.newSubmission({nonce: 'numeric-start-values'})})],
     ['start default', 'submit-intent', client => client.start(nestedParameterProgram(defaultDeclaration),
       {submissionRef: client.newSubmission({nonce: 'numeric-start-default'}), parameters: {}})],
-    ['aql parameters', 'submit-intent', client => client.aql('SELECT @x AS n',
+    ['aql parameters', 'submit-intent', client => client.startSource('SELECT @x AS n',
       {format: 'sql', submissionRef: client.newSubmission({nonce: 'numeric-aql-parameters'}),
         parameterDeclarations: {x: declaration}, parameters: {x: nested}})],
-    ['aql default', 'submit-intent', client => client.aql('SELECT @x AS n',
+    ['aql default', 'submit-intent', client => client.startSource('SELECT @x AS n',
       {format: 'sql', submissionRef: client.newSubmission({nonce: 'numeric-aql-default'}),
         parameterDeclarations: {x: defaultDeclaration}, parameters: {}})],
     ['check parameters', 'check', client => client.check('SELECT @x AS n',

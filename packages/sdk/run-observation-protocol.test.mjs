@@ -93,7 +93,9 @@ test('Run protocol explanations preserve earlier valid observations and transpor
   assert.equal(before.status, 'running');
   assert.equal(explainRunObservationFailure(before), undefined);
   reply = new ClientError('ClientOperationUnavailable');
-  await assert.rejects(run.reconcile(), current => current === reply && explainRunObservationFailure(current) === undefined);
+  await assert.rejects(run.reconcile(), current => current !== reply &&
+    current.code === 'ClientOperationUnavailable' &&
+    explainRunObservationFailure(current)?.problem === 'observation_unavailable');
   assert.equal(explainRunObservationFailure(error).problem, 'unknown_state');
 });
 

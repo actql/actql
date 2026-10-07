@@ -114,7 +114,7 @@ async function runVectorRecordBoundary(t, score) {
     zz_unused: unused, ...(score ? {score: 256} : {})}];
   const source = JSON.stringify(program(fixtureId, score));
   const options = {format: 'json', requestId: fixtureId};
-  const execution = await client.aql(source, options);
+  const execution = await client.startSource(source, options);
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
   assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
   assert.deepEqual(Object.keys(state.result_availability).sort(), [...names].sort());
@@ -122,7 +122,7 @@ async function runVectorRecordBoundary(t, score) {
   assert.equal(completions, 1);
   assert.ok(representations?.some(item => item.representation === 'retained-file'));
   const completedAdvances = advances;
-  const repeated = await client.aql(source, options);
+  const repeated = await client.startSource(source, options);
   assert.deepEqual(repeated.ref, execution.ref);
   assert.deepEqual(await repeated.result('published').all(), expected);
   assert.equal(advances, completedAdvances);
@@ -130,7 +130,7 @@ async function runVectorRecordBoundary(t, score) {
   assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
   cancelling = true;
-  const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', score)),
+  const cancel = await client.startSource(JSON.stringify(program(fixtureId + '-cancel', score)),
     {format: 'json', requestId: fixtureId + '-cancel'});
   await Promise.race([barrier.promise,
     cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {

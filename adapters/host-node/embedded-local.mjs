@@ -7,6 +7,7 @@ import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {validClientConnection} from '../../packages/client-wire/index.mjs';
 import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
@@ -171,13 +172,17 @@ function validateValuesMaxRows(value) {
   }
 }
 
-async function openInstalledHost({root, mode = 'local', beforeDispatch,
+async function openInstalledHost({root, mode = 'local', beforeDispatch, workspaceId,
   authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, hostCapacityPolicy,
   retainedRelationOutput = false, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   validateValuesMaxRows(valuesMaxRows);
+  if (workspaceId !== undefined && !validClientConnection({mode, owner: mode,
+    consentRefs: [], runners: [], workspaceId})) {
+    throw new TypeError('InvalidInstalledWorkspaceBinding');
+  }
   if (typeof retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
@@ -1656,7 +1661,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   };
   const negotiate = async value => ({version: 'actql-client-host/0.1',
     mode, owner: mode, durability: 'durable',
-    scopeRef: hostCapacityPolicy === undefined ? principalId : authorityScopeCid,
+    ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
+    scopeRef: authorityScopeCid,
     ...(hostConnection(value) ? {submissionEpoch: await submissionService.issueEpoch(value)} : {}),
     capabilities: ['result-jsonl'], limits: {
       maxReadWireBytes: 10 * 1024 * 1024,
@@ -2334,6 +2340,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   };
   const hostOperations = {
     observe: observed,
+    // A service Workspace is an installed network target label. It does not
+    // replace the Local namespace, root-derived authority scope or policy.
+    workspaceForPrincipal: () => workspaceId,
     authorizeConnection: value => checkpointOperation.has(value.operation)
       ? checkpointConnection(value)
       : hostConnection(value) || value.operation === 'connect' &&
@@ -2394,23 +2403,26 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
 // `beforeDispatch` remains a required execution barrier. Without a
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths,
+  authenticate, beforeDispatch, authorization, workspaceId, sourceProfilePath, sourceProfilePaths,
+  loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
   resultDataPolicy, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
+      typeof loopbackHttp !== 'boolean' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
+    workspaceId,
     beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy,
     retainedRelationOutput, hostCapacityPolicy, valuesMaxRows});
   const handle = createClientHttpHandler({
-    ...host.hostOperations, authenticate, maxRequestBytes: 65536,
+    ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
   });
   // A request's handling can outlive its response: a Result read records
   // its delivery attempt after the last bytes are sent. Close waits for

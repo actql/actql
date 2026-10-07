@@ -101,7 +101,7 @@ test('Values-origin: a missing or altered durable Effect input is refused before
         mapping: setup.mappingRef, from: {result: 'rows'}, id: 'id',
         set: {Name: {field: 'id'}}}}},
       [{id: 'a00000000000001'}, {id: 'a00000000000003'}]);
-      const execution = await client.aql(JSON.stringify(program), {
+      const execution = await client.startSource(JSON.stringify(program), {
         format: 'json', requestId: `values-input-${kind}`});
       await waitFor(async () => (await execution.status()).status ===
         'waiting_checkpoint');
@@ -161,7 +161,7 @@ test('a checked Preview preparation refusal fails without a commit Checkpoint',
       onQuery: () => setup.org.setNameUpdateable(false)}});
     const first = await setup.openHost();
     const client = await first.as('owner-token');
-    const execution = await client.aql(setup.program(), {
+    const execution = await client.startSource(setup.program(), {
       format: 'json', requestId: 'rce-preview-refused'});
     await waitFor(async () => (await execution.status()).status === 'failed');
     assert.equal(setup.queries(), 1);

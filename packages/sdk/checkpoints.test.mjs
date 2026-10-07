@@ -126,7 +126,7 @@ test('a held submit is a control result, not a failure or unknown submission',
     });
     const client = await connect(options);
     let error;
-    try { await client.aql('version: actql/0.1\n', {format: 'yaml',
+    try { await client.startSource('version: actql/0.1\n', {format: 'yaml',
       submissionRef: originalSubmission('saved-a')}); }
     catch (cause) { error = cause; }
     assert.equal(error instanceof RequestHeld, true);
@@ -160,7 +160,7 @@ test('a held submit is a control result, not a failure or unknown submission',
     mock.restoreAll();
     host(t, {'submit-intent': body => Response.json(heldSubmission(body, {...held, requestId: 'saved-b'}))});
     const other = await connect(options);
-    await assert.rejects(other.aql('version: actql/0.1\n', {format: 'yaml',
+    await assert.rejects(other.startSource('version: actql/0.1\n', {format: 'yaml',
       submissionRef: originalSubmission('saved-a')}), {code: 'SubmissionUnknown'});
     assert.equal(requests.filter(item => item.operation === 'submit-intent').length,
       1);

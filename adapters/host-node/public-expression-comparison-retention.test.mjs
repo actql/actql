@@ -104,14 +104,14 @@ test('public retained expression comparison publishes and stops inside its Text 
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(program('public-expression-comparison'));
     const options = {format: 'json', requestId: 'public-expression-comparison'};
-    const execution = await client.aql(source, options);
+    const execution = await client.startSource(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
     for (const name of names) assert.deepEqual(await execution.result(name).all(), [{id: 1}]);
     assert.equal(completions, 1);
     assert.ok(representations?.some(item => item.representation === 'retained-file'));
     const successfulAdvances = advances;
-    const repeat = await client.aql(source, options);
+    const repeat = await client.startSource(source, options);
     assert.deepEqual(repeat.ref, execution.ref);
     assert.deepEqual(await repeat.result('published').all(), [{id: 1}]);
     assert.equal(advances, successfulAdvances);
@@ -121,7 +121,7 @@ test('public retained expression comparison publishes and stops inside its Text 
     cancelling = true;
     const cancelSource = JSON.stringify(program('public-expression-comparison-cancel'));
     const cancelOptions = {format: 'json', requestId: 'public-expression-comparison-cancel'};
-    const cancel = await client.aql(cancelSource, cancelOptions);
+    const cancel = await client.startSource(cancelSource, cancelOptions);
     await barrier.promise;
     const advancedAtBarrier = advances;
     try {
@@ -147,7 +147,7 @@ test('public retained expression comparison publishes and stops inside its Text 
     assert.equal(advances, advancedAtBarrier);
     assert.equal(dispatches, 2);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
-    const repeatedCancel = await client.aql(cancelSource, cancelOptions);
+    const repeatedCancel = await client.startSource(cancelSource, cancelOptions);
     assert.deepEqual(repeatedCancel.ref, cancel.ref);
     assert.equal((await repeatedCancel.status()).status, 'cancelled');
     assert.equal(advances, advancedAtBarrier);

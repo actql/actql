@@ -277,7 +277,7 @@ try {
         steps: [{select: ['External_Key__c', 'Name'], as: 'out'}],
         results: {r: {from: 'out', fields: ['External_Key__c', 'Name']}}}],
     results: {records: {from: {stage: 'compute', result: 'r'}}}});
-  const execution = await client.aql(program, {format: 'json',
+  const execution = await client.startSource(program, {format: 'json',
     requestId: process.env.ACTQL_LOCAL_EFFECT_PROFILE === undefined
       ? 'packed-read-1' : 'packed-coinstalled-read'});
   assert.equal((await execution.wait()).status, 'succeeded');
@@ -715,7 +715,7 @@ try {
       results: {rows: {from: 'selected', fields: ['id']}},
       effects,
     }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
-    const execution = await client.aql(JSON.stringify(program), {
+    const execution = await client.startSource(JSON.stringify(program), {
       format: 'json', requestId: 'packed-effect-1'});
     await waitFor(async () => {
       const status = await execution.status();
@@ -815,7 +815,7 @@ try {
     const lookup = await client.lookupRequest(submission.requestId);
     assert.equal(lookup.kind, 'found');
     assert.deepEqual(lookup.ref, ref);
-    const execution = await client.aql(submission.document, {
+    const execution = await client.startSource(submission.document, {
       format: submission.format, requestId: submission.requestId});
     assert.deepEqual(execution.ref, ref);
     await waitFor(async () => {
@@ -871,7 +871,7 @@ try {
     const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
     assert.equal(createHash('sha256').update(submission.document).digest('hex'),
       process.argv[3], 'the exact positively executed Program is reused');
-    await assert.rejects(client.aql(submission.document, {format: submission.format,
+    await assert.rejects(client.startSource(submission.document, {format: submission.format,
       requestId: 'unsupported-rce'}), {code: 'ClientProgramUnsupported'});
     const lookup = await client.lookupRequest('unsupported-rce');
     assert.deepEqual(lookup, {kind: 'not_found'});
@@ -884,7 +884,7 @@ try {
     const mapping = generation.mappings.find(entry => entry.write.resource === 'Test_Record__c');
     const document = JSON.stringify(graphCompositionProgram(mapping.mapping_ref, graphFamily));
     const requestId = 'missing-graph-result-policy';
-    await assert.rejects(client.aql(document, {format: 'json', requestId}),
+    await assert.rejects(client.startSource(document, {format: 'json', requestId}),
       error => error.code === 'SubmissionUnknown' &&
         error.requestId === requestId && error.cause?.code === 'ClientHostFailure');
     const lookup = await client.lookupRequest(requestId);
@@ -900,7 +900,7 @@ try {
       ? JSON.stringify(graphCompositionRefusalProgram(mapping.mapping_ref, variant))
       : compositionText(mapping.mapping_ref, variant);
     const format = graphFamily ? 'json' : 'aql-text';
-    const execution = await client.aql(document, {format,
+    const execution = await client.startSource(document, {format,
       requestId: 'assertion-' + variant});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', 'assertion failure precedes INFER and Effect');
@@ -944,7 +944,7 @@ try {
         (installation.sourceProfilePath === undefined ? 0 : 1)};
     let execution;
     try {
-      execution = await client.aql(submission.document, {
+      execution = await client.startSource(submission.document, {
         format: submission.format, requestId: submission.requestId});
     } catch (error) {
       if (error?.code === 'ClientProgramUnsupported') {
@@ -1001,7 +1001,7 @@ try {
       await terminate('source-waiting', execution.ref);
     }
     if (process.argv[3] === 'success' || optionalKind) {
-      const repeated = await client.aql(submission.document, {
+      const repeated = await client.startSource(submission.document, {
         format: submission.format, requestId: submission.requestId});
       assert.deepEqual(repeated.ref, execution.ref,
         'resubmitting the same request must retain the original Run');
@@ -1028,7 +1028,7 @@ try {
     assert.deepEqual(lookup.ref, ref);
     assert.deepEqual((await client.checkpoints()).items, []);
     if (process.argv[3] === 'resubmit') {
-      const repeated = await client.aql(submission.document, {
+      const repeated = await client.startSource(submission.document, {
         format: submission.format, requestId: submission.requestId});
       assert.deepEqual(repeated.ref, ref,
         'resubmission after process termination must recover the same Run');

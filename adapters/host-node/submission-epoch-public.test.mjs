@@ -76,7 +76,7 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
     let submissionRef = defaultSubmission ? undefined : client.newSubmission({nonce: 'ordinary-original'});
     let run;
     if (loseSubmissionReply) {
-      await assert.rejects(client.aql('SELECT 1 AS n', {format: 'sql', submissionRef}), error => {
+      await assert.rejects(client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef}), error => {
         assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
         return error.code === 'SubmissionUnknown';
       });
@@ -84,7 +84,7 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
       assert.equal(original.kind, 'ready');
       run = await client.attach(original.admission.ref);
     } else {
-      const pending = client.aql('SELECT 1 AS n', {format: 'sql',
+      const pending = client.startSource('SELECT 1 AS n', {format: 'sql',
         ...(submissionRef === undefined ? {} : {submissionRef})});
       if (defaultSubmission) {
         submissionRef = getSubmissionInput(pending).submissionRef;
@@ -104,7 +104,7 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
     assert.equal(found.kind, 'ready');
     assert.deepEqual(found.submissionRef, submissionRef);
     assert.deepEqual(found.admission.ref, run.ref);
-    const repeated = await client.aql('SELECT 1 AS n', {format: 'sql', submissionRef});
+    const repeated = await client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef});
     assert.deepEqual(repeated.ref, run.ref);
     assert.deepEqual(await repeated.result('answer').all(), [{n: 1}]);
     assert.equal(f.computes, 1);
@@ -114,7 +114,7 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
 for (const entrance of ['local', 'https']) {
   test(`${entrance}: an accepted unsupported pre-Run wait remains a preparation failure after reconnect`, async t => {
     const f = await installedFixture(t, entrance, {outcome: 'delegate'});
-    const pending = f.client.aql('SELECT 1 AS n', {format: 'sql'});
+    const pending = f.client.startSource('SELECT 1 AS n', {format: 'sql'});
     const original = getSubmissionInput(pending);
     let outcome;
     await assert.rejects(pending, error => {
@@ -133,7 +133,7 @@ for (const entrance of ['local', 'https']) {
     await f.close(); await f.open();
     assert.deepEqual(await f.client.lookupSubmission(original.submissionRef), outcome);
     assert.deepEqual((await f.client.checkpoints()).items, []);
-    await assert.rejects(f.client.aql('SELECT 1 AS n', {format: 'sql',
+    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql',
       submissionRef: original.submissionRef}), error => {
       assert.deepEqual(getSubmissionOutcome(error), outcome);
       return error.code === 'SubmissionPreparationFailed';

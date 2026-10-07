@@ -184,7 +184,7 @@ function journalState(root, steps) {
     };
   } finally { database.close(); }
 }
-const submit = (client, requestId) => client.aql(program, {format: 'json',
+const submit = (client, requestId) => client.startSource(program, {format: 'json',
   requestId, parameters: {minimum: 1}});
 async function held(client, requestId) {
   try { await submit(client, requestId); }
