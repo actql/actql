@@ -21,8 +21,8 @@ const validationCopyFaults = [
   [['held submit'], 'response-capture-held', 'deepStrictEqual',
     '      admitted = observation;\n      const held', '      const held'],
   [['cancel'], 'response-capture-cancel', 'deepStrictEqual',
-    'return retainCancellationExplanation(response, context, response.kind, response.revision);',
-    'return retainCancellationExplanation(received, context, received.kind, received.revision);'],
+    '  return value;\n};\n\nconst unordered',
+    '  return copy;\n};\n\nconst unordered'],
   [['deliveryAttempt'], 'response-capture-delivery', 'deepStrictEqual',
     'return retainDeliveryExplanation(freezeInput(observation), {',
     'return retainDeliveryExplanation(freezeInput(answer), {'],
@@ -36,7 +36,7 @@ const originalSnapshotFaults = [
   [['status', 'wait', 'reconcile'], "        if (structuralKey(observation) !== observedKey) {\n          throw rejectedRunObservation(ref, operation, 'malformed_response');\n        }"],
   [['lookupRequest'], "      if (structuralKey(observation) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');"],
   [['held submit'], "        if (structuralKey(observation) !== observedKey) fail('InvalidHostAdmission');"],
-  [['cancel'], "        if (structuralKey(response) !== observedKey) {\n          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),\n            context, 'outcome_unknown');\n        }"],
+  [['cancel'], 'structuralKey(value) !== observedKey', 'false'],
   [['deliveryAttempt'], "            if (structuralKey(observation) !== observedKey) fail('InvalidHostAttemptLookup');"],
   [['check'], '        if (structuralKey(observation) !== observedKey) reject();'],
   [['cancelRequest'], "        if (structuralKey(observation) !== observedKey) throw new ClientError('InvalidHostRequestCancellation');"],
@@ -80,9 +80,9 @@ const mutations = [
     to: '', targets: ['local', 'https'].map(entrance => target(
       `${entrance}: rejected profile ${fault} cannot start checking or issue a verdict`, `profile-public-${fault}`)),
   })),
-  ...originalSnapshotFaults.map(([operations, from]) => ({
+  ...originalSnapshotFaults.map(([operations, from, to = '']) => ({
     name: `verification conversion changes the captured ${operations.join('/')} snapshot`,
-    path, file: unit, from, to: '', targets: operations.map(operation => target(
+    path, file: unit, from, to, targets: operations.map(operation => target(
       `${operation}: verification conversion cannot mutate the admitted snapshot`, 'response-capture-original')),
   })),
   {name: 'response capture reobserves borrowed getters during admission', path,
