@@ -23,15 +23,10 @@ test('current registry and historical preimages keep distinct identities', () =>
   assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
   assert.equal(cid(valuesRegistry), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
-  // Reconstruct the historical registry with its original shared-expression
-  // pins; removing a Graph operation alone cannot undo membership alignment.
-  const preMembership = structuredClone(registry);
-  preMembership['REL.derive'].execution_extensions.ordered_bindings.cid =
-    'sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de';
-  preMembership['ACTQL.expression_fragment/0.1'].execution_contract.cid =
-    'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60';
-  const {['BRIDGE.rows.to_graph']: property, ...preProperty} = preMembership;
-  assert.ok(property);
+  // Frozen verbatim from 02a60baf's selected registry. Current Graph domains
+  // and expression contracts cannot be interpreted as historical preimages
+  // merely by removing an operation or replacing two extension pins.
+  const preProperty = JSON.parse(read('portability/fixtures/pipeline-registry-exact-strings.json'));
   assert.equal(cid(preProperty),
     'sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc');
   // Removing the new Graph operation retains the exact-String Values law.

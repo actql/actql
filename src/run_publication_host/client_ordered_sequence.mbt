@@ -55,7 +55,14 @@ fn emit_client_sequence_steps(
         is Some(bindings) &&
         @lower.bindings_ordered(bindings) => {
         if contract is None {
-          contract = client_compiler_ordered_contract(physical)
+          // Installed body admission is separate from the emitted Plan budget.
+          // Use the existing client runtime's finite registration profile;
+          // a small valid Plan need not fit the much larger contract body.
+          contract = client_compiler_ordered_contract({
+            max_body_bytes: 100000,
+            max_body_nodes: 10000,
+            max_body_depth: 100,
+          })
         }
         guard contract is Some(selected) &&
           @lower.prepare_ordered_references(kernel, {

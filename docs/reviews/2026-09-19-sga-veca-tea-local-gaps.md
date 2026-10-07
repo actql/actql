@@ -6387,6 +6387,10 @@ Store Host publishes ten-binding ordered shadow/relay results to the producer
 and two consumers, with fixed NULL/order/schema expectations, request reuse,
 post-progress cancellation and final reclamation. The resource gate requires
 this public evidence separately from the map and private ordered cases.
+Plan output limits are independent of finite selected-body admission; a
+hand-assembled small Plan verifies exact bytes and one-short refusal. Frozen
+historical registry bodies retain their original CIDs rather than attempting
+to reconstruct them from the current Graph identity domain.
 
 Focused JS passed 18/18 and targeted Node passed 5/5 on the working tree.
 These do not certify packed/HTTPS or Native Host cancellation, initial

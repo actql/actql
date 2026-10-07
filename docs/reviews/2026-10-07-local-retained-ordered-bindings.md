@@ -40,6 +40,15 @@ prepares references from the originating checked kernel and calls
 OrderedParams owner. No adapter assembles a reference table or fabricates
 evidence. Admission and reference construction have finite limits.
 
+Registered-body admission uses the existing finite client runtime profile,
+separate from the caller's output writer budget. A small valid Plan must not
+be refused because its selected contract body is larger. An independently
+assembled complete Plan wire fixes its exact output limit and one-short
+refusal. This exposed a real coupling in the initial implementation:
+`run-Bfx6qY` / `focused-test-RdgbpZ` passed 3/4 and rejected that exact bound.
+After separating admission, all four cases passed (`run-lpmcCp`,
+`focused-test-Lu0hbd`). No runtime work/workspace budget is changed.
+
 The logical node retains its exact checked input edge. Existing selected-task
 remapping binds that edge to the task's input, without changing prior slots.
 Fragment-local emission still uses its canonical `input` edge and unchanged
@@ -91,6 +100,24 @@ and their generated bundles checked; bundles remain untracked. Public API,
 Node Host and Workers fixture freshness are checked through their existing
 generators. No independent expected row or CID was regenerated from product
 output.
+
+At clean intermediate SHA `96afa381cfa4f85c37e898dae6decef1e5744667`,
+the integrated JS caller/resource selection passed 17/17 (`run-SWtGZ0`,
+`focused-test-BpQ5Re`). A broader targeted Node selection passed 4/5
+(`run-nmfQa8`, `focused-test-WOIkK9`): both public ordered/map Host cases,
+the evidence-removal test and generated registration passed. The existing
+historical registry reconstruction failed. Its function was unchanged from
+main; it removed one current Graph operation and replaced two pins, which
+cannot restore the older domain/signature preimage after the Graph migration.
+
+The historical registry is now frozen verbatim from
+`02a60baf012db5d8d13223392fe0eeaef7ae0e8e` at
+`portability/fixtures/pipeline-registry-exact-strings.json`. The original
+expected CID `sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc`
+and all older independent identity assertions remain unchanged. This is a
+historical test artifact, never a runtime registry or compatibility path.
+The complete registry test file then passed 3/3 (`run-SBt4wm`,
+`focused-test-qE4m5d`). Final submitted-SHA evidence follows in the PR.
 
 ## Remaining work
 
