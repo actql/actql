@@ -6619,3 +6619,20 @@ also reproduce unchanged at parent `5c58a26542327dddde9c971545bfb3c32bb0e766`
 availability walks, Native correspondence and unexecuted cross-target/packed
 acceptance remain. See the
 [input readiness record](2026-10-07-local-input-readiness.md).
+
+### Independent chain accounting evidence (2026-10-07)
+
+The preceding input-readiness record is historical: its parents are now merged,
+and its five stale caller assertions have independent phase/capacity breakdowns.
+The source-free scalar and window-group fixtures also include their existing
+completion-port preparation work. Whole-chain exact/one-short expectations are
+162/161, 199/198 and 473/472, invariant at quanta 1, 7 and 256. Workspace remains
+9/8, 14/13 and 37/36; capacity includes the two existing preparation handles.
+No production algorithm, limit, CID or reservation was changed to pass them.
+
+At `7f4abd75282728793f5b0a98969de23b4db60db3`, clean focused JS selections
+passed 8/8, 24/24 and 8/8, with overlap. A prior broader dirty-source selection
+timed out and is not counted as successful. This closes the named stale
+assertions, not the remaining callback/scratch walks, Native correspondence
+or all-target/public acceptance of the complete retained goal. See the
+[independent chain accounting record](2026-10-07-local-chain-accounting-evidence.md).

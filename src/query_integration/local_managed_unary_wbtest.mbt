@@ -821,7 +821,7 @@ test "ordinary captured Relation chains feed two bounded consumers" {
       }
     }
     if variant == "keyed_count" {
-      assert_eq(charged_work, 91L)
+      assert_eq(charged_work, captured_keyed_count_chain_work().to_int64())
     }
     assert_true(polls > 2 && polls < 1000)
     assert_eq(local_managed_test_rows(operations), expected)
@@ -900,10 +900,33 @@ test "ordinary captured Relation chains feed two bounded consumers" {
 }
 
 ///|
+fn captured_keyed_count_chain_work() -> Int {
+  // The captured query retains two rows, id=3 then id=2. One COUNT per key.
+  // Count metadata: input/key names each start+two scalars+end (4),
+  // count(*) setup+aggregate name (4), output scans and names (6+4).
+  let metadata = 4 + 4 + 4 + 6 + 4
+  // Two indices, one run, two copies, swap and terminal observation (7).
+  // One unequal numeric comparison adds three unresolved fragments (3).
+  let sort = 2 + 1 + 2 + 1 + 1 + 3
+  // Input begin/value (4), start sort (1), reset counters (2), count rows
+  // (4), unequal group boundary (4), four scalar outputs, two commits, finish.
+  let count = metadata + 4 + 1 + sort + 2 + 4 + 4 + 4 + 2 + 1
+  // Filter: six input steps, two retained roots; each row pays begin,
+  // two snapshots, six expression transitions, two builds/checks and commit.
+  let filter = 6 + 2 + 2 * (1 + 2 + 6 + 2 + 2 + 1) + 1
+  let select = 6 + 2 * (1 + 1 + 1 + 1) + 1
+  let preparation = expected_ascii_completion_port_work("group_0", ["id", "n"]) +
+    expected_ascii_completion_port_work("where_1", ["id", "n"]) +
+    expected_ascii_completion_port_work("select_2", ["id"])
+  count + filter + select + preparation + 2
+}
+
+///|
 fn assert_captured_keyed_count_chain_budget(
   max_work : Int,
   expected : String,
   max_entries? : Int = 10000,
+  quantum? : Int = 1,
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     count=true,
@@ -953,9 +976,9 @@ fn assert_captured_keyed_count_chain_budget(
   let mut charged_work = 0L
   for _ in 0..<1000 {
     if !done && !rejected {
-      match (operations.advance)(1) {
+      match (operations.advance)(quantum) {
         Ok(observation) => {
-          assert_true(observation.work <= 1L)
+          assert_true(observation.work <= quantum.to_int64())
           charged_work += observation.work
           done = observation.complete
         }
@@ -975,7 +998,7 @@ fn assert_captured_keyed_count_chain_budget(
   }
   if expected == "complete" {
     assert_true(done && !rejected)
-    assert_eq(charged_work, 91L)
+    assert_eq(charged_work, captured_keyed_count_chain_work().to_int64())
     assert_eq(local_managed_test_rows(operations), ["{\"id\":2}", "{\"id\":3}"])
     let live = Ref(true)
     (operations.prepare_finalization)(1, operations.storage_bytes, fn() {
@@ -1052,17 +1075,23 @@ fn assert_captured_keyed_count_chain_budget(
 
 ///|
 test "ordinary keyed count chain admits exact work and one-short limits" {
-  assert_captured_keyed_count_chain_budget(91, "complete")
-  assert_captured_keyed_count_chain_budget(90, "work")
+  let exact = captured_keyed_count_chain_work()
+  assert_eq(exact, 199)
+  for quantum in [1, 7, 256] {
+    assert_captured_keyed_count_chain_budget(exact, "complete", quantum~)
+    assert_captured_keyed_count_chain_budget(exact - 1, "work", quantum~)
+  }
 }
 
 ///|
 test "ordinary keyed count chain admits exact workspace and one-short limit" {
-  // Count holds eight metadata slots. Three input rows add six sort slots;
-  // the later filter and select each stay below this 14-slot peak.
-  assert_captured_keyed_count_chain_budget(91, "complete", max_entries=14)
-  assert_captured_keyed_count_chain_budget(91, "workspace", max_entries=13)
-  assert_captured_keyed_count_chain_budget(91, "workspace", max_entries=12)
+  // COUNT holds eight metadata slots plus four sort slots for two rows.
+  // Filter peaks at six metadata slots, two roots, two snapshot cells,
+  // two output cells and two checked cells: 14. Select stays below this peak.
+  let exact = captured_keyed_count_chain_work()
+  assert_captured_keyed_count_chain_budget(exact, "complete", max_entries=14)
+  assert_captured_keyed_count_chain_budget(exact, "workspace", max_entries=13)
+  assert_captured_keyed_count_chain_budget(exact, "workspace", max_entries=12)
 }
 
 ///|
@@ -1110,11 +1139,12 @@ test "ordinary keyed count chain reserves overlapping child capacity" {
   }
   // Completed outputs still overlap. Confirmed child cleanup bounds scratch
   // to one live execution; the independent lifetime fixtures certify retirement.
+  // Input-selection and common-read cursors coexist in two 256-byte handles.
   assert_true(retained + scratch > base.execution_bytes)
   assert_eq(capacity.retained_bytes, base.retained_bytes)
   assert_eq(
     capacity.execution_bytes,
-    retained + scratch + count.to_int64() * 256L,
+    retained + scratch + count.to_int64() * 256L + 512L,
   )
   @strategy.stop_captured_dag(run)
   @mock.close_mock_query_issuer(issuer)
