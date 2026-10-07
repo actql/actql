@@ -1801,10 +1801,11 @@ pub fn strategy_begin_effect_free_chain_check(
 pub fn strategy_effect_free_chain_check_advance(
   preparation : @publication.ComputationEvidenceCheck,
   quantum : Int,
-) -> Bool? {
+) -> Int {
+  // Stable JS boundary: -1 is refusal, 0 is pending, and 1 is complete.
   match preparation.advance(quantum) {
-    Ok((done, _)) => Some(done)
-    Err(_) => None
+    Ok((done, _)) => if done { 1 } else { 0 }
+    Err(_) => -1
   }
 }
 
@@ -1994,10 +1995,11 @@ pub fn strategy_begin_effect_free_commit_check(
 pub fn strategy_effect_free_commit_check_advance(
   preparation : @publication.PublicationCommitPreparation,
   quantum : Int,
-) -> Bool? {
+) -> Int {
+  // Stable JS boundary: -1 is refusal, 0 is pending, and 1 is complete.
   match preparation.advance(quantum) {
-    Ok((done, _)) => Some(done)
-    Err(_) => None
+    Ok((done, _)) => if done { 1 } else { 0 }
+    Err(_) => -1
   }
 }
 

@@ -1863,11 +1863,14 @@ function publicationControl(moon) {
     try {
       while (true) {
         signal?.throwIfAborted();
-        const done = advance(preparation, 256);
-        if (done === undefined) return false;
-        if (done === true) {
+        const progress = advance(preparation, 256);
+        if (progress === -1) return false;
+        if (progress === 1) {
           signal?.throwIfAborted();
           return finish(preparation);
+        }
+        if (progress !== 0) {
+          throw new TypeError('Invalid publication validation progress');
         }
         await new Promise(resolve => setTimeout(resolve, 0));
       }

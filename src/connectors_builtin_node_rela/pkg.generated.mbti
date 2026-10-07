@@ -1100,7 +1100,7 @@ pub fn strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, 
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
 
-pub fn strategy_effect_free_chain_check_advance(@run_publication.ComputationEvidenceCheck, Int) -> Bool?
+pub fn strategy_effect_free_chain_check_advance(@run_publication.ComputationEvidenceCheck, Int) -> Int
 
 pub fn strategy_effect_free_chain_check_cancel(@run_publication.ComputationEvidenceCheck) -> Unit
 
@@ -1108,7 +1108,7 @@ pub fn strategy_effect_free_chain_check_finish(@run_publication.ComputationEvide
 
 pub fn strategy_effect_free_chain_check_fixture_phase(@run_publication.ComputationEvidenceCheck) -> String
 
-pub fn strategy_effect_free_commit_check_advance(@run_publication.PublicationCommitPreparation, Int) -> Bool?
+pub fn strategy_effect_free_commit_check_advance(@run_publication.PublicationCommitPreparation, Int) -> Int
 
 pub fn strategy_effect_free_commit_check_cancel(@run_publication.PublicationCommitPreparation) -> Unit
 
