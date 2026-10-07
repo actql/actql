@@ -197,8 +197,8 @@ pub fn client_effect_local_identity_matches(
 }
 
 ///|
-/// Bind every Result-consuming Preview member to the identity issued by the
-/// exact checked computation and pinned local Result Artifact. Preview CID
+/// Bind every Relation-consuming Preview member to the identity issued by the
+/// exact checked computation and pinned local Artifact. Preview CID
 /// admission alone cannot establish that the claimed identity was issued.
 pub fn check_source_free_client_effect_preview_identities(
   owner : PreparedClientEffectComputation,
@@ -241,7 +241,11 @@ pub fn check_source_free_client_effect_preview_identities(
     if by_effect_id.contains(effect_id) ||
       !physical_equal(identity.owner, owner) ||
       !physical_equal(identity.artifact.inputs, inputs) ||
-      @strategy.captured_effect_input_at(inputs, identity.member_index) is None {
+      !client_effect_local_artifact_matches_member(
+        identity.artifact,
+        inputs,
+        identity.member_index,
+      ) {
       return Err(ForeignPreview)
     }
     by_effect_id[effect_id] = identity
@@ -249,9 +253,9 @@ pub fn check_source_free_client_effect_preview_identities(
   let mut source_count = 0
   for preview_index in 0..<@publication.effect_preview_member_count(preview) {
     match
-      @publication.effect_preview_member_source_result(preview, preview_index) {
+      @publication.effect_preview_member_relation_source(preview, preview_index) {
       None => continue
-      Some(source_result) => {
+      Some(source) => {
         source_count += 1
         let effect_id = @publication.effect_preview_member_effect_id(
           preview, preview_index,
@@ -263,12 +267,27 @@ pub fn check_source_free_client_effect_preview_identities(
           return Err(MissingIdentity)
         }
         let header = @syntax.effect_header_at(headers, identity.member_index).unwrap()
-        guard identity.artifact.source is ResultSource(_, definition) else {
-          return Err(ForeignPreview)
+        let matched = match (source, identity.artifact.source) {
+          (@publication.Result(name), ResultSource(_, definition)) =>
+            @syntax.effect_header_source_result(header) == Some(name) &&
+            @syntax.effect_header_source_table_input(header) is None &&
+            definition.result_name == name
+          (@publication.TableInput(name), TableSource(_, definition)) =>
+            @syntax.effect_header_source_table_input(header) == Some(name) &&
+            @syntax.effect_header_source_result(header) is None &&
+            definition.name == name
+          _ => false
         }
-        if @syntax.effect_header_source_result(header) != Some(source_result) ||
-          definition.result_name != source_result ||
-          identity.cid != expected_cid {
+        if !matched ||
+          identity.cid != expected_cid ||
+          @publication.effect_preview_member_result_artifact_cid(
+            preview, preview_index,
+          ) !=
+          Some(
+            @publication.publication_contract_identity(
+              identity.artifact.artifact,
+            ),
+          ) {
           return Err(ForeignPreview)
         }
       }

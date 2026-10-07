@@ -7,12 +7,82 @@ import {
   effectApplyReceiptSchema,
   effectReconciliationReceiptSchema,
   effectSetApplyReceiptSchema,
+  effectPreviewSchema,
   effectSourceArtifactSchema,
   resultArtifactSchema,
   runStateSchema,
 } from './run-publication-contracts.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+
+test('private Table Preview source binding is exclusive and store-only', () => {
+  const preview = read('spec/contracts/actql-protocol-schemas.json')
+    .artifact_schemas.effect_preview;
+  assert.deepEqual(preview, effectPreviewSchema(preview));
+  const member = preview.properties.effects.items;
+  assert.equal(member.additionalProperties, false);
+  assert.deepEqual(member.properties.source_table_input,
+    {type: 'string', minLength: 1});
+  assert.deepEqual(member.allOf.at(-1), {oneOf: [
+    {not: {anyOf: [
+      {required: ['source_result']}, {required: ['source_table_input']},
+      {required: ['result_artifact_cid']},
+    ]}},
+    {required: ['source_result', 'result_artifact_cid'],
+      not: {required: ['source_table_input']}},
+    {required: ['source_table_input', 'result_artifact_cid'],
+      properties: {effect_kind: {const: 'store'}},
+      not: {required: ['source_result']}},
+  ]});
+  // Existing command/Mapping selection remains a separate obligation.
+  assert.equal(member.allOf[0].oneOf[0].properties.effect_kind.const,
+    'command');
+  const extra = {oneOf: [{required: ['source_table_input'],
+    properties: {approval: {const: 'required'}}}]};
+  const extended = structuredClone(preview);
+  extended.properties.effects.items.allOf.push(extra);
+  assert.deepEqual(effectPreviewSchema(extended)
+    .properties.effects.items.allOf.at(-2), extra);
+});
+
+test('independent private Table Preview and member identity vectors', () => {
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const hash = body => `sha256:${createHash('sha256')
+    .update(canonicalText(body)).digest('hex')}`;
+  // Authored preimages, not product-generated Preview bytes or expectations.
+  const member = {
+    effect_id: 'WriteOne', effect_kind: 'store', target: 'Object',
+    mapping: 'mapping:fixture', resolved_mapping_contract_cid: cid('a'),
+    effect_identity_cid: cid('a'), preview_strength: 'full_diff',
+    source_binding_cid: cid('a'), capability_evidence_cid: cid('a'),
+    authority_scope_cid: cid('a'),
+    write_footprint: {kind: 'exact_targets',
+      resource_identity_scheme_cid: cid('a'), provider_namespace: 'provider',
+      provider_boundary_cid: cid('a'), resource_kind: 'Object',
+      provider_object_identity_cids: [cid('1')]},
+    count: 0, max_items: 1, required_permissions: ['write'], approval: 'none',
+    on_item_failure: 'halt', changes: [], row_order: [], executed: false,
+    source_table_input: 'answer', result_artifact_cid: cid('a'),
+  };
+  const memberCid = 'sha256:4a197b227fd3034f2f1114f6af987a63029c4098c690c9962a62c7a6e172ee28';
+  assert.equal(hash({member, version: 'actql-effect-member-preview/0.1'}),
+    memberCid);
+  const preview = {
+    version: 'actql-effect-preview/0.1', sensitivity: 'private',
+    retention_class: 'authority-evidence', encryption_required: true,
+    program_semantics_cid: cid('a'), program_definition_cid: cid('a'),
+    invocation_cid: cid('a'), compiled_plan_cid: cid('a'),
+    check_environment_cid: cid('a'), barrier_provenance_cids: [],
+    model_derived: false, model_task_contract_cids: [],
+    model_invocation_evidence_cids: [], model_response_artifact_cids: [],
+    effects: [{...member, effect_member_preview_cid: memberCid}], executed: false,
+  };
+  assert.equal(hash(preview),
+    'sha256:41b64ea9c9fb869d5e628db520ea145ced63681487791e9516e1613178153aa8');
+  const {source_table_input: name, ...rest} = member;
+  assert.notEqual(hash({member: {...rest, source_result: name},
+    version: 'actql-effect-member-preview/0.1'}), memberCid);
+});
 
 test('independent local Effect source inventory binds its Stage Result', () => {
   const registry = read('spec/contracts/actql-protocol-schemas.json');

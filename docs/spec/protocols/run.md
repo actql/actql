@@ -293,6 +293,22 @@ substitute for one another.
 
 ### Private preview row state
 
+<!-- requirement-block: preview-row-state.closed-relation-source preview-row-state.source-free-omits-binding preview-row-state.relation-source-inventory preview-row-state.recovery-complete-sources preview-row-state.no-private-source-free-fallback -->
+An Effect Preview member with a captured Relation source MUST contain exactly
+one of `source_result` or `source_table_input`, together with
+`result_artifact_cid`. A source-free member MUST omit all three fields. The
+two source names identify different checked Stage namespaces, even when their
+spelling is equal. `source_table_input` is permitted only for `store` and binds
+the declared private closed Table input, not a published Named Result. Its
+schema may retain Conditional presence; ordinary Named Result requirements
+are unchanged. Preview admission and source inventory checks MUST preserve
+this discriminant and refuse a substituted namespace, missing Artifact,
+mixed source fields, or source kind unsupported by a downstream consumer.
+Neither field nor an equal content CID establishes live custody, approval,
+current authority, or permission to send. Recovery MUST account for every
+source-consuming member, including private inputs; an unsupported private
+source MUST NOT be reinterpreted as source-free.
+
 <!-- requirement-block: preview-row-state.for-every-preview-row-implementations-must-first-compute-row-preview-cid preview-row-state.common-preview-admission-must-recompute-every-row-cid -->
 For every preview row, implementations MUST first compute
 `row_preview_cid = CID({version, program_definition_cid, invocation_cid, effect_identity_cid,
@@ -703,7 +719,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:97d9ea83f6ad1abfa9eaf21c7c22c75652dba20f0a928ed568010162b471a8a5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:e11e51e73d3153c62314315f7f20682778e51c7a46791e87ee2bb5ac7f3f99ee
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb

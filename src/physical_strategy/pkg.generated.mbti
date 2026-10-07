@@ -170,6 +170,8 @@ pub fn captured_effect_preview_plan_terminal(CapturedEffectPreviewInputs, Int, I
 
 pub fn captured_effect_preview_subject_cid(CapturedEffectPreviewInputs) -> String?
 
+pub fn captured_effect_preview_table_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectTableInput?
+
 pub fn captured_effect_result_import_consumer(CapturedEffectResultImport) -> Int
 
 pub fn captured_effect_result_import_interface(CapturedEffectResultImport) -> @program_check.BuiltResultInterface

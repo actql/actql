@@ -72,13 +72,10 @@ fn check_effect_preview_checked_inventory_usage(
       return Err(FailurePolicyMismatch(id))
     }
     let source = @syntax.effect_header_source_result(header)
-    // A Result-only Preview cannot represent the private source. Keep this
-    // refusal until its distinct captured-Artifact wire binding is admitted.
-    if @syntax.effect_header_source_table_input(header) is Some(_) {
-      return Err(SourceMismatch(id))
-    }
     if @publication.effect_preview_member_source_result(preview, matched) !=
-      source {
+      source ||
+      @publication.effect_preview_member_source_table_input(preview, matched) !=
+      @syntax.effect_header_source_table_input(header) {
       return Err(SourceMismatch(id))
     }
   }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
+import {isDeepStrictEqual} from 'node:util';
 import {machineCid} from './actql-spec-family.mjs';
 
 const registryPath = 'spec/contracts/actql-protocol-schemas.json';
@@ -100,6 +101,29 @@ export function effectSourceArtifactSchema() {
   artifact.properties.source_result = {type: 'string', minLength: 1};
   artifact.properties.store_authority_cid = clone(cid);
   return artifact;
+}
+
+// Preserve the ordinary member schema and its contract-selection obligations.
+// The private input is a distinct closed source namespace, never a Result alias.
+export function effectPreviewSchema(existing) {
+  const preview = clone(existing);
+  const member = preview.properties.effects.items;
+  member.properties.source_table_input = {type: 'string', minLength: 1};
+  const sources = ['source_result', 'source_table_input', 'result_artifact_cid'];
+  const sourceBinding = {oneOf: [
+    {not: {anyOf: sources.map(field => ({required: [field]}))}},
+    {required: ['source_result', 'result_artifact_cid'],
+      not: {required: ['source_table_input']}},
+    {required: ['source_table_input', 'result_artifact_cid'],
+      properties: {effect_kind: {const: 'store'}},
+      not: {required: ['source_result']}},
+  ]};
+  // Idempotently own only this source-binding obligation. Other member
+  // constraints, including command/Mapping selection, remain untouched.
+  member.allOf = (member.allOf ?? []).filter(rule =>
+    !isDeepStrictEqual(rule, sourceBinding));
+  member.allOf.push(sourceBinding);
+  return preview;
 }
 
 export function effectRowOutcomeReceiptSchema(outcome) {
@@ -380,6 +404,7 @@ export function correctedContracts(registry, cli) {
   const next = clone(registry);
   const artifact = resultArtifactSchema();
   const effectSourceArtifact = effectSourceArtifactSchema();
+  const preview = effectPreviewSchema(next.artifact_schemas.effect_preview);
   const manifest = clone(next.artifact_schemas.result_manifest);
   manifest.properties.results.additionalProperties = clone(artifact);
   const receipt = clone(next.artifact_schemas.run_receipt);
@@ -424,7 +449,9 @@ export function correctedContracts(registry, cli) {
     ['actql-result-artifact/0.1', artifact],
     ['actql-result-manifest/0.1', manifest],
     ['actql-run-receipt/0.1', receipt],
+    ['actql-effect-preview/0.1', preview],
   ]);
+  next.artifact_schemas.effect_preview = preview;
   next.artifact_schemas.result_manifest = manifest;
   next.artifact_schemas.run_receipt = receipt;
   next.artifact_schemas.run_state = state;

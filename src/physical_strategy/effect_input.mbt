@@ -196,29 +196,44 @@ pub fn checked_effect_preview_source_indexes(
       return Err(ForeignCandidate)
     }
     let source = run.computation.sources.get(index).bind(value => value)
-    // The current Preview wire has only an ordinary Result source. Never
-    // represent a private input by the source-free branch while that distinct
-    // semantic Artifact/Preview binding is still being connected.
-    if run.computation.table_sources.get(index).bind(value => value) is Some(_) {
-      return Err(ForeignCandidate)
-    }
-    let expected = @publication.effect_preview_member_source_result(
+    let table = run.computation.table_sources.get(index).bind(value => value)
+    let expected = @publication.effect_preview_member_relation_source(
       identity, preview_index,
     )
-    match source {
-      Some(source) => {
+    match (source, table) {
+      (Some(source), None) => {
         if expected !=
-          Some(@execution.managed_result_occurrence_name(source.occurrence)) {
+          Some(
+            @publication.Result(
+              @execution.managed_result_occurrence_name(source.occurrence),
+            ),
+          ) {
           return Err(ForeignCandidate)
         }
         indexes.push(Some(index))
       }
-      None => {
+      (None, Some(table)) => {
+        if expected !=
+          Some(
+            @publication.TableInput(
+              @ports.table_input_name(
+                @execution.managed_table_input_occurrence_definition(
+                  table.occurrence,
+                ),
+              ),
+            ),
+          ) {
+          return Err(ForeignCandidate)
+        }
+        indexes.push(Some(index))
+      }
+      (None, None) => {
         if expected is Some(_) {
           return Err(ForeignCandidate)
         }
         indexes.push(None)
       }
+      _ => return Err(ForeignCandidate)
     }
   }
   Ok(indexes)
@@ -246,13 +261,27 @@ pub fn bind_captured_effect_preview_inputs(
   }
   for index in indexes {
     if index is Some(index) {
-      guard inputs.entries.get(index).bind(value => value) is Some(input) &&
-        captured_any_result_borrow_available(input.borrow) else {
+      if !captured_effect_source_available(inputs, index) {
         return Err(NotReady)
       }
     }
   }
   Ok({ preview, inputs, source_indexes: indexes, })
+}
+
+///|
+fn captured_effect_source_available(
+  inputs : CapturedEffectInputs,
+  index : Int,
+) -> Bool {
+  match
+    (
+      captured_effect_input_at(inputs, index),
+      captured_effect_table_input_at(inputs, index),
+    ) {
+    (Some(_), None) | (None, Some(_)) => true
+    _ => false
+  }
 }
 
 ///|
@@ -295,6 +324,29 @@ pub fn captured_effect_preview_input_at(
 }
 
 ///|
+/// The private source retains the same checked index and capture owner, but
+/// cannot be borrowed through the ordinary Result accessor.
+pub fn captured_effect_preview_table_input_at(
+  value : CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> CapturedEffectTableInput? {
+  value.source_indexes
+  .get(preview_index)
+  .bind(index => {
+    index.bind(index => captured_effect_table_input_at(value.inputs, index))
+  })
+}
+
+///|
+fn captured_effect_preview_source_available(
+  value : CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> Bool {
+  value.source_indexes.get(preview_index).bind(index => index) is Some(index) &&
+  captured_effect_source_available(value.inputs, index)
+}
+
+///|
 pub(all) enum CapturedEffectPlanIssue {
   InvalidMember
   NotReady
@@ -322,9 +374,6 @@ pub fn captured_effect_preview_plan_terminal(
     return Err(InvalidMember)
   }
   guard source_index is Some(member_index) else { return Ok(None) }
-  guard captured_effect_preview_input_at(value, preview_index) is Some(input) else {
-    return Err(NotReady)
-  }
   let static_candidate = @checked.effect_program_run_static_candidate(
     value.inputs.run.checked.run,
   )
@@ -333,8 +382,31 @@ pub fn captured_effect_preview_plan_terminal(
       @results.effect_static_candidate_results(effects),
       member_index,
     )
-    is Some(binding) &&
-    input.source.member_index == member_index else {
+    is Some(binding) else {
+    return Err(ForeignBinding)
+  }
+  if captured_effect_preview_table_input_at(value, preview_index) is Some(table) {
+    // Whole-Relation Store has its own checked operation proposal, not the
+    // ordinary correlated row-plan terminal. Keep its actual input pinned.
+    guard table.source.member_index == member_index &&
+      @syntax.effect_header_kind(@results.effect_result_binding_header(binding)) ==
+      "store" &&
+      @results.effect_result_binding_result(binding) is None &&
+      @results.effect_result_binding_table_input(binding) is Some(definition) &&
+      physical_equal(
+        definition,
+        @execution.managed_table_input_occurrence_definition(
+          table.source.occurrence,
+        ),
+      ) else {
+      return Err(ForeignBinding)
+    }
+    return Ok(None)
+  }
+  guard captured_effect_preview_input_at(value, preview_index) is Some(input) else {
+    return Err(NotReady)
+  }
+  if input.source.member_index != member_index {
     return Err(ForeignBinding)
   }
   if @syntax.effect_header_kind(@results.effect_result_binding_header(binding)) ==
@@ -382,7 +454,7 @@ pub fn check_captured_effect_preview_target_guards(
   }
   for index in 0..<value.source_indexes.length() {
     if value.source_indexes[index] is Some(_) &&
-      captured_effect_preview_input_at(value, index) is None {
+      !captured_effect_preview_source_available(value, index) {
       return Err(NotReady)
     }
   }
@@ -418,7 +490,7 @@ pub fn captured_effect_preview_inputs_available(
   }
   for index in 0..<value.source_indexes.length() {
     if value.source_indexes[index] is Some(_) &&
-      captured_effect_preview_input_at(value, index) is None {
+      !captured_effect_preview_source_available(value, index) {
       return false
     }
   }

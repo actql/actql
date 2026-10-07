@@ -1240,7 +1240,7 @@
         {
           "path": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/artifact_schemas/effect_preview",
-          "cid": "sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b",
+          "cid": "sha256:97d9ea83f6ad1abfa9eaf21c7c22c75652dba20f0a928ed568010162b471a8a5",
           "version": "actql-protocol-schema-registry/0.1"
         },
         {
@@ -1887,7 +1887,7 @@
         {
           "owner": "actql.protocol.run",
           "version": "actql/0.1",
-          "document_cid": "sha256:d819decb67624cef8fb762e0536df373691f27730e7ba9bb4f5bc8a75538c3a7"
+          "document_cid": "sha256:7233caa555850a596f5ddc26e78906681c0c554326c2fc1b0f1a8f330d755acb"
         },
         {
           "owner": "actql.protocol.discovery",

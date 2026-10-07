@@ -853,7 +853,7 @@ fn issue_captured_computation_run(
       }
     Some(identity) => {
       for index in 0..<identity.member_effect_ids.length() {
-        if effect_preview_member_source_result(identity, index) is Some(_) {
+        if effect_preview_member_relation_source(identity, index) is Some(_) {
           expected_source_count += 1
           let matches = ordered_sources.filter(source => {
             source.effect_id == identity.member_effect_ids[index]

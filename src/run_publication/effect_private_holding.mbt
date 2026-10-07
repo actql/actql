@@ -154,7 +154,7 @@ pub fn captured_effect_source_inventory_from_capture_valid(
     seen[member_index] = true
   }
   for index in 0..<count {
-    if (effect_preview_member_source_result(preview, index) is Some(_)) !=
+    if (effect_preview_member_relation_source(preview, index) is Some(_)) !=
       seen[index] {
       return false
     }
@@ -203,7 +203,7 @@ fn captured_effect_source_inventory_valid(
     seen[member_index] = true
   }
   for index in 0..<count {
-    if (effect_preview_member_source_result(preview, index) is Some(_)) !=
+    if (effect_preview_member_relation_source(preview, index) is Some(_)) !=
       seen[index] {
       return false
     }

@@ -238,6 +238,8 @@ pub fn effect_preview_member_max_items(EffectPreviewIdentity, Int) -> Int64?
 
 pub fn effect_preview_member_plan_cid(EffectPreviewIdentity, Int) -> String?
 
+pub fn effect_preview_member_relation_source(EffectPreviewIdentity, Int) -> EffectPreviewRelationSource?
+
 pub fn effect_preview_member_resolved_contract(EffectPreviewIdentity, Int) -> EffectPreviewResolvedContract?
 
 pub fn effect_preview_member_resolved_contract_cid(EffectPreviewIdentity, Int) -> String?
@@ -247,6 +249,8 @@ pub fn effect_preview_member_result_artifact_cid(EffectPreviewIdentity, Int) -> 
 pub fn effect_preview_member_source_binding_cid(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_source_result(EffectPreviewIdentity, Int) -> String?
+
+pub fn effect_preview_member_source_table_input(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_ordered_row_correlation_wire(EffectPreviewIdentity, Int, Int) -> String?
 
@@ -981,7 +985,7 @@ pub struct EffectPreviewIdentity {
   member_capability_evidence_cids : Array[String]
   member_authority_scope_cids : Array[String]
   member_effect_plan_cids : Array[String?]
-  member_source_results : Array[String?]
+  member_relation_sources : Array[EffectPreviewRelationSource?]
   member_result_artifact_cids : Array[String?]
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
@@ -1020,6 +1024,11 @@ pub(all) enum EffectPreviewIdentityIssue {
   AuthoringBindingMismatch
   AuthoringIdentityMismatch
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPreviewRelationSource {
+  Result(String)
+  TableInput(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum EffectPreviewResolvedContract {

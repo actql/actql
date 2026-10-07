@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:35c25cc35a954226770a81dff830206f429c7ebe0545b2bcf6498d04c9a2fb88",
+  "artifact_registry_cid": "sha256:61856bc3b1da1fecd285cfde5c7adae6b67325afa36b33da1b85452784cced78",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10672,7 +10672,7 @@
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b",
+    "effect_preview": "sha256:97d9ea83f6ad1abfa9eaf21c7c22c75652dba20f0a928ed568010162b471a8a5",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
@@ -37894,6 +37894,10 @@
               },
               "executed": {
                 "const": false
+              },
+              "source_table_input": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "allOf": [
@@ -37926,6 +37930,58 @@
                       "mapping",
                       "resolved_mapping_contract_cid"
                     ]
+                  }
+                ]
+              },
+              {
+                "oneOf": [
+                  {
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "source_result"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "source_table_input"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "result_artifact_cid"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "source_result",
+                      "result_artifact_cid"
+                    ],
+                    "not": {
+                      "required": [
+                        "source_table_input"
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "source_table_input",
+                      "result_artifact_cid"
+                    ],
+                    "properties": {
+                      "effect_kind": {
+                        "const": "store"
+                      }
+                    },
+                    "not": {
+                      "required": [
+                        "source_result"
+                      ]
+                    }
                   }
                 ]
               }

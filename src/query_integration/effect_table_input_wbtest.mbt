@@ -309,11 +309,164 @@ fn verify_captured_private_table_input(empty : Bool) -> Unit raise {
     ),
   )
   assert_true(issue(ordinary_receipt) is Err(@publication_host.ForeignExport))
+  let ordinary_artifact = @publication_host.issue_source_free_client_effect_local_result_artifact(
+    prepared, inputs, 1, ordinary, completed, bridge, ordinary_preparation, ordinary_definition,
+    invocation, ordinary_receipt, retention, admission, run_definition, run_invocation,
+    observation, 65536, 4096, 32,
+  ).unwrap()
+  let ordinary_identity = @publication_host.issue_source_free_client_effect_local_identity(
+    prepared, inputs, 1, ordinary_artifact, 100, 65536, 4096, 32,
+  ).unwrap()
+  let (preview_wire, preview, authoring_cid) = private_table_test_preview(
+    prepared,
+    admission,
+    run_definition,
+    run_invocation,
+    artifact,
+    ordinary_artifact,
+    identity,
+    ordinary_identity,
+    @publication_host.client_table_input_operation(table_input),
+    scope,
+  )
+  let run_cid = @publication.publication_contract_identity(run_definition)
+  assert_eq(
+    @publication.effect_preview_member_relation_source(preview, 0),
+    Some(@publication.TableInput("out")),
+  )
+  assert_eq(
+    @publication.effect_preview_member_relation_source(preview, 1),
+    Some(@publication.Result("other")),
+  )
+  assert_true(
+    @publication_host.check_source_free_client_effect_preview_identities(
+      prepared,
+      inputs,
+      preview_wire,
+      run_cid,
+      authoring_cid,
+      [identity, ordinary_identity],
+      65536,
+      4096,
+      32,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @publication_host.check_source_free_client_effect_preview_identities(
+      prepared,
+      inputs,
+      preview_wire,
+      run_cid,
+      authoring_cid,
+      [ordinary_identity],
+      65536,
+      4096,
+      32,
+    )
+    is Err(@publication_host.MissingIdentity),
+  )
+  let plan_limits : @stage_results.EffectPlanIdentityLimits = {
+    max_fields: 100,
+    max_work: 10000,
+    max_bytes: 65536,
+    max_nodes: 4096,
+    max_depth: 32,
+  }
+  let bound = @program_check.bind_effect_program_run_preview(
+    @strategy.captured_effect_run_owner(effect_run),
+    run_invocation,
+    0,
+    preview,
+    10000,
+    plan_limits,
+  ).unwrap()
+  let captured_preview = @strategy.bind_captured_effect_preview_inputs(
+    effect_run, inputs, bound, 10000,
+  ).unwrap()
+  assert_true(
+    @strategy.captured_effect_preview_inputs_available(captured_preview),
+  )
+  assert_true(
+    @strategy.captured_effect_preview_input_at(captured_preview, 0) is None,
+  )
+  assert_true(
+    physical_equal(
+      @strategy.captured_effect_preview_table_input_at(captured_preview, 0).unwrap(),
+      table,
+    ),
+  )
+  assert_true(
+    @strategy.captured_effect_preview_table_input_at(captured_preview, 1)
+    is None,
+  )
+  let table_preview = @publication_host.bind_client_table_preview(
+    table_input, captured_preview, 0,
+  ).unwrap()
+  assert_true(
+    @strategy.captured_effect_preview_plan_terminal(
+      captured_preview, 0, 100, 10000,
+    )
+    is Ok(None),
+  )
+  assert_true(
+    @publication_host.client_table_preview_input_available(table_preview),
+  )
+  assert_true(
+    @publication_host.bind_client_table_preview(
+      table_input, captured_preview, 1,
+    )
+    is Err(@publication_host.Unavailable),
+  )
+  let swapped = preview_wire.replace(
+    old="\"source_table_input\":\"out\"",
+    new="\"source_result\":\"out\"",
+  )
+  let (swapped_wire, swapped_preview) = @publication.author_effect_preview_semantic_wire(
+    swapped, run_cid, authoring_cid, 65536, 4096, 32,
+  ).unwrap()
+  assert_true(
+    @program_check.bind_effect_program_run_preview(
+      @strategy.captured_effect_run_owner(effect_run),
+      run_invocation,
+      0,
+      swapped_preview,
+      10000,
+      plan_limits,
+    )
+    is Err(
+      @program_check.Static(
+        @program_check.Inventory(
+          @stage_results.Inventory(@stage_results.SourceMismatch("save"))
+        )
+      )
+    ),
+  )
+  assert_true(
+    @publication_host.check_source_free_client_effect_preview_identities(
+      prepared,
+      inputs,
+      swapped_wire,
+      run_cid,
+      authoring_cid,
+      [identity, ordinary_identity],
+      65536,
+      4096,
+      32,
+    )
+    is Err(@publication_host.ForeignPreview),
+  )
   @execution.cancel_completed_relation_export_receipt(ordinary_receipt)
   @execution.cancel_completed_result_relation_export(ordinary_preparation)
   |> ignore
   assert_true(@strategy.release_captured_effect_inputs(inputs))
   assert_false(@strategy.release_captured_effect_inputs(inputs))
+  assert_false(
+    @strategy.captured_effect_preview_inputs_available(captured_preview),
+  )
+  assert_false(
+    @publication_host.client_table_preview_input_available(table_preview),
+  )
   assert_true(@strategy.captured_effect_table_input_at(inputs, 0) is None)
   // Release revokes the whole capture capability before source lookup.
   assert_true(issue(receipt) is Err(@publication_host.ForeignOwner))
@@ -332,6 +485,139 @@ fn verify_captured_private_table_input(empty : Bool) -> Unit raise {
   assert_eq(usage.held_bytes, 0L)
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
+}
+
+///|
+fn private_table_test_preview(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  table_artifact : @publication_host.ClientEffectLocalResultArtifact,
+  result_artifact : @publication_host.ClientEffectLocalResultArtifact,
+  table_identity : @publication_host.ClientEffectLocalIdentity,
+  result_identity : @publication_host.ClientEffectLocalIdentity,
+  operation : @effect.TableOperation,
+  scope : @request_scope.LogicalRequestScope,
+) -> (String, @publication.EffectPreviewIdentity, String) {
+  let definition = @publication_host.prepared_client_effect_computation_definition_cid(
+    prepared,
+  )
+  let authoring_body = "{\"annotations\":[],\"program_definition_cid\":\"" +
+    definition +
+    "\",\"version\":\"actql-authoring-context/0.1\"}"
+  let authoring = native_publication_cid(authoring_body)
+  let placeholder = native_publication_cid("private-table-preview-placeholder")
+  let correlation = "\"" + @effect.table_operation_cid(operation) + "\""
+  let members : Array[String] = []
+  for index in 0..<2 {
+    let id = if index == 0 { "save" } else { "copy" }
+    let (_, _, kind, target, mapping, mapping_cid, _, failure) = @publication_host.client_effect_member_descriptor(
+      prepared, 0, id, 100,
+    ).unwrap()
+    let artifact = if index == 0 { table_artifact } else { result_artifact }
+    let identity = if index == 0 { table_identity } else { result_identity }
+    let row = "{\"after\":{\"state\":\"not_applicable\"},\"before\":{\"state\":\"not_applicable\"},\"intended_changes\":{\"state\":\"present\",\"value\":" +
+      @effect.table_operation_json(operation) +
+      "},\"row_idempotency_key\":\"" +
+      placeholder +
+      "\",\"row_preview_cid\":\"" +
+      placeholder +
+      "\",\"target_guard\":{\"state\":\"not_applicable\"},\"target_row_identity\":" +
+      correlation +
+      "}"
+    members.push(
+      "{\"approval\":\"required\",\"authority_scope_cid\":\"" +
+      placeholder +
+      "\",\"capability_evidence_cid\":\"" +
+      placeholder +
+      "\",\"changes\":" +
+      (if index == 0 { "[" + row + "]" } else { "[]" }) +
+      ",\"count\":" +
+      (if index == 0 { "1" } else { "0" }) +
+      ",\"effect_id\":\"" +
+      id +
+      "\",\"effect_identity_cid\":\"" +
+      @publication_host.client_effect_local_identity_cid(identity) +
+      "\",\"effect_kind\":\"" +
+      kind +
+      "\",\"effect_member_preview_cid\":\"" +
+      placeholder +
+      "\",\"executed\":false,\"mapping\":\"" +
+      mapping +
+      "\",\"max_items\":1,\"on_item_failure\":\"" +
+      failure +
+      "\",\"preview_strength\":\"blind\",\"required_permissions\":[\"scope:create\"],\"resolved_mapping_contract_cid\":\"" +
+      mapping_cid +
+      "\",\"result_artifact_cid\":\"" +
+      @publication_host.client_effect_local_result_artifact_cid(artifact) +
+      "\",\"row_order\":" +
+      (if index == 0 { "[\"" + placeholder + "\"]" } else { "[]" }) +
+      ",\"source_binding_cid\":\"" +
+      placeholder +
+      "\"," +
+      (if index == 0 {
+        "\"source_table_input\":\"out\""
+      } else {
+        "\"source_result\":\"other\""
+      }) +
+      ",\"target\":\"" +
+      target +
+      "\",\"write_footprint\":{\"kind\":\"collection\",\"provider_boundary_cid\":\"" +
+      placeholder +
+      "\",\"provider_namespace\":\"fixture\",\"provider_object_identity_cids\":[],\"resource_identity_scheme_cid\":\"" +
+      placeholder +
+      "\",\"resource_kind\":\"Table\"}}",
+    )
+  }
+  let run_cid = @publication.publication_contract_identity(run_definition)
+  let raw = "{\"authoring_context\":{\"annotations\":[],\"authoring_context_cid\":\"" +
+    authoring +
+    "\",\"program_definition_cid\":\"" +
+    definition +
+    "\",\"version\":\"actql-authoring-context/0.1\"},\"barrier_provenance_cids\":[],\"check_environment_cid\":\"" +
+    @publication_host.prepared_client_effect_computation_environment_cid(
+      prepared,
+    ) +
+    "\",\"compiled_plan_cid\":\"" +
+    @publication.run_publication_compiled_plan_cid(admission) +
+    "\",\"effect_preview_cid\":\"" +
+    placeholder +
+    "\",\"effects\":[" +
+    members.join(",") +
+    "],\"encryption_required\":true,\"executed\":false,\"invocation_cid\":\"" +
+    @publication.publication_contract_identity(invocation) +
+    "\",\"model_derived\":false,\"model_invocation_evidence_cids\":[],\"model_response_artifact_cids\":[],\"model_task_contract_cids\":[],\"program_definition_cid\":\"" +
+    definition +
+    "\",\"program_semantics_cid\":\"" +
+    @publication_host.prepared_client_effect_computation_semantics_cid(prepared) +
+    "\",\"retention_class\":\"authority-evidence\",\"run_identity_cid\":\"" +
+    run_cid +
+    "\",\"sensitivity\":\"private\",\"version\":\"actql-effect-preview/0.1\"}"
+  let (semantic_wire, semantic) = @publication.author_effect_preview_semantic_wire(
+    raw, run_cid, authoring, 65536, 4096, 32,
+  ).unwrap()
+  let key = @effect.prepare_effect_dispatch_key(
+    scope,
+    @publication.effect_preview_semantic_identity(semantic),
+    correlation,
+    73,
+    1,
+    1,
+  ).unwrap()
+  let wire = @publication.complete_effect_preview_dispatch_keys(
+    semantic_wire,
+    [[@effect.effect_dispatch_key_cid(key)], []],
+    run_cid,
+    authoring,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let preview = @publication.admit_effect_preview_identity(
+    wire, run_cid, authoring, 65536, 4096, 32,
+  ).unwrap()
+  (wire, preview, authoring)
 }
 
 ///|

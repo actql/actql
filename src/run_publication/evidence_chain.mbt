@@ -341,7 +341,10 @@ fn effect_context_preview_inventory_matches(
       Some(expected) {
       return false
     }
-    if effect_preview_member_source_result(preview, index) is Some(name) {
+    if effect_preview_member_relation_source(preview, index) is Some(source) {
+      // Private Table dependency/Manifest admission is not supplied by the
+      // Result-only closure. Never silently omit that retained responsibility.
+      guard source is Result(name) else { return false }
       let effect_id = preview.member_effect_ids[index]
       expected_source_names.push(effect_id)
       guard effect_preview_member_source_binding_cid(preview, index)
