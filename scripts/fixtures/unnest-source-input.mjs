@@ -1,3 +1,5 @@
+import {unnestCheckedArraySuccesses, unnestCheckedArrayRefusals}
+  from './unnest-checked-array-source-input.mjs';
 // Independent GoogleSQL UNNEST expectations: NULL/empty arrays yield no rows,
 // NULL elements and duplicates remain rows, and explicit offsets restore order.
 import {unnestParameterPathSuccesses, unnestParameterPathRefusals}
@@ -145,3 +147,6 @@ unnestSuccesses.push(structSuccess('nested-top-level',
 
 unnestSuccesses.push(...unnestParameterPathSuccesses);
 unnestRefusals.push(...unnestParameterPathRefusals);
+
+unnestSuccesses.push(...unnestCheckedArraySuccesses);
+unnestRefusals.push(...unnestCheckedArrayRefusals);
