@@ -193,6 +193,7 @@ fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort 
     "LENGTH" | "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("len", 1, 1)
     "SQRT" => ("sqrt", 1, 1)
     "FLOOR" => ("floor", 1, 1)
+    "CEIL" | "CEILING" => ("ceil", 1, 1)
     "LOWER" => ("lower", 1, 1)
     "UPPER" => ("upper", 1, 1)
     "TRIM" => ("trim", 1, 1)
@@ -447,7 +448,16 @@ fn append_resolved(
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
-              if maximum == 1 {
+              if name == "ceil" {
+                // Finite-number ceiling uses one operand subtree. The numeric
+                // zero also supplies ordinary typing for an untyped NULL.
+                let zero = lowering.form("literal", lowering.add(Number(0)))
+                let negative = lowering.arguments("subtract", [
+                  zero,
+                  nodes[args[0]],
+                ])
+                lowering.form("negate", lowering.form("floor", negative))
+              } else if maximum == 1 {
                 lowering.form(name, nodes[args[0]])
               } else {
                 lowering.arguments(name, args.map(i => nodes[i]))
