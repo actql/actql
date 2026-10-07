@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect} from '../../packages/sdk/index.mjs';
+import {connect, explainCancellation, formatCancellation} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
@@ -83,28 +83,38 @@ try {
       }
       return originalExec.call(this, sql);
     };
-    let failure;
+    let failure, explanation;
     try { await run.cancel({cancelId, expectedRevision: cancelRef.expectedRevision}); }
-    catch (error) { failure = {code: error.code, cancelRef: error.cancelRef}; }
+    catch (error) {
+      failure = {code: error.code, cancelRef: error.cancelRef};
+      explanation = explainCancellation(error);
+    }
     finally { DatabaseSync.prototype.exec = originalExec; }
     console.log('INSTALLED_CANCEL_PHASE', 'cancel-returned', failure?.code);
     assert.deepEqual(failure, {code: 'CancellationUnknown', cancelRef});
     assert.equal(faults, 1);
     await writeFile(output, JSON.stringify({ref: run.ref, cancelRef, status, rows,
-      failure, faults, computes, snapshot: snapshot()}));
+      failure, explanation, faults, computes, snapshot: snapshot()}));
   } else {
     const request = await client.lookupRequest(requestId);
     console.log('INSTALLED_CANCEL_PHASE', 'request-found');
     assert.equal(request.kind, 'found');
     const run = await client.attach(request.ref);
     const before = snapshot();
-    const lookup = await run.lookupCancellation(originalRef);
+    const callerRef = {...originalRef};
+    const lookup = await run.lookupCancellation(callerRef);
+    callerRef.cancelId = 'edited-after-lookup';
     const repeated = await run.lookupCancellation(originalRef);
     console.log('INSTALLED_CANCEL_PHASE', 'looked-up', lookup.kind);
     assert.deepEqual(repeated, lookup);
     assert.deepEqual(snapshot(), before);
     const status = await run.status();
+    const explanation = explainCancellation(lookup);
+    const formats = Object.fromEntries(['text', 'html', 'json'].map(format =>
+      [format, formatCancellation(lookup, {format})]));
     await writeFile(output, JSON.stringify({ref: run.ref, request, lookup, repeated,
+      explanation, repeatedExplanation: explainCancellation(repeated), formats,
+      copiedExplanationAbsent: explainCancellation({...lookup}) === undefined,
       status, computes, snapshot: snapshot()}));
   }
 } finally {

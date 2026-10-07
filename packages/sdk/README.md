@@ -755,7 +755,8 @@ existing contract validation; there is no compatibility adapter.
 ### Run cancellation explanations
 
 `explainCancellation(result)` returns immutable read-only advice for the exact
-response or uncertain error produced by this SDK's `Execution.cancel()` call.
+response or uncertain error produced by this SDK's `Execution.cancel()` or
+`Execution.lookupCancellation()` call.
 The SDK detaches each validated cancellation response, so a Local port reusing
 its response object cannot change an earlier result's Run, kind, revision or
 explanation.
@@ -777,10 +778,20 @@ An HTTP `Response` object returned through Local is also an invalid
 representation with an unknown cancellation outcome. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
-association. Local failures before the send boundary and typed Host refusals
+association. For the cancellation write, local failures before the send boundary and typed Host refusals
 retain their existing errors without a fabricated cancellation observation.
 The accessor performs no I/O or automatic retry and retains no provider cause.
 The presentation association lasts only while its SDK result is retained.
+
+An exact lookup captures all five original reference fields before validation,
+copy verification or asynchronous transport. Changed copies are rejected before
+lookup dispatch. A validated `found` lookup explains its retained cancellation
+kind and recorded control revision, independently of today's Run status. An
+`unknown` lookup, lost reply, denied lookup or malformed reply retains only the
+original read-only `lookupCancellation` target; none establishes nonacceptance
+or physical stop. `formatCancellation(lookup)` uses that same owned observation.
+Editing the caller's reference or reusing a Host reply cannot rewrite an earlier
+explanation. Looking up or formatting never sends another cancellation.
 The Host's separate durable operation custody is owned by its existing journal.
 
 This is presentation over the existing Client–Host cancellation contract.

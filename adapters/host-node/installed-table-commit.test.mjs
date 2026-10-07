@@ -132,6 +132,13 @@ for (const partial of [false,true]) {
           const recovered = {requestIdentity:identity,requestScope:moon.clientRequestLogicalScope(identity),computation:durable};
           recoveredStage = await factory.prepareRecovered({moon,control,store,recovered,continuation:{provider:saved}});
           assert.deepEqual(recoveredStage.receipt.members.map(member => member.rowOwners[0].claim.canonicalRequestCid),originalRequests);
+          await assert.rejects(applyRecoveredEffectSet({...recoveredStage.apply,
+            observationOnly: true, authorization: undefined,
+            refreshPreflight: () => assert.fail('Observation cannot refresh send preflight'),
+            bindDispatch: () => assert.fail('Observation cannot bind a dispatch')}),
+          {code: 'EffectReconciliationUnattemptedRows'});
+          assert.deepEqual(sent, []);
+          assert.equal(commits(), 0, 'Reconciliation never sends an unattempted member');
           checkpoint = await openCheckpoint();
           const page = await checkpoint.listCheckpoints({principalId:'reviewer',after:'',limit:10});
           assert.equal(page.items.length,1);
@@ -200,6 +207,11 @@ for (const partial of [false,true]) {
           const replay = await applyRecoveredEffectSet({...recoveredStage.apply,authorization:undefined,
             bindDispatch:()=>assert.fail('Settled Table operation resent')});
           assert.equal(replay.dispatched,0); assert.equal(commits(),2);
+          const observed = await applyRecoveredEffectSet({...recoveredStage.apply,
+            observationOnly: true, authorization: undefined,
+            refreshPreflight: () => assert.fail('Settled observation cannot refresh'),
+            bindDispatch: () => assert.fail('Settled observation cannot send')});
+          assert.equal(observed.dispatched, 0); assert.equal(commits(), 2);
           assert.equal(f.execution.completed.length,1);
           await recoveredStage.dispose();
           await releaseCompletedRunPreparedPayloads(durable.storedResults,control);

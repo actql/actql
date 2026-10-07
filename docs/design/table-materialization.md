@@ -240,6 +240,19 @@ Concurrent or delayed observers cannot overwrite the first saved response or
 create a second terminal revision. Saved malformed evidence is retained rather
 than replaced by a lookup; that case remains a separate recovery obligation.
 
+The installed Host connects public `Run.reconcile()` to this observation of
+the original Effect continuation. It reopens the retained capture through the
+same Store owner, leaves the completed approval/resume intent unchanged, and
+uses common recovered apply, receipt aggregation and Result publication.
+The observation-only apply path rejects a remaining Ready member before any
+target refresh, approval or dispatch binder. It never turns reconciliation
+into permission to send an unattempted member. A still-unknown response keeps
+the capture and reconciliation state; observation failures do not reclassify
+the Run. Successful aggregation uses the journal's existing compare-and-swap
+transition from `needs_reconciliation`, not a new `resuming` state or intent.
+An unknown execution without an Effect continuation is not handled by this
+Table observation path.
+
 Catalog head publication, the original operation's immutable commit record and
 storage reservation transfer form one durable Catalog transaction. The record
 binds request CID, old/new generation, schema, mapping and the complete owned

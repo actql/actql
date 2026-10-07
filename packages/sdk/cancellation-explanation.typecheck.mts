@@ -1,6 +1,12 @@
-import {explainCancellation} from '@actql/sdk';
+import {explainCancellation, formatCancellation, type Execution, type CancellationReference} from '@actql/sdk';
 
 declare const result: unknown;
+declare const execution: Execution;
+declare const reference: CancellationReference;
+const lookup = await execution.lookupCancellation(reference);
+const recovered = explainCancellation(lookup);
+const rendered: string | undefined = formatCancellation(lookup, {format: 'json'});
+void recovered; void rendered;
 const explanation = explainCancellation(result);
 if (explanation) {
   // @ts-expect-error Observation advice is immutable and cannot become a write.
