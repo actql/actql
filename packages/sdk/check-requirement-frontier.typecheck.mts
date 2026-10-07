@@ -59,3 +59,11 @@ session.supplement({fulfilled: true});
 session.submit('SELECT 1');
 // @ts-expect-error The attempt cap must be supplied explicitly.
 createCheckSupplementationSession(client);
+
+const closing: Promise<void> = client.close();
+const disposing: Promise<void> = client[Symbol.asyncDispose]();
+void closing; void disposing;
+// @ts-expect-error Physical cleanup is asynchronous, not a void result.
+const synchronousClose: void = client.close();
+async function scopedClient() { await using owned = client; void owned; }
+void scopedClient;

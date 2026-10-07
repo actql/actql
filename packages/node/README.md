@@ -5,6 +5,13 @@ lightweight `@actql/sdk`. Standard installation includes `@actql/local-node`.
 Embedded Local loads that provider only when selected; Remote and connected
 Host options remain on the transport Client path.
 
+Use `await client.close()` in `finally`, or asynchronous disposal with
+`await using` where supported. It closes this Client's readers and releases its
+Local connection lease. Shared Clients stay usable; the final lease waits for
+the installed Host's graceful physical shutdown. Reconnect to the same directory
+to look up or attach retained Runs. Close never cancels a Run. A failed close
+reports `ClientCleanupPending`; retry close on that same Client.
+
 The current embedded Local profile supports checked, source-free Effect-free
 Values Programs through named Result retrieval, request lookup and attach.
 An explicitly installed DuckDB or Salesforce source profile also supports acquired input,
