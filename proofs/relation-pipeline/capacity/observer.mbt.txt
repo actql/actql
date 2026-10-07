@@ -43,6 +43,10 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     (if state.stepped_metadata { 1 } else { 0 }) +
     state.metadata_projection.map(_ => 1).unwrap_or(0) +
     state.metadata_lookup.map(_ => 1).unwrap_or(0) +
+    state.metadata_source.map(_ => 1).unwrap_or(0) +
+    (if state.metadata_generated_field >= 0 { 1 } else { 0 }) +
+    (if state.metadata_generated_seen != 0 { 1 } else { 0 }) +
+    state.term_column.map(_ => 1).unwrap_or(0) +
     state.name_charge.map(_ => 1).unwrap_or(0) +
     state.watermark_times.length() + state.lag_values.length() +
     state.json_path.map(a => a.length()).unwrap_or(0) +
@@ -83,6 +87,10 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     ",\"rowSources\":" + state.row_sources.capacity().to_string() +
     "},\"metadataPreparation\":{\"stepped\":" + state.stepped_metadata.to_string() +
     ",\"lookup\":" + (state.metadata_lookup is Some(_)).to_string() +
+    ",\"source\":" + (state.metadata_source is Some(_)).to_string() +
+    ",\"generatedField\":" + state.metadata_generated_field.to_string() +
+    ",\"generatedSeen\":" + state.metadata_generated_seen.to_string() +
+    ",\"termColumn\":" + (state.term_column is Some(_)).to_string() +
     ",\"nameCharge\":" + (state.name_charge is Some(_)).to_string() +
     ",\"snapshotEntries\":" + state.snapshot.length().to_string() +
     ",\"sourceEntries\":" + state.row_sources.length().to_string() +
