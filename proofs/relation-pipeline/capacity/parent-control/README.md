@@ -109,3 +109,43 @@ binds live callback code identities to generated object and executed-binary
 allocation sites on darwin-arm64 and linux-x64. Unknown generated sequences
 are rejected without guessed scalar extents. This
 point correspondence does not close the whole-constructor lifetime upper.
+
+
+## Driver root and common reservation retirement
+
+The driver's actual `provider_execution` root is retained while physical stop
+or provider cleanup is pending. On successful cleanup the driver caches final
+provider work and clears that root. This corrects the census's former premise
+that the driver continues to retain the provider after successful cleanup.
+An external fixture reference, immutable callback and the driver's control Ref
+can remain live: clearing this root is not physical GC destruction.
+`driver-retirement-source.mjs` admits the reviewed stop/cleanup/work/root order,
+installed observational scratch witness and common reservation return boundary.
+It rejects changes rather than automatically rebinding hashes.
+
+The bounded Native-only diagnostic reuses the existing MATCH nodes and edges
+Host helper, including its independent rows, acquired-input two-consumer
+holding checks and false/error/retry provider. It adds synchronous borrowed
+observations of the actual driver control Ref, without retaining a foreign
+pointer or adding an Owner. The Ref descriptor and requested extent are checked
+against the pinned Native ABI; observed addresses are scoped to each invocation.
+Pending cleanup must preserve the same provider. Successful cleanup must clear
+that root, reduce scratch reservation without changing output holding/retention,
+and repeated cleanup must not issue another provider call or return more credit.
+The existing Host assertions are retained verbatim.
+
+```sh
+node scripts/local-checks.mjs test node -- proofs/relation-pipeline/capacity/parent-control/driver-retirement.test.mjs
+node proofs/relation-pipeline/capacity/parent-control/driver-retirement-diagnostic.mjs
+```
+
+Run the second command on a clean fixed HEAD, in the pinned Native environment,
+through the existing bounded local guard. It selects one Native test containing
+two existing Host cases; it does not run the full Core or packed acceptance.
+The observation overlay is bound into a compiled marker, restored byte for byte,
+and the actual executable/log are archived before the independent final consumer
+accepts the immutable producer record. Negative receipt substitutions exercise
+that consumer. Local finite observations are never Actions originals or reuse
+qualification. Whole-parent lifetime/allocator upper bounds, Ledger holding
+**generation** correspondence and physical GC destruction remain unresolved;
+no structural count or point request is promoted to a physical upper bound.
