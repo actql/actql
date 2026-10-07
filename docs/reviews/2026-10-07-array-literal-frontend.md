@@ -70,3 +70,59 @@ Old retained identities are not relabeled.
 References: [GoogleSQL ARRAY type](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type),
 [ARRAY literals](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/lexical#array_literals),
 and [JSON_QUERY_ARRAY](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/json_functions#json_query_array).
+
+## Public execution blocker and common-owner handoff
+
+At `ea05f380aec8a938165f2c012e4991a69b99d15e`, the normal five-package manifest
+and each tarball digest were fixed before installation. The ARRAY-only public
+campaign failed in Embedded Local on its first independent JSON control:
+`ClientHostFailure` (500), classified by the SDK as `SubmissionUnknown`.
+The later ARRAY cases, refusals and HTTPS path were not executed. README Local
+and HTTPS preflight success is separate from ARRAY execution evidence.
+
+Using that HEAD's ordinarily built runtime, the existing
+`installNodeClientProgramPreparation` accepted the same control. The existing
+`sourceFreeValuesPlan` then failed with this chain:
+
+```
+RunHostCompilationRejected
+  ClientValuesCompilationIssue.Plan
+  ClientValuesPlanGraphIssue.Fragment
+  ClientValuesPipelineIssue.Sequence
+  SequenceIssue.KernelFailure(step=1)
+  ExpressionFailure(ExpressionNotImplemented("array"))
+```
+
+The independent control is retained in
+[the minimal Program](fixtures/array-public-program-control.program.json).
+Expected Named Result `answer` is exactly `[{"items":[2,1,2]}]`; its sole column
+is nonnullable ARRAY with `max_items:3` and nonnullable Number items. Preserve
+that value, type and multiplicity. The source `SELECT [2,1,2] AS items` lowers
+to the same ordinary array operation; alias/step structure differences do not
+justify a different execution meaning.
+
+Common execution owner A needs to connect the existing typed `array` and
+`empty_array` forms at `lowering_relation/expression.mbt` and its expression
+wire/evaluation consumers. The current ExpressionBody has Object and Property,
+but no Array constructor case; lowering explicitly rejects the array tag.
+Use the existing expression-frame retention, capacity, cancellation and cleanup
+ownership. This Frontend unit does not implement a parallel evaluator, replace
+SQL ARRAY with opaque JSON, or fold the fixture into a different Program.
+
+The public 500 classification is a separate Host preparation/error boundary:
+a deterministic common compilation refusal should remain typed before durable
+Run admission. Public refusal-counter evidence is not established by this
+failed campaign. Keep that responsibility distinct from ARRAY semantics.
+
+Reproduction uses normal packing and the unchanged ARRAY-only public campaign:
+
+```sh
+node scripts/packed-client-packages.mjs /tmp/actql-array-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/tmp/actql-array-pack \
+  node scripts/test-packed-public-query.mjs --array-literal-only
+```
+
+The failure receipt retained stdout/stderr, SHA, tarball digests and command
+status; the private expansion was removed by the existing evidence wrapper.
+This unit remains Draft until common execution and the full authored Local/HTTPS
+corpus are verified. Parser/checker acceptance is not public execution support.
