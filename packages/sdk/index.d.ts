@@ -132,7 +132,7 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
 /** Read-only advice for this exact SDK submit result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown, options?: OperationExplanationOptions): SubmissionExplanation | undefined;
 export type ReadFailureExplanation = Readonly<{
-  observation: 'read_incomplete' | 'cleanup_unknown';
+  observation: 'read_open_unknown' | 'read_incomplete' | 'cleanup_unknown';
   cleanup?: 'unknown';
   attemptId: string;
   rowsYielded: number;
@@ -148,6 +148,30 @@ export type ReadFailureExplanation = Readonly<{
 }>;
 /** SDK-observed progress for this exact read error; no opening, Run or release proof. */
 export declare function explainReadFailure(result: unknown, options?: OperationExplanationOptions): ReadFailureExplanation | undefined;
+
+export type DeliveryObservationExplanation = Readonly<{
+  summary: string;
+  hint: string;
+  next: ReadFailureExplanation['next'];
+}> & (Readonly<{observation: 'lookup_unresolved' | 'attempt_recorded'}> |
+  (Readonly<{
+    recordSequence: number;
+    /** Sink-confirmed Host bytes, never the caller's yielded-row count. */
+    hostConfirmedByteCount: number;
+    exposure: 'exact' | 'unknown_additional';
+    possibleUnconfirmedMaxBytes?: number;
+    /** Omitted does not certify application cleanup or other Owner releases. */
+    cleanup?: 'unresolved';
+  }> & (Readonly<{
+    observation: 'delivery_streaming' | 'delivery_failed' | 'delivery_cancelled';
+  }> | Readonly<{
+    observation: 'host_delivery_succeeded';
+    hostReleaseReceiptCid: string;
+    deliveredSha256: string;
+  }>)));
+/** Only an original admitted SDK lookup; no Run, received-row or application-persistence proof. */
+export declare function explainDeliveryAttempt(result: unknown,
+  options?: OperationExplanationOptions): DeliveryObservationExplanation | undefined;
 
 export type CancellationExplanation = Readonly<{
   summary: string;
@@ -431,6 +455,7 @@ export type OperationFormatOptions = OperationExplanationOptions & Readonly<{
 export declare function formatSubmission(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatCancellation(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatReadFailure(result: unknown, options?: OperationFormatOptions): string | undefined;
+export declare function formatDeliveryAttempt(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatEffectUncertainty(result: unknown, options?: OperationFormatOptions): string | undefined;
 
 /** Safe explanation of an original SDK-rejected Run observation; no write permission. */

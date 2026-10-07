@@ -66,6 +66,13 @@ const accountConfiguration = (outcome, operation, accountId) =>
       exclusions: []}]});
 
 async function installedSource(root, readOutcome) {
+  // Keep the generic checking fixture unchanged; this publication extends
+  // the installed Host's selected base policy.
+  const base = JSON.parse(await readFile(join(repository,
+    'spec/local-check-environment.json'), 'utf8'));
+  const environment = {...sourceEnvironment, host_policy_profile: base.host_policy_profile};
+  delete environment.evidence_bundle_cid;
+  environment.evidence_bundle_cid = machineCid(environment);
   const database = join(root, 'records.duckdb');
   const instance = await DuckDBInstance.create(database);
   const connection = await instance.connect();
@@ -83,7 +90,7 @@ async function installedSource(root, readOutcome) {
     version: 'actql-installed-duckdb-source/0.1',
     database, schema: 'main', table: 'records', ...target,
     sourceRef: 'connector://crm/main/r#v',
-    checkEnvironmentWire: canonicalText(sourceEnvironment),
+    checkEnvironmentWire: canonicalText(environment),
     accountConfigurationWire: accountConfiguration(outcome, 'read',
       'source-account'),
   }));
