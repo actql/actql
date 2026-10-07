@@ -1,0 +1,9 @@
+{
+  "version": "actql-foundation-single-base-normalization/0.1",
+  "id": "normalize-resolve-durable-submission-manifest-gates-single-base",
+  "target": {
+    "id": "resolve-durable-submission-manifest-gates",
+    "digest": "0a747667d7b4c3b07e4da333278114828d2ff48fee1f3ebce034848f3981f663"
+  },
+  "reason": "Retain the original declaration and its introduction byte-for-byte. Its recorded singleton matches the actual Git merge base; apply the existing append-only single-base normalization rule without changing dependencies, blobs or modes."
+}

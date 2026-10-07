@@ -217,7 +217,13 @@ if (process.env.ACTQL_NATIVE_SUBMISSION_CLIENT) {
         '--ca', join(f.root, 'ca.pem'), '--cert', join(f.root, 'cert.pem'), '--key', join(f.root, 'key.pem'), ...args],
       {cwd: f.root, env: {...process.env, PATH: ''}, timeout: 20000});
     await assert.rejects(run('aql', '--program-file', 'query.sql', '--format', 'sql',
-      '--submission-ref-file', 'original.json'), error => /SubmissionUnknown submission-ref-file=original.json/u.test(error.stderr));
+      '--submission-ref-file', 'original.json'), error => {
+      const unknown = error.stderr.match(/SubmissionUnknown submission-ref=(.+) lookup=lookup-submission/u);
+      assert.ok(unknown, error.stderr);
+      assert.deepEqual(JSON.parse(unknown[1]), original);
+      assert.equal(error.stdout, '');
+      return true;
+    });
     const lookedUp = JSON.parse((await run('lookup-submission', '--submission-ref-file', 'original.json')).stdout);
     assert.equal(lookedUp.kind, 'ready');
     assert.deepEqual(lookedUp.submissionRef, original);
@@ -229,7 +235,9 @@ if (process.env.ACTQL_NATIVE_SUBMISSION_CLIENT) {
     assert.deepEqual(restored, lookedUp);
     const replay = JSON.parse((await run('aql', '--program-file', 'query.sql', '--format', 'sql',
       '--submission-ref-file', 'original.json')).stdout);
-    assert.deepEqual(replay.ref, lookedUp.admission.ref);
+    assert.equal(replay.kind, 'ready');
+    assert.deepEqual(replay.submissionRef, original);
+    assert.deepEqual(replay.admission.ref, lookedUp.admission.ref);
     assert.equal(f.computes, 1, 'Native lookup/replay never allocates another Run or Compute');
   });
 }
