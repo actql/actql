@@ -31,3 +31,24 @@ if (submission?.observation === 'request_held') {
 }
 const text: string | undefined = formatRequestLookup(lookup, {format: 'json'});
 void text;
+
+import {explainRequestCancellation, formatRequestCancellation,
+  type RequestCancellationExplanation} from '@actql/sdk';
+const cancellation: RequestCancellationExplanation | undefined = explainRequestCancellation(lookup);
+if (cancellation) {
+  // @ts-expect-error No physical-stop certificate is exposed.
+  const stopped: boolean = cancellation.stopped;
+  // @ts-expect-error The original request reference is immutable.
+  cancellation.requestId = 'another';
+  if (cancellation.observation === 'outcome_unknown') {
+    const problem: 'exchange_failed' | 'response_uninterpretable' = cancellation.problem;
+    const operation: 'lookupRequest' = cancellation.next.operation;
+    void [problem, operation];
+    // @ts-expect-error A failed observation has no Run revision.
+    const revision: number = cancellation.revision;
+  }
+  // @ts-expect-error Existing request IDs are not cancellation-operation identities.
+  const cancelRef: string = cancellation.cancelRef;
+}
+const cancellationText: string | undefined = formatRequestCancellation(lookup, {format: 'html', locale: 'ja'});
+void cancellationText;
