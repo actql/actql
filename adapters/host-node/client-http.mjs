@@ -67,6 +67,7 @@ function responseCode(error) {
   if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
   if (error?.code === 'CheckpointReviewTooLarge') return 413;
   if (error?.code === 'ClientRequestIntentConflict' ||
+      error?.code === 'ClientSubmittedIntentConflict' ||
       error?.code === 'ClientCancellationIntentConflict' ||
       error?.code === 'ClientCancellationRevisionConflict') return 409;
   if (error?.code === 'ResultUnavailable') return 410;
