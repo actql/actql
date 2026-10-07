@@ -6465,3 +6465,22 @@ Other completion-port starts, downstream name/field resolution scans, installed
 availability callbacks and Native allocation/callback correspondence remain
 distinct. See the
 [Values/binary preparation record](2026-10-07-local-relation-port-preparation.md).
+
+## Compound completion-port preparation
+
+Join, Nest, Interval Join, As-of Join and Sequence Match now advance the existing
+trusted completion preparation cursor before algorithm work. Exact ordered input
+bindings and accepted-output ownership are preserved; pending names remain owned
+until cancellation cleanup. Logical work/workspace limits are unchanged.
+
+At `e6493c39e22e6881a9e41746a74a2b854d9c78cd`, the six affected JS fixture
+files pass 56/56 and the selected public Host/resource/inventory batch passes 9/9.
+The five public cases use actual retained Store output and two consumers. Independent
+name limits, quantum invariance, Unicode and cancellation in every preparation
+phase are registered per operation; missing roles or production connections are
+rejected. #769 remains an unmerged parent dependency at publication preparation.
+
+This does not certify all provider start work as bounded. Nest input-name array
+creation, temporal metadata setup, installed callbacks and Native correspondence
+remain distinct, as do unexecuted Wasm/Native and packed acceptance. See the
+[compound preparation record](2026-10-07-local-compound-port-preparation.md).
