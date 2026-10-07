@@ -181,6 +181,42 @@ function borrowedBindingsProgram(id,ordered=false) {
   return value;
 }
 
+function unaryCompletionProgram(id, kind) {
+  const value = program(id), source = value.stages[0], producer = value.stages[1];
+  source.steps[0].values = {schema:{id:{type:'number',nullable:false},
+    payload:{type:'number',nullable:true}}, rows:[{id:1,payload:7},{id:2,payload:null}]};
+  let operation;
+  if (kind === 'group' || kind === 'count') {
+    operation = {group:{by:['id'],aggregates:{[member]:{
+      fn:kind === 'count' ? 'count' : 'max',field:'payload'}}},as:'generated'};
+  } else if (kind === 'window') {
+    source.steps[0].values.schema[member] = source.steps[0].values.schema.payload;
+    source.steps[0].values.schema.at = {type:'number',nullable:false};
+    source.steps[0].values.rows = [{id:1,[member]:7,at:5},{id:2,[member]:null,at:7}];
+    delete source.steps[0].values.schema.payload;
+    source.results.rows.fields = ['id',member,'at'];
+    operation = {row_window:{kind:'fixed',time:'at',size:10},as:'generated'};
+  } else if (kind === 'unpivot') {
+    operation = {unpivot:{columns:['payload'],keep:['id'],
+      name_column:member,value_column:'value'},as:'generated'};
+  } else if (kind === 'unnest') {
+    source.steps[0].values = {schema:{id:{type:'number',nullable:false},
+      items:{type:'array',nullable:true,max_items:1,
+        items:{type:'number',nullable:true}}},
+      rows:[{id:1,items:[7]},{id:2,items:null}]};
+    source.results.rows.fields = ['id','items'];
+    operation = {unnest:{column:'items',as:member,outer:true},as:'generated'};
+  } else {
+    throw new Error(`Unknown unary completion fixture: ${kind}`);
+  }
+  producer.steps = [operation];
+  if (kind !== 'unpivot') {
+    producer.steps.push({derive:{value:{field:member}},as:'derived'});
+  }
+  producer.steps.push({select:['id','value'],as:'out'});
+  return value;
+}
+
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
   valueContract={type:'number',nullable:true},producerTask=1){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
@@ -283,3 +319,20 @@ test('public retained borrowed bindings preserve map values NULL and post-progre
 test('public retained ordered bindings preserve prior slots NULL and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'ordered-bindings',
     id=>borrowedBindingsProgram(id,true)));
+
+test('public retained Group completion names preserve NULL and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-group',
+    id=>unaryCompletionProgram(id,'group')));
+test('public retained COUNT completion names preserve counts and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-count',
+    id=>unaryCompletionProgram(id,'count'),[{id:1,value:1},{id:2,value:0}],
+    {type:'number',nullable:false}));
+test('public retained row-window completion names preserve NULL and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-window',
+    id=>unaryCompletionProgram(id,'window')));
+test('public retained unpivot completion names preserve NULL and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-unpivot',
+    id=>unaryCompletionProgram(id,'unpivot')));
+test('public retained unnest completion names preserve NULL and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-unnest',
+    id=>unaryCompletionProgram(id,'unnest')));

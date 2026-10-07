@@ -2904,6 +2904,39 @@
       },
       "boundary_tests": [
         {
+          "role": "window_unary_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary window completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "window_unary_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary window completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "window_unary_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary completion preparation cancels inside every name phase"
+        },
+        {
           "role": "row_window_output_values_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -3048,6 +3081,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "window_unary_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained row-window completion names preserve NULL and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
         {
           "role": "row_window_standard_host_two_consumers",
           "suite": "node:duckdb_standard_host",
@@ -3611,6 +3654,39 @@
       },
       "boundary_tests": [
         {
+          "role": "pivot_unary_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary pivot completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "pivot_unary_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary pivot completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "pivot_unary_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary completion preparation cancels inside every name phase"
+        },
+        {
           "role": "pivot_stepped_output_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -3809,6 +3885,39 @@
       },
       "boundary_tests": [
         {
+          "role": "unpivot_unary_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary unpivot completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "unpivot_unary_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary unpivot completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "unpivot_unary_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary completion preparation cancels inside every name phase"
+        },
+        {
           "role": "unpivot_output_values_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -3997,6 +4106,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "unpivot_unary_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained unpivot completion names preserve NULL and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
         {
           "role": "unpivot_standard_host_two_consumers",
           "suite": "node:duckdb_standard_host",
@@ -4381,6 +4500,39 @@
       },
       "boundary_tests": [
         {
+          "role": "unnest_unary_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary unnest completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "unnest_unary_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary unnest completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "unnest_unary_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary completion preparation cancels inside every name phase"
+        },
+        {
           "role": "unnest_output_values_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -4558,6 +4710,16 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "unnest_unary_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained unnest completion names preserve NULL and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
         {
           "role": "unnest_standard_host_two_consumers",
           "suite": "node:duckdb_standard_host",
@@ -5186,6 +5348,72 @@
       },
       "boundary_tests": [
         {
+          "role": "group_unary_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary group completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "group_unary_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary group completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "group_unary_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary completion preparation cancels inside every name phase"
+        },
+        {
+          "role": "count_unary_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary count completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "count_unary_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary count completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "count_unary_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary completion preparation cancels inside every name phase"
+        },
+        {
           "role": "group_stepped_wide_output_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5725,6 +5953,26 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "group_unary_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained Group completion names preserve NULL and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
+        {
+          "role": "count_unary_output_port_public",
+          "suite": "node:embedded_property_names",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained COUNT completion names preserve counts and post-progress custody",
+          "case": "unaryCompletionProgram"
+        },
         {
           "role": "global_count_host_two_consumers",
           "suite": "node:duckdb_standard_host",
@@ -8631,6 +8879,39 @@
         "symbol": "group_provider"
       },
       "boundary_tests": [
+        {
+          "role": "analytic_unary_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary analytic completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "analytic_unary_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary analytic completion preparation has exact bytes and quantum-independent work"
+        },
+        {
+          "role": "analytic_unary_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_unary_port_preparation_wbtest.mbt",
+          "fixture": "bounded unary completion preparation cancels inside every name phase"
+        },
         {
           "role": "analytic_stepped_wire_exact_one_short",
           "suite": "moon:execution_relation",

@@ -1838,6 +1838,30 @@ export function validateResourceAccounting({
         !boundaryRoles.has('same_stage_values_derive_two_consumers'))) {
       fail(`${label}: same-stage values derive evidence is missing`);
     }
+    const unaryPortKinds = {group:['group','count'], analytic:['analytic'],
+      pivot:['pivot'], row_window:['window'], unpivot:['unpivot'], unnest:['unnest']};
+    if (route.family === 'RelA' && unaryPortKinds[route.operation]) {
+      for (const kind of unaryPortKinds[route.operation]) {
+        const kernel = {group:'group', count:'global_count', analytic:'group',
+          pivot:'group', window:'row_window', unpivot:'unpivot', unnest:'unnest'}[kind];
+        const file = path.join(root, `src/execution_relation/bounded_${kernel}.mbt`);
+        const source = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+        if (['start_trusted_output_preparation(', 'advance_trusted_output_preparation(',
+          'finish_trusted_output_preparation(', 'cancel_trusted_output_preparation(']
+          .some(marker => !source.includes(marker)) ||
+          /prepare_trusted_output_port(?:_with_inputs)?\s*\(/u.test(source)) {
+          fail(`${label}: ${kind} unary output port production cursor connection is missing`);
+        }
+        for (const part of ['limit', 'quantum', 'stop']) {
+          const role = `${kind}_unary_output_port_${part}`;
+          if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+        }
+        if (!['analytic', 'pivot'].includes(kind)) {
+          const role = `${kind}_unary_output_port_public`;
+          if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+        }
+      }
+    }
     if (route.family === 'RelA' && route.operation === 'derive') {
       for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
         'derive_field_name_limits', 'derive_field_name_stop',

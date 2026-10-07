@@ -6420,3 +6420,24 @@ The new fixed cursor/state shape is recorded, not certified as Native byte
 correspondence. General producer preparation, other kernel metadata and
 installed availability callbacks remain separate. See the
 [output-port record](2026-10-07-local-output-port-preparation.md).
+
+### Unary retained completion-port preparation (2026-10-07)
+
+Group/analytic/pivot, COUNT, row window, unpivot and unnest now drive the
+existing trusted-output preparation cursor in their initial bounded resume
+phase. Exact input admission, output identity and logical work/workspace
+limits remain unchanged. Independent name-byte boundaries, Unicode, quantum
+invariance and phase-specific stop/cleanup tests are connected to each route.
+Five normal retained-Store producer/two-consumer Host cases are registered.
+
+This implementation is not yet a completed product acceptance unit. The
+affected JS batch passed 63/64, including all ten new tests; the final window
+watchdog correction, production-source guard correction and new Host cases
+were outstanding. The source-guard correction and its 20 call mutations now
+pass with the source snapshot custody checks (4/4); the final window and Host
+cases still need execution. Subsequent targeted JS and runtime attempts timed
+out rather than producing complete results. Existing receipt failures are
+retained, and no old runtime is counted as a new-source execution.
+Join/Nest/interval/as-of/Sequence preparation and Native capacity correspondence
+remain separate. See the
+[unary preparation record](2026-10-07-local-unary-port-preparation.md).
