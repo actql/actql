@@ -6801,3 +6801,15 @@ Occurrence selection/copy preparation and trusted availability/verifier callback
 duration remain separate boundaries, as do row-file completion and physical chunk
 admission. This does not establish packed/public Run cancellation or whole-Local
 completion.
+
+### Managed selection traversal follow-up (2026-10-08)
+
+Occurrence map copying/validation, permutation uniqueness, column aggregates
+and copied measurement cells now resume through the common selection owner.
+The selected DuckDB managed strategy polls this owner before View completion
+and Store retention. Independent work/cell boundaries, cursor cancellation and
+the actual filter/select strategy caller are connected in the
+[selection preparation record](2026-10-08-local-bounded-view-selection.md).
+The packed payload remains one bounded-capacity allocation; its latency,
+View-plan preparation and trusted callbacks are not made bounded by this change.
+Pure-select native candidate support and whole-Local completion are not claimed.
