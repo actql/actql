@@ -94,6 +94,16 @@ for (const name of ['host-port.mjs', 'host-port.d.ts']) {
   assert((await readFile(join(root, 'node_modules', '@actql',
     'sdk', name), 'utf8')).length > 0);
 }
+// Exercise the explicit Host policy through actual installed package exports,
+// including the lazy Node entrypoint and the declarations shipped with them.
+await writeFile(join(root, 'host-capacity-policy-public.test.mjs'), await readFile(
+  join(repository, 'scripts/fixtures/host-capacity-policy-public.test.mjs')));
+run('node', ['--test', 'host-capacity-policy-public.test.mjs'], root);
+await writeFile(join(root, 'host-policy.typecheck.mts'), await readFile(
+  join(repository, 'packages/node/host-policy.typecheck.mts')));
+run('node', [join(repository, 'node_modules/typescript/bin/tsc'), '--noEmit',
+  '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', 'host-policy.typecheck.mts'], root);
 await writeFile(join(root, 'values.json'), machineValues);
 const sourceProgram = await readFile(join(repository,
   'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');

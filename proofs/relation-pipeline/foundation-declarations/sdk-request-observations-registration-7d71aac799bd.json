@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-request-observations-registration-7d71aac799bd",
+  "kind": "change",
+  "revision": "7d71aac799bd26adee96bb16f4a59d83debec6ce",
+  "parents": [
+    "a309c2c04def50469e70651c499800f2a5f485c4"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "a309c2c04def50469e70651c499800f2a5f485c4",
+          "digest": "427922c63e4d09448da344253e652eb40eb4773e26c29b09a9269c90d12b923a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "2b813303ddf23c987865e08b750011d41b8a24de751c417f809bada25ec5ea5f",
+      "afterMode": "100644",
+      "reason": "Register independently fixed request-observation SDK fixtures and their readonly TypeScript consumer in the existing Client gates. Preserve all adopted packed read-opening, delivery, cancellation, outcome, frontier and distribution checks."
+    }
+  ]
+}

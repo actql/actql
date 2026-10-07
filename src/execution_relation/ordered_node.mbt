@@ -12,6 +12,7 @@ fn emit_ordered_fragment_step(
   params : OrderedParams,
   source : Bool,
   out : @encode.Writer,
+  local_input? : Bool = true,
 ) -> Unit raise @encode.EncodeFailure {
   let kernel = ordered_params_kernel(params)
   let prepared = @lower.bound_preparation(@lower.kernel_owner(kernel))
@@ -21,7 +22,14 @@ fn emit_ordered_fragment_step(
   @encode.string_value(out, @lower.node_id(node))
   @encode.key(out, "in")
   @encode.begin_array(out)
-  @encode.string_value(out, "input")
+  @encode.string_value(
+    out,
+    if local_input {
+      "input"
+    } else {
+      @lower.kernel_input(kernel)
+    },
+  )
   @encode.end_array(out)
   @encode.key(out, "op")
   @encode.string_value(out, "REL.derive")
@@ -47,6 +55,18 @@ fn emit_ordered_fragment_step(
     emit_ordered_params(params, out)
   }
   @encode.end_object(out)
+}
+
+///|
+/// Emit a logical Plan node from registered params and their exact kernel.
+/// The original checked edge is retained; this is not fragment admission,
+/// runtime enforcement or execution permission. Fragment-local emission
+/// continues to bind its separate canonical input and evidence closure.
+pub fn emit_ordered_kernel_node(
+  params : OrderedParams,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_ordered_fragment_step(params, false, out, local_input=false)
 }
 
 ///|

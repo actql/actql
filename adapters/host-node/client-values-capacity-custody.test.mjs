@@ -11,6 +11,7 @@ import {installNodeClientProgramPreparation} from './client-program-preparation.
 import {sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence} from './local-values-plan.mjs';
 import {valuesHostPolicyOriginal} from './local-values-capacity.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {connectEmbeddedLocal} from './embedded-local.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const program = JSON.parse(await readFile(new URL('./fixtures/read-121.program.json', import.meta.url), 'utf8'));
@@ -23,6 +24,21 @@ const scope = {namespaceId: 'values-capacity', authorityScopeCid: cid('a')};
 const request = {kind: 'program', input: program, parameters: null};
 const planFor = preparedProgram => sourceFreeValuesPlan({moon, control, preparedProgram,
   ...scope, storeAuthorityCid: cid('7'), now: () => '2026-10-07T00:00:00.000Z'});
+
+test('Embedded Local captures Values row selection once alongside the Host policy snapshot', async () => {
+  let reads = 0;
+  const installation = {hostCapacityPolicy: null,
+    get valuesMaxRows() {
+      reads++;
+      if (reads !== 1) throw new Error('ValuesSelectionReadTwice');
+      return 121;
+    }};
+  // The independently invalid Host policy stops before opening resources.
+  // Its refusal must not be replaced by another read of the row selection.
+  await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local', installation}),
+    {code: 'InvalidInstalledHostCapacityPolicy'});
+  assert.equal(reads, 1);
+});
 
 test('default and insufficient Values ceilings still reject the valid 121-row Program', () => {
   const standard = installNodeClientProgramPreparation({moon, environment})(request);

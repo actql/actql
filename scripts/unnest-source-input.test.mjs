@@ -36,3 +36,21 @@ test('ordinary packed corpus and narrow consumer both execute UNNEST source case
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--unnest-source-only'/u);
   assert.ok(driver.includes("process.argv.includes('--unnest-source-only')) return;"));
 });
+
+test('scalar stars have independent typed empty expectations and preserve the DATA source', () => {
+  const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-json-control');
+  for (const name of ['scalar-star-sql', 'scalar-star-pipe', 'scalar-star-data-binding']) {
+    assert.deepEqual(byName.get('unnest-' + name).expected, control.expected);
+    assert.deepEqual(byName.get('unnest-' + name).columns, control.columns);
+    assert.equal(byName.get('unnest-' + name).sourceReadCount, 0);
+  }
+  for (const name of ['scalar-star-empty', 'scalar-star-null-array']) {
+    assert.deepEqual(byName.get('unnest-' + name).expected, []);
+    assert.deepEqual(byName.get('unnest-' + name).columns, control.columns);
+  }
+  const struct = unnestRefusals.find(value => value.name === 'unnest-refusal-struct-value-table-star');
+  assert.deepEqual(struct.parameters.items, []);
+  assert.equal(struct.parameterDeclarations.items.items.type, 'object');
+  assert.ok(unnestRefusals.some(value => value.name === 'unnest-refusal-scalar-qualified-star'));
+});

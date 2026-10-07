@@ -38,3 +38,12 @@ Run acceptance and provider I/O. JSON/YAML Program remains supported machine
 input. Text is never retried as another format, and extensions do not choose
 a language. Removal of the old surface does not claim that every adopted
 Graph, VecA/TEA or Effect surface is implemented.
+
+
+Embedded Host operators can pass a complete `HostCapacityPolicy` as
+`installation.hostCapacityPolicy`. The existing capacity contract is
+snapshotted before lazy Local-provider loading and checked by the installed
+Host. Explicit policy selections participate in installation and request
+scope identity; omitting the option preserves historical defaults. See the
+[installed Host policy contract](../local-node/README.md#explicit-host-capacity-policy).
+This option is not a connected Remote Client request or authorization grant.

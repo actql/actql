@@ -564,41 +564,54 @@ pub fn emit_sequence_step_range(
   }
   @encode.begin_array(out)
   for index in first..<end {
-    let step = value.steps[index]
-    match step {
-      InferBoundary(_) => raise @encode.InvalidStructure
-      ValuesStep(v) => emit_values_node(v, out)
-      TimeSeriesStep(v) => emit_time_series_node(v, out)
-      WindowStep(v) => emit_window_node(v, out)
-      JoinStep(v) => emit_join_kernel(v, out)
-      IntervalJoinStep(v) => emit_interval_join(v, out)
-      AsOfJoinStep(v) => emit_asof_join(v, out)
-      SequenceMatchStep(v) => emit_sequence_match(v, out)
-      CrossJoinStep(v) => emit_cross_join_kernel(v, out)
-      AppendStep(v) => emit_append_kernel(v, out)
-      SetStep(v) => emit_set_kernel(v, out)
-      NestStep(v) => emit_nest_kernel(v, out)
-      GraphMatchStep(v) => emit_graph_match_node(v, out)
-      GraphDiagnosticStep(v) => emit_graph_diagnostic_node(v, out)
-      GraphSubgraphStep(v) => emit_graph_subgraph_node(v, out)
-      GraphEqualityStep(v) => emit_graph_equality_node(v, out)
-      GraphNormalizeStep(index) =>
-        emit_graph_normalize_node(value.owner, index, out)
-      GraphDeltaStep(prepared) => emit_graph_delta_node(prepared, out)
-      GraphUnionStep(prepared) => emit_graph_union_node(prepared, out)
-      GraphSubtractionStep(prepared) => emit_graph_union_node(prepared, out)
-      GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
-      GraphConstructionStep(v) => emit_graph_construction_node(v, out)
-      VectorStep(v) => emit_vector_node(v, out)
-      EventStep(v) => emit_event_node(v, out)
-      CarrierProjectionStep(v) => emit_carrier_projection_node(v, out)
-      RowStep(v) => {
-        emit_kernel_prefix(v, out)
-        emit_kernel_node(v, out)
-      }
-    }
+    emit_sequence_node(value, index, out)
   }
   @encode.end_array(out)
+}
+
+///|
+/// Emit the existing canonical nodes for one checked step, without an array
+/// wrapper. Ordered bindings still require their registered params owner.
+pub fn emit_sequence_node(
+  value : PreparedSequence,
+  index : Int,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  guard value.steps.get(index) is Some(step) else {
+    raise @encode.InvalidStructure
+  }
+  match step {
+    InferBoundary(_) => raise @encode.InvalidStructure
+    ValuesStep(v) => emit_values_node(v, out)
+    TimeSeriesStep(v) => emit_time_series_node(v, out)
+    WindowStep(v) => emit_window_node(v, out)
+    JoinStep(v) => emit_join_kernel(v, out)
+    IntervalJoinStep(v) => emit_interval_join(v, out)
+    AsOfJoinStep(v) => emit_asof_join(v, out)
+    SequenceMatchStep(v) => emit_sequence_match(v, out)
+    CrossJoinStep(v) => emit_cross_join_kernel(v, out)
+    AppendStep(v) => emit_append_kernel(v, out)
+    SetStep(v) => emit_set_kernel(v, out)
+    NestStep(v) => emit_nest_kernel(v, out)
+    GraphMatchStep(v) => emit_graph_match_node(v, out)
+    GraphDiagnosticStep(v) => emit_graph_diagnostic_node(v, out)
+    GraphSubgraphStep(v) => emit_graph_subgraph_node(v, out)
+    GraphEqualityStep(v) => emit_graph_equality_node(v, out)
+    GraphNormalizeStep(index) =>
+      emit_graph_normalize_node(value.owner, index, out)
+    GraphDeltaStep(prepared) => emit_graph_delta_node(prepared, out)
+    GraphUnionStep(prepared) => emit_graph_union_node(prepared, out)
+    GraphSubtractionStep(prepared) => emit_graph_union_node(prepared, out)
+    GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
+    GraphConstructionStep(v) => emit_graph_construction_node(v, out)
+    VectorStep(v) => emit_vector_node(v, out)
+    EventStep(v) => emit_event_node(v, out)
+    CarrierProjectionStep(v) => emit_carrier_projection_node(v, out)
+    RowStep(v) => {
+      emit_kernel_prefix(v, out)
+      emit_kernel_node(v, out)
+    }
+  }
 }
 
 ///|

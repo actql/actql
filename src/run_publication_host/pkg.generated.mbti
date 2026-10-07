@@ -4,6 +4,7 @@ package "actql/actql/run_publication_host"
 import {
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/effect_application",
   "actql/actql/encode_core",
   "actql/actql/execution_authorization",
   "actql/actql/execution_query",
@@ -105,6 +106,10 @@ pub fn admit_source_free_result_policy_body(String, String, Int, Int, Int) -> Re
 pub fn bind_client_effect_compiled_run(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectCompiledRunIssue]
 
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
+
+pub fn bind_client_table_input(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, Int, Int, Int) -> Result[ClientTableInput, ClientTableInputIssue]
+
+pub fn bind_client_table_preview(ClientTableInput, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Result[ClientTablePreview, ClientTableInputIssue]
 
 pub fn bind_client_task_run(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientTaskRunBinding, ClientTaskRunBindingIssue]
 
@@ -237,6 +242,8 @@ pub fn client_effect_local_result_ordering_json(ClientEffectLocalResultArtifact)
 pub fn client_effect_local_result_payload_binding(ClientEffectLocalResultArtifact, @run_publication.PublicationContract) -> Result[(String, Int), ClientEffectLocalResultArtifactIssue]
 
 pub fn client_effect_local_source_matches(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact) -> Bool
+
+pub fn client_effect_local_table_storage_mapping(ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@effect_application.TableStorageMapping, ClientTableInputIssue]
 
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String), ClientEffectMemberDescriptorIssue]
 
@@ -435,6 +442,24 @@ pub fn client_retained_task_input_transfer_record(ClientRetainedTaskInput) -> @r
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
+
+pub fn client_table_input_mapping(ClientTableInput) -> @effect_application.TableStorageMapping
+
+pub fn client_table_input_matches_source(ClientTableInput, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity) -> Bool
+
+pub fn client_table_input_operation(ClientTableInput) -> @effect_application.TableOperation
+
+pub fn client_table_preview_commit_outcome(ClientTablePreview, String, Int, Int, Int, Int) -> Result[String, ClientTableInputIssue]
+
+pub fn client_table_preview_input_available(ClientTablePreview) -> Bool
+
+pub fn client_table_preview_ledger_identity(ClientTablePreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn client_table_preview_member_index(ClientTablePreview) -> Int
+
+pub fn client_table_preview_operation(ClientTablePreview) -> @effect_application.TableOperation
+
+pub fn client_table_preview_subject_cid(ClientTablePreview) -> String
 
 pub fn client_task_compilation_compiled_plan(ClientTaskCompilation) -> @run_publication.PublicationContract
 
@@ -1705,6 +1730,23 @@ pub(all) enum ClientStageOwnerIssue {
   Lowering(@lowering_relation.Issue)
   Binding(@lowering_relation.BindingIssue)
 }
+
+type ClientTableInput
+
+pub(all) enum ClientTableInputIssue {
+  ForeignOwner
+  ForeignIdentity
+  NotStore
+  Mapping(@effect_application.TableStorageMappingIssue)
+  Operation(@effect_application.TableContractIssue)
+  ForeignInput
+  Preview(@effect_application.TablePreviewIssue)
+  Unavailable
+  Commit(@effect_application.TableCommitIssue)
+  Encoding
+} derive(Eq, @debug.Debug)
+
+type ClientTablePreview
 
 pub(all) enum ClientTaskAoAStepsIssue {
   MissingTask

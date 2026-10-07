@@ -414,7 +414,17 @@ pub fn emit_prepared_client_task_aoa_steps(
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  @lower.emit_sequence_steps(sequence, writer) catch {
+  emit_client_sequence_steps(
+    sequence,
+    0,
+    @lower.sequence_count(sequence),
+    {
+      max_body_bytes: max_wire_bytes,
+      max_body_nodes: max_nodes,
+      max_body_depth: max_depth,
+    },
+    writer,
+  ) catch {
     _ => return Err(Encoding)
   }
   let steps = @encode.finish(writer) catch { _ => return Err(Encoding) }
@@ -532,9 +542,29 @@ fn emit_client_task_pipeline_prefix(
     @encode.key(writer, "steps")
     if infer_boundary is Some(_) {
       guard selected is Some(step) else { return Err(Encoding) }
-      @lower.emit_sequence_step_range(sequence, step, step + 1, writer)
+      emit_client_sequence_steps(
+        sequence,
+        step,
+        step + 1,
+        {
+          max_body_bytes: max_wire_bytes,
+          max_body_nodes: max_nodes,
+          max_body_depth: max_depth,
+        },
+        writer,
+      )
     } else {
-      @lower.emit_sequence_steps(sequence, writer)
+      emit_client_sequence_steps(
+        sequence,
+        0,
+        @lower.sequence_count(sequence),
+        {
+          max_body_bytes: max_wire_bytes,
+          max_body_nodes: max_nodes,
+          max_body_depth: max_depth,
+        },
+        writer,
+      )
     }
     @encode.key(writer, "version")
     @encode.string_value(writer, "aoa-pipeline/0.1")
@@ -745,12 +775,38 @@ fn emit_client_values_pipeline_graph(
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  let emitted = @lower.emit_source_free_values_pipeline(sequence, writer) catch {
-    _ => return Err(Encoding)
+  guard @lower.sequence_step(sequence, 0) is Some(@lower.ValuesStep(_)) &&
+    @lower.node_at(
+      @lower.bound_preparation(owner),
+      @lower.sequence_count(sequence) - 1,
+    )
+    is Some(output) else {
+    return Err(NotSingleValues)
   }
-  match emitted {
-    Ok(_) => ()
-    Err(_) => return Err(NotSingleValues)
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "output")
+    @encode.string_value(writer, @lower.node_id(output))
+    @encode.key(writer, "sources")
+    @encode.begin_object(writer)
+    @encode.end_object(writer)
+    @encode.key(writer, "steps")
+    emit_client_sequence_steps(
+      sequence,
+      0,
+      @lower.sequence_count(sequence),
+      {
+        max_body_bytes: max_wire_bytes,
+        max_body_nodes: max_nodes,
+        max_body_depth: max_depth,
+      },
+      writer,
+    )
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "aoa-pipeline/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(Encoding)
   }
   let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
   Ok(body)
