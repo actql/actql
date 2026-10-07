@@ -2392,7 +2392,7 @@ export async function connectEmbeddedLocal(options) {
       typeof installation.retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
-  if (installation !== undefined && 'hostCapacityPolicy' in installation) {
+  if (installation !== undefined) {
     const {hostCapacityPolicy: selected, ...rest} = installation;
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
     installation = {...rest, hostCapacityPolicy};

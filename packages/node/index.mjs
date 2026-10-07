@@ -27,17 +27,27 @@ export async function connect(options) {
       options?.owner === 'local') && options.endpoint === undefined) {
     // Detach this new Host-only value before lazy provider loading. Admission
     // stays with the installed Host; connected Remote loads no Local module.
-    const installation = options.installation;
-    if (installation !== undefined && installation !== null &&
-        typeof installation === 'object' && 'hostCapacityPolicy' in installation) {
-      try {
+    try {
+      let installation = options.installation;
+      if (installation !== undefined && installation !== null &&
+          typeof installation === 'object' && !Array.isArray(installation)) {
         const {hostCapacityPolicy: selected, ...rest} = installation;
+        // Capture omission as well as selection. Later caller mutations must
+        // not choose a different Host policy while the provider is loading.
+        let hostCapacityPolicy;
         if (selected !== undefined) {
-          const hostCapacityPolicy = Object.freeze(structuredClone(selected));
-          options = {...options, installation: {...rest, hostCapacityPolicy}};
+          // Cloning must not turn an inadmissible class instance or null-
+          // prototype object into a plain policy before Host admission.
+          if (selected === null || typeof selected !== 'object' ||
+              Object.getPrototypeOf(selected) !== Object.prototype) {
+            throw new TypeError('PolicyShape');
+          }
+          hostCapacityPolicy = Object.freeze(structuredClone(selected));
         }
-      } catch { throw new ClientError('InvalidInstalledHostCapacityPolicy'); }
-    }
+        installation = {...rest, hostCapacityPolicy};
+      }
+      options = {...options, installation};
+    } catch { throw new ClientError('InvalidInstalledHostCapacityPolicy'); }
     return (await localProvider()).connect(options);
   }
   return connectHost(options);
