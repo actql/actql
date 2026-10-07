@@ -19,7 +19,32 @@ fn retained_consumer_holder_case(
   destination_bytes : Int64,
   current_query : @remote.RemotePollRetainedCurrent,
   cancel_before_start? : Bool = false,
+  chain_task? : Int? = None,
+  chain_context? : RetainedNativeChainContext? = None,
 ) -> Unit raise {
+  // Preserve the original memory-backed consumer lifetime regression. The
+  // independent file handoff is exercised separately by the chain cases.
+  let source = match chain_task {
+    None => { ..configuration.source, retained_output_root: None, }
+    Some(task) => {
+      assert_true(task == 1 || task == 2)
+      assert_true(chain_context is Some(_))
+      let missing = name + ".source-must-not-open"
+      let root = @filesystem.open_root(root_path).unwrap()
+      assert_true(root.inspect_generation(missing).unwrap() is None)
+      {
+        ..configuration.source,
+        retained_output_root: Some(root_path),
+        database_path: root_path + "/" + missing,
+      }
+    }
+  }
+  let configuration = { ..configuration, source, }
+  let document = if chain_task is Some(_) {
+    retained_native_chain_document
+  } else {
+    resident_compute_document
+  }
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
     "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
@@ -36,7 +61,7 @@ fn retained_consumer_holder_case(
     materials.run_definition,
     environment,
     resident_effect_source_environment,
-    resident_compute_document,
+    document,
     None,
   ).unwrap()
   let binding = @host.client_retained_task_input_binding(input)
@@ -113,9 +138,28 @@ fn retained_consumer_holder_case(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
     destination_bytes,
   )
-  let (bundles, active, journal) = retained_runtime_owners(
+  let (bundles, fixture_active, journal) = retained_runtime_owners(
     sqlite, site, root_path, name,
   )
+  let active = if chain_task is Some(_) {
+    let role = "consumer:" + @remote.dispatch_request_identity(dispatch)
+    let exact = bundles
+      .acquire_active_component(
+        @bundle.native_active_runtime_component_cid(fixture_active),
+        @bundle.native_active_runtime_target_triple(fixture_active),
+        role,
+      )
+      .unwrap()
+    assert_true(
+      bundles
+      .release(@bundle.native_active_runtime_process_hold_id(fixture_active))
+      .unwrap(),
+    )
+    assert_eq(@bundle.native_active_runtime_process_hold_id(exact), role)
+    exact
+  } else {
+    fixture_active
+  }
   // The same existing Site Owner saves the exact envelope before execution.
   journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
   journal.accept(dispatch).unwrap() |> ignore
@@ -185,12 +229,52 @@ fn retained_consumer_holder_case(
       @remote.dispatch_record_revision(journal.require(dispatch).unwrap()),
       revision,
     )
+    if chain_task is Some(task) {
+      assert_eq(task, 2)
+      assert_eq(journal.start_claimant(dispatch).unwrap(), None)
+      assert_true(handoff.reclaim().unwrap())
+      assert_false(handoff.reclaim().unwrap())
+      assert_eq(
+        destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+        0L,
+      )
+      assert_true(
+        bundles
+        .release(@bundle.native_active_runtime_process_hold_id(active))
+        .unwrap(),
+      )
+      // No Runtime or borrow was opened. After the actual holder/receiver
+      // cleanup, use the common release transitions for this cancelled record.
+      journal
+      .commit_transition(
+        @remote.prepare_begin_remote_release(journal.require(dispatch).unwrap()).unwrap(),
+      )
+      .unwrap()
+      |> ignore
+      journal
+      .commit_transition(
+        @remote.prepare_confirm_remote_release(
+          journal.require(dispatch).unwrap(),
+        ).unwrap(),
+      )
+      .unwrap()
+      |> ignore
+      let (_, _, cleanup, _, _) = @remote.dispatch_record_state(
+        journal.require(dispatch).unwrap(),
+      )
+      assert_true(cleanup is @remote.CleanupReleased)
+      assert_eq(entries.val, 0)
+    }
     assert_true(journal.close())
     assert_true(bundles.close().unwrap())
     return
   }
   let executed = run().unwrap()
-  assert_true(executed.result_definition_cid is Some(_))
+  if chain_task == Some(1) {
+    assert_eq(executed.result_definition_cid, None)
+  } else {
+    assert_true(executed.result_definition_cid is Some(_))
+  }
   assert_eq(entries.val, 1)
   assert_eq(
     duplicate
@@ -215,6 +299,29 @@ fn retained_consumer_holder_case(
     executed.completion.evidence_cid,
   )
   assert_eq(entries.val, 1)
+  if chain_task is Some(_) {
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    let after_handoff = @site.site_status(site)
+    let replay = @resident.prepare_resident_retained_consumer(
+      handoff,
+      producer_journal,
+      admission,
+      poll,
+      "2026-10-05T00:00:00.000Z",
+      {
+        max_binding_bytes: 262144,
+        max_chunks: 100,
+        max_manifest_bytes: 4096,
+        max_referenced_bytes: 1048576L,
+      },
+    ).unwrap()
+    assert_true(physical_equal(replay, owner))
+    assert_eq(@site.site_status(site), after_handoff)
+    assert_eq(entries.val, 1)
+  }
   let subject = @dispatch_journal.recovered_site_dispatch_subject(
     journal.observation(dispatch).unwrap(),
   ).unwrap()
@@ -222,11 +329,70 @@ fn retained_consumer_holder_case(
   let facts = executed.runtime
     .inspect_output_facts(dispatch, fields[1])
     .unwrap()
-  assert_eq(facts.row_count, 1)
-  assert_eq(
-    facts.result_schema_cid,
-    "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
-  )
+  if chain_task is Some(task) {
+    let (_, expected_schema, _) = retained_native_chain_expected(task)
+    assert_eq(facts.row_count, 3)
+    assert_eq(facts.result_schema_cid, expected_schema)
+    assert_eq(
+      facts.material_generation,
+      retained_native_chain_generation(dispatch, task),
+    )
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    if task == 1 {
+      // The middle's actual durable completion and actual output Runtime are
+      // the producer of edge (2, 0). The original Source is never substituted.
+      let context = chain_context.unwrap()
+      let edge = @host.prepare_client_retained_input_edge(
+        materials.prepared,
+        compilation,
+        materials.admission,
+        materials.run_definition,
+        2,
+        0,
+      ).unwrap()
+      let observed = journal.observation(dispatch).unwrap()
+      let evidence = @dispatch_journal.recovered_site_dispatch_evidence(
+        observed,
+      ).unwrap()
+      let producer = @host.prepare_client_retained_input_producer(
+        edge,
+        journal.require(dispatch).unwrap(),
+        evidence,
+        subject,
+      ).unwrap()
+      acquisition_runtime_transfer_consumer(
+        materials,
+        admission,
+        configuration,
+        compilation,
+        context.caller,
+        context.selected,
+        executed.runtime,
+        journal,
+        dispatch,
+        producer,
+        fields[1],
+        site,
+        sqlite,
+        root_path,
+        name + ".middle-output",
+        through_consumer_holder=true,
+        consumer_task=2,
+        chain_context=Some(context),
+      )
+      assert_true(@host.client_retained_input_producer_available(producer))
+      assert_eq(entries.val, 1)
+    }
+  } else {
+    assert_eq(facts.row_count, 1)
+    assert_eq(
+      facts.result_schema_cid,
+      "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+    )
+  }
   // A live Result reader prevents Runtime cleanup. The same consumer and both
   // independent holdings retain their responsibility until the reader ends.
   let reader = executed.runtime
@@ -235,9 +401,17 @@ fn retained_consumer_holder_case(
   assert_false(owner.close())
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
-    destination_bytes,
+    if chain_task is Some(_) {
+      0L
+    } else {
+      destination_bytes
+    },
   )
-  assert_true(handoff.reclaim() is Err(_))
+  if chain_task is Some(_) {
+    assert_false(handoff.reclaim().unwrap())
+  } else {
+    assert_true(handoff.reclaim() is Err(_))
+  }
   assert_true(
     handoff.current_reply(current_query) is Err(@resident.CleanupPending),
   )
@@ -251,7 +425,15 @@ fn retained_consumer_holder_case(
       break
     }
   }
-  assert_eq(@utf8.decode(Bytes::from_array(bytes)), "[{\"id\":3}]")
+  if chain_task is Some(task) {
+    let (expected_rows, _, expected_content) = retained_native_chain_expected(
+      task,
+    )
+    assert_eq(@utf8.decode(Bytes::from_array(bytes)), expected_rows)
+    assert_eq("sha256:" + @sha.hex(Bytes::from_array(bytes)), expected_content)
+  } else {
+    assert_eq(@utf8.decode(Bytes::from_array(bytes)), "[{\"id\":3}]")
+  }
   assert_true(reader.finish().unwrap())
   assert_true(owner.close())
   assert_true(owner.close())
@@ -261,10 +443,15 @@ fn retained_consumer_holder_case(
     journal.require(dispatch).unwrap(),
   )
   assert_true(cleanup is @remote.CleanupReleased)
-  // Returning the borrow does not reclaim the independent receiver.
+  // Memory-backed execution returns only its borrow. File-backed execution
+  // already reclaimed the input receiver at the independent output handoff.
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
-    destination_bytes,
+    if chain_task is Some(_) {
+      0L
+    } else {
+      destination_bytes
+    },
   )
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())

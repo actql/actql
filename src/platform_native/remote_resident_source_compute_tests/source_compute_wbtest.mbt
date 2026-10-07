@@ -35,7 +35,9 @@ fn resident_compute_prerequisites() -> (String, String)? {
 }
 
 ///|
-fn resident_compute_prepared() -> @host.PreparedClientProgram {
+fn resident_compute_prepared(
+  document? : String = resident_compute_document,
+) -> @host.PreparedClientProgram {
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
     "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
@@ -43,7 +45,7 @@ fn resident_compute_prepared() -> @host.PreparedClientProgram {
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   @host.prepare_effect_free_client_program(
-    resident_compute_document,
+    document,
     Json,
     environment,
     None,
@@ -65,6 +67,7 @@ fn resident_compute_configuration(
   }
   {
     source: {
+      retained_output_root: None,
       source_ref: "connector://crm/main/r#v",
       source_contract_cid: "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
       library,

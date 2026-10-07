@@ -20,6 +20,8 @@ fn acquisition_runtime_transfer_consumer(
   root_path : String,
   name : String,
   through_consumer_holder? : Bool = false,
+  consumer_task? : Int = 1,
+  chain_context? : RetainedNativeChainContext? = None,
   cancel_consumer_before_start? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
@@ -537,7 +539,7 @@ fn acquisition_runtime_transfer_consumer(
     materials.admission,
     materials.run_definition,
     caller,
-    1,
+    consumer_task,
     1,
     "actual-consumer",
     selected,
@@ -559,7 +561,7 @@ fn acquisition_runtime_transfer_consumer(
         materials.admission,
         materials.run_definition,
         caller,
-        1,
+        consumer_task,
         2,
         "foreign-holder-consumer",
         selected,
@@ -573,11 +575,28 @@ fn acquisition_runtime_transfer_consumer(
       destination_journal,
       bytes,
       current_query,
-      cancel_before_start=cancel_consumer_before_start,
+      cancel_before_start=cancel_consumer_before_start ||
+        (
+          chain_context is Some(context) &&
+          context.cancel_tail &&
+          consumer_task == 2
+        ),
+      chain_task=if chain_context is Some(_) {
+        Some(consumer_task)
+      } else {
+        None
+      },
+      chain_context~,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
-    assert_true(transfer.reclaim().unwrap())
-    assert_false(transfer.reclaim().unwrap())
+    if chain_context is Some(_) {
+      // Durable file handoff or confirmed pre-start cancellation already
+      // reclaimed this receiver through its existing Owner.
+      assert_false(transfer.reclaim().unwrap())
+    } else {
+      assert_true(transfer.reclaim().unwrap())
+      assert_false(transfer.reclaim().unwrap())
+    }
     assert_true(
       transfer.current_reply(current_query) is Err(@resident.CleanupPending),
     )
@@ -653,7 +672,7 @@ fn acquisition_runtime_transfer_consumer(
       materials.admission,
       materials.run_definition,
       caller,
-      1,
+      consumer_task,
       2,
       "foreign-actual-consumer",
       selected,
@@ -682,7 +701,7 @@ fn acquisition_runtime_transfer_consumer(
           compilation,
           rebuilt.admission,
           rebuilt.run_definition,
-          1,
+          consumer_task,
           0,
         ) {
         Ok(value) => value
