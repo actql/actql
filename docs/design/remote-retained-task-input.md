@@ -372,3 +372,25 @@ waits for its existing material Owner to confirm reclamation before returning
 the Site reservation; producer and Named Result responsibilities remain
 separate. Reconstructing a lost holder requires saved original plan, receiver
 custody and reservation responsibility, rather than a new Source execution.
+
+## Stopped sole-consumer Source cleanup
+
+The initial two-task profile can reclaim the producer file only after proving
+the original checked graph has one Source acquisition, one dependent consumer
+and only the consumer's public Result. A physical Transfer address alone does
+not establish that no other checked consumer or Result retains the producer.
+The cleanup permit joins the original Run, logical edge and durable completed
+occurrences; it grants no execution, material access or capacity return.
+
+The Native caller additionally requires the current Site and delegation, an
+exclusive executor slot fencing holder descendants, the consumer's formal
+release and the receiver Owner's confirmed physical reclamation. It rereads
+the durable observations before saving the existing producer release intent.
+Only after that persistence succeeds may the existing cleanup-only file Owner
+remove the exact saved file generation. Persistence or physical cleanup failure
+retains the same responsibility for retry. A replacement file is not removed.
+
+Successful file reclamation leaves the producer's release intent and original
+custody in its journal. Bundle holds and reservations still require their own
+cleanup confirmation and the existing formal release transition. Neither file
+absence nor a returned receiver borrow substitutes for those observations.

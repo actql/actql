@@ -5,6 +5,7 @@
 fn recover_retained_input_command(
   matches : @argparse.Matches,
   child : @argparse.Matches,
+  source_output? : Bool = false,
 ) -> Unit raise CommandStop {
   // Resolve configuration before acquiring any physical owner.
   let producer_attempt = required(child, "producer-attempt")
@@ -90,29 +91,58 @@ fn recover_retained_input_command(
       Err(_) => stop("retained cleanup Transfer journal unavailable")
     }
     receiver.val = Some(journal)
-    match
-      @resident_host.reclaim_stopped_resident_retained_input(
-        owner.journal,
-        site,
-        delegated,
-        producer_attempt,
-        consumer_attempt,
-        journal,
-        root,
-        {
-          max_binding_bytes: 1048576,
-          max_chunks: 65536,
-          max_manifest_bytes: 1048576,
-          max_referenced_bytes: environment.max_bytes,
-        },
-        current,
-      ) {
-      Ok(_) => None
-      Err(NotCurrent) => Some("retained cleanup current custody unconfirmed")
-      Err(Host(_)) => Some("retained cleanup original completion unconfirmed")
-      Err(Binding(_)) => Some("retained cleanup original binding refused")
-      Err(Transfer(_)) => Some("retained cleanup receiver reclamation pending")
-      Err(Journal(_)) => Some("retained cleanup durable borrow pending")
+    let limits : @output.NativeRemoteStandardTransferBindingLimits = {
+      max_binding_bytes: 1048576,
+      max_chunks: 65536,
+      max_manifest_bytes: 1048576,
+      max_referenced_bytes: environment.max_bytes,
+    }
+    if source_output {
+      match
+        @resident_host.reclaim_stopped_resident_source_output(
+          owner.journal,
+          run_admission(matches),
+          site,
+          delegated,
+          producer_attempt,
+          consumer_attempt,
+          journal,
+          root,
+          root_path,
+          limits,
+          current,
+        ) {
+        Ok(_) => None
+        Err(NotCurrent) => Some("source cleanup current custody unconfirmed")
+        Err(ConsumerReleasePending) =>
+          Some("source cleanup consumer release pending")
+        Err(Host(_)) => Some("source cleanup original Run unconfirmed")
+        Err(Binding(_)) => Some("source cleanup sole consumer unconfirmed")
+        Err(Receiver(_)) => Some("source cleanup receiver reclamation pending")
+        Err(File(_)) => Some("source cleanup file reclamation pending")
+        Err(CustodyPending) => Some("source cleanup file custody unconfirmed")
+      }
+    } else {
+      match
+        @resident_host.reclaim_stopped_resident_retained_input(
+          owner.journal,
+          site,
+          delegated,
+          producer_attempt,
+          consumer_attempt,
+          journal,
+          root,
+          limits,
+          current,
+        ) {
+        Ok(_) => None
+        Err(NotCurrent) => Some("retained cleanup current custody unconfirmed")
+        Err(Host(_)) => Some("retained cleanup original completion unconfirmed")
+        Err(Binding(_)) => Some("retained cleanup original binding refused")
+        Err(Transfer(_)) =>
+          Some("retained cleanup receiver reclamation pending")
+        Err(Journal(_)) => Some("retained cleanup durable borrow pending")
+      }
     }
   } catch {
     CommandStop(issue) => Some(issue)
@@ -141,8 +171,15 @@ fn recover_retained_input_command(
   if !closed {
     stop("retained cleanup owner close unconfirmed")
   }
-  report("retained-input-recovery-reclaimed", [
-    ("producer_request_cid", expected_producer),
-    ("consumer_request_cid", expected_consumer),
-  ])
+  report(
+    if source_output {
+      "source-output-recovery-reclaimed"
+    } else {
+      "retained-input-recovery-reclaimed"
+    },
+    [
+      ("producer_request_cid", expected_producer),
+      ("consumer_request_cid", expected_consumer),
+    ],
+  )
 }

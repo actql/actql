@@ -1,5 +1,6 @@
 ///|
 struct RetainedCleanupFixture {
+  materials : ClientRunMaterials
   binding : @remote.RemoteInputBinding
   producer : @remote.DispatchRecord
   producer_evidence : @remote.RemoteExecutionEvidence
@@ -116,6 +117,12 @@ fn retained_cleanup_fixture() -> RetainedCleanupFixture raise {
     input_binding_cid=@remote.remote_input_binding_cid(binding),
   )
   {
+    materials: {
+      prepared,
+      compilation: Tasks(compilation),
+      admission,
+      run_definition: definition,
+    },
     binding,
     producer: record,
     producer_evidence: evidence,
@@ -296,4 +303,150 @@ test "retained cleanup keeps the same address after both task releases" {
   )
   assert_true(@remote.remote_runtime_record_released(f.producer))
   assert_true(@remote.remote_runtime_record_released(f.consumer))
+}
+
+///|
+fn retained_source_cleanup_admit(
+  f : RetainedCleanupFixture,
+) -> Result[ClientRetainedSourceCleanup, ClientRetainedTaskInputIssue] {
+  prepare_client_retained_source_cleanup(
+    f.materials,
+    f.binding,
+    f.producer,
+    f.producer_evidence,
+    f.producer_subject,
+    f.measurement,
+    f.consumer,
+    f.consumer_evidence,
+    f.consumer_subject,
+    f.measurement,
+    100000,
+    4,
+    4096,
+    1024L,
+  )
+}
+
+///|
+test "retained source cleanup binds the sole checked consumer after release" {
+  let f = retained_cleanup_fixture()
+  let permit = retained_source_cleanup_admit(f).unwrap()
+  let requests = client_retained_source_cleanup_requests(permit)
+  assert_eq(
+    @remote.dispatch_request_identity(requests.0),
+    @remote.dispatch_request_identity(
+      @remote.dispatch_record_request(f.producer),
+    ),
+  )
+  for record in [f.producer, f.consumer] {
+    @remote.commit_dispatch_transition(
+      @remote.prepare_begin_remote_release(record).unwrap(),
+      true,
+    ).unwrap()
+    @remote.commit_dispatch_transition(
+      @remote.prepare_confirm_remote_release(record).unwrap(),
+      true,
+    ).unwrap()
+  }
+  let revisions = [
+    @remote.dispatch_record_revision(f.producer),
+    @remote.dispatch_record_revision(f.consumer),
+  ]
+  for _ in 0..<2 {
+    verify_client_retained_source_cleanup_observation(
+      permit,
+      f.producer,
+      f.producer_evidence,
+      f.producer_subject,
+      f.measurement,
+      f.consumer,
+      f.consumer_evidence,
+      f.consumer_subject,
+      f.measurement,
+      100000,
+      4,
+      4096,
+      1024L,
+    ).unwrap()
+  }
+  assert_eq(
+    [
+      @remote.dispatch_record_revision(f.producer),
+      @remote.dispatch_record_revision(f.consumer),
+    ],
+    revisions,
+  )
+  assert_false(@remote.remote_runtime_record_startable(f.producer))
+  assert_false(@remote.remote_runtime_record_startable(f.consumer))
+}
+
+///|
+test "retained source cleanup refuses a foreign Run and producer Result retention" {
+  let f = retained_cleanup_fixture()
+  let (prepared, compilation, admission, definition) = retained_input_run(
+    "foreign-cleanup-run",
+  )
+  assert_true(
+    retained_source_cleanup_admit({
+      ..f,
+      materials: {
+        prepared,
+        compilation: Tasks(compilation),
+        admission,
+        run_definition: definition,
+      },
+    })
+    is Err(InvalidBinding),
+  )
+  let retained_producer_program = retained_input_program.replace(
+    old="\"results\":{\"answer\":{\"from\":{\"stage\":\"compute\",\"result\":\"rows\"}}}",
+    new="\"results\":{\"producer\":{\"from\":{\"stage\":\"acquire\",\"result\":\"rows\"}},\"answer\":{\"from\":{\"stage\":\"compute\",\"result\":\"rows\"}}}",
+  )
+  let prepared = multi_source_prepared(retained_producer_program)
+  assert_eq(prepared_client_result_count(prepared), 2)
+  assert_true(
+    retained_source_cleanup_admit({
+      ..f,
+      materials: { ..f.materials, prepared, },
+    })
+    is Err(InvalidBinding),
+  )
+}
+
+///|
+test "retained source cleanup refuses a physical address with substituted logical edge" {
+  let f = retained_cleanup_fixture()
+  guard f.materials.compilation is Tasks(compilation) else {
+    fail("task compilation required")
+  }
+  let edge = prepare_client_retained_input_edge(
+    f.materials.prepared,
+    compilation,
+    f.materials.admission,
+    f.materials.run_definition,
+    1,
+    0,
+  ).unwrap()
+  let body = @remote.remote_input_binding_body(f.binding).replace(
+    old="\"consumer_logical_cid\":\"" + edge.consumer.logical_cid + "\"",
+    new="\"consumer_logical_cid\":\"" + retained_input_cid("f") + "\"",
+  )
+  let binding = @remote.prepare_remote_input_binding(body, 100000).unwrap()
+  assert_false(
+    @remote.remote_input_binding_cid(binding) ==
+    @remote.remote_input_binding_cid(f.binding),
+  )
+  let ports = client_retained_input_edge_projection(edge)
+  let (consumer, consumer_evidence, consumer_subject) = retained_input_completed(
+    ports[0],
+    ports[5],
+    1,
+    1,
+    client_retained_input_edge_schema_cid(edge),
+    measurement_cid=@remote.remote_managed_output_measurement_cid(f.measurement),
+    input_binding_cid=@remote.remote_input_binding_cid(binding),
+  )
+  let changed = { ..f, binding, consumer, consumer_evidence, consumer_subject, }
+  assert_true(retained_cleanup_admit(changed) is Ok(_))
+  assert_true(retained_source_cleanup_admit(changed) is Err(InvalidBinding))
 }

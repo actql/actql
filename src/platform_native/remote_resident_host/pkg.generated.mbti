@@ -21,6 +21,7 @@ import {
   "actql/actql/platform_native/remote_transfer_client",
   "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/platform_native/remote_values_host",
+  "actql/actql/platform_native/retained_task_file",
   "actql/actql/platform_native/runtime_bundle",
   "actql/actql/publication_payload",
   "actql/actql/query_planning",
@@ -75,6 +76,8 @@ pub fn reclaim_resident_output_intents(@remote_journal.Journal, @publication_sto
 pub fn reclaim_resident_payload(@publication_store.Store, @publication_payload.PublicationPayloadRequest) -> Result[Bool, ResidentOutputIssue]
 
 pub fn reclaim_stopped_resident_retained_input(@remote_journal.Journal, @execution_site.ExecutionSite, @remote_resident_site.ResidentSiteDelegation, String, String, @remote_transfer_journal.Journal, @filesystem.Root, @remote_standard_host.NativeRemoteStandardTransferBindingLimits, () -> Bool) -> Result[Unit, ResidentStoppedRetainedCleanupIssue]
+
+pub fn reclaim_stopped_resident_source_output(@remote_journal.Journal, ResidentRunAdmission, @execution_site.ExecutionSite, @remote_resident_site.ResidentSiteDelegation, String, String, @remote_transfer_journal.Journal, @filesystem.Root, String, @remote_standard_host.NativeRemoteStandardTransferBindingLimits, () -> Bool) -> Result[Unit, ResidentStoppedSourceCleanupIssue]
 
 pub fn resident_completed_holder_claimant(@remote_journal.Journal, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, Int, String, String) -> Result[String?, ResidentHostIssue]
 
@@ -357,6 +360,16 @@ pub(all) enum ResidentStoppedRetainedCleanupIssue {
   Binding(@run_publication_host.ClientRetainedTaskInputIssue)
   Transfer(@remote_transfer_client.NativeRemoteTransferClientIssue)
   Journal(@remote_transfer_journal.NativeRemoteTransferJournalIssue)
+}
+
+pub(all) enum ResidentStoppedSourceCleanupIssue {
+  NotCurrent
+  ConsumerReleasePending
+  Host(ResidentHostIssue)
+  Binding(@run_publication_host.ClientRetainedTaskInputIssue)
+  Receiver(ResidentStoppedRetainedCleanupIssue)
+  File(@retained_task_file.NativeRetainedTaskFileIssue)
+  CustodyPending
 }
 
 // Type aliases

@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/platform_native/retained_task_file" @retained_file,
+  "actql/actql/physical_manifest" @cleanup_manifest,
   "actql/actql/execution_site" @site,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/platform_native/http_client" @http,
@@ -38,7 +39,6 @@ import {
 
 import {
   "actql/actql/check_environment" @environment,
-  "actql/actql/physical_manifest" @cleanup_manifest,
   "actql/actql/sha256" @cleanup_sha,
   "moonbitlang/core/env",
 } for "wbtest"

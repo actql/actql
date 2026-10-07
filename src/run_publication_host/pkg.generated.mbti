@@ -437,6 +437,8 @@ pub fn client_retained_input_producer_evidence(ClientRetainedInputProducer) -> @
 
 pub fn client_retained_input_producer_subject(ClientRetainedInputProducer) -> @remote_site_protocol.RemoteManagedOutputSubject
 
+pub fn client_retained_source_cleanup_requests(ClientRetainedSourceCleanup) -> (@remote_site_protocol.DispatchRequest, @remote_site_protocol.DispatchRequest)
+
 pub fn client_retained_task_input_binding(ClientRetainedTaskInput) -> @remote_site_protocol.RemoteInputBinding
 
 pub fn client_retained_task_input_physical(ClientRetainedTaskInput) -> ClientTransferInput
@@ -779,6 +781,8 @@ pub fn prepare_client_retained_input_intent(ClientRetainedInputProducer, ClientR
 
 pub fn prepare_client_retained_input_producer(ClientRetainedInputEdge, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue]
 
+pub fn prepare_client_retained_source_cleanup(ClientRunMaterials, @remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, Int, Int, Int, Int64) -> Result[ClientRetainedSourceCleanup, ClientRetainedTaskInputIssue]
+
 pub fn prepare_client_retained_task_dispatch(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, ClientRequestIdentity, Int, Int, String, ClientValuesSiteSelection, ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[@remote_site_protocol.DispatchRequest, ClientRetainedTaskDispatchIssue]
 
 pub fn prepare_client_retained_task_input(ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, String, ClientRetainedInputCurrent, Int) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
@@ -910,6 +914,8 @@ pub fn validate_client_retained_input_plan(ClientRetainedInputProducer, @remote_
 pub fn validate_client_retained_input_transfer_current(ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn validate_client_retained_task_input_current(ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
+
+pub fn verify_client_retained_source_cleanup_observation(ClientRetainedSourceCleanup, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, Int, Int, Int, Int64) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 // Errors
 
@@ -1646,6 +1652,14 @@ pub(all) struct ClientRetainedInputTransferPolicy {
   transfer_attempt : String
   transfer_expires_unix_ms : Int64
   transfer_max_bytes : Int64
+}
+
+pub struct ClientRetainedSourceCleanup {
+  binding : @remote_site_protocol.RemoteInputBinding
+  producer : @remote_site_protocol.DispatchRequest
+  consumer : @remote_site_protocol.DispatchRequest
+  consumer_evidence_cid : String
+  address : ClientRetainedInputCleanup
 }
 
 pub(all) enum ClientRetainedTaskDispatchIssue {
