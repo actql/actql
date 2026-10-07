@@ -6,6 +6,7 @@ import {releasePreparedResults, retainCompletedEffectDependencyPayloads} from
 
 const preparedEffectSourceOwners = new WeakMap();
 const preparedEffectSourceSets = new WeakMap();
+const pinnedEffectSourceHoldings = new WeakMap();
 const adoptedEffectSourceDependencies = new WeakSet();
 
 // Assemble existing owned Results, never caller-authored roots. Additional
@@ -822,7 +823,7 @@ async function preparePinnedEffectSourcePayloadOwned({
 
 // Admission creates no physical holding and performs no Store I/O.
 function admitPinnedEffectSourceHolding({
-  payload, store, control, preview, memberIndex, invocation,
+  payload, store, control, preview, memberIndex, invocation, resultArtifact,
 }) {
   const owner = preparedEffectSourceOwners.get(payload);
   if (owner?.store !== store ||
@@ -833,9 +834,13 @@ function admitPinnedEffectSourceHolding({
       payload.summary.artifact === undefined) {
     throw new TypeError('InvalidEffectSourceHoldingOwner');
   }
-  const source = control.admitCapturedEffectSourceArtifact(
-    preview, memberIndex, invocation, payload.summary.artifact,
-    store.storeAuthorityCid);
+  if (resultArtifact !== undefined && resultArtifact !== payload.localResultArtifact) {
+    throw new TypeError('ForeignEffectSourceResultArtifact');
+  }
+  const source = resultArtifact === undefined ? control.admitCapturedEffectSourceArtifact(
+    preview, memberIndex, invocation, payload.summary.artifact, store.storeAuthorityCid) :
+    control.admitCapturedEffectSourceFromResult(preview, memberIndex, invocation,
+      payload.summary.artifact, resultArtifact, store.storeAuthorityCid, owner.contractLimits);
   if (control.localEffectSourceMatches(
     owner.checkedOwner, owner.inputs, memberIndex, payload.localManifest,
     owner.localInvocationToken, payload.localResultArtifact, source) !== true) {
@@ -854,7 +859,7 @@ function admitPinnedEffectSourceHolding({
       cid: payload.physical.cid, byte_count: payload.physical.bytes,
     })]),
   });
-  return Object.freeze({source, memberIndex,
+  const holding = Object.freeze({source, memberIndex,
     artifact: payload.summary.artifact,
     localResultDefinition: payload.localResultDefinition,
     localInvocation: payload.localInvocation,
@@ -862,6 +867,81 @@ function admitPinnedEffectSourceHolding({
     localManifest: payload.localManifest,
     localEvidence,
     holdingCid, record});
+  pinnedEffectSourceHoldings.set(holding, Object.freeze({payload, store, control}));
+  return holding;
+}
+
+// Read only the exact source occurrence admitted and durably retained above.
+// The existing physical-holding read owner excludes retirement while bytes are
+// consumed; a prepared object path or a matching content CID is not custody.
+export async function readPinnedEffectTableInput({holding, store, control,
+  tableInput, identity, maxBytes, signal}) {
+  const owner = pinnedEffectSourceHoldings.get(holding);
+  if (owner?.store !== store || owner?.control !== control ||
+      !Number.isSafeInteger(maxBytes) || maxBytes < 1 ||
+      owner.payload.physical.bytes > maxBytes ||
+      control.tableInputMatchesSource(tableInput,
+        owner.payload.localResultArtifact, identity) !== true) {
+    throw new TypeError('ForeignTableSourceHolding');
+  }
+  return readRetainedTableRows({store, holdingCid: holding.holdingCid,
+    physicalCid: owner.payload.physical.cid, physicalBytes: owner.payload.physical.bytes,
+    logicalCid: owner.payload.summary.logicalCid, rowCount: owner.payload.summary.rowCount,
+    maxBytes, signal});
+}
+
+// The recovered typed view must retain this exact source token. Captured
+// computation custody is confirmed by its existing owner before calling here.
+export async function readRecoveredEffectTableInput({store, control, source,
+  artifact, tablePreview, maxBytes, signal, assertAvailable}) {
+  if (control.recoveredTablePreviewMatchesSource(tablePreview, source) !== true ||
+      control.capturedEffectSourceArtifactCid(source) !== artifact.identity ||
+      control.capturedEffectSourceStoreAuthorityCid(source) !== store.storeAuthorityCid ||
+      !Number.isSafeInteger(maxBytes) || maxBytes < 1 ||
+      typeof assertAvailable !== 'function') {
+    throw new TypeError('ForeignRecoveredTableSource');
+  }
+  const holdingCid = control.capturedEffectSourceHoldingCid(source);
+  const holding = await store.inspectPhysicalHolding(holdingCid);
+  if (holding?.namespace !== 'effect-source' || holding.manifest_cid !== artifact.identity ||
+      holding.objects?.length !== 1 || holding.objects[0].byte_count > maxBytes) {
+    throw new TypeError('UnavailableRecoveredTableSource');
+  }
+  assertAvailable();
+  const body = JSON.parse(artifact.wire);
+  return readRetainedTableRows({store, holdingCid,
+    physicalCid: holding.objects[0].cid, physicalBytes: holding.objects[0].byte_count,
+    logicalCid: body.logical_result_cid, rowCount: body.actual_row_count, maxBytes, signal});
+}
+
+// Live and recovered inputs share the same Store read and exact-byte checks;
+// this helper is not another physical read or cleanup owner.
+async function readRetainedTableRows({store, holdingCid, physicalCid, physicalBytes,
+  logicalCid, rowCount, maxBytes, signal}) {
+  signal?.throwIfAborted();
+  const chunks = [];
+  let bytes = 0;
+  const read = await store.consumePhysicalHolding(holdingCid, 0,
+    chunk => {
+      signal?.throwIfAborted();
+      bytes += chunk.byteLength;
+      if (bytes > maxBytes) throw new RangeError('TableSourceByteLimit');
+      chunks.push(Buffer.from(chunk));
+    });
+  const body = Buffer.concat(chunks, bytes);
+  // Store verifies the physical digest. Independently retain the logical
+  // Relation binding without normalization or defaults for absent columns.
+  const logical = createHash('sha256').update('{"sort":"relation","value":')
+    .update(body).update('}').digest('hex');
+  if (read.cid !== physicalCid || read.bytes !== physicalBytes ||
+      `sha256:${logical}` !== logicalCid) {
+    throw new TypeError('ForeignTableSourceBytes');
+  }
+  const rows = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body));
+  if (!Array.isArray(rows) || rows.length !== rowCount) {
+    throw new TypeError('InvalidTableSourceRows');
+  }
+  return rows;
 }
 
 /**
@@ -889,7 +969,7 @@ export async function commitPinnedEffectSourceHolding(options) {
 // cannot hide an already-created holding from the caller. There is no
 // cross-member transaction: Store reconciliation uses the same records.
 export function preparePinnedEffectSourceHoldings({
-  sources, store, control, preview, invocation,
+  sources, store, control, preview, invocation, resultArtifacts,
 }) {
   const owner = preparedEffectSourceSets.get(sources);
   if (owner?.store !== store || owner?.control !== control ||
@@ -909,17 +989,24 @@ export function preparePinnedEffectSourceHoldings({
     throw new TypeError('IncompleteEffectDependencyHoldings');
   }
   const firstByPayload = new Map();
+  if (resultArtifacts !== undefined && (!Array.isArray(resultArtifacts) ||
+      resultArtifacts.length !== sources.members.length)) {
+    throw new TypeError('IncompleteEffectSourceResults');
+  }
   const entries = sources.members.map(({memberIndex, payload}) => {
     const holding = admitPinnedEffectSourceHolding({payload, store, control,
-      preview, memberIndex, invocation});
+      preview, memberIndex, invocation, resultArtifact: resultArtifacts?.[memberIndex]});
     const first = firstByPayload.get(payload);
     if (first === undefined) firstByPayload.set(payload, holding.holdingCid);
     return Object.freeze({holding, payload, first});
   });
   const holdings = Object.freeze(entries.map(entry => entry.holding));
-  if (control.capturedEffectSourceRecoveryInventoryValid(preview,
-    holdings.map(({memberIndex, artifact}) => ({memberIndex, artifact}))) !==
-      true) {
+  const inventory = holdings.map(({memberIndex, artifact}) => ({memberIndex, artifact,
+    ...(resultArtifacts === undefined ? {} : {result: resultArtifacts[memberIndex]})}));
+  const valid = resultArtifacts === undefined ?
+    control.capturedEffectSourceRecoveryInventoryValid(preview, inventory) :
+    control.capturedEffectSourceInventoryFromResultsValid(preview, inventory, owner.contractLimits);
+  if (valid !== true) {
     throw new TypeError('IncompleteEffectSourceHoldings');
   }
   let flight;

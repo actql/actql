@@ -1,6 +1,7 @@
 ///|
 priv enum BoundedBindingRowsPhase {
   PrepareInputNames
+  PrepareCompletionPort
   PrepareOutputNames
   PrepareRowSources
   PrepareOperationMetadata
@@ -630,7 +631,8 @@ priv struct BoundedBindingRowsState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut phase : BoundedBindingRowsPhase
   mut charge_row : Int
   mut charge_column : Int
@@ -780,6 +782,10 @@ fn bounded_small_output_value(value : Value) -> Bool {
 
 ///|
 fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   if state.input_logical is Some(cursor) {
     close_stepped_logical_row(cursor)
     state.input_logical = None
@@ -931,6 +937,53 @@ fn bounded_binding_rows_step(
         }
         state.input_names.push(name)
         state.column += 1
+        used += 1
+      }
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return fail_bounded_binding_rows(
+              Completion(issue),
+              progress,
+              used + 1,
+            )
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return fail_bounded_binding_rows(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
+            }
+            state.port_preparation = None
+            state.phase = if state.stepped_metadata {
+              PrepareInputNames
+            } else if state.dedupe {
+              PrepareDedupeTerms
+            } else if state.distinct {
+              PrepareDistinctTerms
+            } else if state.unique_keys is Some(_) {
+              CheckUniqueKeys
+            } else {
+              ChargeInput
+            }
+          }
+        }
         used += 1
       }
       PrepareOutputNames => {
@@ -3331,7 +3384,10 @@ fn bounded_binding_rows_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        guard state.port is Some(port) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) =>
             fail_bounded_binding_rows(Completion(issue), progress, used)
@@ -3933,14 +3989,13 @@ fn start_bounded_binding_rows_with_input(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port_with_inputs(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[bounded_binding_trusted_input(input)],
+      Some([bounded_binding_trusted_input(input)]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -4088,18 +4143,9 @@ fn start_bounded_binding_rows_with_input(
     rows,
     live,
     accepted,
-    port,
-    phase: if stepped_metadata {
-      PrepareInputNames
-    } else if dedupe {
-      PrepareDedupeTerms
-    } else if distinct {
-      PrepareDistinctTerms
-    } else if unique_keys is Some(_) {
-      CheckUniqueKeys
-    } else {
-      ChargeInput
-    },
+    port: None,
+    port_preparation: Some(port_preparation),
+    phase: PrepareCompletionPort,
     charge_row: 0,
     charge_column: 0,
     charge_open: false,

@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "reviewed-integration-source-0a2c422cace4",
+  "kind": "change",
+  "revision": "0a2c422cace492d6bd81ff025f4fa663754972b0",
+  "parents": [
+    "8f84de5a69c5e4534634fa0faec0852a6f99b112"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "8f84de5a69c5e4534634fa0faec0852a6f99b112",
+          "digest": "bdcb916256057c166f6472283666981d1fbd84362b606ba3a42797c4b49e8a4a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "d531bc8690e4e6c10cc69f93887504b54f5aef3758c16ecb8a113807b0600459",
+      "afterMode": "100644",
+      "reason": "Retain the reviewed Effect refusal settlement distribution registration with all adopted main checks."
+    }
+  ]
+}

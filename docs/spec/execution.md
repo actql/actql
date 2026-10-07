@@ -1645,13 +1645,24 @@ CID({
 For `update`, `upsert`, and `delete`, `target_row_identity` is the validated
 target primary-key value. For `command` the item key binds Command semantics,
 target ResourceRef identity and canonical payload CID, not the target alone.
-For `create` and relation-valued
+For `create` and row-oriented relation-valued
 `store`, preview rows are first ordered by `content_cid`; their identity is
 `{content_cid, occurrence}`, where `content_cid` is the CID
 of `{version: "actql-effect-content-row/0.1", value: after}` and `occurrence`
 is the zero-based count among canonical-content-identical rows. This makes batch
 order and idempotency independent of provider enumeration without collapsing
 intentional duplicate rows.
+
+Catalog-backed Table create/replace is a whole-Relation `store` profile, not
+row-oriented store: it occupies exactly one Preview item even for empty typed
+input. The item correlation is the sealed Table request CID string and
+`intended_changes.value` is the complete sealed operation. `count` and
+`max_items` are both 1, and `approval` is `required`. Before/after row states are
+`not_applicable`. Replace's version guard is its expected immutable generation;
+create has a `not_applicable` guard and still checks name absence atomically at
+commit. The existing Preview and item-key preimages govern this slot; no input
+row is synthesized. The whole-Relation Table contract is defined in
+[Catalog-backed Table Effects](../design/table-materialization.md).
 
 <!-- requirement-block: effect-application.two-conforming-implementations-must-produce-the-same-row-key-for -->
 `effect_identity_cid` binds the local Unit Definition CID and local Invocation,
@@ -1670,7 +1681,7 @@ view, local Invocation, and live local Result Artifact owner. A matching CID
 string without those owners is not an apply permit.
 Physical Run identity is excluded. Recovery across workers or physical
 attempts reuses logical request scope and the original ledger Preview/key.
-Create/store rows use only `{content_cid, occurrence}` as row identity;
+Create/row-oriented store rows use only `{content_cid, occurrence}` as row identity;
 there is no second ordinal identity. Two conforming
 implementations MUST produce the same row key for the same canonical preview.
 

@@ -41,6 +41,27 @@ test('contract pointers resolve exact bodies including escaped member names', ()
   }
 });
 
+for (const name of ['check_reason', 'check_outcome']) {
+  test(`current ${name} canonical vector matches its schema and pin`, () => {
+    const path = 'spec/contracts/actql-protocol-schemas.json';
+    const pointer = `/artifact_schemas/${name}`;
+    const family = JSON.parse(readFileSync('spec/spec-family.json', 'utf8'));
+    const refs = family.documents.flatMap(owner => owner.machine_contracts ?? [])
+      .filter(ref => ref.path === path && ref.pointer === pointer);
+    assert.equal(refs.length, 1, 'one authoritative schema pin');
+    const value = resolvePointer(JSON.parse(readFileSync(path, 'utf8')), pointer);
+    const id = `contract ${path}#${pointer}`;
+    const expected = generateTests([{id, value, cid: refs[0].cid}])
+      .split('\n///|\n')[1].trimEnd();
+    const source = readFileSync('src/canonical_json/identity_vectors.generated_test.mbt', 'utf8');
+    const actual = source.split('\n///|\n')
+      .filter(block => block.startsWith(`test "${id}" {`));
+    assert.equal(actual.length, 1, 'one current generated schema case');
+    assert.equal(actual[0].trimEnd(), expected,
+      `${name} canonical vector is stale; run npm run generate:canonical`);
+  });
+}
+
 test('generated tests require fixed identities and reject duplicate cases', () => {
   const fixture = {
     id: 'null',

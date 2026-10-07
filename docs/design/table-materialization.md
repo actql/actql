@@ -51,7 +51,10 @@ including Required/Conditional independently of nullable. Field IDs, not column
 names or positions inferred on reload, bind each logical value column to its
 Iceberg value field and, for Conditional columns, a required boolean companion.
 Companion names use a reserved physical namespace and never overwrite user
-fields. The mapping records field IDs after Catalog schema assignment.
+fields. The common issuer selects consecutive IDs in canonical schema order,
+with each companion immediately after its value field. The pinned new-table
+writer verifies Catalog schema assignment against this sealed mapping before
+writing; silently renumbering an approved mapping is not allowed.
 
 For a Conditional column, `(false, NULL)` is absent, `(true, NULL)` is present
 NULL, and `(true, value)` is present value. `(false, value)`, a missing or NULL
@@ -70,7 +73,68 @@ rows remain duplicates. Iceberg physical order is not a query-order guarantee.
 Generic Iceberg readers see companion fields; they do not automatically acquire
 ActQL's missing-versus-NULL semantics.
 
+## Binding a captured Relation
+
+Storage mapping issuance consumes the existing completed Relation export
+receipt, not adapter-authored schema JSON or an asserted schema CID. It uses
+the complete checked schema, including conditional columns that no actual row
+contains. The same schema yields the same mapping for empty and nonempty input.
+Unsupported declarations and physical-name collisions are refused before
+staging. The schema identity preserves logical constraints that are not part of
+the physical boolean/double/string discriminator.
+
+The common Host binds a Table request to the exact checked `store` member,
+captured local Result Artifact, issued Effect identity and logical request
+scope. It checks the request's Artifact, logical Relation, schema, mapping and
+effective Data Policy against these owners. Another member's identity, an equal
+but foreign captured owner, or a resealed request with substituted input facts
+cannot supply that binding. The binding retains the existing owners; it does
+not establish a second input-custody or execution owner.
+
+This is input/content binding only. Target installation, approval, current
+authority, retained source availability, durable dispatch and Catalog commit
+remain separate gates. A valid binding must never be interpreted as permission
+to stage or write. In particular, existing row Effect execution cannot stand in
+for the Table operation: the whole Relation, including typed empty input, is one
+operation, not zero or one dispatch per row.
+
 ## Durable commit and file custody
+
+The catalog-backed profile binds the complete Table operation to one existing
+Effect Preview item slot, including for typed empty input. Its correlation is
+the request CID string and its intended value is the complete sealed operation.
+It requires `approval: "required"` and `count: 1, max_items: 1`. Replace carries
+the expected generation as the existing version guard; create has no version
+guard and still requires atomic name absence at commit. The existing Preview
+semantic CID and item dispatch-key owner bind that content without introducing
+a Table approval or Ledger owner. Before/after row states are not applicable:
+the item describes a whole-Relation operation, not a fabricated data row.
+
+The Table input binding is paired with the existing checked captured Preview,
+including its exact live source occurrence. A different member, substituted
+operation, row-oriented inventory, missing approval requirement or different
+generation guard is refused. The retained subject is the complete Effect Set
+Preview CID, not the Table name or request CID alone. This binding is not an
+approval grant: current installed target validation, permission and approval
+decisions, source availability and durable claims remain required at apply.
+
+For process recovery, the same private capture record retains the original
+sealed storage mapping and operation for each Table member. A recovered typed
+Table view derives the operation from that member's sealed Preview, re-admits
+the exact mapping, and matches the original request scope, semantic Result
+Artifact, schema, logical Relation, policy and physical source occurrence.
+Capture validation and Table material admission have separate explicit limits;
+recovery does not widen the Table contract's limits. Missing material or a
+different operation is a refusal, not a request to regenerate Compute or schema.
+
+This view is immutable content, not live input availability or a send permit.
+Reads recheck the existing capture/Result owners after Store awaits, and use
+the same physical-holding read owner and exact bytes/logical CID checks as live
+Table inputs. Release invalidates read availability; no new capture or cleanup
+owner is created. Receipt projection can still check the original operation and
+captured row count after release, without allowing another dispatch. Approval,
+current target authority, durable claims and Catalog reconciliation remain the
+existing apply owners' separate responsibilities.
 
 Prepared request and captured input are retained by existing owners before any
 dispatch. Table staging, metadata publication and Table writes require approval

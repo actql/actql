@@ -26,7 +26,18 @@ const runtimeUrl = new URL(
 // Private SQLite layout discriminator, not a public artifact version. Upgrade
 // only after all Hosts using this root have stopped and closed their journals.
 // Incompatible records are refused in place; this owner never clears/migrates them.
-const SCHEMA_VERSION = 'actql-checkpoint-journal/0.1;model-call-provenance=1';
+export const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT =
+  'actql-checkpoint-journal/0.1;model-call-provenance=1';
+export const EFFECT_SETTLEMENT_JOURNAL_LAYOUT =
+  'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1';
+const SCHEMA_VERSION = EFFECT_SETTLEMENT_JOURNAL_LAYOUT;
+export const EFFECT_SETTLEMENT_TABLE_SQL = `
+  CREATE TABLE resume_effect_settlements (
+    intent_id TEXT PRIMARY KEY NOT NULL REFERENCES resume_intents (intent_id),
+    generation INTEGER NOT NULL CHECK (generation >= 1),
+    refusal_code TEXT NOT NULL
+      CHECK (refusal_code = 'ACTQL_E_RESUME_REVALIDATION_FAILED')
+  ) STRICT;`;
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -228,20 +239,32 @@ export function openSqliteCheckpointJournal(root, {
     database.exec('PRAGMA busy_timeout = 10000');
     // Refuse an old or unmarked layout before any schema DDL or record write.
     // This startup gate cannot revoke a connection another process already holds.
-    const hasMetadata = database.prepare(
-      "SELECT name FROM sqlite_schema WHERE type = 'table' AND name = 'journal_metadata'").get();
-    if (hasMetadata !== undefined) {
+    const hasCurrentLayout = () => {
+      // Take one schema snapshot, so another initializer's atomic commit
+      // cannot look like unmarked tables between two separate queries.
+      const tables = database.prepare(
+        "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all();
+      if (!tables.some(table => table.name === 'journal_metadata')) {
+        if (tables.length !== 0) fail('UnsupportedCheckpointJournal');
+        return false;
+      }
       const version = database.prepare('SELECT value FROM journal_metadata WHERE key = ?').get('schema_version');
       if (version?.value !== SCHEMA_VERSION) fail('UnsupportedCheckpointJournal');
-    } else if (database.prepare(
-      "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%' LIMIT 1").get() !== undefined) {
-      fail('UnsupportedCheckpointJournal');
-    }
+      // Never repair a recognized journal by recreating a missing refusal
+      // marker table: it may have held a still-unsettled no-send decision.
+      database.prepare('SELECT intent_id, generation, refusal_code FROM resume_effect_settlements LIMIT 0');
+      return true;
+    };
+    const initialized = hasCurrentLayout();
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     // A recognized layout is opened as-is. Missing columns/tables are damage,
     // not a request to recreate storage that may have held entered attempts.
-    if (hasMetadata === undefined) transaction.run(() => {
+    if (!initialized) transaction.run(() => {
+      // A competing Host may have finished initialization while this one
+      // waited for the writer. Validate its finished layout instead of
+      // recreating any table that could already contain refusal evidence.
+      if (hasCurrentLayout()) return;
       database.exec(`
       CREATE TABLE IF NOT EXISTS journal_metadata (
         key TEXT PRIMARY KEY NOT NULL,
@@ -326,6 +349,7 @@ export function openSqliteCheckpointJournal(root, {
         dispatch_identity TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (intent_id, generation)
       ) STRICT;
+      ${EFFECT_SETTLEMENT_TABLE_SQL}
       `);
       createModelResumeTables(database);
       const row = database.prepare(
@@ -478,6 +502,12 @@ export function openSqliteCheckpointJournal(root, {
     startedAdmission: database.prepare(`
       SELECT generation FROM resume_admissions
       WHERE intent_id = ? AND mode = 'start' LIMIT 1`),
+    effectSettlement: database.prepare(
+      'SELECT * FROM resume_effect_settlements WHERE intent_id = ?'),
+    recordEffectSettlement: database.prepare(`
+      INSERT INTO resume_effect_settlements (intent_id, generation, refusal_code)
+      VALUES (?, ?, 'ACTQL_E_RESUME_REVALIDATION_FAILED')
+      ON CONFLICT(intent_id) DO UPDATE SET generation = excluded.generation`),
   };
 
   const alive = () => {
@@ -690,12 +720,14 @@ export function openSqliteCheckpointJournal(root, {
     return attestation;
   }
 
-  function claimLocked(intent, claimant, at, current, leaseMs) {
+  function claimLocked(intent, claimant, at, current, leaseMs,
+    effectSettlement = false, settlementOnly = false) {
     const checkpoint = statements.checkpoint.get(intent.checkpoint_cid);
-    const decided = core(runtime.resumeClaimDecide(
-      intentView(intent), claimant, at, leaseMs, checkpoint.binding_json,
-      current,
-    ), 'InvalidResumeClaim');
+    const args = [intentView(intent), claimant, at, leaseMs,
+      checkpoint.binding_json, current];
+    const decided = core(effectSettlement
+      ? runtime.effectResumeClaimDecide(...args, settlementOnly)
+      : runtime.resumeClaimDecide(...args), 'InvalidResumeClaim');
     return {checkpoint, decided};
   }
 
@@ -1595,10 +1627,12 @@ export function openSqliteCheckpointJournal(root, {
     // to `failed`, or to `needs_reconciliation` over `unknownEffects`, with
     // terminal_error.code ACTQL_E_RESUME_REVALIDATION_FAILED.
     claimResume(runId, {claimant, leaseMs, binding, unknownEffects = [],
-      preserveStarted = false, expectedCheckpointCid}) {
+      preserveStarted = false, expectedCheckpointCid,
+      settleEffectRevalidation = false}) {
       alive();
       if (!text(runId)) fail('InvalidRunId');
       if (typeof preserveStarted !== 'boolean') fail('InvalidResumeClaim');
+      if (typeof settleEffectRevalidation !== 'boolean') fail('InvalidResumeClaim');
       if (expectedCheckpointCid !== undefined && !text(expectedCheckpointCid)) fail('InvalidResumeClaim');
       const current = bindingJson(binding);
       const unknown = effectsJson(unknownEffects);
@@ -1616,13 +1650,37 @@ export function openSqliteCheckpointJournal(root, {
             hasStartedLocked(intent)) {
           return Object.freeze({action: 'admitted'});
         }
+        const settlement = statements.effectSettlement.get(intent.intent_id);
         const {checkpoint, decided} = claimLocked(intent, claimant, at,
-          current, leaseMs);
+          current, leaseMs, settleEffectRevalidation || settlement !== undefined,
+          settlement !== undefined);
         if (decided.action === 'busy' || decided.action === 'completed') {
           return Object.freeze({action: decided.action});
         }
         const run = statements.run.get(runId);
         if (run?.status !== 'resuming') fail('RunStateConflict');
+        const artifact = JSON.parse(checkpoint.checkpoint_wire);
+        if (settlement !== undefined && Number(settlement.generation) !== Number(intent.generation)) {
+          fail('EffectSettlementJournalCorrupt');
+        }
+        if (decided.action === 'settlement') {
+          if (artifact.kind !== 'effect_set') fail('InvalidEffectSettlementClaim');
+          // Core has checked the lease/clock bounds and selected the next
+          // generation. Retain that fence for observation only. This durable
+          // marker is sticky across lease takeover and configuration changes.
+          changed(statements.claimIntent.run(decided.generation, claimant,
+            decided.lease_expires_ms, intent.intent_id, intent.generation), 'ResumeClaimStale');
+          statements.recordEffectSettlement.run(intent.intent_id, decided.generation);
+          fault('claimEffectSettlement');
+          return Object.freeze({action: 'settlement',
+            claim: Object.freeze({intentId: intent.intent_id, runId, claimant,
+              generation: decided.generation, leaseExpiresMs: decided.lease_expires_ms}),
+            checkpointCid: checkpoint.checkpoint_cid,
+            continuationStateCid: artifact.continuation_state_cid,
+            runDefinitionCid: artifact.run_definition_cid,
+            subject: Object.freeze({...artifact.subject}),
+            terminalErrorCode: 'ACTQL_E_RESUME_REVALIDATION_FAILED'});
+        }
         if (decided.action === 'invalidated') {
           // Entered Model calls cannot be reduced to an unsent failed Run.
           // Valid replacement claims still recover later proven-unsent slots;
@@ -1650,7 +1708,6 @@ export function openSqliteCheckpointJournal(root, {
           decided.lease_expires_ms, intent.intent_id, intent.generation),
         'ResumeClaimStale');
         fault('claimResume');
-        const artifact = JSON.parse(checkpoint.checkpoint_wire);
         return Object.freeze({
           action: 'claimed',
           claim: Object.freeze({
@@ -1998,8 +2055,24 @@ export function openSqliteCheckpointJournal(root, {
       const atIso = iso(at);
       transaction.run(() => {
         const intent = fenced(claim, at);
+        const settlement = statements.effectSettlement.get(intent.intent_id);
+        if (settlement !== undefined && !runtime.effectSettlementCompletionAllowed(target)) {
+          fail('InvalidEffectSettlementOutcome');
+        }
         const run = statements.run.get(intent.run_id);
         if (run?.status !== 'resuming') fail('RunStateConflict');
+        if (settlement !== undefined) {
+          // Preserve the refusal that restricted this claim. Unknown members
+          // come from the already admitted common Run state, never a new
+          // dispatch or an adapter's reinterpretation of historical rows.
+          const unknown = target === 'needs_reconciliation'
+            ? JSON.parse(runStateWire).next_action.effects : [];
+          const refused = core(runtime.revalidationFailedState(run.run_id,
+            atIso, run.declared_results_json, effectsJson(unknown)),
+          'InvalidEffectSettlementOutcome');
+          if (refused.run_status !== target) fail('InvalidEffectSettlementOutcome');
+          runStateWire = refused.run_state_wire;
+        }
         transitionAllowed('resuming', target);
         changed(statements.completeIntent.run(claim.generation,
           claim.claimant, target, atIso, intent.intent_id, claim.generation),
@@ -2097,6 +2170,9 @@ export function openSqliteCheckpointJournal(root, {
     const fence = core(runtime.resumeFenceDecide(intentView(intent),
       claim.claimant, claim.generation, at), 'ResumeClaimStale');
     if (fence.action !== 'current') fail('ResumeClaimStale');
+    if (statements.effectSettlement.get(intent.intent_id) !== undefined) {
+      fail('ResumeSettlementOnly');
+    }
     const checkpoint = statements.checkpoint.get(intent.checkpoint_cid);
     const stored = statements.resolution.get(intent.checkpoint_cid);
     if (checkpoint?.closure !== 'resolved' || stored?.decision !== 'approved' ||

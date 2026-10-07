@@ -51,6 +51,7 @@ import {fileURLToPath} from 'node:url';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
+import {settleSavedTableCommit} from './table-commit-outcome.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import {issueAuthorizedEffectSetReceipt} from './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
@@ -2368,7 +2369,7 @@ async function effectFixture({splitSource = false,
   splitEffectSource = 'consumer', writeKind = 'create',
   memberIds = ['save'], target = 'connector://crm/account',
   mappingRef = 'mapping:crm.account.v1', sourceIds,
-  continueMembers = []} = {}) {
+  continueMembers = [], minimumApproval = 'none'} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
     readFile(new URL('values.environment.json', fixture), 'utf8'),
@@ -2392,10 +2393,10 @@ async function effectFixture({splitSource = false,
     conversions: [],
     mapping_contract_cid: '',
     mapping_ref: mappingRef,
-    minimum_approval: 'none',
+    minimum_approval: minimumApproval,
     permission_rules: [{
       effect_kind: writeKind, permissions: ['scope:' + writeKind],
-      selector_class: writeKind === 'create' ? 'none' :
+      selector_class: ['create', 'store'].includes(writeKind) ? 'none' :
         writeKind === 'upsert' ? 'key' : 'id',
       write_fields: writeKind === 'create' && sourceIds ?
         ['Name', 'External_Key__c'] : ['Name'],
@@ -2457,7 +2458,7 @@ async function effectFixture({splitSource = false,
     document.stages[0].steps[0].values.schema.id.type = 'string';
     document.stages[0].steps[0].values.rows = sourceIds.map(id => ({id}));
   }
-  const write = writeKind === 'create'
+  const write = ['create', 'store'].includes(writeKind)
     ? {target, mapping: mapping.mapping_ref,
       from: {result: 'rows'}}
     : {target, mapping: mapping.mapping_ref,
@@ -3419,9 +3420,10 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   };
   if (writeKind !== 'create') {
     for (const [index, member] of preview.effects.entries()) {
-      member.effect_plan_logical_cid = checked(
+      const planCid = checked(
         moon.clientProgramEffectPlanCid(prepared, index, 10, 100,
           20000, 1000, 20));
+      if (planCid !== undefined) member.effect_plan_logical_cid = planCid;
     }
   }
   if (templateOnly) {
@@ -5640,22 +5642,36 @@ test('owned update Plan matches approved rows and rejects altered intent',
 
 test('Effect source set shares exact owners and retains failed cleanup',
   async t => {
-    for (const distinctResults of [false, true]) {
-      await t.test(distinctResults ? 'equal values, distinct Results' :
-        'one Result, two members', async t => {
-        const fixture = await effectFixture({writeKind: 'update',
+    for (const [distinctResults, writeKind, empty] of [[false, 'update', false],
+      [true, 'update', false], [false, 'store', false], [false, 'store', true]]) {
+      await t.test(writeKind === 'store' ?
+        empty ? 'empty typed Relation Table input binding' : 'whole Relation Table input binding' :
+        distinctResults ? 'equal values, distinct Results' :
+          'one Result, two members', t => exerciseEffectSourceSet(t,
+        {distinctResults, writeKind, empty}));
+    }
+  });
+
+// Optional physical Table acceptance reuses these checked computation/capture
+// owners; it does not clone the source, substitute caller rows or require
+// Python for the ordinary Host suite.
+export async function exerciseEffectSourceSet(t, {distinctResults = false,
+  writeKind = 'store', empty = false, onTablePreview, target,
+  mappingRef, minimumApproval} = {}) {
+        const fixture = await effectFixture({writeKind, target, mappingRef,
+          minimumApproval,
           memberIds: ['first', 'second']});
         const document = JSON.parse(fixture.document);
+        if (empty) document.stages[0].steps[0].values.rows = [];
         if (distinctResults) {
           document.stages[0].results.other = structuredClone(
             document.stages[0].results.rows);
           document.stages[0].effects.second.update.from.result = 'other';
         }
-        const prepared = moon.clientProgramEffectPreparationReady(
-          moon.clientProgramPrepareEffectComputationWithParameters(
-            JSON.stringify(document), 'json', fixture.environment,
-            undefined, []));
-        assert.ok(prepared);
+        const preparation = moon.clientProgramPrepareEffectComputationWithParameters(
+          JSON.stringify(document), 'json', fixture.environment, undefined, []);
+        const prepared = moon.clientProgramEffectPreparationReady(preparation);
+        assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(preparation));
         const evidence = publicationEvidence(
           moon.clientProgramEffectDefinitionCid(prepared),
           effectParametersCid(prepared),
@@ -5697,11 +5713,14 @@ test('Effect source set shares exact owners and retains failed cleanup',
         const directory = await mkdtemp(join(scratch.pathname, 'source-set-'));
         t.after(() => rm(directory, {recursive: true, force: true}));
         const control = runtimeCore(moon).publicationControl;
-        const physical = await openLocalPublicationStore({directory,
+        const storeConfiguration = {directory,
           storeAuthorityCid: cid('7'), capacityBytes: 1024 * 1024,
           maxObjectBytes: 100000, maxObjects: 10,
           maxContractNodes: 10000, maxContractDepth: 64,
-        }, control);
+          ...(onTablePreview === undefined ? {} : {
+            privateEvidenceKey: Buffer.alloc(32, 4)}),
+        };
+        let physical = await openLocalPublicationStore(storeConfiguration, control);
         let writers = 0;
         let refuseRelease = false;
         const store = Object.freeze({...physical,
@@ -5710,6 +5729,7 @@ test('Effect source set shares exact owners and retains failed cleanup',
             const writer = physical.createPreparedObjectWriter(...args);
             return Object.freeze({...writer, async seal(...args) {
               const sealed = await writer.seal(...args);
+              if (onTablePreview !== undefined) return sealed;
               return Object.freeze({...sealed, prepared: Object.freeze({
                 ...sealed.prepared,
                 async release() {
@@ -5758,13 +5778,316 @@ test('Effect source set shares exact owners and retains failed cleanup',
           localEvidenceContext: admittedLocalEffectEvidenceContext(control,
             prepared, evidence, definition, invocation, observation),
         };
+        let sources;
         try {
           await assert.rejects(preparePinnedEffectSourceSet({...options,
             maxGroupingWork: 0}), {message: 'EffectSourceGroupingLimit'});
           assert.equal(writers, 0);
-          const sources = await preparePinnedEffectSourceSet(options);
+          sources = await preparePinnedEffectSourceSet(options);
           assert.equal(sources.payloads.length, distinctResults ? 2 : 1);
           assert.equal(issuedArguments.length, distinctResults ? 2 : 1);
+          const tableLimits = {maxWireBytes: 65536, maxNodes: 4096,
+            maxDepth: 16, maxWork: 1000};
+          const artifact = sources.members[0].payload.localResultArtifact;
+          assert.equal(JSON.parse(artifact.wire).actual_row_count, empty ? 0 : 2);
+          const storage = control.localEffectTableStorageMapping(artifact,
+            tableLimits);
+          const body = JSON.parse(storage.wire);
+          assert.deepEqual(body.columns, [{name: 'id', nullable: false,
+            physical_type: 'double', presence: 'required',
+            presence_field_id: null, value_field_id: 1}]);
+          assert.equal(body.schema_cid,
+            JSON.parse(artifact.wire).result_schema_cid);
+          assert.equal(storage.identity,
+            canonicalHashWithoutSelf(body, 'mapping_cid'));
+          assert.throws(() => control.localEffectTableStorageMapping(
+            {...artifact}, tableLimits), {name: 'TypeError'});
+          const identity = control.issueSourceFreeLocalEffectIdentity(
+            prepared, inputs, 0, artifact, tableLimits);
+          const effect = runtimeCore(moon).effectApplicationControl;
+          const scope = effect.logicalRequestScope(cid('e'), 'table-bind', 128);
+          const input = JSON.parse(artifact.wire);
+          const operation = {
+            version: 'actql-table-operation/0.1', action: 'create',
+            catalog_identity_cid: cid('3'), namespace: ['analytics'],
+            table_name: 'rows', expected_table: null,
+            logical_request_scope_cid: effect.logicalRequestScopeCid(scope),
+            effect_identity_cid: identity.identity,
+            input_artifact_cid: artifact.identity,
+            input_relation_cid: input.logical_result_cid,
+            schema_cid: input.result_schema_cid,
+            storage_mapping_cid: storage.identity,
+            data_policy_cid: input.effective_data_policy_cid,
+          };
+          operation.request_cid = canonicalHashWithoutSelf(operation,
+            'request_cid');
+          const bind = wire => control.bindTableInput(prepared, inputs, 0,
+            artifact, identity, scope, wire, tableLimits);
+          if (writeKind === 'store') {
+            const boundTable = bind(canonicalJson(operation));
+            assert.equal(boundTable.wire, canonicalJson(operation));
+            assert.equal(control.tableInputMatchesSource(boundTable,
+              artifact, identity), true);
+            const otherIdentity = control.issueSourceFreeLocalEffectIdentity(
+              prepared, inputs, 1, artifact, tableLimits);
+            assert.equal(control.tableInputMatchesSource(boundTable,
+              artifact, otherIdentity), false);
+            assert.throws(() => control.tableInputMatchesSource({...boundTable},
+              artifact, identity), {name: 'TypeError'});
+            for (const key of ['input_artifact_cid', 'input_relation_cid',
+              'schema_cid', 'storage_mapping_cid', 'data_policy_cid',
+              'effect_identity_cid', 'logical_request_scope_cid']) {
+              const foreign = {...operation, [key]: cid('f')};
+              foreign.request_cid = canonicalHashWithoutSelf(foreign,
+                'request_cid');
+              assert.throws(() => bind(canonicalJson(foreign)),
+                {code: 'MoonBitHostFailure'});
+            }
+            assert.throws(() => control.bindTableInput(prepared, inputs, 1,
+              artifact, identity, scope, canonicalJson(operation), tableLimits),
+            {code: 'MoonBitHostFailure'});
+            assert.throws(() => control.bindTableInput(prepared, inputs, 0,
+              artifact, {...identity}, scope, canonicalJson(operation),
+              tableLimits), {name: 'TypeError'});
+
+            // A Table is one operation even when its checked Relation is empty.
+            // Reuse the ordinary checked Run/Preview and item-key owners; no
+            // input row is fabricated and no per-row request is dispatched.
+            const template = JSON.parse(effectInputPreview(prepared, evidence,
+              definition, invocation, fixture.mappingCid, artifact.identity,
+              'store', [], [], ['first', 'second'], [cid('0'), cid('1')],
+              scope, {templateOnly: true, ...(target === undefined ? {} : {target}),
+                ...(mappingRef === undefined ? {} : {mapping: mappingRef})}).wire);
+            const operations = [];
+            for (const [index, member] of template.effects.entries()) {
+              const localIdentity = index === 0 ? identity : otherIdentity;
+              const request = {...operation, effect_identity_cid:
+                localIdentity.identity, table_name: `rows_${index}`};
+              request.request_cid = canonicalHashWithoutSelf(request,
+                'request_cid');
+              operations.push(request);
+              member.effect_identity_cid = localIdentity.identity;
+              member.approval = 'required';
+              member.count = 1;
+              member.max_items = 1;
+              member.changes = [{target_row_identity: request.request_cid,
+                target_guard: {state: 'not_applicable'},
+                intended_changes: {state: 'present', value: request},
+                before: {state: 'not_applicable'},
+                after: {state: 'not_applicable'},
+                row_preview_cid: cid('1'), row_idempotency_key: cid('8')}];
+            }
+            const previewLimits = moon.clientProgramEffectPreviewInputLimits(
+              65536, 4096, 16, 1000, 100, 65536, 4096, 16,
+              2, 2, 100, 100);
+            const author = draft => checked(moon.clientProgramAuthorEffectPreview(
+              canonicalJson(draft), draft.run_identity_cid,
+              draft.authoring_context.authoring_context_cid, scope,
+              65536, 4096, 16, 2, 4, 128, 8, 3));
+            const bindPreview = draft => {
+              const authored = author(draft);
+              const captured = checked(moon.clientProgramBindEffectPreviewInputs(
+                owned, inputs, invocation, 0, authored._0,
+                draft.authoring_context.authoring_context_cid, previewLimits));
+              return {captured, authored};
+            };
+            const tableInput = bind(canonicalJson(operations[0]));
+            const {captured, authored} = bindPreview(template);
+            assert.equal(authored._1[0].length, 1);
+            assert.equal(authored._1[1].length, 1);
+            const tablePreview = control.bindTablePreview(tableInput,
+              captured, 0);
+            await onTablePreview?.({moon, control, sourceControl: issuerControl,
+              effect, prepared, inputs, artifact, identity, sources, store,
+              captured, tableInput, tablePreview, template, authored, bindPreview,
+              operations, scope, storage, directory, options, definition,
+              invocation, fixture, tableLimits, execution, evidence, observation, outputLimits,
+              storeConfiguration, physicalStore: physical,
+              replaceStoreForCleanup(value) { physical = value; }});
+            assert.equal(tablePreview.subjectCid,
+              JSON.parse(authored._0).effect_preview_cid);
+            const expectedKey = `sha256:${createHash('sha256').update(
+              canonicalJson({version: 'actql-row-idempotency-key/0.1',
+                logical_request_scope_cid: operation.logical_request_scope_cid,
+                effect_preview_cid: tablePreview.subjectCid,
+                row_or_item_key: operations[0].request_cid})).digest('hex')}`;
+            assert.equal(effect.dispatchKeyCid(authored._1[0][0]), expectedKey);
+            assert.equal(tablePreview.operationWire,
+              canonicalJson(operations[0]));
+            assert.equal(control.tablePreviewInputAvailable(tablePreview), true);
+            // The Catalog result is an independent fixture, not evidence of a
+            // real physical commit in this Host-capture test. Projection must
+            // bind this exact operation and the captured (including empty)
+            // Relation measurement before the existing Ledger can settle it.
+            const receipt = {
+              version: 'actql-table-receipt/0.1',
+              request_cid: operations[0].request_cid,
+              effect_identity_cid: operations[0].effect_identity_cid,
+              catalog_identity_cid: cid('3'),
+              schema_cid: operations[0].schema_cid,
+              storage_mapping_cid: storage.identity,
+              table_uuid: '11111111-2222-3333-4444-555555555555',
+              generation_cid: cid('b'), metadata_location: 'file:///table/generation.json',
+              snapshot_id: empty ? null : '123', row_count: empty ? 0 : 2,
+            };
+            receipt.receipt_cid = canonicalHashWithoutSelf(receipt, 'receipt_cid');
+            const responseWire = canonicalJson({ok: true, result: receipt});
+            const outcomeWire = canonicalJson({state: 'applied', result: receipt});
+            assert.equal(control.tablePreviewCommitOutcome(tablePreview,
+              responseWire, 200, tableLimits), outcomeWire);
+            assert.throws(() => control.tablePreviewCommitOutcome({...tablePreview},
+              responseWire, 200, tableLimits), {name: 'TypeError'});
+            for (const field of ['request_cid', 'effect_identity_cid',
+              'catalog_identity_cid', 'schema_cid', 'storage_mapping_cid', 'row_count']) {
+              const foreign = {...receipt, [field]: field === 'row_count' ?
+                receipt.row_count + 1 : cid('9')};
+              foreign.receipt_cid = canonicalHashWithoutSelf(foreign, 'receipt_cid');
+              assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
+                canonicalJson({ok: true, result: foreign}), 200, tableLimits),
+              {code: 'MoonBitHostFailure'});
+            }
+            for (const body of [{accepted: true}, {ok: true, result: null},
+              {ok: false, code: 'conflict'}, {ok: true, result: receipt, extra: true}]) {
+              assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
+                canonicalJson(body), 200, tableLimits), {code: 'MoonBitHostFailure'});
+            }
+            const ledgerBinding = control.tablePreviewLedgerBinding(tablePreview);
+            assert.equal(ledgerBinding.memberIndex, 0);
+            const member = JSON.parse(authored._0).effects[0];
+            const key = authored._1[0][0];
+            const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
+              member.effect_id, canonicalJson(operations[0].request_cid),
+              128, 256, 16, 4);
+            const basis = effect.ledgerBasis(scope, locator, key, cid('6'),
+              member.effect_member_preview_cid, member.changes[0].row_preview_cid,
+              operations[0].request_cid, cid('0'), 'unavailable', cid('1'), cid('2'));
+            const claim = {scope, locator, key, basis,
+              intentFingerprintCid: member.changes[0].row_preview_cid,
+              canonicalRequestCid: operations[0].request_cid};
+            const ledgerRoot = join(directory, 'table-ledger');
+            const openTableLedger = () => openEffectLedger({moon, root: ledgerRoot,
+              authorityScopeCid: cid('e'), callerRequestId: 'table-bind',
+              maxEntryBytes: 8192});
+            let tableLedger = openTableLedger();
+            const settle = () => settleSavedTableCommit({control, ledger: tableLedger,
+              tablePreview, claim, limits: tableLimits});
+            try {
+              assert.deepEqual(settle(), {status: 'unknown'});
+              const saved = await captureClaimedEffectResponse({ledger: tableLedger,
+                claim, requestCid: operations[0].request_cid,
+                // Transport-only observation fixture; no approval is implied.
+                execute: async () => ({observation: {useCid: cid('7'),
+                  statusCode: 200, body: Buffer.from(responseWire)}})});
+              assert.equal(saved.claimed, true);
+              tableLedger.close();
+              tableLedger = openTableLedger();
+              const terminal = settle();
+              assert.equal(terminal.status, 'applied');
+              assert.equal(JSON.parse(terminal.receipt.wire).typed_outcome.state, 'applied');
+              assert.deepEqual(JSON.parse(terminal.receipt.wire).typed_outcome.result, receipt);
+              assert.equal(settle().receipt.identity, terminal.receipt.identity);
+              await captureClaimedEffectResponse({ledger: tableLedger, claim,
+                requestCid: operations[0].request_cid,
+                execute: () => assert.fail('Settled operation was resent')});
+              assert.throws(() => settleSavedTableCommit({control, ledger: tableLedger,
+                tablePreview, claim: {...claim, canonicalRequestCid: cid('9')},
+                limits: tableLimits}), {code: 'ForeignTableDispatchRequest'});
+            } finally { tableLedger.close(); }
+            for (const [index, badResponse] of [
+              canonicalJson({accepted: true}),
+              canonicalJson({ok: true, result: {...receipt, request_cid: cid('9')}}),
+            ].entries()) {
+              const uncertain = openEffectLedger({moon,
+                root: join(directory, `table-invalid-reply-${index}`),
+                authorityScopeCid: cid('e'), callerRequestId: 'table-bind',
+                maxEntryBytes: 8192});
+              try {
+                await captureClaimedEffectResponse({ledger: uncertain, claim,
+                  requestCid: operations[0].request_cid,
+                  execute: async () => ({observation: {useCid: cid('7'),
+                    statusCode: 200, body: Buffer.from(badResponse)}})});
+                assert.throws(() => settleSavedTableCommit({control, ledger: uncertain,
+                  tablePreview, claim, limits: tableLimits}), {code: 'MoonBitHostFailure'});
+                assert.equal(uncertain.readClaimedResponse(claim).responseBytes
+                  .toString('utf8'), badResponse);
+                assert.equal(uncertain.readClaimedOutcome(claim), undefined);
+                assert.equal((await captureClaimedEffectResponse({ledger: uncertain,
+                  claim, requestCid: operations[0].request_cid,
+                  execute: () => assert.fail('Invalid reply permitted resend')})).claimed, false);
+              } finally { uncertain.close(); }
+            }
+            assert.throws(() => control.bindTablePreview({...tableInput},
+              captured, 0), {name: 'TypeError'});
+            assert.throws(() => control.tablePreviewInputAvailable(
+              {...tablePreview}), {name: 'TypeError'});
+            assert.throws(() => control.bindTablePreview(tableInput,
+              captured, 1), {code: 'MoonBitHostFailure'});
+            const reordered = structuredClone(template);
+            reordered.effects.reverse();
+            const reorderedCapture = bindPreview(reordered).captured;
+            assert.equal(control.bindTablePreview(tableInput,
+              reorderedCapture, 1).operationWire, canonicalJson(operations[0]));
+            assert.throws(() => control.bindTablePreview(tableInput,
+              reorderedCapture, 0), {code: 'MoonBitHostFailure'});
+            // Resealing a substituted request does not turn its Preview into
+            // the approved exact operation. Test target and input substitutions.
+            for (const key of ['table_name', 'input_relation_cid',
+              'storage_mapping_cid', 'catalog_identity_cid']) {
+              const foreign = structuredClone(template);
+              const request = foreign.effects[0].changes[0].intended_changes.value;
+              request[key] = key === 'table_name' ? 'elsewhere' : cid('9');
+              request.request_cid = canonicalHashWithoutSelf(request, 'request_cid');
+              foreign.effects[0].changes[0].target_row_identity = request.request_cid;
+              const foreignCapture = bindPreview(foreign).captured;
+              assert.throws(() => control.bindTablePreview(tableInput,
+                foreignCapture, 0), {code: 'MoonBitHostFailure'});
+            }
+            for (const mutate of [
+              member => { member.approval = 'none'; },
+              member => { member.max_items = 2; },
+              member => { member.count = 0; member.changes = []; },
+              member => { member.changes[0].target_row_identity = 'rows_0'; },
+              member => { member.changes[0].target_guard = {
+                state: 'version', version_cid: cid('9')}; },
+              member => { member.changes[0].before = {state: 'present',
+                value: {id: 1}}; },
+              member => { member.changes[0].after = {state: 'present',
+                value: {id: 1}}; },
+            ]) {
+              const foreign = structuredClone(template);
+              mutate(foreign.effects[0]);
+              const foreignCapture = bindPreview(foreign).captured;
+              assert.throws(() => control.bindTablePreview(tableInput,
+                foreignCapture, 0), {code: 'MoonBitHostFailure'});
+            }
+            // Replace binds the approved immutable generation as its guard.
+            const replace = {...operations[0], action: 'replace', expected_table: {
+              table_uuid: '11111111-2222-3333-4444-555555555555',
+              generation_cid: cid('5')}};
+            replace.request_cid = canonicalHashWithoutSelf(replace, 'request_cid');
+            const replacement = structuredClone(template);
+            replacement.effects[0].changes[0].intended_changes.value = replace;
+            replacement.effects[0].changes[0].target_row_identity = replace.request_cid;
+            replacement.effects[0].changes[0].target_guard = {
+              state: 'version', version_cid: cid('5')};
+            const replaceInput = bind(canonicalJson(replace));
+            assert.equal(control.bindTablePreview(replaceInput,
+              bindPreview(replacement).captured, 0).operationWire,
+            canonicalJson(replace));
+            replacement.effects[0].changes[0].target_guard.version_cid = cid('6');
+            const staleReplacement = bindPreview(replacement).captured;
+            assert.throws(() => control.bindTablePreview(replaceInput,
+              staleReplacement, 0), {code: 'MoonBitHostFailure'});
+            assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
+            assert.equal(control.tablePreviewInputAvailable(tablePreview), false);
+            assert.equal(control.tablePreviewCommitOutcome(tablePreview,
+              responseWire, 200, tableLimits), outcomeWire);
+            assert.throws(() => control.bindTablePreview(tableInput, captured, 0),
+              {code: 'MoonBitHostFailure'});
+          } else {
+            assert.throws(() => bind(canonicalJson(operation)),
+              {code: 'MoonBitHostFailure'});
+          }
           for (const args of issuedArguments) {
             // The receipt was released by exportPinnedEffectInput before
             // returning the prepared Store owner.
@@ -5806,15 +6129,21 @@ test('Effect source set shares exact owners and retains failed cleanup',
           }
           assert.equal(physical.status().storedBytes, 0);
           assert.equal(physical.status().reservedBytes, 0);
+        } catch (error) {
+          // Preserve the primary diagnostic if retained input cleanup also fails.
+          t.diagnostic(error.stack);
+          if (error.cause !== undefined) t.diagnostic(inspect(error.cause));
+          throw error;
         } finally {
           moon.clientProgramReleaseEffectInputs(inputs);
+          for (const payload of sources?.payloads ?? []) {
+            if (payload.prepared.status().pending) await payload.prepared.release();
+          }
           await physical.close();
           await execution.close();
           assert.equal(execution.cleanupPending(), false);
         }
-      });
-    }
-  });
+}
 
 async function verifySharedEffectSource({splitSource, expectedTask}) {
   const {document, environment} = await effectFixture({

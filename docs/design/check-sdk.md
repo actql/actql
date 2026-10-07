@@ -1365,7 +1365,13 @@ persistence or execution path changes are introduced by presentation.
 
 `status`, `wait` and `reconcile` use the existing registered Run state validator
 before and after detaching the received value. A valid observation retains its
-original facts even if a Local transport reuses an object. A rejected state still
+original facts even if a Local transport reuses an object. The existing structural
+comparison also requires the detached value to retain all admitted facts;
+another well-shaped Run, control revision, Effect name or availability is not
+the same observation. Comparison preserves exact strings and ignores object
+member order, without creating a public hash or a consistency certificate.
+Effect presentation projects that already admitted copy and cannot replace it
+with another copy. A rejected state still
 throws `InvalidHostRunState` for a rejected decoded state, or the existing
 `InvalidHostResponse` for decoding/wire-bound failure;
 `explainRunObservationFailure(error)` distinguishes
@@ -1492,3 +1498,87 @@ or execution operation and changes no wire schema or identity domain.
 An immutable lookup snapshot proves only the admitted observation received by
 that call. It does not by itself establish authoritative Delivery opening or
 receipt-backed read completion, nor successful publication of a submitted Run.
+
+`explainDeliveryAttempt` and `formatDeliveryAttempt` consume only an original
+admitted SDK lookup snapshot. An authorized `not_found` remains
+`lookup_unresolved`: absence is not proof that no opening or grant commit
+occurred. A recorded attempt without a record remains `attempt_recorded`.
+The SDK's existing `opening` state also supplies `read_open_unknown` on an
+unacknowledged opening failure. This explanation preserves zero caller rows
+and the same lookup target without asserting physical stop or non-acceptance;
+array/batch wrappers retain the same observation. Error text does not select it.
+Streaming, failed and cancelled Delivery records preserve their separate
+observations; neither read failure nor read cancellation changes a Run outcome.
+`host_delivery_succeeded` requires the existing lookup validator's matching
+terminal record and Host release receipt. Sink-confirmed bytes, exposure bounds
+and the record sequence remain Owner observations, never inferred caller row
+counts. Unresolved cleanup references do not become cleanup success, and an
+omitted cleanup field does not certify another Owner's release.
+
+All explanations retain this call's original attempt, Run, Result and connection
+scope as a read-only lookup candidate. A copied DTO or an error constructed from
+a success-like string has no explanation custody. Rendering performs no lookup,
+new read, grant admission, Compute or cancellation. English/Japanese text and
+text/HTML/JSON forms preserve the same disclosed facts; a Host receipt never
+proves application receipt or persistence. These SDK presentation additions
+change no wire contract, public check schema, identity domain or historical pin.
+
+The HTTPS payload terminator still precedes receipt/terminal-record persistence.
+Its transport completion alone does not establish the receipt-backed Complete
+outcome. Opening reconciliation and immutable lookup presentation are useful
+parts of that boundary, not a replacement for its remaining Owner connection.
+
+`explainRequestLookup` and `formatRequestLookup` render this call's original
+admitted lookup or its rejected observation. The existing lookup validator runs
+before and after cloning; recursively frozen snapshots detach nested Checkpoint
+references from reusable Local Host objects. Clone or contract failures retain
+only `lookup_uninterpretable` and the original read-only lookup target. A
+transport failure retains `lookup_unavailable`; neither observation admits raw
+response fields or establishes an acceptance or execution outcome.
+
+An admitted absent record remains `lookup_unresolved`, not NotAccepted. A found
+Run reference supplies `run_reference_received`, not Run success. Durable held
+responses preserve the existing Owner's closed preparation state, attempt ID
+and durability. `waiting_checkpoint`, `resuming` and `ended` describe preparation;
+none establishes physical stop, resource release or a new permission. The
+absence of a returned Run reference does not prove that no internal definition
+was ever created. Open `endReason`, `terminalErrorCode` and store-reason strings
+are not used to classify or render these explanations. Authoritative meanings
+such as PreparationFailed require the owning contract's typed evidence.
+
+Held submit responses are also cloned and revalidated as the same held branch
+before they receive submission explanation custody. Failure retains the
+original submission input and unknown acceptance, never a fabricated held or
+Run result. Lookup responses have no association to a submitted input; copying
+one cannot recover that input or acquire original explanation custody. Snapshots
+and explanations remain in memory while their application references are held;
+weak associations add no fixed retention period, Host persistence or retrieval
+API. Subsequent lookups recheck current authorization. English/Japanese and
+text/HTML/JSON presentation preserve the same facts and perform no I/O.
+
+Lookup failures use fresh SDK errors for each call. Reused credential or
+transport exceptions cannot replace an earlier call's lookup target. Only the
+existing SDK error code and a bounded HTTP status are copied; borrowed exception
+causes and fields receive no explanation custody or outcome authority.
+
+### Request cancellation observations
+
+Request cancellation presentation follows the existing closed
+`request_cancellation` response, independently from Run cancellation and request
+preparation lookup. Its `accepted`, `already_requested` and `already_terminal`
+branches never certify physical stop, Effect certainty or resource release.
+The last branch does not supply a terminal Run outcome. A supplied Run revision
+belongs to that control observation; it is not a composite consistency witness
+or a cancellation-operation identity.
+
+The SDK admits the reply before cloning and revalidates after cloning, retaining
+the same request, branch, reference and revision. Explanations belong weakly to
+the original recursively frozen response or per-call failure wrapper. Failed
+exchanges and uninterpretable responses keep only their observation failure and
+original authorized lookup candidate. Error code/status/cause metadata is not
+used to project an Owner outcome and is not formatted as explanation material.
+Recovery causes preserve public Client code/status metadata only; private
+messages, nested causes, locators and cleanup handles are omitted.
+The existing cancellation operation-identity, Refused/NotAccepted/Conflict and
+lookup contracts require authoritative typed Owner evidence; this presentation
+adds none of those facts, no ledger, no Host storage and no automatic resend.

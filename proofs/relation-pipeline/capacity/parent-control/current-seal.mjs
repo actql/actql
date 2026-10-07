@@ -12,7 +12,7 @@ import {rejectParentSubstitutions} from './regression.mjs';
 // reader for that execution; a current consumer separately checks freshness.
 export function sealCurrentExecution(input,read) {
   const {root,revision,source,runtime,toolchain,boundary,buildIdentity,model,
-    logPath,runExit,overlays,executedSource,executedArtifacts,archives,records}=input;
+    logPath,runExit,overlays,executedSource,executedArtifacts,archives,records,providerCallbackCode,parentReferenceCode}=input;
   const directory='.artifacts/relation-pipeline/current-chain-native';
   // logPath is the producer's actual filesystem path; do not prepend root to
   // an absolute path a second time. Receipt paths below are relative to root.
@@ -28,7 +28,7 @@ export function sealCurrentExecution(input,read) {
     exit:runExit,boundary,buildIdentity,model,retainedCore:encodeCoreBound(retainedParentCoreBound(2)),
     logPath:archivedLog,logDigest:digest,
     overlayDigests:Object.fromEntries(Object.entries(overlays).map(([p,t])=>[p,hash(t)])),
-    executedSource,artifacts:executedArtifacts,archives,records,preparationStorageFacts,restored:true};
+    executedSource,artifacts:executedArtifacts,archives,records,preparationStorageFacts,providerCallbackCode,parentReferenceCode,restored:true};
   mkdirSync(join(root,directory,'originals'),{recursive:true});
   const save=()=>{const path=`${directory}/originals/${hash(JSON.stringify(report))}.json`;
     if(!existsSync(join(root,path)))writeFileSync(join(root,path),JSON.stringify(report,null,2)+'\n',{flag:'wx'});return path;};

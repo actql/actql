@@ -7,6 +7,7 @@
 /// per advance; admitted arrays, objects and vectors retain accounted frames
 /// and expose their recursive traversal between advances.
 priv enum BoundedSetPhase {
+  PrepareCompletionPort
   ChargeInput
   Metadata
   ResolveField
@@ -45,7 +46,8 @@ priv struct BoundedSetState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   names : Array[String]
   left_columns : Array[Int]
   right_columns : Array[Int]
@@ -114,6 +116,10 @@ fn bounded_set_failure(
 
 ///|
 fn cleanup_bounded_set_state(state : BoundedSetState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   if state.comparison.tree is Some(cursor) {
     close_complete_tree_comparison(cursor)
     state.comparison.tree = None
@@ -443,6 +449,39 @@ fn bounded_set_step(
       return bounded_set_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return bounded_set_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return bounded_set_failure(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return bounded_set_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
+            }
+            state.port_preparation = None
+            state.phase = ChargeInput
+          }
+        }
+        used += 1
+      }
       ChargeInput => {
         match advance_binary_input_scan(state.input_scan) {
           Ok(true) => state.phase = Metadata
@@ -704,7 +743,10 @@ fn bounded_set_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        guard state.port is Some(port) else {
+          return bounded_set_failure(InvalidExecution, progress, used)
+        }
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) => bounded_set_failure(Completion(issue), progress, used)
         }
@@ -781,14 +823,16 @@ pub fn start_bounded_set(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[left, right],
+      Some([
+        trusted_output_relation_input(left),
+        trusted_output_relation_input(right),
+      ]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -814,7 +858,8 @@ pub fn start_bounded_set(
     rows,
     live,
     accepted,
-    port,
+    port: None,
+    port_preparation: Some(port_preparation),
     names: [],
     left_columns: [],
     right_columns: [],
@@ -823,7 +868,7 @@ pub fn start_bounded_set(
       value: bounded_complete_value_comparison(),
       tree: None,
     },
-    phase: ChargeInput,
+    phase: PrepareCompletionPort,
     field: 0,
     name_charge: { offset: 0, next: 0, remaining: 0, },
     sorter: None,
@@ -902,6 +947,7 @@ pub fn cleanup_bounded_set(
     (
       value.state.input_scan.frames.length() != 0 ||
       value.state.comparison.tree is Some(_) ||
+      value.state.port_preparation is Some(_) ||
       value.state.workspace.live != 0
     ) {
     return Err(InvalidExecution)

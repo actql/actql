@@ -182,6 +182,12 @@ pub fn client_program_bind_infer_slot_capture(@model_execution.VerifiedModelCapt
 
 pub fn client_program_bind_issued_infer_invocation(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @client_infer_host.ObservationIssuance) -> Result[@client_infer_host.InvocationBinding, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_bind_recovered_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientTablePreview, @run_publication_host.ClientTableInputIssue]
+
+pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, Int, Int, Int) -> Result[@run_publication_host.ClientTableInput, @run_publication_host.ClientTableInputIssue]
+
+pub fn client_program_bind_table_preview(@run_publication_host.ClientTableInput, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Result[@run_publication_host.ClientTablePreview, @run_publication_host.ClientTableInputIssue]
+
 pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
 
 pub fn client_program_cancel_infer_capture_export(@model_execution.ModelCaptureExport) -> Bool
@@ -892,6 +898,8 @@ pub fn client_program_local_effect_source_count(ClientLocalEffectHost) -> Int
 
 pub fn client_program_local_effect_source_matches(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact) -> Bool
 
+pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@effect_application.TableStorageMapping, @run_publication_host.ClientTableInputIssue]
+
 pub fn client_program_local_values_aoa_cid(@run_publication_host.ClientValuesAoAIdentity) -> String
 
 pub fn client_program_local_values_aoa_wire(@run_publication_host.ClientValuesAoAIdentity) -> String
@@ -1073,6 +1081,20 @@ pub fn client_program_read_verified_infer_slot_replay(@run_publication.RunEviden
 pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @catalog.CatalogObservation, Int) -> Result[@catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
+
+pub fn client_program_recovered_table_preview_commit_outcome(@run_publication_host.RecoveredClientTablePreview, String, Int, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
+
+pub fn client_program_recovered_table_preview_ledger_identity(@run_publication_host.RecoveredClientTablePreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn client_program_recovered_table_preview_mapping_json(@run_publication_host.RecoveredClientTablePreview) -> String
+
+pub fn client_program_recovered_table_preview_matches_source(@run_publication_host.RecoveredClientTablePreview, @run_publication.CapturedEffectSourceArtifact) -> Bool
+
+pub fn client_program_recovered_table_preview_member_index(@run_publication_host.RecoveredClientTablePreview) -> Int
+
+pub fn client_program_recovered_table_preview_operation_json(@run_publication_host.RecoveredClientTablePreview) -> String
+
+pub fn client_program_recovered_table_preview_subject_cid(@run_publication_host.RecoveredClientTablePreview) -> String
 
 pub fn client_program_refresh_acquired_effect_cleanup(ClientLocalEffectHost) -> Bool
 
@@ -1276,6 +1298,30 @@ pub fn client_program_start_restored_infer_slot_replay(@run_publication_host.Pre
 
 pub fn client_program_start_scoped_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
+pub fn client_program_table_input_matches_source(@run_publication_host.ClientTableInput, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity) -> Bool
+
+pub fn client_program_table_input_operation_json(@run_publication_host.ClientTableInput) -> String
+
+pub fn client_program_table_input_storage_mapping_json(@run_publication_host.ClientTableInput) -> String
+
+pub fn client_program_table_operation_commit_outcome(String, String, Int, Int64, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
+
+pub fn client_program_table_preview_commit_outcome(@run_publication_host.ClientTablePreview, String, Int, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
+
+pub fn client_program_table_preview_input_available(@run_publication_host.ClientTablePreview) -> Bool
+
+pub fn client_program_table_preview_ledger_identity(@run_publication_host.ClientTablePreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn client_program_table_preview_member_index(@run_publication_host.ClientTablePreview) -> Int
+
+pub fn client_program_table_preview_operation_json(@run_publication_host.ClientTablePreview) -> String
+
+pub fn client_program_table_preview_subject_cid(@run_publication_host.ClientTablePreview) -> String
+
+pub fn client_program_table_storage_mapping_cid(@effect_application.TableStorageMapping) -> String
+
+pub fn client_program_table_storage_mapping_json(@effect_application.TableStorageMapping) -> String
+
 pub fn client_program_task_compilation_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 
 pub fn client_program_task_compilation_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
@@ -1406,6 +1452,10 @@ pub fn reference_compute_registration(@connectors_builtin.ConfiguredComputeHost[
 
 pub fn strategy_admit_captured_effect_source_artifact(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
 
+pub fn strategy_admit_captured_effect_source_from_capture(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
+
+pub fn strategy_admit_captured_effect_source_from_result(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
+
 pub fn strategy_admit_captured_local_effect_source(@run_publication.CapturedEffectSourceArtifact, String, String, String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> @run_publication.CapturedLocalEffectSourceEvidence raise NodeHostFailure
 
 pub fn strategy_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
@@ -1429,6 +1479,12 @@ pub fn strategy_cancel_durable_result_row_frames(@run_publication.DurableResultR
 pub fn strategy_captured_effect_source_artifact_cid(@run_publication.CapturedEffectSourceArtifact) -> String
 
 pub fn strategy_captured_effect_source_holding_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_effect_source_inventory_from_capture_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> Bool
+
+pub fn strategy_captured_effect_source_inventory_from_results_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract]) -> Bool
+
+pub fn strategy_captured_effect_source_matches_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.CapturedLocalEffectSourceEvidence, String, Int, Int, Int) -> Bool raise NodeHostFailure
 
 pub fn strategy_captured_effect_source_recovery_inventory_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract]) -> Bool
 

@@ -46,8 +46,9 @@ fn retained_consumer_input(
     return Err(@output.ProducerUnavailable)
   }
   guard materials.compilation is @host.Tasks(compilation) &&
-    resident_source_dispatch_role(materials, handoff.dispatch)
-    is Ok(InternalSourceProducer) else {
+    resident_linear_task_index(materials, request) is Some(task) &&
+    task > 0 &&
+    resident_linear_task_index(materials, handoff.dispatch) == Some(task - 1) else {
     return Err(@output.InvalidBinding)
   }
   let edge = match
@@ -56,7 +57,7 @@ fn retained_consumer_input(
       compilation,
       materials.admission,
       materials.run_definition,
-      1,
+      task,
       0,
     ) {
     Ok(value) => value
@@ -139,6 +140,16 @@ pub fn prepare_resident_retained_consumer(
   match @resident.check_resident_materials_current(materials, at) {
     Ok(_) => ()
     Err(issue) => return Err(retained_consumer_failure(Host(Refused(issue))))
+  }
+  if handoff.consumer is Some(consumer) && consumer.executed is Some(_) {
+    // A completed exact replay owns its output independently of retired input.
+    if @remote.dispatch_request_identity(consumer.request) ==
+      @remote.dispatch_request_identity(request) &&
+      @remote.remote_input_binding_body(consumer.binding) ==
+      @remote.remote_input_binding_body(binding) {
+      return Ok(consumer)
+    }
+    return Err(retained_consumer_failure(Input(@output.InvalidBinding)))
   }
   let current = @output.install_native_remote_retained_input_owner_current(
     handoff.current,
@@ -241,18 +252,35 @@ pub fn ResidentRetainedConsumer::accept(
     Ok(_) => ()
     Err(issue) => return Ok(Refused(issue))
   }
-  match
-    retained_consumer_input(
-      self.handoff,
-      self.producer_journal,
-      materials,
-      self.request,
-      self.binding,
-      self.current,
-      self.binding_limits,
-    ) {
-    Ok(_) => ()
-    Err(_) => return Ok(Refused(@resident.ForeignSource))
+  if self.executed is Some(executed) {
+    // The original durable completion and its live output Owner admit replay;
+    // historical input bytes cannot create another borrow or revive a start.
+    guard journal.observation(self.request) is Ok(saved) &&
+      @journal.recovered_site_dispatch_evidence(saved) is Some(evidence) &&
+      @remote.remote_execution_evidence_cid(evidence) ==
+      executed.completion.evidence_cid &&
+      @journal.recovered_site_dispatch_subject(saved) is Some(subject) &&
+      executed.runtime.inspect_output_facts(
+        self.request,
+        @remote.remote_managed_output_subject_projection(subject)[1],
+      )
+      is Ok(_) else {
+      return Ok(Refused(@resident.NotCurrent))
+    }
+  } else {
+    match
+      retained_consumer_input(
+        self.handoff,
+        self.producer_journal,
+        materials,
+        self.request,
+        self.binding,
+        self.current,
+        self.binding_limits,
+      ) {
+      Ok(_) => ()
+      Err(_) => return Ok(Refused(@resident.ForeignSource))
+    }
   }
   retain_and_acknowledge_resident_dispatch(
     journal,
@@ -354,6 +382,15 @@ pub fn ResidentRetainedConsumer::execute(
       claimant,
       current_time,
       executor_entry,
+      release_retired_input=Some(() => {
+        match self.handoff.reclaim() {
+          Ok(_) => {
+            self.material = None
+            true
+          }
+          Err(_) => false
+        }
+      }),
     ) {
     Ok(value) => {
       self.executed = Some(value)

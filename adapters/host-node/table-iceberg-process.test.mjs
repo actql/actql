@@ -13,6 +13,7 @@ import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {createIcebergPhysicalBridge} from './table-iceberg-process.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {machineCid} from '../../scripts/actql-spec-family.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 const python = pathToFileURL(process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)));
 const directory = fileURLToPath(new URL('../table-iceberg/', import.meta.url));
@@ -86,6 +87,11 @@ test('real whole-Relation commit is captured once, frozen generations survive la
   const first = JSON.parse(Buffer.from(sent.response.responseBytes).toString('utf8'));
   assert.equal(first.ok, true);
   assert.equal(first.result.row_count, 4);
+  const projected = JSON.parse(checked(moon.clientProgramTableOperationCommitOutcome(
+    canonicalText({...operation, table_name: 'rows'}),
+    Buffer.from(sent.response.responseBytes).toString('utf8'),
+    sent.response.statusCode, 4n, 65536, 4096, 16)));
+  assert.deepEqual(projected, {state: 'applied', result: first.result});
   assert.deepEqual(f.bridge.status(prepared), {attempted: true, stopped: true});
   const again = await captureClaimedEffectResponse({ledger, claim, requestCid: operation.request_cid,
     execute: () => { assert.fail('Durable claim must not send twice'); }});
@@ -115,6 +121,10 @@ test('typed empty input performs one operation rather than zero row dispatches',
   const receipt = JSON.parse(Buffer.from(sent.response.responseBytes).toString('utf8')).result;
   assert.equal(receipt.row_count, 0);
   assert.equal(receipt.snapshot_id, null);
+  assert.deepEqual(JSON.parse(checked(moon.clientProgramTableOperationCommitOutcome(
+    canonicalText(operation), Buffer.from(sent.response.responseBytes).toString('utf8'),
+    sent.response.statusCode, 0n, 65536, 4096, 16))),
+  {state: 'applied', result: receipt});
   assert.deepEqual((await f.bridge.read(receipt, f.mapping)).result, []);
 });
 

@@ -1626,6 +1626,8 @@ fn compile_steps(
   retained? : Array[RetainedResult]? = None,
   projected_input? : Bool = false,
   initial_scope? : JoinChainScope? = None,
+  preserved_scope? : Array[JoinChainScope]? = None,
+  parameter_declarations? : @parameters.Declarations? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1730,11 +1732,12 @@ fn compile_steps(
         if offset is Some(name) && same_name(element, name) {
           raise Abort(DuplicateOutput)
         }
-        // Value-table star expansion depends on the admitted element type;
-        // do not reinterpret a STRUCT value table as one object column.
+        // Use declared element contracts, not payload samples, to distinguish
+        // a scalar value column from STRUCT field expansion.
         if selected_projections(query).any(projection => {
             projection.star is Some(_)
-          }) {
+          }) &&
+          !unnest_scalar_parameter(expression, parameter_declarations) {
           raise Abort(UnsupportedProjection)
         }
         let physical = ["aql_source_free_unit", element.value]
@@ -3945,7 +3948,12 @@ fn compile_steps(
       }
     }
   }
-  if pipe_changed && !terminal_result {
+  if preserved_scope is Some(scopes) {
+    // A private Pipe continuation carries value slots, not exported names.
+    // Preserve existing scope/evidence; the consuming JOIN remaps these slots.
+    scopes.push({ visible: pipe_visible.copy(), ranges: pipe_ranges.copy(), })
+    output = active_fields.copy()
+  } else if pipe_changed && !terminal_result {
     let selected : Array[@builder.Node] = []
     for field in pipe_visible {
       selected.push(
@@ -4043,7 +4051,7 @@ pub fn compile(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
-  if @query.terminal_effect(query) is Some(_) {
+  if @query.terminal_effect(query) is Some(_) || has_pipe_range_input(query) {
     return compile_query_script(
       @query.single_query_script(query),
       context,
@@ -4073,7 +4081,7 @@ pub fn compile(
     return Err(UnsupportedGraph)
   }
   if @query.join_part_count(query) > 0 &&
-    join_requires_group_scope(query) &&
+    (@query.join_part_count(query) > 1 || join_requires_group_scope(query)) &&
     context.captured_stage is Some(_) {
     // The Host requested a capture boundary. Reuse the script's existing
     // producer binding for raw/shared sources and derived-table CTEs, rather
@@ -4232,6 +4240,7 @@ pub fn compile(
       nearest_inputs=[input] +
         dependencies.filter(other => other.name != input.name),
       retained=Some(retained),
+      parameter_declarations=context.parameter_declarations,
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -4547,7 +4556,8 @@ fn compile_cte_query(
           query,
         ) >
         1 ||
-        (@query.join_part_count(query) > 0 && join_requires_group_scope(query)) {
+        (@query.join_part_count(query) > 0 && join_requires_group_scope(query)) ||
+        join_requires_input_binding(query, { ..context, inputs: known, }) {
         compile_join_chain_stage_body(
           construction,
           query,
@@ -4666,7 +4676,8 @@ fn compile_cte_stage(
     raise Abort(UnsupportedCte)
   }
   if @query.join_part_count(body) > 1 ||
-    (@query.join_part_count(body) > 0 && join_requires_group_scope(body)) {
+    (@query.join_part_count(body) > 0 && join_requires_group_scope(body)) ||
+    join_requires_input_binding(body, { ..context, inputs: known, }) {
     let (steps, output, inputs, from) = compile_join_chain_stage_body(
       construction,
       body,
@@ -4837,6 +4848,7 @@ fn compile_cte_stage(
     body_start,
     input.source is Captured(_),
     final_alias,
+    parameter_declarations=context.parameter_declarations,
   )
   // A CTE with no remaining computation binds the existing producer after
   // scope validation. compile_steps may emit a synthetic identity projection

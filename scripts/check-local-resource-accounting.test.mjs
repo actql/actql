@@ -3897,6 +3897,43 @@ test('borrowed row bindings assurance requires values shadow stop and public evi
   }
 });
 
+test('ordered bindings assurance requires its public Plan connection evidence', () => {
+  assert.match(run(undefined, routes => {
+    const derive = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'derive');
+    derive.environment_tests = derive.environment_tests.filter(entry =>
+      entry.role !== 'derive_ordered_bindings_public');
+  }), /ordered bindings public fixture is missing/u);
+});
+
+test('Values and binary output ports require limit quantum stop and public evidence', () => {
+  for (const operation of ['values', 'append', 'except', 'intersect', 'cross_join']) {
+    for (const [kind, role] of [
+      ['boundary_tests', 'completion_port_limit'],
+      ['boundary_tests', 'completion_port_quantum'],
+      ['boundary_tests', 'completion_port_stop'],
+      ['environment_tests', 'completion_port_public'],
+    ]) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry =>
+          entry.family === 'RelA' && entry.operation === operation);
+        route[kind] = route[kind].filter(entry => entry.role !== role);
+      }), new RegExp(`RelA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+});
+
+test('output port preparation assurance requires limit quantum and stop evidence', () => {
+  for (const role of ['derive_output_port_limit', 'derive_output_port_quantum',
+    'derive_output_port_stop']) {
+    assert.match(run(undefined, routes => {
+      const derive = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'derive');
+      derive.boundary_tests = derive.boundary_tests.filter(entry => entry.role !== role);
+    }), /derive_output_port_(?:limit|quantum|stop) fixture is missing/u);
+  }
+});
+
 test('string aggregation assurance requires limits stop and public evidence', () => {
   for (const [kind,role] of [['boundary_tests','group_string_cursor_limits'],
     ['boundary_tests','group_string_cursor_stop'],['environment_tests','group_string_cursor_public']]) {

@@ -26,6 +26,7 @@ import {
   "actql/actql/canonical_value",
   "actql/actql/value_contract" @contract,
   "actql/actql/logical_request_scope" @request_scope,
+  "actql/actql/effect_application" @effect,
   "actql/actql/relation_schema" @schema,
   "actql/actql/infer_typing" @infer,
   "actql/actql/carrier_contract" @carrier,
@@ -49,4 +50,5 @@ import {
 
 import {
   "actql/actql/capacity_law",
+  "actql/actql/physical_manifest" @cleanup_manifest,
 } for "wbtest"

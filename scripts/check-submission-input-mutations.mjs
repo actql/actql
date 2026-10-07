@@ -9,7 +9,42 @@ const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const sdkAcceptance = 'packages/sdk/index.test.mjs';
+const requestAcceptance = 'packages/sdk/request-observation.test.mjs';
+const preparationAcceptance = 'adapters/host-node/remote-checkpoint-host.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase.startsWith('request-cancel-')) {
+    const names = {
+      'request-cancel-admission': ['clone changes request identity', 'clone changes known branch', 'clone changes Run reference', 'clone throws'].map(fault => `request cancellation rejects ${fault}`),
+      'request-cancel-snapshot': ['request cancellation snapshots detach reused response and Run references'],
+      'request-cancel-custody': ['accepted', 'already_requested', 'already_terminal'].flatMap(kind => [false, true].map(withRun => `request cancellation retains ${kind} ${withRun ? 'with Run' : 'without Run'} without stop or release claims`)),
+      'request-cancel-failure': ['request cancellation failures detach reused credential errors without choosing outcome from their codes'],
+      'request-cancel-private': ['request cancellation failure keeps safe recovery metadata without borrowed private causes'],
+      'request-cancel-parse': ['request cancellation malformed HTTP body remains an uninterpretable response rather than a failed exchange'],
+      'request-cancel-stop': ['local', 'https'].map(entrance => `${entrance}: request cancellation acceptance retains an unconfirmed physical stop`),
+      'request-cancel-public': ['local', 'https'].map(entrance => `${entrance}: request cancellation acceptance retains an unconfirmed physical stop`),
+      'request-cancel-loss': ['local', 'https'].flatMap(entrance => ['before-dispatch', 'after-commit'].map(phase => `${entrance}: request cancellation loss ${phase} keeps the original lookup without inventing acceptance`)),
+      'request-cancel-preparation': ['C5: a cancellation after the physical start reservation releases nothing early'],
+    }[phase];
+    if (!names) throw new Error('Unknown request-cancellation mutation selection');
+    return names.map(name => ({name, assertions: [{id: assertion,
+      operator: phase === 'request-cancel-private' ? 'doesNotMatch'
+        : ['request-cancel-public', 'request-cancel-loss', 'request-cancel-preparation'].includes(phase)
+        ? 'deepStrictEqual' : 'strictEqual'}]}));
+  }
+  if (phase.startsWith('request-')) {
+    const names = {
+      'request-snapshot': ['request lookup snapshots detach a reused held checkpoint'],
+      'request-error-custody': ['request lookup failures detach a reused credential exception for each call'],
+      'request-admission': ['request lookup rejects clone changes a field', 'request lookup rejects reply cannot be cloned'],
+      'request-held-admission': ['submission uncertainty retains original lookup when held clone changes its admitted branch', 'submission uncertainty retains original lookup when held reply cannot be cloned'],
+      'request-held-state': ['held submit explanations retain the admitted preparation state'],
+      'request-ended-public': ['rejected answers end the request without a Run; answers are per item'],
+      'request-absent-public': ['local', 'https'].map(entrance => `${entrance}: program submission inputs survive before-dispatch`),
+      'request-custody': ['absent', 'unknown', 'found', 'waiting_checkpoint', 'resuming', 'ended'].map(label => `request observation retains ${label} without inferring execution or resend permission`),
+    }[phase];
+    if (!names) throw new Error('Unknown request mutation selection');
+    return names.map(name => ({name, assertions: [{id: assertion, operator: 'strictEqual'}]}));
+  }
   if (phase === 'check-expression-type') return ['local', 'http'].map(entrance => ({
     name: `${entrance}: expression type rejections explain only owned expected domains`,
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
@@ -96,6 +131,70 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['request cancellation malformed body becomes an exchange failure',
+    '      try { answer = await controlValue(response); }\n      catch { throw uninterpretableRequestCancellation(context); }',
+    "      try { answer = await controlValue(response); }\n      catch { throw retainRequestCancellationExplanation(new ClientError('CancellationUnknown', {requestId}), context, 'outcome_unknown', 'exchange_failed'); }",
+    'request-cancel-parse', 'request-cancel-parse'],
+  ['request cancellation raw causes leak private values',
+    "}) : new ClientError('CancellationUnknown', {requestId, cause: requestCancellationCause(cause)});",
+    "}) : new ClientError('CancellationUnknown', {requestId, cause});",
+    'request-cancel-private', 'request-cancel-private-cause'],
+  ['request cancellation copied reply skips revalidation',
+    "if (!validRequestCancellation(answer, requestId) ||\n            answer.kind !== original.kind || answer.revision !== original.revision ||\n            ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(field =>\n              answer.ref?.[field] !== original.ref?.[field]))",
+    'if (false)', 'request-cancel-admission', 'request-cancel-admission'],
+  ['request cancellation response is frozen without detaching',
+    '      const original = {kind: answer.kind, revision: answer.revision,\n        ref: answer.ref === undefined ? undefined : {...answer.ref}};\n      try {\n        answer = structuredClone(answer);',
+    '      const original = {kind: answer.kind, revision: answer.revision,\n        ref: answer.ref === undefined ? undefined : {...answer.ref}};\n      try {\n        answer = answer;',
+    'request-cancel-snapshot', 'request-cancel-detached'],
+  ['request cancellation copied observations acquire custody',
+    'const requestCancellationExplanations = new WeakMap();',
+    'const requestCancellationExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
+    'request-cancel-custody', 'request-cancel-custody'],
+  ['request cancellation failure reuses the credential exception',
+    "? new ClientError(cause.code, {\n            ...(cause.status === undefined ? {} : {status: cause.status}),\n            ...(cause.cause === undefined ? {} : {cause: requestCancellationCause(cause.cause)}),\n          })",
+    '? cause', 'request-cancel-failure', 'request-cancel-failure-custody'],
+  ['request cancellation acceptance claims physical stop and release',
+    '    requestId: context.requestId, ...(problem === undefined ? {} : {problem}),',
+    '    requestId: context.requestId, stopped: true, resourcesReleased: true, ...(problem === undefined ? {} : {problem}),',
+    'request-cancel-stop', 'request-cancel-physical-claim'],
+  ['request cancellation accepted becomes already terminal',
+    'return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);',
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, 'already_terminal');",
+    'request-cancel-public', 'request-cancel-public'],
+  ['request cancellation response loss becomes accepted',
+    "'outcome_unknown', 'exchange_failed');", "'accepted');",
+    'request-cancel-loss', 'request-cancel-loss'],
+  ['request cancellation preparation response becomes already terminal',
+    'return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);',
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, 'already_terminal');",
+    'request-cancel-preparation', 'request-cancel-preparation'],
+  ['request observation failures reuse the borrowed exception',
+    '  const retained = new ClientError(code,\n    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});',
+    '  const retained = error;', 'request-error-custody', 'request-failure-custody'],
+  ['request observation loses detached checkpoint custody',
+    "      try { answer = structuredClone(answer); }", "      try {}", 'request-snapshot', 'request-lookup-detached'],
+  ['request observation skips copied-response revalidation',
+    "      if (!validRequestLookup(answer, requestId)) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');", '', 'request-admission', 'request-lookup-admission'],
+  ['request observation permits a copied held reply to change its branch',
+    "admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId)",
+    "!validSubmitReply(admitted, selected.wire, requestId)", 'request-held-admission', 'request-held-admission'],
+  ['request observation loses the submitted held preparation state',
+    "observation: 'request_held', preparationState: answer.state,",
+    "observation: 'request_held', preparationState: undefined,", 'request-held-state', 'request-held-state'],
+  ['request observation presents ended preparation as resuming',
+    'preparationState: answer.state,', "preparationState: answer.state === 'ended' ? 'resuming' : answer.state,",
+    'request-ended-public', 'request-ended-public'],
+  ['request observation treats lookup absence as a Run reference',
+    "const observation = answer.kind === 'found' ? 'run_reference_received' :\n" +
+      "    answer.kind === 'not_found' ? 'lookup_unresolved'",
+    "const observation = answer.kind === 'found' ? 'run_reference_received' :\n" +
+      "    answer.kind === 'not_found' ? 'run_reference_received'",
+    'request-absent-public', 'request-public-observation'],
+  ['request observation copies acquire original custody',
+    'const requestLookupExplanations = new WeakMap();',
+    'const requestLookupExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
+    'request-custody', 'request-observation-custody'],
+
   ['check expression type explanation loses its required domain',
     'Use an expression with number type for the rejected argument.',
     'Correct the argument count.', 'check-expression-type', 'expression-type-explanation'],
@@ -256,7 +355,12 @@ const mutations = [
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase === 'check-locale-snapshot' ? sdkAcceptance
+  const file = phase === 'request-cancel-preparation' ? preparationAcceptance
+    : ['request-cancel-public', 'request-cancel-stop', 'request-cancel-loss'].includes(phase) ? cancellationAcceptance
+    : phase === 'request-ended-public' ? preparationAcceptance
+    : phase === 'request-absent-public' ? acceptance
+    : phase.startsWith('request-') ? requestAcceptance
+    : phase === 'check-locale-snapshot' ? sdkAcceptance
     : phase.startsWith('frontier-') || phase.startsWith('check-') ? checkAcceptance
     : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',

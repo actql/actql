@@ -13,5 +13,18 @@ export function rejectParentSubstitutions(report,source,read) {
   bad(r=>delete r.preparationStorageFacts);
   bad(r=>r.preparationStorageFacts[3].selected.backingBytes=0);
   bad(r=>r.preparationStorageFacts[2].transferredColumns='1');
-  return '17 Native parent receipt substitutions rejected; no extra scientific execution';
+  bad(r=>delete r.providerCallbackCode);
+  bad(r=>r.providerCallbackCode.status='forged');
+  if(report.providerCallbackCode.status==='established') {
+    bad(r=>r.providerCallbackCode.objectDigest='0'.repeat(64));
+    bad(r=>r.providerCallbackCode.logs.symbols.digest='0'.repeat(64));
+    bad(r=>r.providerCallbackCode.constructors=[]);
+  }
+  bad(r=>delete r.parentReferenceCode);bad(r=>r.parentReferenceCode.status='forged');
+  if(report.parentReferenceCode.status==='established') {
+    bad(r=>r.parentReferenceCode.objectDigest='0'.repeat(64));
+    bad(r=>r.parentReferenceCode.logs.linked.digest='0'.repeat(64));
+  }
+  const referenceNegatives=report.parentReferenceCode.status==='established'?4:2;
+  return `${referenceNegatives + (report.providerCallbackCode.status==='established' ? 22 : 19)} Native parent receipt substitutions rejected; no extra scientific execution`;
 }

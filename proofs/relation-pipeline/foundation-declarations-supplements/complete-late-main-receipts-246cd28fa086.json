@@ -1,0 +1,16 @@
+{
+  "version": "actql-foundation-resolution-supplement/0.1",
+  "id": "complete-late-main-receipts-246cd28fa086",
+  "target": {
+    "id": "resolve-table-captured-input-parent-246cd28fa086",
+    "digest": "bd98a4b0391143686c77190bab64769cb8960e40e67f7a65ad57145e5d2d80c2"
+  },
+  "inputs": [
+    "retained-main-source-01410e718368",
+    "retained-main-source-12ef63649386",
+    "retained-main-source-7486d9d02cc0",
+    "retained-main-source-80d8e117d106",
+    "retained-main-source-f45e7b9ade6e"
+  ],
+  "reason": "Retain the original immutable declaration and add independently Git-bound ancestor merge receipts that were absent when it was first introduced. The protected source bytes, original inputs and validation rules remain unchanged."
+}

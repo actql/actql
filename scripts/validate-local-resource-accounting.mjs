@@ -1838,6 +1838,16 @@ export function validateResourceAccounting({
         !boundaryRoles.has('same_stage_values_derive_two_consumers'))) {
       fail(`${label}: same-stage values derive evidence is missing`);
     }
+    if (route.family === 'RelA' &&
+      ['values', 'append', 'except', 'intersect', 'cross_join'].includes(route.operation)) {
+      for (const role of ['completion_port_limit', 'completion_port_quantum',
+        'completion_port_stop']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('completion_port_public')) {
+        fail(`${label}: completion_port_public fixture is missing`);
+      }
+    }
     if (route.family === 'RelA' && route.operation === 'derive') {
       for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
         'derive_field_name_limits', 'derive_field_name_stop',
@@ -1867,6 +1877,13 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('derive_borrowed_bindings_public')) {
         fail(`${label}: borrowed bindings public fixture is missing`);
+      }
+      if (!environmentRoles.has('derive_ordered_bindings_public')) {
+        fail(`${label}: ordered bindings public fixture is missing`);
+      }
+      for (const role of ['derive_output_port_limit', 'derive_output_port_quantum',
+        'derive_output_port_stop']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!fs.readFileSync(path.join(root, 'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
         .includes("import './public-property-name-retention.test.mjs';")) {

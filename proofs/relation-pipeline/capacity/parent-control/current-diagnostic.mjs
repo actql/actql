@@ -8,6 +8,8 @@ import {artifacts} from '../../../bounded-session/evidence.mjs';
 import {checkNativeRuntime} from '../backing/source.mjs';
 import {checkChainCensus} from './bounds.mjs';
 import {encodeCoreBound,retainedParentCoreBound} from './bounds.mjs';
+import {collectParentReferenceCode} from './parent-reference-code.mjs';
+import {collectScalarCode} from './provider-callback-code.mjs';
 import {inspectProviderConstruction} from './provider-construction.mjs';
 import {boundCurrentOverlay,currentPaths,currentHelper,currentStub,currentFixture} from './current-overlay.mjs';
 
@@ -28,7 +30,7 @@ const modelDirectory='.artifacts/relation-pipeline/capacity/parent-control-probe
 const modelLogPath=`${modelDirectory}/${hash(modelLog)}.log`;writeFileSync(join(root,modelLogPath),modelLog);
 const model={command:modelCommand,exit:0,sourceDigest:source.digest,logPath:modelLogPath,logDigest:hash(modelLog)};
 const modelReceiptPath=`${modelDirectory}/${hash(JSON.stringify(model))}.json`;writeFileSync(join(root,modelReceiptPath),JSON.stringify(model,null,2)+'\n');
-let records,executedSource,executedArtifacts,runExit,archives={};
+let records,executedSource,executedArtifacts,runExit,providerCallbackCode,parentReferenceCode,archives={};
 try {
   for(const p of temporary)writeFileSync(join(root,p),overlays[p],{flag:'wx'});
   for(const p of currentPaths)writeFileSync(join(root,p),overlays[p]);
@@ -50,6 +52,9 @@ try {
   assert.deepEqual(checkNativeRuntime(environment.MOON_HOME,toolchain),runtime);
   const providerFacts=log.split('\n').filter(l=>l.startsWith('ACTQL_PIPELINE_FAULT:')).map(l=>JSON.parse(l.slice(21)));
   inspectProviderConstruction(providerFacts.filter(f=>f.kind==='provider construction observation'),p=>originals[p] ?? read(p),'native');
+  const providers=JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json')).providers.map(p=>p.name);
+  providerCallbackCode=collectScalarCode(root,runtime,providers);
+  parentReferenceCode=collectParentReferenceCode(root,runtime,providerCallbackCode);
   runExit=run.status;
 } finally {
   for(const [p,bytes] of Object.entries(originals))writeFileSync(join(root,p),bytes);
@@ -59,4 +64,4 @@ try {
 const {sealCurrentExecution}=await import('./current-seal.mjs');
 sealCurrentExecution({root,revision,source,runtime,toolchain,boundary,buildIdentity,
   model:{...model,receiptPath:modelReceiptPath},logPath,runExit,overlays,
-  executedSource,executedArtifacts,archives,records},read);
+  executedSource,executedArtifacts,archives,records,providerCallbackCode,parentReferenceCode},read);

@@ -6369,10 +6369,76 @@ Independent 64-binding and shadow results, later-binding cancellation and
 long rename/drop supplement the unchanged exact/one-short caller fixtures.
 The affected JS batch passed 100/100. The nine-binding map derive publishes
 through the normal Host and real Store; its public test and evidence gate
-passed 2/2. Ordered derive still fails public Plan encoding before execution;
+passed 2/2. At #731, ordered derive failed public Plan encoding before execution;
 private ordered execution does not certify that public connection. Submitted-SHA
 evidence is recorded separately in the dependent PR. Native observer/census
 correspondence for the new opaque views remains unreviewed; #723/#717/#708
 remain dependencies. Initial preparation and availability checks are not
 certified by this unit. See the
 [borrowed row record](2026-10-07-local-borrowed-row-bindings.md).
+
+### Public retained ordered binding compilation (2026-10-07)
+
+The former ordered Plan refusal is closed through the existing selected-body,
+OrderedParams and fragment owners. Logical nodes retain their checked input
+edges; fragment-local preimages and complete runtime evidence stay unchanged.
+Raw lowering without registered params still refuses. The normal retained
+Store Host publishes ten-binding ordered shadow/relay results to the producer
+and two consumers, with fixed NULL/order/schema expectations, request reuse,
+post-progress cancellation and final reclamation. The resource gate requires
+this public evidence separately from the map and private ordered cases.
+Plan output limits are independent of finite selected-body admission; a
+hand-assembled small Plan verifies exact bytes and one-short refusal. Frozen
+historical registry bodies retain their original CIDs rather than attempting
+to reconstruct them from the current Graph identity domain.
+
+Focused JS passed 18/18 and targeted Node passed 5/5 on the working tree.
+These do not certify packed/HTTPS or Native Host cancellation, initial
+metadata preparation, or the parent's Native allocation correspondence.
+After #731 merged, main `6a083adc55fdf91a3c3f105393ce4eb870b285d7` was
+integrated, including the reviewed observer/census alignment. No unmerged
+parent remains. Its source alignment is not a Native campaign result. See the
+[public ordered binding record](2026-10-07-local-retained-ordered-bindings.md).
+
+### Resumable retained output-port preparation (2026-10-07)
+
+The bounded Relation owner now prepares its trusted completion port inside
+resume, before reading rows. Exact receiving bindings remain admitted by the
+existing owner. Target identity and canonical output names are validated one
+Unicode scalar/code unit at a time with unchanged entry/name limits. Pending
+preparation observes stop, retains borrowed inputs and clears its own names
+once; successful transfer preserves the completed output's name array.
+
+Independent 278/277 ASCII and 282-byte Unicode admission, quanta 1/7/256,
+phase-specific stops and incomplete-port rejection supplement the unchanged
+logical work/workspace boundaries. This dependent unit follows #744 and
+normally merges main `0f3ce2083bbdfca6a5f7de6eb34f8dfb8157d88b`. After
+#744 reached main, its final integration at
+`98718f21f6e8c0993189ccde098ed66fa455e54c` was normally merged too; no
+unmerged parent remains.
+The new fixed cursor/state shape is recorded, not certified as Native byte
+correspondence. General producer preparation, other kernel metadata and
+installed availability callbacks remain separate. See the
+[output-port record](2026-10-07-local-output-port-preparation.md).
+
+### Resumable Values and binary completion preparation (2026-10-07)
+
+Values, Append, EXCEPT/INTERSECT ALL and DISTINCT, and Cross Join drive the
+same trusted output-port cursor inside their existing bounded sessions. Exact
+input admission remains before execution; finite name admission, stop and
+pending-name cleanup precede input scanning. Completed name arrays transfer
+without copying and survive successful cleanup. Kernel semantics and logical
+work/workspace limits remain unchanged.
+
+Independent name exact/one-short quantities, quanta 1/7/256 and stops in every
+preparation phase supplement existing kernel/output boundaries. Normal public
+Programs, real Store publication and two consumers are connected to the same
+evidence inventory; submitted-source receipts are recorded separately.
+The selected working-tree JS batch passed 58/58. #749 remains a parent until
+its main adoption; main `59786a7d88f5f2c86ce336b8907febcce12137b2` was
+normally merged without conflicts.
+
+Other completion-port starts, downstream name/field resolution scans, installed
+availability callbacks and Native allocation/callback correspondence remain
+distinct. See the
+[Values/binary preparation record](2026-10-07-local-relation-port-preparation.md).

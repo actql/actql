@@ -50,13 +50,14 @@ pub fn prepare_resident_saved_output(
   let graph = @host.prepared_client_graph(materials.prepared)
   guard materials.compilation is @host.Tasks(compilation) &&
     admission.source is Some((source_ref, source_contract)) &&
-    @strategy.graph_task_count(graph) == 2 &&
-    !@strategy.graph_program_has_effects(graph) &&
+    resident_linear_graph(graph) &&
+    resident_linear_task_index(materials, request) is Some(task) &&
+    task > 0 &&
     @host.prepared_client_acquisition_count(materials.prepared) == 1 &&
     @host.prepared_client_result_count(materials.prepared) == 1 &&
-    @strategy.graph_result_task(graph, 0) == Some(1) &&
+    @strategy.graph_result_task(graph, 0) == Some(task) &&
     @strategy.graph_task_target(graph, 0) is None &&
-    @strategy.graph_task_target(graph, 1) is Some(_) &&
+    @strategy.graph_task_target(graph, task) is Some(_) &&
     @host.bind_client_task_run(
       materials.prepared,
       compilation,
@@ -75,7 +76,7 @@ pub fn prepare_resident_saved_output(
   let fragment = match
     @host.issue_prepared_client_task_fragment(
       materials.prepared,
-      1,
+      task,
       admission.limits.sequence,
       admission.limits.max_evidence_bytes,
       admission.limits.max_evidence_nodes,
@@ -119,6 +120,141 @@ pub fn prepare_resident_saved_output(
   if !current() {
     return Err(Refused(@resident.NotCurrent))
   }
+  let inventory = match
+    @publication.prepare_checked_publication_inventory(
+      @host.prepared_client_identity(materials.prepared).program_definition_cid,
+      @host.client_task_compilation_result_names(compilation),
+      [0],
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Refused(@resident.UnsupportedTask))
+  }
+  let result_definition = match
+    @publication.checked_publication_inventory_definition_cid(inventory, 0) {
+    Ok(value) => value
+    Err(_) => return Err(Refused(@resident.UnsupportedTask))
+  }
+  prepare_saved_output_custody(
+    journal,
+    request,
+    intent_key,
+    delegation.coordinator_authority,
+    result_definition,
+    current,
+  )
+}
+
+///|
+/// Continue an already completed dispatch using its original publication
+/// evidence. No Program preparation, Source selection or start claim is
+/// available on this path. The current Site/slot ports remain mandatory.
+pub fn prepare_resident_recorded_output(
+  journal : @journal.Journal,
+  site : @site.ExecutionSite,
+  recorded : @publication.RecordedRunPublication,
+  delegation : @resident.ResidentSiteDelegation,
+  attempt : String,
+  intent_key : String,
+  current_time : () -> String,
+  exclusive_current : () -> Bool,
+) -> Result[ResidentSavedOutput, ResidentHostIssue] {
+  if !exclusive_current() {
+    return Err(Refused(@resident.NotCurrent))
+  }
+  let envelope = match journal.dispatch_envelope(attempt) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(EnvelopeMissing)
+    Err(issue) => return Err(Journal(issue))
+  }
+  let request = match
+    admit_resident_recorded_output_envelope(recorded, attempt, envelope) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let scope = @remote.dispatch_request_execution_scope(request)
+  let current = () => {
+    exclusive_current() &&
+    @site.site_key(site) == scope[0] &&
+    @site.site_generation(site).to_string() == scope[1] &&
+    @site.site_runtime_revision(site) == scope[2] &&
+    @site.site_binding_current(
+      site,
+      @site.site_generation(site),
+      delegation.runtime_bundle_cid,
+    ) &&
+    @resident.check_resident_dispatch_delegation(
+      delegation,
+      request,
+      @site.site_generation(site),
+    )
+    is Ok(_) &&
+    @publication.recorded_run_publication_current(recorded, current_time()) &&
+    journal.cancellation_requested(request) is Ok(false)
+  }
+  if !current() {
+    return Err(Refused(@resident.NotCurrent))
+  }
+  prepare_saved_output_custody(
+    journal,
+    request,
+    intent_key,
+    delegation.coordinator_authority,
+    @publication.recorded_run_publication_result_cid(recorded),
+    current,
+  )
+}
+
+///|
+/// Bind restored evidence to the exact original envelope before inspecting
+/// physical completion. This performs no journal write or execution selection.
+fn admit_resident_recorded_output_envelope(
+  recorded : @publication.RecordedRunPublication,
+  attempt : String,
+  envelope : String,
+) -> Result[@remote.DispatchRequest, ResidentHostIssue] {
+  let dispatch = match @remote.admit_remote_poll_dispatch_json(envelope) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let request = @remote.remote_poll_dispatch_request(dispatch)
+  let (run_cid, _) = @remote.dispatch_request_task_scope(request)
+  if @remote.dispatch_request_attempt_identity(request) != Ok(attempt) ||
+    run_cid != @publication.recorded_run_publication_run_cid(recorded) ||
+    !@remote.remote_input_binding_matches_dispatch(
+      @remote.remote_poll_dispatch_input_binding(dispatch),
+      request,
+    ) {
+    return Err(Protocol(@remote.DispatchIdentityMismatch))
+  }
+  guard @remote.remote_poll_dispatch_run_materials(dispatch) is Some(body) else {
+    return Err(EnvelopeMissing)
+  }
+  let original = @json.parse(body) catch { _ => return Err(EnvelopeMissing) }
+  guard original is Object(fields) &&
+    fields.get("prepared_invocation") is Some(String(prepared)) &&
+    fields.get("run_authorization") is Some(String(authorization)) &&
+    @publication.recorded_run_publication_has_original_evidence(
+      recorded, prepared, authorization,
+    ) else {
+    return Err(Protocol(@remote.DispatchIdentityMismatch))
+  }
+  Ok(request)
+}
+
+///|
+/// Both callers require the same restored completed custody, exact reserved
+/// intent and sealed payload responsibility before report recovery can begin.
+fn prepare_saved_output_custody(
+  journal : @journal.Journal,
+  request : @remote.DispatchRequest,
+  intent_key : String,
+  authority : String,
+  result_definition : String,
+  current : () -> Bool,
+) -> Result[ResidentSavedOutput, ResidentHostIssue] {
+  if !current() {
+    return Err(Refused(@resident.NotCurrent))
+  }
   let observed = match journal.observation(request) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
@@ -143,25 +279,11 @@ pub fn prepare_resident_saved_output(
     Ok(None) => return Err(Runtime(@runtime.CompletedRestorationPending))
     Err(issue) => return Err(Journal(issue))
   }
-  let inventory = match
-    @publication.prepare_checked_publication_inventory(
-      @host.prepared_client_identity(materials.prepared).program_definition_cid,
-      @host.client_task_compilation_result_names(compilation),
-      [0],
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(Refused(@resident.UnsupportedTask))
-  }
-  let result_definition = match
-    @publication.checked_publication_inventory_definition_cid(inventory, 0) {
-    Ok(value) => value
-    Err(_) => return Err(Refused(@resident.UnsupportedTask))
-  }
   let selection = @remote.remote_output_intent_projection(
     @remote.remote_poll_output_intent(output),
   )
   if selection.result_definition_cid != result_definition ||
-    selection.coordinator_authority != delegation.coordinator_authority {
+    selection.coordinator_authority != authority {
     return Err(Protocol(@remote.DispatchIdentityMismatch))
   }
   let pending = match journal.pending_output_intents() {
