@@ -156,3 +156,12 @@ only bucket 21. The parameter is evaluated once, and common checking retains
 its nullable closed-object contract. The same two cases are in the ordinary
 public corpus. The final case file now has seven tests; this records the
 separate executed selections rather than claiming a repeated combined run.
+
+
+At clean `487d68a2c22de520825ebd124a1dd17e42282e46`, the final integrated
+public attempt `run-Gr5E8h` is also refused before any steps by the same shared
+owner token recorded by `run-ReeCLI`. No tarballs, private installation or Host
+Store were produced. Local/HTTPS execution of the sixteen normal and six refusal
+cases is still unverified. Do not count the guard refusal as the six public
+preparation rejections or as any product failure. This evidence-only follow-up
+changes no package build inputs; no historical package manifest is relabeled.
