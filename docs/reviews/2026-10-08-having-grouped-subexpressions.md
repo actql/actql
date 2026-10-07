@@ -39,7 +39,7 @@ The property matrix also probed object-valued GROUP keys. Ordinary checker const
 
 Eleven normal cases and four preparation refusals are registered in the ordinary group-property corpus. `--having-grouped-subexpression-only` selects those same cases for bounded public acceptance. They include independently authored JSON, direct and hidden COUNT, alias/input collisions, nullable keys/objects, duplicate groups, qualified/backtick paths, JOIN, empty input and negative scalar alias controls. Existing acceptance verifies Result.describe type/nullability/column order, rows and completion, hidden-field absence, owned-request resend/attach/reread and rejection admission/provider-I/O counts.
 
-Fresh normal five-package Local/HTTPS execution is pending at this document revision. Parser/checker success alone is not claimed as public execution. Use a clean fixed source revision and preserve its manifest/digests; do not patch generated Programs, install an old wire fallback, or relabel an earlier manifest. Successful private install/Store artifacts are reclaimed by the existing evidence runner.
+Fresh normal five-package Local/HTTPS execution now passes at `8dbe714b81794849dcad0def193cf370b827d74b`; the exact producer and final evidence are recorded below. Earlier partial runs are retained as historical evidence. Use a clean fixed source revision and preserve its manifest/digests; do not patch generated Programs, install an old wire fallback, or relabel an earlier manifest. Successful private install/Store artifacts are reclaimed by the existing evidence runner.
 
 Required exact-HEAD CI, Wasm/native/full Core/full packed/proof/performance and broader HAVING/ORDER coverage remain unverified. No manual CI run/rerun or merge.
 
@@ -66,3 +66,14 @@ Normal five-package production from clean `9e95c13d8c1f673e37bd574ad6e99fde6d085
 Selected Local execution passes six normal cases, including both independently expected nullable-object alias/qualified-input controls. The seventh JOIN case is rejected at preparation as `ClientProgramInvalidInput`; later Local cases/refusals and selected HTTPS are not established. The authored fixture incorrectly uses `WITH {"max_output_rows":10}`. Current `docs/spec/query-text.md` and `QueryParser::join_bound` adopt `MAX_OUTPUT_ROWS 10`. This fixture is corrected to that supported surface while preserving bound 10, predicate, grouping, rows, type and ordering expectations. No historical syntax is added to the parser.
 
 The matching focused JOIN/CTE regression uses the same explicit `MAX_OUTPUT_ROWS 10` and passes 1/1 in `run-7slU70`, `focused-test-TZPX3L`. Product lowering is unchanged by this correction. The new clean revision requires a normal pack and selected Local/HTTPS reacceptance; the old manifest is not relabeled. Failure logs remain retained; private installs are reclaimed (`artifactsRemoved: true`, no evidence errors).
+
+
+## Final integrated selected public acceptance
+
+Current main `aeaf13f15addf1687c1cd87b12b4657a8c984e9a` is normally merged as `8dbe714b81794849dcad0def193cf370b827d74b`, including current Client wire and submission handling. The worktree is clean when the normal producer runs. `run-wQd91J` passes integrated focused HAVING controls 8/8 (`focused-test-g9vChr`), normal five-package production and selected public execution.
+
+Local and HTTPS each complete all eleven normal cases and four preparation refusals. Independent Named Result rows, full type/nullability/column order, stream completion and absence of internal fields pass. Existing owned-request resend/attach/reread assertions pass without extra acquisition; refusal checks preserve zero Run admission and provider I/O. The README Local/HTTPS control and real missing-current-generated-wire-asset startup rejection pass using the same installation. No old client-wire rescue path is used.
+
+Receipt: `worktrees/.codex-scratch/public-query-evidence-tiOmA3/summary.json` and `010.stdout.log`/`010.stderr.log`. It records exact clean 8dbe, passed/complete, unchanged evidence, five tarball digests, artifactsRemoved=true and no evidence errors. Manifest: `/private/tmp/actql-b-having-grouped-8dbe714b8-pack/packed-client-packages.json`. Digests are compared directly between the receipt and the normal producer manifest. Success is specific to this selected corpus and SHA; it is not full Frontend completion, hosted CI or Wasm/native/full Core/full packed/proof/performance evidence.
+
+The subsequent evidence-record commit changes documentation only. It does not relabel the producer SHA or imply a new clean-HEAD packed run. Exact submitted CI remains separately unverified; no manual restart or merge.
