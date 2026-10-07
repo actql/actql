@@ -106,7 +106,7 @@ rerun. Billing-blocked CI is not product failure or verification success.
 
 ## References
 
-- [Query text and Graph construction contract](../spec/query-text.md#logical-data-and-pure-property-graph-construction)
-- [Selected Graph profile](../design/frontend-standard-profiles.md#property-graph-mapping-and-element-identity)
+- [Query text and Graph construction contract](../spec/query-text.md#logical-data-and-pure-graph-construction)
+- [Selected Graph profile](../design/frontend-standard-profiles.md#graph-mapping-and-element-identity)
 - [Nullable object semantics](../design/semantic-decisions.md)
 - [Local verification policy](../development.md#focused-test-execution)
