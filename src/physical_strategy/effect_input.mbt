@@ -808,14 +808,22 @@ pub fn captured_effect_input_at(
 
 ///|
 /// Two members may consume one canonical row stream only when their checked
-/// Result port, owner, name, and physical producer are the same. Their
-/// publication occurrences remain distinct even when this view is shared;
+/// Result port or private Table declaration, owner and physical producer are
+/// the same. The two namespaces never share a view. Their
+/// consumer occurrences remain distinct even when this view is shared;
 /// equal names or CIDs alone cannot substitute for the owner comparison.
 pub fn captured_effect_inputs_share_view(
   value : CapturedEffectInputs,
   first_index : Int,
   second_index : Int,
 ) -> Bool {
+  if captured_effect_table_input_at(value, first_index) is Some(first) {
+    guard captured_effect_table_input_at(value, second_index) is Some(second) else {
+      return false
+    }
+    return first.source.task == second.source.task &&
+      captured_table_input_borrows_share_view(first.borrow, second.borrow)
+  }
   guard captured_effect_input_at(value, first_index) is Some(first) &&
     captured_effect_input_at(value, second_index) is Some(second) else {
     return false

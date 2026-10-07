@@ -245,12 +245,18 @@ pub fn issue_source_free_captured_client_effect_local_invocation(
   if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) {
     return Err(ForeignCapturedInput)
   }
-  guard @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
-    return Err(MissingCapturedInput)
+  let unit = if @strategy.captured_effect_table_input_at(inputs, member_index)
+    is Some(input) {
+    @strategy.captured_effect_table_input_stage(input)
+  } else {
+    guard @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
+      return Err(MissingCapturedInput)
+    }
+    @strategy.captured_effect_input_stage(input)
   }
   issue_source_free_client_effect_local_invocation(
     owner,
-    @strategy.captured_effect_input_stage(input),
+    unit,
     max_wire_bytes,
     max_nodes,
     max_depth,

@@ -94,6 +94,10 @@ fn verify_captured_private_table_input(
   assert_eq(@strategy.captured_effect_table_input_stage(table), 0)
   assert_eq(@strategy.captured_effect_table_input_task(table), 0)
   let ordinary = @strategy.captured_effect_input_at(inputs, 1).unwrap()
+  assert_true(@strategy.captured_effect_inputs_share_view(inputs, 0, 0))
+  assert_false(@strategy.captured_effect_inputs_share_view(inputs, 0, 1))
+  assert_false(@strategy.captured_effect_inputs_share_view(inputs, 1, 0))
+  assert_false(@strategy.captured_effect_inputs_share_view(inputs, 0, 3))
   assert_eq(@strategy.captured_effect_local_result_count(inputs), 2)
   let borrow = @strategy.captured_effect_table_input_borrow(table)
   let second_borrow = @strategy.borrow_captured_table_input_output(
@@ -222,9 +226,21 @@ fn verify_captured_private_table_input(
     unit_cid +
     "\",\"version\":\"actql-local-table-input-definition/0.1\"}",
   )
-  let invocation = @publication_host.issue_source_free_client_effect_local_invocation(
-    prepared, 0, 4096, 32, 8,
+  let invocation = @publication_host.issue_source_free_captured_client_effect_local_invocation(
+    prepared, inputs, 0, 4096, 32, 8,
   ).unwrap()
+  let ordinary_invocation = @publication_host.issue_source_free_captured_client_effect_local_invocation(
+    prepared, inputs, 1, 4096, 32, 8,
+  ).unwrap()
+  assert_eq(
+    @publication_host.client_effect_local_invocation_cid(invocation),
+    @publication_host.client_effect_local_invocation_cid(ordinary_invocation),
+  )
+  assert_true(
+    @publication_host.issue_source_free_captured_client_effect_local_invocation(
+      prepared, inputs, 3, 4096, 32, 8,
+    ) is Err(@publication_host.MissingCapturedInput),
+  )
   let (observation, run_invocation, retention) = private_table_artifact_context(
     template,
   )
@@ -372,6 +388,9 @@ fn verify_captured_private_table_input(
   ).unwrap()
   if repeated {
     let second = @strategy.captured_effect_table_input_at(inputs, 2).unwrap()
+    assert_true(@strategy.captured_effect_inputs_share_view(inputs, 0, 2))
+    assert_true(@strategy.captured_effect_inputs_share_view(inputs, 2, 0))
+    assert_false(@strategy.captured_effect_inputs_share_view(inputs, 1, 2))
     assert_true(
       @strategy.captured_table_input_borrows_share_view(
         borrow,
@@ -870,6 +889,12 @@ fn verify_captured_private_table_input(
   |> ignore
   assert_true(@strategy.release_captured_effect_inputs(inputs))
   assert_false(@strategy.release_captured_effect_inputs(inputs))
+  assert_false(@strategy.captured_effect_inputs_share_view(inputs, 0, 0))
+  assert_true(
+    @publication_host.issue_source_free_captured_client_effect_local_invocation(
+      prepared, inputs, 0, 4096, 32, 8,
+    ) is Err(@publication_host.ForeignCapturedInput),
+  )
   assert_false(
     @strategy.captured_effect_preview_inputs_available(captured_preview),
   )
