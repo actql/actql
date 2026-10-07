@@ -3906,6 +3906,23 @@ test('ordered bindings assurance requires its public Plan connection evidence', 
   }), /ordered bindings public fixture is missing/u);
 });
 
+test('Values and binary output ports require limit quantum stop and public evidence', () => {
+  for (const operation of ['values', 'append', 'except', 'intersect', 'cross_join']) {
+    for (const [kind, role] of [
+      ['boundary_tests', 'completion_port_limit'],
+      ['boundary_tests', 'completion_port_quantum'],
+      ['boundary_tests', 'completion_port_stop'],
+      ['environment_tests', 'completion_port_public'],
+    ]) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry =>
+          entry.family === 'RelA' && entry.operation === operation);
+        route[kind] = route[kind].filter(entry => entry.role !== role);
+      }), new RegExp(`RelA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+});
+
 test('output port preparation assurance requires limit quantum and stop evidence', () => {
   for (const role of ['derive_output_port_limit', 'derive_output_port_quantum',
     'derive_output_port_stop']) {

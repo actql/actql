@@ -136,6 +136,67 @@ test "native output file custody restores exact uint64 identity with typed compl
 }
 
 ///|
+test "native output file custody remains verifiable after release and journal reconstruction" {
+  let (journal, request, record, path, library) = file_custody_journal(
+    "file-custody-released-retry",
+  )
+  let (custody, evidence, subject, measurement) = file_custody_fixture(request)
+  journal
+  .commit_evidence_transition(
+    @remote.prepare_durable_execution_evidence(record, evidence).unwrap(),
+    evidence,
+    subject,
+    measurement,
+    file_custody=Some(custody),
+  )
+  .unwrap()
+  // This exercises durable custody admission, not physical cleanup evidence.
+  journal
+  .commit_transition(@remote.prepare_begin_remote_release(record).unwrap())
+  .unwrap()
+  journal
+  .commit_transition(@remote.prepare_confirm_remote_release(record).unwrap())
+  .unwrap()
+  let original = journal.database
+    .read(
+      "site_dispatch",
+      @remote.dispatch_request_attempt_identity(request).unwrap(),
+    )
+    .unwrap()
+  assert_true(journal.close())
+  let reopened = open_journal(
+    library,
+    path,
+    1048576L,
+    test_control(test_site()),
+  ).unwrap()
+  for _ in 0..<2 {
+    let restored = reopened.observation(request).unwrap()
+    assert_eq(
+      output_file_custody_json(
+        recovered_site_dispatch_file_custody(restored).unwrap(),
+      ).unwrap(),
+      output_file_custody_json(custody).unwrap(),
+    )
+    assert_eq(
+      @remote.remote_execution_evidence_cid(
+        recovered_site_dispatch_evidence(restored).unwrap(),
+      ),
+      @remote.remote_execution_evidence_cid(evidence),
+    )
+  }
+  let after = reopened.database
+    .read(
+      "site_dispatch",
+      @remote.dispatch_request_attempt_identity(request).unwrap(),
+    )
+    .unwrap()
+  assert_eq(after.revision, original.revision)
+  assert_eq(after.body, original.body)
+  assert_true(reopened.close())
+}
+
+///|
 test "native output file custody commit failure rolls back both custody and completion" {
   let (journal, request, record, _, _) = file_custody_journal(
     "file-custody-commit-failure",

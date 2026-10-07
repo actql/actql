@@ -1118,6 +1118,33 @@ fn recover_stopped_release(
     Ok(values) if values.is_empty() => ()
     _ => return false
   }
+  // A stopped process does not discharge its saved physical file. Recover
+  // only the original cleanup address; an existing file remains pending.
+  // The file Owner also confirms directory durability after a missing unlink.
+  let saved = match owner.journal.observation(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  if @journal.recovered_site_dispatch_file_custody(saved) is Some(file) {
+    guard optional(matches, "retained-input-root") is Some(root) else {
+      return false
+    }
+    let cleanup = match
+      @retained_file.restore_native_retained_task_file_cleanup(
+        root,
+        @journal.native_output_file_custody_occurrence(file),
+        @journal.native_output_file_custody_generation(file),
+        @journal.native_output_file_custody_content_cid(file),
+        required_int64(matches, "max-bytes"),
+      ) {
+      Ok(value) => value
+      Err(_) => return false
+    }
+    if !(owner.slot.verify_current_hold() is Ok(_)) ||
+      !(cleanup.confirm_missing_release() is Ok(true)) {
+      return false
+    }
+  }
   if !owner.bundle_closed {
     let holds = ["dispatch:" + identity]
     if claimant is Some(value) {

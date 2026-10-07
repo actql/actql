@@ -38,6 +38,63 @@ fn sealed_restoration_fixture(
 }
 
 ///|
+test "native retained missing release refuses existing storage and confirms missing synchronization" {
+  guard native_retained_test_root() is Some(root) else {
+    fail("private retained file Root required")
+  }
+  let occurrence = "task-file-missing-release-" + @env.now().to_string()
+  let (generation, cid) = sealed_restoration_fixture(root, occurrence)
+  let cleanup = restore_native_retained_task_file_cleanup(
+    root, occurrence, generation, cid, 3L,
+  ).unwrap()
+  assert_eq(cleanup.confirm_missing_release().unwrap(), false)
+  assert_false(cleanup.release_confirmed())
+  assert_true(cleanup.root.verify_generation(cleanup.name, generation))
+  // Only the existing physical file Owner performs the actual reclamation.
+  let original = restore_native_retained_task_file_cleanup(
+    root, occurrence, generation, cid, 3L,
+  ).unwrap()
+  original.release().unwrap()
+  test_fail_root_sync(cleanup.root, 1)
+  assert_true(cleanup.confirm_missing_release() is Err(Filesystem(_)))
+  assert_false(cleanup.release_confirmed())
+  assert_true(cleanup.root.inspect_generation(cleanup.name) is Ok(None))
+  assert_true(cleanup.confirm_missing_release().unwrap())
+  assert_true(cleanup.release_confirmed())
+  assert_true(cleanup.confirm_missing_release().unwrap())
+}
+
+///|
+test "native retained missing release rejects a live Owner and preserves replacement storage" {
+  guard native_retained_test_root() is Some(root) else {
+    fail("private retained file Root required")
+  }
+  let occurrence = "task-file-missing-replacement-" + @env.now().to_string()
+  let live = begin_native_retained_task_file(root, occurrence, 3L).unwrap()
+  assert_true(live.confirm_missing_release() is Err(InvalidState))
+  live.append("abc").unwrap()
+  let cid = "sha256:" + @sha256.hex(b"abc")
+  live.seal(cid, 3).unwrap()
+  let generation = live.sealed_generation().unwrap()
+  let cleanup = restore_native_retained_task_file_cleanup(
+    root, occurrence, generation, cid, 3L,
+  ).unwrap()
+  let pin = live.root.open_reader(live.name, generation).unwrap()
+  live.release().unwrap()
+  let replacement = live.root
+    .create_writer("changed-" + occurrence, 3L)
+    .unwrap()
+  replacement.append(b"xyz").unwrap()
+  let changed = replacement.seal(live.name).unwrap()
+  assert_eq(cleanup.confirm_missing_release().unwrap(), false)
+  assert_false(cleanup.release_confirmed())
+  assert_true(cleanup.root.verify_generation(cleanup.name, changed))
+  pin.close().unwrap()
+  replacement.cancel().unwrap()
+  assert_true(cleanup.confirm_missing_release().unwrap())
+}
+
+///|
 test "native retained cleanup restoration denies reads and resumes missing unlink synchronization" {
   guard native_retained_test_root() is Some(root) else { return }
   let occurrence = "task-file-cleanup-restore-" + @env.now().to_string()

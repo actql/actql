@@ -2486,6 +2486,32 @@ function publicationControl(moon) {
         ),
       ));
     },
+    capturedEffectSourceMatchesPreview(preview, memberIndex, invocation,
+      source, localEvidence, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'captured Effect source Preview');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Number.isSafeInteger(memberIndex) ||
+          memberIndex < 0 || typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid captured Effect source Preview');
+      }
+      return checked(moon.strategyCapturedEffectSourceMatchesPreview(ownedPreview,
+        memberIndex, token(invocation), effectSourceToken(source),
+        localEffectSourceToken(localEvidence), storeAuthorityCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    admitCapturedEffectSourceFromCapture(preview, memberIndex, invocation,
+      artifact, capturedRun, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'recovered Effect source');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Number.isSafeInteger(memberIndex) ||
+          memberIndex < 0 || typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid recovered Effect source');
+      }
+      return inspectEffectSource(checked(moon.strategyAdmitCapturedEffectSourceFromCapture(
+        ownedPreview, memberIndex, token(invocation), token(artifact),
+        token(capturedRun), storeAuthorityCid, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth)));
+    },
     issueEffectSourceArtifactFromExport(input, receipt, invocation,
       retention, sourceBindingCid, storeAuthorityCid, limits) {
       issuanceLimits(limits, 'Effect source Artifact');
@@ -2873,6 +2899,21 @@ function publicationControl(moon) {
         ownedPreview, sources.map(value => value.memberIndex),
         sources.map(value => token(value.artifact)),
       );
+    },
+    capturedEffectSourceInventoryFromCaptureValid(preview, sources,
+      invocation, capturedRun, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'recovered Effect source inventory');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(sources) ||
+          sources.some(value => !Number.isSafeInteger(value?.memberIndex)) ||
+          typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid recovered Effect source inventory');
+      }
+      return moon.strategyCapturedEffectSourceInventoryFromCaptureValid(
+        ownedPreview, sources.map(value => value.memberIndex),
+        sources.map(value => token(value.artifact)), token(invocation),
+        token(capturedRun), storeAuthorityCid, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth);
     },
     capturedEffectSourceInventoryFromResultsValid(preview, sources, limits) {
       issuanceLimits(limits, 'captured Table source inventory');
