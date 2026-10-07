@@ -807,12 +807,7 @@ fn pipe_physical_name(physical : Array[String], prefix : String) -> String {
 }
 
 ///|
-fn output_name(
-  projection : @query.Projection,
-  query : @query.Query,
-  input : Input,
-  fields : Array[String],
-) -> String raise Abort {
+fn projection_output_name(projection : @query.Projection) -> String raise Abort {
   match projection.name {
     Some(name) => name.value
     None =>
@@ -823,30 +818,43 @@ fn output_name(
               expression,
               @query.expression_root(expression),
             ).unwrap().kind {
-            Reference(path) => {
-              // Naming a path and resolving its value are separate: its
-              // implicit alias is the authored final identifier, never a
-              // receiver's physical slot. Resolve the same longest prefix
-              // as property lowering; the common checker owns the suffix.
-              let mut length = path.length()
-              while length > 0 {
-                let prefix = path[:length].to_owned()
-                if resolve_column(prefix, query, input, fields) is Some(_) {
-                  return path.last().unwrap().value
-                }
-                if ambiguous_column(prefix, query, input, fields) {
-                  raise Abort(AmbiguousColumn)
-                }
-                length -= 1
-              }
-              raise Abort(UnknownColumn)
-            }
+            Reference(path) => path.last().unwrap().value
             Property(_, name) => name.value
             _ => raise Abort(UnsupportedProjection)
           }
         None => raise Abort(UnsupportedProjection)
       }
   }
+}
+
+///|
+fn output_name(
+  projection : @query.Projection,
+  query : @query.Query,
+  input : Input,
+  fields : Array[String],
+) -> String raise Abort {
+  let name = projection_output_name(projection)
+  if projection.name is None &&
+    projection.expression is Some(expression) &&
+    @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind
+    is Reference(path) {
+    // Keep the ordinary input diagnostic, independently of the authored
+    // leaf name. Scoped SELECT/QUALIFY use their value lowerer's resolver.
+    let mut length = path.length()
+    while length > 0 {
+      let prefix = path[:length].to_owned()
+      if resolve_column(prefix, query, input, fields) is Some(_) {
+        return name
+      }
+      if ambiguous_column(prefix, query, input, fields) {
+        raise Abort(AmbiguousColumn)
+      }
+      length -= 1
+    }
+    raise Abort(UnknownColumn)
+  }
+  name
 }
 
 ///|
@@ -3160,12 +3168,19 @@ fn compile_steps(
             continue
           }
           let name = projection.name.unwrap_or({
-            value: output_name(
-              projection,
-              query,
-              input,
-              input_scope.visible.map(entry => entry.0),
-            ),
+            // Derive only the authored leaf name here. The scoped value
+            // lowerer below owns prefix resolution; flattening the JOIN's
+            // inputs would falsely make a qualified receiver ambiguous.
+            value: if sql_group_projection || pipe_rebound {
+              projection_output_name(projection)
+            } else {
+              output_name(
+                projection,
+                query,
+                input,
+                input_scope.visible.map(entry => entry.0),
+              )
+            },
             quoted: false,
           })
           if aliases.any(binding => same_name(binding.0, name)) {
@@ -3563,19 +3578,7 @@ fn compile_steps(
                   }
                 }
               }
-              let name = match projection.name {
-                Some(name) => name.value
-                None =>
-                  match
-                    @query.expression_node(
-                      expression,
-                      @query.expression_root(expression),
-                    ).unwrap().kind {
-                    Reference(path) => path.last().unwrap().value
-                    Property(_, name) => name.value
-                    _ => raise Abort(UnsupportedProjection)
-                  }
-              }
+              let name = projection_output_name(projection)
               names.push(name)
               bindings.push((name, source))
               expressions.push((expression, name))
@@ -3707,7 +3710,20 @@ fn compile_steps(
                 bindings.push((name, field))
               }
             None => {
-              let name = output_name(projection, query, input, select_fields)
+              // An implicit name describes the authored input path, even
+              // after GROUP retains only its evaluated key. This naming
+              // snapshot does not authorize reading the original receiver:
+              // grouped expression lowering below still owns value access.
+              let name = output_name(
+                projection,
+                query,
+                input,
+                if sql_group_projection {
+                  sql_group_input_columns.map(entry => entry.0)
+                } else {
+                  select_fields
+                },
+              )
               names.push(name)
               if projection.aggregate is Some(_) ||
                 projection.analytic is Some(_) {
