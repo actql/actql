@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {checkoutTree, checkBuilder, checkOwnedPreparation, localEngine} from './local-isolated-acceptance.mjs';
 import {checkLocalImageDefinition, checkImageDefinition, localIsolatedEnvironment,
-  localIsolatedRunArguments, isolatedRunArguments} from './isolation.mjs';
+  localIsolatedRunArguments, isolatedRunArguments, localScratchDockerfile, pipelineChild} from './isolation.mjs';
 import {imageRuntime} from './isolated-runtime.mjs';
 import {prepareIsolatedMutation, executeIsolatedMutation, prepareLocalIsolatedMutation} from './isolated-execution.mjs';
 
@@ -108,4 +108,19 @@ test('local environment inputs never enter the Actions runtime authority', () =>
   assert.throws(() => checkLocalImageDefinition({image: changed, imageId, owner}));
   const altered = image(); altered.Config.Env = altered.Config.Env.map(entry => entry === 'UV_USE_IO_URING=0' ? 'UV_USE_IO_URING=1' : entry);
   assert.throws(() => checkLocalImageDefinition({image: altered, imageId, owner}));
+});
+
+test('pipeline is an explicit registered local profile and cannot be admitted as Session or Actions', () => {
+  const pipeline = image(); pipeline.Config.Entrypoint[1] = `/source/${pipelineChild}`;
+  assert(checkLocalImageDefinition({image: pipeline, imageId, owner, profile: 'pipeline-pristine'}));
+  assert.throws(() => checkLocalImageDefinition({image: pipeline, imageId, owner}));
+  assert.throws(() => checkImageDefinition({image: pipeline, imageId, owner: '1:2:3'}));
+  const args = localIsolatedRunArguments({imageId, cidFile: '/owned/id', owner, profile: 'pipeline-pristine'});
+  assert.equal(args.at(-1), `/source/${pipelineChild}`);
+  assert(args.includes('--read-only') && args.includes('--network=none'));
+  assert(!args.some(arg => /^--(?:env|mount|volume)/u.test(arg)));
+  assert(localScratchDockerfile('pipeline-pristine').includes(pipelineChild));
+  assert(!localScratchDockerfile().includes(pipelineChild));
+  assert.throws(() => localScratchDockerfile('archive-selected-command'));
+  assert.throws(() => imageRuntime({version: 'actql-isolated-pipeline-pristine-inputs/0.1'}, {profile: 'pipeline-pristine'}));
 });

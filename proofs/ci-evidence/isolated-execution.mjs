@@ -8,10 +8,11 @@ import {join} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash} from './inputs.mjs';
-import {copyRegular, stageDistribution, stageMutationSource, loaderPaths, isolatedEnvironment, localIsolatedEnvironment,
+import {copyRegular, stageDistribution, stageMutationSource, stagePipelinePristineSource, loaderPaths, isolatedEnvironment, localIsolatedEnvironment,
   isolatedRunArguments, localIsolatedRunArguments, scratchDockerfile, localScratchDockerfile, checkImageDefinition, checkLocalImageDefinition, isolatedCoreBuildMetadata} from './isolation.mjs';
 import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, checkMutationCheckout} from './isolated-runtime.mjs';
 import {isolatedExperimentDigest} from './isolated-contract.mjs';
+import {validatePristineReport} from '../relation-pipeline/pristine-replay.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
 const command = (program, args, options = {}) => {
@@ -48,16 +49,18 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
 }
 
 // Explicit physical diagnostics confer no Actions origin or reuse authority.
-export function prepareLocalIsolatedMutation({root, tree, owner, directory}) {
+export function prepareLocalIsolatedMutation({root, tree, owner, directory, profile = 'session'}) {
   assert(/^local-[a-f0-9]{32}$/u.test(owner), 'Use a distinct local owner');
   assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
-  return prepare({root, tree, directory, owner, local: true});
+  return prepare({root, tree, directory, owner, local: true, profile});
 }
 
-function prepare({root, tree, directory, owner, local = false}) {
+function prepare({root, tree, directory, owner, local = false, profile = 'session'}) {
+  assert(['session', 'pipeline-pristine'].includes(profile) && (profile === 'session' || local));
   const start = performance.now(), context = mkdtempSync(join(directory, 'isolated-build-'));
   const imageRoot = join(context, 'root'); mkdirSync(imageRoot);
-  const source = stageMutationSource({tree, destination: imageRoot});
+  const stage = profile === 'session' ? stageMutationSource : stagePipelinePristineSource;
+  const source = stage({tree, destination: imageRoot});
   const pin = JSON.parse(tree.read('toolchain.json'));
   const moonHome = process.env.MOON_HOME ?? join(root, '.toolchains', `moonbit-${pin.version}`);
   const budget = {remaining: 1024 ** 3};
@@ -87,13 +90,13 @@ function prepare({root, tree, directory, owner, local = false}) {
   }
   for (const library of [...libraries].sort()) copyRegular({source: realpathSync(library), target: join(imageRoot, library.slice(1)), budget});
   const probe = join(imageRoot, 'runtime/actql-write-probe'); writeFileSync(probe, '', {flag: 'wx', mode: 0o666}); chmodSync(probe, 0o666);
-  const manifest = {version: 'actql-isolated-mutation-inputs/0.1', ...(local ? {localDiagnostic: true} : {}),
+  const manifest = {version: profile === 'session' ? 'actql-isolated-mutation-inputs/0.1' : 'actql-isolated-pipeline-pristine-inputs/0.1', ...(local ? {localDiagnostic: true} : {}),
     environment: local ? localIsolatedEnvironment : isolatedEnvironment,
-    dockerfile: local ? localScratchDockerfile() : scratchDockerfile(), root: observeImageRoot(imageRoot), platformInputs: platformInputs(), loaderObservations,
-    sourceSnapshotDigest: snapshotFromGit(tree).digest, toolchainDigest: hash(tree.read('toolchain.json')),
-    experimentDigest: isolatedExperimentDigest(tree),
+    dockerfile: local ? localScratchDockerfile(profile) : scratchDockerfile(), root: observeImageRoot(imageRoot), platformInputs: platformInputs(), loaderObservations,
+    sourceSnapshotDigest: snapshotFromGit(tree, profile).digest, toolchainDigest: hash(tree.read('toolchain.json')),
+    experimentDigest: profile === 'session' ? isolatedExperimentDigest(tree) : hash(tree.read('proofs/relation-pipeline/regressions.json')),
     hostImage: process.env.ImageVersion ?? 'unrecorded'};
-  const runtime = imageRuntime(manifest, {local}); checkIsolatedInputs({runtime, manifest, tree, local});
+  const runtime = imageRuntime(manifest, {local, profile}); checkIsolatedInputs({runtime, manifest, tree, local, profile});
   mkdirSync(join(imageRoot, 'control')); writeFileSync(join(imageRoot, 'control/inputs.json'), jsonBytes(manifest), {flag: 'wx'});
   writeFileSync(join(context, 'Dockerfile'), manifest.dockerfile, {flag: 'wx'});
   return {owner, context, runtime, manifest, sourceBytes: source.bytes,
@@ -106,17 +109,17 @@ export function executeIsolatedMutation({root, tree, prepared}) {
   return execute({root, tree, prepared, execution: ciExecution});
 }
 
-export function executeLocalIsolatedMutation({root, tree, prepared, engine}) {
+export function executeLocalIsolatedMutation({root, tree, prepared, engine, profile = 'session'}) {
   assert(/^local-[a-f0-9]{32}$/u.test(prepared.owner), 'Use a distinct local owner');
-  return execute({root, tree, prepared, execution: localExecution(engine)});
+  return execute({root, tree, prepared, execution: localExecution(engine), profile});
 }
 
-function execute({root, tree, prepared, execution}) {
+function execute({root, tree, prepared, execution, profile = 'session'}) {
   const docker = args => command(execution.engine, args);
-  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: execution.local === true});
+  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: execution.local === true, profile});
   // Both observations cover the physically staged cohort. The existing
   // collector checks the full tracked checkout independently on every action.
-  const before = checkMutationCheckout({root, tree}), tag = `actql-session-${prepared.owner.replaceAll(':', '-')}:latest`;
+  const before = checkMutationCheckout({root, tree, profile}), tag = `actql-session-${prepared.owner.replaceAll(':', '-')}:latest`;
   const cidFile = join(prepared.context, 'container.id'), iidFile = join(prepared.context, 'image.id');
   const costs = {preparationMilliseconds: prepared.preparationMilliseconds, buildMilliseconds: 0, executionMilliseconds: 0,
     inspectionMilliseconds: 0, closeMilliseconds: 0};
@@ -131,20 +134,21 @@ function execute({root, tree, prepared, execution}) {
     assert(/^sha256:[a-f0-9]{64}$/u.test(imageId), 'Missing immutable built image ID');
     const image = JSON.parse(docker(['image', 'inspect', imageId]));
     assert.equal(image.length, 1);
-    execution.checkImage({image: image[0], imageId, owner: prepared.owner});
+    execution.checkImage({image: image[0], imageId, owner: prepared.owner, profile});
     costs.buildMilliseconds = Math.round(performance.now() - start);
     start = performance.now();
-    const args = execution.arguments({imageId, cidFile, owner: prepared.owner});
+    const args = execution.arguments({imageId, cidFile, owner: prepared.owner, profile});
     const result = spawnSync(execution.engine, args, {encoding: 'utf8', timeout: 10 * 60 * 1000, maxBuffer: 64 * 1024 * 1024});
     costs.executionMilliseconds = Math.round(performance.now() - start);
     if (result.error || result.status !== 0) process.stderr.write((result.stderr ?? '').slice(-4000));
     assert(!result.error && result.status === 0, 'Original isolated mutation action failed');
     start = performance.now();
-    const prefix = 'ACTQL_ISOLATED_MUTATIONS ', lines = result.stdout.split('\n');
+    const prefix = profile === 'session' ? 'ACTQL_ISOLATED_MUTATIONS ' : 'ACTQL_ISOLATED_PIPELINE_PRISTINE ', lines = result.stdout.split('\n');
     const records = lines.filter(line => line.startsWith(prefix)); assert.equal(records.length, 1, 'Missing/duplicate actual isolation observation');
     const payload = JSON.parse(records[0].slice(prefix.length));
-    checkIsolatedResult({payload, manifest: prepared.manifest, before});
-    assert.equal(checkMutationCheckout({root, tree}).digest, before.digest, 'Host source changed during isolation');
+    if (profile === 'session') checkIsolatedResult({payload, manifest: prepared.manifest, before});
+    else checkPipelinePristineResult({payload, manifest: prepared.manifest, before});
+    assert.equal(checkMutationCheckout({root, tree, profile}).digest, before.digest, 'Host source changed during isolation');
     const output = `${lines.filter(line => !line.startsWith(prefix)).join('\n')}${result.stderr ?? ''}`;
     costs.inspectionMilliseconds = Math.round(performance.now() - start);
     answer = {output, payload, imageId, imageDefinition: image[0], owner: prepared.owner, arguments: args, costs};
@@ -175,4 +179,14 @@ function execute({root, tree, prepared, execution}) {
   costs.closeMilliseconds = Math.round(performance.now() - start);
   if (failure) throw failure;
   return answer;
+}
+
+export function checkPipelinePristineResult({payload, manifest, before}) {
+  assert.equal(manifest.version, 'actql-isolated-pipeline-pristine-inputs/0.1');
+  assert.equal(payload.version, 'actql-isolated-pipeline-pristine-observation/0.1');
+  for (const field of ['root', 'platformInputs', 'environment'])
+    assert.equal(encode(payload[field]), encode(manifest[field]), 'Changed physical pipeline input');
+  assert.equal(payload.readOnlyConfirmed, true); assert.equal(payload.shellStartupConfirmed, true);
+  assert.equal(payload.sourcePreserved, true); assert.equal(payload.reuseAuthorized, false);
+  return validatePristineReport(payload.report, before, payload.files);
 }

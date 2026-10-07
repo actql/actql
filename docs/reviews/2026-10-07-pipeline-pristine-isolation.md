@@ -25,7 +25,7 @@ this registered pristine phase in the existing read-only, networkless scratch
 image. Proposed connections are `proofs/ci-evidence/isolation.mjs`,
 `isolated-runtime.mjs`, `isolated-execution.mjs`, and the explicit local
 acceptance entry point, plus a pipeline child and corresponding consuming tests.
-Keep Session's existing image, contract, collector and admission scope unchanged.
+Keep Session's existing entrypoint, environment, contract, collector and admission scope unchanged. Shared runner source changes still invalidate its keyed inputs; the new shared staging dependency on the pipeline snapshot inventory is explicitly included in Session source staging.
 Do not accept arbitrary archive-provided commands/entry points or reinterpret
 local observations as Actions provenance. Actual image execution remains an
 acceptance requirement, not something proved by source staging tests.
@@ -50,3 +50,27 @@ inputs/environment and compare scientific observations with the normal fresh
 run. Preserve the missing mutated/restored/other-target obligations, and the
 full fresh pipeline audit. Compatible full-main comparison, limited activation,
 related-input fresh execution and inclusive net savings remain goal requirements.
+
+## Implemented local connection
+
+The explicit local acceptance entry point accepts `--profile pipeline-pristine`.
+The default remains Session. Pipeline manifests, image entrypoints and observations
+have independent current domains and require explicit local profile selection;
+Session and Actions consumers reject them. The shared Docker owner still verifies
+image identity/configuration, empty tmpfs, actual immutable root, exact environment,
+loader bytes, CPU/kernel profile, source preservation and owner-only cleanup.
+No CI-only guard is removed and no pipeline action obtains reuse authority.
+
+Preparation runs the same four minima through the original pinned JS executor in
+a separate source-only normal workspace. Actual scratch execution transports its
+original receipt/log/input/fixture/source bytes to the consumer. That consumer
+uses the independent oracle and compiled-fixture validator. Comparison removes
+only invocation IDs, retaining work, stage values, schema, order, NULL, duplicate
+occurrences and all other observation fields. Seven altered copies of actual
+captured evidence must reject before comparison is accepted. Timing records
+normal execution separately from image preparation/build/execution/inspection/
+cleanup; this experiment does not claim net CI savings.
+
+The full pipeline remains fresh, including mutated detection, post-restore,
+exploration and other-target obligations. This standalone pristine observation
+cannot replace a full part's required archive or the global scientific audit.
