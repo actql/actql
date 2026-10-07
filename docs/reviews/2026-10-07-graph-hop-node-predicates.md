@@ -84,3 +84,30 @@ cases, JSON controls and refusal obligations are unchanged; no Host limit or
 Program admission rule was changed. The normal preparation bridge accepts
 both the JSON control and corrected source. That preparation diagnostic does
 not replace the pending Local/HTTPS execution acceptance.
+
+## Integration checkpoint
+
+The corrected source corpus completed Embedded Local and HTTPS at
+`7e5aee197a9a9027b7c22921b4fbc9abbcd037e5`: each mode passed 22 positives and
+13 pre-admission refusals, including Named Result rows/description, column
+order, request replay/reattachment and unchanged Run/I/O counters on refusal.
+The successful receipt is
+`worktrees/.codex-scratch/public-query-evidence-AGd4DZ/summary.json`;
+its evidence is complete and its owned installation artifacts were removed.
+Five normally prepacked package digests are retained in
+`/private/tmp/actql-b-hop-node-7e5aee197-pack/packed-client-packages.json`.
+
+Main `735ac73c5519753f77de31c26d6233ffc015c088` was then merged normally.
+The two conflicts were `keyed_graph_program.mbt` and the packed driver's
+fixture-copy list. Both edge and node predicate connections are retained,
+using main's shared `keyed_constraint` helper. The added combined predicate
+case must return no rows: edge key 10 reaches score 10, which fails score > 10.
+Dropping either the edge or node condition incorrectly produces a row.
+
+At merge revision `d58c96af7ff37611d0aeffe578fd2217452601c9`, focused JS
+passed 32/32 (`focused-test-DcZFrd`), and focused Node passed 4/4
+(`focused-test-D90sdG`). The combined public corpus now contains 39 positives
+and 21 pre-admission refusals per mode: 14 new fixed-hop node cases, 16 retained
+edge cases and 9 retained start-node cases. Fresh packed execution of this
+integrated revision and required hosted CI are not established by the earlier
+7e5aee197 execution. PR #826 records the subsequent exact-head result separately.
