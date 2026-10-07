@@ -127,3 +127,21 @@ The working directory is
 `worktrees/actql-frontend-having-grouped-subexpressions`, now on the independent
 `fix/frontend-object-member-case` branch. The old grouped-projection PR is
 merged; this branch does not modify #933 or any teammate's worktree.
+
+## Integrated branch state
+
+After the recorded probe, #933 was merged externally with reviewed public
+branch head `c879fd6beb7a161d9fdb0d81da309591555b705d` and main merge
+`2fde4022be54b035f89b4807c415b781262823f6`. B does not push further changes
+to that closed PR. The member-resolution branch normally adopts main
+`c28c05d941f4a3dadaa98a287015fd46721e79f0`, then preserves B's additional
+pre-merge alias verification record through a normal merge. Its extra files
+are only the retained probe and review records; no member-resolution product
+repair is claimed.
+
+The exact reviewed #933 head workflow query returned `workflow_runs: []`.
+B's seven-test recheck is instead attributed to clean integration source
+`4743484b7004ed8704310c663383c68e02596ad9`, as detailed in the [alias record](2026-10-08-group-having-implicit-aliases.md).
+Neither the merge nor this preservation relabels previous source evidence as
+CI success or as packed public execution. The remaining member-case repair
+and the complete Frontend objective stay open.
