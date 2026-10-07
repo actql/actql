@@ -212,7 +212,8 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
       assert.deepEqual({...check, report: {...check.report, context_ref: '<ctx>',
         inputs: check.report.inputs.map(input => ({...input, revision: '<revision>'}))}},
         {version: 'actql-check-outcome/0.1', outcome: 'completed',
-          reason_schema_cid: 'sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6',
+          reason_schema_cid: 'sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739',
+          outcome_schema_cid: 'sha256:801971ab7c91652f2e3a606cdae7567fe313ca2931df81d7ab4c24d3d130e0a9',
           report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
             inputs: [{document_id: 'source', kind: 'text', revision: '<revision>', byte_length: 17}],
             verdict: 'verified', reasons: [], requirements: [],
@@ -222,8 +223,10 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
         requestPrefix: `${mode}-${variant}`, observe, refusals: [],
         successes: [{name: 'two-source-join', text, format, results,
           sourceReadSessionCount: expectedDatabases.length}],
+        persistSubmission: ({submissionRef}) => writeFile(resolve(directory, 'submission-ref.json'),
+          JSON.stringify(submissionRef) + '\n', {flag: 'wx', mode: 0o600}),
         completedCase: item => retained.push({mode, variant, directory, sourceProfilePaths,
-          ref: item.ref, requestId: `${mode}-${variant}-two-source-join`,
+          ref: item.ref, submissionRef: item.submissionRef,
           submission: {document: text, format}}),
       });
       const commands = provider.snapshot().sourceReadCommands.slice(before.sourceReadCommands.length);
@@ -256,6 +259,8 @@ export async function verifyTwoSourceRetained({connect, openInstalledRemoteHttpH
     const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost, tls, authorization, ...item});
     const client = await running.connect();
     try {
+      assert.deepEqual(JSON.parse(await readFile(resolve(item.directory, 'submission-ref.json'), 'utf8')),
+        item.submissionRef, 'fresh-process restoration uses the custody saved before first send');
       const attached = await client.attach(item.ref);
       assert.equal((await attached.status()).status, 'succeeded');
       for (const [name, result] of Object.entries(expectedTwoSourceResults(fixture, item.variant))) {
@@ -287,7 +292,7 @@ export async function verifyTwoSourceRetained({connect, openInstalledRemoteHttpH
             assert.deepEqual((await attached.result(name).describe()).columns, result.columns);
             assert.equal((await attached.status()).status, 'succeeded');
             const observation = {mode: item.mode, variant: item.variant,
-              ref: item.ref, requestId: item.requestId, result: name,
+              ref: item.ref, submissionRef: item.submissionRef, result: name,
               closedReader: {attemptId: prefix.attemptId, state: prefix.state(),
                 rowsYielded: prefix.rowsYielded()},
               continuingReader: {attemptId: continuing.attemptId, state: continuing.state(),
@@ -300,11 +305,14 @@ export async function verifyTwoSourceRetained({connect, openInstalledRemoteHttpH
           }
         }
       }
-      assert.deepEqual((await client.lookupRequest(item.requestId)).ref, item.ref);
+      const lookup = await client.lookupSubmission(item.submissionRef);
+      assert.equal(lookup.kind, 'ready');
+      assert.deepEqual(lookup.submissionRef, item.submissionRef);
+      assert.deepEqual(lookup.admission.ref, item.ref);
       assert.equal(typeof item.submission.document, 'string');
       assert.ok(['json', 'aql-text'].includes(item.submission.format));
       const resent = await client.startSource(item.submission.document,
-        {format: item.submission.format, requestId: item.requestId});
+        {format: item.submission.format, submissionRef: item.submissionRef});
       assert.deepEqual(resent.ref, item.ref);
       assert.equal((await resent.status()).status, 'succeeded');
       assert.deepEqual(readTwoSourceJournal(item.directory), before, 'retained access adds no admission or physical transition');
