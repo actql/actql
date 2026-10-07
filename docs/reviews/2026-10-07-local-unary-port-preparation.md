@@ -6,6 +6,10 @@ The source base is `3a01ebcea5af032bb22cfe5b55132d0e36ad4b77`.
 This unit uses the private `TrustedOutputPreparation` owner merged in #749.
 It does not depend on the unmerged Values/binary preparation unit in #758.
 Current Graph identities, public APIs and stored contracts remain unchanged.
+Main `bc5a1ec7cf5154be40173858d52471af7a3dc823` was subsequently normally
+merged without conflicts. Its primitive Ref correspondence changes remain
+intact. That integration changes proof sources, not this unit's kernel or
+Host fixture sources; it is not an additional Native validation result.
 
 The following bounded providers previously validated all output names and
 retained-target spellings synchronously inside start. They now retain the
