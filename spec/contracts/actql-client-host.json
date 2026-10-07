@@ -2183,6 +2183,7 @@
           "ClientParametersTooLarge",
           "ClientProgramUnsupported",
           "ClientProgramAnalysisLimit",
+          "ClientProgramImplementationLimit",
           "ClientProgramNeedsInputs",
           "ClientProgramRejected"
         ]}

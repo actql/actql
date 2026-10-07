@@ -313,7 +313,10 @@ not a new server acceptance contract or an execution/publication/release proof.
 
 For admitted `not_accepted` or `preparation_failed` outcomes with
 `ClientProgramAnalysisLimit` and the `implementation_limit` classification,
-`preparationIssue` explains the existing checker analysis-budget fact. This
+`preparationIssue` explains the existing checker analysis-budget fact.
+`ClientProgramImplementationLimit` with the same classification instead explains
+an unresolved implementation path reported by checking. Both facts are separate
+from the Host's independent `ClientProgramUnsupported` feature refusal. This
 fact does not establish invalid input, successful checking or execution.
 Inspect a check report for outstanding obligations and keep the original
 submission reference. A changed input requires a distinct submission identity;

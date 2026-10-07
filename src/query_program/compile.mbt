@@ -1681,6 +1681,7 @@ fn compile_steps(
   let mut sql_group_projection = false
   let mut sql_group_select_scope : JoinChainScope? = None
   let mut sql_group_expression_input_scope : JoinChainScope? = None
+  let mut sql_group_order_input_scope : JoinChainScope? = None
   let mut sql_group_input_columns : Array[(String, String)] = []
   let mut sql_group_input_ranges : Array[
     (@query.NamePart, Array[(String, String)]),
@@ -4049,23 +4050,40 @@ fn compile_steps(
                   None => {
                     let slot = pipe_physical_name(reserved, "aql_pipe_sort_")
                     reserved.push(slot)
-                    let value = match
-                      @expression.append_with_properties(
+                    let value = if sql_group_order_input_scope is Some(scope) {
+                      append_order_grouped_expression(
+                        construction,
                         expression,
+                        grouped_keys,
+                        scope,
+                        sql_group_selected_projections,
+                        order_aggregate_slots,
                         resolve,
-                        construction.builder,
+                        active_fields,
+                        selected_output_slots,
+                        pending_select is None,
+                        distinct_order_scope,
                         max_work,
-                      ) {
-                      Ok(node) => node
-                      Err(error) =>
-                        if distinct_order_scope &&
-                          join_reference_paths(expression).any(path => {
-                            resolve(path) is None
-                          }) {
-                          raise Abort(UnsupportedOrdering)
-                        } else {
-                          raise Abort(Expression(error))
-                        }
+                      )
+                    } else {
+                      match
+                        @expression.append_with_properties(
+                          expression,
+                          resolve,
+                          construction.builder,
+                          max_work,
+                        ) {
+                        Ok(node) => node
+                        Err(error) =>
+                          if distinct_order_scope &&
+                            join_reference_paths(expression).any(path => {
+                              resolve(path) is None
+                            }) {
+                            raise Abort(UnsupportedOrdering)
+                          } else {
+                            raise Abort(Expression(error))
+                          }
+                      }
                     }
                     derives.push((slot, value))
                     hidden.push((expression, slot))
@@ -4184,15 +4202,36 @@ fn compile_steps(
                       derives.push(
                         (
                           field,
-                          append_order_expression(
-                            construction,
-                            term.expression,
-                            query,
-                            input,
-                            selected_input_fields,
-                            pending_bindings,
-                            max_work,
-                          ),
+                          if sql_group_order_input_scope is Some(scope) {
+                            append_order_grouped_expression(
+                              construction,
+                              term.expression,
+                              grouped_keys,
+                              scope,
+                              sql_group_selected_projections,
+                              order_aggregate_slots,
+                              path => {
+                                order_expression_slot(
+                                  path, query, input, selected_input_fields, pending_bindings,
+                                )
+                              },
+                              active_fields,
+                              selected_output_slots,
+                              false,
+                              false,
+                              max_work,
+                            )
+                          } else {
+                            append_order_expression(
+                              construction,
+                              term.expression,
+                              query,
+                              input,
+                              selected_input_fields,
+                              pending_bindings,
+                              max_work,
+                            )
+                          },
                         ),
                       )
                       hidden.push((term.expression, field))
@@ -4239,6 +4278,14 @@ fn compile_steps(
       step_entries.push(entries)
     }
     if operation is Select(_, _) && sql_group_projection {
+      // Only the SQL SELECT-owned ORDER may use the original grouping scope.
+      // A later Pipe continuation cannot recover that input snapshot.
+      sql_group_order_input_scope = if @query.operation_at(query, i + 1)
+        is Some(Order(_)) {
+        sql_group_expression_input_scope
+      } else {
+        None
+      }
       sql_group_select_scope = None
       sql_group_expression_input_scope = None
     }
@@ -4271,6 +4318,7 @@ fn compile_steps(
       ])
     }
     if operation is Order(_) {
+      sql_group_order_input_scope = None
       if i > 0 && @query.operation_at(query, i - 1) is Some(Select(_, _)) {
         // The SELECT-owned ORDER has consumed its input snapshot. Neither
         // initial-range fallback nor selected-expression reuse may revive it.

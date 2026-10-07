@@ -196,3 +196,24 @@ test('a budget-looking code with a different admitted classification supplies no
   assert.equal(sdk.explainSubmission(result).preparationIssue, undefined);
   assert.equal(sdk.explainSubmission(result).problem.classification, 'invalid_input');
 });
+
+
+for (const phase of ['not_accepted', 'preparation_failed']) {
+  test(`submission implementation limit explains ${phase} without choosing the phase from its code`, async t => {
+    const limit = {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'};
+    const f = await fixture(t, (operation, body) => ({...outcome(phase, body), problem: limit}));
+    let result;
+    try {result = await f.client.start({}, {submissionRef: original});}
+    catch (error) {result = error;}
+    const explanation = sdk.explainSubmission(result);
+    assert.equal(explanation.observation, phase);
+    assert.deepEqual(explanation.problem, limit);
+    assert.deepEqual(explanation.preparationIssue, {kind: 'implementation_limit',
+      summary: 'Checking encountered an unresolved implementation path during preparation. This does not establish invalid input.',
+      hint: 'Inspect the check report for unresolved support conditions. Keep the original submission reference; any changed input requires a separate submission identity.'},
+      '[check-mutation:submission-implementation-guidance]');
+    assert.deepEqual(explanation.next, next);
+    assert.ok(Object.isFrozen(explanation.preparationIssue));
+    assert.equal(sdk.explainSubmission(structuredClone(result)), undefined);
+  });
+}

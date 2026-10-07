@@ -447,7 +447,7 @@ export type WireResolveResultShape = Readonly<{
 }>;
 
 export type WireSubmitPreparationErrorShape = Readonly<{
-  code: "ClientProgramInvalidInput" | "ClientParametersInvalid" | "ClientParametersTooLarge" | "ClientProgramUnsupported" | "ClientProgramAnalysisLimit" | "ClientProgramNeedsInputs" | "ClientProgramRejected";
+  code: "ClientProgramInvalidInput" | "ClientParametersInvalid" | "ClientParametersTooLarge" | "ClientProgramUnsupported" | "ClientProgramAnalysisLimit" | "ClientProgramImplementationLimit" | "ClientProgramNeedsInputs" | "ClientProgramRejected";
 }>;
 
 export type WireCancellationShape = Readonly<{

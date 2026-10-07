@@ -1,10 +1,12 @@
 # GROUP BY and HAVING: implicit SELECT aliases
 
 This is a Frontend connection repair under the adopted alias rules, not a new
-grouping, expression or execution contract. The branch depends on PR #929 at
-`5e6d3d9dbb7478eac70708d09b83d2ef4d26372a` and normally merges main
-`c54e157b5caa1ad981eb9393f64fd0815fb5a434`. Its final target is main; keep the
-parent dependency until #929 is integrated.
+grouping, expression or execution contract. The initial branch used PR #929 at
+`5e6d3d9dbb7478eac70708d09b83d2ef4d26372a` and main
+`c54e157b5caa1ad981eb9393f64fd0815fb5a434`. Both #924 and #929 have since
+merged. Normal integration adopts main
+`f99ed793e3e2207ab45b6e9888d33453616fb29f`; there is no unmerged parent
+dependency. Final target and PR base are main.
 
 ## Independent counterexamples
 
@@ -116,3 +118,17 @@ before calling those cases accepted. Parent #929's prior public success is
 not proof of this implementation. Hosted CI, Wasm/native/full Core/full packed,
 proofs/performance and the full Frontend objective remain incomplete. No manual
 CI rerun, protection change or merge.
+
+
+The pre-integration public attempt first terminated during process-group guard
+inspection, before evidence/lock acquisition or any package steps. A subsequent
+terminal attempt `run-ReeCLI` was refused by the shared heavy lock attributed to
+`worktrees/actql-composed-model-observations/_build/local-checks/attempts/run-EOzIeY`.
+No producer/consumer step started. The other owner's lock, worktree and output
+are untouched. These are guard results, not product execution results.
+
+During normal main integration, three public-corpus/runner files conflicted.
+The resolution starts from main, preserves every grouped ORDER case, flag and
+common implementation/diagnostic change, then adds this unit's independent
+alias cases and selection flag. No existing expected Program, row, type, bound
+or refusal is replaced to resolve the conflict.
