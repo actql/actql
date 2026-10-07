@@ -6547,3 +6547,28 @@ dependencies. Sequence position-array copying/collection cleanup, installed
 availability callbacks, Native capacity and unexecuted cross-target/packed
 acceptance remain separate. See the
 [COUNT/Sequence metadata record](2026-10-07-local-count-sequence-metadata.md).
+
+### Resumable Sequence positions and scratch cleanup (2026-10-07)
+
+Sequence's partial extension and independent match copies now reserve their
+destination once and append one position per resume. Selected/group/match and
+predicate snapshot release also yields. Scratch cleanup removes at most 64
+entries per callback and retains its parent reservation until complete; the
+provider checks explicit cleanup pending instead of interpreting a changed-state
+Bool as completion. Logical control charges and accepted output custody remain.
+
+The checked sixteen-event `advance(1)` counterexample failed before the fix.
+Independent copy limits 377/376, quanta, private copy/release cancellation and
+bounded scratch cleanup pass. Existing whole-operation work 642/641 and workspace
+58/57 still pass. At implementation SHA
+`9f330a419ab437eae223404fcef8479a19df0e2c`, ordinary real-Store Host allow and
+disallow cases publish exact producer/two-consumer Results, reuse requests and
+confirm post-progress stop and reclamation; the combined Host/gate/index
+selection passed 6/6. Pre-commit affected JS passed 32/32, and the final position
+fixture passed 5/5. #793 and its parents remain dependencies.
+
+Installed availability callbacks, common output-buffer disposal, Native capacity
+correspondence and unexecuted cross-target/packed acceptance remain distinct.
+The earlier metadata record describes its historical boundary; the explicit
+position/scratch walks it listed are now closed by this child. See the
+[Sequence position cursor record](2026-10-07-local-sequence-position-cursors.md).
