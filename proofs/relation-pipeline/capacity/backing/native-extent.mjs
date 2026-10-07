@@ -32,11 +32,10 @@ export function admittedMapExtent(maximumKeys) {
   assert(Number.isSafeInteger(maximumKeys) && maximumKeys >= 0 && maximumKeys <= 6);
   return mapRequestedExtent(8, maximumKeys);
 }
-// An arithmetic consequence of four independent current tables, two ordinal
-// maps with at most width entries, and a fifth empty old/new snapshot overlap.
+// Three current ordinal Maps: two with at most width entries and one empty.
+// The snapshot now has Array storage and is checked by the Array observer.
 // Product-level backing identity and reservation custody remain prerequisites.
-export function distinctMapExtent(width, replacementOverlap = false) {
+export function distinctMapExtent(width) {
   assert(Number.isSafeInteger(width) && width >= 1 && width <= 3);
-  return 2n * admittedMapExtent(width) + 2n * admittedMapExtent(0) +
-    (replacementOverlap ? admittedMapExtent(0) : 0n);
+  return 2n * admittedMapExtent(width) + admittedMapExtent(0);
 }

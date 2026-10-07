@@ -34,6 +34,32 @@ test('the source census rejects a new unreviewed holding container', () => {
       : source;
   }), /Unreviewed state\/container field/);
 });
+test('retained row metadata fields cannot disappear from the reviewed census', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const path = 'src/execution_relation/bounded_binding_rows.mbt';
+  const original = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+  for (const field of ['row_sources', 'stepped_metadata', 'metadata_projection',
+    'metadata_projection_field', 'metadata_binding', 'metadata_offset',
+    'metadata_lookup', 'name_charge']) {
+    const pattern = new RegExp(`^  (?:mut )?${field} :[^\\n]*\\n`, 'm');
+    assert(pattern.test(original), `Missing expected source field ${field}`);
+    assert.throws(() => checkCensus(root, file => file === path
+      ? original.replace(pattern, '')
+      : readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8')),
+    /Unreviewed state\/container field/);
+  }
+  for (const [file, name] of [
+    ['row_metadata_cursor.mbt', 'RowMetadataLookup'],
+    ['row_name_charge.mbt', 'RowNameCharge'],
+  ]) {
+    const cursorPath = `src/execution_relation/${file}`;
+    assert.throws(() => checkCensus(root, path => {
+      const source = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+      return path === cursorPath ? source.replace(`struct ${name} {\n`,
+        `struct ${name} {\n  hidden_buffer : Array[Int]\n`) : source;
+    }), /Unreviewed state\/container field/);
+  }
+});
 test('observation overlays bind uniquely to real production sites without storing observed objects', () => {
   for (const path of Object.keys(replacements)) {
     const original = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
@@ -50,4 +76,20 @@ test('same resource fault requires observed reserve/release deltas, not a mutati
   assert.equal(violation({ kind: 'capacity observation', event: 'index-transfer', n: 3, delta: -6, length: 3 }), mutations[2].fault);
   assert.equal(violation({ kind: 'capacity observation', event: 'premature-release', keep: 0, delta: 0 }), null);
   assert.equal(violation({ kind: 'capacity observation', event: 'output-transfer', sharedOutput: false }), 'output custody lost');
+});
+
+test('typed census refuses an old snapshot Map or changed cursor workspace ownership', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  for (const [suffix, before, after] of [
+    ['bounded_binding_rows.mbt', 'snapshot : Array[(String, Value)]', 'snapshot : Map[String, Value]'],
+    ['row_metadata_cursor.mbt', 'workspace : RowWorkspace', 'workspace : RowWorkspace?'],
+    ['row_name_charge.mbt', 'closed : Bool', 'closed : Int'],
+  ]) {
+    assert.throws(() => checkCensus(root, path => {
+      const source = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+      if (!path.endsWith(suffix)) return source;
+      assert(source.includes(before));
+      return source.replace(before, after);
+    }), /Unreviewed retained representation/);
+  }
 });
