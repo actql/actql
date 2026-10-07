@@ -72,3 +72,9 @@ for (const [scenario, reason] of [
     assert(!result.stdout.includes('SYNTHETIC_AUDIT_BATCH:'), 'Failed CLI returned successfully');
   });
 }
+
+for (const scenario of ['model-old-inventory', 'model-duplicate-summary']) {
+  test(`actual archived-model audit refuses resealed ${scenario} and accepts restoration`, () => {
+    accepted(scenario);
+  });
+}
