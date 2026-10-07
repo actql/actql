@@ -3765,15 +3765,31 @@ test('portable control validates Receipt and Captured Run references',
   const refusal = Object.assign(new Error('finalization not physically appended'), {
     code: 'InvalidPublicationRecordTransition',
   });
+  const foreignFinished = await raceBase.latestRecordContract(raced[0].attempt.identity);
+  let refuseWithForeignRecord = false;
+  let finalizationRefused = false;
   const refusedStore = Object.freeze({
     ...refusedBase,
+    async latestRecordContract(attemptCid) {
+      if (refuseWithForeignRecord && finalizationRefused) return foreignFinished;
+      return refusedBase.latestRecordContract(attemptCid);
+    },
     async appendRecord(wire, options) {
-      if (JSON.parse(wire).state === 'succeeded') throw refusal;
+      if (JSON.parse(wire).state === 'succeeded') {
+        finalizationRefused = true;
+        throw refusal;
+      }
       return refusedBase.appendRecord(wire, options);
     },
   });
   const refusedOptions = {...publicationOptions,
     attempt: {...publicationOptions.attempt, attemptId: 'refused-finalization'}};
+  await assert.rejects(publishEffectFreeRun({...refusedOptions, store: refusedStore}),
+    error => error === refusal);
+  // A terminal success for another committed index cannot discharge this
+  // failure. Removing the exact-index check makes this negative case succeed.
+  refuseWithForeignRecord = true;
+  finalizationRefused = false;
   await assert.rejects(publishEffectFreeRun({...refusedOptions, store: refusedStore}),
     error => error === refusal);
   const refusedAttempt = control.issuePublicationAttempt(request, run,
