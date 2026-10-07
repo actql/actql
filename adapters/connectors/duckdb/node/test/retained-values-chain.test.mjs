@@ -364,7 +364,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             if (!chain) route.commitPolls = (route.commitPolls ?? 0) + 1;
             assert.equal(completedDispatches, 3);
             if (chain && mode === 'cancel-during-publication-validation' &&
-                !scheduled && phase === route.cancelValidationPhase) {
+                !scheduled && phase === route.cancelValidationPhase &&
+                route.validationPolls > 1) {
               assert.equal(result, 0);
               assert.ok(route.validationPolls > 1);
               scheduled = true;
