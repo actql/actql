@@ -122,11 +122,13 @@ for (const entrance of ['local', 'https']) {
         const fixture = await openReadOpeningFixture(directory);
         const host = await connectOpeningHost(fixture, entrance, directory);
         let entered, release, ref, attemptId, observed;
+        let recordUnavailable = completion === 'fail';
+        let pendingRecordState, closeRetryConfirmed = false;
         const reached = new Promise(resolve => {entered = resolve;});
         const gate = new Promise(resolve => {release = resolve;});
         fixture.beforeSuccessRecord(async () => {
           entered(); await gate;
-          if (completion === 'fail') throw new Error('InjectedReceiptRecordFailure');
+          if (recordUnavailable) throw new Error('InjectedReceiptRecordFailure');
         });
         try {
           const run = await host.client.start(openingProgram,
@@ -164,7 +166,44 @@ for (const entrance of ['local', 'https']) {
           assert.deepEqual(fixture.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});
           assert.equal((await attempts(directory)).length, 1);
           assert.equal((await run.status()).status, 'succeeded');
-        } finally {release(); await host.close(); await fixture.close();}
+          if (completion === 'fail' && entrance === 'local') {
+            pendingRecordState = observed.record.state;
+            const originalAttempt = observed.attempt;
+            const beforeRetry = {...fixture.counts};
+            const admitted = await attempts(directory);
+            // The Local response retains the exact delivery-record retry owner.
+            // A sealed Client cannot release it while the write remains blocked.
+            await assert.rejects(host.close(), error => {
+              assert.equal(error.code, 'ClientCleanupPending');
+              assert.equal(error.cleanupPending, true);
+              assert.equal(error.cleanupHandle, undefined);
+              return true;
+            });
+            assert.equal(reader.state(), 'prefix');
+            assert.deepEqual(fixture.counts, beforeRetry);
+            assert.deepEqual(await attempts(directory), admitted);
+            recordUnavailable = false;
+            await host.close();
+            // Retry persisted the retained terminal record. It did not reopen
+            // a payload, consume another grant or retroactively finish reader.
+            assert.equal(reader.state(), 'prefix');
+            assert.deepEqual(fixture.counts, beforeRetry);
+            assert.deepEqual(await attempts(directory), admitted);
+            const observer = await connectOpeningHost(fixture, entrance, directory);
+            try {
+              const restoredRun = await observer.client.attach(ref);
+              observed = await restoredRun.result('answer').deliveryAttempt(attemptId);
+              assert.deepEqual(observed.attempt, originalAttempt);
+              assert.equal(observed.record.state, 'succeeded');
+              assert.notEqual(observed.hostReleaseReceipt, null);
+              assert.deepEqual(fixture.counts, beforeRetry);
+              closeRetryConfirmed = true;
+            } finally {await observer.close();}
+          }
+        } finally {
+          release(); recordUnavailable = false;
+          await host.close(); await fixture.close();
+        }
         const output = join(directory, 'restart.json');
         execFileSync(process.execPath, [fileURLToPath(new URL('./client-read-opening-restart.fixture.mjs', import.meta.url)),
           JSON.stringify({directory, entrance, ref, attemptId, output})], {timeout: 15000, stdio: 'pipe'});
@@ -177,7 +216,7 @@ for (const entrance of ['local', 'https']) {
         assert.equal((await attempts(directory)).length, 1);
         console.log('READ_COMPLETION_EVIDENCE', JSON.stringify({entrance, completion, ref, attemptId,
           recordState: observed.record.state, receiptCid: observed.hostReleaseReceipt?.result_delivery_receipt_cid,
-          restartCounts: restored.counts}));
+          pendingRecordState, closeRetryConfirmed, restartCounts: restored.counts}));
         scratch.passed();
       });
   }
