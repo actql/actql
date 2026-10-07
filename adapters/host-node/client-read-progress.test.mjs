@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {inspect} from 'node:util';
 import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect, ClientError, explainReadFailure, formatReadFailure} from '../../packages/sdk/index.mjs';
+import {connect, ClientError, explainReadFailure, formatReadFailure, explainDeliveryAttempt} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {openResultDeliveryControl} from '../../packages/run-host-core/index.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -430,15 +430,19 @@ for (const entrance of ['local', 'https']) {
       const pending = await f.result.deliveryAttempt(reader.attemptId);
       assert.equal(pending.record.state, 'streaming');
       assert.equal(pending.hostReleaseReceipt, null);
+      assert.equal(explainDeliveryAttempt(pending).observation, 'delivery_streaming');
+      assert.equal(explainDeliveryAttempt(pending).hostConfirmedByteCount, 0);
       release();
       assert.equal((await iterator.next()).done, true);
       await f.settled;
       const completed = await f.result.deliveryAttempt(reader.attemptId);
       assert.equal(completed.record.state, 'succeeded');
       assert.equal(completed.record.confirmed_byte_count, 12);
+      assert.equal(explainDeliveryAttempt(completed).observation, 'host_delivery_succeeded');
       assert.equal(completed.hostReleaseReceipt.delivered_sha256,
         createHash('sha256').update('{"value":7}\n').digest('hex'));
       assert.equal(pending.record.state, 'streaming', '[check-mutation:delivery-lookup-snapshot]');
+      assert.equal(explainDeliveryAttempt(pending).observation, 'delivery_streaming');
       assert.equal(pending.hostReleaseReceipt, null);
       assert.equal(Object.isFrozen(pending.record), true, '[check-mutation:delivery-lookup-freeze]');
       assert.equal(Object.isFrozen(completed.attempt), true, '[check-mutation:delivery-lookup-freeze]');
@@ -474,5 +478,39 @@ for (const fault of ['clone changes a previously valid field', 'reply cannot be 
     assert.equal(failure?.code, 'InvalidHostAttemptLookup', '[check-mutation:delivery-lookup-admission]');
     assert.deepEqual(f.operations, ['connect', 'attach', 'read', 'delivery-attempt']);
     assert.equal(fixture.state.grantUses, 1);
+  });
+}
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: failed Delivery explanation retains sink bytes without failing the Run`, async t => {
+    const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+      async readRows(accept) {
+        await accept('{"value":7}');
+        throw new Error('private-delivery-failure');
+      },
+      lookup: current => current,
+    });
+    const f = await installed(t, entrance, fixture);
+    const reader = f.result.rows();
+    const returned = [];
+    await assert.rejects(async () => {for await (const row of reader) returned.push(row);});
+    await f.settled;
+    assert.deepEqual(returned, [{value: 7}]);
+    assert.equal(reader.rowsYielded(), 1);
+    const lookup = await f.result.deliveryAttempt(reader.attemptId);
+    assert.equal(lookup.record.state, 'failed');
+    assert.equal(lookup.hostReleaseReceipt, null);
+    const explanation = explainDeliveryAttempt(lookup);
+    assert.equal(explanation.observation, 'delivery_failed', '[check-mutation:delivery-observation-classification]');
+    assert.equal(explanation.hostConfirmedByteCount, 12);
+    assert.equal(explanation.recordSequence, 1);
+    assert.equal(explanation.summary, 'The Host reports that this Delivery failed; this does not fail the Run.');
+    assert.equal(Object.hasOwn(explanation, 'hostReleaseReceiptCid'), false);
+    assert.equal(Object.hasOwn(explanation, 'runStatus'), false);
+    assert.equal(Object.hasOwn(explanation, 'rowsYielded'), false);
+    assert.doesNotMatch(JSON.stringify(explanation), /private-delivery-failure/);
+    assert.deepEqual(f.operations, ['connect', 'attach', 'read', 'delivery-attempt']);
+    assert.equal(fixture.state.grantUses, 1);
+    assert.equal(fixture.state.readers, 1);
   });
 }
