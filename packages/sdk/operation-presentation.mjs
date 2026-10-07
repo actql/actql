@@ -14,6 +14,10 @@ const summaries = Object.freeze({
   'request.request_held.resuming': 'Hostは保留要求の準備が再開中と報告しています。Run参照は返されていません。',
   'request.request_held.ended': 'Hostは保留要求の準備が終了したと報告しています。Run参照は返されていません。',
   'submission.run_reference_received': 'Hostは検証済みのRun参照を返しました。実行の進行はRunの現在状態で確認してください。',
+  'requestCancellation.accepted': 'Hostはこの要求の取消しを記録しました。この応答は物理停止・資源解放を確定しません。',
+  'requestCancellation.already_requested': 'Hostはこの要求について記録済みの取消しを報告しています。この応答は物理停止・資源解放を確定しません。',
+  'requestCancellation.already_terminal': 'Hostはこの要求が既に終端状態にあると報告しています。この応答は実行結果・物理停止・資源解放を確定しません。',
+  'requestCancellation.outcome_unknown': 'この要求取消しについて利用可能な観測が返されませんでした。この観測は耐久記録・物理停止・資源解放を確定しません。',
   'cancellation.accepted': 'HostはRunの取消し要求を記録しました。物理停止・Effect・解放はRunの現在状態で確認してください。',
   'cancellation.already_requested': 'Hostは既存のRun取消し要求を報告しました。物理停止・Effect・解放はRunの現在状態で確認してください。',
   'cancellation.already_terminal': 'Hostは取消しについてRunが既に終端状態にあると報告しました。Effect・解放の詳細はRunの現在状態で確認してください。',
@@ -31,7 +35,7 @@ const readHint = 'この読み取り参照を保持してください。先頭�
 
 export function getOperationPresentationInfo(options) {
   const {locale} = getCheckPresentationInfo(options);
-  return Object.freeze({locale, translationRevision: `2026-10-07.operations.${locale}.4`});
+  return Object.freeze({locale, translationRevision: `2026-10-07.operations.${locale}.5`});
 }
 
 export function localizeOperation(explanation, domain, options) {
@@ -45,6 +49,7 @@ export function localizeOperation(explanation, domain, options) {
   if (domain === 'request' || domain === 'submission' && explanation.observation === 'request_held') {
     hint = '元の要求参照を保持し、認可された照会を使ってください。この観測は再送信・実行・Checkpointへの回答・資源解放を許可しません。';
   }
+  if (domain === 'requestCancellation') hint = '元の要求参照を保持し、現在の認可で要求または示されたRunを確認してください。この観測は再送信・資源解放・外部Effectの再実行を許可しません。';
   if (domain === 'delivery') hint = '元の読み取り参照を保持してください。この観測はアプリケーションでの受領・保存を確認せず、再読取やComputeの再実行も許可しません。';
   if (domain === 'read') hint = readHint;
   if (domain === 'observation') hint = '現在の認可で元のRun状態を確認してください。この観測は実行・Effect・公開・解放の結果を確定せず、書き込みの再試行を許可しません。';
