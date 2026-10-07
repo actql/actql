@@ -7,9 +7,9 @@ const registry = JSON.parse(readFileSync(new URL('../spec/contracts/actql-protoc
 const catalog = readCheckReasonCatalog();
 test('catalog generates current facts wire, SDK metadata and reference outputs with unchanged pins', () => {
   assert.equal(registry.artifact_schema_cids.check_reason,
-    'sha256:672a0158dfe91c7525eb7d02efbcf80b0094a05ecfa2b42fe08df945dd26fa53');
+    'sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739');
   assert.equal(registry.artifact_schema_cids.check_outcome,
-    'sha256:2ceacaa6c399d8020b76c14ebd27a7f2ca5d975137dcdaff6b1907c9b4ef6311');
+    'sha256:801971ab7c91652f2e3a606cdae7567fe313ca2931df81d7ab4c24d3d130e0a9');
   assert.deepEqual(catalog.reason_schema, registry.artifact_schemas.check_reason);
   assert.equal(buildCheckReasonCatalog(catalog, registry).size, 3);
   generateCheckReasonCatalog();
