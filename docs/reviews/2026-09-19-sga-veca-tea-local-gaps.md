@@ -7073,3 +7073,37 @@ share the same algorithm but do not establish asynchronous issuance or
 Effectful driver connection. This is not all-target, packed/HTTPS, hosted CI,
 whole publication or whole-Local completion. Earlier synchronous descriptions
 remain historical records, not claims about these newly connected scans.
+
+### Resumed root and computation evidence preludes (2026-10-08)
+
+The retained Effect-free owners now poll root inventories and exact embedded
+manifest, Artifact and Receipt comparisons before context validation. Capture
+issuance also polls that root check before preparing the context. All paths
+reuse the existing canonical emitter and exact UTF-16 fragments; value
+equality is not replaced with CID equality. Private buffer and child capacity
+is reserved, and cancellation retires private state without dropping Store
+custody or borrowed evidence.
+
+The [evidence prelude record](2026-10-08-local-bounded-evidence-prelude.md)
+binds common JS 271/271 and rebuilt runtime inputs to
+`1af92adb7ef8f48c5b834f16bb43ce7cd490e8e0`, and selected Node 10/10 to
+`036cf1464d80ba6dcd7cc4de26b3b2affa716590`. The latter changes only Host
+fixture synchronization; compiled inputs are identical. Actual Host success
+reads the producer and both consumer Named Results with fixed content and
+exact order. Fresh cancellation now also occurs during root preparation and
+embedded Receipt comparison. Independent stream/root work and frame boundaries
+are separate from Compute logical-work guarantees.
+
+Additional yields exposed a durable finalization race. The adapter accepts a
+stale transition only after the common owner confirms terminal success for the
+exact same committed index. An unfinished refusal and a foreign terminal
+record remain errors; actual Store replay reconciles the committed outcome.
+The Store's transition validation and durable commit-first rule remain intact.
+
+PR #941 is merged; this unit adopts main
+`3ecde2bc0968212bfb98a0387586ceb2188be90c` and has no unmerged parent.
+Capture inventory/preflight, evidence suffixes, scalar schema checks,
+normalization and allocation latency remain distinct synchronous boundaries.
+Blocking convenience callers share the algorithm but remain blocking.
+Effectful asynchronous commit, Native/direct, all-target and packed/HTTPS
+acceptance are not established here. This is not whole-Local completion.
