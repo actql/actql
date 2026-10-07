@@ -51,6 +51,8 @@ pub fn attach_fixed_import_join(FixedImportStream, @execution_relation.FixedJoin
 
 pub fn attach_fixed_import_measurement(FixedImportStream, @execution_relation.FixedProducerMeasurement) -> Result[Unit, FixedImportStreamIssue]
 
+pub fn[T] begin_managed_fixed_query_selection(ManagedFixedQuery[T], Array[Int], Int, Int) -> Result[@execution_relation.ManagedViewSelectionPreparation[T], NativeQueryIssue]
+
 pub fn begin_native_receipt(NativeReceiving, NativeReceiptRole, Array[(String, PhysicalType)]) -> Result[NativeReceiptPort, NativeReceivingIssue]
 
 pub fn broad_scan_metadata_parameter(BroadScan, Int) -> PhysicalParameter?

@@ -377,6 +377,7 @@ fn compile_join_chain_steps(
     { ..left.0, name: from, source: StepReference, },
     physical.filter(field => !fields.contains(field)),
     limits.max_expression_work,
+    limits.source,
     limits.max_collection_items,
     limits.max_collection_bytes,
     0,
