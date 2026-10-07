@@ -50,11 +50,22 @@ executed and unexecuted scopes. The final Native test build exceeded its bounded
 preparation deadline; the previous executable was not reused. Caller compilation
 and portable Owner tests passed. A clean-source normal Native executable build
 also exceeded its 180-second preparation bound; no recovery was executed with it.
+Both the final recorded-graph test and normal command were additionally attempted
+in the standard release profile at the same bounds; both preparations timed out
+before execution. These are compiler-preparation failures, not test assertion
+failures, and their receipts remain separate.
 The original Run's journals, original issued
 bytes and three sealed receiver allocations remain preserved.
+
+Read-only extraction of the original failed Run now verifies its saved checked
+consumer edge, intent/plan, Coordinator consumer request and Site cancellation
+request agree. Its original publication evidence and exact poll envelope have
+been preserved as bounded recovery inputs. This historical admission grants no
+current execution permission and has not reclaimed the receiver.
 
 After reviewed main adoption, run this exact recovery through existing Owners,
 verify zero receiver reservations and physical allocations without new execution,
 and send/accept the formal cleanup observation through the current Cloud path.
-The separate recovered-release observation fix is OSS #841. A new successful
+The recovered-release observation fix from OSS #841 is now merged into main and
+included in this branch. It still requires formal Cloud adoption and execution. A new successful
 Run must not close the original Run or other historical recovery obligations.

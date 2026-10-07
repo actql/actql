@@ -59,5 +59,80 @@
     "Cloud durable acceptance of the original Run's final cleanup observation",
     "Public normal/fault acceptance at the final adopted combination",
     "Actual Preview acceptance"
-  ]
+  ],
+  "integratedMainSource": "ae1f273bc1174e50598d86ab932daa0bc28c5f4d",
+  "recoveredObservationDependency": {
+    "pr": 841,
+    "mergedMainSource": "4bbad4841574c1b220f70c951bb5fb78ba1f0722",
+    "included": true,
+    "cloudAdoptionExecuted": false
+  },
+  "nativeRecordedReleasePreparation": {
+    "source": "39b0a5529170303323fbd49b663ccc1e0d0be409",
+    "command": "moon test --target native --strip --release src/platform_native/remote_resident_host/cancelled_receiver_cleanup_native_wbtest.mbt --build-only",
+    "preparationLimitSeconds": 180,
+    "failure": "ETIMEDOUT",
+    "receipt": "native-preconsumer-cleanup-release-cNpHoS",
+    "testExecutionStarted": false
+  },
+  "normalNativeReleasePreparation": {
+    "source": "39b0a5529170303323fbd49b663ccc1e0d0be409",
+    "sourceClean": true,
+    "command": "moon build --target native --strip --release src/cmd/native_remote_resident_site",
+    "preparationLimitSeconds": 180,
+    "failure": "ETIMEDOUT",
+    "receipt": "preconsumer-cleanup-runtime-release-MRP6Nj",
+    "acceptanceExecuted": false
+  },
+  "originalRecoveryInputVerification": {
+    "source": "fd49db74e8c82c04a1151336e6c0aaabb67b66fd",
+    "runRevision": 12,
+    "coordinatorCustody": {
+      "originalRunBytesSha256": "8efbe6ec50903a85318ba52b4fa9590f6633afea588cd5e9f22454d664f5f7d5",
+      "originalConsumerRequestMatchesSiteCancellation": true,
+      "originalRunClaimsMatchTransfer": true,
+      "producerPhysicalRevision": 7,
+      "consumerPhysicalRevision": 3,
+      "liveAuthorizationChecked": false
+    },
+    "newRunSubmitted": false,
+    "sourceReacquired": false,
+    "recoveryExecuted": false,
+    "files": {
+      "bound-template.json": {
+        "bytes": 812,
+        "sha256": "5f35add8f9b883dc492e872a7e1d9d72519526f4852f8dc67eaebdbae34e343c"
+      },
+      "compiled-plan.json": {
+        "bytes": 686,
+        "sha256": "f7ce17f783f5d8980c08fc5f0e158fbe39afae394c6e27c7104e51ffc3b709ef"
+      },
+      "prepared-invocation.json": {
+        "bytes": 593,
+        "sha256": "9813100472967a78757b928d9c2be72baaba41793dbeb439c07a69f95a0d8a89"
+      },
+      "run-authorization.json": {
+        "bytes": 450,
+        "sha256": "fc704793b7bbd6917a1b345082ca7148a4d44cf0096165b27bc5534e398732f4"
+      },
+      "run-definition.json": {
+        "bytes": 699,
+        "sha256": "bfbbc3f7027dd32768aa8c59406daede73e3e086425fade5925a974eaf2f3f25"
+      },
+      "result-definition.json": {
+        "bytes": 261,
+        "sha256": "3c66997b1da0dd338b5d9b1a4ea94e6ea1cbe0497975c8dbd523608498176cf3"
+      },
+      "consumer-request.json": {
+        "bytes": 1048,
+        "sha256": "10fbd5c0478822339d83f77242c6c3c6f5de5b2d9e02e91f51be2c2c4bf83e4d"
+      },
+      "retained-transfer.json": {
+        "bytes": 7848,
+        "sha256": "f2008d00dbc71faa876e52ceb9141fd2032aa112aa297f7422fa8aad43013291"
+      }
+    },
+    "receipt": "original-cancel-input-export-LV3pbi",
+    "scope": "Read-only saved Coordinator/Site custody admission. No live authorization or physical recovery is established."
+  }
 }
