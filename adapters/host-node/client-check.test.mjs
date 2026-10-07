@@ -1165,6 +1165,28 @@ for (const [entrance, open] of Object.entries(entrances)) {
     }
   });
 
+  test(`${entrance}: Source-dependent unsupported refusal hides absent and denied Sources`, async t => {
+    const text = 'SELECT NTILE(4) OVER (ORDER BY id) AS n FROM records';
+    const problems = [];
+    for (const configuration of [configurations.absent, configurations.denied]) {
+      const client = await open(t, configuration);
+      const checked = await client.check(text, {format: 'sql'});
+      assert.equal(checked.report.verdict, 'undetermined');
+      assert.deepEqual(checked.report.coverage, {limits: [],
+        unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      let error;
+      try { await client.startSource(text, {format: 'sql'}); }
+      catch (cause) { error = cause; }
+      const outcome = sdk.getSubmissionOutcome(error);
+      assert.equal(outcome?.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
+        '[check-mutation:submission-implementation-private]');
+      problems.push(outcome.problem);
+      client.assertNoExecution();
+    }
+    assert.deepEqual(problems[0], problems[1]);
+  });
+
   test(`${entrance}: an undecided source is hidden exactly like an absent ` +
     'one and withholds nothing else', async t => {
     const seen = {};
