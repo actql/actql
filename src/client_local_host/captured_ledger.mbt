@@ -1,5 +1,7 @@
 ///|
-fn client_local_execution_limits() -> (
+fn client_local_execution_limits(
+  max_rows? : Int = 100,
+) -> (
   @execution.ValueLimits,
   @execution.SequenceExecutionLimits,
   @execution.FixedInputGuardMeasureLimits,
@@ -14,7 +16,7 @@ fn client_local_execution_limits() -> (
   }
   let execution : @execution.SequenceExecutionLimits = {
     rows: {
-      max_rows: 100,
+      max_rows,
       metadata_entries: 10000,
       retained_entries: 10000,
       operation_entries: 10000,
@@ -41,11 +43,12 @@ fn client_local_sequence_capacity(
   sequences : Array[@execution.GeneratedSequence],
   task_count : Int,
   retained_inputs? : Array[Int]? = None,
+  max_rows? : Int = 100,
 ) -> (@resources.LedgerLimits, Int64, Int64)? {
   if task_count < 1 || task_count > 32 || sequences.length() > task_count {
     return None
   }
-  let (_, execution, measurement) = client_local_execution_limits()
+  let (_, execution, measurement) = client_local_execution_limits(max_rows~)
   let mut retained_bytes = 0L
   let mut execution_bytes = 0L
   let mut total_retained_bytes = 0L
@@ -74,11 +77,11 @@ fn client_local_sequence_capacity(
     if inputs.length() != sequences.length() {
       return None
     }
-    let (values, _, _) = client_local_execution_limits()
+    let (values, _, _) = client_local_execution_limits(max_rows~)
     let import_limits = client_local_import_limits(
       {
         contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
-        max_rows: 100,
+        max_rows,
         max_value_bytes: 10000,
         common_fragment: None,
       },
@@ -87,7 +90,7 @@ fn client_local_sequence_capacity(
     guard @local.local_import_retention_capacity(import_limits)
       is Some(import_bytes) &&
       @local.local_export_retention_capacity(
-        client_local_export_limits(100, values),
+        client_local_export_limits(max_rows, values),
       )
       is Some(export_bytes) &&
       client_local_store_inventory(
