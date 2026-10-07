@@ -43,6 +43,9 @@ test('packed private Table input preserves sparse cells through Local and HTTPS 
   const application = join(scratch.path, 'application');
   await mkdir(application);
   const environment = {...process.env, npm_config_cache: packedNpmCache(scratch.path)};
+  // This is a separate Node test process, not recursive discovery inside the
+  // producer test worker. Keep its normal reporter/nonzero guard intact.
+  delete environment.NODE_TEST_CONTEXT;
   delete environment.NODE_PATH;
   delete environment.ACTQL_LOCAL_SOURCE_PROFILE;
   delete environment.ACTQL_LOCAL_EFFECT_PROFILE;
