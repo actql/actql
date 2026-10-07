@@ -106,6 +106,89 @@ fn recorded_source_cleanup_fixture(
 }
 
 ///|
+test "recorded Source cleanup role requires exact root task Run and Source binding" {
+  let (wire, recorded, source_ref, source_contract) = recorded_source_cleanup_fixture()
+  let run = @publication.recorded_run_publication_run_cid(recorded)
+  let context = admit_recorded_client_source_cleanup_graph(
+    wire,
+    run,
+    recorded,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    run_materials_limits(),
+    source_ref,
+    source_contract,
+  ).unwrap()
+  let edge = resolve_client_retained_input_edge(context.prepared, run, 1, 0).unwrap()
+  let input = prepare_client_task_input_binding(context.prepared, 0).unwrap()
+  let request = fn(
+    run_cid : String,
+    task : String,
+    binding : @remote.RemoteInputBinding,
+  ) {
+    @remote.prepare_dispatch_request(
+      "authority-a",
+      run_cid,
+      task,
+      1,
+      "original-source",
+      "site-a",
+      1,
+      retained_input_cid("a"),
+      "local",
+      "local/1",
+      "strategy/1",
+      @remote.remote_input_binding_cid(binding),
+      retained_input_cid("2"),
+      retained_input_cid("3"),
+      retained_input_cid("4"),
+      retained_input_cid("5"),
+    ).unwrap()
+  }
+  let producer = request(run, edge.producer.node_id, input)
+  assert_true(
+    recorded_client_source_cleanup_matches_producer(
+      context, producer, input, source_ref, source_contract,
+    ),
+  )
+  for
+    wrong in [
+      request(retained_input_cid("f"), edge.producer.node_id, input),
+      request(run, edge.consumer.node_id, input),
+    ] {
+    assert_false(
+      recorded_client_source_cleanup_matches_producer(
+        context, wrong, input, source_ref, source_contract,
+      ),
+    )
+  }
+  let foreign_input = @remote.prepare_remote_input_binding("{}", 8192).unwrap()
+  assert_false(
+    recorded_client_source_cleanup_matches_producer(
+      context,
+      request(run, edge.producer.node_id, foreign_input),
+      foreign_input,
+      source_ref,
+      source_contract,
+    ),
+  )
+  assert_false(
+    recorded_client_source_cleanup_matches_producer(
+      context, producer, input, "connector://another/source#v", source_contract,
+    ),
+  )
+  assert_false(
+    recorded_client_source_cleanup_matches_producer(
+      context,
+      producer,
+      input,
+      source_ref,
+      retained_input_cid("f"),
+    ),
+  )
+}
+
+///|
 test "recorded Source graph refuses another valid original Plan with a foreign graph" {
   let (wire, recorded, source_ref, source_contract) = recorded_source_cleanup_fixture(
     foreign_graph=true,

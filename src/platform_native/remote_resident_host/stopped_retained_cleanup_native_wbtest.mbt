@@ -40,6 +40,7 @@ fn cleanup_complete(
   request : @remote.DispatchRequest,
   manifest : @cleanup_manifest.PhysicalManifest,
   file_custody? : @journal.NativeOutputFileCustody? = None,
+  claimant? : String? = None,
 ) -> (
   @remote.DispatchRecord,
   @remote.RemoteExecutionEvidence,
@@ -55,11 +56,15 @@ fn cleanup_complete(
     scope[5],
     scope[6],
   ).unwrap()
-  journal
-  .commit_transition(
-    @remote.prepare_begin_provisioning(record, capability).unwrap(),
-  )
-  .unwrap()
+  let provisioning = @remote.prepare_begin_provisioning(record, capability).unwrap()
+  match claimant {
+    Some(value) => {
+      guard journal.claim_start(provisioning, value) is Ok(@journal.Won) else {
+        abort("fixture original start claim required")
+      }
+    }
+    None => journal.commit_transition(provisioning).unwrap() |> ignore
+  }
   journal
   .commit_transition(@remote.prepare_begin_remote_execution(record).unwrap())
   .unwrap()
@@ -132,6 +137,7 @@ fn stopped_cleanup_fixture(
   producer_file? : Bool = false,
   complete_consumer? : Bool = true,
   borrow_input? : Bool = true,
+  producer_claim? : Bool = false,
 ) -> StoppedCleanupFixture {
   let sqlite_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap_or_else(() => {
       abort("SQLite required")
@@ -143,7 +149,11 @@ fn stopped_cleanup_fixture(
   )
   // The Native core runner owns this per-invocation namespace. These local
   // files do not need the HTTP harness's separate Store configuration.
-  let files = parent
+  // Each case can preserve the same original occurrence without colliding
+  // with another case's retained file under this invocation's private Root.
+  let parent_root = @filesystem.open_root(parent).unwrap()
+  parent_root.create_directory(name).unwrap() |> ignore
+  let files = parent + "/" + name
   let sqlite = @sqlite.load_library(sqlite_path).unwrap()
   let (admission, producer, wire, producer_binding, _) = resident_source_dispatch_fixture()
   let materials = rebuild_materials(admission, producer, wire).unwrap()
@@ -227,6 +237,7 @@ fn stopped_cleanup_fixture(
     producer,
     manifest,
     file_custody~,
+    claimant=if producer_claim { Some("original-source-holder") } else { None },
   )
   let producer_owner = @host.prepare_client_retained_input_producer(
     edge, record, evidence, subject,
@@ -663,7 +674,10 @@ fn stopped_source_cleanup_apply(
   f : StoppedCleanupFixture,
   current : () -> Bool,
   recorded? : Bool = false,
-) -> Result[Unit, ResidentStoppedSourceCleanupIssue] {
+) -> Result[
+  @host.ClientRetainedSourceCleanup,
+  ResidentStoppedSourceCleanupIssue,
+] {
   reclaim_stopped_resident_source_output(
     f.journal,
     f.admission,
@@ -683,6 +697,109 @@ fn stopped_source_cleanup_apply(
     current,
     recorded=if recorded { Some(f.recorded) } else { None },
   )
+}
+
+///|
+test "recorded Source release role retains physical custody and requires original claimant" {
+  let f = stopped_cleanup_fixture(
+    "recorded-release-role",
+    producer_file=true,
+    producer_claim=true,
+  )
+  let revision = @remote.dispatch_record_revision(
+    f.journal.require(f.producer).unwrap(),
+  )
+  let attempt = @remote.dispatch_request_attempt_identity(f.producer).unwrap()
+  assert_true(
+    prepare_resident_saved_input_cleanup(
+      f.journal,
+      f.receiver,
+      Some(f.root),
+      f.admission,
+      f.producer,
+      1024L,
+      () => false,
+      recorded_source=Some(f.recorded),
+    )
+    is Ok(None),
+  )
+  assert_eq(
+    resident_holder_process_hold_identity(
+      f.journal,
+      f.admission,
+      attempt,
+      "original-source-holder",
+      recorded_source=Some(f.recorded),
+    ).unwrap(),
+    "runtime-process:resident-holder:original-source-holder",
+  )
+  for wrong in ["", "replacement-holder"] {
+    assert_true(
+      resident_holder_process_hold_identity(
+        f.journal,
+        f.admission,
+        attempt,
+        wrong,
+        recorded_source=Some(f.recorded),
+      )
+      is Err(Refused(@resident.NotCurrent)),
+    )
+  }
+  assert_true(
+    prepare_resident_saved_input_cleanup(
+      f.journal,
+      f.receiver,
+      Some(f.root),
+      f.admission,
+      f.consumer,
+      1024L,
+      () => false,
+      recorded_source=Some(f.recorded),
+    )
+    is Err(Refused(@resident.ForeignSource)),
+  )
+  let foreign = {
+    ..f.admission,
+    source: Some(("connector://foreign/r#v", cleanup_cid("f"))),
+  }
+  assert_true(
+    prepare_resident_saved_input_cleanup(
+      f.journal,
+      f.receiver,
+      Some(f.root),
+      foreign,
+      f.producer,
+      1024L,
+      () => false,
+      recorded_source=Some(f.recorded),
+    )
+    is Err(Refused(@resident.ForeignSource)),
+  )
+  // Cleanup role projection is not stop, physical reclaim or formal release.
+  let custody = @journal.recovered_site_dispatch_file_custody(
+    f.journal.observation(f.producer).unwrap(),
+  ).unwrap()
+  assert_true(
+    f.root.verify_generation(
+      "output-" + @journal.native_output_file_custody_occurrence(custody),
+      @journal.native_output_file_custody_generation(custody),
+    ),
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.producer).unwrap()),
+    revision,
+  )
+  assert_false(
+    @remote.remote_runtime_record_released(
+      f.journal.require(f.producer).unwrap(),
+    ),
+  )
+  assert_eq(
+    f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
+    10L,
+  )
+  assert_true(f.journal.close())
+  assert_true(f.receiver.close())
 }
 
 ///|
@@ -715,7 +832,18 @@ test "stopped Source cleanup waits for consumer release and receiver retry befor
     f.receiver.destination_capacity_usage().unwrap().reserved_bytes > 0L,
   )
   for _ in 0..<2 {
-    stopped_source_cleanup_apply(f, () => true).unwrap()
+    let confirmed = stopped_source_cleanup_apply(f, () => true).unwrap()
+    let (producer, consumer) = @host.client_retained_source_cleanup_requests(
+      confirmed,
+    )
+    assert_eq(
+      @remote.dispatch_request_identity(producer),
+      @remote.dispatch_request_identity(f.producer),
+    )
+    assert_eq(
+      @remote.dispatch_request_identity(consumer),
+      @remote.dispatch_request_identity(f.consumer),
+    )
     assert_true(f.root.inspect_generation(name) is Ok(None))
     assert_eq(
       f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
@@ -786,7 +914,18 @@ test "recorded Source cleanup waits for consumer release and receiver retry afte
     f.receiver.destination_capacity_usage().unwrap().reserved_bytes > 0L,
   )
   for _ in 0..<2 {
-    stopped_source_cleanup_apply(f, () => true, recorded=true).unwrap()
+    let confirmed = stopped_source_cleanup_apply(f, () => true, recorded=true).unwrap()
+    let (producer, consumer) = @host.client_retained_source_cleanup_requests(
+      confirmed,
+    )
+    assert_eq(
+      @remote.dispatch_request_identity(producer),
+      @remote.dispatch_request_identity(f.producer),
+    )
+    assert_eq(
+      @remote.dispatch_request_identity(consumer),
+      @remote.dispatch_request_identity(f.consumer),
+    )
     assert_true(f.root.inspect_generation(name) is Ok(None))
     assert_eq(
       f.receiver.destination_capacity_usage().unwrap().reserved_bytes,

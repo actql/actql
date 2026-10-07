@@ -29,9 +29,12 @@ const lookupAdmission = ['clone changes a previously valid field', 'reply cannot
   }));
 const lookupCapture = "            answer = captureResponse(answer);\n" +
   "            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');\n";
-const lookupCopy = "            answer = detachResponse(answer);\n" +
-  "            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');\n" +
-  "            return retainDeliveryExplanation(freezeInput(answer), {";
+const lookupCopy = "            const observation = answer;\n" +
+  "            const observedKey = structuralKey(answer);\n" +
+  "            answer = structuredClone(answer);\n" +
+  "            if (!validDeliveryAttemptLookup(answer, expected) || structuralKey(answer) !== observedKey) fail('InvalidHostAttemptLookup');\n" +
+  "            if (structuralKey(observation) !== observedKey) fail('InvalidHostAttemptLookup');\n" +
+  "            return retainDeliveryExplanation(freezeInput(observation), {";
 const observations = phase => ['local', 'https'].map(entrance => ({
   name: `${entrance}: delivery observation explains ${phase} against one published Run`,
   assertions: [{id: 'delivery-observation-classification', operator: 'strictEqual'},

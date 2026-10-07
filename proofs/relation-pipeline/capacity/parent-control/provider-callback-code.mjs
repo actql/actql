@@ -3,6 +3,7 @@ import {readFileSync, existsSync, mkdirSync, writeFileSync, copyFileSync} from '
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {scalarSitesX64} from './provider-callback-x64.mjs';
+import {nativeFunctionEntries,disassembleNativeRanges} from './native-code-disassembly.mjs';
 import {hash} from '../../inventory.mjs';
 
 const nm = '/usr/bin/nm';
@@ -152,17 +153,8 @@ function generatedCode(root, object, exe, providerNames, platform) {
     }
     // GNU debug symbols have zero size and include basic-block labels. Use
     // finite ranges ending at the next real function, never its first block.
-    const all=run(nm,['-n',file]).split('\n').map(l=>l.match(/^([0-9a-f]+)\s+[tT]\s+(\S+)$/))
-      .filter(m=>m && !m[2].startsWith('.') && !m[2].includes('$bb'));
-    return constructors.map(name=>{
-      const matches=all.filter(m=>m[2]===name); assert.equal(matches.length,1,'Missing or duplicate constructor range');
-      const start=BigInt('0x'+matches[0][1]);
-      const next=all.find(m=>BigInt('0x'+m[1])>start); assert(next,'Missing constructor range end');
-      const raw=run(objdump,['-d','-Mintel','--section=.text','--no-show-raw-insn',...(relocations?['-r']:[]),
-        `--start-address=0x${start.toString(16)}`,`--stop-address=0x${next[1]}`,file]);
-      assert(raw.includes('Disassembly of section'),'Missing Native disassembly');
-      return raw.slice(raw.indexOf('Disassembly of section'));
-    }).join('\n');
+    const all=nativeFunctionEntries(file===exe?full:run(nm,['-n',file]));
+    return disassembleNativeRanges(run,objdump,file,all,constructors,relocations);
   }
   return {symbols,disassembly:dump(object,true),linkedDisassembly:dump(exe,false),constructors};
 }

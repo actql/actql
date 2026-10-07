@@ -48,3 +48,27 @@ Borrowed referents, construction transients, allocator rounding/fragmentation,
 whole-parent overlap and Ledger generation/retirement remain unresolved. No
 Actions original, reuse eligibility or net CI saving follows from this local
 finite component.
+
+## Ordered callback capture correspondence
+
+The Linux x64 final consumer also derives the six construction-point allocations
+from the object and actual linked parent function: the lifted start environment
+and the advance, cancel, stopped, cleanup and child-work callbacks. A restricted
+straight-line decoder relates private frame sources to the System V observer
+arguments, checks each constant request/header and pointer/scalar store, then
+checks the callback argument order at the existing parent-owner handoff.
+Actual borrowed capture facts must match those roles at each offset. Sorting
+identities alone cannot establish this: swapping terminal/cancelled or
+family/measurement would preserve the identity set while changing the role.
+
+The existing binary/object and tool identities and byte-exact regenerated
+observations remain mandatory. The extra symbol facts come from the same actual
+executable symbol read; the original symbol/disassembly logs and receipts are
+not rewritten. Missing/partial/duplicate stores, aliases, unknown instructions,
+control-flow entry and changed observer/handoff arguments reject admission.
+This is a reviewed finite construction-point check, not a general compiler,
+alias or lifetime proof. It depends on the pinned compiler/runtime, System V
+callee-saved registers, indexed-header convention and existing owner's retaining
+handoff. Other targets, callback body semantics, shared referents, transient
+allocations, allocator overhead and whole-parent physical lifetime upper bounds
+remain separate obligations. No Actions or reuse authority is created.
