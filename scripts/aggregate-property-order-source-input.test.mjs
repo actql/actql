@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {aggregatePropertyOrderProgram, aggregatePropertyOrderArrayProgram,
+import {aggregatePropertyOrderProgram, aggregatePropertyOrderArrayProgram, aggregateDefaultDelimiterProgram,
   aggregatePropertyOrderSuccesses as successes, aggregatePropertyOrderRefusals as refusals,
   aggregatePropertyOrderExecutionFailures as failures}
   from './fixtures/aggregate-property-order-source-input.mjs';
@@ -25,7 +25,7 @@ test('collection orders discriminate input properties, current slots and indepen
 test('independent JSON controls preserve predicate, scalar aggregate argument and actual array key assertion', () => {
   const controls = successes.filter(item => item.format === 'json');
   assert.deepEqual(controls.map(item => JSON.parse(item.text)),
-    [aggregatePropertyOrderProgram, aggregatePropertyOrderArrayProgram]);
+    [aggregatePropertyOrderProgram, aggregateDefaultDelimiterProgram, aggregatePropertyOrderArrayProgram]);
   for (const item of controls) assert.equal(item.parameterDeclarations, undefined);
   assert.deepEqual(aggregatePropertyOrderProgram.stages[0].steps[0].filter,
     {gt: [{field: 'id'}, {literal: 0}]});
@@ -50,7 +50,19 @@ test('collection order cases retain one source acquisition and standard installe
   assert.equal(groups[0].name, 'standard');
   assert.equal(Object.hasOwn(groups[0].capacity, 'max_execution_bytes'), false);
   assert.deepEqual(['successes', 'refusals', 'executionFailures']
-    .map(kind => groups[0].inputs[kind].length), [10, 4, 1]);
+    .map(kind => groups[0].inputs[kind].length), [17, 7, 1]);
+});
+
+test('default delimiter keeps duplicates, filter demand, NULL output and nullable Result contract', () => {
+  const get = name => successes.find(item => item.name.endsWith(name));
+  for (const name of ['default-independent-json', 'default-sql', 'default-pipe']) {
+    assert.deepEqual(get(name).expected, [{names: 'b,b,a,c'}]);
+    assert.deepEqual(get(name).columns, [{name: 'names', contract: {type: 'string', nullable: true}}]);
+  }
+  assert.equal(aggregateDefaultDelimiterProgram.stages[1].steps[3].group.aggregates.names.delimiter, ',');
+  assert.deepEqual(get('explicit-empty-delimiter').expected, [{names: 'bbac'}]);
+  assert.deepEqual(get('default-filter').expected, [{names: 'b,b,a'}]);
+  for (const name of ['default-empty', 'default-all-null']) assert.deepEqual(get(name).expected, [{names: null}]);
 });
 
 test('ordinary packed route and focused selection both include collection property order cases', async () => {

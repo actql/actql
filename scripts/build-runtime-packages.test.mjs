@@ -144,6 +144,14 @@ function expectedCalls(names, directory) {
 // predecessor command inventory independent, and require the exact additions
 // at their registered positions rather than ignoring arbitrary extra checks.
 const distribution = expectedGates['check:distribution-client'];
+// Preserve main's typed-JSON input regressions in the registered command.
+distribution[3] = distribution[3].replace(
+  'node --test scripts/owned-scratch.test.mjs ',
+  'node --test scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/owned-scratch.test.mjs ',
+).replace(
+  'adapters/host-node/remote-acquisition-checkpoint.test.mjs ',
+  'adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs ',
+);
 distribution[3] = distribution[3].replace(
   'scripts/packed-client-packages.test.mjs ',
   'scripts/packed-client-packages.test.mjs scripts/graph-composition-fixture.test.mjs ',
@@ -169,6 +177,12 @@ distribution[3] = distribution[3].replace(
 ).replace(
   'adapters/host-node/in-process-client.test.mjs ',
   'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-read-progress.test.mjs ',
+);
+
+// Original-attempt recovery shares that runtime and distribution job.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-read-progress.test.mjs ',
+  'adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs ',
 );
 
 // Model Checkpoint signing reuses the prepared SDK/Host distribution gate.
