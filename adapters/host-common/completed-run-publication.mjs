@@ -1075,7 +1075,7 @@ export async function recoverCompletedEffectfulComputation(options) {
       fail('CompletedEffectfulCaptureSourceUnavailable');
     }
     await store.commitPhysicalHolding(holding, []);
-    sourceHoldings.push(Object.freeze({source, artifact}));
+    sourceHoldings.push(Object.freeze({source, artifact, memberIndex}));
   }
   const captureHolding = await store.inspectPhysicalHolding(
     captureHoldingCid);
@@ -1206,6 +1206,16 @@ export function prepareCompletedEffectfulPublication(options) {
     sourceArtifacts: Object.freeze(issued.effectSourceHoldings.map(
       value => value.artifact)),
   });
+}
+
+// Preserve the closed publication inventory. Connector recovery projects exact
+// occurrences separately, through the same existing owners and availability
+// checks, rather than extending final publication's accepted argument shape.
+export function prepareCompletedEffectSourceMembers(options) {
+  prepareCompletedEffectfulPublication(options);
+  const issued = completedEffectfulOwners.get(options.computation);
+  return Object.freeze(issued.effectSourceHoldings.map(
+    ({source, artifact, memberIndex}) => Object.freeze({source, artifact, memberIndex})));
 }
 
 // A recovered Preview remains historical evidence until its exact physical
