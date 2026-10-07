@@ -1,3 +1,4 @@
+/// <reference lib="esnext.disposable" />
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
@@ -351,6 +352,8 @@ export declare class ClientError extends Error {
   /** Complete rows returned by the failed call; aggregate calls return none. */
   readonly rowsYielded?: number;
   readonly cleanupError?: unknown;
+  /** Client cleanup has not confirmed release; retry await client.close(). */
+  readonly cleanupPending?: boolean;
   readonly lookupContext?: Readonly<{endpoint: string; scopeRef: string}>;
   readonly status?: number;
   // ResolutionUnknown: the exact signed answers to resend unchanged.
@@ -485,7 +488,10 @@ export interface Client {
       signer?: CheckpointSigner; signal?: AbortSignal}): Promise<Readonly<{
         results: readonly CheckpointAnswerResult[];
         signed: readonly SignedCheckpointAnswer[]}>>;
-  close(): void;
+  /** Seal this Client immediately, release its readers and await its Local
+   * lease. Does not cancel Runs. A failed close may be retried. */
+  close(): Promise<void>;
+  [Symbol.asyncDispose](): Promise<void>;
 }
 
 export declare function connect(options: ConnectionOptions): Promise<Client>;
