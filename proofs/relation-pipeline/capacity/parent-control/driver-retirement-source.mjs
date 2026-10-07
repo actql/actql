@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 export const driverPath='src/connectors/local/driver/managed_dispatch.mbt';
 export const scratchRetirementPath='src/connectors/local/driver/scratch_retirement.mbt';
 export const inputStopPath='src/connectors/local/driver/input_stop.mbt';
+export const bridgeReclamationPath='src/execution_relation/managed_producer_bridge.mbt';
+export const importReclamationPath='src/execution_relation/completed_output_import.mbt';
 export const strategyPath='src/physical_strategy/task_execution.mbt';
 const clean=s=>s.replace(/\/\/[^\n]*/g,'').replace(/\s+/g,'').replace(/,\)/g,')');
 export function blockAfter(source,anchor) {
@@ -124,8 +126,8 @@ const stopInputs=`{
     return true
   }
   advance_local_managed_input_stop(input_stop, bridges, retained_imports,
-    @execution.close_managed_producer_bridge,
-    importer => @execution.cancel_completed_output_import(importer) |> ignore,)
+    bridge => @execution.advance_close_managed_producer_bridge(bridge, 1),
+    importer => @execution.advance_cancel_completed_output_import(importer, 1),)
 }`;
 const inputSlice=`{
   if cursor.advancing { return false }
@@ -135,13 +137,13 @@ const inputSlice=`{
     match cursor.phase {
       Bridges => if cursor.index < bridges.length() {
         let input = bridges[cursor.index].val
-        cursor.index += 1
-        if input is Some(bridge) { close_bridge(bridge) }
+        if input is Some(bridge) && !close_bridge(bridge) { () }
+        else { cursor.index += 1 }
       } else { cursor.phase = Imports; cursor.index = 0 }
       Imports => if cursor.index < imports.length() {
         let input = imports[cursor.index].val
-        cursor.index += 1
-        if input is Some(importer) { cancel_import(importer) }
+        if input is Some(importer) && !cancel_import(importer) { () }
+        else { cursor.index += 1 }
       } else { cursor.phase = Stopped }
       Stopped => break
     }
@@ -160,10 +162,36 @@ const cancelInputs=`{
 }`;
 const disposeInputs=cancelInputs.replace('  stop_owned_inputs() |> ignore',
   '  disposed.val = true\n  stop_owned_inputs() |> ignore\n  release_owned_scratch()');
+const bridgeReclaim=`{
+  bridge.admitted.buffer.deferred_reclamation = true
+  close_managed_producer_bridge(bridge)
+  if bridge.handed_off { return true }
+  if quantum <= 0 || bridge.admitted.buffer.reading { return false }
+  bridge.rows.val = None
+  if bridge.admitted.buffer.open || !bridge.admitted.buffer.rows.is_empty() ||
+    !bridge.admitted.buffer.presence_rows.is_empty() {
+    revoke_admitted_buffer(bridge.admitted.buffer)
+  }
+  advance_admitted_buffer_reclamation(bridge.admitted.buffer, quantum)
+}`;
+const importReclaim=`{
+  if value.completed { return true }
+  value.admitted.buffer.deferred_reclamation = true
+  value.stream.buffer.deferred_reclamation = true
+  cancel_completed_output_import(value) |> ignore
+  if quantum <= 0 || value.reading || value.admitted.buffer.reading ||
+    value.stream.reading || value.stream.buffer.reading { return false }
+  if !advance_admitted_buffer_reclamation(value.admitted.buffer, quantum) {
+    return false
+  }
+  advance_admitted_buffer_reclamation(value.stream.buffer, quantum)
+}`;
 export function checkDriverRetirementSource(read) {
   const driver=read(driverPath).toString(),strategy=read(strategyPath).toString();
   const roots=read(scratchRetirementPath).toString();
   const inputs=read(inputStopPath).toString();
+  const bridge=read(bridgeReclamationPath).toString();
+  const importer=read(importReclamationPath).toString();
   assert.equal(clean(blockAfter(driver,'let release_provider_scratch = fn()')),clean(release),'Changed provider stop/cleanup/work/root retirement ordering');
   assert.equal(clean(blockAfter(driver,'scratch_released: fn()')),clean(scratch),'Changed installed driver scratch witness');
   assert.equal(clean(blockAfter(driver,'let release_owned_scratch = fn()')),clean(ownedScratch),'Changed installed incremental root retirement guard');
@@ -172,6 +200,11 @@ export function checkDriverRetirementSource(read) {
   assert.equal(clean(blockAfter(driver,'dispose: fn()')),clean(disposeInputs),'Changed disposal custody boundary');
   assert.equal(clean(blockAfter(inputs,'advance_local_managed_input_stop(')),clean(inputSlice),'Changed bounded input revocation slice');
   assert.equal(clean(blockAfter(inputs,'fn local_managed_input_stop(')),clean('{ { phase: Bridges, index: 0, advancing: false, } }'),'Changed initial input revocation phase');
+  assert.equal(clean(blockAfter(bridge,'advance_close_managed_producer_bridge(')),clean(bridgeReclaim),'Changed bridge buffer reclamation owner');
+  assert.equal(clean(blockAfter(importer,'advance_cancel_completed_output_import(')),clean(importReclaim),'Changed import buffer reclamation owner');
+  assert.equal((driver.match(/deferred_reclamation=true/g)??[]).length,3,'Changed bounded input/snapshot import preparation');
+  assert.equal((driver.match(/retained_imports\.push\(importing\)/g)??[]).length,1,'Changed snapshot import custody registration');
+  assert(!blockAfter(driver,'relation_snapshot_cancel.val = Some(fn()').includes('importing.val = None'),'Snapshot cancellation discarded pending import custody');
   assert.match(clean(blockAfter(driver,'cleanup_refresh: fn()')),/^\{ifscratch_uses\.val!=0\{returnfalse\}if!stop_owned_inputs\(\)\{returnfalse\}if!release_provider_scratch\(\)/,'Changed cleanup callback/input/provider ordering');
   assert.equal(clean(blockAfter(roots,'fn local_managed_scratch_retirement(')),clean('{ { phase: Bridges, index: 0, } }'),'Changed initial scratch retirement phase');
   assert.equal(clean(blockAfter(roots,'advance_local_managed_scratch_retirement(')),clean(rootSlice),'Changed bounded scratch root retirement slice');
@@ -184,6 +217,6 @@ export function checkDriverRetirementSource(read) {
   return {scope:'exact reviewed driver scratch-root and common reservation retirement boundaries',
     retainsProviderUntilStoppedAndCleanupSuccess:true,clearsProviderAfterCleanupSuccess:true,
     cachesFinalProviderWorkBeforeDroppingRoot:true,incrementalScratchRootRetirement:true,
-    incrementalInputRevocation:true,
+    incrementalInputRevocation:true,incrementalPrivateImportRows:true,
     wholePhysicalLifetimeUpper:false,ledgerGenerationCorrespondence:false};
 }
