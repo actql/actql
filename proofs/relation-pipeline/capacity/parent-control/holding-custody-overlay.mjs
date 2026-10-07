@@ -13,7 +13,11 @@ export function holdingCustodyOverlay(read, overlay) {
   let host = overlay[path];
   const observe = phase => `  println(@strategy.native_holding_custody_observation(run, 4, custody_token, filtered, "${phase}"))\n`;
   host = once(host, '  let second_live = Ref(true)\n  let mut closed_parent_bytes',
-    '  let custody_token = @strategy.native_holding_custody_token(run, 4, filtered).unwrap()\n' + observe('acquired') + '  let second_live = Ref(true)\n  let mut closed_parent_bytes');
+    '  let custody_token = @strategy.native_holding_custody_token(run, 4, filtered).unwrap()\n  let second_live = Ref(true)\n  let mut closed_parent_bytes');
+  // The first consumer has already returned its own allocation here. Compare
+  // producer-port closure with this boundary, not with the earlier sibling's charge.
+  host = once(host, '    // Revoke the Host public port, not the already-borrowed material.',
+    observe('acquired') + '    // Revoke the Host public port, not the already-borrowed material.');
   host = once(host, '    assert_false(\n      @strategy.captured_managed_task_output_matches(',
     observe('parent-port-closed') + '    assert_false(\n      @strategy.captured_managed_task_output_matches(');
   host = once(host, '    let completed = completion.unwrap()\n', '    let completed = completion.unwrap()\n' + observe('consumer-completed'));

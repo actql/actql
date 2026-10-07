@@ -20,6 +20,10 @@ test('source guards and Native-only observation attach without changing existing
   assert.equal((blockAfter(overlay[path],anchor).match(/assert_(?:true|eq|false)\(/g)??[]).length,
     (blockAfter(read(path).toString(),anchor).match(/assert_(?:true|eq|false)\(/g)??[]).length);
   for (const phase of custodyPhases) assert(overlay[path].includes('"'+phase+'"'));
+  assert(overlay[path].indexOf('"last-consumer-closed"')>
+    overlay[path].indexOf('released_parent_bytes=closed_parent_bytes'));
+  const acquired=overlay[path].indexOf('filtered, "acquired"');
+  assert(acquired>overlay[path].indexOf('close_retained_host_consumer(run, 5, first_ops, first_live, first)'));
 });
 for (const [name,path,from,to] of [
   ['consumer parent condition removed','src/physical_strategy/retention.mbt','child.parents.contains(task)','false'],
