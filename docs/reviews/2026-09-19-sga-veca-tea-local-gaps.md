@@ -6314,3 +6314,20 @@ request and delivers cancellation after positive progress. This does not
 close initial preparation, availability, JSON/window metadata or Native
 physical capacity correspondence. The unmerged #704 owner remains a
 dependency. See the [order metadata record](2026-10-07-local-row-order-metadata.md).
+
+### Resumable generated row metadata (2026-10-07)
+
+JSON Pick, fixed Watermark rows and Lag prepare wide/long-name schemas and
+operation sources in the existing bounded Relation owner. Exact generated
+roles are matched once with retained UTF-16 cursors and cached for output
+copying. Canonical schema order no longer requires generated columns last.
+Short-lane budgets, cumulative logical work and borrowed-input custody remain
+unchanged. Independent JSON preparation/work limits and stops inside role
+matching/source lookup supplement existing whole-operation evidence.
+
+Normal real-Store Programs publish three fixed Named Results, use two
+consumers and deliver post-progress cancellation without early release or
+partial publication. The evidence gate requires these connected fixtures.
+This dependent unit follows #704/#708; it does not close initial preparation,
+availability validation, projected-read capacity or Native correspondence.
+See the [generated metadata record](2026-10-07-local-generated-row-metadata.md).

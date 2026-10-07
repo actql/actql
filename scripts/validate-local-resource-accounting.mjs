@@ -1806,6 +1806,16 @@ export function validateResourceAccounting({
         fail(`${label}: ordered metadata public fixture is missing`);
       }
     }
+    if (route.family === 'RelA' && ['json_pick', 'watermark_rows', 'lag'].includes(route.operation)) {
+      for (const role of ['generated_metadata_quantum', 'generated_metadata_stop',
+        ...(route.operation === 'json_pick' ? ['generated_metadata_workspace',
+          'generated_metadata_work'] : [])]) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('generated_metadata_public')) {
+        fail(`${label}: generated metadata public fixture is missing`);
+      }
+    }
     if (route.family === 'RelA' && route.operation === 'derive' &&
       (!environmentRoles.has('same_stage_values_derive_timer_cancel_cleanup') ||
         !boundaryRoles.has('same_stage_values_derive_two_consumers'))) {

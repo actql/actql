@@ -122,6 +122,35 @@ function orderedMetadataProgram(id) {
   return value;
 }
 
+function generatedMetadataProgram(id,kind) {
+  const value=fieldProgram(id),source=value.stages[0],producer=value.stages[1];
+  const output='a'.repeat(513);
+  let operation;
+  if(kind==='json'){
+    source.steps[0].values={schema:{id:{type:'number',nullable:false},
+      [member]:{type:'object',nullable:true,fields:{leaf:{type:'number',nullable:false}}}},
+      rows:[{id:1,[member]:{leaf:7}},{id:2,[member]:null}]};
+    // The generated output precedes id and the source in canonical schema order.
+    operation={json_pick:{column:member,path:['leaf'],output},as:'generated'};
+  }else{
+    source.steps[0].values={schema:{id:{type:'number',nullable:false},
+      [member]:{type:'number',nullable:false}},
+      rows:[{id:1,[member]:100},{id:2,[member]:80},{id:3,[member]:95}]};
+    if(kind==='watermark'){
+      operation={watermark_rows:{time:member,watermark_ms:90,late_policy:'mark'},as:'generated'};
+    }else{
+      source.steps.push({assert_rows:{unique_by:['id']},as:'keyed'});
+      source.results.rows.from='keyed';
+      operation={lag:{partition_by:[],order_by:[{[member]:'desc'}],
+        field:member,output,offset:1},as:'generated'};
+    }
+  }
+  producer.steps=[operation,
+    {derive:{value:{field:kind==='watermark'?'watermark_late':output}},as:'derived'},
+    {select:['id','value'],as:'out'}];
+  return value;
+}
+
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
   valueContract={type:'number',nullable:true},producerTask=1){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
@@ -204,3 +233,15 @@ test('public retained wide indexed snapshots preserve rows and post-progress cus
 test('public retained ordered metadata preserves ties NULL and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'ordered-metadata',orderedMetadataProgram,
     [{id:1,value:7},{id:3,value:7},{id:2,value:null}]));
+test('public retained json metadata preserves generated roles and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'json-metadata',
+    id=>generatedMetadataProgram(id,'json'),expected));
+test('public retained watermark metadata preserves generated roles and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'watermark-metadata',
+    id=>generatedMetadataProgram(id,'watermark'),
+    [{id:1,value:false},{id:2,value:true},{id:3,value:false}],
+    {type:'boolean',nullable:false}));
+test('public retained lag metadata preserves generated roles and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'lag-metadata',
+    id=>generatedMetadataProgram(id,'lag'),
+    [{id:1,value:null},{id:2,value:95},{id:3,value:100}]));
