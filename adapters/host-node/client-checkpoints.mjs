@@ -1294,6 +1294,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
         resume: options => model.resume('activation', tuple,
           {...options, subjectCid: scopeCid}),
         close: () => model.close(),
+        cleanup: () => model.cleanup(),
+        cleanupPending: () => model.cleanupPending(),
       });
     },
     async modelContinuation(view) {

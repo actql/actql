@@ -586,3 +586,89 @@ for (const [variant, boundary, typedCause] of [
       assertNoAcceptedRun(root, physicalStarts);
     });
 }
+
+for (const reason of ['timeout', 'abort']) {
+  test(`installed INFER retains its real Model authorization callback after ${reason}`,
+    {timeout: 60000}, async t => {
+      const {installation, taskCid} = await installedDependencyConfiguration('valid');
+      let settle, entered, decisionSignal, decisionCalls = 0, modelCalls = 0;
+      const pending = new Promise(resolve => { settle = resolve; });
+      const started = new Promise(resolve => { entered = resolve; });
+      // Register before the Host teardown: even a failed assertion must settle
+      // this same physical callback before journals and Store can be closed.
+      t.after(async () => { settle({decision: 'unavailable'}); await new Promise(setImmediate); });
+      const observations = [];
+      const entry = (entry_id, operation, outcome) => ({entry_id, outcome,
+        principal: {all: true}, connection: {all: true}, resource: {all: true},
+        operation: {any_of: [operation]}, exclusions: []});
+      const authorization = {...diagnosticAuthorization((name, detail) => {
+        observations.push({name, detail});
+      }), decisionTimeoutMs: reason === 'timeout' ? 25 : 30000,
+      accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
+        account_id: 'model-cleanup', entries: [entry('model', 'infer', 'delegate'),
+          entry('run', 'write', 'allow')]}),
+      decide(view, {signal}) {
+        assert.equal(view.tuple.operation, 'infer');
+        decisionCalls++; decisionSignal = signal; entered(); return pending;
+      }};
+      const registerModelProviders = moon => [{providerId: 'models/fixture',
+        bindingOriginals: providerBindingOriginals('models/fixture', {selector: 'fixture-risk-model'}),
+        invoke() { assert.fail('unprepared Model call'); },
+        validatePrompt(actualTask, selector, wire) {
+          return actualTask === taskCid && selector === 'fixture-risk-model' &&
+            JSON.parse(wire).format === 'fixture-risk/0.1';
+        },
+        quantityCapacity: {
+          limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+          perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+        },
+        observeEgress: () => ({_0: 'public', _1: 'fixture-region', _2: false, _3: false}),
+        physicalPreflight: request => moon.clientProgramModelRequestPreflight(
+          () => ({_0: true, _1: checked(moon.clientProgramModelPhysicalRequestPlan(
+            request, 1000n, 33n, 0n, 500n, () => {
+              modelCalls++;
+              assert.fail('authorization cleanup must never invoke the Model');
+            }))}), () => true),
+      }];
+      const {client, root, physicalStarts, closeHost} = await installedHost(t, {
+        modelInstallation: installation, authorization, registerModelProviders,
+      });
+      const run = await client.start(oneRowInfer(), {requestId: `model-gate-${reason}`});
+      await started;
+      if (reason === 'abort') await run.cancel();
+      for (let poll = 0; poll < 1000 &&
+        !observations.some(value => value.name === 'dispatch_failed'); poll++) {
+        await new Promise(resolve => setTimeout(resolve, 2));
+      }
+      const failure = observations.find(value => value.name === 'dispatch_failed');
+      assert.ok(failure, 'the actual authorization wait must end');
+      assert.equal(failure.detail.code, 'ExecutionAuthorizationDecisionFailed');
+      assert.equal(decisionSignal.aborted, true);
+      const physical = () => {
+        const database = new DatabaseSync(join(root, 'state', 'requests',
+          'client-requests.sqlite3'), {readOnly: true});
+        try { return {...database.prepare('SELECT physical_start_reserved, physical_close_confirmed, ' +
+          'observed_terminal_outcome FROM client_requests').get()}; }
+        finally { database.close(); }
+      };
+      assert.equal(physical().physical_close_confirmed, 0,
+        'the INFER parent must retain the original callback through dispatch cleanup');
+      await assert.rejects(closeHost(), error => {
+        assert.equal(error.code, 'ClientDispatchCleanupPending');
+        assert.equal(error.failures[0].primary.code, 'ExecutionAuthorizationDecisionFailed');
+        return true;
+      });
+      assert.equal(physical().physical_close_confirmed, 0);
+      assert.equal(decisionCalls, 1);
+      assert.equal(modelCalls, 0);
+      settle({decision: 'unavailable'});
+      await new Promise(setImmediate);
+      await closeHost();
+      assert.equal(physical().physical_close_confirmed, 1);
+      assert.equal(physicalStarts(), 1);
+      assert.equal(decisionCalls, 1, 'cleanup retries the original gate, not authorization');
+      assert.equal(modelCalls, 0);
+      assert.deepEqual(observations.filter(value => value.name === 'dispatch_failed')
+        .map(value => value.detail.code), ['ExecutionAuthorizationDecisionFailed']);
+    });
+}
