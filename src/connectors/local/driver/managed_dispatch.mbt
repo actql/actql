@@ -826,8 +826,8 @@ pub fn[T] start_local_managed_dispatch(
       input_stop,
       bridges,
       retained_imports,
-      @execution.close_managed_producer_bridge,
-      importer => @execution.cancel_completed_output_import(importer) |> ignore,
+      bridge => @execution.advance_close_managed_producer_bridge(bridge, 1),
+      importer => @execution.advance_cancel_completed_output_import(importer, 1),
     )
   }
   // These are the driver's charged scratch roots. Returned transfer handles
@@ -887,6 +887,7 @@ pub fn[T] start_local_managed_dispatch(
                   setup.imports.values,
                   setup.imports.wire.max_nodes,
                   setup.imports.wire.max_bytes,
+                  deferred_reclamation=true,
                 ) {
                 Ok(value) => value
                 Err(_) =>
@@ -1103,6 +1104,7 @@ pub fn[T] start_local_managed_dispatch(
             setup.imports.values,
             setup.imports.wire,
             setup.imports.max_batch_bytes,
+            deferred_reclamation=true,
           ) {
           Ok(value) => value
           Err(_) => return Err(Configuration(InputUnavailable))
@@ -2119,6 +2121,9 @@ pub fn[T] start_local_managed_dispatch(
       let receipt : Ref[@execution.CompletedOutputExportReceipt?] = Ref(None)
       let stored : Ref[@execution.CompletedOutput?] = Ref(None)
       let importing : Ref[@execution.CompletedOutputImport?] = Ref(None)
+      // Reuse the input-stop cursor for a cancelled snapshot reload. The
+      // private importer must survive its closure's cancellation callback.
+      retained_imports.push(importing)
       let restored : Ref[@execution.CompletedOutput?] = Ref(None)
       let phase = Ref(SnapshotPhase::Saving)
       let remaining = Ref(0L)
@@ -2155,7 +2160,6 @@ pub fn[T] start_local_managed_dispatch(
         stream.val = None
         receipt.val = None
         stored.val = None
-        importing.val = None
         restored.val = None
         phase.val = Failed
       })
@@ -2240,6 +2244,7 @@ pub fn[T] start_local_managed_dispatch(
                 setup.imports.values,
                 wire,
                 frames.maxFrameBytes,
+                deferred_reclamation=true,
               ) {
               Ok(result) => result
               Err(_) => return Err(Configuration(InputUnavailable))
