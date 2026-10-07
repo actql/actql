@@ -3,26 +3,46 @@ fn indexed_snapshot_fixture(
   name : String,
   derive_name? : String = "next",
   projection? : Bool = false,
+  operation? : String? = None,
+  rows? : String? = None,
+  nullable? : Bool = false,
+  keyed? : Bool = false,
+  binding? : Bool = false,
+  ordered_binding? : Bool = false,
+  work? : Int = 100000,
+  entries? : Int = 10000,
 ) -> BoundedBindingRowsExecution raise {
+  let input_rows = rows.unwrap_or("[{\"id\":1,\"" + name + "\":7}]")
   let source_owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"" +
     name +
-    "\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1,\"" +
-    name +
-    "\":7}]},\"as\":\"seed\"}]",
+    "\":{\"type\":\"number\",\"nullable\":" +
+    nullable.to_string() +
+    "}},\"rows\":" +
+    input_rows +
+    "},\"as\":\"seed\"}" +
+    (if keyed {
+      ",{\"from\":\"seed\",\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"keyed\"}]"
+    } else {
+      "]"
+    }),
   )
   let source_sequence = prepared_sequence(source_owner)
   let source_generated = prepare_generated_sequence(
     registered_relation_contracts(),
     source_sequence,
     [],
-    ["values_0"],
+    Array::makei(if keyed { 2 } else { 1 }, index => {
+      @lower.node_id(
+        @lower.node_at(@lower.bound_preparation(source_owner), index).unwrap(),
+      )
+    }),
     100000,
     10000,
   ).unwrap()
   let source = completed_output(
     execute_generated_sequence(source_generated, [], compute_test_limits()).unwrap(),
-    @pipeline.Step(0),
+    @pipeline.Step(if keyed { 1 } else { 0 }),
   ).unwrap()
   let receiver = bounded_binding_rows_receiver(
     source_owner,
@@ -30,12 +50,16 @@ fn indexed_snapshot_fixture(
     derive_name~,
     select=projection,
     select_name=Some(name),
+    metadata_operation=operation,
+    source_step=if keyed { 1 } else { 0 },
   )
   let sequence = prepared_sequence(receiver)
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    if projection {
+    if ordered_binding {
+      [bounded_binding_rows_ordered_context(sequence)]
+    } else if projection || (operation is Some(_) && !binding) {
       []
     } else {
       [sequence_fragment_context(sequence, 0, 1L)]
@@ -57,9 +81,9 @@ fn indexed_snapshot_fixture(
     100,
     run_limits().input_values,
     run_limits().output_values,
-    100000,
+    work,
     100,
-    10000,
+    entries,
     10000,
   ).unwrap()
 }

@@ -68,8 +68,33 @@ allocation, charged bytes, fence and deletion records are retained as audit fact
 
 ## Focused diagnostics and remaining integration
 
+The internal `adapters/host-node/table-iceberg-process.mjs` bridge launches the
+pinned optional interpreter through the existing managed-process owner. The
+worker uses the existing bounded private execution frames and opens no Catalog
+during its handshake. One write consumes one opaque preparation, including an
+empty Relation. The caller must admit the operation/materials, check current
+authority and approval, and win the existing durable Ledger send claim first.
+This bridge does not supply those decisions or register a public installer.
+
+The physical await ends only after observed process exit, not a stop request or
+channel closure. Its failure cannot justify a resend. A subsequent process may
+read the immutable original-operation receipt; a missing receipt is still
+unknown. Cleanup requires the bridge's actual stopped-writer observation and
+then the existing Catalog publication fence. No interpreter arguments or
+commands are accepted from a Program. Initial transport bounds are 4 MiB,
+100,000 value nodes, depth 32, one request and a 60-second physical deadline;
+these do not constitute a common execution/retention accounting proof. Delegated
+budget handshakes are explicitly refused rather than inventing usage reports.
+
+The real Node-to-Python tests directly construct common Ledger claims. They
+establish physical custody/send-once behavior, not Program approval, a current
+authorization decision, a common bulk Preview, or public Table-source admission.
+They are optional Table Host diagnostics, not mandatory SDK/Core dependencies.
+
 ```sh
 node scripts/local-checks.mjs test node -- adapters/table-iceberg/physical.test.mjs
+node scripts/local-checks.mjs build moon -- --target js --release src/connectors_builtin_node
+node scripts/local-checks.mjs test node -- adapters/host-node/process-channel.test.mjs adapters/host-node/table-iceberg-process.test.mjs
 ```
 
 The explicit test requires the optional pinned environment; it does not silently

@@ -60,7 +60,8 @@ test('reviewed composition adds only typed Graph row-kernel exclusions to the in
     `${integratedMain}:${path}`], {cwd:fileURLToPath(new URL('../../',import.meta.url))});
   assert.equal(hash(before), '689b1f1eaef074e44132348bf9927349324c94325fb10ebf304191e6cb7b6ac3');
   const source = read(path).toString();
-  let remaining = source;
+  let remaining = source.replace('      | @lower.GraphConstructionStep(_)\n',
+    '      | @lower.PropertyGraphConstructionStep(_)\n');
   for (const operation of ['GraphUnionStep', 'GraphSubtractionStep']) {
     const branch = `      | @lower.${operation}(_)\n`;
     assert.equal(remaining.split(branch).length, 2, `Missing or duplicated ${operation} exclusion`);
@@ -70,6 +71,18 @@ test('reviewed composition adds only typed Graph row-kernel exclusions to the in
     'Composition changed a GeneratedSequence field, constructor, callback or unrelated execution path');
   // This exact delta check does not refresh the older recipe's source pins or
   // certify the inherited main changes. Those original checks stay mandatory.
+});
+
+test('receiving metadata cursors leave the actual provider factory byte-identical', () => {
+  const path = 'src/connectors/local/selected_relation_provider.mbt';
+  const before = historical(path, 'b98a50ff763d1367e344fdfa8aea380ec8749132').toString();
+  const current = read(path).toString();
+  assert.equal(reviewedFunction(current, 'selected_relation_provider'),
+    reviewedFunction(before, 'selected_relation_provider'));
+  assert.equal(hash(reviewedFunction(current, 'selected_relation_provider')),
+    'f2fb44c23c59859a7c4324684c7afe3b50218ebe287d8e7e9ce62c9ff5e94256');
+  assert(current.includes('advance_relation_chain_inputs(cursor)'));
+  assert(current.includes('cancel_relation_chain_inputs(cursor)'));
 });
 test('historical reviewed handoff helper leaves provider fields and constructor bodies unchanged', () => {
   const path = 'src/connectors/local/managed_provider.mbt';

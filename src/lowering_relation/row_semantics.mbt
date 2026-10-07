@@ -213,6 +213,17 @@ pub fn kernel_is_projection(kernel : PreparedKernel) -> Bool {
 }
 
 ///|
+/// The exact lowered projection includes checked rename/drop consumers as
+/// well as Select. Do not rediscover its kind from the author's spelling.
+pub fn kernel_projection(kernel : PreparedKernel) -> PreparedProjection? {
+  if kernel.body is Select(_) {
+    Some({ checked: kernel.checked, })
+  } else {
+    None
+  }
+}
+
+///|
 pub fn kernel_input_schema(kernel : PreparedKernel) -> @schema.Schema {
   let node = kernel.owner.prepared.nodes[kernel.step_index]
   preparation_schema_at(kernel.owner.prepared, node.input_targets[0]).unwrap()
