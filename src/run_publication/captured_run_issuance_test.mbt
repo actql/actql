@@ -139,6 +139,52 @@ fn captured_run_test_chain(
 }
 
 ///|
+test "publication evidence defaults reserve fixed streams without changing node limits" {
+  assert_eq(publication_evidence_workspace(-1), 0)
+  assert_eq(publication_evidence_workspace(0), 0)
+  assert_eq(publication_evidence_workspace(128), 5120)
+  assert_eq(publication_evidence_workspace(256), 6144)
+  assert_eq(publication_evidence_workspace(2147483647), 2147483647)
+  let chain = captured_run_test_chain()
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    128,
+    32,
+  ).unwrap()
+  let captured = issue_effect_free_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    chain.models,
+    65536,
+    128,
+    32,
+  ).unwrap()
+  validate_effect_free_run_evidence_chain(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    65536,
+    128,
+    32,
+  ).unwrap()
+}
+
+///|
 test "Captured Run issuer binds exact Result values and field order" {
   let chain = captured_run_test_chain()
   let snapshot = admit_captured_result_snapshot(

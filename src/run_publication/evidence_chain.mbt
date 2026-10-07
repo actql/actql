@@ -93,11 +93,7 @@ pub fn validate_effect_free_publication_commit_with_result_evidence(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, PublicationCommitIssue] {
-  let workspace = if max_nodes > 268435455 {
-    2147483647
-  } else {
-    Int::max(0, max_nodes) * 8
-  }
+  let workspace = publication_evidence_workspace(max_nodes)
   let preparation = start_effect_free_publication_commit_check(
     run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
     bindings, manifest, receipt, captured_run, request, attempt, index_entry, max_wire_bytes,
@@ -488,7 +484,7 @@ fn validate_computation_run_evidence_chain(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, RunEvidenceChainIssue] {
-  let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
+  let workspace = publication_evidence_workspace(max_nodes)
   let preparation = start_computation_evidence_check(
     {
       run_definition,

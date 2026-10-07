@@ -1,4 +1,18 @@
 ///|
+/// Implicit private workspace for publication evidence convenience callers.
+/// Fixed bounded stream buffers are independent of canonical node limits.
+/// Explicit preparation budgets remain caller-owned and are not enlarged.
+pub fn publication_evidence_workspace(max_nodes : Int) -> Int {
+  if max_nodes < 1 {
+    0
+  } else if max_nodes > (2147483647 - 4096) / 8 {
+    2147483647
+  } else {
+    4096 + max_nodes * 8
+  }
+}
+
+///|
 priv enum EvidenceStreamTarget {
   Wire(String)
   Pair(@json.CanonicalValue)

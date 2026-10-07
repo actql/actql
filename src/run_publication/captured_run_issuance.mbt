@@ -801,7 +801,7 @@ fn issue_captured_computation_run(
   max_depth : Int,
   dependency_inventory? : CapturedEffectDependencyInventory? = None,
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
-  let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
+  let workspace = publication_evidence_workspace(max_nodes)
   let preparation = start_captured_computation_preparation(
     {
       run_definition,
