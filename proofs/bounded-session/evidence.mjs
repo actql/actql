@@ -3,6 +3,12 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 export const targets = ['js', 'wasm', 'native'];
+// Shared with the actual execution recipe, not supplied by a report or claim.
+export const sessionModelAction = Object.freeze({id: 'model', kind: 'formal-model', target: 'model',
+  command: Object.freeze(['node', 'proofs/bounded-session/check.mjs']), package: null, minimumUnits: 14,
+  profile: 'BoundedSession typed claims and audited foundational axioms',
+  premises: Object.freeze(['Lean kernel and permitted foundational axioms']), dependencies: Object.freeze([])});
+
 export const premises = [
   'accepted counters are nonnegative representable and monotone',
   'kernel work per resume is between zero and quantum',
@@ -176,7 +182,9 @@ export function validate(nodes, report, current, expectedTarget) {
         throw new Error(`Unrelated execution used as evidence: ${node.run}`);
       }
       if (node.id.endsWith(':connection')) checkExecutedConnection(node.scope, result.coverage);
-      if (node.kind === 'formal-model' && result.command?.[1] !== 'proofs/bounded-session/check.mjs') {
+      if (node.kind === 'formal-model' && (result.target !== sessionModelAction.target ||
+          result.count !== sessionModelAction.minimumUnits ||
+          JSON.stringify(result.command) !== JSON.stringify(sessionModelAction.command))) {
         throw new Error('Wrong proof artifact');
       }
       for (const [path, digest] of Object.entries(result.artifacts ?? {})) {
