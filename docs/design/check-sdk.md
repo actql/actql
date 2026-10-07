@@ -1751,9 +1751,11 @@ or apply a correction. The getter is separate from `getSubmissionOutcome`:
 verified checking can coexist with an accepted preparation failure and never
 establishes execution success, cancellation or release.
 
-When a declared runtime value is absent, the bound-input observation remains
-undetermined and retains its known typed `parameter_value_required` Requirement
-and `bound_values_missing` coverage limit. Its structured location identifies
+When a declared runtime value is absent and no disclosable violation has been
+established, the bound-input observation remains undetermined and retains its
+known typed `parameter_value_required` Requirement and `bound_values_missing`
+coverage limit. A definite public violation still establishes invalidity;
+missing values do not hide it. The Requirement's structured location identifies
 the original declaration; it does not invent a supplied-value document. The
 acceptance phase remains the preparation Owner's decision, independently of
 the checking verdict. Editing caller-owned declarations while awaiting the
