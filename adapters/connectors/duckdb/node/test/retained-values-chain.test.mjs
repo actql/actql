@@ -419,9 +419,13 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             const phase = target.strategyCapturedRunFixturePhase(preparation);
             route.capturePolls = (route.capturePolls ?? 0) + 1;
             (route.capturePhases ??= new Set()).add(phase);
+            if (phase === 'root-check') {
+              route.captureRootPolls = (route.captureRootPolls ?? 0) + 1;
+              assert.equal(complete, false);
+            }
             assert.equal(completedDispatches, 3);
             if (mode === 'cancel-during-captured-run' && !scheduled &&
-                phase === route.cancelCapturePhase) {
+                phase === route.cancelCapturePhase && route.capturePolls > 1) {
               assert.equal(complete, false);
               assert.ok(route.capturePolls > 1);
               scheduled = true;
@@ -1024,6 +1028,7 @@ for (const phase of ['success', 'root-check', 'context-check', 'rows-check']) {
           return true;
         });
         assert.ok(route.capturePhases.has(phase));
+        if (phase === 'root-check') assert.ok(route.captureRootPolls > 1);
         assert.equal(route.captureCancels, 1);
         assert.equal(observations().scheduled, true);
         await assert.rejects(publication.lookupCommittedIndex({
