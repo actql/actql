@@ -2210,7 +2210,7 @@ priv struct HolderOutputResources {
 ///|
 fn open_holder_output_resources(
   matches : @argparse.Matches,
-  environment : SiteEnvironment,
+  sqlite_library : @sqlite.Library,
 ) -> Result[HolderOutputResources, String] {
   let settings = (
     required(matches, "observation-url"),
@@ -2279,7 +2279,7 @@ fn open_holder_output_resources(
   }
   let store = match
     @publication_store.open_store(
-      environment.sqlite_library,
+      sqlite_library,
       publication_root,
       publication_authority,
       publication_capacity,
@@ -2295,12 +2295,7 @@ fn open_holder_output_resources(
   }
   let transfer_journal = match
     @transfer_journal.open_journal(
-      environment.sqlite_library,
-      transfer_journal_path,
-      max_record_bytes,
-      65536,
-      1048576,
-      max_bytes,
+      sqlite_library, transfer_journal_path, max_record_bytes, 65536, 1048576, max_bytes,
     ) {
     Ok(value) => value
     Err(_) => {
@@ -3512,7 +3507,8 @@ fn run_holder(
   // Everything the output needs is opened before execution. A holder that
   // cannot open it ends without claiming, so nothing is left to clean up and
   // the attempt stays startable.
-  let resources = match open_holder_output_resources(matches, environment) {
+  let resources = match
+    open_holder_output_resources(matches, environment.sqlite_library) {
     Ok(value) => value
     Err(issue) => {
       report("setup-failed", [("reason", issue)])
@@ -3807,6 +3803,33 @@ fn recover_release_command(
 }
 
 ///|
+/// The signed installed bundle remains the execution identity. Maintenance
+/// checks its current active scope but neither acquires nor executes it.
+fn saved_output_bundle_current(
+  bundles : @bundle.NativeRuntimeBundleStore,
+  delegated : @resident.ResidentSiteDelegation,
+  target : String,
+) -> Bool {
+  guard bundles.active() is Ok(Some(snapshot)) &&
+    !snapshot.reclaim_pending &&
+    snapshot.runtime_bundle_cid == delegated.runtime_bundle_cid else {
+    return false
+  }
+  guard @bundle_protocol.admit_bundle_manifest_json(
+      snapshot.manifest_json,
+      snapshot.runtime_bundle_cid,
+    )
+    is Ok(manifest) else {
+    return false
+  }
+  let fields = @bundle_protocol.bundle_manifest_projection(manifest)
+  fields[4] == target &&
+  fields[7] == delegated.connector_registration &&
+  fields[8] == delegated.connector_revision &&
+  fields[9] == delegated.strategy_revision
+}
+
+///|
 /// Continue one original sealed Output after its holder has stopped. This
 /// command never acquires Source, enters an executor or reuploads payload.
 fn recover_output_command(
@@ -3819,6 +3842,8 @@ fn recover_output_command(
   let admission = run_admission(matches)
   let delegated = delegation(matches, budget(matches))
   let max_transfers = required_int(matches, "max-transfers")
+  let target = required(matches, "target-triple")
+  let environment = open_control_environment(matches)
   let slot = match
     @slot.open_native_executor_slot(required(matches, "executor-slot")) {
     Ok(value) => value
@@ -3828,30 +3853,39 @@ fn recover_output_command(
     ignore(slot.close())
     stop("Output recovery slot busy")
   }
-  let environment = open_site_environment(
-    matches,
-    "runtime-process:output-recovery:" + expected,
-  ) catch {
+  // Reuse the maintenance owner: it verifies saved custody without selecting
+  // an executor or claiming that this tool is the original runtime component.
+  let owner = open_release_recovery(matches, slot, expected) catch {
     CommandStop(issue) => {
       ignore(slot.close())
       stop(issue)
     }
   }
-  let resources = open_holder_output_resources(matches, environment)
+  let resources = open_holder_output_resources(
+    matches,
+    environment.sqlite_library,
+  )
   let primary : String? = match resources {
     Err(_) => Some("output-resources-unavailable")
     Ok(resources) =>
       try {
-        let (registration, revision, strategy) = @bundle.native_active_runtime_connector_scope(
-          environment.active_runtime,
-        )
-        if environment.runtime_bundle_cid != delegated.runtime_bundle_cid ||
-          registration != delegated.connector_registration ||
-          revision != delegated.connector_revision ||
-          strategy != delegated.strategy_revision {
-          stop("installed-runtime-mismatch")
+        if owner.bundles.verify(environment.runtime_bundle_cid) is Err(_) {
+          stop("installed-runtime-unconfirmed")
         }
-        let envelope = match environment.journal.dispatch_envelope(attempt) {
+        let site = match
+          @site.create_site(
+            environment.site_key,
+            environment.site_generation,
+            environment.runtime_bundle_cid,
+            environment.max_operations,
+            environment.max_transfers,
+            environment.max_bytes,
+            environment.max_bytes,
+          ) {
+          Some(value) => value
+          None => stop("invalid-current-site")
+        }
+        let envelope = match owner.journal.dispatch_envelope(attempt) {
           Ok(Some(value)) => value
           _ => stop("saved-dispatch-unavailable")
         }
@@ -3867,15 +3901,12 @@ fn recover_output_command(
         }
         let current = () => {
           slot.verify_current_hold() == Ok(()) &&
-          environment.bundles.verify_active_component_binding(
-            environment.active_runtime,
-          )
-          is Ok(_)
+          saved_output_bundle_current(owner.bundles, delegated, target)
         }
         let saved = match
           @resident_host.prepare_resident_saved_output(
-            environment.journal,
-            environment.site,
+            owner.journal,
+            site,
             admission,
             delegated,
             attempt,
@@ -3912,7 +3943,7 @@ fn recover_output_command(
         }
         match
           @client.acknowledge_retained_output_report(
-            environment.journal,
+            owner.journal,
             resources.control,
             resources.observation_url,
             intent,
@@ -3945,13 +3976,10 @@ fn recover_output_command(
     }
     Err(_) => ()
   }
-  if !environment.journal.close() {
+  if !owner.journal.close() {
     closed = false
   }
-  if environment.bundles.release(environment.process_hold_id) is Err(_) {
-    closed = false
-  }
-  if !(environment.bundles.close() is Ok(true)) {
+  if !(owner.bundles.close() is Ok(true)) {
     closed = false
   }
   if !slot.close() {

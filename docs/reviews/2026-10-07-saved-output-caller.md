@@ -24,17 +24,18 @@ physical reader close retains the existing Transfer cleanup owner.
 `recover-output --attempt <original-attempt> --expect-dispatch <dispatch-cid>
 --intent-cid <original-output-intent-cid>` connects this continuation to the
 normal Site configuration, authenticated HTTP clients and typed ACK persistence.
-It holds the actual executor slot and verifies the signed active component,
-including the running executable's identity. It performs one bounded query and
+It holds the actual executor slot and reuses the existing stopped-holder
+maintenance owner to verify the saved signed component and current active
+bundle/Connector scope. It performs one bounded query and
 one report exchange. A successful ACK is not formal release: original payload,
 producer holding, receiver holding and borrow cleanup remain separate duties.
 Owner-close failures and the primary failure are reported independently.
 
-This command deliberately retains the existing executable/runtime identity
-check. A newly built recovery executable cannot impersonate an older runtime
-component or reinterpret an old Run under new Graph or contract identities.
-Historical recovery requires a valid current runtime/custody authorization; this
-change does not invent it or an old missing consumer output-file record.
+The maintenance tool does not claim the original executable identity, acquire
+an execution component or a runtime holding. The saved signed component remains
+the execution identity; a changed active bundle or scope refuses Output recovery.
+Original materials must admit without reinterpreting old Graph/contract identity.
+This change does not invent an old missing consumer output-file record.
 
 The added Native consumer assertions use actual acquisition, retained Transfer,
 Compute and SQLite observations. They cover missing Output custody, lost slot,
