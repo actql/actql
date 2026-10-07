@@ -109,40 +109,93 @@ pub fn reclaim_stopped_resident_retained_input(
     Ok(value) => value
     Err(issue) => return Err(Binding(issue))
   }
+  let retry = match
+    prepare_resident_retained_input_cleanup_retry(
+      cleanup, receiver_journal, receiver_root, exclusive_current,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  retry()
+}
+
+///|
+/// Both stopped-command and retained restoration callers keep this exact
+/// receiver responsibility. The historical address grants no new borrow.
+fn prepare_resident_retained_input_cleanup_retry(
+  cleanup : @host.ClientRetainedInputCleanup,
+  receiver_journal : @transfer_journal.Journal,
+  receiver_root : @filesystem.Root,
+  exclusive_current : () -> Bool,
+  allow_unborrowed? : Bool = false,
+) -> Result[
+  () -> Result[Unit, ResidentStoppedRetainedCleanupIssue],
+  ResidentStoppedRetainedCleanupIssue,
+] {
   let transfer = @host.client_retained_input_cleanup_transfer(cleanup)
   let receipt_cid = @host.client_retained_input_cleanup_receipt_cid(cleanup)
+  // A missing consumer reader is admissible only after the original Transfer
+  // and exact committed receipt are known. Missing Transfer custody is not
+  // successful reclamation.
+  match receiver_journal.require(transfer) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
   let receipt = match receiver_journal.inspect_destination_receipt(transfer) {
     Ok(Some(value)) if @transfer.destination_receipt_cid(value) == receipt_cid =>
       value
     Ok(_) => return Err(Transfer(@transfer_client.ReconciliationRequired))
     Err(issue) => return Err(Journal(issue))
   }
-  if !exclusive_current() {
-    return Err(NotCurrent)
-  }
-  // A durable pin is not a still-live reader after exclusive physical stop.
-  // Return this original occurrence; other reader pins still fence reclaim.
-  match
-    receiver_journal.release_destination_reader(
-      transfer,
-      receipt,
-      @host.client_retained_input_cleanup_reader_id(cleanup),
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Journal(issue))
-  }
-  if !exclusive_current() {
-    return Err(NotCurrent)
-  }
-  let owner = match
-    @transfer_client.recover_durable_direct_destination_cleanup(
-      receiver_journal, receiver_root, transfer, receipt_cid,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Transfer(issue))
-  }
-  match @transfer_client.reclaim_durable_destination_material(owner) {
-    Ok(_) => Ok(())
-    Err(issue) => Err(Transfer(issue))
-  }
+  let returned = Ref(false)
+  let reclaimed = Ref(false)
+  let owner : Ref[@transfer_client.NativeRemoteDestinationMaterialUse?] = Ref(
+    None,
+  )
+  Ok(() => {
+    if !exclusive_current() {
+      return Err(NotCurrent)
+    }
+    if reclaimed.val {
+      return Ok(())
+    }
+    if !returned.val {
+      match
+        receiver_journal.release_destination_reader(
+          transfer,
+          receipt,
+          @host.client_retained_input_cleanup_reader_id(cleanup),
+        ) {
+        Ok(_) => returned.val = true
+        Err(@transfer_journal.Physical(@sqlite.NotFound)) if allow_unborrowed =>
+          // Reader creation is atomic. Only this exact absent reader key
+          // proves the accepted occurrence never acquired its borrow.
+          returned.val = true
+        Err(issue) => return Err(Journal(issue))
+      }
+    }
+    if !exclusive_current() {
+      return Err(NotCurrent)
+    }
+    if owner.val is None {
+      match
+        @transfer_client.recover_durable_direct_destination_cleanup(
+          receiver_journal, receiver_root, transfer, receipt_cid,
+        ) {
+        Ok(value) => owner.val = Some(value)
+        Err(issue) => return Err(Transfer(issue))
+      }
+    }
+    if !exclusive_current() {
+      return Err(NotCurrent)
+    }
+    match
+      @transfer_client.reclaim_durable_destination_material(owner.val.unwrap()) {
+      Ok(_) => {
+        reclaimed.val = true
+        Ok(())
+      }
+      Err(issue) => Err(Transfer(issue))
+    }
+  })
 }

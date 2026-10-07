@@ -29,6 +29,23 @@ export const retainedSourceProgram = JSON.stringify({version: 'actql/0.1',
 export const retainedSourceRows = Object.freeze([{id: 3}]);
 export const retainedSourceSchemaCid =
   'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513';
+// Different checked schemas prevent substituting the original Source
+// preparation for an independently retained middle-task output.
+export const retainedChainProgram = JSON.stringify({version: 'actql/0.1',
+  id: 'retained-three-stage', stages: [{id: 'acquire',
+    inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{filter: 'id > 0', as: 'filtered'}, {select: ['id'], as: 'captured'}],
+    results: {r: {from: 'captured', fields: ['id']}}},
+  {id: 'middle', inputs: {x: {result: {stage: 'acquire', result: 'r'}}},
+    steps: [{derive: {n: 'id + 10'}}, {select: ['n'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['n']}}},
+  {id: 'final', inputs: {x: {result: {stage: 'middle', result: 'r'}}},
+    steps: [{derive: {answer: 'n * 2'}}, {select: ['answer'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['answer']}}}],
+  results: {answer: {from: {stage: 'final', result: 'r'}}}});
+export const retainedChainRows = Object.freeze([{answer: 26}, {answer: 22}, {answer: 24}]);
+export const retainedChainSchemaCid =
+  'sha256:16f34bd61c9d1eaa64caf382f53063eaa65616019119a64d9c6b70f7cc09caca';
 export const sourceRef = 'connector://crm/main/r#v';
 export const sourceContractCid =
   'sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f';
