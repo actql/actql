@@ -1,12 +1,15 @@
 # Pipeline fixed JS mutation and restoration isolation
 
-G; final target main. The #849 immutable pipeline pristine implementation is
-now merged. The original proposed boundary normally adopted main
-`3c9ce71f912a7cdc5461d8fb02e8d0b552431b2b` through merge
-`909a10e4f0fc5389f31676a060d23e8c2f53b4e9`. Existing SHA-bound physical originals
-remain unchanged. This contract publishes the editing boundary before execution
-changes are implemented. Current adoption retains the merged parent and current
-main without changing execution code. This document is not execution acceptance.
+G; final target main. The #849 immutable pristine implementation and #860
+editing-boundary checkpoint are merged. The subsequent implementation normally
+adopts main `c6a1a8e7ab3726cccbf1fddc897bde15a5927e5a` through merge
+`dcce30328552efa8fe1aa3c07525b5b8fc906e45`. The residual change extends the existing
+runner/consumer and local image boundary; it does not resubmit those merged units.
+The original editing checkpoint adopted main
+`3c9ce71f912a7cdc5461d8fb02e8d0b552431b2b` through
+`909a10e4f0fc5389f31676a060d23e8c2f53b4e9`. SHA-bound physical originals remain
+unchanged. The following original contract and later diagnostics are distinct;
+the merged editing checkpoint was not execution acceptance.
 
 ## Shared runner and exact local scope
 
@@ -156,3 +159,23 @@ by another worktree's live heavy lock (`run-YvDRa1`). No lock or other-owner
 resource was removed; that attempt is not a performance/mutation failure.
 Actual image acceptance and actual retained history remain pending available
 shared execution custody, independently of Actions availability.
+
+## Current-main adoption and submitted consumer evidence
+
+The first implementation submission at
+`b14f8f0b05683c8e169f51b54092064993e945f6` passed 126/126 through
+`node scripts/local-checks.mjs test node --timeout-seconds 90 --` with
+`mutations.test.mjs`, `mutation-parts.test.mjs`, `fixed-js-replay.test.mjs`,
+`pipeline-pristine-replay.test.mjs`, `local-isolated-acceptance.test.mjs`,
+`isolation.test.mjs` and `inputs.test.mjs` (guard `run-o79PsE`, focused record
+`focused-test-NcKaRo`). This includes unchanged three-target orchestration/full
+part refusal and the prior actual pristine originals, not current-source Moon
+compilation or a complete physical fixed campaign.
+
+Publication inspection found #849 and #860 already merged. The implementation
+is preserved on `feat/pipeline-fixed-js-execution` with main as its base. The
+normal merge above has one actual maximal base and no required protected-path
+resolution; inherited declaration/receipt bytes are retained. Only the new
+implementation and its precise ten-path change declaration remain relative to
+current main. Actual history and the complete fixed image campaign are still
+required before acceptance; no Actions original or savings are inferred.
