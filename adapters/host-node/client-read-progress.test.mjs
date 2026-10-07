@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test, {after} from 'node:test';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -31,7 +32,7 @@ after(async () => {
   await rm(tlsRoot, {recursive: true, force: true});
 });
 
-async function installed(t, entrance, fixture, invalidRow) {
+async function installed(t, entrance, fixture, invalidRow, lookupReply) {
   const operations = [];
   let finished, readResponse;
   const settled = entrance === 'local' ? Promise.resolve()
@@ -51,10 +52,13 @@ async function installed(t, entrance, fixture, invalidRow) {
   let client, endpoint = 'actql:embedded';
   if (entrance === 'local') {
     const host = createNodeInProcessClientHost(services);
-    const port = invalidRow === undefined ? host : {
+    const port = invalidRow === undefined && lookupReply === undefined ? host : {
       async perform(operation, ...args) {
         const response = await host.perform(operation, ...args);
-        if (operation !== 'read') return response;
+        if (operation === 'delivery-attempt' && lookupReply) {
+          return lookupReply(response);
+        }
+        if (operation !== 'read' || invalidRow === undefined) return response;
         return {kind: 'rows', frames: {
           async *[Symbol.asyncIterator]() {
             for await (const frame of response.frames) {
@@ -430,3 +434,77 @@ test('https: early reader cleanup uncertainty retains its original lookup target
   assert.equal(reader.rowsYielded(), 1);
   assertReadExplanation(f, failure, reader.attemptId, 1, 'cleanup_unknown');
 });
+
+// The fixture retains the actual delivery owner's contracts. Only its DTO
+// container is reused; neither receipt issuance nor transition rules change.
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: delivery lookup snapshots survive reused owner record containers`, async t => {
+    let release;
+    const held = new Promise(resolve => {release = resolve;});
+    let reused;
+    const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+      async readRows(accept) {await accept('{"value":7}'); await held;},
+      lookup(current) {
+        if (!reused) reused = current;
+        else {
+          for (const key of Object.keys(reused.record)) delete reused.record[key];
+          Object.assign(reused.record, current.record);
+          reused.hostReleaseReceipt = current.hostReleaseReceipt;
+        }
+        return reused;
+      },
+    });
+    const f = await installed(t, entrance, fixture);
+    const reader = f.result.rows();
+    const iterator = reader[Symbol.asyncIterator]();
+    try {
+      assert.deepEqual(await iterator.next(), {done: false, value: {value: 7}});
+      const pending = await f.result.deliveryAttempt(reader.attemptId);
+      assert.equal(pending.record.state, 'streaming');
+      assert.equal(pending.hostReleaseReceipt, null);
+      release();
+      assert.equal((await iterator.next()).done, true);
+      await f.settled;
+      const completed = await f.result.deliveryAttempt(reader.attemptId);
+      assert.equal(completed.record.state, 'succeeded');
+      assert.equal(completed.record.confirmed_byte_count, 12);
+      assert.equal(completed.hostReleaseReceipt.delivered_sha256,
+        createHash('sha256').update('{"value":7}\n').digest('hex'));
+      assert.equal(pending.record.state, 'streaming', '[check-mutation:delivery-lookup-snapshot]');
+      assert.equal(pending.hostReleaseReceipt, null);
+      assert.equal(Object.isFrozen(pending.record), true, '[check-mutation:delivery-lookup-freeze]');
+      assert.equal(Object.isFrozen(completed.attempt), true, '[check-mutation:delivery-lookup-freeze]');
+      assert.equal(Object.isFrozen(completed.hostReleaseReceipt), true, '[check-mutation:delivery-lookup-freeze]');
+      assert.equal(Object.isFrozen(reused.record), false, '[check-mutation:delivery-lookup-detached]');
+      assert.throws(() => {pending.record.state = 'succeeded';}, TypeError);
+      assert.equal(pending.record.state, 'streaming');
+      assert.equal(fixture.state.admissions, 1);
+      assert.equal(fixture.state.grantUses, 1);
+      assert.equal(fixture.state.readers, 1);
+      assert.deepEqual(f.operations, ['connect', 'attach', 'read', 'delivery-attempt', 'delivery-attempt']);
+    } finally {release(); await iterator.return();}
+  });
+}
+
+for (const fault of ['clone changes a previously valid field', 'reply cannot be cloned']) {
+  test(`local: delivery lookup rejects ${fault}`, async t => {
+    const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+      lookup: current => current,
+    });
+    const f = await installed(t, 'local', fixture, undefined, value => {
+      if (fault === 'reply cannot be cloned') return new Proxy(value, {});
+      let reads = 0;
+      const observedAt = value.record.observed_at;
+      Object.defineProperty(value.record, 'observed_at', {enumerable: true,
+        get() {return ++reads === 1 ? observedAt : 42;}});
+      return value;
+    });
+    const reader = f.result.rows();
+    assert.deepEqual(await Array.fromAsync(reader), [{value: 7}]);
+    let failure;
+    try {await f.result.deliveryAttempt(reader.attemptId);} catch (error) {failure = error;}
+    assert.equal(failure?.code, 'InvalidHostAttemptLookup', '[check-mutation:delivery-lookup-admission]');
+    assert.deepEqual(f.operations, ['connect', 'attach', 'read', 'delivery-attempt']);
+    assert.equal(fixture.state.grantUses, 1);
+  });
+}
