@@ -8,13 +8,22 @@ traversals in the connected JS Host path, not all publication metadata or the
 whole retained Local objective.
 
 The tested clean source is
-`549cf972ef68a1d703f99628377699f8fded64e9`. PR #936 remains an unmerged
-prerequisite at `eb9d84996d12bb333b2a9e9ee0e337b24433f9cd`; the child PR
-targets `feat/local-bounded-publication-inventory` until that prerequisite
-reaches main. The inherited main is
+`549cf972ef68a1d703f99628377699f8fded64e9`. At verification, PR #936 was
+an unmerged prerequisite at `eb9d84996d12bb333b2a9e9ee0e337b24433f9cd`.
+The inherited main was
 `2d38f1ccf8134ebb96446ef9cb1e53767a704200`. The parent formatting correction
 was normally merged without conflicts. Subsequent record-only changes do
 not relabel execution receipts as tests of a later source.
+
+PR #936 merged while Draft PR #941 was being created. The branch then
+normally merged main `0efa031c2b81b9aaf9e753a39154f5ce816d8e1d` without
+conflicts, producing `1eb5caaa8fa3b62be3b75af5960b54aea668d24b`. PR #941
+now targets main, with no unmerged prerequisite. The incoming changes are
+proof evidence, separate Model acceptance fixtures and a capacity WB test;
+no production MoonBit implementation changed. Selected publication sources,
+consuming runtime roots, Host cases and focused wrapper inputs are identical
+to the tested source, confirmed by `git diff --exit-code`. Earlier receipts
+retain their own SHA; this integration is not a fresh packed or CI campaign.
 
 ## Existing owner connection
 

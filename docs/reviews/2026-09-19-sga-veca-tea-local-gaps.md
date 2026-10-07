@@ -7062,8 +7062,11 @@ committed replay, cleanup and no-redispatch assertions remain connected.
 Independent control formulas, exact/one-short frames, partial cursor
 cancellation and typed corruption probes cover the private continuations.
 
-PR #936 remains the unmerged prerequisite at
-`eb9d84996d12bb333b2a9e9ee0e337b24433f9cd`. Computation metadata preludes,
+PR #936 has merged. Draft #941 normally adopts main
+`0efa031c2b81b9aaf9e753a39154f5ce816d8e1d` without conflicts and targets
+main with no unmerged prerequisite. Production implementation and selected
+acceptance inputs remain identical to the tested source; integration evidence
+does not relabel earlier executions. Computation metadata preludes,
 scalar schema checks, issuance-side inventories, field-name normalization and
 physical allocation latency remain distinct boundaries. Blocking wrappers
 share the same algorithm but do not establish asynchronous issuance or
