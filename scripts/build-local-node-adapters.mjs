@@ -38,6 +38,12 @@ if (sourcePaths.length < entries.length ||
     entries.some(path => !sourcePaths.includes(path))) {
   throw new Error('IncompleteLocalNodeAdapterGraph');
 }
+// URL-referenced optional Table I/O is not an esbuild JS import. Preserve its
+// reviewed finite worker dependency set and pinned installation requirements,
+// not tests, fixtures, virtualenvs or generated Catalog files.
+sourcePaths.push(...['catalog.py', 'custody.py', 'physical.py', 'process_worker.py',
+  'requirements.in', 'requirements.lock', 'README.md']
+  .map(name => `adapters/table-iceberg/${name}`));
 const expected = new Set();
 for (const path of sourcePaths) {
   const output = join(destination, path);

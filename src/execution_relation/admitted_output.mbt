@@ -53,8 +53,48 @@ pub fn prepare_admitted_output(
       presence_rows: [],
       open: true,
       reading: false,
+      reclaiming: false,
+      deferred_reclamation: false,
     },
   })
+}
+
+///|
+fn prepare_bounded_admitted_output(
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+  max_rows : Int,
+  limits : ValueLimits,
+) -> Result[AdmittedOutput, CaptureIssue] {
+  match prepare_admitted_output(owner, target, max_rows, limits) {
+    Err(issue) => Err(issue)
+    Ok(output) => {
+      output.buffer.deferred_reclamation = true
+      Ok(output)
+    }
+  }
+}
+
+///|
+fn advance_admitted_output_reclamation(output : AdmittedOutput) -> Bool {
+  advance_admitted_buffer_reclamation(output.buffer, 64)
+}
+
+///|
+/// Only the stopped kernel knows whether its sealed result was accepted.
+/// Until acceptance it retains the buffer, including failed completion and
+/// a common-session cancellation racing the final kernel response.
+fn reclaim_bounded_admitted_output(
+  output : AdmittedOutput,
+  accepted : Bool,
+) -> Bool {
+  if accepted {
+    return true
+  }
+  if !output.buffer.open && output.buffer.deferred_reclamation {
+    output.buffer.reclaiming = true
+  }
+  advance_admitted_output_reclamation(output)
 }
 
 ///|

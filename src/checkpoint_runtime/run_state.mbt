@@ -332,6 +332,13 @@ fn decode_run_state(
       }
       Reconcile
     }
+    "reconcile_run" => {
+      run_state_shape(next, ["kind", "reason"], [], "next_action.")
+      if run_state_text(next, "reason") != "execution_unknown" {
+        raise RunStateFailed(RunStateInvalidField("next_action.reason"))
+      }
+      ReconcileRun
+    }
     "read_result" => {
       run_state_shape(next, ["kind", "results"], [], "next_action.")
       ReadResult(run_state_names(next, "results"))

@@ -155,11 +155,12 @@ fn unpivot_provider(
               return Ok(true)
             }
             match @execution.cleanup_bounded_unpivot(active) {
-              Ok(true) => {
-                reclaimed.val = true
-                Ok(true)
+              Ok(_) => {
+                reclaimed.val = !@execution.bounded_unpivot_cleanup_pending(
+                  active,
+                )
+                Ok(reclaimed.val)
               }
-              Ok(false) => Ok(false)
               Err(issue) => Err(bounded_unpivot_issue(issue, step))
             }
           },

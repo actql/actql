@@ -6572,3 +6572,67 @@ correspondence and unexecuted cross-target/packed acceptance remain distinct.
 The earlier metadata record describes its historical boundary; the explicit
 position/scratch walks it listed are now closed by this child. See the
 [Sequence position cursor record](2026-10-07-local-sequence-position-cursors.md).
+
+### Provisional Relation output reclamation (2026-10-07)
+
+The existing row-buffer owner now reclaims private cells and row containers in
+64-entry slices for fifteen bounded Relation kernels. Cancellation, failed
+append and failed completion keep unaccepted output custody until reclamation
+finishes. Sealed accepted output and borrowed immutable values remain usable.
+Installed providers observe cleanup pending separately from cleanup's Bool,
+which retains its changed-state meaning.
+
+Independent 72-entry and 96-entry cases, typed append/completion failures,
+presence source preservation and a completion/cancellation observation boundary
+exercise this shared owner. The resource checker rejects missing connections
+or required fixtures. This is not operation-wide physical-byte correspondence.
+
+The parent Sequence work is present in adopted main
+`148723200139ced6605223cc703275c0fa71f3a0`. After normal integration,
+`a34d8d49c92c2eddce1f68049f6da3f535d9078f` passed the selected JS
+counterexample/merged-caller tests 55/55 and real-Store Host/gate/index tests 5/5.
+Earlier affected JS passed 118/118 on a dirty pre-integration tree.
+
+Installed availability callbacks, other scratch walks and Native capacity /
+runtime reclamation correspondence remain. An earlier narrow Native test passed,
+but a later selection timed out and final Native acceptance is unverified.
+Packed/HTTPS, full Core, proof and complete Store-fault campaigns were not rerun.
+See the [output reclamation record](2026-10-07-local-output-reclamation.md).
+
+### Incremental managed input readiness (2026-10-07)
+
+The managed driver now counts missing required imports during existing binding
+and installs each validated read once at its physical port. Every provider
+resume uses that count rather than scanning all inputs. Supplied inputs keep
+their existing admitted representation; exact binding, availability, physical
+stop and cleanup custody are unchanged. This closes a source-level repeated
+readiness walk, not every installed availability callback.
+
+At `735d4690608fac12fc847f68acfcec3a9cfd8b12`, real retained-Store public
+Values, Append and Cross Join Host cases passed 3/3 with independent Named
+Results, two consumers, request reuse and post-progress cancellation custody.
+The affected JS selection passed 56/61. Its five work/advance/capacity failures
+also reproduce unchanged at parent `5c58a26542327dddde9c971545bfb3c32bb0e766`
+(42/47). They remain unresolved; no expectation or ceiling was increased.
+
+#812 remains a dependency. Independent charge breakdowns, other scratch and
+availability walks, Native correspondence and unexecuted cross-target/packed
+acceptance remain. See the
+[input readiness record](2026-10-07-local-input-readiness.md).
+
+### Independent chain accounting evidence (2026-10-07)
+
+The preceding input-readiness record is historical: its parents are now merged,
+and its five stale caller assertions have independent phase/capacity breakdowns.
+The source-free scalar and window-group fixtures also include their existing
+completion-port preparation work. Whole-chain exact/one-short expectations are
+162/161, 199/198 and 473/472, invariant at quanta 1, 7 and 256. Workspace remains
+9/8, 14/13 and 37/36; capacity includes the two existing preparation handles.
+No production algorithm, limit, CID or reservation was changed to pass them.
+
+At `7f4abd75282728793f5b0a98969de23b4db60db3`, clean focused JS selections
+passed 8/8, 24/24 and 8/8, with overlap. A prior broader dirty-source selection
+timed out and is not counted as successful. This closes the named stale
+assertions, not the remaining callback/scratch walks, Native correspondence
+or all-target/public acceptance of the complete retained goal. See the
+[independent chain accounting record](2026-10-07-local-chain-accounting-evidence.md).

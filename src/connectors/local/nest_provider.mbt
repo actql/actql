@@ -79,9 +79,9 @@ fn nest_provider(
           },
           fn() { @bounded.request_cancel(control) },
           fn() {
-            @execution.cleanup_bounded_nest(active).map_err(issue => {
-              bounded_nest_issue(issue, step)
-            })
+            @execution.cleanup_bounded_nest(active)
+            .map(_ => !@execution.bounded_nest_cleanup_pending(active))
+            .map_err(issue => bounded_nest_issue(issue, step))
           },
         ),
       )
