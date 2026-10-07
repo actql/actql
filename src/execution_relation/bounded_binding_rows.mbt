@@ -555,6 +555,7 @@ priv struct BoundedBindingRowsState {
   mut metadata_binding : Int
   mut metadata_offset : Int
   mut metadata_lookup : RowMetadataLookup?
+  mut term_column : Int?
   mut name_charge : RowNameCharge?
   projection_ordinals : Map[String, Int]?
   json_path : Array[String]?
@@ -840,6 +841,7 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
     close_row_metadata_lookup(cursor)
   }
   state.metadata_lookup = None
+  state.term_column = None
   if state.stepped_metadata {
     state.input_names.clear()
     state.output_names.clear()
@@ -936,7 +938,15 @@ fn bounded_binding_rows_step(
       PrepareRowSources => {
         if state.column == state.output_names.length() {
           state.column = 0
-          state.phase = ChargeInput
+          state.phase = if state.dedupe {
+            PrepareDedupeTerms
+          } else if state.distinct {
+            PrepareDistinctTerms
+          } else if state.unique_keys is Some(_) {
+            CheckUniqueKeys
+          } else {
+            ChargeInput
+          }
           continue
         }
         guard @schema.field_at(state.output_schema, state.column) is Some(field) else {
@@ -1031,15 +1041,15 @@ fn bounded_binding_rows_step(
           state.phase = ChargeInput
           continue
         }
-        guard @schema.field_at(state.output_schema, state.column) is Some(field) else {
+        guard @schema.field_at(state.output_schema, state.column) is Some(_) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
         if !reserve_slots(state.workspace, 1) ||
           !spend_control(state.control, 1) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
-        guard state.projection_ordinals is Some(projection) &&
-          projection.get(@schema.reference_name(field.name)) is Some(source) else {
+        guard binding_row_source(state, state.column)
+          is Some(InputColumn(source)) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
         state.sort_orders.push({
@@ -1076,14 +1086,15 @@ fn bounded_binding_rows_step(
           }
           order
         }
-        let name = @schema.reference_name(field)
-        guard state.input_ordinals.get(name) is Some(column) else {
-          return fail_bounded_binding_rows(Rows(InvalidRows), progress, used)
-        }
-        if !reserve_slots(state.workspace, if key { 1 } else { 2 }) ||
-          !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, name) {
-          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        let column = match
+          advance_row_term_preparation(state, field, if key { 1 } else { 2 }) {
+          Err(issue) =>
+            return fail_bounded_binding_rows(Rows(issue), progress, used + 1)
+          Ok(None) => {
+            used += 1
+            continue
+          }
+          Ok(Some(column)) => column
         }
         let order = { column, descending, nulls_first, }
         state.sort_orders.push(order)
@@ -1246,15 +1257,16 @@ fn bounded_binding_rows_step(
           state.phase = StartSort
           continue
         }
-        let name = @schema.reference_name(keys[state.unique_key])
         if state.unique_row < 0 {
-          if !reserve_slots(state.workspace, 1) ||
-            !spend_control(state.control, 1) ||
-            !spend_control_text(state.control, name) {
-            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-          }
-          guard state.input_ordinals.get(name) is Some(column) else {
-            return fail_bounded_binding_rows(Rows(InvalidRows), progress, used)
+          let column = match
+            advance_row_term_preparation(state, keys[state.unique_key], 1) {
+            Err(issue) =>
+              return fail_bounded_binding_rows(Rows(issue), progress, used + 1)
+            Ok(None) => {
+              used += 1
+              continue
+            }
+            Ok(Some(column)) => column
           }
           state.sort_orders.push({
             column,
@@ -1542,9 +1554,21 @@ fn bounded_binding_rows_step(
           state.phase = ChargeSortRows
           continue
         }
-        if !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, state.input_names[state.column]) {
+        if state.name_charge is None && !spend_control(state.control, 1) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        match
+          advance_binding_name_control_bytes(
+            state,
+            state.input_names[state.column],
+          ) {
+          Err(issue) =>
+            return fail_bounded_binding_rows(Rows(issue), progress, used + 1)
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => ()
         }
         state.column += 1
         used += 1
@@ -1591,13 +1615,20 @@ fn bounded_binding_rows_step(
           }
           order
         }
-        let name = @schema.reference_name(field)
-        if !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, name) {
-          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-        }
-        guard state.input_ordinals.get(name) is Some(column) else {
-          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        let column = match advance_row_term_preparation(state, field, 0) {
+          Err(InvalidRows) =>
+            return fail_bounded_binding_rows(
+              InvalidExecution,
+              progress,
+              used + 1,
+            )
+          Err(issue) =>
+            return fail_bounded_binding_rows(Rows(issue), progress, used + 1)
+          Ok(None) => {
+            used += 1
+            continue
+          }
+          Ok(Some(column)) => column
         }
         state.sort_orders.push({ column, descending, nulls_first, })
         state.column += 1
@@ -1855,9 +1886,21 @@ fn bounded_binding_rows_step(
           state.phase = BeginRow
           continue
         }
-        if !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, state.output_names[state.column]) {
+        if state.name_charge is None && !spend_control(state.control, 1) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        match
+          advance_binding_name_control_bytes(
+            state,
+            state.output_names[state.column],
+          ) {
+          Err(issue) =>
+            return fail_bounded_binding_rows(Rows(issue), progress, used + 1)
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => ()
         }
         state.column += 1
         used += 1
@@ -3541,7 +3584,14 @@ fn start_bounded_binding_rows_with_input(
       body is @lower.OrderedBindings(_) ||
       body is @lower.Filter(_) ||
       body is @lower.AssertAll(_) ||
-      body is @lower.Select(_)
+      body is @lower.Select(_) ||
+      body is @lower.DistinctRows ||
+      body is @lower.DedupeRows ||
+      body is @lower.StableSort(_) ||
+      body is @lower.TopK(_, _) ||
+      body is @lower.PartitionedTopK(_, _) ||
+      body is @lower.Limit(_, _, _) ||
+      body is @lower.AssertUnique(_)
     )
   let input_names = if stepped_metadata {
     []
@@ -3596,11 +3646,13 @@ fn start_bounded_binding_rows_with_input(
       return Err(InvalidExecution)
     }
     Some(view)
+  } else if stepped_metadata && distinct && !dedupe {
+    @lower.kernel_distinct_projection(kernel)
   } else {
     None
   }
-  let projection_ordinals : Map[String, Int]? = if metadata_projection
-    is Some(_) {
+  let projection_ordinals : Map[String, Int]? = if stepped_metadata &&
+    (select_mode || distinct || unique_keys is Some(_) || take_range is Some(_)) {
     // The discriminant selects projection semantics; indexed sources are filled
     // before any row is read. Never hash large output names during start.
     Some(Map([]))
@@ -3814,6 +3866,7 @@ fn start_bounded_binding_rows_with_input(
     metadata_binding: -1,
     metadata_offset: 0,
     metadata_lookup: None,
+    term_column: None,
     name_charge: None,
     projection_ordinals,
     json_path: match json_pick {
