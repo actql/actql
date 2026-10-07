@@ -422,19 +422,11 @@ fn publication_inventory_matches(
 /// Validate the computation evidence shared by Effect-free and Effectful Runs.
 /// The latter still requires a separately admitted apply outcome before a
 /// final Receipt or publication commit can be accepted.
-fn validate_computation_run_evidence_chain(
-  run_definition : PublicationContract,
-  invocation : PublicationContract,
-  definitions : Array[PublicationContract],
-  artifacts : Array[PublicationContract],
-  manifest : PublicationContract,
-  receipt : PublicationContract,
-  captured_run : PublicationContract,
-  preview : EffectPreviewIdentity?,
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> Result[Unit, RunEvidenceChainIssue] {
+fn computation_evidence_prelude(
+  inputs : ComputationEvidenceInputs,
+) -> Result[ComputationEvidencePrelude, RunEvidenceChainIssue] {
+  let { run_definition, invocation, definitions, artifacts, manifest, receipt,
+    captured_run, preview, max_wire_bytes, max_nodes, max_depth, } = inputs
   match
     validate_run_publication_chain(
       run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
@@ -623,11 +615,16 @@ fn validate_computation_run_evidence_chain(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if !evidence_identity_valid(
-      effect_context, "effect_context_cid", max_wire_bytes, max_nodes, max_depth,
-    ) {
-    return Err(EvidenceEmbeddedIdentity("effect_context_cid"))
-  }
+  Ok({ effect_context, program, external_model_cids, manifest_results, })
+}
+
+///|
+fn computation_evidence_capture_inventory(
+  inputs : ComputationEvidenceInputs,
+  prelude : ComputationEvidencePrelude,
+) -> Result[(@json.CanonicalValue, @json.CanonicalValue), RunEvidenceChainIssue] {
+  let { invocation, preview, max_wire_bytes, max_nodes, max_depth, .. } = inputs
+  let { effect_context, manifest_results, .. } = prelude
   if !captured_effect_context_dependencies_valid(
       effect_context, max_wire_bytes, max_nodes, max_depth,
     ) {
@@ -690,31 +687,16 @@ fn validate_computation_run_evidence_chain(
     @json.object_field(effect_context, "result_fields") is Some(field_inventory) else {
     return Err(EvidenceMissingField("captured_results"))
   }
-  for artifact in artifacts {
-    guard contract_string(artifact, "result_definition_cid")
-      is Some(definition_cid) else {
-      return Err(EvidenceInventoryMismatch("captured_results"))
-    }
-    let matching = definitions.filter(fn(definition) {
-      definition.identity == definition_cid
-    })
-    guard matching.length() == 1 &&
-      contract_string(matching[0], "result_name") is Some(name) &&
-      @json.object_field(values, name) is Some(row_value) &&
-      row_value is @json.Array(frozen_rows) &&
-      @json.object_field(field_inventory, name) is Some(field_value) &&
-      evidence_string_array(field_value) is Some(fields) else {
-      return Err(EvidenceInventoryMismatch("captured_results"))
-    }
-    let rows = @json.array_values(frozen_rows)
-    if !captured_fields_valid(rows, fields) ||
-      contract_count(artifact, "actual_row_count") !=
-      Some(rows.length().to_int64()) ||
-      captured_relation_cid(row_value, max_wire_bytes, max_nodes, max_depth) !=
-      contract_string(artifact, "logical_result_cid") {
-      return Err(EvidenceReferenceMismatch("captured_result_values"))
-    }
-  }
+  Ok((values, field_inventory))
+}
+
+///|
+fn computation_evidence_suffix(
+  inputs : ComputationEvidenceInputs,
+  prelude : ComputationEvidencePrelude,
+) -> Result[Unit, RunEvidenceChainIssue] {
+  let { preview, max_wire_bytes, max_nodes, max_depth, .. } = inputs
+  let { effect_context, program, external_model_cids, .. } = prelude
   let authoring = match evidence_object(effect_context, "authoring_context") {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -752,6 +734,34 @@ fn validate_computation_run_evidence_chain(
     return Err(EvidenceReferenceMismatch("external_model_evidence"))
   }
   Ok(())
+}
+
+///|
+fn validate_computation_run_evidence_chain(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity?,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, RunEvidenceChainIssue] {
+  let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
+  let preparation = start_computation_evidence_check({
+    run_definition, invocation, definitions, artifacts, manifest, receipt,
+    captured_run, preview, max_wire_bytes, max_nodes, max_depth,
+  }, workspace)
+  while true {
+    match preparation.advance(256) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => return preparation.finish()
+      Ok((false, _)) => ()
+    }
+  } nobreak { Err(EvidenceEncoding) }
 }
 
 ///|

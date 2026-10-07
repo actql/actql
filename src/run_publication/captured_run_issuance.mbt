@@ -510,42 +510,6 @@ fn captured_model_evidence(
 }
 
 ///|
-fn seal_effect_context(
-  snapshots : Array[CapturedResultSnapshot],
-  sources : Array[CapturedEffectSourceArtifact],
-  local_sources : Array[CapturedLocalEffectSourceEvidence],
-  dependencies : CapturedEffectDependencyInventory,
-  advances : Array[PendingSourceStateAdvance],
-  authoring : RunEvidenceValue,
-  models : Array[RunEvidenceValue],
-  preview : EffectPreviewIdentity?,
-  plans : Array[(String, @json.CanonicalValue)],
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> Result[@json.CanonicalValue, CapturedRunIssuanceIssue] {
-  // Draining form of the private child; outer issuance still blocks here.
-  let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
-  let preparation = match
-    start_effect_context_preparation(
-      snapshots, sources, local_sources, dependencies, advances, authoring, models,
-      preview, plans, max_wire_bytes, max_nodes, max_depth, workspace,
-    ) {
-    Ok(preparation) => preparation
-    Err(issue) => return Err(issue)
-  }
-  while true {
-    match preparation.advance(256) {
-      Err(issue) => return Err(issue)
-      Ok((true, _)) => return preparation.finish()
-      Ok((false, _)) => ()
-    }
-  } nobreak {
-    Err(CaptureIssuanceEncoding)
-  }
-}
-
-///|
 /// Issue a private Effect-free Captured Run from exact Result snapshots and
 /// admitted evidence. The issuer never accepts a preassembled Effect context.
 pub fn issue_effect_free_captured_run(
@@ -631,26 +595,12 @@ pub fn issue_effectful_captured_run(
 }
 
 ///|
-fn issue_captured_computation_run(
-  run_definition : PublicationContract,
-  invocation : PublicationContract,
-  definitions : Array[PublicationContract],
-  artifacts : Array[PublicationContract],
-  manifest : PublicationContract,
-  receipt : PublicationContract,
-  snapshots : Array[CapturedResultSnapshot],
-  sources : Array[CapturedEffectSourceArtifact],
-  local_sources : Array[CapturedLocalEffectSourceEvidence],
-  advances : Array[PendingSourceStateAdvance],
-  authoring : RunEvidenceValue,
-  models : Array[RunEvidenceValue],
-  preview : EffectPreviewIdentity?,
-  plan_values : Array[(String, String)],
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-  dependency_inventory? : CapturedEffectDependencyInventory? = None,
-) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+fn prepare_captured_computation_inputs(
+  inputs : CapturedRunIssuanceInputs,
+) -> Result[EffectContextInputs, CapturedRunIssuanceIssue] {
+  let { run_definition, invocation, definitions, artifacts, manifest, receipt,
+    snapshots, sources, local_sources, advances, authoring, models, preview,
+    plan_values, max_wire_bytes, max_nodes, max_depth, dependency_inventory, } = inputs
   if authoring.name != "authoring_context" {
     return Err(CaptureIssuanceWrongContract("authoring_context"))
   }
@@ -812,59 +762,43 @@ fn issue_captured_computation_run(
         CaptureIssuanceInventoryMismatch("effect_dependency_inventory"),
       )
   }
-  let effect_context = match
-    seal_effect_context(
-      ordered_snapshots, ordered_sources, ordered_local_sources, dependencies, advances,
-      authoring, ordered_models, preview, plans, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "effect_context")
-    @json.emit_value(effect_context, writer)
-    @encode.key(writer, "encryption_required")
-    @encode.bool_value(writer, true)
-    @encode.key(writer, "receipt")
-    @json.emit_value(receipt.value, writer)
-    @encode.key(writer, "retention_class")
-    @encode.string_value(writer, "run-evidence")
-    @encode.key(writer, "sensitivity")
-    @encode.string_value(writer, "private")
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-captured-run/0.1")
-    @encode.end_object(writer)
-  } catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  let body = @encode.finish(writer) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  let captured = match
-    seal_publication_contract(
-      "captured_run", body, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(CaptureIssuanceContract(issue))
-  }
-  let validation = match preview {
-    None =>
-      validate_effect_free_run_evidence_chain(
-        run_definition, invocation, definitions, artifacts, manifest, receipt, captured,
-        max_wire_bytes, max_nodes, max_depth,
-      )
-    Some(identity) =>
-      validate_effectful_computation_evidence_chain(
-        run_definition, invocation, definitions, artifacts, manifest, receipt, captured,
-        identity, max_wire_bytes, max_nodes, max_depth,
-      )
-  }
-  match validation {
-    Ok(_) => Ok(captured)
-    Err(issue) => Err(CaptureIssuanceChain(issue))
-  }
+  Ok({ snapshots: ordered_snapshots, sources: ordered_sources,
+    local_sources: ordered_local_sources, dependencies, advances, authoring,
+    models: ordered_models, preview, plans, })
+}
+
+///|
+fn issue_captured_computation_run(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  snapshots : Array[CapturedResultSnapshot],
+  sources : Array[CapturedEffectSourceArtifact],
+  local_sources : Array[CapturedLocalEffectSourceEvidence],
+  advances : Array[PendingSourceStateAdvance],
+  authoring : RunEvidenceValue,
+  models : Array[RunEvidenceValue],
+  preview : EffectPreviewIdentity?,
+  plan_values : Array[(String, String)],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  dependency_inventory? : CapturedEffectDependencyInventory? = None,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
+  let preparation = start_captured_computation_preparation({
+    run_definition, invocation, definitions, artifacts, manifest, receipt,
+    snapshots, sources, local_sources, advances, authoring, models, preview,
+    plan_values, max_wire_bytes, max_nodes, max_depth, dependency_inventory,
+  }, workspace)
+  while true {
+    match preparation.advance(256) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => return preparation.finish()
+      Ok((false, _)) => ()
+    }
+  } nobreak { Err(CaptureIssuanceEncoding) }
 }
