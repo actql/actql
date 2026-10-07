@@ -260,7 +260,10 @@ test('Table installed HTTP Host retires capture custody before completing close'
       reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
-    }});
+    }}).catch(error => {
+      t.diagnostic(inspect(error, {depth: 8}));
+      throw error;
+    });
   const first = await host.close();
   assert.equal(first.storeCleanupPending, false);
   assert.equal(first.authorizationCleanupPending, false);
