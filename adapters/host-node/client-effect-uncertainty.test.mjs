@@ -79,9 +79,6 @@ for (const entrance of ['local', 'https']) {
       };
     }
     const first = await observe();
-    assert.deepEqual(first.japaneseExplanation, {...expectedExplanation(first.ref, first.state.control.revision),
-      summary: '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。'},
-    '[check-mutation:operation-effect-public-locale]');
     // Establish the actual Owner/provider facts before testing presentation.
     assert.equal(first.state.status, 'needs_reconciliation');
     assert.deepEqual(first.state.next_action, {kind: 'reconcile', effects: ['save']});
@@ -95,6 +92,9 @@ for (const entrance of ['local', 'https']) {
     assert.deepEqual(first.explanation,
       expectedExplanation(first.ref, first.state.control.revision),
       '[check-mutation:effect-explanation]');
+    assert.deepEqual(first.japaneseExplanation, {...expectedExplanation(first.ref, first.state.control.revision),
+      summary: '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。'},
+    '[check-mutation:operation-effect-public-locale]');
     assert.equal(first.copiedExplanation, undefined);
     assert.equal(first.formats.length, 3);
     for (const output of first.formats) assert.ok(output);

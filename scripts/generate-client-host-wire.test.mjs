@@ -22,6 +22,20 @@ test('generated Client–Host guards and types match the machine contract',
     'utf8'));
   });
 
+test('Native cancellation shapes retain each registered operation boundary', () => {
+  const original = buildClientHostWire(registry, protocol).native;
+  for (const name of ['cancellation_ref', 'cancellation', 'cancellation_lookup']) {
+    assert.match(original, new RegExp(`fn wire_${name}_shape\\(`));
+    const changed = structuredClone(registry);
+    const branch = name === 'cancellation_lookup'
+      ? changed.schemas[name].oneOf[1] : changed.schemas[name];
+    const reference = name === 'cancellation_ref' ? branch : branch.properties.cancelRef;
+    reference.properties.cancelId.maxLength = 255;
+    assert.notEqual(buildClientHostWire(changed, protocol).native, original,
+      `Native freshness includes ${name}, independently of JavaScript output`);
+  }
+});
+
 test('schema and operation mutations invalidate generated Client–Host wire',
   () => {
     const original = buildClientHostWire(registry, protocol);
