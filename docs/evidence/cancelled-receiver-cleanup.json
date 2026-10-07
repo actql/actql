@@ -5,12 +5,14 @@
   "portableOwnerTests": {
     "command": "moon test --target js src/run_publication_host/client_retained_receiver_cleanup_wbtest.mbt",
     "passed": 5,
-    "receipt": "focused-test-Dz9lNt"
+    "receipt": "focused-test-kr7V1g",
+    "source": "39b0a5529170303323fbd49b663ccc1e0d0be409"
   },
   "existingCleanupOwnerTests": {
     "command": "moon test --target js src/run_publication_host/client_retained_input_cleanup_wbtest.mbt",
     "passed": 12,
-    "receipt": "focused-test-FMqUPy"
+    "receipt": "focused-test-mmlEjZ",
+    "source": "39b0a5529170303323fbd49b663ccc1e0d0be409"
   },
   "nativeInitialPhysicalTests": {
     "passed": 3,
@@ -28,12 +30,14 @@
   "nativeCallerCompilation": {
     "command": "moon check --target native src/cmd/native_remote_resident_site",
     "passed": true,
-    "receipt": "preconsumer-cleanup-callers-W3dr53"
+    "receipt": "preconsumer-cleanup-callers-7nahSe",
+    "source": "d91a3718b00a048bc640ad5a479eefe5c2cd1c95"
   },
   "publicInterfaces": {
     "command": "moon info --target native src/run_publication_host src/platform_native/remote_resident_host src/cmd/native_remote_resident_site",
     "generated": true,
-    "receipt": "preconsumer-cleanup-callers-W3dr53"
+    "receipt": "preconsumer-cleanup-callers-7nahSe",
+    "source": "d91a3718b00a048bc640ad5a479eefe5c2cd1c95"
   },
   "normalNativeExecutablePreparation": {
     "source": "016f79fa7bdbaa5e8402616ff79bc5ae596e7e0a",
@@ -50,7 +54,8 @@
     "stateBeforeFix": "sealed",
     "recoveryExecutedWithThisChange": false,
     "formalCloudCancellationVerified": false,
-    "originalCustodyPreserved": true
+    "originalCustodyPreserved": true,
+    "initialStatusHttp500Cause": "Unresolved: the captured Worker event collection is empty. Later exact replay HTTP 200 is not cause resolution."
   },
   "notVerified": [
     "Final Native physical test execution",
@@ -134,5 +139,16 @@
     },
     "receipt": "original-cancel-input-export-LV3pbi",
     "scope": "Read-only saved Coordinator/Site custody admission. No live authorization or physical recovery is established."
+  },
+  "postIntegrationPortableTests": {
+    "source": "d91a3718b00a048bc640ad5a479eefe5c2cd1c95",
+    "command": "moon test --target js src/run_publication_host/client_retained_receiver_cleanup_wbtest.mbt",
+    "limitSeconds": 60,
+    "failure": "ETIMEDOUT",
+    "receipt": "focused-test-v1Kdo7",
+    "testSummaryAvailable": false,
+    "passed": null,
+    "existingCleanupCallerTestsExecuted": false,
+    "scope": "Compilation/execution could not be separated from this missing summary. Earlier 17/17 is not evidence for this merged source."
   }
 }

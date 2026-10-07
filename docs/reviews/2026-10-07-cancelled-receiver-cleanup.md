@@ -48,7 +48,11 @@ Cloud's durable acceptance or the original Run's formal cancellation terminal.
 See [the evidence record](../evidence/cancelled-receiver-cleanup.json) for exact
 executed and unexecuted scopes. The final Native test build exceeded its bounded
 preparation deadline; the previous executable was not reused. Caller compilation
-and portable Owner tests passed. A clean-source normal Native executable build
+and portable Owner tests passed before main integration. At the integrated
+source, Native caller checking and interface generation pass, but the portable
+receiver selection reaches its 60-second bound without a test summary. The
+subsequent existing cleanup caller selection is therefore unexecuted. Earlier
+17/17 success is not claimed for this integrated source. A clean-source normal Native executable build
 also exceeded its 180-second preparation bound; no recovery was executed with it.
 Both the final recorded-graph test and normal command were additionally attempted
 in the standard release profile at the same bounds; both preparations timed out
