@@ -868,7 +868,15 @@ pub fn client_program_table_input_matches_source(@run_publication_host.ClientTab
 
 pub fn client_program_table_input_operation_json(@run_publication_host.ClientTableInput) -> String
 
+pub fn client_program_table_operation_commit_outcome(String, String, Int, Int64, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
+
+pub fn client_program_table_preview_commit_outcome(@run_publication_host.ClientTablePreview, String, Int, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
+
 pub fn client_program_table_preview_input_available(@run_publication_host.ClientTablePreview) -> Bool
+
+pub fn client_program_table_preview_ledger_identity(@run_publication_host.ClientTablePreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn client_program_table_preview_member_index(@run_publication_host.ClientTablePreview) -> Int
 
 pub fn client_program_table_preview_operation_json(@run_publication_host.ClientTablePreview) -> String
 
@@ -940,6 +948,8 @@ pub fn reference_compute_registration(@connectors_builtin.ConfiguredComputeHost[
 
 pub fn strategy_admit_captured_effect_source_artifact(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
 
+pub fn strategy_admit_captured_effect_source_from_result(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
+
 pub fn strategy_admit_captured_local_effect_source(@run_publication.CapturedEffectSourceArtifact, String, String, String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> @run_publication.CapturedLocalEffectSourceEvidence raise NodeHostFailure
 
 pub fn strategy_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
@@ -963,6 +973,8 @@ pub fn strategy_cancel_durable_result_row_frames(@run_publication.DurableResultR
 pub fn strategy_captured_effect_source_artifact_cid(@run_publication.CapturedEffectSourceArtifact) -> String
 
 pub fn strategy_captured_effect_source_holding_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_effect_source_inventory_from_results_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract]) -> Bool
 
 pub fn strategy_captured_effect_source_recovery_inventory_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract]) -> Bool
 

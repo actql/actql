@@ -1577,6 +1577,27 @@
           "fixture": "borrowed bindings retain canonical values across resume quanta"
         },
         {
+          "role": "derive_output_port_limit",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/output_port_preparation_wbtest.mbt",
+          "fixture": "bounded output port name refusal is observed before any row is evaluated"
+        },
+        {
+          "role": "derive_output_port_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/output_port_preparation_wbtest.mbt",
+          "fixture": "bounded output port preparation borrows Unicode names within exact bytes"
+        },
+        {
+          "role": "derive_output_port_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/output_port_preparation_wbtest.mbt",
+          "fixture": "output port stops between name scalars without releasing borrowed input"
+        },
+        {
           "role": "derive_borrowed_bindings_shadow",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1751,6 +1772,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-property-name-retention.test.mjs",
           "fixture": "public retained borrowed bindings preserve map values NULL and post-progress custody"
+        },
+        {
+          "role": "derive_ordered_bindings_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained ordered bindings preserve prior slots NULL and post-progress custody"
         },
         {
           "role": "derive_raw_text_child_public",

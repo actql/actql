@@ -4075,7 +4075,7 @@ pub fn compile(
     return Err(UnsupportedGraph)
   }
   if @query.join_part_count(query) > 0 &&
-    join_requires_group_scope(query) &&
+    (@query.join_part_count(query) > 1 || join_requires_group_scope(query)) &&
     context.captured_stage is Some(_) {
     // The Host requested a capture boundary. Reuse the script's existing
     // producer binding for raw/shared sources and derived-table CTEs, rather
@@ -4550,7 +4550,8 @@ fn compile_cte_query(
           query,
         ) >
         1 ||
-        (@query.join_part_count(query) > 0 && join_requires_group_scope(query)) {
+        (@query.join_part_count(query) > 0 && join_requires_group_scope(query)) ||
+        join_requires_input_binding(query, { ..context, inputs: known, }) {
         compile_join_chain_stage_body(
           construction,
           query,
@@ -4669,7 +4670,8 @@ fn compile_cte_stage(
     raise Abort(UnsupportedCte)
   }
   if @query.join_part_count(body) > 1 ||
-    (@query.join_part_count(body) > 0 && join_requires_group_scope(body)) {
+    (@query.join_part_count(body) > 0 && join_requires_group_scope(body)) ||
+    join_requires_input_binding(body, { ..context, inputs: known, }) {
     let (steps, output, inputs, from) = compile_join_chain_stage_body(
       construction,
       body,

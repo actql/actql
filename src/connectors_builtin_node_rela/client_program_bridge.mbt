@@ -3252,6 +3252,64 @@ pub fn client_program_table_preview_input_available(
 }
 
 ///|
+#export_name("clientProgramTablePreviewCommitOutcome")
+pub fn client_program_table_preview_commit_outcome(
+  value : @publication_host.ClientTablePreview,
+  response_wire : String,
+  status_code : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientTableInputIssue] {
+  @publication_host.client_table_preview_commit_outcome(
+    value, response_wire, status_code, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramTablePreviewLedgerIdentity")
+pub fn client_program_table_preview_ledger_identity(
+  value : @publication_host.ClientTablePreview,
+) -> @publication.EffectPreviewIdentity {
+  @publication_host.client_table_preview_ledger_identity(value)
+}
+
+///|
+#export_name("clientProgramTablePreviewMemberIndex")
+pub fn client_program_table_preview_member_index(
+  value : @publication_host.ClientTablePreview,
+) -> Int {
+  @publication_host.client_table_preview_member_index(value)
+}
+
+///|
+// Trusted physical-boundary diagnostics also use the common projection.
+// Callers must supply independently admitted operation/input facts, not treat
+// this content check as approval, response authenticity or physical custody.
+#export_name("clientProgramTableOperationCommitOutcome")
+pub fn client_program_table_operation_commit_outcome(
+  operation_wire : String,
+  response_wire : String,
+  status_code : Int,
+  expected_row_count : Int64,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientTableInputIssue] {
+  let operation = match
+    @effect.admit_table_operation(
+      operation_wire, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Operation(issue))
+  }
+  @effect.project_table_commit_outcome(
+    operation, response_wire, status_code, expected_row_count, max_bytes, max_nodes,
+    max_depth,
+  ).map_err(issue => Commit(issue))
+}
+
+///|
 #export_name("clientProgramLocalEffectResultArtifactCid")
 pub fn client_program_local_effect_result_artifact_cid(
   value : @publication_host.ClientEffectLocalResultArtifact,
