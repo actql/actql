@@ -4188,6 +4188,7 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("expect-producer-dispatch", required=true),
         @argparse.OptionArg("consumer-attempt", required=true),
         @argparse.OptionArg("expect-consumer-dispatch", required=true),
+        @argparse.OptionArg("publication-custody-root"),
       ]),
       @argparse.Command("recover-release", options=[
         @argparse.OptionArg("attempt", required=true),

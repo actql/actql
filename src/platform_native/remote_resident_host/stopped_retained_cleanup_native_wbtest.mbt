@@ -12,6 +12,7 @@ extern "C" fn cleanup_fail_root_sync(
 ///|
 struct StoppedCleanupFixture {
   admission : ResidentRunAdmission
+  recorded : @publication.RecordedRunPublication
   producer_root : String
   journal : @journal.Journal
   receiver : @transfer_journal.Journal
@@ -146,6 +147,14 @@ fn stopped_cleanup_fixture(
   let sqlite = @sqlite.load_library(sqlite_path).unwrap()
   let (admission, producer, wire, producer_binding, _) = resident_source_dispatch_fixture()
   let materials = rebuild_materials(admission, producer, wire).unwrap()
+  let recorded = @publication.prepare_recorded_run_publication(
+    materials.admission,
+    materials.run_definition,
+    @publication.prepare_result_definition(
+      @host.prepared_client_identity(materials.prepared).program_definition_cid,
+      "answer",
+    ).unwrap(),
+  ).unwrap()
   guard materials.compilation is @host.Tasks(compilation) else {
     abort("checked two-task compilation required")
   }
@@ -321,6 +330,7 @@ fn stopped_cleanup_fixture(
   }
   {
     admission,
+    recorded,
     producer_root: files,
     journal,
     receiver,
@@ -652,6 +662,7 @@ test "stopped retained cleanup retries original custody after task release and r
 fn stopped_source_cleanup_apply(
   f : StoppedCleanupFixture,
   current : () -> Bool,
+  recorded? : Bool = false,
 ) -> Result[Unit, ResidentStoppedSourceCleanupIssue] {
   reclaim_stopped_resident_source_output(
     f.journal,
@@ -670,6 +681,7 @@ fn stopped_source_cleanup_apply(
       max_referenced_bytes: 1024L,
     },
     current,
+    recorded=if recorded { Some(f.recorded) } else { None },
   )
 }
 
@@ -704,6 +716,77 @@ test "stopped Source cleanup waits for consumer release and receiver retry befor
   )
   for _ in 0..<2 {
     stopped_source_cleanup_apply(f, () => true).unwrap()
+    assert_true(f.root.inspect_generation(name) is Ok(None))
+    assert_eq(
+      f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_eq(
+      f.receiver.destination_capacity_usage().unwrap().reserved_objects,
+      0L,
+    )
+    assert_eq(
+      @remote.dispatch_record_revision(f.journal.require(f.producer).unwrap()),
+      revision + 1,
+    )
+    assert_true(
+      @remote.dispatch_record_state(f.journal.require(f.producer).unwrap()).2
+      is CleanupReleasing,
+    )
+    assert_false(
+      @remote.remote_runtime_record_released(
+        f.journal.require(f.producer).unwrap(),
+      ),
+    )
+    assert_true(
+      @journal.recovered_site_dispatch_file_custody(
+        f.journal.observation(f.producer).unwrap(),
+      )
+      is Some(_),
+    )
+  }
+  assert_true(f.journal.close())
+  assert_true(f.receiver.close())
+}
+
+///|
+test "recorded Source cleanup waits for consumer release and receiver retry after journal reconstruction" {
+  let f = stopped_cleanup_fixture("recorded-source-cleanup", producer_file=true)
+  let observation = f.journal.observation(f.producer).unwrap()
+  let custody = @journal.recovered_site_dispatch_file_custody(observation).unwrap()
+  let name = "output-" + @journal.native_output_file_custody_occurrence(custody)
+  let generation = @journal.native_output_file_custody_generation(custody)
+  assert_true(
+    stopped_source_cleanup_apply(f, () => false, recorded=true)
+    is Err(NotCurrent),
+  )
+  assert_true(
+    stopped_source_cleanup_apply(f, () => true, recorded=true)
+    is Err(ConsumerReleasePending),
+  )
+  assert_true(f.root.verify_generation(name, generation))
+  let consumer = f.journal.require(f.consumer).unwrap()
+  f.journal
+  .commit_transition(@remote.prepare_begin_remote_release(consumer).unwrap())
+  .unwrap()
+  f.journal
+  .commit_transition(@remote.prepare_confirm_remote_release(consumer).unwrap())
+  .unwrap()
+  let f = stopped_cleanup_reopen(f)
+  let revision = @remote.dispatch_record_revision(
+    f.journal.require(f.producer).unwrap(),
+  )
+  cleanup_fail_root_sync(f.root, 1)
+  assert_true(
+    stopped_source_cleanup_apply(f, () => true, recorded=true)
+    is Err(Receiver(_)),
+  )
+  assert_true(f.root.verify_generation(name, generation))
+  assert_true(
+    f.receiver.destination_capacity_usage().unwrap().reserved_bytes > 0L,
+  )
+  for _ in 0..<2 {
+    stopped_source_cleanup_apply(f, () => true, recorded=true).unwrap()
     assert_true(f.root.inspect_generation(name) is Ok(None))
     assert_eq(
       f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
