@@ -42,3 +42,7 @@ Twelve normal cases and five preparation refusals are registered in the ordinary
 Existing public checks retain Named Result rows, type/nullability/column order, stream completion, private-field absence, request resend/attach/reread identity and refusal admission/provider-I/O counts. Tests must not patch generated Programs or change expected rows/bounds to pass.
 
 Fresh clean normal five-package Local/HTTPS acceptance is pending. Focused source/checker success is not execution completion. Required exact-submission CI, Wasm/native/full Core/full packed/proof/performance and broader grouped composition remain unverified. No manual CI restart or merge.
+
+## Normal dependency/main integration
+
+The corrected #920 parent `8dbe714b81794849dcad0def193cf370b827d74b` is normally merged as `11cd67428cf0db2b1672fa0f3b10affcd672c5e0`. This adopts current main `aeaf13f15addf1687c1cd87b12b4657a8c984e9a`, including Client wire/submission and retained ARM64 proof records. The JOIN normal fixture uses the supported `MAX_OUTPUT_ROWS 10`; no old WITH annotation is reintroduced. No conflict or history rewrite. #920 remains an unmerged dependency, so the first Draft PR targets its branch; final target is main after parent integration.
