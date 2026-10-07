@@ -242,6 +242,34 @@ interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
 remain reviewed source artifacts. Regenerate wrapper changes explicitly;
 runtime preparation checks them but does not silently update them.
 
+### Installed Connector distribution inputs
+
+The standard Local package resolves provider runtimes, installation adapter
+entries and static declarations from the same checked `host-bundle.json`
+manifests that generate its installed connector table. The resolved inventory
+in `scripts/local-node-package-inputs.mjs` is shared by runtime compilation,
+asset copying and adapter packaging. A stale generated table is refused.
+
+An installation can list connector-owned JSON declarations in `assets`.
+They must be existing regular files below that connector's source directory;
+absolute paths, traversal, aliases to outside files and duplicate entries are
+refused. These files retain their package-relative locations for the installed
+adapter's URL reads. The package contains these declared data files, not the
+connector's MoonBit sources. Adapter imports are followed by the existing
+module graph builder.
+
+The generated `packages/local-node/src/connectors` directory is ignored by
+Git. Packing and freshness checks refuse old undeclared files or symbolic links
+there; remove stale generated output before rebuilding after an asset removal.
+`test-packed-installed-connectors.mjs` creates an empty producer from source,
+uses normal prepack, and checks all registered provider bundles in an external
+consumer, including GitHub Source/Effect startup without provider I/O.
+
+This changes distribution inputs only. It does not add external package
+resolution, role selection or another execution/authorization owner. The Host's
+built-in DuckDB JS bridge remains available without installing its optional
+native transport; selecting an acquired DuckDB source still requires that peer.
+
 ## Bounded local execution
 
 `local-checks.mjs` remains the local entry point for the workflow's actual
@@ -855,4 +883,3 @@ CI runs only synthetic regression fixtures, not a scan of CI worktrees:
 ```sh
 node --test scripts/worktree-inventory.test.mjs
 ```
-
