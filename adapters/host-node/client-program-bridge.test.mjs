@@ -1679,7 +1679,7 @@ test('public submit rejects checker failures before Run admission', async () => 
     const client = await connectClient({mode: 'local', owner: 'local',
       endpoint: origin, token: 'scoped-token'});
     try {
-      await assert.rejects(client.aql(document, {format: 'json',
+      await assert.rejects(client.startSource(document, {format: 'json',
         requestId: 'sdk-invalid-parameter', parameters: {n: null}}),
       {code: 'ClientProgramRejected'});
       assert.equal(admissions, 0);
@@ -2085,7 +2085,7 @@ test('public Values submit computes and reads its real Local Result',
             throw new Error('NetworkOnEmbeddedLocalSubmit');
           };
           try {
-            const accepted = await local.aql(document, {format: 'json',
+            const accepted = await local.startSource(document, {format: 'json',
               requestId: 'published-values-request'});
             assert.equal(accepted.profile.durability, 'durable');
             assert.equal(issues, 1);
@@ -2110,7 +2110,7 @@ test('public Values submit computes and reads its real Local Result',
             return reply;
           };
           try {
-            await assert.rejects(client.aql(document, {format: 'json',
+            await assert.rejects(client.startSource(document, {format: 'json',
               requestId: 'published-values-request'}), error =>
               error.code === 'SubmissionUnknown' &&
               error.requestId === 'published-values-request');
@@ -2121,18 +2121,18 @@ test('public Values submit computes and reads its real Local Result',
           assert.equal(recovered.kind, 'found');
           assert.equal(recovered.ref.runDefinitionCid,
             plan.runDefinition.identity);
-          const submitted = await client.aql(document, {format: 'json',
+          const submitted = await client.startSource(document, {format: 'json',
             requestId: 'published-values-request'});
           assert.deepEqual(submitted.ref, recovered.ref);
           assert.equal(submitted.profile.durability, 'durable');
           assert.equal(submitted.ref.runDefinitionCid,
             plan.runDefinition.identity);
-          const repeated = await client.aql(document, {format: 'json',
+          const repeated = await client.startSource(document, {format: 'json',
             requestId: 'published-values-request'});
           assert.deepEqual(repeated.ref, submitted.ref);
           const changed = document.replace('"id": 2', '"id": 3');
           assert.notEqual(changed, document);
-          await assert.rejects(client.aql(changed, {format: 'json',
+          await assert.rejects(client.startSource(changed, {format: 'json',
             requestId: 'published-values-request'}),
           {code: 'ClientRequestIntentConflict'});
           const found = await client.lookupRequest('published-values-request');

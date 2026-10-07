@@ -121,7 +121,7 @@ test('public retained DISTINCT scans nested values, publishes and cancels withou
 
     const source = JSON.stringify(program('public-distinct-values'));
     const options = {format: 'json', requestId: 'public-distinct-values'};
-    const execution = await client.aql(source, options);
+    const execution = await client.startSource(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(45_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 5}));
     for (const name of ['published', 'consumed_a', 'consumed_b']) {
@@ -131,7 +131,7 @@ test('public retained DISTINCT scans nested values, publishes and cancels withou
     assert.equal(completions, 1);
     assert.ok(outputRepresentations?.some(value => value.representation === 'retained-file'));
     const successfulAdvances = advances;
-    const repeated = await client.aql(source, options);
+    const repeated = await client.startSource(source, options);
     assert.deepEqual(repeated.ref, execution.ref);
     assert.deepEqual(await repeated.result('published').all(), expected);
     assert.equal(dispatches, 1);
@@ -141,7 +141,7 @@ test('public retained DISTINCT scans nested values, publishes and cancels withou
     cancelAtComparison = true;
     const cancelSource = JSON.stringify(program('public-distinct-values-cancel'));
     const cancelOptions = {format: 'json', requestId: 'public-distinct-values-cancel'};
-    const cancelled = await client.aql(cancelSource, cancelOptions);
+    const cancelled = await client.startSource(cancelSource, cancelOptions);
     await barrier.promise;
     const before = await readdir(join(directory, 'carrier-snapshots'));
     // The same-task Values input stays in the chain's completed-input owner,
@@ -168,7 +168,7 @@ test('public retained DISTINCT scans nested values, publishes and cancels withou
     assert.equal(dispatches, 2);
     assert.equal(advances, advancedAtBarrier);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
-    const cancelledAgain = await client.aql(cancelSource, cancelOptions);
+    const cancelledAgain = await client.startSource(cancelSource, cancelOptions);
     assert.deepEqual(cancelledAgain.ref, cancelled.ref);
     assert.equal((await cancelledAgain.status()).status, 'cancelled');
     assert.equal(dispatches, 2);

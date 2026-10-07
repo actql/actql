@@ -1,3 +1,4 @@
+import {sourceQuery} from './source-query.mjs';
 import {selectCheckReasonPresentation} from './check-reason-catalog.generated.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry} from './check-reason-catalog.generated.js';
 // The transport Client delegates admission, state and delivery to the Host.
@@ -1577,7 +1578,8 @@ async function connectSelected(selected, port) {
         }
       };
       return Object.freeze({
-        rows, batches, all,
+        ref: Object.freeze({run: ref, resultName: name}),
+        execution: handle, rows, batches, all,
         one: async options => {
           const values = await all({...options,
             maxRows: Math.min(2, confirmed.limits.maxRows)});
@@ -1677,7 +1679,7 @@ async function connectSelected(selected, port) {
         },
       });
     };
-    return Object.freeze({
+    const handle = Object.freeze({
       ref, profile: runProfile, result,
       status: async ({signal} = {}) => {
         return readRunObservation('status', {}, signal);
@@ -1774,6 +1776,7 @@ async function connectSelected(selected, port) {
         return readRunObservation('reconcile', {}, signal);
       },
     });
+    return handle;
   };
 
   const submit = async (kind, input, options = {}) => {
@@ -1826,22 +1829,31 @@ async function connectSelected(selected, port) {
     }));
     return result;
   };
+  const startSource = (text, options = {}) => {
+    if (typeof text !== 'string' || !text ||
+        !clientSourceFormats.includes(options.format)) {
+      return Promise.reject(new ClientError('InvalidAqlDocument'));
+    }
+    if (options.parameterDeclarations !== undefined &&
+        !['aql-text', 'sql'].includes(options.format)) {
+      return Promise.reject(new ClientError('InvalidAqlDocument'));
+    }
+    return submit('aql', {text, format: options.format,
+      ...(options.parameterDeclarations === undefined ? {} :
+        {parameterDeclarations: options.parameterDeclarations})}, options);
+  };
+  const retainQueryResult = (execution, result) => {
+    const input = submissionInputs.get(execution);
+    if (input) submissionInputs.set(result, input);
+  };
   return Object.freeze({
     profile: confirmed,
     requestedDurability: selected.wire.durability ?? null,
-    aql: (text, options = {}) => {
-      if (typeof text !== 'string' || !text ||
-          !clientSourceFormats.includes(options.format)) {
-        return Promise.reject(new ClientError('InvalidAqlDocument'));
-      }
-      if (options.parameterDeclarations !== undefined &&
-          !['aql-text', 'sql'].includes(options.format)) {
-        return Promise.reject(new ClientError('InvalidAqlDocument'));
-      }
-      return submit('aql', {text, format: options.format,
-        ...(options.parameterDeclarations === undefined ? {} :
-          {parameterDeclarations: options.parameterDeclarations})}, options);
-    },
+    startSource,
+    sql: (text, parameters, options) => sourceQuery(startSource, ClientError,
+      retainQueryResult, 'sql', text, parameters, options),
+    aql: (text, parameters, options) => sourceQuery(startSource, ClientError,
+      retainQueryResult, 'aql-text', text, parameters, options),
     // Check authored source without starting anything. The outcome is the
     // Host's actql-check-outcome/0.1 value: a report bound to its scope and
     // context, a failure, or unavailable. None of them is a thrown error.

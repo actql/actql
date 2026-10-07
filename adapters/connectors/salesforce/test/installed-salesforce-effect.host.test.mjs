@@ -192,7 +192,7 @@ async function heldSet(t, x, requestId) {
   const host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration});
   const client = await host.as('owner-token');
-  const execution = await client.aql(x.program, {format: 'json', requestId});
+  const execution = await client.startSource(x.program, {format: 'json', requestId});
   await waitFor(async () => (await execution.status()).status ===
     'waiting_checkpoint');
   const reviewer = await host.as('reviewer-token');
@@ -259,7 +259,7 @@ test('target reads wait for both exact approvals before Preview and survive ever
   let host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration});
   let client = await host.as('owner-token');
-  let run = await client.aql(x.program, {format: 'json', requestId: 'target-reads-before-preview'});
+  let run = await client.startSource(x.program, {format: 'json', requestId: 'target-reads-before-preview'});
   const ref = run.ref;
   for (let index = 0; index < 2; index++) {
     await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
@@ -333,7 +333,7 @@ for (const outcome of ['rejected', 'current-denial']) {
     const before = x.installation.org.seen.length;
     let host = await remoteHost(t, x.installation, x.directory,
       {configuration: x.configuration});
-    const run = await (await host.as('owner-token')).aql(x.program,
+    const run = await (await host.as('owner-token')).startSource(x.program,
       {format: 'json', requestId: 'target-refusal-' + outcome});
     await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
     const checkpoint = (await (await host.as('reviewer-token')).checkpoints()).items[0];
@@ -367,7 +367,7 @@ for (const resumedDecision of ['permit', 'reject', 'defer']) {
     };
     let host = await remoteHost(t, x.installation, x.directory,
       {configuration: x.configuration, decide});
-    const run = await (await host.as('owner-token')).aql(x.program,
+    const run = await (await host.as('owner-token')).startSource(x.program,
       {format: 'json', requestId: 'immediate-read-' + resumedDecision});
     await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
     const [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;
@@ -451,7 +451,7 @@ test('a lost target approval response retries the exact signed answer after rest
   const before = x.installation.org.seen.length;
   let host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration, resumeAfterAnswer: false, loseResolveReply: true});
-  const execution = await (await host.as('owner-token')).aql(x.program,
+  const execution = await (await host.as('owner-token')).startSource(x.program,
     {format: 'json', requestId: 'target-answer-response-loss'});
   await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
   let reviewer = await host.as('reviewer-token');
@@ -595,7 +595,7 @@ for (const targetRead of ['allow', 'delegate']) {
     if (targetRead === 'delegate') {
       const before = installation.org.seen.length;
       const first = await remoteHost(t, installation, directory, {configuration});
-      const execution = await (await first.as('owner-token')).aql(x.program,
+      const execution = await (await first.as('owner-token')).startSource(x.program,
         {format: 'json', requestId: 'salesforce-lost'});
       await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
       const read = (await (await first.as('reviewer-token')).checkpoints()).items[0];
@@ -653,7 +653,7 @@ test(`target and commit approvals retain original data through public Host resta
   const client = await host.as('owner-token');
   let run = entrance === 'program'
     ? await client.start(program, {requestId: 'exact-target-and-commit'})
-    : await client.aql(x.program,
+    : await client.startSource(x.program,
       {format: 'json', requestId: 'exact-target-and-commit'});
   const ref = run.ref;
   await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
@@ -813,7 +813,7 @@ for (const failed of ['targetClose', 'commitClose', 'inputs', 'computeClose',
       decisionOptions: {decisionTimeoutMs: 250, maxInFlightDecisions: 1,
         maxRetainedDecisions: 32}};
     let host = await remoteHost(t, x.installation, x.directory, options);
-    let run = await (await host.as('owner-token')).aql(x.program,
+    let run = await (await host.as('owner-token')).startSource(x.program,
       {format: 'json', requestId: 'integrated-' + failed});
     const ref = run.ref;
     let recoveredFailure;
@@ -897,7 +897,7 @@ for (const boundary of ['acquisition', 'effect_commit']) {
     if (boundary === 'effect_commit') {
       host = await remoteHost(t, x.installation, x.directory,
         {configuration: x.configuration});
-      run = await (await host.as('owner-token')).aql(x.program,
+      run = await (await host.as('owner-token')).startSource(x.program,
         {format: 'json', requestId});
       await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
       const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
@@ -917,7 +917,7 @@ for (const boundary of ['acquisition', 'effect_commit']) {
       {configuration: x.configuration, decide,
         decisionOptions: {decisionTimeoutMs: 40, maxInFlightDecisions: 1,
           maxRetainedDecisions: 32}});
-    if (run === undefined) run = await (await host.as('owner-token')).aql(x.program,
+    if (run === undefined) run = await (await host.as('owner-token')).startSource(x.program,
       {format: 'json', requestId});
     else run = await (await host.as('owner-token')).attach(run.ref);
     await waitFor(() => calls.length === 1);
@@ -996,7 +996,7 @@ test(`integrated Run shares one ${capacity} decision slot at target and commit a
       maxInFlightDecisions: capacity === 'physical' ? 1 : 4,
       maxRetainedDecisions: capacity === 'retained' ? 1 : 32}};
   let host = await remoteHost(t, x.installation, x.directory, options);
-  let run = await (await host.as('owner-token')).aql(x.program,
+  let run = await (await host.as('owner-token')).startSource(x.program,
     {format: 'json', requestId: 'integrated-shared-slot'});
   const ref = run.ref;
   let configurationCid, primaryRunId;
@@ -1009,11 +1009,11 @@ test(`integrated Run shares one ${capacity} decision slot at target and commit a
       'execution options never replace account-configuration identity');
     const before = diagnostics.length;
     if (capacity === 'retained') {
-      await assert.rejects((await host.as('owner-token')).aql(x.program,
+      await assert.rejects((await host.as('owner-token')).startSource(x.program,
         {format: 'json', requestId: `integrated-contender-${index}`}),
       error => error.code === 'ACTQL_E_DELEGATION_UNAVAILABLE');
     } else {
-      const contender = await (await host.as('owner-token')).aql(x.program,
+      const contender = await (await host.as('owner-token')).startSource(x.program,
         {format: 'json', requestId: `integrated-contender-${index}`});
       await waitFor(async () => (await contender.status()).status === 'failed');
       assert.ok(diagnostics.slice(before).some(value =>
@@ -1117,7 +1117,7 @@ for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
       const host = await remoteHost(t, x.installation, x.directory,
         {configuration: x.configuration, instrument,
           decisionOptions: {maxInFlightDecisions: 1, maxRetainedDecisions: 32}});
-      const run = await (await host.as('owner-token')).aql(x.program,
+      const run = await (await host.as('owner-token')).startSource(x.program,
         {format: 'json', requestId: `captured-${boundary}-${blockedCleanup}`});
       if (boundary === 'published') {
         if (blockedCleanup) {
@@ -1220,7 +1220,7 @@ test('a captured Checkpoint cannot switch an already retained payload owner to r
   }})};
   const host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration, instrument});
-  const run = await (await host.as('owner-token')).aql(x.program,
+  const run = await (await host.as('owner-token')).startSource(x.program,
     {format: 'json', requestId: 'captured-release-mode-conflict'});
   await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
   assert.throws(() => releaseCompletedRunPreparedPayloads(
@@ -1265,7 +1265,7 @@ test('an interrupted captured Run keeps transferred custody after repeated recei
   };
   const host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration, instrument});
-  const run = await (await host.as('owner-token')).aql(x.program,
+  const run = await (await host.as('owner-token')).startSource(x.program,
     {format: 'json', requestId: 'captured-interrupted-receipt'});
   await waitFor(() => state.failure !== undefined);
   assert.equal(state.failure, primary);

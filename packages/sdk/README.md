@@ -91,13 +91,78 @@ than ignoring a possible rejection.
 
 ## Connections
 
+## Short source queries
+
+`sql(text, parameters?, options?)` and `aql(text, parameters?, options?)`
+start exactly one source admission immediately. SQL selects `sql`; AQL selects
+`aql-text`. Their native `ResultPromise` resolves one selected, available Result
+after the existing Run wait. They do not read rows until explicitly requested.
+
+```js
+const query = client.sql('SELECT 1 AS id', undefined, {requestId: 'example-1'});
+const requestId = query.requestId; // available before credentials or transport
+const result = await query;
+const rows = await query.all();
+for await (const row of result.rows()) console.log(row);
+```
+
+Source, parameter declarations, parameters and query options are captured at
+invocation. Collection shortcuts capture read options when called, preserving
+the live AbortSignal. Re-awaiting, `Promise.resolve`, and `Promise.all` with the
+same query share the same Result. Repeated `all()` calls open independent reads
+of that Result, with independent attempt IDs; they never repeat Compute.
+The resolved Result is not thenable. An ignored query does not cancel accepted
+work, and an ignored rejection follows ordinary native Promise behavior.
+
+The second argument is always the named parameters map. Parameter names such as
+`format`, `result` or `requestId` are not interpreted as options. The third
+argument accepts `parameterDeclarations`, `requestId`, `signal` and `result`.
+There is no parameter interpolation or automatic declaration inference. Raw rows
+have `DynamicRow` type; `sql<MyRow>()` and assertion-only `all<MyRow>()` are not
+supported. Application-schema validation is a separate result-view increment.
+
+Omit `result` only for a Run with exactly one declared Result. Multiple or no
+Results yield `ResultSelectionRequired`; an absent selected name yields
+`UnknownResultName`. Selection never removes another Result, stage or Effect.
+A succeeded Run whose selected storage is unavailable or unknown yields
+`ResultUnavailable`, not a new execution.
+
+`result.execution` is the original low-level Execution, and `result.ref` is the
+frozen recovery locator `{run, resultName}` using the existing Run reference and
+authored Result name. Explicit recovery can `attach(result.ref.run)` and select
+`result.ref.resultName` under current authorization. The locator introduces no
+new wire identity and grants no read or replay permission.
+
+A returned nonterminal wait is honest: `ExecutionPending` retains preparing,
+running or resuming; `ExecutionBlocked` retains a Checkpoint or reconciliation
+stop. `ExecutionUnsuccessful` retains failed/cancelled, and
+`QueryObservationUnknown` retains an unconfirmed observation. These errors
+provide `executionRef` and a non-enumerable live `execution`; an available exact
+`observation` and the underlying cause are also non-enumerable. They never change
+Run state or automatically poll, submit, reconcile, approve or cancel. A failed
+query stays rejected after later approval; follow its original Execution instead.
+
+Before a Run exists, the original `RequestHeld` or `SubmissionUnknown` is
+propagated unchanged, retaining its request ID, input and lookup context.
+There is no fabricated Execution for a held preparation. Use explicit
+`lookupRequest` and attach only after the existing owner returns `found`.
+
+### Development API migration
+
+The former `aql(text, {format, parameters, requestId, signal})` submission method
+is now `startSource` with the same arguments and `Promise<Execution>` result.
+It supports the existing JSON/YAML/text formats and does not start a wait or
+read. Existing Program `start(program, options)` is unchanged. Migrate old calls
+explicitly; the new AQL method never guesses whether parameters are old options.
+No admission, identity, transport, schema or Host execution path is replaced.
+
 `connect(options)` authenticates with the selected Host and returns its
 confirmed owner, durability and capability snapshot. The SDK captures the
 profile's scope, limits and capabilities once, validates their unchanged
 observation, and retains detached immutable data. Capture or verification
 failure rejects the connection with `InvalidHostProfile`; it establishes no
 check verdict. The negotiated `scopeRef` identifies connection scope, separately
-from a check report's `context_ref` and input revisions. `aql(text,
+from a check report's `context_ref` and input revisions. `startSource(text,
 {format: "json" | "yaml"})` and `start(program)` send one admission request
 immediately and resolve only after an acceptance response. Both accept
 `requestId`. An omitted ID is generated before send; an uncertain submission
@@ -118,7 +183,7 @@ parameters, connection selection and lookup context. Local and HTTPS use the
 same JSON-value snapshot. Text is not normalized or converted to different
 newlines. Credentials and signing keys are not added to this snapshot.
 
-`check`, `start` and `aql` share numeric-preserving JSON request serialization.
+`check`, `start` and `startSource` share numeric-preserving JSON request serialization.
 NaN, infinities and negative zero are refused, including nested parameters,
 Program values, declaration defaults, boxed Numbers and `toJSON` results.
 The snapshot is made once before credentials or transport. A submit refusal
@@ -371,7 +436,7 @@ or the selected row wire limit, whichever is smaller.
 
 A Host may hold a request before any Run exists. For example, its account
 configuration can delegate Run acceptance on a protected Site, and the Host
-defers the decision to a durable Checkpoint. `aql()` and `start()` then
+defers the decision to a durable Checkpoint. `startSource()` and `start()` then
 reject with `RequestHeld`. That is a control result, not a failure and not an
 unknown submission. The request is stored durably, so it never needs to be
 submitted again. `error.held` carries the `prepareAttemptId` and the
@@ -424,7 +489,7 @@ const endpoint = 'https://remote-host.example/';
 const owner = await connect({mode: 'remote', endpoint, token: ownerToken});
 let execution;
 try {
-  execution = await owner.aql(documentText, {format: 'json',
+  execution = await owner.startSource(documentText, {format: 'json',
     requestId: 'nightly-1'});
 } catch (error) {
   if (!(error instanceof RequestHeld)) throw error;

@@ -198,7 +198,7 @@ export function compatibilityReport({specification, compiled = {},
       const outcome = matches[0];
       if (!item.input || !equal(outcome.input, item.input) ||
         outcome.format !== item.format) problems.push(`input mismatch: ${key}`);
-      if (outcome.entry !== '@actql/node:client.aql' ||
+      if (outcome.entry !== '@actql/node:client.startSource' ||
         outcome.module !== 'node_modules/@actql/node/index.mjs') {
         problems.push(`missing public execution entry: ${key}`);
       }
@@ -232,7 +232,7 @@ export function compatibilityReport({specification, compiled = {},
     queryExecution: {status: outcomes.length ? 'tested' : 'not-attempted',
       outcome: outcomes.length ? status : null,
       commands: acceptance.map(item => item.id),
-      entry: '@actql/node:client.aql', transports: ['local', 'http'],
+      entry: '@actql/node:client.startSource', transports: ['local', 'http'],
       unsupported: outcomes.filter(item => item.verdict === 'unsupported')
         .map(({case: name, transport, code}) => ({case: name, transport, code}))},
     dbtRun: {status: 'not-attempted', reason: 'The probe invokes dbt compile only'},
