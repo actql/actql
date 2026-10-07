@@ -42,6 +42,16 @@ export const aggregatePropertyOrderProgram = {version: 'actql/0.1',
         {field: 'id', dir: 'asc', nulls: 'first'}], max_bytes: 65536, delimiter: '|'}}}, as: 'out'}],
     results: {rows: {from: 'out', fields: ['names']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+export const aggregateDefaultDelimiterProgram = {
+  ...aggregatePropertyOrderProgram, id: 'fixture.aggregate_default_delimiter',
+  stages: [aggregatePropertyOrderProgram.stages[0], {
+    ...aggregatePropertyOrderProgram.stages[1],
+    steps: [...aggregatePropertyOrderProgram.stages[1].steps.slice(0, 3),
+      {group: {by: [], aggregates: {names: {fn: 'string_agg', field: 'name',
+        order_by: [{field: 'key', dir: 'asc', nulls: 'last'},
+          {field: 'id', dir: 'asc', nulls: 'first'}], max_bytes: 65536, delimiter: ','}}}, as: 'out'}],
+  }],
+};
 export const aggregatePropertyOrderArrayProgram = {
   ...aggregatePropertyOrderProgram, id: 'fixture.aggregate_property_array_order',
   stages: [aggregatePropertyOrderProgram.stages[0], {
@@ -80,6 +90,22 @@ export const aggregatePropertyOrderSuccesses = [
   success('empty-global', "SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects", {
     sourceRows: [], expected: [{names: null}],
   }),
+  success('default-independent-json', '', {format: 'json',
+    text: JSON.stringify(aggregateDefaultDelimiterProgram), parameterDeclarations: undefined,
+    expected: [{names: 'b,b,a,c'}],
+  }),
+  success('default-sql', 'SELECT STRING_AGG(name ORDER BY payload.score NULLS LAST, id) AS names FROM objects',
+    {expected: [{names: 'b,b,a,c'}]}),
+  success('default-pipe', 'FROM objects |> AGGREGATE STRING_AGG(name ORDER BY payload.score NULLS LAST, id) AS names',
+    {expected: [{names: 'b,b,a,c'}]}),
+  success('explicit-empty-delimiter', "SELECT STRING_AGG(name, '' ORDER BY payload.score NULLS LAST, id) AS names FROM objects",
+    {expected: [{names: 'bbac'}]}),
+  success('default-filter', 'SELECT STRING_AGG(name WHERE id <= 2 ORDER BY payload.score NULLS LAST, id) AS names FROM objects',
+    {expected: [{names: 'b,b,a'}]}),
+  success('default-empty', 'SELECT STRING_AGG(name ORDER BY payload.score NULLS LAST, id) AS names FROM objects',
+    {sourceRows: [], expected: [{names: null}]}),
+  success('default-all-null', 'SELECT STRING_AGG(name ORDER BY payload.score NULLS LAST, id) AS names FROM objects',
+    {sourceRows: [{id: 4, amount: 40}], expected: [{names: null}]}),
   // ARRAY_AGG requires actual key evidence. The author supplies the existing
   // assertion and a bounded input; the Frontend never invents either condition.
   success('independent-array-json', '', {format: 'json',
@@ -100,6 +126,9 @@ export const aggregatePropertyOrderRefusals = [
   "SELECT STRING_AGG(name, '|' ORDER BY id.score, id) AS names FROM objects",
   "FROM objects AS old |> AS current |> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score, id) AS names",
   "SELECT STRING_AGG(name, '|' ORDER BY names, id) AS names FROM objects",
+  "SELECT STRING_AGG(name, 1 ORDER BY id) AS names FROM objects",
+  "SELECT STRING_AGG(name, @p1 ORDER BY id) AS names FROM objects",
+  "SELECT STRING_AGG(name, ORDER BY id) AS names FROM objects",
 ].map((tail, index) => ({name: 'aggregate-property-order-refuse-' + index,
   format: 'aql-text', text: data + tail, parameterDeclarations, parameters}));
 export const aggregatePropertyOrderExecutionFailures = [{
