@@ -50,11 +50,23 @@ fn start_result_evidence_preparation(
   retentions : Array[PublicationContract],
   max_workspace : Int?,
 ) -> ResultEvidencePreparation {
-  { inputs: Some({ definitions, artifacts, derivations, orderings, retentions, }),
-    max_workspace, derivations_used: [], orderings_used: [], retentions_used: [],
-    retention_count: 0, artifact: 0, definition: -1, ordering: -1,
-    derivation: -1, retention: -1, phase: Begin, live: 16L, peak: 16L,
-    closed: false, }
+  {
+    inputs: Some({ definitions, artifacts, derivations, orderings, retentions, }),
+    max_workspace,
+    derivations_used: [],
+    orderings_used: [],
+    retentions_used: [],
+    retention_count: 0,
+    artifact: 0,
+    definition: -1,
+    ordering: -1,
+    derivation: -1,
+    retention: -1,
+    phase: Begin,
+    live: 16L,
+    peak: 16L,
+    closed: false,
+  }
 }
 
 ///|
@@ -67,7 +79,9 @@ fn ResultEvidencePreparation::reserve(
     return Err(CommitEncoding)
   }
   self.live += slots.to_int64()
-  if self.live > self.peak { self.peak = self.live }
+  if self.live > self.peak {
+    self.peak = self.live
+  }
   Ok(())
 }
 
@@ -94,7 +108,8 @@ fn ResultEvidencePreparation::step(
       if index == inputs.retentions.length() {
         self.phase = Initialize(0, 0)
       } else if prior < index {
-        if inputs.retentions[prior].identity == inputs.retentions[index].identity {
+        if inputs.retentions[prior].identity ==
+          inputs.retentions[index].identity {
           return Err(CommitResultEvidence(ResultEvidenceDuplicate))
         }
         self.phase = Retentions(index, prior + 1)
@@ -107,7 +122,11 @@ fn ResultEvidencePreparation::step(
         self.phase = Retentions(index + 1, 0)
       }
     Initialize(kind, index) => {
-      let flags = if kind == 0 { self.derivations_used } else { self.orderings_used }
+      let flags = if kind == 0 {
+        self.derivations_used
+      } else {
+        self.orderings_used
+      }
       if index == inputs.artifacts.length() {
         self.phase = if kind == 0 { Initialize(1, 0) } else { Artifact(0) }
       } else {
@@ -142,16 +161,29 @@ fn ResultEvidencePreparation::step(
       }
       if index < contracts.length() {
         let matches = contracts[index].identity == identity
-        self.phase = Lookup(kind, identity, index + 1,
-          if matches { index } else { found }, count + (if matches { 1 } else { 0 }))
+        self.phase = Lookup(
+          kind,
+          identity,
+          index + 1,
+          if matches {
+            index
+          } else {
+            found
+          },
+          count + (if matches { 1 } else { 0 }),
+        )
       } else {
         if count != 1 {
-          return Err(CommitResultEvidence(match kind {
-            0 => ResultEvidenceMissingDefinition
-            1 => ResultEvidenceMissingOrdering
-            2 => ResultEvidenceMissingDerivation
-            _ => ResultEvidenceMissingRetention
-          }))
+          return Err(
+            CommitResultEvidence(
+              match kind {
+                0 => ResultEvidenceMissingDefinition
+                1 => ResultEvidenceMissingOrdering
+                2 => ResultEvidenceMissingDerivation
+                _ => ResultEvidenceMissingRetention
+              },
+            ),
+          )
         }
         let artifact = inputs.artifacts[self.artifact]
         match kind {
@@ -178,12 +210,16 @@ fn ResultEvidencePreparation::step(
             }
             self.phase = Lookup(3, next, 0, -1, 0)
           }
-          _ => { self.retention = found; self.phase = Use }
+          _ => {
+            self.retention = found
+            self.phase = Use
+          }
         }
       }
     }
     Use => {
-      if self.derivations_used[self.derivation] || self.orderings_used[self.ordering] {
+      if self.derivations_used[self.derivation] ||
+        self.orderings_used[self.ordering] {
         return Err(CommitResultEvidence(ResultEvidenceDuplicate))
       }
       self.derivations_used[self.derivation] = true
@@ -197,31 +233,42 @@ fn ResultEvidencePreparation::step(
     Ordering => {
       let definition = inputs.definitions[self.definition]
       let artifact = inputs.artifacts[self.artifact]
-      let evidence = match validate_result_occurrence_ordering_evidence(
-        definition, inputs.derivations[self.derivation], inputs.orderings[self.ordering],
-        contract_string(artifact, "logical_result_cid").unwrap(),
-        contract_string(artifact, "result_schema_cid").unwrap(),
-        contract_string(artifact, "effective_data_policy_cid").unwrap(),
-      ) {
+      let evidence = match
+        validate_result_occurrence_ordering_evidence(
+          definition,
+          inputs.derivations[self.derivation],
+          inputs.orderings[self.ordering],
+          contract_string(artifact, "logical_result_cid").unwrap(),
+          contract_string(artifact, "result_schema_cid").unwrap(),
+          contract_string(artifact, "effective_data_policy_cid").unwrap(),
+        ) {
         Ok(evidence) => evidence
-        Err(issue) => return Err(CommitResultEvidence(ResultEvidenceOrdering(issue)))
+        Err(issue) =>
+          return Err(CommitResultEvidence(ResultEvidenceOrdering(issue)))
       }
       match self.reserve(8) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-      self.phase = ArtifactEvidence(start_result_artifact_check(
-        definition.identity, artifact, evidence, inputs.retentions[self.retention],
-      ))
+      self.phase = ArtifactEvidence(
+        start_result_artifact_check(
+          definition.identity,
+          artifact,
+          evidence,
+          inputs.retentions[self.retention],
+        ),
+      )
     }
     ArtifactEvidence(child) =>
       match child.step() {
-        Err(issue) => return Err(CommitResultEvidence(ResultEvidenceArtifact(issue)))
-        Ok(done) => if done {
-          child.cancel()
-          self.live -= 8L
-          self.phase = Artifact(self.artifact + 1)
-        }
+        Err(issue) =>
+          return Err(CommitResultEvidence(ResultEvidenceArtifact(issue)))
+        Ok(done) =>
+          if done {
+            child.cancel()
+            self.live -= 8L
+            self.phase = Artifact(self.artifact + 1)
+          }
       }
     Done => ()
   }
@@ -233,11 +280,16 @@ fn ResultEvidencePreparation::advance(
   self : ResultEvidencePreparation,
   quantum : Int,
 ) -> Result[(Bool, Int), PublicationCommitIssue] {
-  if self.closed || quantum < 1 { return Err(CommitEncoding) }
+  if self.closed || quantum < 1 {
+    return Err(CommitEncoding)
+  }
   let mut used = 0
   while used < quantum && !(self.phase is Done) {
     match self.step() {
-      Err(issue) => { self.cancel(); return Err(issue) }
+      Err(issue) => {
+        self.cancel()
+        return Err(issue)
+      }
       Ok(_) => used += 1
     }
   }
@@ -246,8 +298,12 @@ fn ResultEvidencePreparation::advance(
 
 ///|
 fn ResultEvidencePreparation::cancel(self : ResultEvidencePreparation) -> Unit {
-  if self.closed { return }
-  if self.phase is ArtifactEvidence(child) { child.cancel() }
+  if self.closed {
+    return
+  }
+  if self.phase is ArtifactEvidence(child) {
+    child.cancel()
+  }
   self.derivations_used.clear()
   self.orderings_used.clear()
   self.retentions_used.clear()
@@ -266,7 +322,12 @@ priv enum ResultArtifactCheckPhase {
 
 ///|
 priv struct ResultArtifactCheck {
-  mut inputs : (String, PublicationContract, ResultOrderingEvidence, PublicationContract)?
+  mut inputs : (
+    String,
+    PublicationContract,
+    ResultOrderingEvidence,
+    PublicationContract,
+  )?
   mut phase : ResultArtifactCheckPhase
   mut closed : Bool
 }
@@ -278,18 +339,25 @@ fn start_result_artifact_check(
   evidence : ResultOrderingEvidence,
   retention : PublicationContract,
 ) -> ResultArtifactCheck {
-  { inputs: Some((producer, artifact, evidence, retention)), phase: Header, closed: false, }
+  {
+    inputs: Some((producer, artifact, evidence, retention)),
+    phase: Header,
+    closed: false,
+  }
 }
 
 ///|
 fn ResultArtifactCheck::step(
   self : ResultArtifactCheck,
 ) -> Result[Bool, ResultArtifactEvidenceIssue] {
-  if self.closed { return Err(ArtifactEncoding) }
+  if self.closed {
+    return Err(ArtifactEncoding)
+  }
   let (producer, artifact, evidence, retention) = self.inputs.unwrap()
   match self.phase {
     Header => {
-      match validate_result_artifact_fields(producer, artifact, evidence, retention) {
+      match
+        validate_result_artifact_fields(producer, artifact, evidence, retention) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
@@ -300,10 +368,15 @@ fn ResultArtifactCheck::step(
       self.phase = Provenance(values, 0)
     }
     Provenance(values, index) => {
-      if index == @json.array_count(values) { return Err(ArtifactMissingDerivation) }
-      if string_value(@json.array_at(values, index).unwrap()) == Some(evidence.derivation.identity) {
+      if index == @json.array_count(values) {
+        return Err(ArtifactMissingDerivation)
+      }
+      if string_value(@json.array_at(values, index).unwrap()) ==
+        Some(evidence.derivation.identity) {
         self.phase = Done
-      } else { self.phase = Provenance(values, index + 1) }
+      } else {
+        self.phase = Provenance(values, index + 1)
+      }
     }
     Done => ()
   }
