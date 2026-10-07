@@ -65,7 +65,9 @@ export const correlatedUnnestSuccesses = [
   }),
   success('immutable-range', pipe.replace('|> CROSS', '|> SET items = [9] |> CROSS'), {format: 'aql-text'}),
   success('current-column', pipe.replace('|> CROSS', '|> SET items = [9] |> CROSS').replace('UNNEST(p.items)', 'UNNEST(items)'),
-    {format: 'aql-text', expected: [{id: 1, element: 9, position: 0}, {id: 2, element: 9, position: 0},
+    // SET's literal [9] has nonnullable numeric elements; p.items retains its original nullable item contract.
+    {format: 'aql-text', columns: [columns[0], {name: 'element', contract: number}, columns[2]],
+      expected: [{id: 1, element: 9, position: 0}, {id: 2, element: 9, position: 0},
       {id: 3, element: 9, position: 0}, {id: 4, element: 9, position: 0}]}),
   success('parent-star', sql.replace('p.id, element', 'p.*, element'), {
     columns: [columns[0], {name: 'items', contract: items}, columns[1], columns[2]],

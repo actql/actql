@@ -14,6 +14,12 @@ test('correlated expansion obligations distinguish current arrays and original r
     {unnest: {column: 'array', as: 'element', with_index: 'position'}});
   assert.deepEqual(byName.get('correlated-unnest-immutable-range').expected, control.expected);
   assert.notDeepEqual(byName.get('correlated-unnest-current-column').expected, control.expected);
+  assert.deepEqual(byName.get('correlated-unnest-current-column').columns, [
+    {name: 'id', contract: {type: 'number', nullable: false}},
+    {name: 'element', contract: {type: 'number', nullable: false}},
+    {name: 'position', contract: {type: 'number', nullable: false}},
+  ]);
+  assert.deepEqual(byName.get('correlated-unnest-immutable-range').columns, control.columns);
   for (const name of ['empty-parents', 'empty-arrays']) {
     assert.deepEqual(byName.get('correlated-unnest-' + name).expected, []);
     assert.deepEqual(byName.get('correlated-unnest-' + name).columns, control.columns);
