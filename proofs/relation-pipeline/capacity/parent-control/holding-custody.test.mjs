@@ -7,6 +7,7 @@ import {retirementOverlay} from './driver-retirement-overlay.mjs';
 import {blockAfter} from './driver-retirement-source.mjs';
 import {checkHoldingCustodySource} from './holding-custody-source.mjs';
 import {inspectHoldingCustody,custodyPhases} from './holding-custody-inspect.mjs';
+import {redactCommandEvidence} from '../../../../scripts/packed-query-evidence.mjs';
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const read=p=>readFileSync(root+p);
 test('source guards and Native-only observation attach without changing existing Host assertions',()=>{
@@ -41,7 +42,7 @@ function records() {
   return ['current_filter','current_edge_filter'].flatMap(variant=>[
     'ACTQL_DRIVER_CASE:'+variant,
     ...custodyPhases.map((phase,i)=>'ACTQL_HOLDING_CUSTODY:'+JSON.stringify({phase,task:4,serial:7,reservationSerial:9,bytes:40,
-      ownerMatches:true,available:i<4,resourcePresent:i<4,sameToken:i<4,slotMatches:i===0,portLive:i===0,pins:0,
+      ownerMatches:true,available:i<4,resourcePresent:i<4,sameHolding:i<4,slotMatches:i===0,portLive:i===0,pins:0,
       children:i===0||i===2||i===3?1:0,runningConsumer:i===1,schedulerGeneration:i<2?5:6,outputAvailable:i<3,outputBytes:i<3?40:-1,
       heldBytes:i<2?100:i<4?120:60})),
     'ACTQL_DRIVER_CASE_DONE:'+variant]);
@@ -49,8 +50,16 @@ function records() {
 test('finite traces retain exact holding through active and completed consumer, then revoke it',()=>{
   const r=inspectHoldingCustody(records().join('\n'));assert.equal(r.cases.length,2);assert.equal(r.physicalGCDestruction,false);
 });
+test('actual command redaction preserves non-secret holding identity observations across both collectors',()=>{
+  const text=records().join('\n');
+  const redacted=redactCommandEvidence(redactCommandEvidence(text,{}),{});
+  assert.equal(redacted,text);
+  assert.deepEqual(inspectHoldingCustody(redacted),inspectHoldingCustody(text));
+  // Keep credential redaction enabled; the observer must use a non-secret label.
+  assert.match(redactCommandEvidence('api_token=credential-value',{}),/\[REDACTED\]/);
+});
 for (const [name,index,patch] of [
-  ['early release',2,{available:false}],['same-sized replacement',3,{sameToken:false}],
+  ['early release',2,{available:false}],['same-sized replacement',3,{sameHolding:false}],
   ['foreign owner',4,{ownerMatches:false}],['reservation substitution',3,{reservationSerial:10}],
   ['wrong output bytes',1,{outputBytes:39}],['missing running consumer',2,{runningConsumer:false}],
   ['missing retained child',4,{children:0}],['premature credit',4,{heldBytes:80}],

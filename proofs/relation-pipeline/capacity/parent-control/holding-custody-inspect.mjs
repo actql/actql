@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 export const custodyPhases = ['acquired', 'parent-port-closed', 'consumer-completed', 'owner-cleaned', 'last-consumer-closed', 'duplicate-parent-close'];
-const flags = ['ownerMatches','available','resourcePresent','sameToken','slotMatches','portLive','runningConsumer','outputAvailable'];
+const flags = ['ownerMatches','available','resourcePresent','sameHolding','slotMatches','portLive','runningConsumer','outputAvailable'];
 const naturals = ['task','serial','reservationSerial','bytes','pins','children','schedulerGeneration','heldBytes'];
 export function inspectHoldingCustody(log) {
   const cases = [];
@@ -38,7 +38,7 @@ export function inspectHoldingCustody(log) {
         assert.equal(r.pins,0,'Different retention path from unpinned child dependency');
       }
       for (const r of [acquired,closed,completed,cleaned]) {
-        assert(r.available && r.resourcePresent && r.sameToken,'Early release or substitution of acquired holding');
+        assert(r.available && r.resourcePresent && r.sameHolding,'Early release or substitution of acquired holding');
       }
       for (const r of [acquired,closed,completed]) {
         assert(r.outputAvailable,'Acquired input unavailable before consumer commit');
@@ -56,7 +56,7 @@ export function inspectHoldingCustody(log) {
       // This is scheduling progress, not an allocation generation identifier.
       assert(completed.schedulerGeneration>closed.schedulerGeneration,'Missing real consumer commit');
       for (const r of [released,repeated]) {
-        assert(!r.available && !r.resourcePresent && !r.sameToken && !r.outputAvailable,'Last consumer did not retire original allocation');
+        assert(!r.available && !r.resourcePresent && !r.sameHolding && !r.outputAvailable,'Last consumer did not retire original allocation');
         assert.equal(r.children,0); assert(!r.runningConsumer);
       }
       assert(cleaned.heldBytes-released.heldBytes>=acquired.bytes,'Missing original holding credit');

@@ -25,7 +25,7 @@ pub fn native_holding_custody_observation(
   phase : String,
 ) -> String {
   let resource = run.resources.get(task).bind(value => value)
-  let same_token = match resource {
+  let same_holding = match resource {
     Some(resource) =>
       match resource.holding {
         Some(actual) => physical_equal(actual, token)
@@ -54,8 +54,8 @@ pub fn native_holding_custody_observation(
   @resources.native_holding_custody_details(run.ledger, token) +
   ",\"resourcePresent\":" +
   (resource is Some(_)).to_string() +
-  ",\"sameToken\":" +
-  same_token.to_string() +
+  ",\"sameHolding\":" +
+  same_holding.to_string() +
   ",\"slotMatches\":" +
   slot_matches.to_string() +
   ",\"portLive\":" +
