@@ -111,6 +111,13 @@ are rejected without guessed scalar extents. This
 point correspondence does not close the whole-constructor lifetime upper.
 
 
+[Primitive Ref generated-code correspondence](REFERENCES.md) binds the five
+Linux x64 parent Ref calls and private custody slots to the actual observer
+arguments and the executed primitive constructor allocation/return sequences.
+It validates their finite 64 requested-byte component independently; the existing
+80-byte conditional allowance is not reduced. This does not prove whole-parent
+lifetime or allocator footprint bounds.
+
 ## Driver root and common reservation retirement
 
 The driver's actual `provider_execution` root is retained while physical stop
