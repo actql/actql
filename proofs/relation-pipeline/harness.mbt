@@ -88,6 +88,7 @@ fn relation_pipeline_contracts(
     }
     let (route, projection) = match @lower.kernel_body(kernel) {
       @lower.Filter(_) => ("Filter", "null")
+      @lower.SnapshotMap(_) => ("SnapshotMap", "null")
       @lower.Select(fields) =>
         (
           "Select",

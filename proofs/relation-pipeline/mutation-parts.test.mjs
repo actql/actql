@@ -51,7 +51,7 @@ test('the immutable canonical plan binds all four static parts and exact eight r
   assert(Object.values(mutationNamesByPart).every(names => names.length === 4));
   assert.equal(planDigest, hash(plan));
   assert.equal(capacityObligationsByPart['L-C1'].mutations.length, 5);
-  assert.equal(capacityObligationsByPart['L-C0'].finalNormal.caseCount, 86);
+  assert.equal(capacityObligationsByPart['L-C0'].finalNormal.caseCount, 114);
   assert.equal(partFamily('L-M0'), 'mutations');
   assert.equal(partFamily('L-C1'), 'capacity');
   assert.throws(() => partFamily('L-M2'), /Unknown proof part/);
