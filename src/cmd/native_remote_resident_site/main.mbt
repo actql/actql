@@ -3807,6 +3807,180 @@ fn recover_release_command(
 }
 
 ///|
+/// Continue one original sealed Output after its holder has stopped. This
+/// command never acquires Source, enters an executor or reuploads payload.
+fn recover_output_command(
+  matches : @argparse.Matches,
+  child : @argparse.Matches,
+) -> Unit raise CommandStop {
+  let attempt = required(child, "attempt")
+  let expected = required(child, "expect-dispatch")
+  let intent = required(child, "intent-cid")
+  let admission = run_admission(matches)
+  let delegated = delegation(matches, budget(matches))
+  let max_transfers = required_int(matches, "max-transfers")
+  let slot = match
+    @slot.open_native_executor_slot(required(matches, "executor-slot")) {
+    Ok(value) => value
+    Err(_) => stop("Output recovery slot unavailable")
+  }
+  if slot.try_acquire() != Ok(true) {
+    ignore(slot.close())
+    stop("Output recovery slot busy")
+  }
+  let environment = open_site_environment(
+    matches,
+    "runtime-process:output-recovery:" + expected,
+  ) catch {
+    CommandStop(issue) => {
+      ignore(slot.close())
+      stop(issue)
+    }
+  }
+  let resources = open_holder_output_resources(matches, environment)
+  let primary : String? = match resources {
+    Err(_) => Some("output-resources-unavailable")
+    Ok(resources) =>
+      try {
+        let (registration, revision, strategy) = @bundle.native_active_runtime_connector_scope(
+          environment.active_runtime,
+        )
+        if environment.runtime_bundle_cid != delegated.runtime_bundle_cid ||
+          registration != delegated.connector_registration ||
+          revision != delegated.connector_revision ||
+          strategy != delegated.strategy_revision {
+          stop("installed-runtime-mismatch")
+        }
+        let envelope = match environment.journal.dispatch_envelope(attempt) {
+          Ok(Some(value)) => value
+          _ => stop("saved-dispatch-unavailable")
+        }
+        let dispatch = match @remote.admit_remote_poll_dispatch_json(envelope) {
+          Ok(value) => value
+          _ => stop("saved-dispatch-invalid")
+        }
+        if @remote.dispatch_request_identity(
+            @remote.remote_poll_dispatch_request(dispatch),
+          ) !=
+          expected {
+          stop("dispatch-mismatch")
+        }
+        let current = () => {
+          slot.verify_current_hold() == Ok(()) &&
+          environment.bundles.verify_active_component_binding(
+            environment.active_runtime,
+          )
+          is Ok(_)
+        }
+        let saved = match
+          @resident_host.prepare_resident_saved_output(
+            environment.journal,
+            environment.site,
+            admission,
+            delegated,
+            attempt,
+            intent,
+            () => start_timestamp(matches),
+            current,
+          ) {
+          Ok(value) => value
+          Err(issue) => stop(host_code(issue))
+        }
+        let delivered = saved.recover(
+          resources.store,
+          resources.transfer_journal,
+          resources.transfer,
+          resources.destination_origin,
+          max_transfers,
+        )
+        match delivered.result {
+          Ok(_) => ()
+          Err(issue) => {
+            if !@resident_host.retry_resident_output_cleanup(issue) {
+              report("output-recovery-cleanup-pending", [
+                ("step", "source"),
+                ("request_cid", expected),
+              ])
+            }
+            stop(output_code(issue))
+          }
+        }
+        // The existing client sends only the durable original and persists
+        // the report-CID-bound ACK. A lost reply leaves that same custody.
+        if !saved.is_current() {
+          stop("current-owner-unconfirmed")
+        }
+        match
+          @client.acknowledge_retained_output_report(
+            environment.journal,
+            resources.control,
+            resources.observation_url,
+            intent,
+          ) {
+          Ok(_) => ()
+          Err(_) => stop("output-ack-pending")
+        }
+        None
+      } catch {
+        CommandStop(issue) => Some(issue)
+      }
+  }
+  // Attempt every close independently. Output reservations and cleanup
+  // intents remain durable; successful ACK does not claim formal release.
+  let mut closed = true
+  match resources {
+    Ok(value) => {
+      if !value.transfer_journal.close() {
+        closed = false
+      }
+      if !(value.store.close() is Ok(true)) {
+        closed = false
+      }
+      if !value.transfer.close() {
+        closed = false
+      }
+      if !value.control.close() {
+        closed = false
+      }
+    }
+    Err(_) => ()
+  }
+  if !environment.journal.close() {
+    closed = false
+  }
+  if environment.bundles.release(environment.process_hold_id) is Err(_) {
+    closed = false
+  }
+  if !(environment.bundles.close() is Ok(true)) {
+    closed = false
+  }
+  if !slot.close() {
+    closed = false
+  }
+  if !closed {
+    report("output-recovery-cleanup-pending", [
+      ("step", "owners"),
+      ("request_cid", expected),
+    ])
+  }
+  match primary {
+    Some(issue) => {
+      report("output-recovery-pending", [
+        ("reason", issue),
+        ("request_cid", expected),
+      ])
+      stop("Output recovery pending")
+    }
+    None if closed =>
+      report("output-recovery-acknowledged", [
+        ("request_cid", expected),
+        ("intent_cid", intent),
+      ])
+    None => stop("Output recovery owner close pending")
+  }
+}
+
+///|
 fn command() -> @argparse.Command {
   let global = fn(name : String) { @argparse.OptionArg(name, global=true) }
   let defaulted = fn(name : String, value : String) {
@@ -3900,6 +4074,11 @@ fn command() -> @argparse.Command {
     subcommands=[
       @argparse.Command("run"),
       @argparse.Command("output-reports"),
+      @argparse.Command("recover-output", options=[
+        @argparse.OptionArg("attempt", required=true),
+        @argparse.OptionArg("expect-dispatch", required=true),
+        @argparse.OptionArg("intent-cid", required=true),
+      ]),
       @argparse.Command("recover-release", options=[
         @argparse.OptionArg("attempt", required=true),
         @argparse.OptionArg("expect-dispatch", required=true),
@@ -3920,6 +4099,7 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
   match matches.subcommand {
     Some(("run", _)) => run_control(matches)
     Some(("execute", child)) => run_holder(matches, child)
+    Some(("recover-output", child)) => recover_output_command(matches, child)
     Some(("recover-release", child)) => recover_release_command(matches, child)
     Some(("output-reports", _)) => {
       let environment = open_control_environment(matches)
