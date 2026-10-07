@@ -152,10 +152,7 @@ fn QueryParser::graph_node(
 }
 
 ///|
-fn QueryParser::graph_edge(
-  self : QueryParser,
-  mode : GraphPathMode,
-) -> GraphEdgePattern raise QueryAbort {
+fn QueryParser::graph_edge(self : QueryParser) -> GraphEdgePattern raise QueryAbort {
   self.node()
   let start = self.peek().start
   let incoming = self.peek().value == Operator("<")
@@ -205,13 +202,12 @@ fn QueryParser::graph_edge(
     }
     max_hops = self.safe_integer(true)
     self.graph_symbol(125)
-    if mode != Acyclic ||
-      variable is Some(_) ||
+    if variable is Some(_) ||
       constraint is Some(_) ||
       min_hops > max_hops ||
       max_hops == 0L {
       raise QueryAbort(
-        "GRAPH_PATTERN_UNSUPPORTED_SHAPE: bounded ACYCLIC edge required", start,
+        "GRAPH_PATTERN_UNSUPPORTED_SHAPE: bounded anonymous edge required", start,
       )
     }
   } else if self.peek().value == Symbol(43) || self.peek().value == Symbol(42) {
@@ -272,7 +268,7 @@ fn QueryParser::graph_match(
   let nodes = [self.graph_node()]
   let edges : Array[GraphEdgePattern] = []
   while self.peek().value == Symbol(45) || self.peek().value == Operator("<") {
-    edges.push(self.graph_edge(mode))
+    edges.push(self.graph_edge())
     nodes.push(self.graph_node())
   }
   if edges.any(edge => edge.quantified) && edges.length() != 1 {
