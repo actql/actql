@@ -189,7 +189,7 @@ async function validateExistingCommit(
   if (storedRequest.identity !== request.identity) {
     fail('RunPublicationCommitConflict');
   }
-  const valid = effectful === undefined
+  const valid = await (effectful === undefined
     ? control.effectFreeCommitValid(
         evidence.runDefinition,
         evidence.invocation,
@@ -210,7 +210,7 @@ async function validateExistingCommit(
     : control.effectfulCommitValid(
       effectful.chain, effectful.preview, effectful.receipts,
       storedRequest, storedAttempt, index, limits,
-    );
+    ));
   if (valid !== true) {
     fail('RunPublicationCommitConflict');
   }
@@ -437,18 +437,6 @@ async function publishRun(options, effectful) {
   validateRequest(request);
   validateAttempt(attempt);
   const now = validateClock(options.now);
-  if (effectful === undefined && control.effectFreeChainValid(
-    evidence.runDefinition,
-    evidence.invocation,
-    evidence.definitions,
-    evidence.artifacts,
-    evidence.manifest,
-    evidence.receipt,
-    evidence.capturedRun,
-    limits,
-  ) !== true) {
-    fail('InvalidEffectFreeRunPublicationChain');
-  }
   const publicationRequest = control.issuePublicationRequest(
     evidence.runDefinition, evidence.definitions, request, limits,
   );
@@ -509,6 +497,20 @@ async function publishRun(options, effectful) {
       });
     }
     if (action === 'check_initial_active') {
+      signal?.throwIfAborted();
+      if (effectful === undefined && await control.effectFreeChainValid(
+        evidence.runDefinition,
+        evidence.invocation,
+        evidence.definitions,
+        evidence.artifacts,
+        evidence.manifest,
+        evidence.receipt,
+        evidence.capturedRun,
+        limits,
+        signal,
+      ) !== true) {
+        fail('InvalidEffectFreeRunPublicationChain');
+      }
       signal?.throwIfAborted();
       initialActiveChecked = true;
       continue;

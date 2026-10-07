@@ -30,6 +30,8 @@ test('source guards bind cardinality, zero initial capacity and same-owner trans
     ['src/execution_relation/producer_read_preparation.mbt','if count > max_entries','if count > max_entries + 1'],
     ['src/execution_relation/producer_read_preparation.mbt','cursor.field += 1','cursor.field += 0'],
     ['src/execution_relation/producer_read_preparation.mbt','columns: cursor.columns','columns: cursor.columns.copy()'],
+    ['src/execution_relation/producer_read_preparation.mbt','bound: cursor.bound','bound: foreign'],
+    ['src/execution_relation/producer_read_preparation.mbt','schema: cursor.schema','schema: foreign'],
     ['src/execution_relation/producer_read_preparation.mbt','if !cursor.terminal {','if cursor.terminal {'],
   ];
   for(const [file,before,after] of cases)assert.throws(()=>checkPreparationArraySource(p=>

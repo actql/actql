@@ -1,4 +1,4 @@
-// Reuse the exact Client packages for authored read and cancellation recovery.
+// Reuse the exact Client packages for authored read, cancellation and Effect recovery.
 // Only test inputs/support are copied; every product import uses the installation.
 import {spawnSync} from 'node:child_process';
 import assert from 'node:assert/strict';
@@ -13,8 +13,9 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 const cancellationOnly = process.argv.slice(2).includes('--cancellation-only');
 const submissionCustodyOnly = process.argv.slice(2).includes('--submission-custody-only');
 const submissionRefusalOnly = process.argv.slice(2).includes('--submission-refusal-only');
-if ([cancellationOnly, submissionCustodyOnly, submissionRefusalOnly].filter(Boolean).length > 1 ||
-    process.argv.slice(2).some(option => !['--cancellation-only', '--submission-custody-only', '--submission-refusal-only'].includes(option))) {
+const effectReconciliationOnly = process.argv.slice(2).includes('--effect-reconciliation-only');
+if ([cancellationOnly, submissionCustodyOnly, submissionRefusalOnly, effectReconciliationOnly].filter(Boolean).length > 1 ||
+    process.argv.slice(2).some(option => !['--cancellation-only', '--submission-custody-only', '--submission-refusal-only', '--effect-reconciliation-only'].includes(option))) {
   throw new Error('Unknown public recovery acceptance selection');
 }
 const state = checkoutState(repository);
@@ -68,6 +69,13 @@ const support = [
   'adapters/host-node/client-submission-custody-public.test.mjs',
   'adapters/host-node/client-submission-custody-public.fixture.mjs',
   'adapters/host-node/submission-epoch-public.test.mjs',
+  'adapters/host-node/client-effect-uncertainty.test.mjs',
+  'adapters/host-node/client-effect-cancellation-public.test.mjs',
+  'adapters/connectors/salesforce/test/read-compute-effect.fixture.mjs',
+  'adapters/connectors/salesforce/test/read-compute-effect.embedded-child.mjs',
+  'adapters/connectors/salesforce/test/salesforce-effect-site.fixture.mjs',
+  'scripts/fixtures/client-effect-uncertainty.child.mjs',
+  'scripts/fixtures/client-effect-cancellation.child.mjs',
   'adapters/site-node/https-exchange-fixture.mjs',
   'scripts/owned-scratch.mjs',
   'packages/sdk/fixtures/values.json',
@@ -77,7 +85,18 @@ for (const path of support) {
   const output = join(root, path);
   await mkdir(join(output, '..'), {recursive: true});
   let text = await readFile(join(repository, path), 'utf8');
-  if (path.startsWith('adapters/host-node/') && path.endsWith('.mjs')) {
+  if (path.endsWith('.mjs') && path !== 'scripts/owned-scratch.mjs') {
+    text = text.replace(
+      "import {openInstalledRemoteHttpHost, publishInstalledEffect} from\n  '../../../host-node/embedded-local.mjs';",
+      "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';\n" +
+      "import {publishEffect as publishInstalledEffect} from '@actql/local-node';");
+    text = text.replace(/import \{connectEmbeddedLocal\} from ['"](?:\.\.\/)+(?:adapters\/)?host-node\/embedded-local\.mjs['"];/gu,
+      "import {connect as connectEmbeddedLocal} from '@actql/local-node';");
+    if (path === 'scripts/fixtures/client-effect-cancellation.child.mjs') {
+      text = text.replace(
+        "import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-local.mjs';",
+        "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
+    }
     if (path === 'adapters/host-node/client-values-row-limit.test.mjs' ||
         path === 'adapters/host-node/client-values-row-limit.fixture.mjs' ||
         path === 'adapters/host-node/client-cancellation-public.fixture.mjs' ||
@@ -87,7 +106,7 @@ for (const path of support) {
         "import {connect as connectEmbeddedLocal} from '@actql/local-node';\n" +
         "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
     }
-    text = text.replace(/from (['"])([^'"]+)\1/gu, (original, quote, specifier) => {
+    text = text.replace(/from\s+(['"])([^'"]+)\1/gu, (original, quote, specifier) => {
       if (specifier.startsWith('node:') || specifier.startsWith('@actql/')) return original;
       const target = relative(repository, resolve(repository, path, '..', specifier));
       if (support.includes(target)) return original;
@@ -96,11 +115,17 @@ for (const path of support) {
       if (target === '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js') {
         return `from ${quote}@actql/local-node/runtime${quote}`;
       }
+      if (target === '_build/js/release/build/connectors/salesforce/host_node/host_node.js') {
+        return `from ${quote}${pathToFileURL(join(installedHost, target)).href}${quote}`;
+      }
       if (!target.startsWith('adapters/')) throw new Error(`Unpackaged fixture import: ${target}`);
       return `from ${quote}${pathToFileURL(join(installedHost, target)).href}${quote}`;
     }).replace(/new URL\('((?:\.\.\/)+spec\/[^']+)', import.meta.url\)/gu,
       (_original, specifier) => `new URL(${JSON.stringify(pathToFileURL(join(installedHost,
         relative(repository, resolve(repository, path, '..', specifier)))).href)})`);
+    text = text.replace(/new URL\(\s*'\.\.\/\.\.\/\.\.\/\.\.\/_build\/js\/release\/build\/connectors_builtin_node\/' \+\s*'connectors_builtin_node\.js', import\.meta\.url\)/gu,
+      `new URL(${JSON.stringify(pathToFileURL(join(installedHost,
+        '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')).href)})`);
   }
   await writeFile(output, text);
 }
@@ -111,16 +136,19 @@ environment.ACTQL_SUBMISSION_CUSTODY_ACCEPTANCE_INPUTS = custodyInputs;
 const groups = [
   {name: 'opening-and-receipt', file: 'client-read-opening.test.mjs', count: 8},
   {name: 'interrupted-121-run', file: 'client-read-run-capacity.test.mjs', count: 4},
-  {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 3},
+  {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 5},
   {name: 'original-cancellation', file: 'client-cancellation-public.test.mjs', count: 4},
+  {name: 'effect-cancellation', file: 'client-effect-cancellation-public.test.mjs', count: 2},
   {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 2},
   {name: 'submission-input-refusal', file: 'submission-epoch-public.test.mjs',
     pattern: 'durable known-input category', count: 2},
+  {name: 'effect-reconciliation', file: 'client-effect-uncertainty.test.mjs', count: 3},
 ];
 const selectedGroups = cancellationOnly
-  ? groups.filter(group => group.name === 'original-cancellation')
+  ? groups.filter(group => ['original-cancellation', 'effect-cancellation'].includes(group.name))
   : submissionCustodyOnly ? groups.filter(group => group.name === 'submission-custody')
-  : submissionRefusalOnly ? groups.filter(group => group.name === 'submission-input-refusal') : groups;
+  : submissionRefusalOnly ? groups.filter(group => group.name === 'submission-input-refusal')
+  : effectReconciliationOnly ? groups.filter(group => group.name === 'effect-reconciliation') : groups;
 const logs = [];
 let passed = 0;
 // Reuse one installation and the existing per-invocation bound. Preserve each
@@ -140,7 +168,8 @@ for (const group of selectedGroups) {
   assert.equal(checked.counts.passed, group.count);
   passed += checked.counts.passed;
 }
-assert.equal(passed, cancellationOnly ? 4 : submissionCustodyOnly || submissionRefusalOnly ? 2 : 23);
+assert.equal(passed, cancellationOnly ? 6 : submissionCustodyOnly || submissionRefusalOnly ? 2
+  : effectReconciliationOnly ? 3 : 30);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -148,13 +177,17 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
   expectedRows: submissionCustodyOnly ? [{id: 1}] : [{id: 1}, {id: 2}],
   expected121Rows: JSON.parse(await readFile(join(root, 'adapters/host-node/fixtures/read-121.expected.json'), 'utf8')),
   selection: cancellationOnly ? 'original-cancellation' : submissionCustodyOnly
-    ? 'submission-custody' : submissionRefusalOnly ? 'submission-input-refusal' : 'read-cancellation-and-submission',
-  cases: cancellationOnly ? {originalCancellationRecovery: 4}
+    ? 'submission-custody' : submissionRefusalOnly ? 'submission-input-refusal'
+    : effectReconciliationOnly ? 'effect-reconciliation' : 'read-cancellation-submission-and-effect',
+  cases: cancellationOnly ? {originalCancellationRecovery: 4, unknownEffectCancellationRecovery: 2}
     : submissionCustodyOnly ? {submissionCustodyLoss: 2}
     : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2}
+    : effectReconciliationOnly ? {originalEffectReconciliation: 3}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
-      installedCapacity: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
-      submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2},
+      installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
+      unknownEffectCancellationRecovery: 2,
+      submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2,
+      originalEffectReconciliation: 3},
   passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
 scratch.passed();

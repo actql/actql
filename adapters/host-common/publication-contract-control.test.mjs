@@ -1235,7 +1235,7 @@ test('portable control validates Receipt and Captured Run references',
     ['value'],
     limits,
   );
-  const captured = control.issueEffectFreeCapturedRun({
+  const captured = await control.issueEffectFreeCapturedRun({
     runDefinition: run,
     invocation: invoked,
     definitions: [definition],
@@ -1327,7 +1327,7 @@ test('portable control validates Receipt and Captured Run references',
     effectSources: [control.admitCapturedEffectSourceArtifact(
       preview, 0, invoked, sourceArtifact, cid('a'))],
     pendingSourceStateAdvances: [], authoringContext, modelEvidence: []};
-  assert.throws(() => control.issueEffectfulCapturedRun(
+  await assert.rejects(() => control.issueEffectfulCapturedRun(
     computationChain, computationEvidence, preview,
     [{name: 'WriteOne', wire: '{}'}], limits),
   {name: 'TypeError', message: 'Invalid Effectful Captured Run request'});
@@ -1553,7 +1553,7 @@ test('portable control validates Receipt and Captured Run references',
   assert.throws(() => control.effectfulCommitValid(effectfulEvidence, {},
     effectfulReceipts, request, attempt, effectfulIndex, limits),
   {name: 'TypeError', message: 'Foreign Effect computation Preview'});
-  assert.equal(control.effectFreeChainValid(
+  assert.equal(await control.effectFreeChainValid(
     run,
     invoked,
     [definition],
@@ -1563,7 +1563,7 @@ test('portable control validates Receipt and Captured Run references',
     captured,
     limits,
   ), true);
-  assert.equal(control.effectFreeCommitValid(
+  assert.equal(await control.effectFreeCommitValid(
     run,
     invoked,
     [definition],
@@ -1589,7 +1589,7 @@ test('portable control validates Receipt and Captured Run references',
     }),
     limits,
   );
-  assert.equal(control.effectFreeChainValid(
+  assert.equal(await control.effectFreeChainValid(
     run,
     invoked,
     [foreignDefinition],
@@ -1611,7 +1611,7 @@ test('portable control validates Receipt and Captured Run references',
   const wrongReceiptCapture = control.seal(
     'captured_run', JSON.stringify(wrongReceiptCaptureValue), limits,
   );
-  assert.equal(control.effectFreeChainValid(
+  assert.equal(await control.effectFreeChainValid(
     run,
     invoked,
     [definition],
@@ -1630,7 +1630,7 @@ test('portable control validates Receipt and Captured Run references',
   const wrongInventoryCapture = control.seal(
     'captured_run', JSON.stringify(wrongInventoryValue), limits,
   );
-  assert.equal(control.effectFreeChainValid(
+  assert.equal(await control.effectFreeChainValid(
     run,
     invoked,
     [definition],
@@ -1645,7 +1645,7 @@ test('portable control validates Receipt and Captured Run references',
     public_index_entry_cid: undefined,
     result_manifest_cid: cid('0'),
   }), limits);
-  assert.equal(control.effectFreeCommitValid(
+  assert.equal(await control.effectFreeCommitValid(
     run,
     invoked,
     [definition],
@@ -2106,6 +2106,15 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(retried.committed, false);
   assert.equal(retried.idempotent, true);
   assert.equal(retried.index.identity, committed.index.identity);
+  const alreadyCancelled = new AbortController();
+  alreadyCancelled.abort(new Error('cancelled after durable publication'));
+  const cancelledReplay = await publishEffectFreeRun({
+    ...publicationOptions, signal: alreadyCancelled.signal,
+  });
+  assert.equal(cancelledReplay.state, 'succeeded');
+  assert.equal(cancelledReplay.idempotent, true);
+  assert.equal(cancelledReplay.index.identity, committed.index.identity);
+  assert.equal(exportedResults, 1);
 
   const completedUnknownDirectory = await mkdtemp(join(
     tmpdir(), 'actql-completed-publication-unknown-',

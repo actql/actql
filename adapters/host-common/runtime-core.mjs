@@ -1840,6 +1840,44 @@ function publicationControl(moon) {
     }
     return limits;
   };
+  const finishCapturedPreparation = async (preparation, signal) => {
+    let finished = false;
+    try {
+      while (true) {
+        signal?.throwIfAborted();
+        if (checked(moon.strategyCapturedRunAdvance(preparation, 256))) break;
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      signal?.throwIfAborted();
+      const captured = inspect(checked(
+        moon.strategyCapturedRunFinish(preparation)));
+      finished = true;
+      return captured;
+    } finally {
+      if (!finished) moon.strategyCapturedRunCancel(preparation);
+    }
+  };
+  const finishPublicationValidation = async (
+    preparation, advance, finish, cancel, signal,
+  ) => {
+    try {
+      while (true) {
+        signal?.throwIfAborted();
+        const progress = advance(preparation, 256);
+        if (progress === -1) return false;
+        if (progress === 1) {
+          signal?.throwIfAborted();
+          return finish(preparation);
+        }
+        if (progress !== 0) {
+          throw new TypeError('Invalid publication validation progress');
+        }
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    } finally {
+      cancel(preparation);
+    }
+  };
   control = Object.freeze({
     seal(name, bodyWire, limits) {
       return inspect(checked(moon.strategyPublicationSeal(
@@ -2931,7 +2969,7 @@ function publicationControl(moon) {
         ),
       ));
     },
-    issueEffectFreeCapturedRun(chain, evidence, limits) {
+    async issueEffectFreeCapturedRun(chain, evidence, limits, signal) {
       issuanceLimits(limits, 'Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
@@ -2942,7 +2980,8 @@ function publicationControl(moon) {
           !Array.isArray(evidence.modelEvidence)) {
         throw new TypeError('Invalid Captured Run request');
       }
-      return inspect(checked(moon.strategyIssueEffectFreeCapturedRun(
+      signal?.throwIfAborted();
+      const preparation = moon.strategyBeginEffectFreeCapturedRun(
         token(chain.runDefinition),
         token(chain.invocation),
         chain.definitions.map(token),
@@ -2956,7 +2995,9 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+        Math.min(2147483647, limits.maxNodes * 8),
+      );
+      return finishCapturedPreparation(preparation, signal);
     },
     admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
       issuanceLimits(limits, 'Effect computation Preview');
@@ -3149,7 +3190,7 @@ function publicationControl(moon) {
       }
       return Object.freeze(owned);
     },
-    issueEffectfulCapturedRun(chain, evidence, preview, plans, limits) {
+    async issueEffectfulCapturedRun(chain, evidence, preview, plans, limits, signal) {
       issuanceLimits(limits, 'Effectful Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
@@ -3171,7 +3212,8 @@ function publicationControl(moon) {
       if (ownedPreview === undefined) {
         throw new TypeError('Foreign Effect computation Preview');
       }
-      return inspect(checked(moon.strategyIssueEffectfulCapturedRun(
+      signal?.throwIfAborted();
+      const preparation = checked(moon.strategyBeginEffectfulCapturedRun(
         token(chain.runDefinition), token(chain.invocation),
         chain.definitions.map(token), chain.artifacts.map(token),
         token(chain.manifest), token(chain.receipt),
@@ -3184,7 +3226,9 @@ function publicationControl(moon) {
         plans.map(value => value.name), plans.map(value => value.wire),
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
         evidence.dependencyInventoryWire,
-      )));
+        Math.min(2147483647, limits.maxNodes * 8),
+      ));
+      return finishCapturedPreparation(preparation, signal);
     },
     prepareLocalEffectDependencyInventory(artifacts, bodies, limits) {
       issuanceLimits(limits, 'Effect dependency inventory');
@@ -3631,9 +3675,11 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
-    effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
-      manifest, receipt, capturedRun, limits) {
-      return moon.strategyEffectFreeRunEvidenceChainValid(
+    async effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
+      manifest, receipt, capturedRun, limits, signal) {
+      issuanceLimits(limits, 'Effect-free chain validation');
+      signal?.throwIfAborted();
+      const preparation = moon.strategyBeginEffectFreeChainCheck(
         token(runDefinition),
         token(invocation),
         definitions.map(token),
@@ -3644,12 +3690,18 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
+        Math.min(2147483647, limits.maxNodes * 8),
       );
+      return finishPublicationValidation(preparation,
+        moon.strategyEffectFreeChainCheckAdvance,
+        moon.strategyEffectFreeChainCheckFinish,
+        moon.strategyEffectFreeChainCheckCancel, signal);
     },
-    effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
+    async effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
       derivations, orderings, retentions, durableBindings, manifest, receipt,
       capturedRun, request, attempt, indexEntry, limits) {
-      return moon.strategyEffectFreePublicationCommitValid(
+      issuanceLimits(limits, 'Effect-free commit validation');
+      const preparation = moon.strategyBeginEffectFreeCommitCheck(
         token(runDefinition),
         token(invocation),
         definitions.map(token),
@@ -3667,7 +3719,13 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
+        Math.min(2147483647, limits.maxNodes * 8),
       );
+      // A committed outcome is authoritative even after request cancellation.
+      return finishPublicationValidation(preparation,
+        moon.strategyEffectFreeCommitCheckAdvance,
+        moon.strategyEffectFreeCommitCheckFinish,
+        moon.strategyEffectFreeCommitCheckCancel);
     },
     effectfulCommitValid(chain, preview, receipts, request, attempt,
       indexEntry, limits) {

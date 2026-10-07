@@ -1,0 +1,15 @@
+{
+  "name": "@fixture/compute-host",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepack": "node build.mjs"
+  }
+}

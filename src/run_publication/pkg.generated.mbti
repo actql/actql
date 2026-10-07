@@ -134,6 +134,8 @@ pub fn captured_effect_source_table_input_from_capture(EffectPreviewIdentity, In
 
 pub fn captured_local_effect_source_json(CapturedLocalEffectSourceEvidence, Int, Int, Int) -> String?
 
+pub fn captured_run_preparation_fixture_phase(CapturedRunIssuancePreparation) -> String
+
 pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String, String, Int, Int, Int) -> Result[Unit, EffectRowOutcomeIssue]
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
@@ -173,6 +175,8 @@ pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) ->
 pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
 
 pub fn complete_effect_preview_dispatch_keys(String, Array[Array[String]], String, String, Int, Int, Int) -> Result[String, EffectPreviewIdentityIssue]
+
+pub fn computation_evidence_check_fixture_phase(ComputationEvidenceCheck) -> String
 
 pub fn delivery_failure_terminal_action_code(DeliveryFailureTerminalAction) -> Int
 
@@ -524,6 +528,8 @@ pub fn publication_cleanup_owner_action_code(PublicationCleanupOwnerAction) -> I
 
 pub fn publication_commit_failure_action_code(PublicationCommitFailureAction) -> Int
 
+pub fn publication_commit_preparation_fixture_phase(PublicationCommitPreparation) -> String
+
 pub fn publication_contract_identity(PublicationContract) -> String
 
 pub fn publication_contract_identity_field(PublicationContract) -> String
@@ -674,6 +680,14 @@ pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(Str
 
 pub fn start_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int, Int) -> Result[CapturedResultSnapshotPreparation, CapturedRunIssuanceIssue]
 
+pub fn start_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, Int) -> CapturedRunIssuancePreparation
+
+pub fn start_effect_free_publication_commit_check(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int, Int) -> PublicationCommitPreparation
+
+pub fn start_effect_free_run_evidence_check(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, Int, Int, Int, Int) -> ComputationEvidenceCheck
+
+pub fn start_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?) -> CapturedRunIssuancePreparation
+
 pub fn trusted_clock_not_before(String?, String) -> Bool
 
 pub fn validate_captured_effect_dependency_bodies(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], Int, CapturedEffectDependencyLimits) -> Result[Unit, CapturedEffectDependencyIssue]
@@ -808,6 +822,11 @@ pub(all) enum CapturedRunIssuanceIssue {
   CaptureIssuanceChain(RunEvidenceChainIssue)
 } derive(Eq, @debug.Debug)
 
+type CapturedRunIssuancePreparation
+pub fn CapturedRunIssuancePreparation::advance(Self, Int) -> Result[(Bool, Int), CapturedRunIssuanceIssue]
+pub fn CapturedRunIssuancePreparation::cancel(Self) -> Unit
+pub fn CapturedRunIssuancePreparation::finish(Self) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+
 type CheckedPublicationInventory
 
 pub(all) struct CommittedResultRead {
@@ -827,6 +846,11 @@ pub(all) struct CommittedResultRead {
   byte_count : Int64
   physical_sha256 : String
 }
+
+type ComputationEvidenceCheck
+pub fn ComputationEvidenceCheck::advance(Self, Int) -> Result[(Bool, Int), RunEvidenceChainIssue]
+pub fn ComputationEvidenceCheck::cancel(Self) -> Unit
+pub fn ComputationEvidenceCheck::finish(Self) -> Result[Unit, RunEvidenceChainIssue]
 
 pub(all) enum DeliveryFailureTerminalAction {
   DeliveryAppendFailed
@@ -1255,6 +1279,11 @@ pub(all) enum PublicationCommitIssue {
   CommitInventoryMismatch
   CommitEncoding
 } derive(Eq, @debug.Debug)
+
+type PublicationCommitPreparation
+pub fn PublicationCommitPreparation::advance(Self, Int) -> Result[(Bool, Int), PublicationCommitIssue]
+pub fn PublicationCommitPreparation::cancel(Self) -> Unit
+pub fn PublicationCommitPreparation::finish(Self) -> Result[Unit, PublicationCommitIssue]
 
 type PublicationContract
 

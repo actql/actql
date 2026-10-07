@@ -301,6 +301,40 @@ authorization, identity or dispatch owner. Empty or Host-only projections are
 valid for neutral compositions; the standard Local Host keeps the genuine
 Local Compute dependency used by its handwritten carrier and Program bridges.
 
+### Trusted external Compute builds
+
+`resolveConnectorBuildInputs` in `scripts/connector-build-inputs.mjs` accepts
+explicit, already verified package roots, exact MoonBit module names/versions,
+a Host composition module, and selected Connector manifest directories. It
+reads the existing `moon.mod`, `compute-bundle.json` and `node-bundle.json`
+declarations and supplies immutable inputs to the existing Compute/Node
+generators through their `buildInputs` option. That option fixes selection;
+it cannot be combined with a second `names` list.
+
+The Host module imports both Core and the selected Connector modules. Core
+does not import the external implementation. Generated Compute imports use
+the external module namespace, and the Node bridge imports the generated
+assembly through the Host module namespace. The current external profile is
+JS with static Node contribution loading and a generated Compute bridge.
+Handwritten product Client bridge extensions are refused explicitly. External
+Read/Effect installation tables are a separate integration step.
+
+Package acquisition, normal package integrity verification and stable input
+placement remain with the trusted build harness. This resolver downloads and
+installs nothing, imports no Connector code and grants no execution authority.
+Package roots are never taken from a Program or connection profile. It rejects
+unknown namespaces, mismatched module/dependency pins, dependency cycles,
+unsupported JS targets, escaping paths and symbolic links, including generated
+output paths. Ordinary compiler parsing and type checking still apply.
+
+The metadata reader supports an audited subset of text `moon.mod` and
+`moon.pkg` declarations; unsupported syntax is reported explicitly as a build
+profile limitation, not an ActQL language rule. Compute-only contributions do
+not acquire an invented Connector revision. Existing Host registrations and
+revisions retain their meaning. Build receipts and npm integrity are package
+input evidence; executable component identity, signature, activation and
+retention remain with the existing runtime bundle owner.
+
 ## Bounded local execution
 
 `local-checks.mjs` remains the local entry point for the workflow's actual

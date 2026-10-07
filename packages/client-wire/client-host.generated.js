@@ -2460,6 +2460,7 @@ const schemas = {
           "ClientParametersTooLarge",
           "ClientProgramUnsupported",
           "ClientProgramAnalysisLimit",
+          "ClientProgramImplementationLimit",
           "ClientProgramNeedsInputs",
           "ClientProgramRejected"
         ]

@@ -6965,3 +6965,111 @@ contiguous-string/allocation latency, physical chunk admission, aggregate
 Captured Run serialization and explicit blocking Native/direct consumers
 remain separate boundaries. This is not all-target/packed or whole-Local
 completion; previous synchronous descriptions above remain historical records.
+
+### Resumed aggregate capture issuance (2026-10-08)
+
+The JS retained publication connection now polls the existing Captured Run
+issuer through context construction, envelope emission, sealing and final
+context/Result-row evidence checks. Immutable canonical rows are checked by
+the existing snapshot owner without another whole-array copy. Definition,
+Artifact, row count, authored fields and logical CID checks remain required.
+Both Effect-free and Effectful capture await the same owner; cancellation
+retires only private preparation while existing publication owners retain
+Store cleanup responsibility. It does not redispatch Compute.
+
+The [capture issuance record](2026-10-08-local-bounded-capture-issuance.md)
+separates 247/247 affected common JS checks from 7/7 selected Node checks,
+including three actual retained Store Host cases. All three independently
+named Results are read with fixed Unicode/NULL rows and exact order. Abort
+is delivered during final context hashing or Result-row checking after all
+Compute tasks finish, and existing cleanup returns reservations without
+additional dispatch. Main `c54e157b5caa1ad981eb9393f64fd0815fb5a434`, including
+merged #921, is normally adopted; source-specific receipts are retained.
+
+Metadata/dependency validators, unique-array schema comparison, field-name
+normalization, contiguous allocation latency and later synchronous
+publication chain/commit validation remain distinct boundaries. This is
+aggregate issuance acceptance, not whole publication, all-target, packed or
+whole-Local completion. Historical synchronous descriptions above are not
+claims about the newly connected issuance path.
+
+### Resumed Effect-free publication validation (2026-10-08)
+
+The retained JS publication path now also polls the same computation
+evidence checker before fresh publication and within full commit validation.
+Result dependencies, durable bindings and final commit references remain
+required. Fresh checks observe cancellation before contract persistence or
+attempt creation; existing committed outcomes are validated first even for
+already-aborted requests. Store commit custody remains with its existing
+owner, and no blocking bridge fallback is used by the connected Host path.
+
+The [publication validation record](2026-10-08-local-bounded-publication-validation.md)
+binds 250/250 affected common JS checks and 8/8 selected Node cases to
+`5f963c44bf51753928942faf71239aca7697725b`. Six actual retained Store cases
+cover existing capture issuance and new publication validation. Three Named
+Results have independently fixed content/order. Cancellation during context
+or row checking prevents publication with no contract writes or attempt
+creation; final cleanup has no additional Compute dispatch.
+
+The development prerequisite #931 has now merged; the next PR targets main
+and preserves the tested source provenance. Metadata leaf validators and
+Effectful commit checks still have synchronous boundaries. This record does
+not establish full metadata
+boundedness, all-target or packed/HTTPS acceptance, hosted CI success, or
+whole-Local completion. Earlier synchronous entries remain historical rather
+than current descriptions of the newly connected payload-validation path.
+
+### Resumed Result dependency validation (2026-10-08)
+
+The retained Effect-free commit owner now also polls Result dependency
+lookups, duplicate/use inventories and Artifact provenance. Private use
+flags are initialized and reserved incrementally, and immutable arrays are
+read without whole-inventory copies. Exact evidence bindings, typed refusal
+order, shared retention rules and Store custody remain unchanged.
+
+The [Result dependency record](2026-10-08-local-bounded-result-evidence.md)
+separates integrated-source common JS 256/256 from clean-source Node 8/8,
+including six actual retained Host cases. The success case requires multiple
+polls during Result dependency resolution, then reads all three independently
+named Results with fixed content/order. Independent control totals and
+exact/one-short workspace reservations cover the new continuation; partial
+cancellation retires private state without retiring the admitted inputs.
+
+PR #934 is merged, and this unit normally adopts main
+`2d38f1ccf8134ebb96446ef9cb1e53767a704200` without conflicts. Durable
+binding inventories, request/index inventories, long names and computation
+metadata preludes still have synchronous boundaries. Effectful commit,
+Native/direct, packed and all-target acceptance are not closed by these
+checks. This is not whole publication or whole-Local completion.
+
+### Resumed binding and commit inventories (2026-10-08)
+
+The retained Effect-free commit preparation now polls durable binding and
+index membership, request inventory names and namespace equality. Exact
+references and typed refusal precedence remain required; immutable inventories
+are not copied or sorted. Long names use the existing UTF-16 fragment
+comparator, and the inventory child frame is reserved before construction.
+Cancellation retires private cursors without releasing caller-owned evidence
+or Store custody. Durable commit-first reconciliation remains unchanged.
+
+The [commit inventory record](2026-10-08-local-bounded-commit-inventories.md)
+binds common JS 263/263 and selected Node 8/8 to clean source
+`549cf972ef68a1d703f99628377699f8fded64e9`. Six actual retained Host cases
+use matching rebuilt runtimes. Success requires multiple binding/namespace
+polls for a long Unicode namespace and reads all three independently named
+Results with fixed content and exact order. Existing fresh cancellation,
+committed replay, cleanup and no-redispatch assertions remain connected.
+Independent control formulas, exact/one-short frames, partial cursor
+cancellation and typed corruption probes cover the private continuations.
+
+PR #936 has merged. Draft #941 normally adopts main
+`0efa031c2b81b9aaf9e753a39154f5ce816d8e1d` without conflicts and targets
+main with no unmerged prerequisite. Production implementation and selected
+acceptance inputs remain identical to the tested source; integration evidence
+does not relabel earlier executions. Computation metadata preludes,
+scalar schema checks, issuance-side inventories, field-name normalization and
+physical allocation latency remain distinct boundaries. Blocking wrappers
+share the same algorithm but do not establish asynchronous issuance or
+Effectful driver connection. This is not all-target, packed/HTTPS, hosted CI,
+whole publication or whole-Local completion. Earlier synchronous descriptions
+remain historical records, not claims about these newly connected scans.

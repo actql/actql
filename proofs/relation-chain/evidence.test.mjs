@@ -2,13 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import { bindings, pauseBindings, pauseFixture, pausePremises, pauseGuarantees, executedPauseCoverage, stopBindings, stopFixture, stopPremises, stopGuarantees, executedStopCoverage, checkBindings, executedCoverage, fixture, graph, premises, snapshot, validate } from './evidence.mjs';
+import { modelExecution, modelObservationUnits, bindings, pauseBindings, pauseFixture, pausePremises, pauseGuarantees, executedPauseCoverage, stopBindings, stopFixture, stopPremises, stopGuarantees, executedStopCoverage, checkBindings, executedCoverage, fixture, graph, premises, snapshot, validate } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const clone = value => structuredClone(value);
 function evidence(target = 'js') {
   const source = snapshot(root), artifact = { 'test.js': 'digest' };
   const runs = { lean: { command: [process.execPath, 'proofs/relation-chain/check.mjs'],
-    passed: true, exit: 0, sourceDigest: source.digest } };
+    passed: true, exit: 0, target: 'model', count: 54, sourceDigest: source.digest } };
   for (const [id, suite] of [['session', 'src/bounded_execution'], ['connection', fixture]]) {
     runs[`${id}-${target}`] = { command: ['moon', 'test', suite, '--target', target, '--deny-warn'],
       target, passed: true, exit: 0, count: 4, sourceDigest: source.digest,
@@ -182,4 +182,31 @@ test('chain common premises cannot be satisfied by a concatenated string', () =>
   assert.throws(() => checkBindings(root, [{...b, premises: b.premises.join('; ')}]), /Missing child premise/);
   const e = evidence(); e.nodes.find(node => node.kind === 'derived').premises = b.premises.join('; ');
   assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /Missing or unsupported obligations/);
+});
+
+for (const [label, change] of [
+  ['zero laws', r => { r.count = 0; }],
+  ['missing count', r => { delete r.count; }],
+  ['null count', r => { r.count = null; }],
+  ['partial legacy inventory', r => { r.count = 36; }],
+  ['extra laws', r => { r.count = 55; }],
+  ['string count', r => { r.count = '54'; }],
+  ['runtime target', r => { r.target = 'js'; }],
+  ['missing target', r => { delete r.target; }],
+]) test(`chain refuses ${label} across prompt, delayed-stop and pause scopes`, () => {
+  for (const make of [evidence, stoppingEvidence, pauseEvidence]) {
+    const e = make(); change(e.report.runs.lean);
+    assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /model target or theorem count/);
+  }
+});
+test('chain model count comes from one complete observed typed/axiom summary', () => {
+  const summary = 'Checked 54 theorems, expected claim types and axiom dependencies';
+  assert.equal(modelObservationUnits(`audit lines\n${summary}\n`, 0), 54);
+  assert.equal(modelObservationUnits(`${summary}\r\n`, 0), 54);
+  for (const [output, exit] of [
+    ['', 0], [summary.replace('54', '36'), 0], [summary.replace('54', '55'), 0],
+    [summary, 1], [summary, null], [`quoted: ${summary}`, 0],
+    [`${summary}\n${summary}`, 0], [`sorryAx\n${summary}`, 0],
+  ]) assert.throws(() => modelObservationUnits(output, exit), /typed model observation/);
+  assert.equal(modelExecution.count, 54);
 });

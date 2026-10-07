@@ -524,13 +524,14 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     'receiptEvidence', 'captureEvidence', 'preview', 'plans',
     'effectSourceHoldings', 'connectorRecovery',
     'contractLimits',
+    ...(Object.hasOwn(options ?? {}, 'signal') ? ['signal'] : []),
   ])) fail('InvalidCompletedEffectfulComputationOptions');
   const {
     execution, store, storedResults, control, admission, runDefinition,
     invocation, observation, normalizationJournal, authoringContext,
     receiptEvidence, captureEvidence, preview, plans, effectSourceHoldings,
     connectorRecovery,
-    contractLimits,
+    contractLimits, signal,
   } = options;
   validateExecution(execution);
   const owner = completedResultOwners.get(storedResults);
@@ -636,7 +637,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     admission, runDefinition, invocation, observation, definitions,
     artifacts, manifest,
   }, {normalizationJournal, ...receiptEvidence}, contractLimits);
-  const capturedRun = control.issueEffectfulCapturedRun({
+  const capturedRun = await control.issueEffectfulCapturedRun({
     runDefinition, invocation, definitions, artifacts, manifest, receipt,
   }, {
     snapshots: storedResults.results.map(value =>
@@ -648,7 +649,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     effectSources: ownedHoldings.map(value => value.source),
     localEffectSources: ownedHoldings.map(value => value.localEvidence),
     dependencyInventoryWire: owner.effectDependencyInventoryWire,
-  }, preview, plans, contractLimits);
+  }, preview, plans, contractLimits, signal);
   const dependencyBindings = control.capturedEffectDependencyPayloadBindings(
     capturedRun, (owner.effectDependencyPayloads ?? []).map(value => ({
       artifact_cid: value.binding.artifactCid,
@@ -1373,7 +1374,7 @@ export async function publishCompletedEffectFreeRun(options) {
       normalizationJournal,
       ...receiptEvidence,
     }, contractLimits);
-    const capturedRun = control.issueEffectFreeCapturedRun({
+    const capturedRun = await control.issueEffectFreeCapturedRun({
       runDefinition,
       invocation,
       definitions,
@@ -1386,7 +1387,7 @@ export async function publishCompletedEffectFreeRun(options) {
         captureEvidence.pendingSourceStateAdvances,
       authoringContext,
       modelEvidence: captureEvidence.modelEvidence,
-    }, contractLimits);
+    }, contractLimits, signal);
     const evidence = Object.freeze({
       runDefinition,
       invocation,
