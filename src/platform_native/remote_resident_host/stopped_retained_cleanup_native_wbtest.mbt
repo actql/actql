@@ -12,6 +12,7 @@ extern "C" fn cleanup_fail_root_sync(
 ///|
 struct StoppedCleanupFixture {
   admission : ResidentRunAdmission
+  producer_root : String
   journal : @journal.Journal
   receiver : @transfer_journal.Journal
   root : @filesystem.Root
@@ -37,6 +38,7 @@ fn cleanup_complete(
   site : @site.ExecutionSite,
   request : @remote.DispatchRequest,
   manifest : @cleanup_manifest.PhysicalManifest,
+  file_custody? : @journal.NativeOutputFileCustody? = None,
 ) -> (
   @remote.DispatchRecord,
   @remote.RemoteExecutionEvidence,
@@ -117,6 +119,7 @@ fn cleanup_complete(
     evidence,
     subject,
     measurement,
+    file_custody~,
   )
   .unwrap()
   (record, evidence, subject)
@@ -125,6 +128,7 @@ fn cleanup_complete(
 ///|
 fn stopped_cleanup_fixture(
   name : String,
+  producer_file? : Bool = false,
   complete_consumer? : Bool = true,
   borrow_input? : Bool = true,
 ) -> StoppedCleanupFixture {
@@ -136,9 +140,9 @@ fn stopped_cleanup_fixture(
       abort("private SQLite root required")
     },
   )
-  let files = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap_or_else(() => {
-    abort("private receiver Root required")
-  })
+  // The Native core runner owns this per-invocation namespace. These local
+  // files do not need the HTTP harness's separate Store configuration.
+  let files = parent
   let sqlite = @sqlite.load_library(sqlite_path).unwrap()
   let (admission, producer, wire, producer_binding, _) = resident_source_dispatch_fixture()
   let materials = rebuild_materials(admission, producer, wire).unwrap()
@@ -187,8 +191,33 @@ fn stopped_cleanup_fixture(
     4096,
     1024L,
   ).unwrap()
+  let file_custody = if producer_file {
+    let occurrence = @remote.dispatch_request_identity(producer)[7:].to_owned()
+    let file = @retained_file.begin_native_retained_task_file(
+      files, occurrence, 1024L,
+    ).unwrap()
+    file.append("[{\"id\":3}]").unwrap()
+    let cid = "sha256:" + @cleanup_sha.hex(chunk)
+    file.seal(cid, chunk.length()).unwrap()
+    Some(
+      @journal.prepare_native_output_file_custody(
+        producer,
+        occurrence,
+        file.sealed_generation().unwrap(),
+        cid,
+        "original-completed-material",
+        manifest,
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
   let (record, evidence, subject) = cleanup_complete(
-    journal, site, producer, manifest,
+    journal,
+    site,
+    producer,
+    manifest,
+    file_custody~,
   )
   let producer_owner = @host.prepare_client_retained_input_producer(
     edge, record, evidence, subject,
@@ -292,6 +321,7 @@ fn stopped_cleanup_fixture(
   }
   {
     admission,
+    producer_root: files,
     journal,
     receiver,
     root,
@@ -614,6 +644,95 @@ test "stopped retained cleanup retries original custody after task release and r
     ],
     revisions,
   )
+  assert_true(f.journal.close())
+  assert_true(f.receiver.close())
+}
+
+///|
+fn stopped_source_cleanup_apply(
+  f : StoppedCleanupFixture,
+  current : () -> Bool,
+) -> Result[Unit, ResidentStoppedSourceCleanupIssue] {
+  reclaim_stopped_resident_source_output(
+    f.journal,
+    f.admission,
+    f.site,
+    f.delegation,
+    @remote.dispatch_request_attempt_identity(f.producer).unwrap(),
+    @remote.dispatch_request_attempt_identity(f.consumer).unwrap(),
+    f.receiver,
+    f.root,
+    f.producer_root,
+    {
+      max_binding_bytes: 100000,
+      max_chunks: 4,
+      max_manifest_bytes: 4096,
+      max_referenced_bytes: 1024L,
+    },
+    current,
+  )
+}
+
+///|
+test "stopped Source cleanup waits for consumer release and receiver retry before reclaiming the original file" {
+  let f = stopped_cleanup_fixture("sole-source-cleanup", producer_file=true)
+  let observation = f.journal.observation(f.producer).unwrap()
+  let custody = @journal.recovered_site_dispatch_file_custody(observation).unwrap()
+  let name = "output-" + @journal.native_output_file_custody_occurrence(custody)
+  let generation = @journal.native_output_file_custody_generation(custody)
+  assert_true(stopped_source_cleanup_apply(f, () => false) is Err(NotCurrent))
+  assert_true(
+    stopped_source_cleanup_apply(f, () => true) is Err(ConsumerReleasePending),
+  )
+  assert_true(f.root.verify_generation(name, generation))
+  let consumer = f.journal.require(f.consumer).unwrap()
+  f.journal
+  .commit_transition(@remote.prepare_begin_remote_release(consumer).unwrap())
+  .unwrap()
+  f.journal
+  .commit_transition(@remote.prepare_confirm_remote_release(consumer).unwrap())
+  .unwrap()
+  let f = stopped_cleanup_reopen(f)
+  let revision = @remote.dispatch_record_revision(
+    f.journal.require(f.producer).unwrap(),
+  )
+  cleanup_fail_root_sync(f.root, 1)
+  assert_true(stopped_source_cleanup_apply(f, () => true) is Err(Receiver(_)))
+  assert_true(f.root.verify_generation(name, generation))
+  assert_true(
+    f.receiver.destination_capacity_usage().unwrap().reserved_bytes > 0L,
+  )
+  for _ in 0..<2 {
+    stopped_source_cleanup_apply(f, () => true).unwrap()
+    assert_true(f.root.inspect_generation(name) is Ok(None))
+    assert_eq(
+      f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_eq(
+      f.receiver.destination_capacity_usage().unwrap().reserved_objects,
+      0L,
+    )
+    assert_eq(
+      @remote.dispatch_record_revision(f.journal.require(f.producer).unwrap()),
+      revision + 1,
+    )
+    assert_true(
+      @remote.dispatch_record_state(f.journal.require(f.producer).unwrap()).2
+      is CleanupReleasing,
+    )
+    assert_false(
+      @remote.remote_runtime_record_released(
+        f.journal.require(f.producer).unwrap(),
+      ),
+    )
+    assert_true(
+      @journal.recovered_site_dispatch_file_custody(
+        f.journal.observation(f.producer).unwrap(),
+      )
+      is Some(_),
+    )
+  }
   assert_true(f.journal.close())
   assert_true(f.receiver.close())
 }

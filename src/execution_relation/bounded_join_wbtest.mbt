@@ -10,6 +10,8 @@ fn bounded_join_fixture(
   max_entries? : Int = 1000,
   output_nodes? : Int = 1000,
   output_values? : ValueLimits = run_limits().output_values,
+  name_bytes? : Int = 10000,
+  right_name? : String = "r",
 ) -> (@bounded.Control, BoundedJoinExecution, Array[ProducerRead]) raise {
   let schema = "{\"id\":{\"type\":\"" +
     key_type +
@@ -27,7 +29,7 @@ fn bounded_join_fixture(
   let projection = if kind == "semi" || kind == "anti" {
     "{\"k\":\"left.id\",\"l\":\"left.v\"}"
   } else {
-    "{\"k\":\"left.id\",\"l\":\"left.v\",\"r\":\"right.v\"}"
+    "{\"k\":\"left.id\",\"l\":\"left.v\",\"" + right_name + "\":\"right.v\"}"
   }
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -97,7 +99,7 @@ fn bounded_join_fixture(
     max_work,
     100,
     max_entries,
-    10000,
+    name_bytes,
   ).unwrap()
   (control, execution, [left, right])
 }
