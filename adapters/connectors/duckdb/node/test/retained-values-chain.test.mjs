@@ -266,6 +266,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
   let producerWork = 0n, sawStop = false, scheduled = false;
   let receiptProgress;
   const receiptTrace = [];
+  const exportTrace = [];
+  let exportSteps = 0;
   const observedDispatch = route.cancelDispatch ?? 1;
   const cancellation = new AbortController();
   try {
@@ -343,6 +345,32 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           return {$tag: 1, _0: new Proxy(operations, {
             get(operation, name, receiver) {
               if (name === 'execute') return () => assert.fail('synchronous Compute');
+              if (name === 'output' && route.observeExport && dispatch === observedDispatch) {
+                const output = Reflect.get(operation, name, receiver);
+                assert.ok(output, 'this Program must select the actual row-file output');
+                return new Proxy(output, {
+                  get(exporter, field, receiver) {
+                    if (field === 'next') return () => assert.fail('blocking row export');
+                    if (field !== 'advance') return Reflect.get(exporter, field, receiver);
+                    return () => {
+                      const result = exporter.advance(1);
+                      if (result.$tag === 1) {
+                        exportSteps += result._0.steps;
+                        if (exportTrace.length < 16) exportTrace.push({
+                          complete: result._0.complete, batchReady: result._0.batch != null,
+                          steps: result._0.steps});
+                        if (mode === 'cancel-during-export' && !scheduled && exportSteps === 10) {
+                          assert.equal(result._0.complete, false);
+                          assert.equal(result._0.batch, undefined);
+                          scheduled = true;
+                          setTimeout(() => cancellation.abort(), 0);
+                        }
+                      }
+                      return result;
+                    };
+                  },
+                });
+              }
               if (name === 'execution_stopped') return () => {
                 const stopped = operation.execution_stopped();
                 if (dispatch === observedDispatch && cancellation.signal.aborted && stopped) {
@@ -480,6 +508,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     });
     await use({setup, plan, retained, publication, leases, captured,
       observations: () => ({dispatches, producerWork, sawStop, scheduled, receiptProgress, receiptTrace,
+        exportTrace, exportSteps, abortReason: cancellation.signal.reason,
         appendsFailed, finalizationsFailed}),
       permitCleanup() { permitCleanup = true; },
       async run() {
@@ -562,6 +591,54 @@ for (const filtered of [false, true]) {
               outcome: 'failed:refusal', value: null}},
           ]);
       }));
+}
+
+for (const mode of ['success', 'cancel-during-export']) {
+  test(`retained row-file export yields within Unicode Text: ${mode}`, async () => {
+    const text = 'a'.repeat(1024) + '😀';
+    const document = JSON.parse(program([{id: 1, s: text}, {id: 2, s: null}], 'true'));
+    document.id = 'retained-row-file-progress';
+    document.stages[0].steps[0].values.schema.s = {type: 'string', nullable: true};
+    document.stages[0].steps[2].select = ['id', 's'];
+    for (const stage of document.stages) {
+      stage.results.out.fields = ['id', 's'];
+      if (stage.inputs.r) stage.steps[0].select = ['id', 's'];
+    }
+    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
+      if (mode === 'success') {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.equal(observations().dispatches, 3);
+        assert.ok(observations().exportSteps > 32);
+        assert.ok(observations().exportTrace.every(poll =>
+          poll.steps === 1 && !poll.complete && !poll.batchReady));
+        await assertPublishedRows(publication, plan, owner.execution,
+          [{id: 1, s: text}, {id: 2, s: null}]);
+      } else {
+        let execution;
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          execution = error.execution;
+          return true;
+        });
+        assert.equal(execution.status, 'host-tasks-failed');
+        assert.deepEqual(execution.completed, []);
+        assert.equal(execution.failure.code, 'ManagedExecutionFailed');
+        assert.equal(execution.failure.cause.primaryFailure, observations().abortReason);
+        assert.equal(execution.failure.cause.primaryFailure.name, 'AbortError');
+        assert.equal(execution.failure.cleanupPending, true);
+        assert.equal(observations().exportSteps, 10);
+        assert.equal(observations().dispatches, 1);
+        assert.equal(observations().scheduled, true);
+        assert.equal(observations().sawStop, true);
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+    }, mode, undefined, undefined, false, {observeExport: true});
+  });
 }
 
 for (const {family, name} of [

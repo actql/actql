@@ -1,10 +1,13 @@
 import {registerRetainedInput} from '../store-local/representations.mjs';
 
+const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
+
 export function prepareLocalRetainedOutput(
   output, createLease, checked, signal, faultInjection,
 ) {
   if (!createLease) throw new TypeError('LocalOutputStoreRequired');
-  const {key, limits, install, begin, next, finish, refresh} = output;
+  const {key, limits, install, begin, advance, finish, refresh} = output;
+  if (typeof advance !== 'function') throw new TypeError('LocalOutputAdvanceRequired');
   let store, body;
   checked(install(() => !store || store.status().reservedBytes === 0));
   const cleanupHandle = Object.freeze({
@@ -26,8 +29,23 @@ export function prepareLocalRetainedOutput(
       await writer.start();
       signal?.throwIfAborted();
       for (;;) {
-        const part = checked(next());
-        if (part == null) break;
+        signal?.throwIfAborted();
+        const poll = checked(advance(64));
+        if (!Number.isSafeInteger(poll.steps) || poll.steps < 0 || poll.steps > 64 ||
+            typeof poll.complete !== 'boolean' ||
+            (poll.batch != null && typeof poll.batch !== 'string') ||
+            (poll.complete && poll.batch != null) ||
+            (!poll.complete && poll.steps === 0)) {
+          throw new Error('InvalidLocalOutputAdvance');
+        }
+        signal?.throwIfAborted();
+        if (poll.complete) break;
+        if (poll.batch == null) {
+          await yieldToHost();
+          signal?.throwIfAborted();
+          continue;
+        }
+        const part = poll.batch;
         await writer.append(part);
         if (faultInjection !== undefined) {
           // A trusted test hook after physical acceptance, not completion.
@@ -38,6 +56,7 @@ export function prepareLocalRetainedOutput(
           });
         }
         signal?.throwIfAborted();
+        await yieldToHost();
       }
       const content = checked(finish());
       await writer.append(content.tail);
