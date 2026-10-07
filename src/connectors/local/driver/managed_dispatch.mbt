@@ -738,6 +738,7 @@ pub fn[T] start_local_managed_dispatch(
   let finalization_ready = Ref(false)
   let finalization_cancelled = Ref(false)
   let finalization_row = Ref(0)
+  let finalization_receipt_steps = Ref(0L)
   let finalization_identity = Ref(0)
   let finalization_issuer = Ref(0)
   let finalization_established = Ref(0)
@@ -780,7 +781,8 @@ pub fn[T] start_local_managed_dispatch(
     finalization_issuer.val +
     (if finalization_completed.val is Some(_) { 1 } else { 0 }) +
     finalization_established.val +
-    finalization_deadline.val).to_int64()
+    finalization_deadline.val).to_int64() +
+    finalization_receipt_steps.val
   }
   let cancel_finalization = fn() {
     finalization_cancelled.val = true
@@ -1525,16 +1527,40 @@ pub fn[T] start_local_managed_dispatch(
           work: work.to_int64(),
         })
       }
-      if finalization_material.val is None {
+      if finalization_receipt.val is None {
         if finalization_work_remaining.val < 1 {
           return Err(Configuration(InvalidLimits))
         }
-        let receipt = match @execution.finish_managed_output_values(values) {
+        let poll = match
+          @execution.advance_managed_output_values_finish(
+            values,
+            Int::min(quantum - work, finalization_work_remaining.val),
+          ) {
           Ok(value) => value
           // The finished output exceeds its value limits: keep the cause.
           Err(issue) => return Err(ManagedValues(issue))
         }
-        finalization_receipt.val = Some(receipt)
+        finalization_work_remaining.val -= poll.steps
+        finalization_receipt_steps.val += poll.steps.to_int64()
+        work += poll.steps
+        finalization_receipt.val = poll.receipt
+        if poll.receipt is None || work == quantum {
+          return Ok({
+            complete: false,
+            waiting: false,
+            settlement: None,
+            progress: finalization_progress(),
+            work: work.to_int64(),
+          })
+        }
+      }
+      if finalization_material.val is None {
+        if finalization_work_remaining.val < 1 {
+          return Err(Configuration(InvalidLimits))
+        }
+        guard finalization_receipt.val is Some(receipt) else {
+          return Err(Configuration(InvalidLimits))
+        }
         guard finalization_payload.val is Some(payload) else {
           return Err(Configuration(InvalidLimits))
         }
