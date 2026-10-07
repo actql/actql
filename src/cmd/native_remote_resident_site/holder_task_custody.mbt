@@ -125,7 +125,7 @@ fn confirm_holder_consumer_cleanup(
 }
 
 ///|
-fn release_holder_task(
+fn close_holder_task(
   task : HolderTaskCustody,
   tasks : Map[String, HolderTaskCustody],
   environment : SiteEnvironment,
@@ -204,16 +204,87 @@ fn release_holder_task(
     ) {
     return false
   }
-  task.released = true
+  true
+}
+
+///|
+/// Physical cleanup is completed once. Its durable observation is repeated
+/// for an exact release replay; a lost HTTP response cannot erase that duty.
+fn reconcile_holder_task_release(
+  task : HolderTaskCustody,
+  cleanup : () -> Bool,
+  observe : (@remote.DispatchRequest) -> Unit,
+  control_ended? : Bool = false,
+) -> Bool {
+  if !task.released {
+    if !cleanup() {
+      return false
+    }
+    task.released = true
+  }
   if !control_ended {
-    ignore(
-      @client.acknowledge_status(
-        environment.journal,
-        resources.control,
-        resources.observation_url,
-        task.request,
-      ),
-    )
+    observe(task.request)
+  }
+  true
+}
+
+///|
+fn release_holder_task(
+  task : HolderTaskCustody,
+  tasks : Map[String, HolderTaskCustody],
+  environment : SiteEnvironment,
+  execution : @resident_host.ResidentExecution,
+  resources : HolderOutputResources,
+  control_ended? : Bool = false,
+) -> Bool {
+  reconcile_holder_task_release(
+    task,
+    () => {
+      close_holder_task(
+        task,
+        tasks,
+        environment,
+        execution,
+        resources,
+        control_ended~,
+      )
+    },
+    request => {
+      match
+        @client.acknowledge_status(
+          environment.journal,
+          resources.control,
+          resources.observation_url,
+          request,
+        ) {
+        Ok(_) => ()
+        Err(issue) =>
+          report("holder-release-observation-pending", [
+            ("request_cid", @remote.dispatch_request_identity(request)),
+            ("reason", client_code(issue)),
+          ])
+      }
+    },
+    control_ended~,
+  )
+}
+
+///|
+/// Replaying a release also revisits already-cleaned descendants. They keep
+/// the same request and report current journal facts without releasing again.
+fn handle_holder_release_frame(
+  tasks : Map[String, HolderTaskCustody],
+  order : Array[String],
+  target : String,
+  release : (HolderTaskCustody) -> Unit,
+) -> Bool {
+  guard tasks.get(target) is Some(selected) else { return false }
+  selected.release_requested = true
+  for index = order.length() - 1; index >= 0; index = index - 1 {
+    let task = tasks.get(order[index]).unwrap()
+    if task.release_requested {
+      release(task)
+    }
   }
   true
 }
