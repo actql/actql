@@ -6,6 +6,7 @@ fn bounded_unnest_fixture(
   max_rows? : Int = 10,
   max_work? : Int = 10000,
   max_entries? : Int = 100,
+  name_bytes? : Int = 10000,
   selected_ceiling? : Int64? = None,
 ) -> (@bounded.Control, BoundedUnnestExecution, CompletedOutput) raise {
   let item_limit = if large_items { "256" } else { "2" }
@@ -89,10 +90,15 @@ fn bounded_unnest_fixture(
     max_work,
     100,
     max_entries,
-    10000,
+    name_bytes,
   ).unwrap()
   (control, execution, source)
 }
+
+///|
+/// Three unnest_0 scans, three transitions, id/item/items/position,
+/// four name pushes and one finish. Logical resource limits are unchanged.
+let unnest_completion_poll_steps : Int = 3 * 8 + 3 + 2 + 4 + 5 + 8 + 4 + 1
 
 ///|
 test "bounded unnest enforces the checked expansion ceiling per step" {
@@ -139,7 +145,7 @@ test "bounded unnest stops inside its long input array" {
     max_work=1000,
   )
   let mut measuring = false
-  for _ in 0..<30 {
+  for _ in 0..<(30 + unnest_completion_poll_steps) {
     if !measuring {
       match advance_bounded_unnest(execution, 1).unwrap() {
         BoundedUnnestContinue(..) =>
@@ -271,7 +277,7 @@ test "bounded unnest admits exact empty metadata and rejects one short" {
   // Two input names and ordinals (4) and four output columns (4) coexist.
   let (_, exact, _) = bounded_unnest_fixture("[]", max_rows=0, max_entries=8)
   let mut completed = false
-  for _ in 0..<30 {
+  for _ in 0..<(30 + unnest_completion_poll_steps) {
     if !completed {
       match advance_bounded_unnest(exact, 1).unwrap() {
         BoundedUnnestContinue(..) => ()
@@ -287,7 +293,7 @@ test "bounded unnest admits exact empty metadata and rejects one short" {
   assert_true(cleanup_bounded_unnest(exact).unwrap())
   let (_, short, _) = bounded_unnest_fixture("[]", max_rows=0, max_entries=7)
   let mut failed = false
-  for _ in 0..<30 {
+  for _ in 0..<(30 + unnest_completion_poll_steps) {
     if !failed {
       match advance_bounded_unnest(short, 1).unwrap() {
         BoundedUnnestContinue(..) => ()
@@ -305,7 +311,7 @@ test "bounded unnest admits exact empty work and rejects one short" {
   // Input names cost 2 + 7 UTF-8 bytes and output names cost 19 bytes.
   let (_, exact, _) = bounded_unnest_fixture("[]", max_rows=0, max_work=28)
   let mut completed = false
-  for _ in 0..<30 {
+  for _ in 0..<(30 + unnest_completion_poll_steps) {
     if !completed {
       match advance_bounded_unnest(exact, 1).unwrap() {
         BoundedUnnestContinue(..) => ()
@@ -318,7 +324,7 @@ test "bounded unnest admits exact empty work and rejects one short" {
   assert_true(cleanup_bounded_unnest(exact).unwrap())
   let (_, short, _) = bounded_unnest_fixture("[]", max_rows=0, max_work=27)
   let mut failed = false
-  for _ in 0..<30 {
+  for _ in 0..<(30 + unnest_completion_poll_steps) {
     if !failed {
       match advance_bounded_unnest(short, 1).unwrap() {
         BoundedUnnestContinue(..) => ()

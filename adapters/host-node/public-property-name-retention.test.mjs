@@ -181,6 +181,85 @@ function borrowedBindingsProgram(id,ordered=false) {
   return value;
 }
 
+function unaryCompletionProgram(id, kind) {
+  const value = program(id), source = value.stages[0], producer = value.stages[1];
+  source.steps[0].values = {schema:{id:{type:'number',nullable:false},
+    payload:{type:'number',nullable:true}}, rows:[{id:1,payload:7},{id:2,payload:null}]};
+  let operation;
+  if (kind === 'group' || kind === 'count') {
+    operation = {group:{by:['id'],aggregates:{[member]:{
+      fn:kind === 'count' ? 'count' : 'max',field:'payload'}}},as:'generated'};
+  } else if (kind === 'window') {
+    source.steps[0].values.schema[member] = source.steps[0].values.schema.payload;
+    source.steps[0].values.schema.at = {type:'number',nullable:false};
+    source.steps[0].values.rows = [{id:1,[member]:7,at:5},{id:2,[member]:null,at:7}];
+    delete source.steps[0].values.schema.payload;
+    source.results.rows.fields = ['id',member,'at'];
+    operation = {row_window:{kind:'fixed',time:'at',size:10},as:'generated'};
+  } else if (kind === 'unpivot') {
+    operation = {unpivot:{columns:['payload'],keep:['id'],
+      name_column:member,value_column:'value'},as:'generated'};
+  } else if (kind === 'unnest') {
+    source.steps[0].values = {schema:{id:{type:'number',nullable:false},
+      items:{type:'array',nullable:true,max_items:1,
+        items:{type:'number',nullable:true}}},
+      rows:[{id:1,items:[7]},{id:2,items:null}]};
+    source.results.rows.fields = ['id','items'];
+    operation = {unnest:{column:'items',as:member,outer:true},as:'generated'};
+  } else {
+    throw new Error(`Unknown unary completion fixture: ${kind}`);
+  }
+  producer.steps = [operation];
+  if (kind !== 'unpivot') {
+    producer.steps.push({derive:{value:{field:member}},as:'derived'});
+  }
+  producer.steps.push({select:['id','value'],as:'out'});
+  return value;
+}
+
+function compoundCompletionProgram(id, kind) {
+  const value=program(id),source=value.stages[0],producer=value.stages[1];
+  source.steps[0].values={schema:{id:{type:'number',nullable:false},
+    payload:{type:'number',nullable:true},clock:{type:'number',nullable:false},
+    start:{type:'number',nullable:false},end:{type:'number',nullable:false}},
+    rows:[{id:1,payload:7,clock:1,start:0,end:2},
+      {id:2,payload:null,clock:3,start:2,end:4}]};
+  source.results.rows.fields=['id','payload','clock','start','end'];
+  producer.inputs={l:{result:{stage:'source',result:'rows'}},
+    r:{result:{stage:'source',result:'rows'}}};
+  const select={id:'left.id',[member]:'right.payload'};
+  let operation;
+  if(kind==='join'){
+    operation={join:{with:'r',kind:'inner',on:[{left:'id',right:'id'}],select}};
+  }else if(kind==='nest'){
+    operation={nest:{with:'r',on:[{left:'id',right:'id'}],
+      into:member,fields:[{amount:'payload'}],max_items:1}};
+  }else if(kind==='interval'){
+    operation={interval_join:{with:'r',kind:'left',mode:'point_in_interval',
+      on:[{left:'id',right:'id'}],left:{time:'clock'},
+      right:{start:'start',end:'end'},select}};
+  }else if(kind==='asof'){
+    operation={asof_join:{with:'r',kind:'left',by:[{left:'id',right:'id'}],
+      left_id:'id',left_time:'clock',right_time:'clock',direction:'backward',
+      tolerance:20,right_tie_break:['id'],select}};
+  }else if(kind==='sequence'){
+    producer.inputs={l:producer.inputs.l};
+    operation={sequence:{by:[],id:'id',time:'clock',
+      pattern:[{as:'start',where:'id = 1'},{as:member,where:'id = 2'}],
+      within:10,overlap:'allow',contiguity:'subsequence'}};
+  }else{
+    throw new Error(`Unknown compound completion fixture: ${kind}`);
+  }
+  producer.steps=[{from:'l',...operation,as:'generated'}];
+  if(kind==='sequence'){
+    producer.steps.push({select:[{id:'start_id'},{value:`${member}_id`}],as:'out'});
+  }else{
+    producer.steps.push({derive:{value:{field:member}},as:'derived'},
+      {select:['id','value'],as:'out'});
+  }
+  return value;
+}
+
 const completionColumn='x'.repeat(256)+'😀';
 function completionProgram(id,kind='values',duplicates='all') {
   const schema={id:{type:'number',nullable:false},
@@ -249,7 +328,12 @@ async function verifyRetainedNames(t,label,makeProgram,rows=expected,
         },
       }}});
     const source=JSON.stringify(makeProgram(`${label}-name-success`));
-    const run=await client.aql(source,{format:'json',requestId:'property-name-success'});
+    let run;
+    try {
+      run=await client.aql(source,{format:'json',requestId:'property-name-success'});
+    } catch(error) {
+      assert.fail(`Public preparation failed: ${JSON.stringify(error.cause, null, 2)}`);
+    }
     const status=await run.wait({signal:AbortSignal.timeout(45_000)});
     assert.equal(status.status,'succeeded',JSON.stringify(status));
     assert.deepEqual(Object.keys(status.result_availability).sort(),names.toSorted());
@@ -320,6 +404,45 @@ test('public retained borrowed bindings preserve map values NULL and post-progre
 test('public retained ordered bindings preserve prior slots NULL and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'ordered-bindings',
     id=>borrowedBindingsProgram(id,true)));
+
+test('public retained Group completion names preserve NULL and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-group',
+    id=>unaryCompletionProgram(id,'group')));
+test('public retained COUNT completion names preserve counts and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-count',
+    id=>unaryCompletionProgram(id,'count'),[{id:1,value:1},{id:2,value:0}],
+    {type:'number',nullable:false}));
+test('public retained row-window completion names preserve NULL and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-window',
+    id=>unaryCompletionProgram(id,'window')));
+test('public retained unpivot completion names preserve NULL and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-unpivot',
+    id=>unaryCompletionProgram(id,'unpivot')));
+test('public retained unnest completion names preserve NULL and post-progress custody',
+  {timeout:90_000}, t=>verifyRetainedNames(t,'unary-unnest',
+    id=>unaryCompletionProgram(id,'unnest')));
+
+function verifyCompoundRetainedNames(t,kind){
+  const rows=kind==='nest'?[{id:1,value:[{amount:7}]},{id:2,value:[{amount:null}]}]:
+    kind==='sequence'?[{id:1,value:2}]:expected;
+  const contract=kind==='nest'?{type:'array',nullable:false,
+    items:{type:'object',nullable:false,additional_properties:false,
+      fields:{amount:{type:'number',nullable:true}}}}:
+    {type:'number',nullable:kind!=='sequence'};
+  return verifyRetainedNames(t,`${kind}-compound-completion`,
+    id=>compoundCompletionProgram(id,kind),rows,contract);
+}
+
+test('public retained join compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'join'));
+test('public retained nest compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'nest'));
+test('public retained interval compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'interval'));
+test('public retained asof compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'asof'));
+test('public retained sequence compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'sequence'));
 
 test('public retained Values completion names preserve Unicode and preparation custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'values-completion',completionProgram,
