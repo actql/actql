@@ -3267,6 +3267,28 @@ pub fn client_program_bind_recovered_table_preview(
 }
 
 ///|
+#export_name("clientProgramTableInputSchemaWire")
+pub fn client_program_table_input_schema_wire(
+  value : @publication_host.ClientTableInput,
+) -> String {
+  @publication_host.client_table_input_schema_wire(value)
+}
+
+///|
+#export_name("clientProgramCheckRecoveredTableSchemaWire")
+pub fn client_program_check_recovered_table_schema_wire(
+  value : @publication_host.RecoveredClientTablePreview,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @publication_host.ClientTableInputIssue] {
+  @publication_host.check_recovered_client_table_schema_wire(
+    value, wire, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramRecoveredTablePreviewOperationJson")
 pub fn client_program_recovered_table_preview_operation_json(
   value : @publication_host.RecoveredClientTablePreview,
@@ -6864,6 +6886,25 @@ pub fn client_program_row_source_restore_declaration(
   @client_row_source_host.RowHostIssue,
 ] {
   @client_row_source_host.restore_row_declaration(
+    connector_id, connector_registration, connector_version, views_json, expected_catalog_cid,
+  )
+}
+
+///|
+/// Complete saved Relation schema material, admitted by the common owner.
+/// This creates a declaration, not a read grant or an acquired generation.
+#export_name("clientProgramRowSourceRestoreRelationDeclaration")
+pub fn client_program_row_source_restore_relation_declaration(
+  connector_id : String,
+  connector_registration : String,
+  connector_version : String,
+  views_json : String,
+  expected_catalog_cid : String?,
+) -> Result[
+  @client_row_source_host.RowDeclaration,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.restore_relation_row_declaration(
     connector_id, connector_registration, connector_version, views_json, expected_catalog_cid,
   )
 }
