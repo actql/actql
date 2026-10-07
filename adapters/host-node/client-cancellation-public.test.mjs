@@ -49,10 +49,11 @@ for (const entrance of ['local', 'https']) {
         // The initial Host and its execution process have exited. The next
         // child only attaches and looks up the original operation; no cancel.
         await invoke(directory, {directory, entrance, output: restoredOutput,
-          phase: 'restored', cancelRef: initial.cancelRef}, 'restored');
+          phase: 'restored', cancelRef: initial.cancelRef, submissionRef: initial.submissionRef}, 'restored');
         const restored = JSON.parse(await readFile(restoredOutput, 'utf8'));
         assert.deepEqual(restored.ref, initial.ref);
-        assert.deepEqual(restored.request.ref, initial.ref);
+        assert.deepEqual(restored.request.admission.ref, initial.ref);
+        assert.deepEqual(restored.request.submissionRef, initial.submissionRef);
         assert.equal(restored.status.status, 'succeeded');
         assert.equal(restored.computes, 0);
         assert.deepEqual(restored.snapshot, initial.snapshot);

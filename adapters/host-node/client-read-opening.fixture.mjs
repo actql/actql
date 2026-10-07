@@ -19,6 +19,7 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
+import {installNodeClientSubmission} from './client-submission.mjs';
 import {runPublishedCapturedStrategy} from './entry.mjs';
 import {localContractLimits, localOutputLimits, sourceFreeValuesPlan,
   sourceFreeValuesAdmissionEvidence} from './local-values-plan.mjs';
@@ -91,17 +92,18 @@ export async function openReadOpeningFixture(directory, loss,
   const startRun = installNodeClientRunStart({journal, requestControl: moon, publicationControl: control, authorizeRunStart: () => true});
   const services = {
     authenticate: () => 'principal', authorizeConnection: () => true,
-    negotiate: () => ({version: 'actql-client-host/0.1', mode: 'local', owner: 'local', durability: 'durable', scopeRef: 'principal', capabilities: ['result-jsonl'],
+    negotiate: async () => ({version: 'actql-client-host/0.1', mode: 'local', owner: 'local', durability: 'durable', scopeRef: 'principal', capabilities: ['result-jsonl'],
+      submissionEpoch: journal.issueSubmissionEpoch({...scope, currentAuthorization: true}, moon),
       limits: {maxReadWireBytes: 65536, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 65536, maxRows: 256, maxBatchRows: 16, maxBatchRetainedValueBytes: 8192}}),
     prepareSubmit: installNodeClientProgramPreparation({moon, environment, valuesMaxRows}),
     attach: installNodeClientRunAttach({journal, requestControl: moon, publicationControl: control, authorizedScope: () => scope, authorizeRun: () => true}),
     lookupRequest: installNodeClientRequestLookup({journal, control: moon,
       authorizedScope: () => allowed ? scope : undefined}),
-    async submit({preparedProgram, requestId, principalId, connection}) {
+    async submit({preparedProgram, requestId, principalId, connection, submission}) {
       observeSubmission('prepared');
       const identity = moon.clientProgramRequestIdentity(preparedProgram, cid('a'), requestId, cid('b'));
       let plan;
-      const admitted = await journal.admitOrLookupDefinition(identity, {...scope, lookupExpiresAt: '2099-01-01T00:00:00.000Z', issueDefinition() {
+      const admitted = await journal.admitOrLookupDefinition(identity, {...scope, submission, lookupExpiresAt: '2099-01-01T00:00:00.000Z', issueDefinition() {
         counts.definitions++;
         plan = sourceFreeValuesPlan({moon, control, preparedProgram, ...scope, storeAuthorityCid: cid('7'), now});
         const evidence = sourceFreeValuesAdmissionEvidence(plan);
@@ -129,6 +131,12 @@ export async function openReadOpeningFixture(directory, loss,
       return {ref: started.ref, durability: started.durability, revision: started.revision};
     }, resultService, stateService, maxRowBytes: 1024,
   };
+  const submission = installNodeClientSubmission({journal, moon,
+    authorizedScope: () => allowed ? scope : undefined,
+    prepareSubmit: request => services.prepareSubmit(request), submit: services.submit,
+    lookupRequest: services.lookupRequest});
+  services.submitIntent = submission.submitIntent;
+  services.lookupSubmission = submission.lookupSubmission;
   return {services, counts, store, journal,
     retainedAdmission: ref => journal.lookupRunDefinition(ref, moon, control)?.runAdmissionEvidence,
     beforeSuccessRecord: callback => {beforeSuccessRecord = callback;},
@@ -175,7 +183,7 @@ export async function connectOpeningHost(fixture, entrance, tlsDirectory,
   setDefaultCACertificates([...originalCAs, cert.toString('utf8')]);
   const negotiate = fixture.services.negotiate;
   const handler = createClientHttpHandler({...fixture.services,
-    negotiate: () => ({...negotiate(), mode: 'remote', owner: 'remote'})});
+    negotiate: async () => ({...await negotiate(), mode: 'remote', owner: 'remote'})});
   const pending = new Set();
   const server = createServer({key, cert}, (request, response) => {
     if (request.url.endsWith('/status') && runObservationReply) {

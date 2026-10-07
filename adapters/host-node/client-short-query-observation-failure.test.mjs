@@ -31,7 +31,7 @@ for (const entrance of ['local', 'https']) {
         const host = await connectOpeningHost(fixture, entrance, scratch.path);
         try {
           const text = 'SELECT 1 AS id';
-          const query = host.client[language](text, undefined, {requestId: `original-query-${language}`});
+          const query = host.client[language](text, undefined, {submissionRef: host.client.newSubmission({nonce: `original-query-${language}`})});
           let error;
           try {await query;} catch (value) {error = value;}
           await host.settled();

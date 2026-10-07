@@ -300,6 +300,9 @@ expectedGates['check:local-node-assets'].splice(3, 0,
   'node --test scripts/local-node-package-inputs.test.mjs scripts/local-node-table-assets.test.mjs');
 expectedGates['check:local-node-assets'].push('node scripts/test-packed-installed-connectors.mjs');
 
+// The epoch-bound submission chain uses the same prepared distribution gate.
+distribution[3] += ' adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/submission-epoch-public.test.mjs packages/sdk/submission-identity.test.mjs';
+
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
   // Both the link and its target belong to this test. Recursive removal of

@@ -2,7 +2,7 @@ import {captureReadOptions, captureResultRead} from './result-schema.mjs';
 
 // A query composes existing admission, observation and Result owners. It never
 // resubmits, reconciles a Run, answers a Checkpoint, or retries a Result read.
-const queryOptionNames = new Set(['requestId', 'signal', 'result',
+const queryOptionNames = new Set(['requestId', 'submissionRef', 'signal', 'result',
   'parameterDeclarations']);
 
 function executionError(ClientError, retainFailure, code, execution, requestId, state, cause) {
@@ -36,8 +36,8 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
   format, text, parameters, options = {}) {
   let requestId, admission, signal, selectedResult;
   try {
-    requestId = options?.requestId ?? crypto.randomUUID();
-    if (typeof requestId !== 'string' || !requestId) {
+    requestId = options?.submissionRef?.nonce ?? options?.requestId;
+    if (requestId !== undefined && (typeof requestId !== 'string' || !requestId)) {
       throw new ClientError('InvalidRequestId');
     }
     if (options === null || typeof options !== 'object' ||
@@ -57,7 +57,9 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     signal = options.signal;
     // startSource captures JSON source/declarations/parameters synchronously,
     // before credentials or I/O. Do not serialize caller-owned inputs twice.
-    admission = startSource(text, {format, parameters, requestId, signal,
+    admission = startSource(text, {format, parameters, signal,
+      ...(options.requestId === undefined ? {} : {requestId: options.requestId}),
+      ...(options.submissionRef === undefined ? {} : {submissionRef: options.submissionRef}),
       ...(options.parameterDeclarations === undefined ? {} :
         {parameterDeclarations: options.parameterDeclarations})});
   } catch (cause) {
@@ -66,6 +68,7 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     requestId ??= crypto.randomUUID();
     admission = Promise.reject(cause);
   }
+  requestId = retainResult(admission)?.requestId ?? requestId ?? crypto.randomUUID();
   const query = admission.then(async execution => {
     let state;
     try { state = await execution.wait({until: 'terminal', signal}); }
@@ -99,6 +102,7 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     retainResult(execution, result);
     return result;
   });
+  retainResult(admission, query);
   // Keep one native Promise. Native chaining/assimilation and repeated awaits
   // share this operation; each explicitly requested collection opens a read.
   Object.defineProperties(query, {

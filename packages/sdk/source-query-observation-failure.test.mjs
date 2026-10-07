@@ -1,3 +1,4 @@
+import {submissionEpoch, readySubmission} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {inspect} from 'node:util';
@@ -6,7 +7,7 @@ import {connectInProcess} from './host-port.mjs';
 
 const cid = value => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'original-query', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
-const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+const profile = {submissionEpoch, version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'durable', scopeRef: 'original-principal', capabilities: [], limits: {
     maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 2, maxBatchRetainedValueBytes: 2048}};
@@ -27,7 +28,7 @@ async function fixture(t, reply, target = ref) {
     async perform(operation, body) {
       operations.push(operation);
       if (operation === 'connect') return profile;
-      if (operation === 'submit') return {ref: target, durability: 'durable', revision: 1};
+      if (operation === 'submit-intent') return readySubmission(body, {ref: target, durability: 'durable', revision: 1});
       if (operation === 'close') return;
       assert.deepEqual(body.ref, target);
       return reply(operation);
@@ -49,7 +50,7 @@ for (const language of ['sql', 'aql']) {
       const parameters = {x: 1};
       const declarations = {x: {type: 'number'}};
       const query = f.client[language]('SELECT @x AS id', parameters,
-        {requestId: 'original-query', parameterDeclarations: declarations});
+        {submissionRef: f.client.newSubmission({nonce: 'original-query'}), parameterDeclarations: declarations});
       parameters.x = 99; declarations.x.type = 'string';
       let error;
       try {await query;} catch (value) {error = value;}
@@ -80,7 +81,7 @@ for (const language of ['sql', 'aql']) {
         {kind, problem, operation: 'wait', next: {operation: 'status', ref}});
       await assert.rejects(query, value => value === error);
       await assert.rejects(query.all(), value => value === error);
-      assert.deepEqual(f.operations, ['connect', 'submit', 'wait'], '[check-mutation:query-failure-passive]');
+      assert.deepEqual(f.operations, ['connect', 'submit-intent', 'wait'], '[check-mutation:query-failure-passive]');
     });
   }
 }
@@ -89,7 +90,7 @@ test('short query valid failed state retains input without claiming failed obser
   const failed = {...running, status: 'failed'};
   const f = await fixture(t, () => failed);
   let error;
-  try {await f.client.sql('SELECT 1 AS id', undefined, {requestId: 'failed-query'});}
+  try {await f.client.sql('SELECT 1 AS id', undefined, {submissionRef: f.client.newSubmission({nonce: 'failed-query'})});}
   catch (value) {error = value;}
   assert.equal(error.code, 'ExecutionUnsuccessful');
   assert.deepEqual(error.observation, failed);
@@ -97,7 +98,7 @@ test('short query valid failed state retains input without claiming failed obser
   assert.equal(sdk.formatRunObservationFailure(error), undefined);
   assert.deepEqual(sdk.getSubmissionInput(error)?.input, {text: 'SELECT 1 AS id', format: 'sql'},
     '[check-mutation:query-failure-input]');
-  assert.deepEqual(f.operations, ['connect', 'submit', 'wait']);
+  assert.deepEqual(f.operations, ['connect', 'submit-intent', 'wait']);
 });
 
 test('short queries sharing a borrowed exception retain distinct original inputs and Run targets', async t => {
@@ -108,10 +109,10 @@ test('short queries sharing a borrowed exception retain distinct original inputs
     const f = await fixture(t, () => {throw borrowed;}, target);
     const text = `SELECT ${index + 1} AS id`;
     let error;
-    try {await f.client[language](text, undefined, {requestId: target.namespaceId});}
+    try {await f.client[language](text, undefined, {submissionRef: f.client.newSubmission({nonce: target.namespaceId})});}
     catch (value) {error = value;}
     retained.push({error, target, text, language});
-    assert.deepEqual(f.operations, ['connect', 'submit', 'wait']);
+    assert.deepEqual(f.operations, ['connect', 'submit-intent', 'wait']);
   }
   assert.notEqual(retained[0].error, retained[1].error);
   assert.notEqual(retained[0].error.cause, retained[1].error.cause);

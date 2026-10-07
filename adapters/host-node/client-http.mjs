@@ -13,7 +13,8 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
   validResourcePeek, validRunState, validResultDescription,
-  validCheckOutcome, snapshotCheckRequest} from
+  validCheckOutcome, snapshotCheckRequest, snapshotClientRequest,
+  validSubmissionOutcome, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -74,6 +75,7 @@ function responseCode(error) {
   if (error?.code === 'ClientRequestTooLarge' ||
       error?.code === 'ClientParametersTooLarge') return 413;
   if (error?.code === 'InvalidClientRequest' ||
+      error?.code === 'ClientSubmissionReferenceRequired' ||
       error?.code === 'InvalidClientCancellationOperation' ||
       error?.code === 'InvalidClientCancellationLookup' ||
       error?.code === 'ClientProgramInvalidInput' ||
@@ -153,7 +155,7 @@ function observationAttempt(response) {
 
 export function createClientHttpHandler({
   authenticate, authorizeConnection, workspaceForPrincipal, stateService, resultService,
-  negotiate, submit, attach, lookupRequest, observeRun, wait, cancel, lookupCancellation,
+  negotiate, submit, submitIntent, lookupSubmission, attach, lookupRequest, observeRun, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
   check, maxRequestBytes = 65536, observe, loopbackHttp = false,
@@ -196,6 +198,11 @@ export function createClientHttpHandler({
         catch { invalid('InvalidClientRequest'); }
       }
       if (operation === 'check' && !validClientBody(operation, body)) invalid('InvalidClientRequest');
+      if (operation === 'submit-intent' || operation === 'lookup-submission') {
+        try {body = snapshotClientRequest(body);}
+        catch {invalid('InvalidClientRequest');}
+        if (!validClientBody(operation, body)) invalid('InvalidClientRequest');
+      }
       const connection = Object.freeze({...body.connection,
         consentRefs: Object.freeze([...body.connection.consentRefs]),
         runners: Object.freeze([...body.connection.runners])});
@@ -262,6 +269,13 @@ export function createClientHttpHandler({
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, undefined, prepared)});
         sendJson(admission);
+      } else if (operation === 'submit-intent' || operation === 'lookup-submission') {
+        const answer = await invoke(operation === 'submit-intent' ? submitIntent : lookupSubmission);
+        const valid = operation === 'submit-intent'
+          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid)
+          : validSubmissionLookup(answer, connection, body.submissionRef);
+        if (!valid) invalid('InvalidClientHostSubmissionOutcome');
+        sendJson(answer);
       } else if (operation === 'result-describe') {
         const observation = observationAttempt(response);
         try {

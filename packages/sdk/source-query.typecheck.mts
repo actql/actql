@@ -4,14 +4,14 @@ import {explainRunObservationFailure, formatRunObservationFailure,
   getSubmissionInput} from './index.js';
 declare const client: Client;
 const query: ResultPromise = client.sql('SELECT @id AS id', {id: 1}, {
-  parameterDeclarations: {id: {type: 'number'}}, requestId: 'saved', result: 'answer',
+  parameterDeclarations: {id: {type: 'number'}}, submissionRef: client.newSubmission({nonce: 'saved'}), result: 'answer',
 });
 const request: string = query.requestId;
 const result: Result = await query;
 const execution: Execution = result.execution;
 const rows: DynamicRow[] = await query.all({maxRows: 100});
 for await (const row of result.rows()) {const value: unknown = row.id; void value;}
-const low: Execution = await client.startSource('{}', {format: 'json', requestId: request});
+const low: Execution = await client.startSource('{}', {format: 'json', submissionRef: client.newSubmission({nonce: request})});
 try { await client.sql('SELECT 1 AS id'); }
 catch (error: unknown) {
   const failure = explainRunObservationFailure(error);
