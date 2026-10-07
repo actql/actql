@@ -144,3 +144,29 @@ test "bulk Table receipt cannot settle another operation or reuse expected head"
     admit_table_receipt(replace, overflow, 8192, 256, 8) is Err(InvalidShape),
   )
 }
+
+///|
+test "Table commit projection admits only the original receipt and exact row count" {
+  let operation = admit_table_operation(table_vector_create(), 8192, 256, 8).unwrap()
+  let response = "{\"ok\":true,\"result\":" + table_vector_empty_receipt() + "}"
+  let outcome = project_table_commit_outcome(operation, response, 200, 0L, 8192, 256, 8).unwrap()
+  assert_eq(outcome, "{\"result\":" + table_vector_empty_receipt() + ",\"state\":\"applied\"}")
+  assert_true(@publication.parse_effect_outcome_shape(outcome, 8192, 256, 8) is Ok(_))
+  assert_true(project_table_commit_outcome(operation, response, 200, 1L, 8192, 256, 8) is Err(ForeignRowCount))
+  let foreign = "{\"ok\":true,\"result\":" + table_vector_replacement_receipt() + "}"
+  assert_true(project_table_commit_outcome(operation, foreign, 200, 0L, 8192, 256, 8) is Err(Receipt(ForeignOperation)))
+}
+
+///|
+test "Table commit projection never infers commit or noncommit from an HTTP status" {
+  let operation = admit_table_operation(table_vector_create(), 8192, 256, 8).unwrap()
+  for wire in ["{}", "{\"accepted\":true}", "{\"ok\":true,\"result\":null}", "{\"ok\":false,\"code\":\"conflict\"}", "{\"ok\":true,\"result\":{},\"extra\":true}"] {
+    assert_true(project_table_commit_outcome(operation, wire, 200, 0L, 8192, 256, 8) is Err(_))
+  }
+  let response = "{\"ok\":true,\"result\":" + table_vector_empty_receipt() + "}"
+  for status in [202, 409, 500] {
+    assert_true(project_table_commit_outcome(operation, response, status, 0L, 8192, 256, 8) is Err(Unconfirmed))
+  }
+  assert_true(project_table_commit_outcome(operation, response, 200, 0L, 8, 256, 8) is Err(InvalidResponse))
+  assert_true(project_table_commit_outcome(operation, response, 200, 0L, 8192, 0, 8) is Err(InvalidLimits))
+}

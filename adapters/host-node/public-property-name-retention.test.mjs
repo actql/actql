@@ -174,8 +174,7 @@ function borrowedBindingsProgram(id,ordered=false) {
   const bindings=[{[member]:{field:member}},{relay:{field:member}},
     {value:{field:'relay'}}];
   for(let index=0;index<7;index++)bindings.push({[`unused${index}`]:{literal:index}});
-  // Keep the ordered form as the independent public compilation reproducer.
-  // The existing public Plan emitter explicitly refuses OrderedBindings.
+  // The ordered form is the independent public Plan compilation regression.
   value.stages[1].steps[0].derive=ordered ? bindings : Object.fromEntries(
     bindings.slice(1).map(binding=>{const [name,expression]=Object.entries(binding)[0];
       return [name,name==='relay' || name==='value' ? {field:member} : expression];}));
@@ -280,3 +279,7 @@ test('public retained borrowed JSON path preserves Unicode NULL and post-progres
   {timeout:90_000},t=>verifyRetainedNames(t,'borrowed-json-path',borrowedJsonPathProgram));
 test('public retained borrowed bindings preserve map values NULL and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'borrowed-bindings',borrowedBindingsProgram));
+
+test('public retained ordered bindings preserve prior slots NULL and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'ordered-bindings',
+    id=>borrowedBindingsProgram(id,true)));

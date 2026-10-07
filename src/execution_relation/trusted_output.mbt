@@ -137,6 +137,52 @@ fn validate_trusted_output_contract_with_inputs(
   (String, Array[String], Array[ProducerBindingIdentity]),
   TrustedOutputIssue,
 ] {
+  let cursor = match
+    start_trusted_output_preparation(
+      generated, target, max_entries, max_name_bytes, inputs,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  while true {
+    match advance_trusted_output_preparation(cursor) {
+      Ok(false) => ()
+      Ok(true) => return Ok((cursor.id, cursor.names, cursor.input_bindings))
+      Err(issue) => {
+        cancel_trusted_output_preparation(cursor)
+        return Err(issue)
+      }
+    }
+  }
+  Err(Unverified)
+}
+
+///|
+/// Exact binding admission precedes row execution. Name validation is a
+/// separate cursor over borrowed immutable schema spellings, not authority.
+priv struct TrustedOutputPreparation {
+  generated : CompletionPreparation
+  target : @pipeline.Target
+  schema : @schema.Schema
+  id : String
+  input_bindings : Array[ProducerBindingIdentity]
+  names : Array[String]
+  max_entries : Int
+  mut bytes : Int
+  mut phase : Int
+  mut column : Int
+  mut offset : Int
+  mut closed : Bool
+}
+
+///|
+fn start_trusted_output_preparation(
+  generated : CompletionPreparation,
+  target : @pipeline.Target,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[TrustedOutputInput]?,
+) -> Result[TrustedOutputPreparation, TrustedOutputIssue] {
   if max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidLimits)
   }
@@ -221,32 +267,113 @@ fn validate_trusted_output_contract_with_inputs(
     return Err(NotRetained)
   }
   let id = @lower.node_id(node)
-  let mut bytes = max_name_bytes
-  for name in [id, generated.retained_ids[0]] {
-    match @scalar.admit_utf8_length(name, bytes) {
-      Ok(size) => bytes -= size
-      Err(_) => return Err(Limit)
+  Ok({
+    generated,
+    target,
+    schema,
+    id,
+    input_bindings,
+    names: [],
+    max_entries,
+    bytes: max_name_bytes,
+    phase: 0,
+    column: 0,
+    offset: 0,
+    closed: false,
+  })
+}
+
+///|
+fn cancel_trusted_output_preparation(cursor : TrustedOutputPreparation) -> Unit {
+  if !cursor.closed {
+    cursor.closed = true
+    cursor.names.clear()
+  }
+}
+
+///|
+/// At most one Unicode scalar or one equality unit per transition. The same
+/// byte/entry limits and exact identities apply to synchronous and resumed use.
+fn advance_trusted_output_preparation(
+  cursor : TrustedOutputPreparation,
+) -> Result[Bool, TrustedOutputIssue] {
+  if cursor.closed {
+    return Err(Unverified)
+  }
+  if cursor.phase == 2 {
+    let retained = cursor.generated.retained_ids[0]
+    if cursor.id.length() != retained.length() {
+      return Err(NotRetained)
     }
-  }
-  if generated.retained_ids[0] != id {
-    return Err(NotRetained)
-  }
-  let width = @schema.field_count(schema)
-  if width > max_entries {
-    return Err(Limit)
-  }
-  let names = []
-  for column in 0..<width {
-    let name = @schema.reference_name(
-      @schema.field_at(schema, column).unwrap().name,
-    )
-    match @scalar.admit_utf8_length(name, bytes) {
-      Ok(size) => bytes -= size
-      Err(_) => return Err(Limit)
+    if cursor.offset < cursor.id.length() {
+      if cursor.id[cursor.offset] != retained[cursor.offset] {
+        return Err(NotRetained)
+      }
+      cursor.offset += 1
+      return Ok(false)
     }
-    names.push(name)
+    cursor.phase = 3
+    cursor.offset = 0
+    return Ok(false)
   }
-  Ok((id, names, input_bindings))
+  let name = match cursor.phase {
+    0 => cursor.id
+    1 => cursor.generated.retained_ids[0]
+    3 => {
+      if @schema.field_count(cursor.schema) > cursor.max_entries {
+        return Err(Limit)
+      }
+      if cursor.column == @schema.field_count(cursor.schema) {
+        return Ok(true)
+      }
+      guard @schema.field_reference_name_at(cursor.schema, cursor.column)
+        is Some(name) else {
+        return Err(InvalidTarget)
+      }
+      name
+    }
+    _ => return Err(Unverified)
+  }
+  if cursor.offset < name.length() {
+    guard text_function_scalar(name, cursor.offset) is Some((_, next, width, _)) else {
+      return Err(Limit)
+    }
+    if width > cursor.bytes {
+      return Err(Limit)
+    }
+    cursor.bytes -= width
+    cursor.offset = next
+    return Ok(false)
+  }
+  cursor.offset = 0
+  if cursor.phase < 2 {
+    cursor.phase += 1
+  } else {
+    cursor.names.push(name)
+    cursor.column += 1
+  }
+  Ok(false)
+}
+
+///|
+fn[P] finish_trusted_output_preparation(
+  cursor : TrustedOutputPreparation,
+  verify : (P) -> AdmittedOutputRows?,
+) -> Result[TrustedOutputPort[P], TrustedOutputIssue] {
+  if cursor.closed ||
+    cursor.phase != 3 ||
+    cursor.column != @schema.field_count(cursor.schema) {
+    return Err(Unverified)
+  }
+  cursor.closed = true
+  Ok({
+    generated: cursor.generated,
+    target: cursor.target,
+    id: cursor.id,
+    names: cursor.names,
+    input_bindings: cursor.input_bindings,
+    verify,
+  })
 }
 
 ///|

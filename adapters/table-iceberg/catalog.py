@@ -105,6 +105,25 @@ class TableCatalog(SqlCatalog):
             raise CatalogRefusal("ForeignOriginalOperation")
         return json.loads(row[1])
 
+    def inspect_target(self, request):
+        """Current-use observation, never proof about an original commit."""
+        if request["catalog_identity_cid"] != self.catalog_cid or \
+                envelope_cid({k: v for k, v in request.items() if k != "request_cid"}) != request["request_cid"]:
+            raise CatalogRefusal("ForeignTableTarget")
+        if not request["namespace"] or any("." in part for part in request["namespace"]):
+            raise CatalogRefusal("UnsupportedNamespaceSpelling")
+        try:
+            table = self.load_table((*request["namespace"], request["table_name"]))
+        except NoSuchTableError:
+            return None
+        mapping = json.loads(table.metadata.properties.get("actql.storage-mapping", "null"))
+        if not isinstance(mapping, dict):
+            raise CatalogRefusal("ForeignTableStorageMapping")
+        return {"table_uuid": str(table.metadata.table_uuid),
+                "generation_cid": self.generation(table.metadata_location),
+                "schema_cid": table.metadata.properties.get("actql.schema-cid"),
+                "storage_mapping_cid": mapping.get("mapping_cid")}
+
     def write_claimed(self, request, mapping, rows, reservation):
         """Internal physical boundary; no public installer calls this yet."""
         if self.context is not None:

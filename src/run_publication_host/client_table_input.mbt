@@ -8,6 +8,7 @@ pub(all) enum ClientTableInputIssue {
   ForeignInput
   Preview(@effect.TablePreviewIssue)
   Unavailable
+  Commit(@effect.TableCommitIssue)
   Encoding
 } derive(Eq, Debug)
 
@@ -195,8 +196,41 @@ pub fn client_table_preview_operation(
 }
 
 ///|
+pub fn client_table_preview_ledger_identity(
+  value : ClientTablePreview,
+) -> @publication.EffectPreviewIdentity {
+  @strategy.captured_effect_preview_ledger_identity(value.preview)
+}
+
+///|
+pub fn client_table_preview_member_index(value : ClientTablePreview) -> Int {
+  value.member_index
+}
+
+///|
 /// Availability is a live fact and must be checked again at apply admission.
 pub fn client_table_preview_input_available(value : ClientTablePreview) -> Bool {
   @strategy.captured_effect_preview_input_at(value.preview, value.member_index)
   is Some(_)
+}
+
+///|
+/// Settling saved response evidence remains possible after source release.
+/// The immutable export measurement, not caller input/current data, fixes the
+/// expected row count. This does not authorize dispatch or borrow a live input.
+pub fn client_table_preview_commit_outcome(
+  value : ClientTablePreview,
+  response_wire : String,
+  status_code : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientTableInputIssue] {
+  @effect.project_table_commit_outcome(
+    value.input.operation, response_wire, status_code,
+    @execution.completed_relation_export_measurement(
+      value.input.artifact.export_receipt,
+    ).row_count.to_int64(),
+    max_bytes, max_nodes, max_depth,
+  ).map_err(issue => Commit(issue))
 }

@@ -455,7 +455,13 @@ pub fn client_table_input_matches_source(ClientTableInput, ClientEffectLocalResu
 
 pub fn client_table_input_operation(ClientTableInput) -> @effect_application.TableOperation
 
+pub fn client_table_preview_commit_outcome(ClientTablePreview, String, Int, Int, Int, Int) -> Result[String, ClientTableInputIssue]
+
 pub fn client_table_preview_input_available(ClientTablePreview) -> Bool
+
+pub fn client_table_preview_ledger_identity(ClientTablePreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn client_table_preview_member_index(ClientTablePreview) -> Int
 
 pub fn client_table_preview_operation(ClientTablePreview) -> @effect_application.TableOperation
 
@@ -1740,6 +1746,7 @@ pub(all) enum ClientTableInputIssue {
   ForeignInput
   Preview(@effect_application.TablePreviewIssue)
   Unavailable
+  Commit(@effect_application.TableCommitIssue)
   Encoding
 } derive(Eq, @debug.Debug)
 
