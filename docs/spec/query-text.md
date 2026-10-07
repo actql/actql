@@ -350,6 +350,32 @@ source grants and current authorization remain ordinary admission obligations.
 Unsupported shapes must be rejected instead of approximated by a second
 checker or evaluator.
 
+Pipe grouping items accept an optional output alias, with or without AS,
+including backtick-quoted names. Each grouping expression and aggregate argument
+resolves against the pre-group input scope. A grouping alias does not rebind a
+sibling grouping expression. The existing group operation retains its physical
+keys; the subsequent ordinary projection names the grouped output. Output columns
+are grouping items in authored order followed by aggregates. Duplicate output
+names are rejected under the selected case-insensitive name rules. Repeated key
+references with distinct aliases retain the repeated `by` entries and project the
+same grouped value twice; they do not strengthen uniqueness or duplicate rows.
+After AGGREGATE, only those output columns are visible, and the old input range
+is closed. These aliases belong to Pipe; SQL GROUP BY does not acquire the Pipe
+output-alias grammar.
+
+Pipe `AGGREGATE GROUP BY` may omit the aggregate expression list. It lowers
+to the ordinary group operation with an empty aggregate map: each distinct
+group contributes its grouping columns, in authored key order, with their
+checked types and NULL grouping semantics. Subsequent operators see that new
+output scope, not the previous input range. A nonempty key list on empty input
+produces no groups; `GROUP BY ()` denotes one global group and produces one
+empty object even on empty input. It can feed a subsequent explicit EXTEND;
+publication of a zero-column Result remains unsupported by the common Result
+contract. An AGGREGATE with neither expressions nor a GROUP BY clause remains
+a syntax error. This connects the selected GoogleSQL
+[grouping aggregation](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#aggregate)
+without synthesizing COUNT, DISTINCT, ordering or an alternate execution path.
+
 A Pipe JOIN consumes the completed left Relation, including its projected or
 aggregated columns, predicates, ordering and LIMIT. A preceding Pipe AS names
 that current row; ranges and columns removed by projection are not restored.
