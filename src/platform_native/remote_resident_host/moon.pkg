@@ -38,4 +38,11 @@ import {
 
 import {
   "actql/actql/check_environment" @environment,
+  "actql/actql/physical_manifest" @cleanup_manifest,
+  "actql/actql/sha256" @cleanup_sha,
+  "moonbitlang/core/env",
 } for "wbtest"
+
+options(
+  targets: { "stopped_retained_cleanup_native_wbtest.mbt": [ "native" ] },
+)

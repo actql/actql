@@ -350,6 +350,25 @@ source grants and current authorization remain ordinary admission obligations.
 Unsupported shapes must be rejected instead of approximated by a second
 checker or evaluator.
 
+A Pipe JOIN consumes the completed left Relation, including its projected or
+aggregated columns, predicates, ordering and LIMIT. A preceding Pipe AS names
+that current row; ranges and columns removed by projection are not restored.
+The parser connects such a prefix through the existing producer-binding model,
+without evaluating SELECT expressions again. A single WHERE between JOINs stays
+on the joined left input before the next JOIN. Explicit MAX_OUTPUT_ROWS remains
+the common JOIN argument. See the selected
+[GoogleSQL Pipe JOIN rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax).
+
+A private Pipe continuation preserves the current visible columns and each
+surviving range variable's immutable value slots across the JOIN input boundary.
+SET/DROP/RENAME/EXTEND do not rebind those ranges to changed values, and a JOIN
+may retain several earlier input ranges. The JOIN remaps the carried slots once;
+ordinary projection and Result export expose only the declared visible columns.
+Authored CTEs and derived tables remain projected producers and do not export
+private range bindings. Pipe AS and SELECT retain their existing scope rules.
+INFER, retained RESULT and Graph carrier operations keep their own placement
+contracts and are not moved into a CTE to make a JOIN parse.
+
 ## Source-free SELECT
 
 A SELECT may omit FROM, following the adopted

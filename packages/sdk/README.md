@@ -1083,7 +1083,10 @@ persistence or execution path changes are introduced by presentation.
 
 `status`, `wait` and `reconcile` use the existing registered Run state validator
 before and after detaching the received value. A valid observation retains its
-original facts even if a Local transport reuses an object. A rejected state still
+original facts even if a Local transport reuses an object. The detached copy must
+also preserve all admitted facts, including exact Effect names, physical-stop
+facts and control revisions. A different well-shaped value is rejected. Effect
+presentation uses that admitted copy without another conversion. A rejected state still
 throws `InvalidHostRunState` for a rejected decoded state, or the existing
 `InvalidHostResponse` for decoding/wire-bound failure;
 `explainRunObservationFailure(error)` distinguishes
@@ -1149,3 +1152,21 @@ Lookup failures use fresh SDK errors for each call. Reused credential or
 transport exceptions cannot replace an earlier call's lookup target. Only the
 existing SDK error code and a bounded HTTP status are copied; borrowed exception
 causes and fields receive no explanation custody or outcome authority.
+
+`explainRequestCancellation(result)` and `formatRequestCancellation(result, options)`
+retain the admitted `cancelRequest` branch and original request ID. They keep
+recorded cancellation separate from physical stop, Effects and release. With a
+Run reference they offer a current `status`; otherwise they offer the original
+request lookup under current authorization. Already-terminal does not identify
+the terminal Run outcome. The lookup candidate is not a cancellation receipt or
+an immutable cancellation-operation identity.
+
+A failed exchange or rejected response retains only an unresolved observation
+and the original read-only target. Existing error code/status metadata does not
+select an Owner outcome. Successful replies are detached, revalidated, checked
+for unchanged identity/branch/revision and recursively frozen. Failure wrappers
+are per call; copied responses/errors receive no explanation or input custody.
+The existing error recovery fields remain available, but formatters never render
+raw causes. Recovery causes retain only public Client code/status metadata,
+not borrowed messages, locators, cleanup handles or nested causes. English/default and approved Japanese localization preserve the same
+facts, and formatting performs no lookup, retry, execution or release.

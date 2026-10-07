@@ -771,6 +771,38 @@ pub fn strategy_captured_effect_source_holding_cid(
 }
 
 ///|
+#export_name("strategyAdmitCapturedEffectSourceFromResult")
+pub fn strategy_admit_captured_effect_source_from_result(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  result : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_result(
+      preview, member_index, invocation, artifact, result, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceInventoryFromResultsValid")
+pub fn strategy_captured_effect_source_inventory_from_results_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  results : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_results_valid(
+    preview, member_indices, artifacts, results,
+  )
+}
+
+///|
 /// Re-admit persisted local evidence at a trust boundary. This does not
 /// replace the checked Host owner required for first issuance.
 #export_name("strategyAdmitCapturedLocalEffectSource")
@@ -1614,6 +1646,71 @@ pub fn strategy_captured_effect_source_recovery_inventory_valid(
 ) -> Bool {
   @publication.captured_effect_source_recovery_inventory_valid(
     preview, member_indices, artifacts,
+  )
+}
+
+///|
+#export_name("strategyCapturedEffectSourceMatchesPreview")
+pub fn strategy_captured_effect_source_matches_preview(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  source : @publication.CapturedEffectSourceArtifact,
+  local_evidence : @publication.CapturedLocalEffectSourceEvidence,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool raise NodeHostFailure {
+  if @publication.captured_effect_source_matches_preview(
+      preview, member_index, invocation, source, local_evidence, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    true
+  } else {
+    raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitCapturedEffectSourceFromCapture")
+pub fn strategy_admit_captured_effect_source_from_capture(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  captured : @publication.PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_capture(
+      preview, member_index, invocation, artifact, captured, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(source) => source
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceInventoryFromCaptureValid")
+pub fn strategy_captured_effect_source_inventory_from_capture_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  invocation : @publication.PublicationContract,
+  captured : @publication.PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_capture_valid(
+    preview, member_indices, artifacts, invocation, captured, store_authority_cid,
+    max_wire_bytes, max_nodes, max_depth,
   )
 }
 

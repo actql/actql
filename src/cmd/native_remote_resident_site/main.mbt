@@ -1118,6 +1118,33 @@ fn recover_stopped_release(
     Ok(values) if values.is_empty() => ()
     _ => return false
   }
+  // A stopped process does not discharge its saved physical file. Recover
+  // only the original cleanup address; an existing file remains pending.
+  // The file Owner also confirms directory durability after a missing unlink.
+  let saved = match owner.journal.observation(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  if @journal.recovered_site_dispatch_file_custody(saved) is Some(file) {
+    guard optional(matches, "retained-input-root") is Some(root) else {
+      return false
+    }
+    let cleanup = match
+      @retained_file.restore_native_retained_task_file_cleanup(
+        root,
+        @journal.native_output_file_custody_occurrence(file),
+        @journal.native_output_file_custody_generation(file),
+        @journal.native_output_file_custody_content_cid(file),
+        required_int64(matches, "max-bytes"),
+      ) {
+      Ok(value) => value
+      Err(_) => return false
+    }
+    if !(owner.slot.verify_current_hold() is Ok(_)) ||
+      !(cleanup.confirm_missing_release() is Ok(true)) {
+      return false
+    }
+  }
   if !owner.bundle_closed {
     let holds = ["dispatch:" + identity]
     if claimant is Some(value) {
@@ -4142,6 +4169,12 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("intent-cid", required=true),
         @argparse.OptionArg("publication-custody-root", required=true),
       ]),
+      @argparse.Command("recover-retained-input", options=[
+        @argparse.OptionArg("producer-attempt", required=true),
+        @argparse.OptionArg("expect-producer-dispatch", required=true),
+        @argparse.OptionArg("consumer-attempt", required=true),
+        @argparse.OptionArg("expect-consumer-dispatch", required=true),
+      ]),
       @argparse.Command("recover-release", options=[
         @argparse.OptionArg("attempt", required=true),
         @argparse.OptionArg("expect-dispatch", required=true),
@@ -4163,6 +4196,8 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
     Some(("run", _)) => run_control(matches)
     Some(("execute", child)) => run_holder(matches, child)
     Some(("recover-output", child)) => recover_output_command(matches, child)
+    Some(("recover-retained-input", child)) =>
+      recover_retained_input_command(matches, child)
     Some(("recover-release", child)) => recover_release_command(matches, child)
     Some(("output-reports", _)) => {
       let environment = open_control_environment(matches)

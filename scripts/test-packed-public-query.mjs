@@ -44,6 +44,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/named-window-source-input.mjs', 'named-window-source-input.mjs'],
   ['scripts/fixtures/qualify-source-input.mjs', 'qualify-source-input.mjs'],
   ['scripts/fixtures/join-star-source-input.mjs', 'join-star-source-input.mjs'],
+  ['scripts/fixtures/pipe-join-input.mjs', 'pipe-join-input.mjs'],
+  ['scripts/fixtures/pipe-join-ranges.mjs', 'pipe-join-ranges.mjs'],
   ['scripts/fixtures/right-join-source-input.mjs', 'right-join-source-input.mjs'],
   ['scripts/fixtures/full-join-scope-source-input.mjs', 'full-join-scope-source-input.mjs'],
   ['scripts/fixtures/star-replace-source-input.mjs', 'star-replace-source-input.mjs'],
@@ -316,6 +318,12 @@ if (process.argv.includes('--full-join-scope-only')) {
 if (process.argv.includes('--right-join-only')) {
   runtimeEnvironment.ACTQL_TEST_RIGHT_JOIN_ONLY = '1';
 }
+if (process.argv.includes('--pipe-join-ranges-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_JOIN_RANGES_ONLY = '1';
+}
+if (process.argv.includes('--pipe-join-input-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_JOIN_INPUT_ONLY = '1';
+}
 if (process.argv.includes('--join-star-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_STAR_ONLY = '1';
 }
@@ -436,6 +444,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--unnest-source-only', '--
   '--right-join-only',
   '--full-join-scope-only',
   '--join-star-only',
+  '--pipe-join-input-only', '--pipe-join-ranges-only',
   '--star-replace-only',
   '--qualify-only',
   '--named-window-only',
@@ -491,6 +500,8 @@ if (process.argv.includes('--qualified-star-only')) return;
 if (process.argv.includes('--right-join-only')) return;
 if (process.argv.includes('--full-join-scope-only')) return;
 if (process.argv.includes('--join-star-only')) return;
+if (process.argv.includes('--pipe-join-input-only')) return;
+if (process.argv.includes('--pipe-join-ranges-only')) return;
 if (process.argv.includes('--star-replace-only')) return;
 if (process.argv.includes('--qualify-only')) return;
 if (process.argv.includes('--named-window-only')) return;

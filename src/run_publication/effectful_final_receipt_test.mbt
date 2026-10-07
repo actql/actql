@@ -394,6 +394,98 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
 }
 
 ///|
+test "Result-bound source holding requires exact physical and semantic facts" {
+  let chain = captured_run_test_chain()
+  let artifact = final_test_source_artifact(chain)
+  let preview = final_test_preview(
+    chain,
+    artifact_cid=Some(publication_contract_identity(chain.artifact)),
+  )
+  let source = admit_captured_effect_source_from_result(
+    preview,
+    0,
+    chain.invocation,
+    artifact,
+    chain.artifact,
+    ordering_test_cid("d"),
+  ).unwrap()
+  assert_eq(
+    captured_effect_source_artifact_cid(source),
+    publication_contract_identity(artifact),
+  )
+  assert_true(
+    captured_effect_source_matches_result_facts(source, chain.artifact, "rows"),
+  )
+  assert_true(
+    admit_captured_effect_source_artifact(
+      preview,
+      0,
+      chain.invocation,
+      artifact,
+      ordering_test_cid("d"),
+    )
+    is Err(_),
+  )
+  assert_true(
+    captured_effect_source_inventory_from_results_valid(
+      preview,
+      [0],
+      [artifact],
+      [chain.artifact],
+    ),
+  )
+  assert_false(
+    captured_effect_source_inventory_from_results_valid(
+      preview,
+      [0, 0],
+      [artifact, artifact],
+      [chain.artifact, chain.artifact],
+    ),
+  )
+  assert_false(
+    captured_effect_source_inventory_from_results_valid(
+      preview,
+      [0],
+      [artifact],
+      [],
+    ),
+  )
+  let foreign = captured_run_test_chain(
+    logical_cid=Some(ordering_test_cid("f")),
+  )
+  assert_true(
+    admit_captured_effect_source_from_result(
+      preview,
+      0,
+      chain.invocation,
+      artifact,
+      foreign.artifact,
+      ordering_test_cid("d"),
+    )
+    is Err(_),
+  )
+  assert_false(
+    captured_effect_source_inventory_from_results_valid(
+      preview,
+      [0],
+      [artifact],
+      [foreign.artifact],
+    ),
+  )
+  assert_true(
+    admit_captured_effect_source_from_result(
+      preview,
+      0,
+      chain.invocation,
+      artifact,
+      chain.artifact,
+      ordering_test_cid("e"),
+    )
+    is Err(_),
+  )
+}
+
+///|
 test "Effectful capture issuer owns its exact Preview plan inventory" {
   let chain = captured_run_test_chain()
   let snapshot = admit_captured_result_snapshot(
@@ -460,6 +552,197 @@ test "Effectful capture issuer owns its exact Preview plan inventory" {
   assert_true(
     issue([("WriteOne", "{}")], foreign_artifact)
     is Err(CaptureIssuanceInventoryMismatch("effect_source_artifacts")),
+  )
+}
+
+///|
+test "Result-bound Preview survives capture without changing physical custody" {
+  let chain = captured_run_test_chain()
+  let physical_preview = final_test_preview(chain, plan=false)
+  let physical = final_test_source_artifact(chain)
+  let initial_source = final_test_source(chain, physical_preview)
+  let local_evidence = final_test_local_source(chain, initial_source)
+  let local_value = captured_test_value(
+    captured_local_effect_source_json(local_evidence, 65536, 4096, 32).unwrap(),
+  )
+  let result = admit_publication_contract(
+    "result_artifact",
+    captured_test_wire(@json.object_field(local_value, "artifact").unwrap()),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let preview = final_test_preview(
+    chain,
+    plan=false,
+    artifact_cid=Some(publication_contract_identity(result)),
+  )
+  let source = admit_captured_effect_source_from_result(
+    preview,
+    0,
+    chain.invocation,
+    physical,
+    result,
+    ordering_test_cid("d"),
+  ).unwrap()
+  assert_true(
+    captured_effect_source_matches_preview(
+      preview,
+      0,
+      chain.invocation,
+      source,
+      local_evidence,
+      ordering_test_cid("d"),
+      65536,
+      4096,
+      32,
+    ),
+  )
+  assert_false(
+    captured_effect_source_matches_preview(
+      preview,
+      0,
+      chain.invocation,
+      source,
+      local_evidence,
+      ordering_test_cid("e"),
+      65536,
+      4096,
+      32,
+    ),
+  )
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let captured = issue_effectful_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [source],
+    [local_evidence],
+    [],
+    chain.authoring,
+    chain.models,
+    preview,
+    [],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    validate_effectful_computation_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      65536,
+      4096,
+      32,
+    )
+    is Ok(_),
+  )
+  let recovered = admit_captured_effect_source_from_capture(
+    preview,
+    0,
+    chain.invocation,
+    physical,
+    captured,
+    ordering_test_cid("d"),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(
+    captured_effect_source_artifact_cid(recovered),
+    publication_contract_identity(physical),
+  )
+  assert_eq(
+    captured_effect_source_holding_cid(recovered),
+    captured_effect_source_holding_cid(initial_source),
+  )
+  assert_true(
+    captured_effect_source_inventory_from_capture_valid(
+      preview,
+      [0],
+      [physical],
+      chain.invocation,
+      captured,
+      ordering_test_cid("d"),
+      65536,
+      4096,
+      32,
+    ),
+  )
+  for indices in [[], [0, 0], [1]] {
+    assert_false(
+      captured_effect_source_inventory_from_capture_valid(
+        preview,
+        indices,
+        indices.map(_ => physical),
+        chain.invocation,
+        captured,
+        ordering_test_cid("d"),
+        65536,
+        4096,
+        32,
+      ),
+    )
+  }
+  let foreign = final_test_preview(
+    chain,
+    plan=false,
+    artifact_cid=Some(ordering_test_cid("f")),
+  )
+  assert_true(
+    admit_captured_effect_source_from_capture(
+      foreign,
+      0,
+      chain.invocation,
+      physical,
+      captured,
+      ordering_test_cid("d"),
+      65536,
+      4096,
+      32,
+    )
+    is Err(_),
+  )
+  let changed_holding = final_test_reseal_captured_context(
+    captured,
+    "\"effect_source_holding_cids\":{\"WriteOne\":\"" +
+    captured_effect_source_holding_cid(source) +
+    "\"}",
+    "\"effect_source_holding_cids\":{\"WriteOne\":\"" +
+    ordering_test_cid("f") +
+    "\"}",
+  )
+  assert_true(
+    admit_captured_effect_source_from_capture(
+      preview,
+      0,
+      chain.invocation,
+      physical,
+      changed_holding,
+      ordering_test_cid("d"),
+      65536,
+      4096,
+      32,
+    )
+    is Err(_),
   )
 }
 

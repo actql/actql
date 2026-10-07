@@ -2486,6 +2486,32 @@ function publicationControl(moon) {
         ),
       ));
     },
+    capturedEffectSourceMatchesPreview(preview, memberIndex, invocation,
+      source, localEvidence, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'captured Effect source Preview');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Number.isSafeInteger(memberIndex) ||
+          memberIndex < 0 || typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid captured Effect source Preview');
+      }
+      return checked(moon.strategyCapturedEffectSourceMatchesPreview(ownedPreview,
+        memberIndex, token(invocation), effectSourceToken(source),
+        localEffectSourceToken(localEvidence), storeAuthorityCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    admitCapturedEffectSourceFromCapture(preview, memberIndex, invocation,
+      artifact, capturedRun, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'recovered Effect source');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Number.isSafeInteger(memberIndex) ||
+          memberIndex < 0 || typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid recovered Effect source');
+      }
+      return inspectEffectSource(checked(moon.strategyAdmitCapturedEffectSourceFromCapture(
+        ownedPreview, memberIndex, token(invocation), token(artifact),
+        token(capturedRun), storeAuthorityCid, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth)));
+    },
     issueEffectSourceArtifactFromExport(input, receipt, invocation,
       retention, sourceBindingCid, storeAuthorityCid, limits) {
       issuanceLimits(limits, 'Effect source Artifact');
@@ -2499,6 +2525,22 @@ function publicationControl(moon) {
         sourceBindingCid, storeAuthorityCid, limits.maxWireBytes,
         limits.maxNodes, limits.maxDepth,
       )));
+    },
+    admitCapturedEffectSourceFromResult(preview, memberIndex, invocation,
+      artifact, result, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'captured Table source');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      const ownedResult = localEffectArtifactTokens.get(result);
+      if (ownedPreview === undefined || ownedResult === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Invalid captured Table source owner');
+      }
+      const publicationResult = checked(moon.strategyPublicationAdmit('result_artifact',
+        moon.clientProgramLocalEffectResultArtifactJson(ownedResult),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return inspectEffectSource(checked(moon.strategyAdmitCapturedEffectSourceFromResult(
+        ownedPreview, memberIndex, token(invocation), token(artifact),
+        publicationResult, storeAuthorityCid)));
     },
     issueSourceFreeLocalEffectResultArtifact(owner, inputs, memberIndex,
       importing, definition, localInvocation, receipt, retention, context,
@@ -2664,9 +2706,11 @@ function publicationControl(moon) {
     tablePreviewLedgerBinding(preview) {
       const owned = tablePreviewTokens.get(preview);
       if (owned === undefined) throw new TypeError('Foreign Table Preview');
+      const identity = moon.clientProgramTablePreviewLedgerIdentity(owned);
+      const memberIndex = moon.clientProgramTablePreviewMemberIndex(owned);
       return Object.freeze({
-        preview: moon.clientProgramTablePreviewLedgerIdentity(owned),
-        memberIndex: moon.clientProgramTablePreviewMemberIndex(owned),
+        preview: identity, memberIndex,
+        rowPreviewCid: moon.strategyEffectPreviewOrderedRowCid(identity, memberIndex, 0),
         operationWire: moon.clientProgramTablePreviewOperationJson(owned),
       });
     },
@@ -2855,6 +2899,40 @@ function publicationControl(moon) {
         ownedPreview, sources.map(value => value.memberIndex),
         sources.map(value => token(value.artifact)),
       );
+    },
+    capturedEffectSourceInventoryFromCaptureValid(preview, sources,
+      invocation, capturedRun, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'recovered Effect source inventory');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(sources) ||
+          sources.some(value => !Number.isSafeInteger(value?.memberIndex)) ||
+          typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid recovered Effect source inventory');
+      }
+      return moon.strategyCapturedEffectSourceInventoryFromCaptureValid(
+        ownedPreview, sources.map(value => value.memberIndex),
+        sources.map(value => token(value.artifact)), token(invocation),
+        token(capturedRun), storeAuthorityCid, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth);
+    },
+    capturedEffectSourceInventoryFromResultsValid(preview, sources, limits) {
+      issuanceLimits(limits, 'captured Table source inventory');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(sources)) {
+        throw new TypeError('Invalid captured Table source inventory');
+      }
+      const results = sources.map(value => {
+        const owned = localEffectArtifactTokens.get(value.result);
+        if (owned === undefined || !Number.isSafeInteger(value.memberIndex)) {
+          throw new TypeError('Foreign captured Table source Result');
+        }
+        return checked(moon.strategyPublicationAdmit('result_artifact',
+          moon.clientProgramLocalEffectResultArtifactJson(owned),
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      });
+      return moon.strategyCapturedEffectSourceInventoryFromResultsValid(ownedPreview,
+        sources.map(value => value.memberIndex),
+        sources.map(value => token(value.artifact)), results);
     },
     localEffectResultPayloadBinding(artifact, runDefinition) {
       const owned = localEffectArtifactTokens.get(artifact);

@@ -417,6 +417,12 @@ pub fn client_result_transformation_task(ClientResultTransformation) -> Int
 
 pub fn client_retained_input_capture_owner_matches(ClientRetainedInputEdge, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity) -> Bool
 
+pub fn client_retained_input_cleanup_reader_id(ClientRetainedInputCleanup) -> String
+
+pub fn client_retained_input_cleanup_receipt_cid(ClientRetainedInputCleanup) -> String
+
+pub fn client_retained_input_cleanup_transfer(ClientRetainedInputCleanup) -> @remote_transfer.RemoteTransferRequest
+
 pub fn client_retained_input_edge_projection(ClientRetainedInputEdge) -> Array[String]
 
 pub fn client_retained_input_edge_schema_cid(ClientRetainedInputEdge) -> String
@@ -764,6 +770,8 @@ pub fn prepare_client_remote_task_physical_start(ClientRemoteTaskProgress, Strin
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn prepare_client_result_transformation(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultTransformation, ClientResultTransformationIssue]
+
+pub fn prepare_client_retained_input_cleanup(@remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, Int, Int, Int, Int64) -> Result[ClientRetainedInputCleanup, ClientRetainedTaskInputIssue]
 
 pub fn prepare_client_retained_input_edge(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ClientRetainedInputEdge, ClientRetainedInputIssue]
 
@@ -1600,6 +1608,8 @@ pub struct ClientResultTransformationPreparation {
 pub fn ClientResultTransformationPreparation::advance(Self, Int) -> Result[(Bool, Int), ClientResultTransformationIssue]
 pub fn ClientResultTransformationPreparation::cancel(Self) -> Bool
 pub fn ClientResultTransformationPreparation::finish(Self) -> Result[PublicationOutputExport, ClientResultTransformationIssue]
+
+type ClientRetainedInputCleanup
 
 pub struct ClientRetainedInputCurrent {
   site_binding_current : (String, String, String) -> Bool

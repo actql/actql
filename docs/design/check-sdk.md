@@ -1365,7 +1365,13 @@ persistence or execution path changes are introduced by presentation.
 
 `status`, `wait` and `reconcile` use the existing registered Run state validator
 before and after detaching the received value. A valid observation retains its
-original facts even if a Local transport reuses an object. A rejected state still
+original facts even if a Local transport reuses an object. The existing structural
+comparison also requires the detached value to retain all admitted facts;
+another well-shaped Run, control revision, Effect name or availability is not
+the same observation. Comparison preserves exact strings and ignores object
+member order, without creating a public hash or a consistency certificate.
+Effect presentation projects that already admitted copy and cannot replace it
+with another copy. A rejected state still
 throws `InvalidHostRunState` for a rejected decoded state, or the existing
 `InvalidHostResponse` for decoding/wire-bound failure;
 `explainRunObservationFailure(error)` distinguishes
@@ -1554,3 +1560,25 @@ Lookup failures use fresh SDK errors for each call. Reused credential or
 transport exceptions cannot replace an earlier call's lookup target. Only the
 existing SDK error code and a bounded HTTP status are copied; borrowed exception
 causes and fields receive no explanation custody or outcome authority.
+
+### Request cancellation observations
+
+Request cancellation presentation follows the existing closed
+`request_cancellation` response, independently from Run cancellation and request
+preparation lookup. Its `accepted`, `already_requested` and `already_terminal`
+branches never certify physical stop, Effect certainty or resource release.
+The last branch does not supply a terminal Run outcome. A supplied Run revision
+belongs to that control observation; it is not a composite consistency witness
+or a cancellation-operation identity.
+
+The SDK admits the reply before cloning and revalidates after cloning, retaining
+the same request, branch, reference and revision. Explanations belong weakly to
+the original recursively frozen response or per-call failure wrapper. Failed
+exchanges and uninterpretable responses keep only their observation failure and
+original authorized lookup candidate. Error code/status/cause metadata is not
+used to project an Owner outcome and is not formatted as explanation material.
+Recovery causes preserve public Client code/status metadata only; private
+messages, nested causes, locators and cleanup handles are omitted.
+The existing cancellation operation-identity, Refused/NotAccepted/Conflict and
+lookup contracts require authoritative typed Owner evidence; this presentation
+adds none of those facts, no ledger, no Host storage and no automatic resend.

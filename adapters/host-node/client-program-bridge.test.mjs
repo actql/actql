@@ -2369,7 +2369,7 @@ async function effectFixture({splitSource = false,
   splitEffectSource = 'consumer', writeKind = 'create',
   memberIds = ['save'], target = 'connector://crm/account',
   mappingRef = 'mapping:crm.account.v1', sourceIds,
-  continueMembers = []} = {}) {
+  continueMembers = [], minimumApproval = 'none'} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
     readFile(new URL('values.environment.json', fixture), 'utf8'),
@@ -2393,7 +2393,7 @@ async function effectFixture({splitSource = false,
     conversions: [],
     mapping_contract_cid: '',
     mapping_ref: mappingRef,
-    minimum_approval: 'none',
+    minimum_approval: minimumApproval,
     permission_rules: [{
       effect_kind: writeKind, permissions: ['scope:' + writeKind],
       selector_class: ['create', 'store'].includes(writeKind) ? 'none' :
@@ -5647,8 +5647,19 @@ test('Effect source set shares exact owners and retains failed cleanup',
       await t.test(writeKind === 'store' ?
         empty ? 'empty typed Relation Table input binding' : 'whole Relation Table input binding' :
         distinctResults ? 'equal values, distinct Results' :
-          'one Result, two members', async t => {
-        const fixture = await effectFixture({writeKind,
+          'one Result, two members', t => exerciseEffectSourceSet(t,
+        {distinctResults, writeKind, empty}));
+    }
+  });
+
+// Optional physical Table acceptance reuses these checked computation/capture
+// owners; it does not clone the source, substitute caller rows or require
+// Python for the ordinary Host suite.
+export async function exerciseEffectSourceSet(t, {distinctResults = false,
+  writeKind = 'store', empty = false, onTablePreview, target,
+  mappingRef, minimumApproval} = {}) {
+        const fixture = await effectFixture({writeKind, target, mappingRef,
+          minimumApproval,
           memberIds: ['first', 'second']});
         const document = JSON.parse(fixture.document);
         if (empty) document.stages[0].steps[0].values.rows = [];
@@ -5657,11 +5668,10 @@ test('Effect source set shares exact owners and retains failed cleanup',
             document.stages[0].results.rows);
           document.stages[0].effects.second.update.from.result = 'other';
         }
-        const prepared = moon.clientProgramEffectPreparationReady(
-          moon.clientProgramPrepareEffectComputationWithParameters(
-            JSON.stringify(document), 'json', fixture.environment,
-            undefined, []));
-        assert.ok(prepared);
+        const preparation = moon.clientProgramPrepareEffectComputationWithParameters(
+          JSON.stringify(document), 'json', fixture.environment, undefined, []);
+        const prepared = moon.clientProgramEffectPreparationReady(preparation);
+        assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(preparation));
         const evidence = publicationEvidence(
           moon.clientProgramEffectDefinitionCid(prepared),
           effectParametersCid(prepared),
@@ -5703,11 +5713,14 @@ test('Effect source set shares exact owners and retains failed cleanup',
         const directory = await mkdtemp(join(scratch.pathname, 'source-set-'));
         t.after(() => rm(directory, {recursive: true, force: true}));
         const control = runtimeCore(moon).publicationControl;
-        const physical = await openLocalPublicationStore({directory,
+        const storeConfiguration = {directory,
           storeAuthorityCid: cid('7'), capacityBytes: 1024 * 1024,
           maxObjectBytes: 100000, maxObjects: 10,
           maxContractNodes: 10000, maxContractDepth: 64,
-        }, control);
+          ...(onTablePreview === undefined ? {} : {
+            privateEvidenceKey: Buffer.alloc(32, 4)}),
+        };
+        let physical = await openLocalPublicationStore(storeConfiguration, control);
         let writers = 0;
         let refuseRelease = false;
         const store = Object.freeze({...physical,
@@ -5716,6 +5729,7 @@ test('Effect source set shares exact owners and retains failed cleanup',
             const writer = physical.createPreparedObjectWriter(...args);
             return Object.freeze({...writer, async seal(...args) {
               const sealed = await writer.seal(...args);
+              if (onTablePreview !== undefined) return sealed;
               return Object.freeze({...sealed, prepared: Object.freeze({
                 ...sealed.prepared,
                 async release() {
@@ -5764,11 +5778,12 @@ test('Effect source set shares exact owners and retains failed cleanup',
           localEvidenceContext: admittedLocalEffectEvidenceContext(control,
             prepared, evidence, definition, invocation, observation),
         };
+        let sources;
         try {
           await assert.rejects(preparePinnedEffectSourceSet({...options,
             maxGroupingWork: 0}), {message: 'EffectSourceGroupingLimit'});
           assert.equal(writers, 0);
-          const sources = await preparePinnedEffectSourceSet(options);
+          sources = await preparePinnedEffectSourceSet(options);
           assert.equal(sources.payloads.length, distinctResults ? 2 : 1);
           assert.equal(issuedArguments.length, distinctResults ? 2 : 1);
           const tableLimits = {maxWireBytes: 65536, maxNodes: 4096,
@@ -5841,7 +5856,8 @@ test('Effect source set shares exact owners and retains failed cleanup',
             const template = JSON.parse(effectInputPreview(prepared, evidence,
               definition, invocation, fixture.mappingCid, artifact.identity,
               'store', [], [], ['first', 'second'], [cid('0'), cid('1')],
-              scope, {templateOnly: true}).wire);
+              scope, {templateOnly: true, ...(target === undefined ? {} : {target}),
+                ...(mappingRef === undefined ? {} : {mapping: mappingRef})}).wire);
             const operations = [];
             for (const [index, member] of template.effects.entries()) {
               const localIdentity = index === 0 ? identity : otherIdentity;
@@ -5881,6 +5897,13 @@ test('Effect source set shares exact owners and retains failed cleanup',
             assert.equal(authored._1[1].length, 1);
             const tablePreview = control.bindTablePreview(tableInput,
               captured, 0);
+            await onTablePreview?.({moon, control, sourceControl: issuerControl,
+              effect, prepared, inputs, artifact, identity, sources, store,
+              captured, tableInput, tablePreview, template, authored, bindPreview,
+              operations, scope, storage, directory, options, definition,
+              invocation, fixture, tableLimits, execution, evidence, observation, outputLimits,
+              storeConfiguration, physicalStore: physical,
+              replaceStoreForCleanup(value) { physical = value; }});
             assert.equal(tablePreview.subjectCid,
               JSON.parse(authored._0).effect_preview_cid);
             const expectedKey = `sha256:${createHash('sha256').update(
@@ -6109,16 +6132,18 @@ test('Effect source set shares exact owners and retains failed cleanup',
         } catch (error) {
           // Preserve the primary diagnostic if retained input cleanup also fails.
           t.diagnostic(error.stack);
+          if (error.cause !== undefined) t.diagnostic(inspect(error.cause));
           throw error;
         } finally {
           moon.clientProgramReleaseEffectInputs(inputs);
+          for (const payload of sources?.payloads ?? []) {
+            if (payload.prepared.status().pending) await payload.prepared.release();
+          }
           await physical.close();
           await execution.close();
           assert.equal(execution.cleanupPending(), false);
         }
-      });
-    }
-  });
+}
 
 async function verifySharedEffectSource({splitSource, expectedTask}) {
   const {document, environment} = await effectFixture({

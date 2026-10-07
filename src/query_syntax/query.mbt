@@ -175,6 +175,8 @@ pub(all) struct JoinPart {
 pub(all) struct CtePart {
   name : NamePart
   query : Query
+  // Internal Pipe continuation, not an authored CTE export.
+  carry_ranges : Bool
 }
 
 ///|
@@ -762,10 +764,12 @@ fn QueryParser::query_source(
 fn QueryParser::bind_query(
   self : QueryParser,
   inner : Query,
+  carry_ranges? : Bool = false,
 ) -> Query raise QueryAbort {
   self.node()
   let generated = self.fresh_producer("aql_query_source_")
-  let ctes = inner.ctes + [{ name: generated, query: { ..inner, ctes: [], }, }]
+  let ctes = inner.ctes +
+    [{ name: generated, query: { ..inner, ctes: [], }, carry_ranges, }]
   if ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
@@ -932,12 +936,17 @@ fn QueryParser::join_part(
 
 ///|
 fn QueryParser::starts_join(self : QueryParser) -> Bool {
-  self.has("JOIN") ||
-  self.has("INNER") ||
-  self.has("LEFT") ||
-  self.has("RIGHT") ||
-  self.has("FULL") ||
-  self.has("CROSS")
+  pipe_join_head(self.peek())
+}
+
+///|
+fn pipe_join_head(token : Token) -> Bool {
+  keyword(token, "JOIN") ||
+  keyword(token, "INNER") ||
+  keyword(token, "LEFT") ||
+  keyword(token, "RIGHT") ||
+  keyword(token, "FULL") ||
+  keyword(token, "CROSS")
 }
 
 ///|
@@ -1633,7 +1642,11 @@ fn QueryParser::query(
         name
       }
       scope.push((name, producer))
-      ctes.push({ name: producer, query: { ..body, ctes: [], }, })
+      ctes.push({
+        name: producer,
+        query: { ..body, ctes: [], },
+        carry_ranges: false,
+      })
       if self.peek().value != Symbol(44) {
         break
       }
@@ -1864,6 +1877,44 @@ fn QueryParser::pipe_tail(
       }
       return self.pipe_tail(self.bind_query(producer), cte_body~)
     }
+    if pipe_join_head(next) &&
+      !operations.is_empty() &&
+      !(operations.length() == 1 && operations[0] is Where(_)) {
+      let producer : Query = {
+        source: self.source,
+        ctes,
+        relation,
+        source_alias,
+        graph,
+        joins,
+        operations,
+        sets,
+        final_operations,
+        effect: None,
+        work: self.work,
+      }
+      self.spend(operations.length())
+      if pipe_join_input_alias(producer) is Some(current_range) {
+        // A terminal AS affects only the following JOIN's range. Move that
+        // binding out of the producer so it does not force an identity SELECT.
+        let body_operations = operations.copy()
+        while body_operations.last() is Some(Alias(_)) {
+          ignore(body_operations.pop())
+        }
+        let bound = self.bind_query({ ..producer, operations: body_operations, })
+        return self.pipe_tail(
+          { ..bound, source_alias: current_range, },
+          cte_body~,
+        )
+      } else if pipe_join_range_input(producer) {
+        // Continue the same logical row with its immutable ranges. An
+        // authored CTE/subquery still exports only its projected columns.
+        return self.pipe_tail(
+          self.bind_query(producer, carry_ranges=true),
+          cte_body~,
+        )
+      }
+    }
     ignore(self.advance())
     self.node()
     if sga_call_head(self.peek()) {
@@ -1956,9 +2007,7 @@ fn QueryParser::pipe_tail(
       }
       sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
     } else if self.starts_join() {
-      if !sets.is_empty() ||
-        (!joins.is_empty() && !operations.is_empty()) ||
-        operations.length() > 1 {
+      if !sets.is_empty() || operations.length() > 1 {
         raise QueryAbort(
           "Pipe JOIN prefix must be one WHERE",
           self.peek().start,

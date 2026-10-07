@@ -106,5 +106,14 @@ not silently transplanted into a #677 source that lacks those fields.
 
 [Dynamic scalar callback allocation correspondence](CALLBACKS.md) separately
 binds live callback code identities to generated object and executed-binary
-allocation sites on darwin-arm64. Linux scalar extents remain unresolved. This
+allocation sites on darwin-arm64 and linux-x64. Unknown generated sequences
+are rejected without guessed scalar extents. This
 point correspondence does not close the whole-constructor lifetime upper.
+
+
+[Primitive Ref generated-code correspondence](REFERENCES.md) binds the five
+Linux x64 parent Ref calls and private custody slots to the actual observer
+arguments and the executed primitive constructor allocation/return sequences.
+It validates their finite 64 requested-byte component independently; the existing
+80-byte conditional allowance is not reduced. This does not prove whole-parent
+lifetime or allocator footprint bounds.
