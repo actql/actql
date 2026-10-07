@@ -129,7 +129,7 @@ environment.ACTQL_SUBMISSION_CUSTODY_ACCEPTANCE_INPUTS = custodyInputs;
 const groups = [
   {name: 'opening-and-receipt', file: 'client-read-opening.test.mjs', count: 8},
   {name: 'interrupted-121-run', file: 'client-read-run-capacity.test.mjs', count: 4},
-  {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 3},
+  {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 5},
   {name: 'original-cancellation', file: 'client-cancellation-public.test.mjs', count: 4},
   {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 2},
   {name: 'submission-input-refusal', file: 'submission-epoch-public.test.mjs',
@@ -161,7 +161,7 @@ for (const group of selectedGroups) {
   passed += checked.counts.passed;
 }
 assert.equal(passed, cancellationOnly ? 4 : submissionCustodyOnly || submissionRefusalOnly ? 2
-  : effectReconciliationOnly ? 3 : 26);
+  : effectReconciliationOnly ? 3 : 28);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -176,7 +176,7 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
     : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2}
     : effectReconciliationOnly ? {originalEffectReconciliation: 3}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
-      installedCapacity: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
+      installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
       submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2,
       originalEffectReconciliation: 3},
   passed: true}, null, 2)}\n`);
