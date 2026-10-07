@@ -23,17 +23,24 @@ pub fn project_table_commit_outcome(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, TableCommitIssue] {
-  if max_bytes < 1 || max_bytes > 65536 || max_nodes < 1 ||
-    max_nodes > 4096 || max_depth < 1 || max_depth > 16 ||
+  if max_bytes < 1 ||
+    max_bytes > 65536 ||
+    max_nodes < 1 ||
+    max_nodes > 4096 ||
+    max_depth < 1 ||
+    max_depth > 16 ||
     expected_row_count < 0L {
     return Err(InvalidLimits)
   }
   if status_code != 200 {
     return Err(Unconfirmed)
   }
-  let source = match @source.parse_json(response_wire, {
-    max_input_bytes: max_bytes, max_nodes, max_depth,
-  }) {
+  let source = match
+    @source.parse_json(response_wire, {
+      max_input_bytes: max_bytes,
+      max_nodes,
+      max_depth,
+    }) {
     Ok(value) => value
     Err(_) => return Err(InvalidResponse)
   }
@@ -45,10 +52,15 @@ pub fn project_table_commit_outcome(
     @json.object_field(response, "result") is Some(result) else {
     return Err(Unconfirmed)
   }
-  let receipt_wire = @json.stringify_value(result, max_bytes, max_nodes, max_depth) catch {
+  let receipt_wire = @json.stringify_value(
+    result, max_bytes, max_nodes, max_depth,
+  ) catch {
     _ => return Err(Encoding)
   }
-  let receipt = match admit_table_receipt(operation, receipt_wire, max_bytes, max_nodes, max_depth) {
+  let receipt = match
+    admit_table_receipt(
+      operation, receipt_wire, max_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Receipt(issue))
   }

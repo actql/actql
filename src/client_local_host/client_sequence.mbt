@@ -47,6 +47,17 @@ priv enum ClientLocalSequenceOwner {
 }
 
 ///|
+fn client_local_owner_sequence_limits(
+  value : ClientLocalSequenceOwner,
+) -> @lower.SequenceLimits {
+  match value {
+    Pure(prepared) =>
+      @publication_host.prepared_client_values_sequence_limits(prepared)
+    Effect(_) => @publication_host.client_standard_values_sequence_limits()
+  }
+}
+
+///|
 /// Prepare the exact pure Relation prefix consumed by an installed Infer.
 /// The acquisition remains outside the generated Compute sequence, while
 /// both halves retain the original bound Program invocation.
@@ -380,7 +391,7 @@ fn prepare_client_local_sequences_owned(
           @lower.prepare_sequence_prefix(
             owner,
             terminal,
-            @publication_host.client_standard_values_sequence_limits(),
+            client_local_owner_sequence_limits(prepared),
           )
         _ =>
           match infer_suffix {
@@ -388,7 +399,7 @@ fn prepare_client_local_sequences_owned(
               @lower.prepare_sequence_with_infer_boundary(
                 owner,
                 step,
-                @publication_host.client_standard_values_sequence_limits(),
+                client_local_owner_sequence_limits(prepared),
               )
             _ =>
               match composed_boundary {
@@ -396,12 +407,12 @@ fn prepare_client_local_sequences_owned(
                   @lower.prepare_sequence_with_infer_boundary(
                     owner,
                     step,
-                    @publication_host.client_standard_values_sequence_limits(),
+                    client_local_owner_sequence_limits(prepared),
                   )
                 _ =>
                   @lower.prepare_sequence(
                     owner,
-                    @publication_host.client_standard_values_sequence_limits(),
+                    client_local_owner_sequence_limits(prepared),
                   )
               }
           }
@@ -542,7 +553,7 @@ fn prepare_client_local_sequences_owned(
             task,
             contracts,
             contexts,
-            @publication_host.client_standard_values_sequence_limits(),
+            client_local_owner_sequence_limits(prepared),
             100000,
             10000,
             prepared_sequence=Some(sequence),
@@ -553,7 +564,7 @@ fn prepare_client_local_sequences_owned(
             task,
             contracts,
             contexts,
-            @publication_host.client_standard_values_sequence_limits(),
+            client_local_owner_sequence_limits(prepared),
             100000,
             10000,
             prepared_sequence=Some(sequence),
