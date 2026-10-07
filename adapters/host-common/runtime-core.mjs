@@ -4141,12 +4141,7 @@ function outputExportControl(moon, publications) {
         throw new TypeError('Invalid Result output export request');
       }
       signal?.throwIfAborted();
-      const converted = convertedOutput != null;
-      const transforming = selection !== undefined;
-      const begin = transforming ? moon.strategyHostResultTransformationBegin : converted
-        ? moon.strategyHostResultOutputExportBeginConverted
-        : moon.strategyHostResultOutputExportBegin;
-      const value = checked(begin(
+      const value = checked(moon.strategyHostResultTransformationBegin(
         host,
         result,
         limits.maxResultFields,
@@ -4171,10 +4166,10 @@ function outputExportControl(moon, publications) {
         limits.maxSchemaNodes,
         limits.maxSchemaDepth,
         limits.maxBatchBytes,
-        ...(transforming ? [convertedOutput, selection] :
-          converted ? [convertedOutput] : []),
+        convertedOutput,
+        selection,
       ));
-      return transforming ? finishTransformation(value, signal) : value;
+      return finishTransformation(value, signal);
     },
     beginManagedResultImport(host, result, output, material, limits) {
       if (!Number.isSafeInteger(result) || result < 0 || output == null ||
@@ -4223,9 +4218,12 @@ function outputExportControl(moon, publications) {
         limits.maxValueTextBytes,
       ));
     },
-    finishManagedResultImport: value => checked(
-      moon.strategyHostManagedResultImportFinish(value),
-    ),
+    finishManagedResultImport(value, signal) {
+      signal?.throwIfAborted();
+      const preparation = checked(
+        moon.strategyHostManagedResultTransformationBegin(value, undefined));
+      return finishTransformation(preparation, signal);
+    },
     async transformManagedResultImport(value, selection, signal) {
       signal?.throwIfAborted();
       const preparation = checked(

@@ -115,7 +115,120 @@ export const pipeAggregateOrderRefusals = [
   text('shorthand-alias-collision',
     'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY id AS n'),
 ];
+// Independently authored scalar-aggregate control and row/type expectations.
+const scalarAggregateRows = [{bucket: null, n: 3}, {bucket: 10, n: 2}, {bucket: 20, n: 3}];
+const scalarAggregateJson = {version: 'actql/0.1', id: 'fixture.pipe_aggregate_expression', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload, other}, rows}, as: 'objects'},
+    {from: 'objects', derive: {key: {property: {name: 'score', value: {field: 'payload'}}}}},
+    {group: {by: ['key'], aggregates: {count: {fn: 'count'}}}},
+    {derive: {next: {add: [{field: 'count'}, {literal: 1}]}}},
+    {select: [{bucket: 'key'}, {n: 'next'}]},
+    {sort: [{field: 'bucket', dir: 'asc', nulls: 'first'}]},
+    {select: ['bucket', 'n'], as: 'summary'},
+  ], results: {rows: {from: 'summary', fields: ['bucket', 'n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+export const pipeAggregateExpressionSuccesses = [
+  {name: 'group-property-scalar-independent-json', format: 'json', text: JSON.stringify(scalarAggregateJson),
+    expected: scalarAggregateRows, columns: aliasedColumns, sourceReadCount: 0},
+  text('scalar-null-duplicates',
+    'FROM objects |> AGGREGATE COUNT(*) + 1 AS n GROUP AND ORDER BY payload.score AS bucket',
+    {expected: scalarAggregateRows, columns: aliasedColumns}),
+  text('scalar-repeated-calls',
+    'FROM objects |> AGGREGATE COUNT(*) + COUNT(*) AS n GROUP AND ORDER BY payload.score AS bucket',
+    {expected: [{bucket: null, n: 4}, {bucket: 10, n: 2}, {bucket: 20, n: 4}], columns: aliasedColumns}),
+  text('scalar-key-property-preserves-null',
+    'FROM objects |> AGGREGATE COUNT(*) + objects.payload.score AS n GROUP AND ORDER BY payload.score AS bucket',
+    {expected: [{bucket: null, n: null}, {bucket: 10, n: 11}, {bucket: 20, n: 22}],
+      columns: [aliasedColumns[0], {name: 'n', contract: {...number, nullable: true}}]}),
+  text('scalar-key-expression-reuse',
+    'FROM objects |> AGGREGATE COUNT(*) + (objects.payload.score + 1) AS n GROUP AND ORDER BY payload.score + 1 AS bucket',
+    {expected: [{bucket: null, n: null}, {bucket: 11, n: 12}, {bucket: 21, n: 23}],
+      columns: [aliasedColumns[0], {name: 'n', contract: {...number, nullable: true}}]}),
+  text('scalar-input-output-collision',
+    'FROM objects |> AGGREGATE COUNT(*) + id AS id GROUP AND ORDER BY id AS original',
+    {expected: [1, 2, 3, 4, 5].map(original => ({original, id: original + 1})),
+      columns: [{name: 'original', contract: number}, {name: 'id', contract: number}]}),
+  text('scalar-atomic-input-output-collision',
+    'FROM objects |> AGGREGATE COUNT(*) AS id GROUP AND ORDER BY id AS original',
+    {expected: [1, 2, 3, 4, 5].map(original => ({original, id: 1})),
+      columns: [{name: 'original', contract: number}, {name: 'id', contract: number}]}),
+  text('scalar-predicate-limit',
+    'FROM objects |> AGGREGATE COUNT(*) + 1 AS n DESC GROUP BY payload.score AS bucket DESC NULLS LAST |> WHERE n > 2 |> LIMIT 1',
+    {expected: [{bucket: 20, n: 3}], columns: aliasedColumns}),
+  text('scalar-empty-global',
+    'FROM objects |> WHERE FALSE |> AGGREGATE COALESCE(SUM(id), 0) + 1 AS n',
+    {expected: [{n: 1}], columns: [{name: 'n', contract: number}]}),
+  text('scalar-empty-keyed',
+    'FROM objects |> WHERE FALSE |> AGGREGATE COUNT(*) + 1 AS n GROUP BY id AS original',
+    {expected: [], columns: [{name: 'original', contract: number}, {name: 'n', contract: number}]}),
+];
+export const pipeAggregateExpressionRefusals = [
+  text('scalar-ungrouped-input', 'FROM objects |> AGGREGATE COUNT(*) + id AS n'),
+  text('scalar-sibling-alias', 'FROM objects |> AGGREGATE COUNT(*) AS n, COUNT(*) + n AS next'),
+  text('scalar-key-alias-is-not-input', 'FROM objects |> AGGREGATE COUNT(*) + bucket AS n GROUP BY id AS bucket'),
+  text('scalar-removed-range', 'FROM objects AS old |> AS current |> AGGREGATE COUNT(*) + old.id AS n GROUP BY current.id'),
+  text('scalar-nonaggregate', 'FROM objects |> AGGREGATE id + 1 AS n'),
+  text('scalar-missing-output-name', 'FROM objects |> AGGREGATE COUNT(*) + 1'),
+  text('scalar-window', 'FROM objects |> AGGREGATE COUNT(*) OVER () AS n'),
+];
+// SQL SELECT uses evaluated group keys inside scalar trees; JSON controls are
+// authored independently and retain SQL NULLs, multiplicity and declared types.
+const sqlGroupedRows = [{bucket: null, n: null}, {bucket: 11, n: 12}, {bucket: 21, n: 23}];
+const sqlGroupedColumns = [{name: 'bucket', contract: {...number, nullable: true}},
+  {name: 'n', contract: {...number, nullable: true}}];
+const sqlGroupedJson = {version: 'actql/0.1', id: 'fixture.sql_grouped_subexpression', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload, other}, rows}, as: 'objects'},
+    {from: 'objects', derive: {key: {add: [{property: {name: 'score', value: {field: 'payload'}}}, {literal: 1}]}}},
+    {group: {by: ['key'], aggregates: {count: {fn: 'count'}}}},
+    {derive: {next: {add: [{field: 'count'}, {field: 'key'}]}}},
+    {select: [{bucket: 'key'}, {n: 'next'}]},
+    {sort: [{field: 'bucket', dir: 'asc', nulls: 'first'}], as: 'grouped'},
+  ], results: {rows: {from: 'grouped', fields: ['bucket', 'n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+export const sqlGroupedSubexpressionSuccesses = [
+  {name: 'group-property-sql-subexpression-independent-json', format: 'json', text: JSON.stringify(sqlGroupedJson),
+    expected: sqlGroupedRows, columns: sqlGroupedColumns, sourceReadCount: 0},
+  text('sql-subexpression-computed-key',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1 ORDER BY bucket',
+    {expected: sqlGroupedRows, columns: sqlGroupedColumns}),
+  text('sql-subexpression-property-key',
+    'SELECT payload.score AS bucket, COUNT(*) + objects.payload.score AS n FROM objects GROUP BY payload.score ORDER BY bucket',
+    {expected: [{bucket: null, n: null}, {bucket: 10, n: 11}, {bucket: 20, n: 22}], columns: sqlGroupedColumns}),
+  text('sql-subexpression-alias-input-collision',
+    'SELECT payload.score + 1 AS payload, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY objects.payload.score + 1 ORDER BY payload NULLS LAST',
+    {expected: [{payload: 11, n: 12}, {payload: 21, n: 23}, {payload: null, n: null}],
+      columns: [{name: 'payload', contract: {...number, nullable: true}}, sqlGroupedColumns[1]]}),
+  text('sql-subexpression-predicate-limit',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects WHERE id < 5 GROUP BY payload.score + 1 HAVING n > 11 ORDER BY bucket DESC NULLS LAST LIMIT 1',
+    {expected: [{bucket: 21, n: 23}], columns: sqlGroupedColumns}),
+  text('sql-subexpression-join-input',
+    'SELECT objects.payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects JOIN objects AS matched ON objects.id = matched.id MAX_OUTPUT_ROWS 10 GROUP BY objects.payload.score + 1 ORDER BY bucket',
+    {expected: sqlGroupedRows, columns: sqlGroupedColumns}),
+  text('sql-subexpression-cte-input',
+    'WITH summary AS (SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1) SELECT bucket, n FROM summary ORDER BY bucket',
+    {expected: sqlGroupedRows, columns: sqlGroupedColumns}),
+  text('sql-subexpression-empty-keyed',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects WHERE FALSE GROUP BY payload.score + 1 ORDER BY bucket',
+    {expected: [], columns: sqlGroupedColumns}),
+  text('sql-subexpression-repeated-key',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) + (payload.score + 1) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1 ORDER BY bucket',
+    {expected: [{bucket: null, n: null}, {bucket: 11, n: 23}, {bucket: 21, n: 44}], columns: sqlGroupedColumns}),
+];
+export const sqlGroupedSubexpressionRefusals = [
+  text('sql-subexpression-ungrouped-receiver',
+    'SELECT COUNT(*) + objects.other.score AS n FROM objects GROUP BY payload.score'),
+  text('sql-subexpression-key-does-not-revive-receiver',
+    'SELECT COUNT(*) + payload.score AS n FROM objects GROUP BY payload.score + 1'),
+  text('sql-subexpression-sibling-alias',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) + bucket AS n FROM objects GROUP BY payload.score + 1'),
+  text('sql-subexpression-missing-range',
+    'SELECT COUNT(*) + old.payload.score AS n FROM objects AS current GROUP BY current.payload.score'),
+];
 export const groupPropertySuccesses = [
+  ...sqlGroupedSubexpressionSuccesses,
+  ...pipeAggregateExpressionSuccesses,
   ...pipeAggregateOrderSuccesses,
   {name: 'group-property-key-alias-independent-json', format: 'json',
     text: JSON.stringify(aliasedJson), expected: aliasedRows, columns: aliasedColumns, sourceReadCount: 0},
@@ -233,4 +346,4 @@ export const groupPropertyRefusals = [
   'FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score',
   'FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score |> SELECT old.payload.score',
 ].map((tail, index) => ({name: 'group-property-invalid-' + index,
-  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals);
+  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals, pipeAggregateExpressionRefusals, sqlGroupedSubexpressionRefusals);

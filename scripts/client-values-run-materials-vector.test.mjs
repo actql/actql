@@ -773,8 +773,16 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('4ac55d221c3878197277681acc425497bc6705a864745d4ae004bbcc17915444'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('732a5690b7573d96b3c54114780ee1255ddeab06d15514f65ec24236c1107251'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the shorthand-ordering Run with its original grammar closure.
+  assert.equal(vector(pin('fc3d401cf6db3bf3349114cc019111bbc32a112317d1e397b9573776d9ee7d6b'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('7b7be234b94ec1a22ed33e054e503320c171d39d58c4ed9cf6246e0988f5a460'));
+  // Retain the Pipe scalar-aggregate original grammar closure.
+  assert.equal(vector(pin('2a433f295994301675ad42d4acc1859474b8e0e31b3583482f057602164c8951'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('13bb9883431cd034e3e9056e249f5c25c01604506736da187bd0d506171d0a07'));
+  assert.equal(current.run.run_definition_cid,
+    pin('e5068efe3ea2216fc07cd3373f3ca0ba9af030ea9b7514aa33e75067d209e869'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

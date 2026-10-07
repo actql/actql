@@ -60,7 +60,7 @@ for (const partial of [false, true]) {
   });
 }
 
-for (const cause of ['absent Source', 'denied Source', 'analysis budget', 'unavailable', 'report failure', 'malformed report', 'checker exception', 'verified report']) {
+for (const cause of ['absent Source', 'denied Source', 'unavailable', 'report failure', 'malformed report', 'checker exception', 'verified report']) {
   test(`preparation refusal does not invent an input violation from ${cause}`, async () => {
     let outcome = structuredClone(verified);
     if (cause.includes('Source')) {
@@ -109,4 +109,39 @@ test('an unknown diagnostic reason code does not erase the Owner input verdict',
   assert.equal(validCheckOutcome(outcome), true);
   const f = installation('source_rejected', outcome);
   await assert.rejects(async () => f.prepare(sourceRequest), {code: 'ClientProgramInvalidInput'});
+});
+
+
+test('typed common-checker analysis budget is retained without an input verdict', async () => {
+  const f = installation('check_compile_limit', verified);
+  await assert.rejects(async () => f.prepare({kind: 'program', input: {}, parameters: null}),
+    {code: 'ClientProgramAnalysisLimit'});
+  assert.equal(f.checks, 0);
+  assert.equal(f.preparations, 1);
+});
+
+for (const partial of [false, true]) {
+  test(`Source budget disclosure uses an admitted ${partial ? 'partial' : 'completed'} public fact`, async () => {
+    const report = structuredClone(verified.report);
+    report.verdict = 'undetermined';
+    report.coverage.limits = [{code: 'analysis_budget_exhausted'}];
+    report.coverage.unresolved = [{boundary: 'source_resolution', reason: 'unresolved_protected'}];
+    const outcome = partial ? {...failed, partial_report: report} : {...verified, report};
+    assert.equal(validCheckOutcome(outcome), true);
+    for (const category of ['source_limit', 'check_compile_limit', 'source_rejected']) {
+      const f = installation(category, outcome);
+      await assert.rejects(async () => f.prepare(sourceRequest),
+        {code: 'ClientProgramAnalysisLimit'}, '[check-mutation:preparation-budget]');
+      assert.equal(f.checks, 1);
+      assert.equal(f.preparations, 1);
+    }
+  });
+}
+
+test('raw Source budget remains private without an admitted public budget fact', async () => {
+  for (const category of ['source_limit', 'check_compile_limit']) {
+    const f = installation(category, verified);
+    await assert.rejects(async () => f.prepare(sourceRequest), {code: 'ClientProgramRejected'});
+    assert.equal(f.checks, 1);
+  }
 });
