@@ -381,3 +381,48 @@ actual-history start `run-BTL7Fd` was refused before execution by another
 worktree's live heavy owner (`run-n1FGDR`). No other-owner lock was changed.
 Post-integration retained-history acceptance remains pending, separate from
 the accepted pre-integration `986ac17dc` result.
+
+The bounded next-slot wait acquired the unchanged heavy guard (`run-ih8SlH`)
+for published SHA `55f7cfb7af999337804a36578fcec7e9a5c67187`; actual history
+rejected another inherited `Spurious foundation merge bases` representation,
+not a runtime or mutation failure. A complete read-only check of current
+records identified the three newly adopted resolution records: durable
+submission current main (`999c85f5`), durable submission manifest gates
+(`09eb3572`), and connector role composition (`c0e8785d`). Their declared
+singleton maximal bases match real `git merge-base --all` exactly. Add existing
+digest-bound singleton normalization supplements for each, preserving every
+original record/input/parent/blob/mode and leaving the validator unchanged.
+The exact failed original is `evidence/2026-10-08-pipeline-fixed-js-foundation-failed-55f7cfb7a.json.gz`
+(raw 29548 bytes, SHA-256 `f3a96178ab809cef1affcc26d057e4175a06274b397ecd20d8c9853aecc0fa9d`),
+explicitly not accepted. Existing strict normalization fixtures are unchanged
+and their recorded 10/10 success remains distinct from the required new
+actual-history run. All temporary next-slot waits/lock refusals occurred
+before verification; no other-owner lock was touched.
+
+## Accepted post-integration retained history
+
+At clean correction SHA `9454130e3274c250c696ad096f3fe7664735a6df`, the actual retained-history
+composer and exact-source/nonzero final consumer **passed** (`run-nYt5l8`):
+**87 protected files, 235 declarations, 193 integrations**. The existing
+900-second guard completed and released both locks. Every source, ordered
+parent, maximal base, blob/mode, declaration introduction, original input and
+late-input obligation passed the unchanged real Git validation.
+
+The exact accepted local original is
+`evidence/2026-10-08-pipeline-fixed-js-foundation-9454130e3.json.gz` (raw 1556948 bytes, SHA-256
+`2e7de83a448b7ea11e1bddd858a2eca389696959823b7d0928915ab74bbcc170`). It embeds the raw generated manifest
+(SHA-256 `a236e75256299f9350b20dc7dc82120c8cc579cb5912c6da468f5c1fcd192546`), original
+guard/output, transparent Git timing preload and exact-source consumer.
+Transparent timing records 6,641 original Git calls and 176,829 ms inside
+those calls; this is an observation, not a calibrated performance comparison
+or proof of net CI savings.
+
+The residual #871 unit is complete locally. Submission after this result
+adds only the evidence archive and this report; declarations, supplements,
+validator, runtime sources, consumer and independent expectations do not
+change. Previous failed history originals remain failures. Earlier physical
+acceptance remains bound to `b7a692658`; current bounded output/Host product
+changes are not claimed compiled by this history check. Actions originals,
+later-main qualification, ordinary-PR reuse, related-input fresh execution
+and inclusive net CI savings remain deferred and unproved. No Actions run,
+merge, service write or other-owner cleanup was performed.
