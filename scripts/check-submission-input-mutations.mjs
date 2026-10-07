@@ -290,21 +290,15 @@ const mutations = [
     "        let received = structuredClone(captureResponse(response));\n        try {\n          received = captureResponse(response);",
     'cancellation-clone:clone throws', 'cancel-clone-invalid'],
   ['cancellation clone erasure bypasses copy and shape validation',
-    'received = detachResponse(received);\n          if (!validCancellation(received) ||',
-    'received = structuredClone(received);\n          if (false ||',
+    'received = detachResponse(received);\n          if (!validCancellation(received, cancelRef))',
+    'received = structuredClone(received);\n          if (false)',
     'cancellation-clone:clone erases fields', 'cancel-clone-invalid'],
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => [
     `cancellation clone bypasses ${field} association`,
     'received = detachResponse(received);\n' +
-      '          if (!validCancellation(received) ||\n' +
-      '              received.ref.namespaceId !== ref.namespaceId ||\n' +
-      '              received.ref.authorityScopeCid !== ref.authorityScopeCid ||\n' +
-      "              received.ref.runDefinitionCid !== ref.runDefinitionCid) fail('InvalidHostCancellation');",
+      "          if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');",
     'received = structuredClone(received);\n' +
-      '          if (!validCancellation(received) ||\n' +
-      ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(key =>
-        `              ${key === field ? 'false' : `received.ref.${key} !== ref.${key}`}`).join(' ||\n') +
-      ") fail('InvalidHostCancellation');",
+      `          if (!validCancellation(received, {...cancelRef, ${field}: received.cancelRef.${field}})) fail('InvalidHostCancellation');`,
     `cancellation-clone:clone changes ${field}`, 'cancel-clone-invalid',
   ]),
   ['check reporting budget is blamed on an invalid input',

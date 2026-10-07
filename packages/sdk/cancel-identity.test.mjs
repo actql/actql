@@ -99,3 +99,37 @@ test('invalid cancellation identity is refused before observing a revision or di
   }
   assert.deepEqual(f.calls.map(call => call.operation), ['connect', 'attach']);
 });
+
+test('original cancellation lookup captures nested identity and outcome exactly once', async t => {
+  let identityReads = 0, kindReads = 0;
+  const cancellation = {...original};
+  Object.defineProperty(cancellation, 'cancelRef', {enumerable: true,
+    get() { return ++identityReads === 1 ? cancelRef : {...cancelRef, cancelId: 'replacement'}; }});
+  Object.defineProperty(cancellation, 'kind', {enumerable: true,
+    get() { return ++kindReads === 1 ? 'accepted' : 'already_terminal'; }});
+  const f = await fixture(t, () => ({kind: 'found', cancellation}));
+  const observed = await f.run.lookupCancellation(cancelRef);
+  assert.deepEqual(observed, {kind: 'found', cancellation: original});
+  assert.equal(identityReads, 1);
+  assert.equal(kindReads, 1);
+  assert.deepEqual(f.calls.map(call => call.operation), ['connect', 'attach', 'lookup-cancellation']);
+});
+
+test('cancellation lookup detachment cannot change a valid original outcome', async t => {
+  const f = await fixture(t, () => ({kind: 'found', cancellation: original}));
+  const clone = globalThis.structuredClone;
+  t.after(() => { globalThis.structuredClone = clone; });
+  globalThis.structuredClone = value => {
+    const copy = clone(value);
+    if (value.kind === 'found' && value.cancellation !== undefined) {
+      copy.cancellation.kind = 'already_terminal';
+    }
+    return copy;
+  };
+  await assert.rejects(f.run.lookupCancellation(cancelRef), error => {
+    assert.equal(error.code, 'InvalidHostCancellationLookup');
+    assert.deepEqual(error.cancelRef, cancelRef);
+    return true;
+  });
+  assert.equal(f.calls.filter(call => call.operation === 'cancel').length, 0);
+});

@@ -321,6 +321,7 @@ for (const [scenario, alterCopy] of [
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field =>
     [`clone changes ${field}`, copy => {
       copy.ref[field] = field === 'namespaceId' ? 'foreign-namespace' : cid('f');
+      copy.cancelRef[field] = copy.ref[field];
       return copy;
     }]),
 ]) {
@@ -380,7 +381,7 @@ for (const representation of ['Date', 'Proxy', 'namespaceId', 'authorityScopeCid
             : representation === 'namespaceId' ? 'foreign-namespace' : cid('f'); }});
         return value;
       }});
-    const answer = await f.execution.cancel();
+    const answer = await f.execution.cancel(f.cancelOptions());
     assert.equal(answer.kind, 'accepted');
     assert.deepEqual(answer.ref, f.execution.ref);
     assert.equal(reads, representation === 'Date' ? 0 : 1);

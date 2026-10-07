@@ -5,6 +5,7 @@ import * as sdk from './index.mjs';
 
 const cid = value => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
+const cancelRef = {...ref, cancelId: 'original-cancel', expectedRevision: 6};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'durable', scopeRef: 'scope', capabilities: [],
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
@@ -42,9 +43,9 @@ const cases = [
     error: 'SubmissionUnknown', invoke: (_run, client) => client.start({params: {}, stages: []}, {requestId: 'saved'})
       .catch(error => { if (error.code === 'RequestHeld') return error; throw error; }),
     explain: sdk.explainSubmission, failure: sdk.explainSubmission},
-  {operation: 'cancel', reply: () => ({kind: 'accepted', ref: {...ref}, revision: 7}),
-    field: 'kind', replacement: 'already_terminal', error: 'InvalidHostCancellation',
-    invoke: run => run.cancel(), explain: sdk.explainCancellation, failure: sdk.explainCancellation},
+  {operation: 'cancel', reply: () => ({kind: 'accepted', ref: {...ref}, cancelRef: {...cancelRef}, revision: 7}),
+    field: 'kind', replacement: 'already_terminal', error: 'CancellationUnknown',
+    invoke: run => run.cancel({cancelId: 'original-cancel', expectedRevision: 6}), explain: sdk.explainCancellation, failure: sdk.explainCancellation},
   {operation: 'delivery-attempt', reply: streaming, field: 'record', replacement: delivered.record,
     error: 'InvalidHostAttemptLookup', invoke: run => run.result('answer').deliveryAttempt('read-a'),
     explain: sdk.explainDeliveryAttempt},
