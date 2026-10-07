@@ -33,8 +33,8 @@ for (const entrance of ['local', 'https']) {
         // execFileSync returned only after the initial Host/Owner process exited.
         const initial = JSON.parse(await readFile(initialOutput, 'utf8'));
         assert.notEqual(initial.pid, process.pid);
-        assert.deepEqual(initial.counts, {admissions: 2, readers: 2, computes: 1, definitions: 1});
-        const {ref, submissionRef, attemptId, observed, originalPolicy, completeAttempt, explanation} = initial;
+        assert.deepEqual(initial.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});
+        const {ref, submissionRef, attemptId, observed, originalPolicy, explanation} = initial;
         const beforeRestart = await attemptBytes(directory);
         const output = join(directory, 'restart.json');
         // The new process restores the original Run under the default current
@@ -62,15 +62,21 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(restored.valuesHostPolicyOriginal, originalPolicy);
         assert.deepEqual(restored.lookupCounts, {admissions: 0, readers: 0, computes: 0, definitions: 0});
         assert.deepEqual(restored.rows, expected);
+        assert.deepEqual(restored.description.columns, [{name: 'id', contract: {type: 'number', nullable: false}}]);
+        assert.equal(restored.readState, 'complete');
+        assert.equal(restored.rowsYielded, 121);
+        assert.deepEqual(restored.originalAfterRead, observed);
         assert.notEqual(restored.readAttempt.attempt.attempt_id, attemptId);
-        assert.notEqual(restored.readAttempt.attempt.attempt_id, completeAttempt.attempt.attempt_id);
+        assert.notEqual(restored.readAttempt.attempt.result_read_grant_cid,
+          observed.attempt.result_read_grant_cid);
         assertSameResult(restored.readAttempt, observed);
         assert.equal(restored.readAttempt.record.state, 'succeeded');
         assert.notEqual(restored.readAttempt.hostReleaseReceipt, null);
         assert.deepEqual(restored.counts, {admissions: 1, readers: 1, computes: 0, definitions: 0});
         const afterRestart = await attemptBytes(directory);
         for (const original of beforeRestart) assert(afterRestart.includes(original));
-        assert.equal(afterRestart.length, 3);
+        assert.equal(beforeRestart.length, 1);
+        assert.equal(afterRestart.length, 2);
         console.log('READ_121_EVIDENCE', JSON.stringify({directory, entrance, consumer, ref,
           attemptId, originalState: observed.record.state, originalPolicy,
           restoredAttemptId: restored.readAttempt.attempt.attempt_id,
