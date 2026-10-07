@@ -152,10 +152,12 @@ test('reference-only lookup returns original acceptance without diagnostic enric
   let lookup;
   // A known closed-schema rejection is an assertion failure for this valid
   // reference-only operation; unrelated exceptions remain infrastructure errors.
-  await assert.doesNotReject(async () => {
+  try {
     lookup = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
-  }, error => error?.code === 'InvalidClientHostSubmissionLookup',
-  '[check-mutation:submission-check-lookup-contract]');
+  } catch (error) {
+    if (error?.code !== 'InvalidClientHostSubmissionLookup') throw error;
+    assert.fail('[check-mutation:submission-check-lookup-contract] A valid original lookup must match its closed response contract.');
+  }
   assertReferenceOnly(lookup, original);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });

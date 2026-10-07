@@ -13,7 +13,7 @@ const mutations = [
     from: "const observesInput = value.kind === 'aql' && value.intentCid === outcome.intentCid;",
     to: 'const observesInput = true;',
     targets: [target('reference-only lookup returns original acceptance without diagnostic enrichment',
-      'submission-check-lookup-contract', 'doesNotReject')]},
+      'submission-check-lookup-contract', 'fail')]},
   {name: 'original submission loses its transient checked observation', path: sdk, file: tests,
     from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
     to: 'void checkObservation;',
