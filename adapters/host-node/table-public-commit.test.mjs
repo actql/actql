@@ -12,7 +12,7 @@ import {inspect} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
-import {connectEmbeddedLocal} from './embedded-local.mjs';
+import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 
 const baseWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
@@ -358,6 +358,39 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     assert.deepEqual(commits(f.catalog), afterReplacement);
     assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\nwrite\n');
   } finally { await client.close(); }
+});
+
+test('Table installed HTTP Host retires capture custody before completing close', async t => {
+  const f = await tablePhysicalFixture(t), declared = declaration();
+  const effectProfilePath = join(f.root, 'table-effect-close.json');
+  await writeFile(effectProfilePath, JSON.stringify({
+    version: 'actql-installed-table-effect/0.1', connectorId: 'table', connection,
+    python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
+    catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
+    targets: [{effectId: 'save', resource, targetRef, mappingRef,
+      mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
+      catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
+      expectedTable: null, permissions: ['scope:store'],
+      footprint: {kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract),
+        provider_namespace: 'table', provider_boundary_cid: f.catalog.catalogCid,
+        resource_kind: 'Table', provider_object_identity_cids: []}}], limits: {}}));
+  const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
+  const host = await openInstalledRemoteHttpHost({directory: join(f.root, 'http-host'),
+    authenticate: () => principalId, effectProfilePath, authorization: {
+      accountConfiguration: account(), reviewReaders: [principalId],
+      reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+      hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+    }}).catch(error => {
+      t.diagnostic(inspect(error, {depth: 8}));
+      throw error;
+    });
+  const first = await host.close();
+  assert.equal(first.storeCleanupPending, false);
+  assert.equal(first.authorizationCleanupPending, false);
+  assert.deepEqual(first.pendingRetention, []);
+  assert.deepEqual(await host.close(), first, 'Repeated close completes without reopening or re-retiring');
+  assert.equal(commits(f.catalog).length, 0, 'Closing an installed writer sends no operation');
 });
 
 for (const rows of [expectedRows, []]) {

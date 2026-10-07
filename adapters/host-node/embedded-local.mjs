@@ -1452,7 +1452,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const preparedSource = acquired && acquisitionCount !== 2
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     const reproduced = captureSubmission(submission, resultNames, preparedSource, preparedSources);
-    if (canonicalJson(reproduced) !== canonicalJson(captured)) {
+    if (canonicalValueJson(reproduced, {dataKeys: true}) !==
+        canonicalValueJson(captured, {dataKeys: true})) {
       throw new Error('HeldAcquisitionChanged');
     }
     if (JSON.stringify(resultNames) !==
@@ -1755,7 +1756,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     if (effectRun === undefined || checkpoints === undefined) return;
     let after = '';
     const failures = [];
-    try { if (reconcileRef === undefined) await retireIncompleteEffects(); }
+    try { await retireIncompleteEffects(); }
     catch (error) { failures.push(error); }
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
@@ -1778,7 +1779,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const sweepEffectRuns = async ({reconcileRef} = {}) => {
     if (effectRun === undefined || checkpoints === undefined) return false;
     let busy = false;
-    try { await retireIncompleteEffects(); }
+    // A requested observation owns only its original Run. Global capture
+    // retirement belongs to ordinary sweeps and final Host shutdown.
+    try { if (reconcileRef === undefined) await retireIncompleteEffects(); }
     catch (error) {
       busy = true;
       diagnostic('effect_capture_retirement_failed', {
