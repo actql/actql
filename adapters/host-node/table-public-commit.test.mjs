@@ -35,7 +35,7 @@ const account = () => canonicalJson({version: 'actql-execution-account-config/0.
     {entry_id: 'run', outcome: 'allow', principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]});
 
-function declaration() {
+function declaration(inputField = 'id') {
   const body = JSON.parse(baseWire), manifest = withFixtureConnector(body, targetRef);
   const targetSchema = {additional_properties: false,
     fields: {Id: {nullable: false, type: 'number'}, Name: {nullable: true, type: 'number'}},
@@ -44,7 +44,7 @@ function declaration() {
     minimum_approval: 'required', permission_rules: [{effect_kind: 'store', permissions: ['scope:store'],
       selector_class: 'none', write_fields: ['Name']}], primary_identity: 'Id', required_fields: [],
     required_permissions: [], resource_identity_cid: contentCid(tableContract),
-    row_mapping: {Name: {field: 'id', null_behavior: 'reject'}},
+    row_mapping: {Name: {field: inputField, null_behavior: 'reject'}},
     schema: 'actql.mapping_contract/0.1', target_ref: targetRef, target_schema: targetSchema,
     target_schema_identity: contentCid(targetSchema), version: 'reference-v1', writable_fields: ['Name']};
   mapping.mapping_contract_cid = contentCid(mapping);
@@ -68,11 +68,11 @@ function commits(catalog) {
 function readerProgram(id = 'read-committed-table') {
   return {version: 'actql/0.1', id, stages: [
     {id: 'read', inputs: {input: {connector: 'table', resource}},
-      steps: [{filter: 'id >= 0', as: 'kept'}, {select: ['id'], as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id']}}},
+      steps: [{filter: 'id >= 0', as: 'kept'}, {select: ['id', 'tag'], as: 'output'}],
+      results: {rows: {from: 'output', fields: ['id', 'tag']}}},
     {id: 'compute', inputs: {input: {result: {stage: 'read', result: 'rows'}}},
       steps: [{derive: {doubled: 'id * 2'}, as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id', 'doubled']}}}],
+      results: {rows: {from: 'output', fields: ['id', 'tag', 'doubled']}}}],
     results: {answer: {from: {stage: 'compute', result: 'rows'}}}};
 }
 async function waiting(run, observations, t) {
@@ -458,6 +458,87 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
 });
 }
 
+test('Table sparse materialization exposes the existing Result presence boundary before writes', async t => {
+  const f = await tablePhysicalFixture(t), declared = declaration('person_key');
+  const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
+  const effectProfilePath = join(f.root, 'sparse-effect.json');
+  await writeFile(effectProfilePath, JSON.stringify({
+    version: 'actql-installed-table-effect/0.1', connectorId: 'table', connection,
+    python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
+    catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
+    targets: [{effectId: 'save', resource, targetRef, mappingRef,
+      mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
+      catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
+      expectedTable: null, permissions: ['scope:store'], footprint: {
+        kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract),
+        provider_namespace: 'table', provider_boundary_cid: f.catalog.catalogCid,
+        resource_kind: 'Table', provider_object_identity_cids: []}}], limits: {}}));
+  const client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'sparse-host'), effectProfilePath,
+      authorization: {accountConfiguration: account(), reviewReaders: [principalId],
+        reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+          publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+        hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}}}});
+  try {
+    const sparse = JSON.parse(await readFile(new URL('../../scripts/fixtures/graph-presence.program.json', import.meta.url), 'utf8'));
+    sparse.id = 'sparse-table';
+    const stage = sparse.stages[0];
+    stage.steps[1].values = {schema: {
+      person_key: {type: 'number', nullable: false},
+      tenant_key: {type: 'string', nullable: false}},
+      rows: [{person_key: 3, tenant_key: 'a'}]};
+    stage.steps[3].graph.nodes[1].key = ['person_key', 'tenant_key'];
+    stage.steps.pop();
+    stage.results = {rows: {from: 'rows', fields: ['person_key', 'p']},
+      answer: {from: 'rows', fields: ['person_key']}};
+    stage.effects = program([]).stages[0].effects;
+    sparse.results.answer.from.result = 'answer';
+    // The root public Result exports only guaranteed person_key. The stage's
+    // closed input to Store still requires p and therefore cannot yet carry
+    // the complete sparse Relation through the existing Result-based spelling.
+    await assert.rejects(client.aql(JSON.stringify(sparse), {format: 'json', requestId: 'sparse-table-input'}), error => {
+      t.diagnostic(inspect({phase: 'sparse-table-input', error}, {depth: 8}));
+      assert.equal(error.code, 'ClientProgramRejected');
+      return true;
+    });
+    assert.deepEqual(commits(f.catalog), [], 'An unpublishable input is not staged or committed');
+    assert.equal((await client.checkpoints()).items.length, 0, 'Checking does not admit a Run');
+    const dense = plain(sparse);
+    dense.stages[0].steps[4].node_rows = {definition: 'N'};
+    const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+    const numericProfile = JSON.parse(await readFile(new URL('../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'));
+    const graphLaw = JSON.parse(await readFile(new URL('../../spec/dependencies/actql-graph-laws.json', import.meta.url), 'utf8'));
+    const environment = moon.clientProgramCheckEnvironmentWithGraphProfile(declared.wire,
+      JSON.parse(declared.wire).evidence_bundle_cid, false, true, true, true, true, false, false,
+      contentCid(numericProfile), contentCid(graphLaw));
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      JSON.stringify(sparse), 'json', environment, undefined, []);
+    const issue = inspect(moon.clientProgramEffectPreparationIssue(outcome), {depth: 10});
+    assert.match(issue, /PresenceRequired[\s\S]*'p'/,
+      'The actual common checker rejects Conditional p at Result closure');
+    // Validate the same Graph and selected schemas through ordinary public
+    // execution, independently of the Effect computation capability boundary.
+    delete dense.stages[0].effects;
+    dense.results.rows = {from: {stage: 'source', result: 'rows'}};
+    const denseRun = await client.aql(JSON.stringify(dense), {format: 'json', requestId: 'dense-control'});
+    assert.equal((await terminal(denseRun, [], t)).status, 'succeeded');
+    assert.deepEqual(plain(await denseRun.result('answer').all()).map(row => row.person_key).sort(), [1, 2]);
+    assert.deepEqual(plain(await denseRun.result('rows').all()).sort((a, b) => a.person_key - b.person_key),
+      [{person_key: 1, p: 7}, {person_key: 2, p: null}],
+      'Definition selection preserves the actual and explicitly NULL property');
+    const projection = plain(sparse);
+    projection.stages[0].steps.push({select: ['person_key'], as: 'projected'});
+    projection.stages[0].results.rows.from = 'projected';
+    projection.stages[0].results.answer.from = 'projected';
+    projection.stages[0].results.rows.fields = ['person_key'];
+    delete projection.stages[0].effects;
+    const projectedRun = await client.aql(JSON.stringify(projection), {format: 'json', requestId: 'projection-control'});
+    assert.equal((await terminal(projectedRun, [], t)).status, 'succeeded');
+    assert.deepEqual(plain(await projectedRun.result('answer').all()).map(row => row.person_key).sort(), [1, 2, 3]);
+    assert.deepEqual(commits(f.catalog), [], 'Read-only Graph controls write no Table');
+  } finally { await client.close(); }
+});
+
 test('Table installed HTTP Host retires capture custody before completing close', async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
   const effectProfilePath = join(f.root, 'table-effect-close.json');
@@ -587,14 +668,13 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
   const later = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
     installation: {directory: join(f.root, 'reader-host'), sourceProfilePath, authorization}});
   try {
-    // This public reader exercises the existing guaranteed-column projection.
-    // The exact complete values were separately checked through actual Iceberg
-    // I/O above; it does not certify public sparse/all-column read support.
+    // Read the complete required schema, including nullable text, through the
+    // public Source and two-task Relation path after the origin Host closes.
     const readRun = await later.start(readerProgram(), {requestId: 'new-table-reader'});
     const state = await terminal(readRun, observations, t);
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(multiset(await readRun.result('answer').all()),
-      multiset(rows.map(row => ({id: row.id, doubled: row.id * 2}))));
+      multiset(rows.map(row => ({id: row.id, tag: row.tag, doubled: row.id * 2}))));
     assert.equal(commits(f.catalog).length, 1);
   } finally { await later.close(); }
   if (rows.length) {
@@ -684,7 +764,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         const run = await reader.start(readerProgram(`read-replacement-${index}`), {requestId: `read-${index}`});
         assert.equal((await terminal(run, observations, t)).status, 'succeeded');
         assert.deepEqual(multiset(await run.result('answer').all()),
-          multiset(replacement.map(row => ({id: row.id, doubled: row.id * 2}))));
+          multiset(replacement.map(row => ({id: row.id, tag: row.tag, doubled: row.id * 2}))));
         assert.equal(commits(f.catalog).length, before + 1);
       } finally { await reader.close(); }
       previous = updated;
