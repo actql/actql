@@ -1452,7 +1452,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const preparedSource = acquired && acquisitionCount !== 2
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     const reproduced = captureSubmission(submission, resultNames, preparedSource, preparedSources);
-    if (canonicalJson(reproduced) !== canonicalJson(captured)) {
+    if (canonicalValueJson(reproduced, {dataKeys: true}) !==
+        canonicalValueJson(captured, {dataKeys: true})) {
       throw new Error('HeldAcquisitionChanged');
     }
     if (JSON.stringify(resultNames) !==
