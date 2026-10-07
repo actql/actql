@@ -24,6 +24,8 @@ pub fn read_integer_number(Double) -> Double?
 
 pub fn read_safe_integer(Double) -> Int64?
 
+pub fn start_utf8_admission(String, Int64) -> Result[Utf8Admission, Utf8AdmissionIssue]
+
 pub fn unicode_scalar_count(String) -> Int?
 
 pub fn utf8_length_within(String, Int) -> Int?
@@ -37,11 +39,22 @@ pub(all) enum DecimalIssue {
   RangeExceeded
 } derive(Eq, @debug.Debug)
 
+type Utf8Admission
+pub fn Utf8Admission::advance(Self) -> Utf8AdmissionPoll
+pub fn Utf8Admission::cancel(Self) -> Unit
+
 pub(all) enum Utf8AdmissionIssue {
   InvalidLimit
   LimitExceeded
   MalformedUtf16(Int)
 } derive(Eq, @debug.Debug)
+
+pub enum Utf8AdmissionPoll {
+  Utf8AdmissionContinue
+  Utf8AdmissionComplete(Int64)
+  Utf8AdmissionFailed(Utf8AdmissionIssue)
+  Utf8AdmissionTerminal
+}
 
 // Type aliases
 

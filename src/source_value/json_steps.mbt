@@ -128,6 +128,7 @@ pub fn cancel_json_parse(cursor : JsonParse) -> Unit {
   cursor.document.frames.clear()
   cursor.document.parser.path.clear()
   cursor.document.completed = None
+  cursor.document.string = None
   cursor.document.parser.source = ""
   cursor.terminal = true
 }

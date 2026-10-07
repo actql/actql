@@ -2941,7 +2941,11 @@ fn serve_holder_output(
                     completed = true
                     break
                   }
-                  Ok(false) => ()
+                  Ok(false) =>
+                    // A chunk is durable, but the destination is not yet
+                    // committed. Reconstruction must resume this exact
+                    // Transfer from the retained producer, not reacquire it.
+                    holder_checkpoint(resources)("retained-transfer-pending")
                   Err(issue) => {
                     failed = true
                     report("retained-transfer-pending", [
@@ -3649,6 +3653,7 @@ fn run_holder(
         // repeatedly killed at the same historical boundary.
         if saved_completion &&
           (
+            resources.kill_at == "retained-transfer-pending" ||
             resources.kill_at == "retained-receiver-committed" ||
             resources.kill_at == "retained-consumer-borrowed"
           ) {

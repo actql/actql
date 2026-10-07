@@ -87,6 +87,8 @@ struct Admission {
   mut deepest : Int
   mut largest_string : Int
   mut terminal : Bool
+  mut text : @scalar.Utf8Admission?
+  mut measured_text : Int?
 }
 
 ///|
@@ -121,6 +123,8 @@ pub fn start_admission(
     deepest: 0,
     largest_string: 0,
     terminal: false,
+    text: None,
+    measured_text: None,
   })
 }
 
@@ -129,6 +133,32 @@ fn Admission::step(admission : Admission) -> Result[Unit, Issue] {
   let tree = admission.tree
   let work = admission.work
   let limits = admission.limits
+  if admission.text is Some(text) {
+    match text.advance() {
+      @scalar.Utf8AdmissionContinue => ()
+      @scalar.Utf8AdmissionComplete(bytes) => {
+        admission.measured_text = Some(bytes.to_int())
+        admission.text = None
+      }
+      @scalar.Utf8AdmissionFailed(issue) => {
+        let kind = match issue {
+          @scalar.MalformedUtf16(_) => InvalidUnicode
+          _ => BudgetExceeded
+        }
+        let (parent, edge, span) = match work.last().unwrap() {
+          Visit(node, parent, edge, _) => (parent, edge, node.span)
+          ObjectNext(fields, parent, next, _, _) => {
+            let field = fields[next]
+            (parent, Field(field.key, field.key_span), field.key_span)
+          }
+          _ => abort("invalid text admission continuation")
+        }
+        return Err(at(tree, parent, edge, span, kind))
+      }
+      @scalar.Utf8AdmissionTerminal => abort("closed text admission cursor")
+    }
+    return Ok(())
+  }
   if work.pop() is Some(task) {
     match task {
       Visit(node, parent, edge, parent_depth) => {
@@ -151,7 +181,27 @@ fn Admission::step(admission : Admission) -> Result[Unit, Issue] {
           @source.Bool(value) => Bool(value)
           @source.Number(value) => Number(value)
           @source.String(value) => {
-            match text_charge(value, limits, admission.remaining_text) {
+            let charged = if admission.measured_text is Some(bytes) {
+              admission.measured_text = None
+              Ok(bytes)
+            } else if value.length() > 64 {
+              let allowance = Int::min(
+                limits.max_string_bytes,
+                admission.remaining_text,
+              )
+              match @scalar.start_utf8_admission(value, allowance.to_int64()) {
+                Ok(text) => {
+                  admission.text = Some(text)
+                  work.push(task)
+                  return Ok(())
+                }
+                Err(@scalar.MalformedUtf16(_)) => Err(InvalidUnicode)
+                Err(_) => Err(BudgetExceeded)
+              }
+            } else {
+              text_charge(value, limits, admission.remaining_text)
+            }
+            match charged {
               Ok(size) => {
                 admission.remaining_text -= size
                 admission.largest_string = Int::max(
@@ -204,7 +254,28 @@ fn Admission::step(admission : Admission) -> Result[Unit, Issue] {
         if next < fields.length() {
           let field = fields[next]
           let edge = Field(field.key, field.key_span)
-          match text_charge(field.key, limits, admission.remaining_text) {
+          let charged = if admission.measured_text is Some(bytes) {
+            admission.measured_text = None
+            Ok(bytes)
+          } else if field.key.length() > 64 {
+            let allowance = Int::min(
+              limits.max_string_bytes,
+              admission.remaining_text,
+            )
+            match
+              @scalar.start_utf8_admission(field.key, allowance.to_int64()) {
+              Ok(text) => {
+                admission.text = Some(text)
+                work.push(task)
+                return Ok(())
+              }
+              Err(@scalar.MalformedUtf16(_)) => Err(InvalidUnicode)
+              Err(_) => Err(BudgetExceeded)
+            }
+          } else {
+            text_charge(field.key, limits, admission.remaining_text)
+          }
+          match charged {
             Ok(size) => {
               admission.remaining_text -= size
               admission.largest_string = Int::max(
@@ -271,6 +342,11 @@ pub fn advance_admission(
 
 ///|
 pub fn cancel_admission(admission : Admission) -> Unit {
+  if admission.text is Some(text) {
+    text.cancel()
+  }
+  admission.text = None
+  admission.measured_text = None
   admission.work.clear()
   admission.tree.clear()
   admission.terminal = true

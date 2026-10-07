@@ -477,6 +477,8 @@ pub fn completed_relation_export_matches_output(CompletedRelationExportReceipt, 
 
 pub fn completed_relation_export_measurement(CompletedRelationExportReceipt) -> CompletedRelationExportMeasurement
 
+pub fn completed_relation_export_receipt_live(CompletedRelationExportReceipt) -> Bool
+
 pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity
 
 pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int) -> Result[(String, Array[String]), CompletedExportIssue]
@@ -1249,6 +1251,8 @@ pub fn start_completed_output_export(CompletedOutput, Int, ValueLimits, RowWireL
 
 pub fn start_completed_record_guard(@bounded_execution.Control, CompletedOutput, Int, FixedInputGuardMeasureLimits, Int) -> Result[FixedRecordGuardScan, FixedInputGuardIssue]
 
+pub fn start_completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int, Int) -> Result[CompletedRelationSnapshotPreparation, CompletedExportIssue]
+
 pub fn start_completed_relation_identity_scan(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int, Int) -> Result[CompletedRelationIdentityScan, CompletedExportIssue]
 
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
@@ -1739,6 +1743,11 @@ pub(all) struct CompletedRelationExportMeasurement {
 type CompletedRelationExportReceipt
 
 type CompletedRelationIdentityScan
+
+type CompletedRelationSnapshotPreparation
+pub fn CompletedRelationSnapshotPreparation::advance(Self, Int) -> Result[(Bool, Int), CompletedExportIssue]
+pub fn CompletedRelationSnapshotPreparation::cancel(Self) -> Unit
+pub fn CompletedRelationSnapshotPreparation::finish(Self) -> Result[(String, Array[String]), CompletedExportIssue]
 
 type CompletedResultRelationExportPreparation
 

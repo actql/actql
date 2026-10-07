@@ -268,55 +268,24 @@ pub fn admit_captured_result_snapshot(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue] {
-  if definition.name != "result_definition" ||
-    artifact.name != "result_artifact" {
-    return Err(CaptureIssuanceWrongContract("result"))
-  }
-  guard contract_string(definition, "result_name") is Some(name) else {
-    return Err(CaptureIssuanceInvalidFields("result_name"))
-  }
-  if contract_string(artifact, "result_definition_cid") !=
-    Some(definition.identity) {
-    return Err(CaptureIssuanceReferenceMismatch("result_definition_cid"))
-  }
-  let rows = match
-    parse_contract_wire(
-      rows_wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-      data_keys=true,
+  // Explicit synchronous callers drain the same owner; environments poll it.
+  let preparation = match
+    start_captured_result_snapshot(
+      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
+      2147483647,
     ) {
-    Ok(value) => value
-    Err(_) => return Err(CaptureIssuanceInvalidRows(name))
+    Ok(preparation) => preparation
+    Err(issue) => return Err(issue)
   }
-  guard rows is @json.Array(frozen) else {
-    return Err(CaptureIssuanceInvalidRows(name))
+  while true {
+    match preparation.advance(64) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => return preparation.finish()
+      Ok((false, _)) => ()
+    }
+  } nobreak {
+    Err(CaptureIssuanceEncoding)
   }
-  let row_values = @json.array_values(frozen)
-  let canonical = @json.stringify_value(
-    rows, max_wire_bytes, max_nodes, max_depth,
-  ) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  if canonical != rows_wire {
-    return Err(CaptureIssuanceInvalidRows(name))
-  }
-  if !captured_fields_valid(row_values, fields) {
-    return Err(CaptureIssuanceInvalidFields(name))
-  }
-  if contract_count(artifact, "actual_row_count") !=
-    Some(row_values.length().to_int64()) {
-    return Err(CaptureIssuanceReferenceMismatch("actual_row_count"))
-  }
-  guard captured_relation_cid(rows, max_wire_bytes, max_nodes, max_depth)
-    is Some(logical_cid) else {
-    return Err(CaptureIssuanceEncoding)
-  }
-  if contract_string(artifact, "logical_result_cid") != Some(logical_cid) {
-    return Err(CaptureIssuanceReferenceMismatch("logical_result_cid"))
-  }
-  Ok({ name, definition, artifact, rows, fields: fields.copy(), })
 }
 
 ///|

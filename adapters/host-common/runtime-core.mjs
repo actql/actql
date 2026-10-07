@@ -2876,16 +2876,27 @@ function publicationControl(moon) {
       return moon.strategyCapturedEffectSourceStoreAuthorityCid(
         effectSourceToken(source));
     },
-    admitCompletedResultSnapshot(exportHandle, limits) {
+    async admitCompletedResultSnapshot(exportHandle, limits, signal) {
       issuanceLimits(limits, 'completed Result snapshot');
-      return inspectSnapshot(checked(
-        moon.strategyHostOutputExportAdmitCapturedResultSnapshot(
-          exportHandle,
-          limits.maxWireBytes,
-          limits.maxNodes,
-          limits.maxDepth,
-        ),
-      ));
+      signal?.throwIfAborted();
+      const preparation = checked(moon.strategyHostOutputSnapshotBegin(
+        exportHandle, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      let finished = false;
+      try {
+        while (true) {
+          signal?.throwIfAborted();
+          if (checked(moon.strategyHostOutputSnapshotAdvance(
+            preparation, 256))) break;
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        signal?.throwIfAborted();
+        const snapshot = inspectSnapshot(checked(
+          moon.strategyHostOutputSnapshotFinish(preparation)));
+        finished = true;
+        return snapshot;
+      } finally {
+        if (!finished) moon.strategyHostOutputSnapshotCancel(preparation);
+      }
     },
     admitPendingSourceStateAdvance(completeWire, observation, limits) {
       issuanceLimits(limits, 'pending source-state advance');

@@ -74,24 +74,9 @@ fn admit_utf8_window(
   let mut used = ascii_index - consumed
   let mut index = ascii_index
   while index < text.length() {
-    let unit = text[index].to_int()
-    let width = if unit < 0x80 {
-      1
-    } else if unit < 0x800 {
-      2
-    } else if unit >= 0xd800 && unit <= 0xdbff {
-      if index + 1 >= text.length() {
-        return Err(MalformedUtf16(index))
-      }
-      let trailing = text[index + 1].to_int()
-      if trailing < 0xdc00 || trailing > 0xdfff {
-        return Err(MalformedUtf16(index))
-      }
-      4
-    } else if unit >= 0xdc00 && unit <= 0xdfff {
-      return Err(MalformedUtf16(index))
-    } else {
-      3
+    let (next, width) = match utf8_scalar_extent(text, index) {
+      Ok(extent) => extent
+      Err(issue) => return Err(issue)
     }
     if width > allowance - used {
       remaining -= used.to_int64()
@@ -106,7 +91,7 @@ fn admit_utf8_window(
       }
     }
     used += width
-    index += if width == 4 { 2 } else { 1 }
+    index = next
   }
   Ok(limit - remaining + used.to_int64())
 }

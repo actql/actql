@@ -2,7 +2,7 @@
 // requested catalog is checked against them; it cannot invent an execution.
 import assert from 'node:assert/strict';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {connectionSuites, executedConnectionCoverage, nestLocalSuites, targets} from '../bounded-session/evidence.mjs';
+import {sessionModelAction, connectionSuites, executedConnectionCoverage, nestLocalSuites, targets} from '../bounded-session/evidence.mjs';
 import {validateCatalog} from './actions.mjs';
 import {bridgeModelAction, bridgeSuite} from '../events-bridge/evidence.mjs';
 
@@ -24,10 +24,7 @@ const command = (selection, target, filter) => ['moon', 'test', selection, '--ta
   ...(filter ? ['--filter', filter] : [])];
 
 export function executionRecipes(localSuites = localExecutionSuites) {
-  const recipes = [{role: 'model', runId: 'lean', action: {id: 'model', kind: 'formal-model', target: 'model',
-    command: ['node', 'proofs/bounded-session/check.mjs'], package: null, minimumUnits: 14,
-    profile: 'BoundedSession typed claims and audited foundational axioms',
-    premises: ['Lean kernel and permitted foundational axioms'], dependencies: []}}];
+  const recipes = [{role: 'model', runId: 'lean', action: sessionModelAction}];
   recipes.push({role: 'model', runId: 'events-model', action: bridgeModelAction});
   for (const target of targets) {
     for (const [id, packagePath, profile] of [

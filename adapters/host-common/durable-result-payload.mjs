@@ -214,7 +214,7 @@ export async function storeCompletedResultPublicationPayload(
         undefined, undefined, signal),
     limits,
     signal,
-    handle => {
+    async handle => {
       const evidence = control.issueResultEvidence(
         handle, publication.evidenceContext, publication.limits,
       );
@@ -224,9 +224,10 @@ export async function storeCompletedResultPublicationPayload(
         publication.retention,
         publication.limits,
       );
-      const snapshot = publication.control.admitCompletedResultSnapshot(
+      const snapshot = await publication.control.admitCompletedResultSnapshot(
         handle,
         publication.limits,
+        signal,
       );
       return Object.freeze({...evidence, artifact, snapshot});
     },
@@ -292,7 +293,8 @@ async function storeCompletedPayload(
     if (!validIdentity(orderedRows)) {
       fail('InvalidDurableResultPayloadIdentity');
     }
-    const publication = issueEvidence?.(exportHandle);
+    const publication = await issueEvidence?.(exportHandle);
+    signal?.throwIfAborted();
     if (publication !== undefined) {
       schema = await store.putPreparedResultSchema(
         orderedRows.resultSchemaWire,
@@ -301,6 +303,7 @@ async function storeCompletedPayload(
       );
       prepared = schema.prepared;
     }
+    signal?.throwIfAborted();
     const sealedPhysical = await writer.seal(orderedRows.orderedRowsCid);
     if (schema !== undefined) {
       prepared = preparedResultOwners(sealedPhysical.prepared, schema.prepared);
