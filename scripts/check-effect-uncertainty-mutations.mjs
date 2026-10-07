@@ -30,23 +30,23 @@ const mutations = [
   ['the retained Effect names are erased',
     'effects: [...state.next_action.effects],', 'effects: [],', boundary, publicCases],
   ['read-only advice becomes permission to submit again',
-    "next: {operation: 'status', ref: {...ref}},",
-    "next: {operation: 'submit', ref: {...ref}},", boundary, publicCases],
+    "next: {operation: 'status', ref: {...ref}},\n    }));\n  }\n  return state;",
+    "next: {operation: 'submit', ref: {...ref}},\n    }));\n  }\n  return state;", boundary, publicCases],
   ['the original Run reference is replaced',
-    "next: {operation: 'status', ref: {...ref}},",
-    "next: {operation: 'status', ref: {...ref, namespaceId: 'wrong-run'}},", boundary, publicCases],
+    "next: {operation: 'status', ref: {...ref}},\n    }));\n  }\n  return state;",
+    "next: {operation: 'status', ref: {...ref, namespaceId: 'wrong-run'}},\n    }));\n  }\n  return state;", boundary, publicCases],
   ['absent or unknown physical stop is presented as confirmed',
     "physicalStop: state.control?.physical_stop ?? 'unknown',",
     "physicalStop: 'confirmed',", unit, controlCases],
   ['a reused Local response rebinds an earlier observation to another Run',
-    '    try { state = structuredClone(state); }', '    try {}', unit, custodyCases],
+    '        state = captureResponse(state);',
+    '        return retainEffectUncertainty(state, ref);', unit, custodyCases],
   ['a Local Effect reply clone failure loses the SDK refusal',
-    "    catch { fail('InvalidHostRunState'); }",
-    '    catch (error) { throw error; }', unit, copiedShapeCases(['proxy'])],
+    '        if (runObservationFailures.has(cause)) throw cause;',
+    '        throw cause;', unit, copiedShapeCases(['proxy'])],
   ['a copied Local Effect reply loses validation before its facts are retained',
-    "    if (!validRunState(state) || state.status !== 'needs_reconciliation' ||\n" +
-      "        state.next_action.kind !== 'reconcile') fail('InvalidHostRunState');",
-    '', unit, copiedShapeCases(['date', 'control-date', 'action-date'])],
+    '        state = structuredClone(state);',
+    '        state = structuredClone(state); return retainEffectUncertainty(state, ref);', unit, copiedShapeCases(['date', 'control-date', 'action-date'])],
 ];
 
 const accepted = (file, expected) => {
@@ -59,6 +59,10 @@ const accepted = (file, expected) => {
 };
 const original = readFileSync(path, 'utf8');
 const results = [];
+// Refuse stale anchors before starting any actual acceptance processes.
+for (const [name, from] of mutations) {
+  if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
+}
 try {
   for (const [name, from, to, file, expected] of mutations) {
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);

@@ -144,12 +144,30 @@ for (const operation of ['status', 'wait', 'reconcile']) {
       });
       t.after(() => client.close());
       const execution = await client.attach(ref);
+      // Capture admits these enumerable data fields once; a Proxy or Date
+      // container alone does not imply a failed copy. Keep the independent
+      // Owner facts, then inject an actual fault into the stable DTO copy.
+      const observed = await execution[operation]();
+      assert.deepEqual(observed, state({revision: 4, cancellation_requested: false,
+        physical_stop: 'confirmed'}));
+      assert.deepEqual(explainEffectUncertainty(observed), expected('confirmed', 4));
+      const clone = globalThis.structuredClone;
+      t.after(() => { globalThis.structuredClone = clone; });
+      globalThis.structuredClone = input => {
+        if (input?.status !== 'needs_reconciliation' || input.control === undefined) return clone(input);
+        if (kind === 'proxy') throw new Error('private stable response copy failure');
+        const copy = clone(input);
+        if (kind === 'date') delete copy.next_action;
+        if (kind === 'control-date') copy.control.physical_stop = 'future-stop';
+        if (kind === 'action-date') copy.next_action.effects = [null];
+        return copy;
+      };
       let refused = false;
       try { await execution[operation](); }
       catch (error) { refused = error?.code === 'InvalidHostRunState'; }
       assert.equal(refused, true, '[check-mutation:effect-copied-shape]');
       assert.equal(explainEffectUncertainty(reply), undefined);
-      assert.deepEqual(operations, ['connect', 'attach', operation]);
+      assert.deepEqual(operations, ['connect', 'attach', operation, operation]);
     });
   }
 }
