@@ -270,6 +270,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
   let exportSteps = 0;
   let exportPreparationSteps = 0;
   const exportPreparationTrace = [];
+  let completedDispatches = 0, resultPreparationSteps = 0;
+  let resultOrderReached = false, resultPreparationCancels = 0;
   const observedDispatch = route.cancelDispatch ?? 1;
   const cancellation = new AbortController();
   try {
@@ -337,6 +339,38 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       first + expectedSteps.length), undefined);
     const observedMoon = new Proxy(moon, {
       get(target, property, receiver) {
+        if (route.observeResultPreparation &&
+            property === 'strategyHostResultTransformationAdvance') {
+          return value => {
+            const complete = target[property](value, 1);
+            assert.equal(typeof complete, 'boolean');
+            resultPreparationSteps++;
+            // Read the real common cursor only to place cancellation. This
+            // whitebox observation creates no replacement execution state.
+            const rows = value.core.preparation.preparation.rows;
+            if (rows.comparison.phase === 3 && rows.comparison.offset > 20) {
+              resultOrderReached = true;
+              if (mode === 'cancel-during-result-order' && !scheduled) {
+                assert.equal(completedDispatches, 3);
+                assert.equal(complete, false);
+                assert.equal(rows.closed, false);
+                assert.notEqual(value.core.borrow, undefined);
+                scheduled = true;
+                setTimeout(() => cancellation.abort(), 0);
+              }
+            }
+            return complete;
+          };
+        }
+        if (route.observeResultPreparation &&
+            property === 'strategyHostResultTransformationCancel') {
+          return value => {
+            target[property](value);
+            resultPreparationCancels++;
+            assert.equal(value.core.borrow, undefined);
+            assert.equal(value.core.preparation.preparation.rows.closed, true);
+          };
+        }
         if (property !== 'strategyModule_local_Dispatch' &&
             property !== 'strategyModule_local_ManagedStart') {
           return Reflect.get(target, property, receiver);
@@ -347,6 +381,13 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           return {$tag: 1, _0: new Proxy(operations, {
             get(operation, name, receiver) {
               if (name === 'execute') return () => assert.fail('synchronous Compute');
+              if (route.observeResultPreparation && name === 'complete') {
+                return (...args) => {
+                  const result = operation.complete(...args);
+                  if (result.$tag === 1) completedDispatches++;
+                  return result;
+                };
+              }
               if (name === 'output' && (route.observeExport || route.observePreparation) &&
                   dispatch === observedDispatch) {
                 const output = Reflect.get(operation, name, receiver);
@@ -514,7 +555,11 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           });
         },
         close() {
-          if (cancellation.signal.aborted) assert.equal(sawStop, true);
+          if (cancellation.signal.aborted) {
+            if (route.observeResultPreparation) assert.equal(completedDispatches, 3,
+              'Result preparation follows physically completed Compute');
+            else assert.equal(sawStop, true);
+          }
           closed = true;
           writer?.cancel();
         },
@@ -527,6 +572,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     await use({setup, plan, retained, publication, leases, captured,
       observations: () => ({dispatches, producerWork, sawStop, scheduled, receiptProgress, receiptTrace,
         exportTrace, exportSteps, exportPreparationTrace, exportPreparationSteps,
+        completedDispatches, resultPreparationSteps, resultOrderReached,
+        resultPreparationCancels,
         abortReason: cancellation.signal.reason,
         appendsFailed, finalizationsFailed}),
       permitCleanup() { permitCleanup = true; },
@@ -570,7 +617,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         assert.equal(retained.status().holdings, 0);
         assert.equal(retained.status().reservedReadBufferBytes, 0);
       }
-      if (route.publicationFault && publication) {
+      if ((route.publicationFault || route.observeResultPreparation) && publication) {
         assert.equal(publication.status().reservedBytes, 0);
         assert.equal(publication.status().reservedObjects, 0);
       }
@@ -671,6 +718,52 @@ for (const mode of ['success', 'cancel-during-export', 'cancel-during-export-pre
         }, () => true), /PublicationLookupDenied/);
       }
     }, mode, undefined, undefined, false, {observeExport: true});
+  });
+}
+
+for (const mode of ['success', 'cancel-during-result-order']) {
+  test(`retained Named Result ordering yields inside a long Text comparison: ${mode}`, async () => {
+    const prefix = 'x'.repeat(1024) + '😀';
+    const document = JSON.parse(program([{id: 1, s: `${prefix}b`},
+      {id: 2, s: `${prefix}a`}], 'true'));
+    document.id = 'retained-result-order-progress';
+    document.stages[0].steps[0].values.schema.s = {type: 'string', nullable: false};
+    document.stages[0].steps[2].select = ['id', 's'];
+    for (const stage of document.stages) {
+      stage.results.out.fields = ['s'];
+      stage.results.out.order_by = [{s: 'asc'}];
+      if (stage.inputs.r) stage.steps[0].select = ['s'];
+    }
+    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
+      if (mode === 'success') {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.ok(observations().resultPreparationSteps > 3000);
+        assert.equal(observations().resultOrderReached, true);
+        assert.equal(observations().completedDispatches, 3);
+        await assertPublishedRows(publication, plan, owner.execution,
+          [{s: `${prefix}a`}, {s: `${prefix}b`}]);
+      } else {
+        let execution;
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          assert.equal(error.cause, observations().abortReason);
+          execution = error.execution;
+          return true;
+        });
+        assert.equal(observations().scheduled, true);
+        assert.equal(observations().resultOrderReached, true);
+        assert.equal(observations().completedDispatches, 3);
+        assert.equal(observations().resultPreparationCancels, 1);
+        assert.deepEqual(execution.completed, [0, 1, 2]);
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+      assert.equal(observations().dispatches, 3);
+    }, mode, undefined, undefined, false, {observeResultPreparation: true});
   });
 }
 

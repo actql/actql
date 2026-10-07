@@ -41,9 +41,16 @@ priv struct CompletedResultRowsPreparation {
   limits : CompletedResultViewLimits
   mapping_work : Ref[Int]
   order_work : ControlBudget
-  columns : Array[Int]
-  names : Array[String]
-  terms : Array[ColumnOrder]
+  mut columns : Array[Int]
+  mut names : Array[String]
+  mut terms : Array[ColumnOrder]
+  comparison : BoundedRowComparison
+  mut mapping_phase : Int
+  mut mapping_index : Int
+  mut mapping_offset : Int
+  mut mapping_input : @schema.FieldName?
+  mut merge_charged : Bool
+  mut advancing : Bool
   mut projection : Int
   mut order_term : Int
   mut initializing : Int
@@ -143,21 +150,99 @@ fn spend_result_mapping(work : Ref[Int], amount : Int) -> Bool {
 }
 
 ///|
-fn result_source_column(
-  table : CompletedTable,
-  name : @schema.FieldName,
-  work : Ref[Int],
-) -> Result[Int, CompletedResultViewIssue] {
-  let spelling = @schema.reference_name(name)
-  for column = 0; column < IndexedRows::column_count(table); column = column + 1 {
-    if !spend_result_mapping(work, 1) {
-      return Err(Limit)
+fn advance_result_column_mapping(
+  value : CompletedResultRowsPreparation,
+  projection : Bool,
+) -> Result[Unit, CompletedResultViewIssue] {
+  match value.mapping_phase {
+    0 => {
+      if projection {
+        // Preserve the existing complete projection-search charge. Traversal
+        // quantum, including spelling comparison, is independently resumable.
+        if !spend_result_mapping(
+            value.mapping_work, @results.port_projection_count(value.port),
+          ) {
+          return Err(Limit)
+        }
+        value.mapping_phase = 1
+      } else {
+        if !spend_result_mapping(value.mapping_work, 1) {
+          return Err(Limit)
+        }
+        value.mapping_input = Some(
+          @results.port_order_term_at(value.port, value.order_term).unwrap().field,
+        )
+        value.mapping_phase = 2
+      }
     }
-    if RelationRows::field_names(table)[column] == spelling {
-      return Ok(column)
+    1 => {
+      guard @results.port_projection_field_at(value.port, value.mapping_index)
+        is Some(candidate) else { return Err(InvalidProjection) }
+      let output = @schema.field_at(value.schema, value.projection).unwrap().name
+      let (compared, offset, _) = @schema.compare_reference_fragment(
+        candidate.output, output, value.mapping_offset, 1,
+      )
+      value.mapping_offset = offset
+      if compared is Some(compared) {
+        if compared == 0 {
+          if !spend_result_mapping(value.mapping_work, 1) {
+            return Err(Limit)
+          }
+          value.mapping_input = Some(candidate.input)
+          value.mapping_index = 0
+          value.mapping_phase = 2
+        } else {
+          value.mapping_index += 1
+        }
+      }
     }
+    2 => {
+      if value.mapping_index >= IndexedRows::column_count(value.table) {
+        return Err(InvalidProjection)
+      }
+      if !spend_result_mapping(value.mapping_work, 1) {
+        return Err(Limit)
+      }
+      value.mapping_phase = 3
+    }
+    3 => {
+      let name = RelationRows::field_names(value.table)[value.mapping_index]
+      let (compared, offset, _) = @schema.compare_reference_fragment(
+        @schema.Unqualified(name), value.mapping_input.unwrap(),
+        value.mapping_offset, 1,
+      )
+      value.mapping_offset = offset
+      if compared is Some(compared) {
+        if compared == 0 {
+          if projection {
+            value.names.push(@schema.reference_name(
+              @schema.field_at(value.schema, value.projection).unwrap().name,
+            ))
+            value.columns.push(value.mapping_index)
+            value.projection += 1
+          } else {
+            let term = @results.port_order_term_at(
+              value.port, value.order_term,
+            ).unwrap()
+            value.terms.push({
+              column: value.mapping_index,
+              descending: term.direction == @order.Desc,
+              nulls_first: term.nulls == @order.First,
+            })
+            value.order_term += 1
+          }
+          value.mapping_input = None
+          value.mapping_index = 0
+          value.mapping_phase = 0
+        } else {
+          value.mapping_index += 1
+          value.mapping_phase = 2
+        }
+      }
+    }
+    _ => return Err(InvalidProjection)
   }
-  Err(InvalidProjection)
+  Ok(())
 }
 
 ///|
@@ -222,6 +307,16 @@ fn start_completed_result_rows(
     columns: [],
     names: [],
     terms: [],
+    comparison: {
+      left: -1, right: -1, terms: 0, term: 0, phase: -1, offset: 0,
+      charge: { offset: 0, next: 0, remaining: 0, }, tree: None,
+    },
+    mapping_phase: 0,
+    mapping_index: 0,
+    mapping_offset: 0,
+    mapping_input: None,
+    merge_charged: false,
+    advancing: false,
     projection: 0,
     order_term: 0,
     initializing: 0,
@@ -247,77 +342,67 @@ fn cancel_completed_result_rows(value : CompletedResultRowsPreparation) -> Bool 
     false
   } else {
     value.closed = true
-    value.rows.clear()
-    value.scratch.clear()
+    value.rows = []
+    value.scratch = []
+    value.columns = []
+    value.names = []
+    value.terms = []
+    value.mapping_input = None
     true
   }
 }
 
 ///|
-/// Perform at most `quantum` structural preparation steps. A scalar comparison
-/// remains bounded by the admitted field and value limits.
+/// Perform at most `quantum` preparation steps, including reference spelling
+/// lookup, Text charging and comparison inside a stable merge.
 fn advance_completed_result_rows(
   value : CompletedResultRowsPreparation,
   quantum : Int,
 ) -> Result[(Bool, Int), CompletedResultViewIssue] {
-  if quantum <= 0 {
+  if quantum <= 0 || value.advancing {
     return Err(InvalidLimits)
   }
   if value.closed {
     return Err(Unavailable)
   }
-  if !completed_output_available(value.source) {
+  value.advancing = true
+  let result = (fn() -> Result[(Bool, Int), CompletedResultViewIssue] {
+    if !completed_output_available(value.source) || value.closed {
+      return Err(Unavailable)
+    }
+    if value.done {
+      return Ok((true, 0))
+    }
+    advance_completed_result_rows_impl(value, quantum)
+  })()
+  value.advancing = false
+  if result is Err(_) {
     cancel_completed_result_rows(value) |> ignore
-    return Err(Unavailable)
   }
-  if value.done {
-    return Ok((true, 0))
-  }
+  result
+}
+
+///|
+fn advance_completed_result_rows_impl(
+  value : CompletedResultRowsPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), CompletedResultViewIssue] {
   let count = IndexedRows::row_count(value.table)
   let mut spent = 0
   while spent < quantum && !value.done {
     if value.projection < @schema.field_count(value.schema) {
-      if !spend_result_mapping(
-          value.mapping_work,
-          @results.port_projection_count(value.port),
-        ) {
-        return Err(Limit)
-      }
-      let output = @schema.field_at(value.schema, value.projection).unwrap().name
-      guard @results.port_projection_input_at(value.port, value.projection)
-        is Some(input) else {
-        return Err(InvalidProjection)
-      }
-      if !spend_result_mapping(value.mapping_work, 1) {
-        return Err(Limit)
-      }
-      let column = match
-        result_source_column(value.table, input, value.mapping_work) {
-        Ok(result) => result
+      match advance_result_column_mapping(value, true) {
+        Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      value.names.push(@schema.reference_name(output))
-      value.columns.push(column)
-      value.projection += 1
       spent += 1
       continue
     }
     if value.order_term < @results.port_order_term_count(value.port) {
-      if !spend_result_mapping(value.mapping_work, 1) {
-        return Err(Limit)
-      }
-      let term = @results.port_order_term_at(value.port, value.order_term).unwrap()
-      let column = match
-        result_source_column(value.table, term.field, value.mapping_work) {
-        Ok(result) => result
+      match advance_result_column_mapping(value, false) {
+        Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      value.terms.push({
-        column,
-        descending: term.direction == @order.Desc,
-        nulls_first: term.nulls == @order.First,
-      })
-      value.order_term += 1
       spent += 1
       continue
     }
@@ -370,8 +455,13 @@ fn advance_completed_result_rows(
       value.out = value.start
       value.merging = true
     }
-    if !spend_control(value.order_work, 1) {
-      return Err(Limit)
+    if !value.merge_charged {
+      if !spend_control(value.order_work, 1) {
+        return Err(Limit)
+      }
+      value.merge_charged = true
+      spent += 1
+      continue
     }
     let choose_left = if value.left == value.middle {
       false
@@ -379,14 +469,18 @@ fn advance_completed_result_rows(
       true
     } else {
       match
-        compare_row_indices(
-          value.table,
-          value.rows[value.left],
-          value.rows[value.right],
+        bounded_row_comparison_step_with(
+          value.comparison,
           value.terms,
           value.order_work,
+          (row, column) => Some(IndexedRows::read_cell(value.table, row, column)),
+          value.rows[value.left], value.rows[value.right], value.terms.length(),
         ) {
-        Ok(comparison) => comparison <= 0
+        Ok(Some(comparison)) => comparison <= 0
+        Ok(None) => {
+          spent += 1
+          continue
+        }
         Err(InvalidInput) => return Err(InvalidProjection)
         Err(Limit) => return Err(Limit)
         Err(Scalar(issue)) => return Err(Comparison(issue))
@@ -400,6 +494,7 @@ fn advance_completed_result_rows(
       value.right += 1
     }
     value.out += 1
+    value.merge_charged = false
     if value.out == value.end {
       value.start = value.end
       value.merging = false
@@ -413,17 +508,30 @@ fn advance_completed_result_rows(
 fn finish_completed_result_rows(
   value : CompletedResultRowsPreparation,
 ) -> Result[CompletedExportRows, CompletedResultViewIssue] {
-  if value.closed || !value.done || !completed_output_available(value.source) {
+  if value.closed || value.advancing || !value.done {
+    return Err(Unavailable)
+  }
+  value.advancing = true
+  let available = completed_output_available(value.source)
+  value.advancing = false
+  if !available || value.closed {
+    cancel_completed_result_rows(value) |> ignore
     return Err(Unavailable)
   }
   value.closed = true
-  Ok({
+  let rows : CompletedExportRows = {
     table: value.table,
     schema: value.schema,
     names: value.names,
     columns: Some(value.columns),
     rows: Some(value.rows),
-  })
+  }
+  value.rows = []
+  value.scratch = []
+  value.columns = []
+  value.names = []
+  value.terms = []
+  Ok(rows)
 }
 
 ///|
