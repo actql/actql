@@ -6508,3 +6508,22 @@ parents without importing this child implementation into them. Installed availab
 callbacks, other initial metadata, Native capacity correspondence and unexecuted
 Wasm/Native/packed acceptance remain distinct. See the
 [compound input metadata record](2026-10-07-local-compound-input-metadata.md).
+
+### Resumable Join input metadata (2026-10-07)
+
+Selected bounded Join now borrows checked input/output schema names and uses the
+existing lookup/name-charge cursors instead of whole-string comparison or name
+scans inside resume. The long Unicode regression failed before the production
+change and passes after it. Independent metadata work 23/22, existing whole Join
+work/workspace boundaries, cursor-phase cancellation and once-only cleanup are
+preserved. Public retained Host success, two consumer Results, request reuse and
+post-progress physical stop passed at
+`078caad4e2ddb1649373158e031716ef6ae92709`.
+
+The selected pre-commit JS sources passed 14/14; clean implementation gate and
+public Host selections passed 4/4 and 2/2. The initial seven-root runtime build
+timed out; the narrower two-root build and generator checks passed before public
+acceptance. #780/#774/#769 remain dependencies. COUNT/Sequence name processing,
+installed availability callbacks, Native capacity and unexecuted cross-target or
+packed evidence remain distinct. See the
+[Join input metadata record](2026-10-07-local-join-input-metadata.md).

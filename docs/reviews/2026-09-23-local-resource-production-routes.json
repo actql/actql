@@ -4869,6 +4869,34 @@
       },
       "boundary_tests": [
         {
+          "role": "join_compound_metadata_limit",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_metadata_cursor_wbtest.mbt",
+          "fixture": "join metadata preserves literal exact and one short preparation work"
+        },
+        {
+          "role": "join_compound_metadata_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_join_wbtest.mbt",
+          "fixture": "empty bounded join has independent exact work and workspace limits"
+        },
+        {
+          "role": "join_compound_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_metadata_cursor_wbtest.mbt",
+          "fixture": "join metadata yields within long Unicode source and output names"
+        },
+        {
+          "role": "join_compound_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_metadata_cursor_wbtest.mbt",
+          "fixture": "join cancellation retains borrowed inputs at each metadata cursor boundary"
+        },
+        {
           "role": "join_compound_output_port_limit",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5090,6 +5118,14 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "join_compound_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained join source metadata preserves results and post-progress custody",
+          "case": "compoundCompletionProgram"
+        },
         {
           "role": "join_compound_output_port_public",
           "suite": "node:embedded_property_names",
