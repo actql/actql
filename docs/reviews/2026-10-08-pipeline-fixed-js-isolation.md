@@ -266,3 +266,19 @@ No original declaration, protected source, validator, input obligation or
 acceptance rule is changed. This repairs inherited declaration representation,
 not a confirmed product defect or a physical-execution guarantee. Actual
 retained-history validation must rerun after this material correction.
+
+The failed history original is retained as
+`evidence/2026-10-08-pipeline-fixed-js-foundation-failed-151d0f3d5.json.gz` (raw 29533 bytes, SHA-256
+`9d5bcaae4b559108fedee104c0b5eeb71ef9f77d1dc2970371763e7d4ce651ae`); it includes the exact failing guard/output and
+transparent timing preload. It is explicitly `accepted: false`.
+
+At `9076f3d0a03f8f33d70c2856256b19cad0784b5d`, existing strict normalization
+positive/refusal cases passed 10/10 (`run-KiFJY7`, `focused-test-wL1Pwx`):
+`node scripts/local-checks.mjs test node --timeout-seconds 90 --
+--test-name-pattern='single-base normalization'
+proofs/relation-pipeline/foundation.test.mjs`. This does not establish the
+current repository's retained history. The corrected actual-history start
+(`run-lafKCi`) was refused before execution by another worktree's live heavy
+owner; no lock/resource was changed. Runtime physical acceptance remains tied
+to `b7a6926588b03251d95df2f2f049dc7901355163`. Actual corrected retained-history
+validation remains the local acceptance item to resume when custody is available.
