@@ -562,8 +562,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
                 // The common owner has already confirmed cleanup. Still hand
                 // its physical observer to the Site owner so a lost close
                 // acknowledgement cannot strand an otherwise released holding.
-                const reported = error instanceof Error ? error :
-                  new Error('LocalOutputCleanupFailed', {cause: error});
+                // A borrowed Error can be frozen or have read-only fields.
+                // Keep the original failure without annotating that object.
+                const reported = new Error('LocalOutputCleanupFailed', {cause: error});
+                reported.primaryFailure = error;
                 reported.cleanupPending = true;
                 reported.cleanupHandle = output.cleanupHandle;
                 throw reported;
