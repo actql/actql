@@ -381,3 +381,20 @@ actual-history start `run-BTL7Fd` was refused before execution by another
 worktree's live heavy owner (`run-n1FGDR`). No other-owner lock was changed.
 Post-integration retained-history acceptance remains pending, separate from
 the accepted pre-integration `986ac17dc` result.
+
+The bounded next-slot wait acquired the unchanged heavy guard (`run-ih8SlH`)
+for published SHA `55f7cfb7af999337804a36578fcec7e9a5c67187`; actual history
+rejected another inherited `Spurious foundation merge bases` representation,
+not a runtime or mutation failure. A complete read-only check of current
+records identified the three newly adopted resolution records: durable
+submission current main (`999c85f5`), durable submission manifest gates
+(`09eb3572`), and connector role composition (`c0e8785d`). Their declared
+singleton maximal bases match real `git merge-base --all` exactly. Add existing
+digest-bound singleton normalization supplements for each, preserving every
+original record/input/parent/blob/mode and leaving the validator unchanged.
+The exact failed original is `evidence/2026-10-08-pipeline-fixed-js-foundation-failed-55f7cfb7a.json.gz`
+(raw 29548 bytes, SHA-256 `f3a96178ab809cef1affcc26d057e4175a06274b397ecd20d8c9853aecc0fa9d`),
+explicitly not accepted. Existing strict normalization fixtures are unchanged
+and their recorded 10/10 success remains distinct from the required new
+actual-history run. All temporary next-slot waits/lock refusals occurred
+before verification; no other-owner lock was touched.
