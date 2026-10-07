@@ -70,12 +70,14 @@ extern "C" fn provider_construction_probe(
 ) -> String = "actql_proof_provider_construction"
 
 ///|
+#warnings("-unused_value")
 #borrow(read)
 extern "C" fn current_columns_count(
   read : @execution.ProducerReadPreparation,
 ) -> Int = "actql_proof_current_columns_count"
 
 ///|
+#warnings("-unused_value")
 #borrow(preparation, read, transferred)
 extern "C" fn current_preparation_storage_probe(
   preparation : RelationChainInputPreparation,
