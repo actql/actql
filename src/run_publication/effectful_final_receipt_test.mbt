@@ -12,11 +12,13 @@ fn final_test_receipt_field(
 ///|
 fn final_test_source_artifact(
   chain : CapturedRunTestChain,
+  table? : Bool = false,
 ) -> PublicationContract {
   let source = chain.artifact
   let value = captured_test_value(publication_contract_json(source))
   let body = "{\"version\":\"actql-effect-source-artifact/0.1\"," +
-    "\"source_result\":\"rows\",\"source_binding_cid\":\"" +
+    (if table { "\"source_table_input\"" } else { "\"source_result\"" }) +
+    ":\"rows\",\"source_binding_cid\":\"" +
     ordering_test_cid("a") +
     "\",\"invocation_cid\":\"" +
     publication_contract_identity(chain.invocation) +
@@ -39,12 +41,13 @@ fn final_test_source_artifact(
 fn final_test_source(
   chain : CapturedRunTestChain,
   preview : EffectPreviewIdentity,
+  table? : Bool = false,
 ) -> CapturedEffectSourceArtifact {
   admit_captured_effect_source_artifact(
     preview,
     0,
     chain.invocation,
-    final_test_source_artifact(chain),
+    final_test_source_artifact(chain, table~),
     ordering_test_cid("d"),
   ).unwrap()
 }
@@ -64,13 +67,22 @@ fn final_test_local_wire(body : String) -> String {
 fn final_test_local_source(
   chain : CapturedRunTestChain,
   source : CapturedEffectSourceArtifact,
+  table? : Bool = false,
 ) -> CapturedLocalEffectSourceEvidence {
   let unit_cid = ordering_test_cid("1")
   let definition = final_test_local_wire(
-    "{\"version\":\"actql-local-result-definition/0.1\"," +
+    "{\"version\":\"" +
+    (if table {
+      "actql-local-table-input-definition/0.1"
+    } else {
+      "actql-local-result-definition/0.1"
+    }) +
+    "\"," +
     "\"unit_definition_cid\":\"" +
     unit_cid +
-    "\",\"result_name\":\"rows\"}",
+    "\"," +
+    (if table { "\"table_input_name\"" } else { "\"result_name\"" }) +
+    ":\"rows\"}",
   )
   let definition_cid = final_test_receipt_field(
     captured_test_value(definition),
@@ -119,7 +131,11 @@ fn final_test_local_source(
     unit_cid +
     "\",\"local_invocation_cid\":\"" +
     invocation_cid +
-    "\",\"results\":{\"rows\":\"" +
+    (if table {
+      "\",\"results\":{},\"table_inputs\":{\"rows\":\""
+    } else {
+      "\",\"results\":{\"rows\":\""
+    }) +
     publication_contract_identity(artifact) +
     "\"}}",
   )
@@ -145,6 +161,7 @@ fn final_test_preview_wire(
   preview_cid : String,
   plan? : Bool = true,
   artifact_cid? : String? = None,
+  table? : Bool = false,
 ) -> String {
   let receipt = publication_contract_json(chain.receipt)
   let value = captured_test_value(receipt)
@@ -168,16 +185,20 @@ fn final_test_preview_wire(
     ",\"barrier_provenance_cids\":[],\"model_derived\":false," +
     "\"model_task_contract_cids\":[],\"model_invocation_evidence_cids\":[]," +
     "\"model_response_artifact_cids\":[],\"effects\":[{" +
-    "\"effect_id\":\"WriteOne\",\"effect_kind\":\"update\"," +
+    "\"effect_id\":\"WriteOne\",\"effect_kind\":\"" +
+    (if table { "store" } else { "update" }) +
+    "\"," +
     "\"target\":\"Object\",\"mapping\":\"mapping:fixture\"," +
     "\"resolved_mapping_contract_cid\":\"" +
     cid +
     "\",\"effect_identity_cid\":\"" +
     cid +
     (if plan { "\",\"effect_plan_logical_cid\":\"" + cid } else { "" }) +
-    "\",\"source_result\":\"rows\",\"result_artifact_cid\":\"" +
+    "\"," +
+    (if table { "\"source_table_input\"" } else { "\"source_result\"" }) +
+    ":\"rows\",\"result_artifact_cid\":\"" +
     artifact_cid.unwrap_or(
-      publication_contract_identity(final_test_source_artifact(chain)),
+      publication_contract_identity(final_test_source_artifact(chain, table~)),
     ) +
     "\",\"preview_strength\":\"full_diff\",\"source_binding_cid\":\"" +
     cid +
@@ -211,6 +232,7 @@ fn final_test_preview(
   chain : CapturedRunTestChain,
   plan? : Bool = true,
   artifact_cid? : String? = None,
+  table? : Bool = false,
 ) -> EffectPreviewIdentity {
   let placeholder = ordering_test_cid("a")
   let (_, members) = match
@@ -221,6 +243,7 @@ fn final_test_preview(
         placeholder,
         plan~,
         artifact_cid~,
+        table~,
       ),
       65536,
       4096,
@@ -250,6 +273,7 @@ fn final_test_preview(
       placeholder,
       plan~,
       artifact_cid~,
+      table~,
     ),
     65536,
     4096,
@@ -262,6 +286,7 @@ fn final_test_preview(
       preview_cid,
       plan~,
       artifact_cid~,
+      table~,
     ),
     publication_contract_identity(chain.run),
     run_evidence_value_identity(chain.authoring),
@@ -361,7 +386,10 @@ fn final_test_captured_with_plan_inventory(
 }
 
 ///|
-fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
+fn final_test_captured(
+  chain : CapturedRunTestChain,
+  table? : Bool = false,
+) -> PublicationContract {
   let snapshot = admit_captured_result_snapshot(
     chain.definition,
     chain.artifact,
@@ -371,7 +399,8 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
     4096,
     32,
   ).unwrap()
-  let source = final_test_source(chain, final_test_preview(chain))
+  let preview = final_test_preview(chain, plan=!table, table~)
+  let source = final_test_source(chain, preview, table~)
   issue_effectful_captured_run(
     chain.run,
     chain.invocation,
@@ -381,12 +410,16 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
     chain.receipt,
     [snapshot],
     [source],
-    [final_test_local_source(chain, source)],
+    [final_test_local_source(chain, source, table~)],
     [],
     chain.authoring,
     chain.models,
-    final_test_preview(chain),
-    [("WriteOne", "{}")],
+    preview,
+    if table {
+      []
+    } else {
+      [("WriteOne", "{}")]
+    },
     65536,
     4096,
     32,
@@ -839,6 +872,185 @@ test "Effectful capture re-admits the exact local source inventory" {
     captured, "\"effect_source_local_inventory\":{\"WriteOne\":", "\"effect_source_local_inventory\":{\"Foreign\":",
   )
   assert_true(check(foreign_member) is Err(_))
+}
+
+///|
+test "Effectful capture re-admits a private Table source without a Result alias" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain, plan=false, table=true)
+  let source = final_test_source(chain, preview, table=true)
+  let local_evidence = final_test_local_source(chain, source, table=true)
+  let captured = final_test_captured(chain, table=true)
+  let (set_wire, member_wires, set_cid) = final_test_receipts(preview)
+  let check = (candidate : PublicationContract) => {
+    admit_effectful_final_run_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      candidate,
+      preview,
+      set_wire,
+      member_wires,
+      final_test_receipt_wire(chain.receipt, preview, set_cid, candidate),
+      65536,
+      4096,
+      32,
+    )
+  }
+  assert_true(check(captured) is Ok(_))
+  assert_true(
+    captured_effect_source_matches_preview(
+      preview,
+      0,
+      chain.invocation,
+      source,
+      local_evidence,
+      ordering_test_cid("d"),
+      65536,
+      4096,
+      32,
+    ),
+  )
+  let restored = admit_captured_effect_source_from_capture(
+    preview,
+    0,
+    chain.invocation,
+    final_test_source_artifact(chain, table=true),
+    captured,
+    ordering_test_cid("d"),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(
+    captured_effect_source_holding_cid(restored),
+    captured_effect_source_holding_cid(source),
+  )
+  let artifact = captured_effect_source_table_input_from_capture(
+    preview,
+    0,
+    chain.invocation,
+    restored,
+    captured,
+    ordering_test_cid("d"),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let local_value = captured_test_value(
+    captured_local_effect_source_json(local_evidence, 65536, 4096, 32).unwrap(),
+  )
+  let stored_artifact = @json.object_field(local_value, "artifact").unwrap()
+  assert_eq(
+    publication_contract_json(artifact),
+    captured_test_wire(stored_artifact),
+  )
+  assert_true(
+    captured_effect_source_result_from_capture(
+      preview,
+      0,
+      chain.invocation,
+      restored,
+      captured,
+      ordering_test_cid("d"),
+      65536,
+      4096,
+      32,
+    )
+    is Err(_),
+  )
+  assert_true(
+    captured_effect_source_table_input_from_capture(
+      final_test_preview(chain),
+      0,
+      chain.invocation,
+      restored,
+      captured,
+      ordering_test_cid("d"),
+      65536,
+      4096,
+      32,
+    )
+    is Err(_),
+  )
+  for
+    (old, replacement) in [
+      ("\"source_table_input\":\"rows\"", "\"source_result\":\"rows\""),
+      (
+        "\"effect_source_local_inventory\":{\"WriteOne\":", "\"effect_source_local_inventory\":{\"Foreign\":",
+      ),
+    ] {
+    assert_true(
+      check(final_test_reseal_captured_context(captured, old, replacement))
+      is Err(_),
+    )
+  }
+  let definition = @json.object_field(local_value, "definition").unwrap()
+  let invocation = @json.object_field(local_value, "invocation").unwrap()
+  let manifest = @json.object_field(local_value, "manifest").unwrap()
+  let derivation = admit_publication_contract(
+    "derivation_evidence",
+    captured_test_wire(@json.object_field(local_value, "derivation").unwrap()),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let ordering = admit_publication_contract(
+    "ordering_evidence",
+    captured_test_wire(@json.object_field(local_value, "ordering").unwrap()),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let retention = admit_publication_contract(
+    "result_retention_policy",
+    captured_test_wire(@json.object_field(local_value, "retention").unwrap()),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let manifest_body = captured_test_wire(
+    @json.object_without_field(manifest, "self_cid").unwrap(),
+  )
+  let private_map = captured_test_wire(
+    @json.object_field(manifest, "table_inputs").unwrap(),
+  )
+  // Re-seal every changed Manifest: rejection must not rely on a stale hash.
+  for
+    changed in [
+      manifest_body.replace(old="\"table_inputs\":" + private_map + ",", new=""),
+      manifest_body
+      .replace(old="\"results\":{}", new="\"results\":" + private_map)
+      .replace(old="\"table_inputs\":" + private_map + ",", new=""),
+      manifest_body.replace(
+        old="\"table_inputs\":" + private_map,
+        new="\"table_inputs\":{}",
+      ),
+      manifest_body.replace(
+        old="\"unit_definition_cid\":\"" + ordering_test_cid("1") + "\"",
+        new="\"unit_definition_cid\":\"" + ordering_test_cid("f") + "\"",
+      ),
+    ] {
+    assert_true(
+      admit_captured_local_effect_source(
+        source,
+        captured_test_wire(definition),
+        captured_test_wire(invocation),
+        final_test_local_wire(changed),
+        artifact,
+        derivation,
+        ordering,
+        retention,
+        65536,
+        4096,
+        32,
+      )
+      is Err(_),
+    )
+  }
 }
 
 ///|

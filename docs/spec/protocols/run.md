@@ -753,7 +753,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:6869cf0338f030b2258d60cebfb12704a229586eb542cc08aafc6af78f2ba231
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:249355f0a0d114884907036fe07590799bceb281d1ba243cf5ec10f3550f9322
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596
 ```
 

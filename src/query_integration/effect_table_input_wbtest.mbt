@@ -678,6 +678,44 @@ fn verify_captured_private_table_input(
   let ordinary_source = @publication.admit_captured_effect_source_from_result(
     preview, 1, run_invocation, ordinary_source_artifact, ordinary_semantic, store_authority,
   ).unwrap()
+  let table_evidence = @publication_host.admit_client_effect_local_source_evidence(
+    prepared, inputs, 0, manifest, invocation, artifact, physical_source, 65536,
+    4096, 32,
+  ).unwrap()
+  let result_evidence = @publication_host.admit_client_effect_local_source_evidence(
+    prepared, inputs, 1, manifest, invocation, ordinary_artifact, ordinary_source,
+    65536, 4096, 32,
+  ).unwrap()
+  assert_true(
+    @publication.captured_effect_source_matches_preview(
+      preview, 0, run_invocation, physical_source, table_evidence, store_authority,
+      65536, 4096, 32,
+    ),
+  )
+  assert_true(
+    @publication.captured_effect_source_matches_preview(
+      preview, 1, run_invocation, ordinary_source, result_evidence, store_authority,
+      65536, 4096, 32,
+    ),
+  )
+  assert_false(
+    @publication.captured_effect_source_matches_preview(
+      preview, 0, run_invocation, physical_source, result_evidence, store_authority,
+      65536, 4096, 32,
+    ),
+  )
+  // Values inputs have no acquired/imported dependency. Do not fabricate
+  // Source observations to make the private source appear recoverable.
+  assert_true(
+    @publication.admit_captured_effect_source_dependencies(
+      [table_evidence, result_evidence],
+      "[]",
+      65536,
+      4096,
+      32,
+    )
+    is Ok(_),
+  )
   assert_true(
     @publication_host.client_effect_local_source_matches(
       prepared, inputs, 1, manifest, invocation, ordinary_artifact, ordinary_source,

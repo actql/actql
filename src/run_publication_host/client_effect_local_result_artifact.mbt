@@ -511,17 +511,18 @@ pub fn admit_client_effect_local_source_evidence(
   @publication.CapturedLocalEffectSourceEvidence,
   @publication.CapturedLocalEffectSourceIssue,
 ] {
-  guard artifact.source is ResultSource(_, definition) else {
-    return Err(@publication.InvalidLocalReference("source_kind"))
-  }
   if !client_effect_local_source_matches(
       owner, inputs, member_index, manifest, invocation, artifact, source,
     ) {
     return Err(@publication.InvalidLocalReference("owner"))
   }
+  let definition_wire = match artifact.source {
+    ResultSource(_, definition) => definition.wire
+    TableSource(_, definition) => definition.wire
+  }
   @publication.admit_captured_local_effect_source(
     source,
-    definition.wire,
+    definition_wire,
     invocation.wire,
     manifest.wire,
     artifact.artifact,

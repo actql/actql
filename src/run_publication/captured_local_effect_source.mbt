@@ -63,6 +63,89 @@ fn admitted_nested_local_contract(
 }
 
 ///|
+/// A private producer has its own closed version and name slot. Equal name
+/// text or Artifact shape never changes an ordinary Result into a Table input.
+fn captured_local_definition_source(
+  definition : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> EffectPreviewRelationSource? {
+  let (version, name_field, table) = match
+    evidence_string(definition, "version") {
+    Some("actql-local-result-definition/0.1") =>
+      ("actql-local-result-definition/0.1", "result_name", false)
+    Some("actql-local-table-input-definition/0.1") =>
+      ("actql-local-table-input-definition/0.1", "table_input_name", true)
+    _ => return None
+  }
+  guard exact_local_object(
+      definition,
+      version,
+      "self_cid",
+      ["version", "unit_definition_cid", name_field, "self_cid"],
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) &&
+    evidence_string(definition, "unit_definition_cid") is Some(unit) &&
+    valid_contract_cid(unit) &&
+    evidence_string(definition, name_field) is Some(name) &&
+    !name.is_empty() else {
+    return None
+  }
+  Some(if table { TableInput(name) } else { Result(name) })
+}
+
+///|
+/// Validate both namespaces before using either map. Private-only Manifests
+/// may have no public Results, but an empty private map is not an extension.
+fn captured_local_manifest_valid(
+  manifest : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  let fields = [
+    "version", "unit_definition_cid", "local_invocation_cid", "results", "self_cid",
+  ]
+  let private_map = @json.object_field(manifest, "table_inputs")
+  if private_map is Some(_) {
+    fields.push("table_inputs")
+  }
+  guard exact_local_object(
+      manifest, "actql-local-result-manifest/0.1", "self_cid", fields, max_wire_bytes,
+      max_nodes, max_depth,
+    ) &&
+    @json.object_field(manifest, "results") is Some(results) &&
+    object_fields(results) is Ok(entries) else {
+    return false
+  }
+  let private_entries = match private_map {
+    None => []
+    Some(map) => {
+      guard object_fields(map) is Ok(items) && !items.is_empty() else {
+        return false
+      }
+      items
+    }
+  }
+  if entries.is_empty() && private_entries.is_empty() {
+    return false
+  }
+  for map in [entries, private_entries] {
+    for (name, value) in map {
+      guard !name.is_empty() &&
+        string_value(value) is Some(cid) &&
+        valid_contract_cid(cid) else {
+        return false
+      }
+    }
+  }
+  true
+}
+
+///|
 fn validate_captured_local_effect_source_value(
   value : @json.CanonicalValue,
   physical : PublicationContract,
@@ -83,15 +166,10 @@ fn validate_captured_local_effect_source_value(
     }
   }
   guard @json.object_field(value, "definition") is Some(definition) &&
-    exact_local_object(
-      definition,
-      "actql-local-result-definition/0.1",
-      "self_cid",
-      ["version", "unit_definition_cid", "result_name", "self_cid"],
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) else {
+    captured_local_definition_source(
+      definition, max_wire_bytes, max_nodes, max_depth,
+    )
+    is Some(source) else {
     return Err(InvalidLocalContract("definition"))
   }
   guard @json.object_field(value, "invocation") is Some(invocation) &&
@@ -110,37 +188,26 @@ fn validate_captured_local_effect_source_value(
     return Err(InvalidLocalContract("invocation"))
   }
   guard @json.object_field(value, "manifest") is Some(manifest) &&
-    exact_local_object(
-      manifest,
-      "actql-local-result-manifest/0.1",
-      "self_cid",
-      [
-        "version", "unit_definition_cid", "local_invocation_cid", "results", "self_cid",
-      ],
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+    captured_local_manifest_valid(
+      manifest, max_wire_bytes, max_nodes, max_depth,
     ) else {
     return Err(InvalidLocalContract("manifest"))
   }
   guard evidence_string(definition, "self_cid") is Some(definition_cid) &&
     evidence_string(definition, "unit_definition_cid") is Some(unit_cid) &&
     valid_contract_cid(unit_cid) &&
-    evidence_string(definition, "result_name") is Some(result_name) &&
-    !result_name.is_empty() &&
     evidence_string(invocation, "self_cid") is Some(invocation_cid) &&
     evidence_string(invocation, "unit_definition_cid") == Some(unit_cid) &&
     evidence_string(manifest, "unit_definition_cid") == Some(unit_cid) &&
-    evidence_string(manifest, "local_invocation_cid") == Some(invocation_cid) &&
-    @json.object_field(manifest, "results") is Some(results) &&
-    object_fields(results) is Ok(result_entries) &&
-    !result_entries.is_empty() else {
+    evidence_string(manifest, "local_invocation_cid") == Some(invocation_cid) else {
     return Err(InvalidLocalReference("local_semantics"))
   }
-  for (_, artifact_cid) in result_entries {
-    guard string_value(artifact_cid) is Some(cid) && valid_contract_cid(cid) else {
-      return Err(InvalidLocalReference("manifest.results"))
-    }
+  let (map_name, name) = match source {
+    Result(name) => ("results", name)
+    TableInput(name) => ("table_inputs", name)
+  }
+  guard @json.object_field(manifest, map_name) is Some(results) else {
+    return Err(InvalidLocalReference("manifest." + map_name))
   }
   guard admitted_nested_local_contract(
       value, "artifact", "result_artifact", max_wire_bytes, max_nodes, max_depth,
@@ -160,7 +227,7 @@ fn validate_captured_local_effect_source_value(
     is Some(retention) else {
     return Err(InvalidLocalContract("result_evidence"))
   }
-  if evidence_string(results, result_name) != Some(artifact.identity) ||
+  if evidence_string(results, name) != Some(artifact.identity) ||
     contract_string(artifact, "result_definition_cid") != Some(definition_cid) ||
     contract_string(artifact, "invocation_cid") != Some(invocation_cid) {
     return Err(InvalidLocalReference("result_artifact"))
@@ -183,9 +250,7 @@ fn validate_captured_local_effect_source_value(
     is Err(_) {
     return Err(InvalidLocalResultEvidence)
   }
-  if !effect_source_contract_matches_result_facts(
-      physical, artifact, result_name,
-    ) {
+  if !effect_source_contract_matches_relation_facts(physical, artifact, source) {
     return Err(InvalidPhysicalSource)
   }
   Ok(())
@@ -211,7 +276,9 @@ fn captured_local_effect_source_matches_preview(
     return false
   }
   guard effect_preview_member_result_artifact_cid(preview, member_index)
-    is Some(expected) else {
+    is Some(expected) &&
+    effect_source_artifact_relation_source(physical) ==
+    effect_preview_member_relation_source(preview, member_index) else {
     return false
   }
   if expected == physical.identity {
@@ -315,6 +382,52 @@ pub fn admit_captured_effect_source_from_capture(
 /// Project the semantic Result only through the exact captured source/member.
 /// This immutable view never restores Compute or grants physical Store custody.
 pub fn captured_effect_source_result_from_capture(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  source : CapturedEffectSourceArtifact,
+  captured : PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  guard effect_preview_member_relation_source(preview, member_index)
+    is Some(Result(_)) else {
+    return Err(CaptureIssuanceReferenceMismatch("effect_source_result"))
+  }
+  captured_effect_source_relation_artifact_from_capture(
+    preview, member_index, invocation, source, captured, store_authority_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+/// Restore the private semantic Artifact only for its exact Table member.
+/// This projection is not an ordinary Result and does not restore live custody.
+pub fn captured_effect_source_table_input_from_capture(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  source : CapturedEffectSourceArtifact,
+  captured : PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  guard effect_preview_member_relation_source(preview, member_index)
+    is Some(TableInput(_)) else {
+    return Err(CaptureIssuanceReferenceMismatch("effect_source_table_input"))
+  }
+  captured_effect_source_relation_artifact_from_capture(
+    preview, member_index, invocation, source, captured, store_authority_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+fn captured_effect_source_relation_artifact_from_capture(
   preview : EffectPreviewIdentity,
   member_index : Int,
   invocation : PublicationContract,

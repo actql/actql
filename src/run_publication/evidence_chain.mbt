@@ -342,9 +342,6 @@ fn effect_context_preview_inventory_matches(
       return false
     }
     if effect_preview_member_relation_source(preview, index) is Some(source) {
-      // Private Table dependency/Manifest admission is not supplied by the
-      // Result-only closure. Never silently omit that retained responsibility.
-      guard source is Result(name) else { return false }
       let effect_id = preview.member_effect_ids[index]
       expected_source_names.push(effect_id)
       guard effect_preview_member_source_binding_cid(preview, index)
@@ -356,7 +353,6 @@ fn effect_context_preview_inventory_matches(
         evidence_string(artifact, "version") ==
         Some("actql-effect-source-artifact/0.1") &&
         evidence_string(artifact, "result_artifact_cid") is Some(physical_cid) &&
-        evidence_string(artifact, "source_result") == Some(name) &&
         evidence_string(artifact, "source_binding_cid") ==
         Some(source_binding_cid) &&
         evidence_string(artifact, "invocation_cid") == Some(invocation_cid) &&
@@ -378,6 +374,7 @@ fn effect_context_preview_inventory_matches(
           max_nodes, max_depth,
         )
         is Some(physical) &&
+        effect_source_artifact_relation_source(physical) == Some(source) &&
         captured_local_effect_source_matches_preview(
           preview, index, physical, local_source, max_wire_bytes, max_nodes, max_depth,
         ) else {

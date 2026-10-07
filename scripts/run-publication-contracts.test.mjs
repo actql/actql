@@ -108,12 +108,18 @@ test('independent local Effect source inventory binds its Stage Result', () => {
     'ordering', 'retention',
   ]);
   for (const [field, schema] of [
-    ['definition', 'local_result_definition'],
     ['invocation', 'local_computation'],
     ['manifest', 'local_manifest'],
     ['artifact', 'local_result_artifact'],
   ]) {
     assert.deepEqual(entry.properties[field], stage.schemas[schema]);
+  }
+  assert.deepEqual(entry.properties.definition, {oneOf: [
+    stage.schemas.local_result_definition, stage.schemas.local_table_input_definition,
+  ]});
+  for (const kind of ['local_table_input_definition', 'table_input_artifact',
+    'table_input_derivation', 'table_input_ordering']) {
+    assert.ok(dependencies.items.properties.kind.enum.includes(kind));
   }
   const definition = {
     version: 'actql-local-result-definition/0.1',
@@ -414,13 +420,29 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e',
       captured_run:
-        'sha256:6869cf0338f030b2258d60cebfb12704a229586eb542cc08aafc6af78f2ba231',
+        'sha256:249355f0a0d114884907036fe07590799bceb281d1ba243cf5ec10f3550f9322',
     },
   );
-  // Independently recomputed from fixed 77ff0982 with the authored physical
-  // source discriminant added. Remove it before checking the previous private
-  // Manifest extension and the unchanged historical schema.
+  // Independently recomputed from fixed e88475ee with the private Definition
+  // choice and four typed dependency roles added. Undo exactly those changes
+  // before checking the previous source discriminant and Manifest extension.
   const previous = structuredClone(registry.artifact_schemas.captured_run);
+  const context = previous.properties.effect_context;
+  const definition = context.properties.effect_source_local_inventory
+    .additionalProperties.properties.definition;
+  const stage = read('spec/contracts/actql-stage-contracts.json');
+  assert.deepEqual(definition, {oneOf: [stage.schemas.local_result_definition,
+    stage.schemas.local_table_input_definition]});
+  context.properties.effect_source_local_inventory.additionalProperties
+    .properties.definition = definition.oneOf[0];
+  const privateKinds = ['table_input_artifact', 'table_input_derivation',
+    'table_input_ordering', 'local_table_input_definition'];
+  const kinds = context.properties.effect_dependency_inventory.items
+    .properties.kind;
+  assert.equal(kinds.enum.filter(kind => privateKinds.includes(kind)).length, 4);
+  kinds.enum = kinds.enum.filter(kind => !privateKinds.includes(kind));
+  assert.equal(machineCid(previous),
+    'sha256:6869cf0338f030b2258d60cebfb12704a229586eb542cc08aafc6af78f2ba231');
   const physical = previous.properties.effect_context.properties
     .effect_source_artifacts.additionalProperties;
   assert.deepEqual(physical.oneOf, [

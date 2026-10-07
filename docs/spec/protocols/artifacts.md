@@ -245,6 +245,20 @@ role cannot be inferred from equal payload bytes or substituted for an ordinary
 Result role. Missing inventory or unavailable typed dependency bodies block
 recovery; a private source is never downgraded to a source-free Effect.
 
+<!-- requirement-block: result-artifacts.local-table-input-capture-kind result-artifacts.local-table-input-capture-correspondence -->
+Captured dependency inventories MUST retain private producer, Artifact,
+derivation and ordering roles as `local_table_input_definition`,
+`table_input_artifact`, `table_input_derivation` and `table_input_ordering`.
+The latter three reuse the existing sealed Publication bodies and CIDs while
+their typed references resolve the private producer; their kind is not a new
+execution owner or a substituted ordinary Result role.
+Recovery MUST re-admit the closed producer, both Manifest maps and all semantic
+evidence. A private Artifact must match its `table_inputs` name, Unit and local
+Invocation; ordinary Manifest entries continue to resolve ordinary producers.
+The exact physical source, Preview member and Store holding must also agree.
+Missing bodies, a changed namespace or a mismatched projection remain refusal,
+not permission to reexecute, invent a Result or send a commit.
+
 The reference-role table in the stage registry is normative for these
 projections; reference_graph is generated from it. Every listed CID must resolve
 with the expected kind and role. External roles are not opaque exemptions:

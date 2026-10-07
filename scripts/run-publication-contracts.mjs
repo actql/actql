@@ -35,7 +35,10 @@ function capturedLocalEffectSourceSchema() {
     ],
     properties: {
       artifact: clone(stageSchemas.local_result_artifact),
-      definition: clone(stageSchemas.local_result_definition),
+      definition: {oneOf: [
+        clone(stageSchemas.local_result_definition),
+        clone(stageSchemas.local_table_input_definition),
+      ]},
       derivation: {type: 'object'},
       invocation: clone(stageSchemas.local_computation),
       manifest: clone(stageSchemas.local_manifest),
@@ -489,8 +492,9 @@ export function correctedContracts(registry, cli) {
       required: ['kind', 'cid', 'body'],
       properties: {kind: {type: 'string', enum: [
         'result_artifact', 'derivation_evidence', 'ordering_evidence',
+        'table_input_artifact', 'table_input_derivation', 'table_input_ordering',
         'acquisition_relation', 'acquisition_scope', 'result_retention_policy',
-        'local_result_definition', 'local_computation', 'local_manifest',
+        'local_result_definition', 'local_table_input_definition', 'local_computation', 'local_manifest',
         'result_import_observation', 'local_dependencies',
         'result_import_interface', 'gate_requirement', 'source_input_logical',
         'source_evidence', 'local_body', 'parameter_declarations',
