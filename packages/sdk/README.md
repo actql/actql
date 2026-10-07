@@ -9,7 +9,12 @@ connectors depend on the installation; this is not a claim that every Host
 supports every Program. See the [current implementation status](../../docs/reviews/current-product-status.md).
 
 `connect(options)` authenticates with the selected Host and returns its
-confirmed owner, durability and capability snapshot. `aql(text,
+confirmed owner, durability and capability snapshot. The SDK captures the
+profile's scope, limits and capabilities once, validates their unchanged
+observation, and retains detached immutable data. Capture or verification
+failure rejects the connection with `InvalidHostProfile`; it establishes no
+check verdict. The negotiated `scopeRef` identifies connection scope, separately
+from a check report's `context_ref` and input revisions. `aql(text,
 {format: "json" | "yaml"})` and `start(program)` send one admission request
 immediately and resolve only after an acceptance response. Both accept
 `requestId`. An omitted ID is generated before send; an uncertain submission

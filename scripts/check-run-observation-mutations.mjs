@@ -42,6 +42,19 @@ const originalSnapshotFaults = [
   [['cancelRequest'], "        if (structuralKey(observation) !== observedKey) throw new ClientError('InvalidHostRequestCancellation');"],
 ];
 const mutations = [
+  {name: 'connection profile capture reobserves borrowed context', path,
+    file: 'packages/sdk/profile-observation.test.mjs',
+    from: '    profile = captureResponse(profile);', to: '',
+    targets: [target('connection: profile fields are captured once before admission', 'profile-capture-once')]},
+  ...['replacement', 'mutation'].map(fault => ({
+    name: `connection profile verification admits ${fault} of the captured context`, path,
+    file: 'adapters/host-node/client-profile-observation.test.mjs',
+    from: fault === 'replacement'
+      ? "    if (structuralKey(profile) !== observedKey) fail('InvalidHostProfile');"
+      : "    if (structuralKey(observation) !== observedKey) fail('InvalidHostProfile');",
+    to: '', targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: rejected profile ${fault} cannot start checking or issue a verdict`, `profile-public-${fault}`)),
+  })),
   ...originalSnapshotFaults.map(([operations, from]) => ({
     name: `verification conversion changes the captured ${operations.join('/')} snapshot`,
     path, file: unit, from, to: '', targets: operations.map(operation => target(

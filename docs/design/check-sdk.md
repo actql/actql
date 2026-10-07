@@ -1110,6 +1110,13 @@ contract check before any association. This changes neither the checker verdict
 nor the Host's scope/context or disclosure projection. No new source hash,
 persistence, retrieval API, compatibility route or execution state is added.
 
+The connection profile is captured before validation as well. Its retained
+scope, capabilities and limits come from that first admitted observation; a
+verification copy cannot replace or mutate it. `InvalidHostProfile` rejects
+capture or verification failure before a Client is established, without a
+check report, verdict or input-location association. Connection `scopeRef`
+remains distinct from the checker-owned `context_ref` and document revisions.
+
 The same response capture applies to Run status/wait/reconcile, Run and request
 cancellation, request lookup and submission (before its held/admitted branch),
 and DeliveryAttempt lookup. Throwing getters fail through the corresponding
