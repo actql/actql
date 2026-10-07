@@ -65,7 +65,7 @@ acceptance or a substitute for actual execution proof.
 ## Focused commands and preparation evidence
 
 ```sh
-node scripts/local-checks.mjs test moon --timeout-seconds 300 -- \
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- \
   --target js --jobs 1 \
   src/execution_relation/managed_view_finish_wbtest.mbt \
   src/execution_relation/managed_view_output_wbtest.mbt \
@@ -93,6 +93,25 @@ Local preparation evidence at parent HEAD plus the implementation diff:
 Attempt IDs resolve below `_build/local-checks/attempts` and
 `_build/focused-evidence`. They establish only the source and command recorded
 by each receipt, not hosted CI or a pristine packed distribution.
+
+## Clean implementation verification
+
+The commands above also passed on clean implementation SHA
+`14e1c1d0c911bea94f4d05417198a27e217d7ed3`:
+
+- Focused JS: 21/21, `run-1AE5hg` / `focused-test-dRSBpt`.
+- Actual DuckDB/Store Node caller: 1/1,
+  `run-wEM8zv` / `focused-test-0MF4nL`.
+- Both receipts record that exact SHA with `dirty: false`, complete output,
+  exit zero and a passing nonzero-test guard. No packed tarballs were produced.
+- MoonBit formatting, affected generated public interfaces, Node Host/Workers
+  fixture freshness, whitespace and 72-column commit-message checks passed.
+
+The following evidence-record commit changes documentation only. Executed
+receipts remain tied to the implementation SHA; they are not relabelled as
+execution of the later submitted HEAD. An earlier message-only amendment
+preserved the tree and parent of `72ed9b745cecc2ab75bca69576d09c909e81c56c`;
+the clean verification above was executed after that amendment.
 
 ## Remaining scope
 
