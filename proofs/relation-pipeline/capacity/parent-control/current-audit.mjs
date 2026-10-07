@@ -3,6 +3,7 @@ import {hash} from '../../inventory.mjs';
 import {boundCurrentOverlay,currentFixture} from './current-overlay.mjs';
 import {checkParentCensus} from './bounds.mjs';
 import {inspectCurrentChain} from './current-inspect.mjs';
+import {auditParentReferenceCode} from './parent-reference-code.mjs';
 import {auditScalarCode} from './provider-callback-code.mjs';
 import {fileURLToPath} from 'node:url';
 import {inspectProviderConstruction} from './provider-construction.mjs';
@@ -61,11 +62,13 @@ export function auditCurrentChain(report,current,read) {
     fileURLToPath(new URL('../../../../',import.meta.url)),read,providers);
   if(providerCallbackExtents.scalarAllocationRequestsEstablished)
     assert(providerCallbackExtents.maxPointRequestedBytes<=provider.recipe.bytes,'Point constructor bytes exceed conditional envelope');
+  const parentPrimitiveReferences=auditParentReferenceCode(report,records.find(r=>r.kind==='startup'),
+    fileURLToPath(new URL('../../../../',import.meta.url)),read);
   const pin=JSON.parse(read('toolchain.json'));assert.deepEqual(report.toolchain,pin);
   assert.deepEqual(report.runtime.archive,pin.archives[report.runtime.platform]);
   assert.deepEqual(report.runtime.sources,{...nativeProfile.sources,...nativeProfile.platformBinaries[report.runtime.platform]});
   assert.equal(report.runtime.profileDigest,hash(JSON.stringify(nativeProfile)));
-  return {chain:inspectCurrentChain(records),providerConstruction:provider,preparationStorage,providerCallbackExtents,
+  return {chain:inspectCurrentChain(records),providerConstruction:provider,preparationStorage,providerCallbackExtents,parentPrimitiveReferences,
     scientificExecution:'one fixed-source Native fixture; no new execution is inferred from this audit',
     completePhysicalUpper:false};
 }
