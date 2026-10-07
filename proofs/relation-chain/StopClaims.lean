@@ -39,3 +39,19 @@ example : RelationChainStop.reported RelationChainStop.stopped = 3 ∧
 
 example : RelationChainStop.Run (RelationChainStop.initial 1) RelationChainStop.stopped :=
   RelationChainStop.exhausted_witness_run
+
+example (s : RelationChainStop.State) (work : Nat) :
+    RelationChainStop.reported (RelationChainStop.stopPause s work) = RelationChainStop.reported s + work ∧
+    (RelationChainStop.stopPause s work).productive = s.productive ∧
+    (RelationChainStop.stopPause s work).requested = s.requested := RelationChainStop.pause_reporting s work
+
+example (s : RelationChainStop.State) : RelationChainStop.stopPause s 0 = s :=
+  RelationChainStop.zero_pause_identity s
+
+example : RelationChainStop.Run RelationChainStop.exhausted RelationChainStop.pausedStopped :=
+  RelationChainStop.paused_witness_run
+
+example : RelationChainStop.reported RelationChainStop.pausedStopped = 2 ∧
+    RelationChainStop.pausedStopped.productive.used = 1 ∧ RelationChainStop.pausedStopped.productive.computes = 1 ∧
+    RelationChainStop.pausedStopped.productive.started = 1 ∧ RelationChainStop.pausedStopped.productive.terminal = true ∧
+    RelationChainStop.pausedStopped.productive.owed = [0] := RelationChainStop.paused_witness_accounting
