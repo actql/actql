@@ -1,11 +1,12 @@
 # Pipeline fixed JS mutation and restoration isolation
 
-G; final target main. This unit depends on the unmerged #849 immutable pipeline
-pristine implementation. It normally adopts main
+G; final target main. The #849 immutable pipeline pristine implementation is
+now merged. The original proposed boundary normally adopted main
 `3c9ce71f912a7cdc5461d8fb02e8d0b552431b2b` through merge
 `909a10e4f0fc5389f31676a060d23e8c2f53b4e9`. Existing SHA-bound physical originals
 remain unchanged. This contract publishes the editing boundary before execution
-changes are implemented.
+changes are implemented. Current adoption retains the merged parent and current
+main without changing execution code. This document is not execution acceptance.
 
 ## Shared runner and exact local scope
 
