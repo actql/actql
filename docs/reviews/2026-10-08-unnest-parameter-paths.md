@@ -78,6 +78,19 @@ Complete independent Values Run preimages yield
 The previous main grammar/Run vector is retained. Unit/Result Plan and common
 expression identities are unchanged; old Runs are not relabeled.
 
+The clean source at `83cec4a1b15dc1eee99504c31aaa71a5c271240d` additionally
+merges main `b14f96a13823f5ab93df1bb5719f584f15489754` (owned cancellation
+admission) without conflicts. That second merge changes neither this lowerer
+nor its pins/fixtures; the earlier executed tests remain identified separately.
+No extra full gate is run merely because of the merge.
+
+Normal five-package production was blocked before launch at both
+`55c4df0cd8f54045edb1d014fd91c99b9278256e` (`run-oCLx76`) and the integrated
+source above (`run-SvLPfo`). The first recorded owner then finished and released
+its locks; the second attempt encountered a different owner's new lock. No
+artifact or public-execution success is claimed. Lock records do not establish
+that an owner is still executing, and no other owner's lock is removed.
+
 Normal fixed-source five-package Local/HTTPS execution remains required:
 `node scripts/test-packed-public-query.mjs --unnest-parameter-path-only`.
 Preparation and checker success are not reported as public execution success.
