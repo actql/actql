@@ -1479,3 +1479,16 @@ retain implementation-limit diagnostics before a text-time policy request can
 be known. Diagnosis must not infer a Requirement by reparsing the function name
 or by reading the environment independently of the checker. Other profile,
 artifact, bounded-row and template obligations remain separate extensions.
+
+`Result.deliveryAttempt` admits the existing Owner's lookup response against
+the requested attempt, Run and Result, copies it, and validates the copy again
+before recursively freezing it. Each call returns a detached observation:
+reuse of a Host response container or a later terminal observation cannot
+change an earlier streaming record. A clone failure or a copy that no longer
+satisfies the wire contract is `InvalidHostAttemptLookup`, never an empty or
+successful observation. This boundary adds no lookup, delivery, cancellation
+or execution operation and changes no wire schema or identity domain.
+
+An immutable lookup snapshot proves only the admitted observation received by
+that call. It does not by itself establish authoritative Delivery opening or
+receipt-backed read completion, nor successful publication of a submitted Run.

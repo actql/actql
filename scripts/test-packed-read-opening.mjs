@@ -1,4 +1,4 @@
-// Reuse the exact Client packages and the same authored opening-loss fixture.
+// Reuse the exact Client packages and the same authored opening-loss and receipt fixture.
 // Only test inputs/support are copied; every product import uses the installation.
 import {spawnSync} from 'node:child_process';
 import assert from 'node:assert/strict';
@@ -82,12 +82,12 @@ const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
 await writeFile(join(root, 'acceptance.log'), output);
 console.log(output);
 const checked = assertTestExecution('node', process.execPath, args, result);
-assert.equal(checked.counts.tests, 4);
-assert.equal(checked.counts.passed, 4);
+assert.equal(checked.counts.tests, 8);
+assert.equal(checked.counts.passed, 8);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
   packageNames: names, productOverlay: false, expectedRows: [{id: 1}, {id: 2}],
-  cases: 4, passed: true}, null, 2)}\n`);
+  cases: {openingLoss: 4, receiptDurability: 4}, passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
 scratch.passed();
