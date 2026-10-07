@@ -17,6 +17,8 @@ export function sealCurrentExecution(input,read) {
   // logPath is the producer's actual filesystem path; do not prepend root to
   // an absolute path a second time. Receipt paths below are relative to root.
   const log=readFileSync(logPath),digest=hash(log);
+  const storagePrefix='ACTQL_PREPARATION_STORAGE:';
+  const preparationStorageFacts=log.toString().split('\n').filter(l=>l.startsWith(storagePrefix)).map(l=>JSON.parse(l.slice(storagePrefix.length)));
   const archivedLog=`${directory}/logs/${digest}.log`;mkdirSync(join(root,directory,'logs'),{recursive:true});
   if(!existsSync(join(root,archivedLog)))writeFileSync(join(root,archivedLog),log,{flag:'wx'});
   else assert.deepEqual(readFileSync(join(root,archivedLog)),log);
@@ -26,7 +28,7 @@ export function sealCurrentExecution(input,read) {
     exit:runExit,boundary,buildIdentity,model,retainedCore:encodeCoreBound(retainedParentCoreBound(2)),
     logPath:archivedLog,logDigest:digest,
     overlayDigests:Object.fromEntries(Object.entries(overlays).map(([p,t])=>[p,hash(t)])),
-    executedSource,artifacts:executedArtifacts,archives,records,restored:true};
+    executedSource,artifacts:executedArtifacts,archives,records,preparationStorageFacts,restored:true};
   mkdirSync(join(root,directory,'originals'),{recursive:true});
   const save=()=>{const path=`${directory}/originals/${hash(JSON.stringify(report))}.json`;
     if(!existsSync(join(root,path)))writeFileSync(join(root,path),JSON.stringify(report,null,2)+'\n',{flag:'wx'});return path;};

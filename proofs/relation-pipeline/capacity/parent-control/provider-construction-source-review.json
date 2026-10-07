@@ -1,6 +1,6 @@
 {
   "version": "actql-provider-construction-source-review/0.1",
-  "currentRecipeDigest": "098f99e464510d5c3e57bdb03518f5be1aa37c212e90ed9579aeef002908c485",
+  "currentRecipeDigest": "53696a8b167ab66c11f4354c75a475daad78f5b06691c233d8c5730488eee1ac",
   "originalRecipeDigest": "cf00b1b46f2ce78e37ab22eb14872dbfb63c1607c0382fc27124fa6b1ff0dc71",
   "historicalSourcePremises": {
     "src/connectors/local/managed_provider.mbt": "40b1b803e586d1dbce5eb0dabc9888d57ae0eb28bebbcee7e0d3b4fd5fa00950",
@@ -8,7 +8,7 @@
   },
   "introductionRevision": "58fd19eade59cf3bcbf6a859c9821471346e3b41",
   "historicalReviewRevision": "7d7cc6cfc6e7b46379fc85c8ac223bd380cbd200",
-  "selectedDigest": "cf621b3794e2fa55a0786a296a5fa021eb9c624bda963efcb5ea00160bcac8ec",
+  "selectedDigest": "30bd9c86dadd9ce26940046216ebfa640453ab0f34f2224068e7c1ea6b87e07d",
   "managedDigest": "0a5978f614e7b01fd191395f2fe3cb4ce98c3c7548aec968033d10d0fa8964a3",
   "generatedVariants": [
     {
@@ -58,7 +58,8 @@
     "accepts allocates used_by_later during callback execution, excluded from construction-only bytes",
     "completed Array owner, backing, output references, generations and release overlap require separate lifetime correspondence",
     "Waiting and Settling join validated per-poll work extraction; their poll objects are not constructor allocations",
-    "The selected_binding_rows_supported callback adds only the constant-size opaque JsonPick guard; removing that exact guard yields the reviewed parent source. Constructor bodies, captures and their byte premises are unchanged; prepared-view execution remains outside construction-only bounds."
+    "The selected_binding_rows_supported callback adds only the constant-size opaque JsonPick guard; removing that exact guard yields the reviewed parent source. Constructor bodies, captures and their byte premises are unchanged; prepared-view execution remains outside construction-only bounds.",
+    "Opaque row bindings, unique keys and projection extend only the constant-size support guard. Removing the exact four-view guard still yields the same previously reviewed whole source; constructor captures, bodies and conditional component bytes are unchanged."
   ],
   "nativeCensus": {
     "sourceRevision": "2fa9a8dfe3d9589083d4db0846f53ec7a112d0f0",

@@ -14,6 +14,7 @@ export function auditParentStartup(report,current,read) {
   const log=read(model.logPath);assert.equal(hash(log),model.logDigest);
   assert(log.toString().includes('3 conditional retained parent-core propositions checked'));
   assert(log.toString().includes('2 conditional provider-construction propositions checked'));
+  assert(log.toString().includes('2 conditional preparation-array propositions checked'));
   const recipe=encodeCoreBound(retainedParentCoreBound(2));
   assert.deepEqual(report.retainedCore,recipe,'Changed conditional core recipe');
   assert.deepEqual(report.providerConstruction,result.providerConstruction,'Changed independent candidate-construction recipe');
