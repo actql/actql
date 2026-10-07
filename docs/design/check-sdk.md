@@ -1492,3 +1492,32 @@ or execution operation and changes no wire schema or identity domain.
 An immutable lookup snapshot proves only the admitted observation received by
 that call. It does not by itself establish authoritative Delivery opening or
 receipt-backed read completion, nor successful publication of a submitted Run.
+
+`explainDeliveryAttempt` and `formatDeliveryAttempt` consume only an original
+admitted SDK lookup snapshot. An authorized `not_found` remains
+`lookup_unresolved`: absence is not proof that no opening or grant commit
+occurred. A recorded attempt without a record remains `attempt_recorded`.
+The SDK's existing `opening` state also supplies `read_open_unknown` on an
+unacknowledged opening failure. This explanation preserves zero caller rows
+and the same lookup target without asserting physical stop or non-acceptance;
+array/batch wrappers retain the same observation. Error text does not select it.
+Streaming, failed and cancelled Delivery records preserve their separate
+observations; neither read failure nor read cancellation changes a Run outcome.
+`host_delivery_succeeded` requires the existing lookup validator's matching
+terminal record and Host release receipt. Sink-confirmed bytes, exposure bounds
+and the record sequence remain Owner observations, never inferred caller row
+counts. Unresolved cleanup references do not become cleanup success, and an
+omitted cleanup field does not certify another Owner's release.
+
+All explanations retain this call's original attempt, Run, Result and connection
+scope as a read-only lookup candidate. A copied DTO or an error constructed from
+a success-like string has no explanation custody. Rendering performs no lookup,
+new read, grant admission, Compute or cancellation. English/Japanese text and
+text/HTML/JSON forms preserve the same disclosed facts; a Host receipt never
+proves application receipt or persistence. These SDK presentation additions
+change no wire contract, public check schema, identity domain or historical pin.
+
+The HTTPS payload terminator still precedes receipt/terminal-record persistence.
+Its transport completion alone does not establish the receipt-backed Complete
+outcome. Opening reconciliation and immutable lookup presentation are useful
+parts of that boundary, not a replacement for its remaining Owner connection.
