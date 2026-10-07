@@ -10,7 +10,7 @@ const preparations = new WeakMap();
 
 // Pure configuration validation precedes admission. The opaque preparation
 // snapshots every value used by spawn and the handshake, including the URL.
-export function prepareManagedExecution({ entry, run, frames, maxRequests, graceMs, startupMs,
+export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,
   hostService, maxHostCalls = 0, accounting }) {
   frames = validateFrameLimits(frames);
   const budget = accounting === undefined ? undefined : Object.freeze({
@@ -23,6 +23,7 @@ export function prepareManagedExecution({ entry, run, frames, maxRequests, grace
     retry: hostService?.cleanupHandle?.retry,
   });
   if (!(entry instanceof URL) || entry.protocol !== 'file:' ||
+      (runtime !== undefined && (!(runtime instanceof URL) || runtime.protocol !== 'file:')) ||
       typeof run !== 'string' || !run.length || run.length > 256 ||
       !Number.isSafeInteger(maxRequests) || maxRequests < 1 ||
       !Number.isSafeInteger(graceMs) || graceMs < 1 || graceMs > 60000 ||
@@ -37,9 +38,13 @@ export function prepareManagedExecution({ entry, run, frames, maxRequests, grace
   const envelope = (kind, sequence, body) => ({ protocol: executionProtocol, session, run, kind, sequence, body });
   // Snapshot the executable and first message before performing any process I/O.
   const executable = fileURLToPath(entry);
+  // The optional interpreter is trusted installation configuration, never a
+  // Program-supplied command or arbitrary argument list. Preserve the default
+  // Node launch and the same process-exit/cleanup owner for other runtimes.
+  const runtimePath = runtime === undefined ? process.execPath : fileURLToPath(runtime);
   const hello = encodeProcessFrame(envelope('hello', 0, budget ? {resourceLimits: budget.limits} : null), frames);
   const prepared = Object.freeze({});
-  preparations.set(prepared, { executable, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
+  preparations.set(prepared, { executable, runtimePath, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
     service, maxHostCalls, budget });
   return prepared;
 }
@@ -47,11 +52,11 @@ export function prepareManagedExecution({ entry, run, frames, maxRequests, grace
 export async function startManagedExecution(configuration, signal) {
   signal?.throwIfAborted();
   const prepared = preparations.has(configuration) ? configuration : prepareManagedExecution(configuration);
-  const { executable, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
+  const { executable, runtimePath, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
     service, maxHostCalls, budget } = preparations.get(prepared);
   preparations.delete(prepared);
   signal?.throwIfAborted();
-  const child = spawn(process.execPath, [executable], {
+  const child = spawn(runtimePath, [executable], {
     stdio: ['ignore', 'ignore', 'ignore', 'pipe'],
   });
   const stream = child.stdio[3];

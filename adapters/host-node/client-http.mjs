@@ -125,9 +125,10 @@ function finish(response, format) {
       reject(new Error('ClientDisconnected'));
       return;
     }
-    // A raw record separator cannot occur unescaped in JSON. It marks normal
-    // transport completion without altering the MoonBit-owned payload digest.
-    response.end(format === 'jsonl' ? Buffer.from([0x1e]) : undefined,
+    // Confirm the explicit payload end without closing HTTP. A raw record
+    // separator cannot occur unescaped in JSON and is outside the payload
+    // digest. EOF is withheld until the owner durably commits its receipt.
+    response.write(format === 'jsonl' ? Buffer.from([0x1e]) : Buffer.alloc(0),
       error => error ? reject(error) :
       resolve({confirmed: true}));
   });
@@ -395,6 +396,13 @@ export function createClientHttpHandler({
             write: bytes => { begin(); return write(response, bytes); },
             finish: () => { begin(); return finish(response, body.format); },
           }, observer.signal);
+          // The shared owner confirms sink completion before issuing and
+          // persisting its receipt and succeeded record. Only their successful
+          // return authorizes HTTP EOF; failure destroys the partial response.
+          await new Promise((resolve, reject) => {
+            if (response.destroyed) { reject(new Error('ClientDisconnected')); return; }
+            response.end(error => error ? reject(error) : resolve());
+          });
         } finally { observer.release(); }
       }
     } catch (error) {

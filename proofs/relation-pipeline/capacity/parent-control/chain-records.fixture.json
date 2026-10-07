@@ -1,0 +1,1544 @@
+{
+  "role": "validator inputs extracted from one local Native execution; not standalone authentication evidence",
+  "executionRevision": "96bb2b030e5bf77749f0d50841367eee188db5c2",
+  "records": [
+    {
+      "kind": "startup",
+      "parent": "5364683377160",
+      "count": 2,
+      "maxValueBytes": 10000,
+      "reclaimsScratch": true,
+      "roots": {
+        "state": "5364683377928",
+        "used": "5364682660136",
+        "cancelled": "5364682673544",
+        "terminal": "5364682687432",
+        "reclaimed": "5364682689992",
+        "cleanupIndex": "5364682680056",
+        "sequence": "5364683440968",
+        "inputs": "5364683253288",
+        "execution": "5364683253448",
+        "measurement": "5364683264904",
+        "numeric": null,
+        "family": "5364683253928"
+      },
+      "state": {
+        "id": "5364683377928",
+        "requestedBytes": 56,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683300936"
+          },
+          {
+            "offset": 8,
+            "id": "5364683375368"
+          },
+          {
+            "offset": 16,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 40,
+            "id": null
+          }
+        ]
+      },
+      "callbacks": [
+        {
+          "id": "5364683901928",
+          "requestedBytes": 104,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683355608"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 40,
+              "id": "5364682660136"
+            },
+            {
+              "offset": 56,
+              "id": "5364683253448"
+            },
+            {
+              "offset": 64,
+              "id": "5364683253288"
+            },
+            {
+              "offset": 72,
+              "id": "5364683377928"
+            },
+            {
+              "offset": 80,
+              "id": "5364683440968"
+            }
+          ]
+        },
+        {
+          "id": "5364683152808",
+          "requestedBytes": 40,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 16,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 24,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683273928",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            }
+          ]
+        },
+        {
+          "id": "5364683154440",
+          "requestedBytes": 48,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682680056"
+            },
+            {
+              "offset": 16,
+              "id": "5364682689992"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683297480",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683377928"
+            }
+          ]
+        }
+      ],
+      "environments": [
+        {
+          "id": "5364683355608",
+          "requestedBytes": 80,
+          "captures": [
+            {
+              "offset": 0,
+              "id": "5364682660136"
+            },
+            {
+              "offset": 8,
+              "id": "5364683253928"
+            },
+            {
+              "offset": 16,
+              "id": null
+            },
+            {
+              "offset": 24,
+              "id": "5364683264904"
+            },
+            {
+              "offset": 40,
+              "id": "5364683253448"
+            },
+            {
+              "offset": 48,
+              "id": "5364683377928"
+            },
+            {
+              "offset": 56,
+              "id": "5364683440968"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "phase",
+      "phase": 0,
+      "parent": "5364683377160",
+      "position": 0,
+      "pending": false,
+      "reclaiming": false,
+      "state": {
+        "id": "5364683377928",
+        "requestedBytes": 56,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683300936"
+          },
+          {
+            "offset": 8,
+            "id": "5364683375368"
+          },
+          {
+            "offset": 16,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 40,
+            "id": null
+          }
+        ]
+      },
+      "callbacks": [
+        {
+          "id": "5364683901928",
+          "requestedBytes": 104,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683355608"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 40,
+              "id": "5364682660136"
+            },
+            {
+              "offset": 56,
+              "id": "5364683253448"
+            },
+            {
+              "offset": 64,
+              "id": "5364683253288"
+            },
+            {
+              "offset": 72,
+              "id": "5364683377928"
+            },
+            {
+              "offset": 80,
+              "id": "5364683440968"
+            }
+          ]
+        },
+        {
+          "id": "5364683152808",
+          "requestedBytes": 40,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 16,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 24,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683273928",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            }
+          ]
+        },
+        {
+          "id": "5364683154440",
+          "requestedBytes": 48,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682680056"
+            },
+            {
+              "offset": 16,
+              "id": "5364682689992"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683297480",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683377928"
+            }
+          ]
+        }
+      ],
+      "children": {
+        "id": "5364683300936",
+        "backing": "5364682662008",
+        "length": 1,
+        "slots": 1,
+        "ownerBytes": 24,
+        "backingBytes": 16,
+        "staticBacking": false,
+        "elements": [
+          "5364683375368"
+        ]
+      },
+      "completed": {
+        "id": "5364683255112",
+        "backing": "5364683257928",
+        "length": 2,
+        "slots": 2,
+        "ownerBytes": 24,
+        "backingBytes": 24,
+        "staticBacking": false,
+        "elements": [
+          null,
+          null
+        ],
+        "completions": [
+          null,
+          null
+        ]
+      },
+      "preparation": null,
+      "read": null
+    },
+    {
+      "kind": "phase",
+      "phase": 1,
+      "parent": "5364683377160",
+      "position": 1,
+      "pending": true,
+      "reclaiming": false,
+      "state": {
+        "id": "5364683377928",
+        "requestedBytes": 56,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683286216"
+          },
+          {
+            "offset": 8,
+            "id": "5364683378120"
+          },
+          {
+            "offset": 16,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 40,
+            "id": "5364683902040"
+          }
+        ]
+      },
+      "callbacks": [
+        {
+          "id": "5364683901928",
+          "requestedBytes": 104,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683355608"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 40,
+              "id": "5364682660136"
+            },
+            {
+              "offset": 56,
+              "id": "5364683253448"
+            },
+            {
+              "offset": 64,
+              "id": "5364683253288"
+            },
+            {
+              "offset": 72,
+              "id": "5364683377928"
+            },
+            {
+              "offset": 80,
+              "id": "5364683440968"
+            }
+          ]
+        },
+        {
+          "id": "5364683152808",
+          "requestedBytes": 40,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 16,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 24,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683273928",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            }
+          ]
+        },
+        {
+          "id": "5364683154440",
+          "requestedBytes": 48,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682680056"
+            },
+            {
+              "offset": 16,
+              "id": "5364682689992"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683297480",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683377928"
+            }
+          ]
+        }
+      ],
+      "children": {
+        "id": "5364683286216",
+        "backing": "5364682684776",
+        "length": 1,
+        "slots": 1,
+        "ownerBytes": 24,
+        "backingBytes": 16,
+        "staticBacking": false,
+        "elements": [
+          "5364683378120"
+        ]
+      },
+      "completed": {
+        "id": "5364683255112",
+        "backing": "5364683257928",
+        "length": 2,
+        "slots": 2,
+        "ownerBytes": 24,
+        "backingBytes": 24,
+        "staticBacking": false,
+        "elements": [
+          "5364683155256",
+          null
+        ],
+        "completions": [
+          "5364683371448",
+          null
+        ]
+      },
+      "preparation": {
+        "id": "5364683902040",
+        "requestedBytes": 112,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683440968"
+          },
+          {
+            "offset": 16,
+            "id": "5364683253288"
+          },
+          {
+            "offset": 24,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 32,
+            "id": "5364683285608"
+          },
+          {
+            "offset": 40,
+            "id": "5364683165240"
+          },
+          {
+            "offset": 48,
+            "id": "5364683900472"
+          },
+          {
+            "offset": 80,
+            "id": null
+          },
+          {
+            "offset": 88,
+            "id": "5364683508488"
+          }
+        ]
+      },
+      "read": {
+        "id": "5364683508488",
+        "requestedBytes": 96,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683378248"
+          },
+          {
+            "offset": 8,
+            "id": "5364684162504"
+          },
+          {
+            "offset": 16,
+            "id": "5364683286568"
+          },
+          {
+            "offset": 64,
+            "id": "5364682667816"
+          },
+          {
+            "offset": 72,
+            "id": "4349460472"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "phase",
+      "phase": 2,
+      "parent": "5364683377160",
+      "position": 1,
+      "pending": true,
+      "reclaiming": false,
+      "state": {
+        "id": "5364683377928",
+        "requestedBytes": 56,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683286216"
+          },
+          {
+            "offset": 8,
+            "id": "5364683378120"
+          },
+          {
+            "offset": 16,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 40,
+            "id": "5364683902040"
+          }
+        ]
+      },
+      "callbacks": [
+        {
+          "id": "5364683901928",
+          "requestedBytes": 104,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683355608"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 40,
+              "id": "5364682660136"
+            },
+            {
+              "offset": 56,
+              "id": "5364683253448"
+            },
+            {
+              "offset": 64,
+              "id": "5364683253288"
+            },
+            {
+              "offset": 72,
+              "id": "5364683377928"
+            },
+            {
+              "offset": 80,
+              "id": "5364683440968"
+            }
+          ]
+        },
+        {
+          "id": "5364683152808",
+          "requestedBytes": 40,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 16,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 24,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683273928",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            }
+          ]
+        },
+        {
+          "id": "5364683154440",
+          "requestedBytes": 48,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682680056"
+            },
+            {
+              "offset": 16,
+              "id": "5364682689992"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683297480",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683377928"
+            }
+          ]
+        }
+      ],
+      "children": {
+        "id": "5364683286216",
+        "backing": "5364682684776",
+        "length": 1,
+        "slots": 1,
+        "ownerBytes": 24,
+        "backingBytes": 16,
+        "staticBacking": false,
+        "elements": [
+          "5364683378120"
+        ]
+      },
+      "completed": {
+        "id": "5364683255112",
+        "backing": "5364683257928",
+        "length": 2,
+        "slots": 2,
+        "ownerBytes": 24,
+        "backingBytes": 24,
+        "staticBacking": false,
+        "elements": [
+          "5364683155256",
+          null
+        ],
+        "completions": [
+          "5364683371448",
+          null
+        ]
+      },
+      "preparation": {
+        "id": "5364683902040",
+        "requestedBytes": 112,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683440968"
+          },
+          {
+            "offset": 16,
+            "id": "5364683253288"
+          },
+          {
+            "offset": 24,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 32,
+            "id": "5364683285608"
+          },
+          {
+            "offset": 40,
+            "id": "5364683165240"
+          },
+          {
+            "offset": 48,
+            "id": "5364683900472"
+          },
+          {
+            "offset": 80,
+            "id": null
+          },
+          {
+            "offset": 88,
+            "id": "5364683508488"
+          }
+        ]
+      },
+      "read": {
+        "id": "5364683508488",
+        "requestedBytes": 96,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683378248"
+          },
+          {
+            "offset": 8,
+            "id": "5364684162504"
+          },
+          {
+            "offset": 16,
+            "id": "5364683286568"
+          },
+          {
+            "offset": 64,
+            "id": "5364682667816"
+          },
+          {
+            "offset": 72,
+            "id": "4349460472"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "phase",
+      "phase": 3,
+      "parent": "5364683377160",
+      "position": 1,
+      "pending": true,
+      "reclaiming": false,
+      "state": {
+        "id": "5364683377928",
+        "requestedBytes": 56,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683286216"
+          },
+          {
+            "offset": 8,
+            "id": "5364683378120"
+          },
+          {
+            "offset": 16,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 40,
+            "id": "5364683902040"
+          }
+        ]
+      },
+      "callbacks": [
+        {
+          "id": "5364683901928",
+          "requestedBytes": 104,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683355608"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 40,
+              "id": "5364682660136"
+            },
+            {
+              "offset": 56,
+              "id": "5364683253448"
+            },
+            {
+              "offset": 64,
+              "id": "5364683253288"
+            },
+            {
+              "offset": 72,
+              "id": "5364683377928"
+            },
+            {
+              "offset": 80,
+              "id": "5364683440968"
+            }
+          ]
+        },
+        {
+          "id": "5364683152808",
+          "requestedBytes": 40,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 16,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 24,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683273928",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            }
+          ]
+        },
+        {
+          "id": "5364683154440",
+          "requestedBytes": 48,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682680056"
+            },
+            {
+              "offset": 16,
+              "id": "5364682689992"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683297480",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683377928"
+            }
+          ]
+        }
+      ],
+      "children": {
+        "id": "5364683286216",
+        "backing": "5364682684776",
+        "length": 1,
+        "slots": 1,
+        "ownerBytes": 24,
+        "backingBytes": 16,
+        "staticBacking": false,
+        "elements": [
+          "5364683378120"
+        ]
+      },
+      "completed": {
+        "id": "5364683255112",
+        "backing": "5364683257928",
+        "length": 2,
+        "slots": 2,
+        "ownerBytes": 24,
+        "backingBytes": 24,
+        "staticBacking": false,
+        "elements": [
+          "5364683155256",
+          null
+        ],
+        "completions": [
+          "5364683371448",
+          null
+        ]
+      },
+      "preparation": {
+        "id": "5364683902040",
+        "requestedBytes": 112,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683440968"
+          },
+          {
+            "offset": 16,
+            "id": "5364683253288"
+          },
+          {
+            "offset": 24,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 32,
+            "id": "5364683285608"
+          },
+          {
+            "offset": 40,
+            "id": "5364683165240"
+          },
+          {
+            "offset": 48,
+            "id": "5364683900472"
+          },
+          {
+            "offset": 80,
+            "id": null
+          },
+          {
+            "offset": 88,
+            "id": "5364683508488"
+          }
+        ]
+      },
+      "read": {
+        "id": "5364683508488",
+        "requestedBytes": 96,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683378248"
+          },
+          {
+            "offset": 8,
+            "id": "5364684162504"
+          },
+          {
+            "offset": 16,
+            "id": "5364683286568"
+          },
+          {
+            "offset": 64,
+            "id": "5364682667816"
+          },
+          {
+            "offset": 72,
+            "id": "4349460472"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "phase",
+      "phase": 4,
+      "parent": "5364683377160",
+      "position": 1,
+      "pending": true,
+      "reclaiming": false,
+      "state": {
+        "id": "5364683377928",
+        "requestedBytes": 56,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683286216"
+          },
+          {
+            "offset": 8,
+            "id": "5364683378120"
+          },
+          {
+            "offset": 16,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 40,
+            "id": "5364683902040"
+          }
+        ]
+      },
+      "callbacks": [
+        {
+          "id": "5364683901928",
+          "requestedBytes": 104,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683355608"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 40,
+              "id": "5364682660136"
+            },
+            {
+              "offset": 56,
+              "id": "5364683253448"
+            },
+            {
+              "offset": 64,
+              "id": "5364683253288"
+            },
+            {
+              "offset": 72,
+              "id": "5364683377928"
+            },
+            {
+              "offset": 80,
+              "id": "5364683440968"
+            }
+          ]
+        },
+        {
+          "id": "5364683152808",
+          "requestedBytes": 40,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 16,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 24,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683273928",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            }
+          ]
+        },
+        {
+          "id": "5364683154440",
+          "requestedBytes": 48,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682680056"
+            },
+            {
+              "offset": 16,
+              "id": "5364682689992"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683297480",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683377928"
+            }
+          ]
+        }
+      ],
+      "children": {
+        "id": "5364683286216",
+        "backing": "5364682684776",
+        "length": 1,
+        "slots": 1,
+        "ownerBytes": 24,
+        "backingBytes": 16,
+        "staticBacking": false,
+        "elements": [
+          "5364683378120"
+        ]
+      },
+      "completed": {
+        "id": "5364683255112",
+        "backing": "5364683257928",
+        "length": 2,
+        "slots": 2,
+        "ownerBytes": 24,
+        "backingBytes": 24,
+        "staticBacking": false,
+        "elements": [
+          "5364683155256",
+          null
+        ],
+        "completions": [
+          "5364683371448",
+          null
+        ]
+      },
+      "preparation": {
+        "id": "5364683902040",
+        "requestedBytes": 112,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683440968"
+          },
+          {
+            "offset": 16,
+            "id": "5364683253288"
+          },
+          {
+            "offset": 24,
+            "id": "5364683255112"
+          },
+          {
+            "offset": 32,
+            "id": "5364683285608"
+          },
+          {
+            "offset": 40,
+            "id": "5364683165240"
+          },
+          {
+            "offset": 48,
+            "id": "5364683900472"
+          },
+          {
+            "offset": 80,
+            "id": null
+          },
+          {
+            "offset": 88,
+            "id": "5364683508488"
+          }
+        ]
+      },
+      "read": {
+        "id": "5364683508488",
+        "requestedBytes": 96,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683378248"
+          },
+          {
+            "offset": 8,
+            "id": "5364684162504"
+          },
+          {
+            "offset": 16,
+            "id": "5364683286568"
+          },
+          {
+            "offset": 64,
+            "id": "5364682667816"
+          },
+          {
+            "offset": 72,
+            "id": "4349460472"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "phase",
+      "phase": 5,
+      "parent": "5364683377160",
+      "position": 1,
+      "pending": true,
+      "reclaiming": false,
+      "state": {
+        "id": "5364683377928",
+        "requestedBytes": 56,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683276360"
+          },
+          {
+            "offset": 8,
+            "id": null
+          },
+          {
+            "offset": 16,
+            "id": "5364683288168"
+          },
+          {
+            "offset": 40,
+            "id": null
+          }
+        ]
+      },
+      "callbacks": [
+        {
+          "id": "5364683901928",
+          "requestedBytes": 104,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683355608"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 40,
+              "id": "5364682660136"
+            },
+            {
+              "offset": 56,
+              "id": "5364683253448"
+            },
+            {
+              "offset": 64,
+              "id": "5364683253288"
+            },
+            {
+              "offset": 72,
+              "id": "5364683377928"
+            },
+            {
+              "offset": 80,
+              "id": "5364683440968"
+            }
+          ]
+        },
+        {
+          "id": "5364683152808",
+          "requestedBytes": 40,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 16,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 24,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683273928",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            }
+          ]
+        },
+        {
+          "id": "5364683154440",
+          "requestedBytes": 48,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682680056"
+            },
+            {
+              "offset": 16,
+              "id": "5364682689992"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683297480",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683377928"
+            }
+          ]
+        }
+      ],
+      "children": {
+        "id": "5364683276360",
+        "backing": "4349597312",
+        "length": 0,
+        "slots": 0,
+        "ownerBytes": 24,
+        "backingBytes": 8,
+        "staticBacking": true,
+        "elements": []
+      },
+      "completed": {
+        "id": "5364683288168",
+        "backing": "4349597312",
+        "length": 0,
+        "slots": 0,
+        "ownerBytes": 24,
+        "backingBytes": 8,
+        "staticBacking": true,
+        "elements": [],
+        "completions": []
+      },
+      "preparation": null,
+      "read": null
+    },
+    {
+      "kind": "phase",
+      "phase": 6,
+      "parent": "5364683377160",
+      "position": 1,
+      "pending": true,
+      "reclaiming": false,
+      "state": {
+        "id": "5364683377928",
+        "requestedBytes": 56,
+        "captures": [
+          {
+            "offset": 0,
+            "id": "5364683276360"
+          },
+          {
+            "offset": 8,
+            "id": null
+          },
+          {
+            "offset": 16,
+            "id": "5364683288168"
+          },
+          {
+            "offset": 40,
+            "id": null
+          }
+        ]
+      },
+      "callbacks": [
+        {
+          "id": "5364683901928",
+          "requestedBytes": 104,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683355608"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 40,
+              "id": "5364682660136"
+            },
+            {
+              "offset": 56,
+              "id": "5364683253448"
+            },
+            {
+              "offset": 64,
+              "id": "5364683253288"
+            },
+            {
+              "offset": 72,
+              "id": "5364683377928"
+            },
+            {
+              "offset": 80,
+              "id": "5364683440968"
+            }
+          ]
+        },
+        {
+          "id": "5364683152808",
+          "requestedBytes": 40,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 16,
+              "id": "5364682673544"
+            },
+            {
+              "offset": 24,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683273928",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682687432"
+            }
+          ]
+        },
+        {
+          "id": "5364683154440",
+          "requestedBytes": 48,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364682680056"
+            },
+            {
+              "offset": 16,
+              "id": "5364682689992"
+            },
+            {
+              "offset": 24,
+              "id": "5364682687432"
+            },
+            {
+              "offset": 32,
+              "id": "5364683377928"
+            }
+          ]
+        },
+        {
+          "id": "5364683297480",
+          "requestedBytes": 24,
+          "captures": [
+            {
+              "offset": 8,
+              "id": "5364683377928"
+            }
+          ]
+        }
+      ],
+      "children": {
+        "id": "5364683276360",
+        "backing": "4349597312",
+        "length": 0,
+        "slots": 0,
+        "ownerBytes": 24,
+        "backingBytes": 8,
+        "staticBacking": true,
+        "elements": []
+      },
+      "completed": {
+        "id": "5364683288168",
+        "backing": "4349597312",
+        "length": 0,
+        "slots": 0,
+        "ownerBytes": 24,
+        "backingBytes": 8,
+        "staticBacking": true,
+        "elements": [],
+        "completions": []
+      },
+      "preparation": null,
+      "read": null
+    }
+  ]
+}

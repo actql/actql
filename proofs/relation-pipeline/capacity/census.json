@@ -26,6 +26,18 @@
         "output_names",
         "input_ordinals",
         "binding_ordinals",
+        "row_sources",
+        "stepped_metadata",
+        "metadata_projection",
+        "metadata_projection_field",
+        "metadata_binding",
+        "metadata_offset",
+        "metadata_lookup",
+        "metadata_source",
+        "metadata_generated_field",
+        "metadata_generated_seen",
+        "term_column",
+        "name_charge",
         "projection_ordinals",
         "json_path",
         "json_source_column",
@@ -114,7 +126,23 @@
         "capture_row",
         "presence_cells",
         "presence_usage_start"
-      ]
+      ],
+      "fieldTypes": {
+        "snapshot": "Array[(String, Value)]",
+        "row_sources": "Array[BindingRowSource]",
+        "stepped_metadata": "Bool",
+        "metadata_projection": "@lower.PreparedProjection?",
+        "metadata_projection_field": "Int",
+        "metadata_binding": "Int",
+        "metadata_offset": "Int",
+        "metadata_lookup": "RowMetadataLookup?",
+        "name_charge": "RowNameCharge?",
+        "term_column": "Int?",
+        "json_path": "@lower.PreparedJsonPick?",
+        "metadata_source": "@schema.FieldName?",
+        "metadata_generated_field": "Int",
+        "metadata_generated_seen": "Int"
+      }
     },
     {
       "path": "src/execution_relation/bounded_index_sort.mbt",
@@ -135,6 +163,29 @@
       ]
     },
     {
+      "path": "src/execution_relation/row_metadata_cursor.mbt",
+      "struct": "RowMetadataLookup",
+      "fields": [
+        "schema",
+        "name",
+        "workspace",
+        "column",
+        "offset",
+        "closed"
+      ]
+    },
+    {
+      "path": "src/execution_relation/row_name_charge.mbt",
+      "struct": "RowNameCharge",
+      "fields": [
+        "name",
+        "workspace",
+        "offset",
+        "bytes",
+        "closed"
+      ]
+    },
+    {
       "path": "src/execution_relation/producer_read.mbt",
       "struct": "ProducerRead",
       "fields": [
@@ -144,8 +195,47 @@
         "max_entries",
         "max_name_bytes"
       ]
+    },
+    {
+      "path": "src/execution_relation/row_name_charge.mbt",
+      "struct": "RowNameCharge",
+      "fields": [
+        "name",
+        "workspace",
+        "offset",
+        "bytes",
+        "closed"
+      ],
+      "fieldTypes": {
+        "name": "String",
+        "workspace": "RowWorkspace",
+        "offset": "Int",
+        "bytes": "Int",
+        "closed": "Bool"
+      }
+    },
+    {
+      "path": "src/execution_relation/row_metadata_cursor.mbt",
+      "struct": "RowMetadataLookup",
+      "fields": [
+        "schema",
+        "name",
+        "workspace",
+        "column",
+        "offset",
+        "closed"
+      ],
+      "fieldTypes": {
+        "schema": "@schema.Schema",
+        "name": "@schema.FieldName",
+        "workspace": "RowWorkspace",
+        "column": "Int",
+        "offset": "Int",
+        "closed": "Bool"
+      }
     }
   ],
+  "metadataCursorScope": "The numeric/NULL short-name DISTINCT pilot has empty row_sources, false stepped_metadata and no metadata_projection, metadata_lookup or name_charge. The observer rejects nonempty/active values as unmodeled; these records do not extend the pilot's byte bound.",
   "derivedFilledEntryBounds": {
     "metadata": "4*w: input/output names, input ordinals, projection ordinals",
     "index": "2*n: two merge index arrays; result transfer shares one backing",
@@ -158,7 +248,7 @@
     "measureFrames": "5: conservative bound for the four measurement cursors on scalar numeric/NULL leaves"
   },
   "borrowed": "ProducerRead retains exact upstream backing; original input rows/cells are counted by their existing owner, new receiving columns/wrappers remain parent/edge obligations",
-  "fixedObjects": "Session/provider, comparison/control/budgets, typed schemas, closures, Refs, empty containers and cursor records have bounded source structure but no established per-target byte conversion. Sparse filter adds a Boolean, an optional ValueUsage record and a presence-cell container; these are false/None/empty on this DISTINCT scope. Sparse rows reserve their slots in the existing workspace and remain an independent runtime obligation, not an extension of this DISTINCT byte bound. The comparison cursor's optional admitted-tree continuation is None throughout this numeric/NULL scope. Nested complete-value comparisons reserve their cursor and child frames in the existing workspace; this does not extend the numeric/NULL byte bound to recursive values.",
+  "fixedObjects": "Session/provider, comparison/control/budgets, typed schemas, closures, Refs, empty containers and cursor records have bounded source structure but no established per-target byte conversion. Sparse filter adds a Boolean, an optional ValueUsage record and a presence-cell container; these are false/None/empty on this DISTINCT scope. Sparse rows reserve their slots in the existing workspace and remain an independent runtime obligation, not an extension of this DISTINCT byte bound. The comparison cursor's optional admitted-tree continuation is None throughout this numeric/NULL scope. Nested complete-value comparisons reserve their cursor and child frames in the existing workspace; this does not extend the numeric/NULL byte bound to recursive values. The stepped metadata projection borrows prepared input. RowNameCharge and RowMetadataLookup retain their workspace until explicit close; pending sort cleanup returns before cursor close. Both cursors and the row-source cache are absent in this short-name numeric/NULL DISTINCT pilot. Snapshot is an empty tuple Array, not a Map. Cursor slot reservations do not establish record byte bounds.",
   "notDischarged": [
     "dynamic backing capacity and allocation growth overlap",
     "complete fixed-object allocation identity census",

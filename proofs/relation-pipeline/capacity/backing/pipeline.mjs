@@ -12,7 +12,7 @@ export function pipelineBounds(testCase, registry, target) {
   const { rows: n, width: w } = obligations[0];
   const grown = h => target === 'js' ? BigInt(h) : currentSlotsCeiling(h);
   return {
-    inputNames: BigInt(w), outputNames: BigInt(w),
+    inputNames: BigInt(w), outputNames: BigInt(w), snapshot: 0n, rowSources: 0n,
     keep: grown(n), terms: grown(w), sortedIndices: grown(n),
     outputRows: grown(n), outputCells: BigInt(n) * grown(w),
     outputMaxRow: n === 0 ? 0n : grown(w),
@@ -29,6 +29,8 @@ export function inspectPipelineBacking(testCase, observation, registry, requeste
   assert(events.length > 0, 'Missing actual container-capacity observations');
   const selectedArrayExtents = [];
   for (const e of events) {
+    assert.deepEqual(e.metadataPreparation, { stepped: false, lookup: false, source: false, generatedField: -1, generatedSeen: 0, termColumn: false, nameCharge: false,
+      snapshotEntries: 0, sourceEntries: 0 }, 'Metadata preparation lies outside the admitted DISTINCT pilot');
     assert(e.arrayCapacity, 'Missing real state Array capacity');
     assert.deepEqual(Object.keys(e.arrayCapacity).sort(), Object.keys(bounds).sort());
     for (const [name, ceiling] of Object.entries(bounds)) {

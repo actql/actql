@@ -543,6 +543,14 @@ pub fn join_kernel_profile(PreparedJoinKernel) -> PreparedInnerJoin
 
 pub fn join_kernel_step(PreparedJoinKernel) -> Int
 
+pub fn json_pick_column(PreparedJsonPick) -> @relation_schema.FieldName
+
+pub fn json_pick_output(PreparedJsonPick) -> String
+
+pub fn json_pick_path_at(PreparedJsonPick, Int) -> String?
+
+pub fn json_pick_path_count(PreparedJsonPick) -> Int
+
 pub fn kernel_analytic(PreparedKernel) -> PreparedAnalytic?
 
 pub fn kernel_body(PreparedKernel) -> KernelBody
@@ -578,6 +586,8 @@ pub fn kernel_is_partitioned_top_k(PreparedKernel) -> Bool
 pub fn kernel_is_projection(PreparedKernel) -> Bool
 
 pub fn kernel_is_sort(PreparedKernel) -> Bool
+
+pub fn kernel_json_pick(PreparedKernel) -> PreparedJsonPick?
 
 pub fn kernel_lag(PreparedKernel) -> (@relation_schema.FieldName, String, Int64)?
 
@@ -804,6 +814,8 @@ pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int
 pub fn prepared_frame_end(PreparedRowsFrame) -> PreparedFrameBoundary
 
 pub fn prepared_frame_start(PreparedRowsFrame) -> PreparedFrameBoundary
+
+pub fn projection_field_at(PreparedProjection, Int) -> @relation_typing.ProjectionField?
 
 pub fn projection_field_count(PreparedProjection) -> Int
 
@@ -1586,6 +1598,8 @@ type PreparedIntervalJoin
 
 type PreparedJoinKernel
 
+type PreparedJsonPick
+
 type PreparedKernel
 
 pub struct PreparedNestField {
@@ -1808,6 +1822,7 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  Floor
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

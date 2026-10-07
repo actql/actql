@@ -85,6 +85,21 @@ for (const entrance of ['local', 'https']) {
   });
 }
 
+for (const initial of ['absent', 'undefined']) {
+  test(`public Embedded Local captures ${initial} Host policy before installation identity awaits`, async t => {
+    const directory = await mkdtemp(join(scratch, 'captured-default-'));
+    const installation = {directory, ...(initial === 'undefined' ? {hostCapacityPolicy: undefined} : {})};
+    const opening = connect({mode: 'local', owner: 'local', installation});
+    installation.hostCapacityPolicy = {...policy, max_effect_items: 4321};
+    const client = await opening;
+    t.after(async () => {await client.close(); await rm(directory, {recursive: true, force: true});});
+    assert.equal(client.profile.scopeRef, userInfo().username);
+    const run = await submit(client);
+    assert.equal(run.ref.authorityScopeCid, expectedScope(directory, undefined),
+      '[host-policy:local-captured-absence]');
+  });
+}
+
 async function submit(client, requestId = 'policy-request') {
   const run = await client.aql('SELECT 1 AS n', {format: 'sql', requestId});
   assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');

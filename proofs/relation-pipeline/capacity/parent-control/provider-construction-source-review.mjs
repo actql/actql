@@ -57,6 +57,10 @@ export function checkConstructionSourceReview(profile, read) {
   const managed = read(managedPath).toString();
   const generated = read(generatedPath).toString();
   assert.equal(hash(selected), review.selectedDigest, 'Unreviewed provider constructor selected_relation_provider');
+  assert.equal(hash(replaceOnce(selected,
+    '  if @lower.kernel_json_pick(kernel) is Some(_) {\n    return true\n  }\n')),
+    '4f02d43052c899c9105574f72dd17cda04caa3695390d93ef73e972bf4cb8227',
+    'Borrowed JSON path changed more than the reviewed support guard');
   assert.equal(hash(managed), review.managedDigest, `Changed provider representation premise ${managedPath}`);
   for (const [name, digest] of Object.entries(review.wrapperDigests)) {
     assert.equal(hash(reviewedFunction(managed, name)), digest, `Changed construction wrapper ${name}`);
@@ -71,6 +75,13 @@ export function checkConstructionSourceReview(profile, read) {
   const variant = review.generatedVariants.find(item => item.digest === hash(generated));
   assert(variant, `Changed provider representation premise ${generatedPath}`);
   let priorGenerated = generated;
+  if (variant.constructorRename) {
+    // Only the already integrated Graph constructor spelling changed. This
+    // comparison preserves the historical blob; it creates no runtime alias.
+    priorGenerated = replaceOnce(priorGenerated,
+      '      | @lower.GraphConstructionStep(_)\n',
+      '      | @lower.PropertyGraphConstructionStep(_)\n');
+  }
   for (const name of ['GraphSubgraphStep', 'GraphDeltaStep', ...variant.additionalExclusions]) {
     priorGenerated = replaceOnce(priorGenerated, `      | @lower.${name}(_)\n`);
   }

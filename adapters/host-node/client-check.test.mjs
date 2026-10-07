@@ -1228,9 +1228,10 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   reportContextOverflow = false,
   mutateCheckReply,
   mutateCheckTransportReply, mutateUnavailable,
-  profiles = [false, false, true, true, false, false, false]} = {}) {
-  const admitted = moon.clientProgramCheckEnvironment(canonicalText(wire),
-    wire.evidence_bundle_cid, ...profiles);
+  profiles = [false, false, true, true, false, false, false], numericProfileCid} = {}) {
+  const admitted = numericProfileCid === undefined
+    ? moon.clientProgramCheckEnvironment(canonicalText(wire), wire.evidence_bundle_cid, ...profiles)
+    : moon.clientProgramCheckEnvironmentWithNumericProfile(canonicalText(wire), wire.evidence_bundle_cid, ...profiles, numericProfileCid);
   assert.notEqual(admitted, undefined, 'context fixture must be admitted');
   const authorization = readOutcome === undefined ? undefined
     : await createNodeAuthorizationGate({configuration: account(readOutcome),
@@ -1541,7 +1542,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-07.ja.8'});
+        {locale: 'ja', translationRevision: '2026-10-07.ja.9'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -4566,6 +4567,93 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
+const expectedCapacityRequirement = Object.freeze({code: 'host_capacity_policy_required', facts: {
+  contract_cid: 'sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164',
+  schema_cid: 'sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3',
+  schema_pointer: '/schema', supplier: 'checking_context_owner', stage: 'checking'}});
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: known context requirements retain Owner conditions without input blame`, async t => {
+    const missingEnvironment = JSON.parse(await readFile(join(repository,
+      'adapters/host-node/fixtures/check-missing-capacity.environment.json'), 'utf8'));
+    const missing = await contextClient(t, entrance, missingEnvironment);
+    const supplied = await contextClient(t, entrance, absentEnvironment);
+    for (const text of ['SELECT 1 AS n', 'SELECT SQRT(4) AS n']) {
+      const outcome = await missing.check(text, {format: 'sql'});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'undetermined', '[check-mutation:context-requirement-verdict]');
+      assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+      assert.deepEqual(outcome.report.reasons, []);
+      assert.deepEqual(outcome.report.requirements, [expectedCapacityRequirement], '[check-mutation:context-requirement-facts]');
+      assert.deepEqual(outcome.report.coverage, {limits: [{code: 'checking_context_missing'}], unresolved: []});
+      assert.equal(Object.hasOwn(outcome.report.requirements[0], 'location'), false);
+      assert.equal(Object.hasOwn(outcome.report.requirements[0], 'fixes'), false);
+      assert.deepEqual(sdk.getCheckContextRequirements(outcome), [expectedCapacityRequirement]);
+      assert.equal(sdk.getCheckContextRequirements(structuredClone(outcome)), undefined,
+        '[check-mutation:context-requirement-custody]');
+      assert.equal(sdk.getCheckRequirementFrontier(outcome), undefined);
+      for (const locale of ['en', 'ja']) {
+        const view = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', locale}));
+        assert.equal(view.observation.report.verdict, 'undetermined');
+        assert.deepEqual(view.entries.find(entry => entry.kind === 'requirement').facts, expectedCapacityRequirement.facts);
+      }
+      const bound = await supplied.check(text, {format: 'sql'});
+      assert.equal(bound.report.verdict, 'verified');
+      assert.notEqual(bound.report.context_ref, outcome.report.context_ref, '[check-mutation:context-requirement-binding]');
+      assert.equal(getCheckInput(bound, 'source').revision, getCheckInput(outcome, 'source').revision);
+      assert.deepEqual(sdk.getCheckContextRequirements(bound), []);
+      assert.equal(outcome.report.verdict, 'undetermined');
+    }
+    const session = sdk.createCheckSupplementationSession(missing, {maxAttempts: 3});
+    const options = {format: 'sql', parameterDeclarations: {x: {type: 'number'}}, parameters: {}};
+    const first = await session.check('SELECT @x AS n', options);
+    assert.equal(first.decision.kind, 'more_checks');
+    const second = await session.check('SELECT @x AS n', {...options, parameters: {x: 1}});
+    assert.deepEqual(second.decision, {kind: 'stop', reason: 'frontier_unavailable'});
+    assert.deepEqual(second.outcome.report.requirements, [expectedCapacityRequirement]);
+    const wrong = await missing.check('SELECT @x AS n', {...options, parameters: {x: 'private-wrong-value'}});
+    assert.equal(wrong.report.verdict, 'invalid');
+    assert.equal(wrong.report.reasons[0].code, 'supplied_value_type_mismatch');
+    assert.equal(JSON.stringify(wrong).includes('private-wrong-value'), false);
+  });
+
+  test(`${entrance}: protected resolution cannot fabricate context requirements or positions`, async t => {
+    const wire = withPolicy(sourceEnvironment, {});
+    const clients = [await contextClient(t, entrance, wire),
+      await contextClient(t, entrance, wire, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, wire, {aliases: [alias], readOutcome: 'delegate'})];
+    const outcomes = [];
+    for (const client of clients) {
+      const outcome = await client.check('SELECT id FROM records', {format: 'sql'});
+      assert.equal(outcome.report.verdict, 'undetermined');
+      assert.deepEqual(outcome.report.requirements, [], '[check-mutation:context-requirement-protected]');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      assert.deepEqual(sdk.getCheckContextRequirements(outcome), []);
+      outcomes.push(outcome);
+    }
+    assert.deepEqual(outcomes[0], outcomes[1]); assert.deepEqual(outcomes[0], outcomes[2]);
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: malformed context Requirement facts are protocol failures`, async t => {
+    const wire = JSON.parse(await readFile(join(repository,
+      'adapters/host-node/fixtures/check-missing-capacity.environment.json'), 'utf8'));
+    for (const change of [
+      outcome => {outcome.report.requirements[0].facts.supplier = 'caller';},
+      outcome => {outcome.report.requirements[0].facts.schema_cid = 'sha256:' + '0'.repeat(64);},
+      outcome => {outcome.report.requirements[0].facts.private_policy = 'private-setting';},
+      outcome => {outcome.report.requirements[0].location = {kind: 'text', document_id: 'source',
+        revision: outcome.report.inputs[0].revision, precision: 'exact', start_byte: 0, end_byte: 1};},
+      outcome => {outcome.report.verdict = 'invalid'; outcome.report.reasons = outcome.report.requirements; outcome.report.requirements = [];},
+    ]) {
+      const client = await contextClient(t, entrance, wire, {mutateCheckTransportReply(outcome) {change(outcome);return outcome;}});
+      let observed;
+      try {await client.check('SELECT 1 AS n', {format: 'sql'});} catch (error) {observed = error;}
+      assert.equal(observed?.code, 'InvalidHostCheckOutcome', '[check-mutation:context-requirement-admission]');
+    }
+  });
+}
+
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: SELECT range lifetime rejects expired aliases before Run admission`, async t => {
     const client = await open(t, configurations.allowed);
@@ -4595,5 +4683,105 @@ for (const [entrance, open] of Object.entries(entrances)) {
     // This is the installed public check entrance. It must not execute rows,
     // dispatch work, or turn an invalid query into an admitted Run.
     client.assertNoExecution();
+  });
+}
+
+const expectedNumericRequirement = Object.freeze({code: 'numeric_reduction_profile_required',
+  facts: {profile_cid: 'sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df',
+    supplier: 'checking_context_owner', stage: 'checking'}});
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: numeric profile requirements preserve the common checking frontier`, async t => {
+    const missing = await contextClient(t, entrance, absentEnvironment);
+    const supplied = await contextClient(t, entrance, absentEnvironment,
+      {numericProfileCid: expectedNumericRequirement.facts.profile_cid});
+    for (const text of ['SELECT SUM(1) AS n', 'SELECT AVG(1) AS n']) {
+      const outcome = await missing.check(text, {format: 'sql'});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'undetermined', '[check-mutation:numeric-requirement-verdict]');
+      assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+      assert.deepEqual(outcome.report.reasons, []);
+      assert.deepEqual(outcome.report.requirements, [expectedNumericRequirement], '[check-mutation:numeric-requirement-facts]');
+      assert.deepEqual(outcome.report.coverage, {limits: [{code: 'checking_context_missing'}], unresolved: []});
+      assert.equal(Object.hasOwn(outcome.report.requirements[0], 'location'), false);
+      assert.equal(Object.hasOwn(outcome.report.requirements[0], 'fixes'), false);
+      assert.deepEqual(sdk.getCheckContextRequirements(outcome), [expectedNumericRequirement]);
+      assert.equal(sdk.getCheckContextRequirements(structuredClone(outcome)), undefined,
+        '[check-mutation:numeric-requirement-custody]');
+      assert.equal(sdk.getCheckRequirementFrontier(outcome), undefined);
+      for (const locale of ['en', 'ja']) {
+        const view = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', locale}));
+        assert.equal(view.observation.report.verdict, 'undetermined');
+        assert.deepEqual(view.entries.find(entry => entry.kind === 'requirement').facts, expectedNumericRequirement.facts);
+      }
+      const complete = await supplied.check(text, {format: 'sql'});
+      assert.equal(complete.report.verdict, 'verified');
+      assert.notEqual(complete.report.context_ref, outcome.report.context_ref, '[check-mutation:numeric-requirement-binding]');
+      assert.equal(getCheckInput(complete, 'source').revision, getCheckInput(outcome, 'source').revision);
+      assert.deepEqual(sdk.getCheckContextRequirements(complete), []);
+      assert.equal(outcome.report.verdict, 'undetermined');
+    }
+    const count = await missing.check('SELECT COUNT(*) AS n', {format: 'sql'});
+    assert.equal(count.report.verdict, 'verified');
+    assert.deepEqual(count.report.requirements, []);
+    const session = sdk.createCheckSupplementationSession(missing, {maxAttempts: 3});
+    const options = {format: 'sql', parameterDeclarations: {n: {type: 'number'}}, parameters: {}};
+    const first = await session.check('SELECT SUM(@n) AS n', options);
+    assert.equal(first.decision.kind, 'more_checks');
+    const second = await session.check('SELECT SUM(@n) AS n', {...options, parameters: {n: 1}});
+    assert.deepEqual(second.decision, {kind: 'stop', reason: 'frontier_unavailable'});
+    assert.deepEqual(second.outcome.report.requirements, [expectedNumericRequirement]);
+    const wrong = await missing.check('SELECT SUM(@n) AS n', {...options, parameters: {n: 'private-number'}});
+    assert.equal(wrong.report.verdict, 'invalid');
+    assert.equal(wrong.report.reasons[0].code, 'supplied_value_type_mismatch');
+    assert.equal(JSON.stringify(wrong).includes('private-number'), false);
+  });
+
+  test(`${entrance}: protected source resolution hides numeric profile requirements`, async t => {
+    const clients = [await contextClient(t, entrance, sourceEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'delegate'})];
+    const outcomes = [];
+    for (const client of clients) {
+      const outcome = await client.check('SELECT SUM(amount) AS n FROM records', {format: 'sql'});
+      assert.equal(outcome.report.verdict, 'undetermined');
+      assert.deepEqual(outcome.report.requirements, [], '[check-mutation:numeric-requirement-protected]');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      outcomes.push(outcome);
+    }
+    assert.deepEqual(outcomes[0], outcomes[1]); assert.deepEqual(outcomes[0], outcomes[2]);
+  });
+
+  test(`${entrance}: malformed numeric Requirement facts are protocol failures`, async t => {
+    for (const change of [
+      value => {value.report.requirements[0].facts.profile_cid = 'sha256:' + '0'.repeat(64);},
+      value => {value.report.requirements[0].facts.supplier = 'caller';},
+      value => {value.report.requirements[0].facts.contributors = 'private-values';},
+      value => {value.report.requirements[0].location = {kind: 'text', document_id: 'source', revision: value.report.inputs[0].revision, precision: 'exact', start_byte: 0, end_byte: 1};},
+      value => {value.report.verdict = 'invalid'; value.report.reasons = value.report.requirements; value.report.requirements = [];},
+    ]) {
+      const client = await contextClient(t, entrance, absentEnvironment,
+        {mutateCheckTransportReply(value) {change(value);return value;}});
+      let observed;
+      try {await client.check('SELECT SUM(1) AS n', {format: 'sql'});} catch (error) {observed = error;}
+      assert.equal(observed?.code, 'InvalidHostCheckOutcome', '[check-mutation:numeric-requirement-admission]');
+    }
+  });
+
+  test(`${entrance}: unsupported text calls do not fabricate policy requirements`, async t => {
+    const profiles = [true, false, true, true, false, false, false];
+    const policy = {version: 'actql-text-time-host-policy/0.1', max_input_codepoints: 1000,
+      max_input_utf8_bytes: 1000, max_pattern_bytes: 1000, max_output_bytes: 1000, max_replacements: 1000};
+    for (const wire of [absentEnvironment, withPolicy(absentEnvironment,
+      {...absentEnvironment.host_policy_profile, text_time_evaluation: policy})]) {
+      const client = await contextClient(t, entrance, wire, {profiles});
+      for (const text of ["SELECT REGEX_MATCH(NULL, 'a') AS n", 'SELECT NFKC(NULL) AS n',
+        "SELECT PARSE_TIMESTAMP(NULL, 'yyyy') AS n"]) {
+        const outcome = await client.check(text, {format: 'sql'});
+        assert.equal(outcome.report.verdict, 'undetermined');
+        assert.deepEqual(outcome.report.reasons, []);
+        assert.deepEqual(outcome.report.requirements, []);
+        assert.deepEqual(outcome.report.coverage.limits.map(reason => reason.code), ['implementation_limit']);
+      }
+    }
   });
 }

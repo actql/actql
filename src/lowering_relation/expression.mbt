@@ -44,6 +44,7 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  Floor
 } derive(Eq, Debug)
 
 ///|
@@ -180,6 +181,7 @@ fn expression_tag(
     | "typed_literal"
     | "$param"
     | "negate"
+    | "floor"
     | "is_true"
     | "is_false"
     | "is_unknown"
@@ -244,6 +246,7 @@ fn expression_children(
       [@decode.lookup(obj, "value").unwrap()]
     }
     "negate"
+    | "floor"
     | "not"
     | "is_null"
     | "not_null"
@@ -805,6 +808,7 @@ fn lower_typed_expression_measured(
           }
         }
         "negate" => Unary(Negate, args[0])
+        "floor" => Unary(Floor, args[0])
         "len" => Unary(Length, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
