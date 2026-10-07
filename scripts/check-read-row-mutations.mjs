@@ -33,6 +33,7 @@ const lookupCopy = "            const observation = answer;\n" +
   "            const observedKey = structuralKey(answer);\n" +
   "            answer = structuredClone(answer);\n" +
   "            if (!validDeliveryAttemptLookup(answer, expected) || structuralKey(answer) !== observedKey) fail('InvalidHostAttemptLookup');\n" +
+  "            if (structuralKey(observation) !== observedKey) fail('InvalidHostAttemptLookup');\n" +
   "            return retainDeliveryExplanation(freezeInput(observation), {";
 const observations = phase => ['local', 'https'].map(entrance => ({
   name: `${entrance}: delivery observation explains ${phase} against one published Run`,

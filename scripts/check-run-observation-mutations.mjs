@@ -32,7 +32,21 @@ const validationCopyFaults = [
     'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
     'return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);'],
 ];
+const originalSnapshotFaults = [
+  [['status', 'wait', 'reconcile'], "        if (structuralKey(observation) !== observedKey) {\n          throw rejectedRunObservation(ref, operation, 'malformed_response');\n        }"],
+  [['lookupRequest'], "      if (structuralKey(observation) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');"],
+  [['held submit'], "        if (structuralKey(observation) !== observedKey) fail('InvalidHostAdmission');"],
+  [['cancel'], "        if (structuralKey(response) !== observedKey) {\n          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),\n            context, 'outcome_unknown');\n        }"],
+  [['deliveryAttempt'], "            if (structuralKey(observation) !== observedKey) fail('InvalidHostAttemptLookup');"],
+  [['check'], '        if (structuralKey(observation) !== observedKey) reject();'],
+  [['cancelRequest'], "        if (structuralKey(observation) !== observedKey) throw new ClientError('InvalidHostRequestCancellation');"],
+];
 const mutations = [
+  ...originalSnapshotFaults.map(([operations, from]) => ({
+    name: `verification conversion changes the captured ${operations.join('/')} snapshot`,
+    path, file: unit, from, to: '', targets: operations.map(operation => target(
+      `${operation}: verification conversion cannot mutate the admitted snapshot`, 'response-capture-original')),
+  })),
   {name: 'response capture reobserves borrowed getters during admission', path,
     file: 'packages/sdk/response-capture.test.mjs',
     from: 'const captureResponse = (value, captured = new Map()) => {',

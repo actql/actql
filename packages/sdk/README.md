@@ -504,7 +504,7 @@ The SDK captures response fields once before checking their branch or contract.
 Validation, copied-value comparison and input binding use the same owned facts;
 a getter cannot replace its first value between admission and copying. The
 first capture supplies the returned observation and its explanation; the later
-verification copy cannot change them after validation.
+verification copy cannot change them after validation. A conversion that changes the original captured data is also refused before binding or return.
 This also applies to submission, request lookup/cancellation, Run observations and
 cancellation, and DeliveryAttempt lookup. Throwing getters produce the safe
 operation-specific failure without retaining the exception. Request serialization

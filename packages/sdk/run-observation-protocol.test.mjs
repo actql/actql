@@ -345,3 +345,21 @@ for (const path of paths) {
     assert.equal(f.operations.length, 3);
   });
 }
+
+for (const path of paths) {
+  test(`${path.name}: verification conversion cannot mutate the admitted snapshot`, async t => {
+    const reply = path.reply(); reply[path.key] = path.first;
+    if (path.name === 'deliveryAttempt') reply.hostReleaseReceipt = null;
+    const f = await responseFixture(t, reply);
+    const nativeClone = globalThis.structuredClone;
+    t.mock.method(globalThis, 'structuredClone', value => {
+      const copy = nativeClone(value);
+      if (value?.[path.key] !== undefined) value[path.key] = nativeClone(
+        path.name === 'deliveryAttempt' ? {...path.first, sequence: path.first.sequence + 1} : path.later);
+      return copy;
+    });
+    let error; try { await path.call(f); } catch (cause) { error = cause; }
+    assert.equal(error?.code, path.code, '[check-mutation:response-capture-original]');
+    assert.equal(f.operations.length, 3);
+  });
+}
