@@ -144,6 +144,12 @@
             "cloud"
           ]
         },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+        },
         "consentRefs": {
           "type": "array",
           "uniqueItems": true,
@@ -314,6 +320,7 @@
         "owner": {"enum": ["local", "remote", "cloud"]},
         "durability": {"enum": ["volatile", "durable"]},
         "scopeRef": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "workspaceId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
         "capabilities": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}},
         "limits": {
           "type": "object",
@@ -1054,7 +1061,8 @@
     "profile": {
       "matchConnection": [
         "mode",
-        "owner"
+        "owner",
+        "workspaceId"
       ],
       "requireRequested": {
         "durability": "durable"

@@ -1,5 +1,38 @@
 # `@actql/sdk` development artifact
 
+## Workspace connection strings
+
+An installed Host can expose an explicit service Workspace. Connect with the
+application's secret connection string:
+
+```js
+import {connect} from '@actql/sdk';
+const client = await connect(process.env.ACTQL_URL);
+// ACTQL_URL: actql://token:<percent-encoded-bearer>@host/workspace-id
+```
+
+Or keep the credential separate:
+
+```js
+const client = await connect('actql://host/workspace-id', {
+  token: getAccessToken,
+});
+```
+
+The Workspace must match the credential's authenticated target on every
+request. A token getter can refresh a credential for that same target; it
+does not acquire renewal permission or switch Workspaces. An embedded DSN
+credential and a separate token conflict. Credentials must be percent-encoded
+as a component, never by encoding or decoding the entire URL. Do not log the
+connection string or commit it to source control.
+
+`actql://localhost:port/workspace-id` connects to an already running HTTPS
+Host with normal certificate verification. It does not open a directory or
+start a server. HTTP opt-in is not part of this initial binding. Existing
+`connect({mode: 'remote', endpoint, token})` remains available. This is a
+development artifact, not a registry release or a deployed Cloud endpoint.
+See [the connection contract](../../docs/design/client-workspace-connections.md).
+
 This lightweight package implements the public Client, Execution and Result
 transport API for an already installed Client Host. It contains no Local
 kernel, native binding, DuckDB adapter or Cloud policy. The installed Node Host supports Program submission within its

@@ -93,6 +93,15 @@ installation fields match the Embedded Local profile above. Attach
 the embedding application. Clients use `@actql/node` or `@actql/sdk` with
 `{mode: 'remote', endpoint, token, durability: 'durable'}`.
 
+To admit `actql://host:port/workspace-id` clients, also supply the Host's
+stable `workspaceId` installation option. It is a service identifier, not a
+directory path or a replacement for the existing Local namespace. The Host
+checks the assertion independently of current authentication/authorization on
+every operation. Without this option, asserted connections are refused.
+Only asserted connections receive the matching profile field; existing
+endpoint clients retain their original response shape. TLS trust and server
+startup remain explicit, including when the Host listens on localhost.
+
 The physical journal and publication Store live under
 `~/.local/share/actql`. Set `ACTQL_LOCAL_STATE_DIR` before process start to
 select a different directory. The Host uses the current OS user's filesystem

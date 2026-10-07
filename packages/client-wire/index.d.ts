@@ -17,7 +17,7 @@ export declare const clientHostOperations: readonly ClientHostOperation[];
 export declare function isClientSubmitRejection(code: unknown): boolean;
 
 type WireConnectionBase = Pick<WireConnectionShape,
-  'durability' | 'consentRefs' | 'runners'>;
+  'durability' | 'consentRefs' | 'runners' | 'workspaceId'>;
 
 export type WireConnection =
   | (WireConnectionBase & Readonly<{mode: 'local'; owner: 'local';
@@ -129,6 +129,9 @@ export declare function validSubmitPreparationError(value: unknown):
   value is WireSubmitPreparationError;
 export declare function validClientConnection(value: unknown):
   value is WireConnection;
+/** Equality with a trusted Host binding only; grants no operation permission. */
+export declare function clientWorkspaceMatches(connection: WireConnection,
+  authenticatedWorkspaceId: string | undefined): boolean;
 export declare function validClientBody<O extends ClientHostOperation>(
   operation: O, body: unknown): body is WireClientBodyByOperation[O];
 
