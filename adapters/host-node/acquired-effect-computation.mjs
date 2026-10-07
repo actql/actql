@@ -34,6 +34,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   let checkedHost;
   let recovery;
   let inferCapture;
+  let inferOperation;
   let modelContinuation;
   let modelToken;
   let modelPlan;
@@ -57,16 +58,17 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   let closed = false;
   let inferCloseAttempted = false, inferReleased = false;
   let modelCloseAttempted = false, modelReleased = false;
-  const inferCleanupPending = () => inferCapture !== undefined && !inferReleased ||
+  const inferCleanupPending = () => (inferCapture !== undefined || inferOperation !== undefined) && !inferReleased ||
     modelContinuation !== undefined && !modelReleased;
   const cleanupInfer = async () => {
     let failure;
-    if (inferCapture !== undefined && !inferReleased) {
+    if ((inferCapture !== undefined || inferOperation !== undefined) && !inferReleased) {
       const recover = inferCloseAttempted;
       inferCloseAttempted = true;
       try {
-        const result = await (recover ? inferCapture.custody.cleanup() : inferCapture.custody.close());
-        inferReleased = result !== false && inferCapture.custody.cleanupPending() === false;
+        const child = inferCapture?.custody ?? inferOperation;
+        const result = await (recover ? child.cleanup() : child.close());
+        inferReleased = result !== false && child.cleanupPending() === false;
       } catch (error) { failure = error; }
     }
     if (modelContinuation !== undefined && !modelReleased) {
@@ -120,6 +122,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       execution = undefined;
       recovery = undefined;
       await sourceContinuation?.close();
+      if (modelToken !== undefined) modelController.release(modelToken);
       pending = false;
       observeUsage('effect_computation_cleanup_completed');
       return true;
@@ -246,6 +249,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       component = openNodeComposedInferProvider({moon, selected: infer, sources,
         control: acquired.control, plan, principalId, signal, now, durableCalls: true, restoredInput,
         retainOperation(operation) {
+          inferOperation = operation;
           inferCapture = openNodeInferCaptureCustody({moon, control: acquired.control,
             operation, plan, store, storeAuthorityCid: acquired.storeAuthorityCid, durableCalls: true,
             sourceEvidence: evidence.map(source => acquired.control.admitRunEvidence(
@@ -308,7 +312,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
           modelContinuation = await modelController.open({operation, preparedCallSet,
             plan: modelPlan, selected: infer, principalId,
             declaredResults: moon.clientProgramEffectCompilationResultNames(acquired.compilation),
-            submission, signal, existing: modelRecord, claim: modelClaim, parentResume,
+            submission, signal, existing: modelRecord, inputToken: modelToken, claim: modelClaim, parentResume,
             journalPort: modelJournalPort, sourceContinuation: sourceClosure});
           inferCapture.configureModelJournal({observe: modelContinuation.observe, entry: modelContinuation.entry});
           if (modelRecord !== undefined) return {action: 'resume'};

@@ -636,6 +636,11 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
     currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('e8ccbde9474f668615917422ae4c63081144a1a82ab4ae0f14d2d647aa872f56'));
+  // Retain the merged UNNEST documentation closure under its original grammar.
+  assert.equal(vector(pin('a395e9d881fd75019ff99db18016a4cf72f19f14f52856b8f313462e0489c09a'),
+    pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
+    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('31dc7d61b6fe40c4662a836eecc194ef96aa50548b8327a49b4d95dd0d32f896'));
   assert.equal(current.run.run_definition_cid,
     pin('c46844e63f6f33150c8312b057491f00a6ab775d62ae36bba779c929cdcbae2d'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');

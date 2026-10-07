@@ -136,12 +136,34 @@ captured row count after release, without allowing another dispatch. Approval,
 current target authority, durable claims and Catalog reconciliation remain the
 existing apply owners' separate responsibilities.
 
+Recovered Table dispatch uses the same physical preparation and approved
+whole-set dispatch binder as live execution. The recovered input is read only
+through its exact capture/Store handle. Current process-local owners are
+rechecked synchronously after target observation and immediately before the
+durable dispatch claim; the recovered apply owner separately confirms physical
+holdings and current authorization. The immutable Table view itself is never
+used as an availability or permission getter. Terminal release also relinquishes
+the recovered Result/schema leases through the existing result owner; deleting
+durable capture records alone is not release of live prepared handles.
+
 Prepared request and captured input are retained by existing owners before any
 dispatch. Table staging, metadata publication and Table writes require approval
 and current write authority; pre-approval Table writes are zero. Retaining Run
 input is not Table publication. Dispatching/Unknown never authorize another
 commit. Recovery reads the original operation's durable Catalog evidence under
 current read/reconciliation authority and uses existing Effect transitions.
+
+Original-operation reconciliation uses the exact checked Table Preview and the
+validated complete history of its original possible dispatch. It does not create
+an intent or claim another send. Current evidence-read authority precedes the
+Catalog lookup and is checked again after it; the physical reader needs only the
+sealed original operation, not reconstructed input or a new writer. An absent
+original record remains unknown. A positive receipt is checked against the
+immutable operation and row count before durable evidence custody, then the
+existing Table outcome and terminal Ledger owners settle that saved evidence.
+Concurrent or delayed observers cannot overwrite the first saved response or
+create a second terminal revision. Saved malformed evidence is retained rather
+than replaced by a lookup; that case remains a separate recovery obligation.
 
 Catalog head publication, the original operation's immutable commit record and
 storage reservation transfer form one durable Catalog transaction. The record
