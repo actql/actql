@@ -2,11 +2,14 @@
 
 ## Scope and adopted owners
 
-This unit follows #749 at
-`34103565a2c1643c20bba25f26336d7bb47741ad`. It normally merges main
-`59786a7d88f5f2c86ce336b8907febcce12137b2` without conflicts and retains
-the unmerged parent dependency. Current Graph definitions and identity domains
-remain authoritative; no saved identity is reinterpreted or aliased.
+This unit began from #749 at
+`34103565a2c1643c20bba25f26336d7bb47741ad` and normally merged main
+`59786a7d88f5f2c86ce336b8907febcce12137b2`. After #749 merged, it normally
+merged main `00da7227e373eed73001885e623889ba34c612a5`, including #749's
+additional Host fixture teardown and reviewed Effect settlement adoption.
+Neither merge conflicted. The parent dependency has reached main. Current
+Graph definitions and identity domains remain authoritative; no saved identity
+is reinterpreted or aliased.
 
 Values, Append, EXCEPT/INTERSECT ALL and DISTINCT, and Cross Join already use
 bounded computation and trusted completion owners. Their start functions still
@@ -64,6 +67,13 @@ passed 52/58: five older fixtures hit their pre-existing poll watchdog before
 reaching their intended operation boundary; the Unicode name-only case lacked
 separate workspace headroom. A preceding compiler diagnostic found an invalid
 new Stopped pattern. These are retained diagnostics, not passing receipts.
+
+After the second main merge, the final eight cursor tests passed 8/8 on JS
+at `4658d82a5169d33e01356fd799c4712c25b42208`
+(`run-ycE1AQ`, `focused-test-r7ZiDb`). These include strengthened checks
+for live workspace and preservation of pending names until explicit cleanup;
+the earlier 58-test batch predates those assertion additions. The source
+change after this check is this evidence record only, not a kernel change.
 
 ## Normal Host evidence connection
 
