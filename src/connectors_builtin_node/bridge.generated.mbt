@@ -1650,6 +1650,71 @@ pub fn strategy_captured_effect_source_recovery_inventory_valid(
 }
 
 ///|
+#export_name("strategyCapturedEffectSourceMatchesPreview")
+pub fn strategy_captured_effect_source_matches_preview(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  source : @publication.CapturedEffectSourceArtifact,
+  local_evidence : @publication.CapturedLocalEffectSourceEvidence,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool raise NodeHostFailure {
+  if @publication.captured_effect_source_matches_preview(
+      preview, member_index, invocation, source, local_evidence, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    true
+  } else {
+    raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitCapturedEffectSourceFromCapture")
+pub fn strategy_admit_captured_effect_source_from_capture(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  captured : @publication.PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_capture(
+      preview, member_index, invocation, artifact, captured, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(source) => source
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceInventoryFromCaptureValid")
+pub fn strategy_captured_effect_source_inventory_from_capture_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  invocation : @publication.PublicationContract,
+  captured : @publication.PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_capture_valid(
+    preview, member_indices, artifacts, invocation, captured, store_authority_cid,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("strategyEffectFreePublicationCommitValid")
 pub fn strategy_effect_free_publication_commit_valid(
   run_definition : @publication.PublicationContract,
