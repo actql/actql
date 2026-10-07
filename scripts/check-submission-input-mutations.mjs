@@ -9,7 +9,22 @@ const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const sdkAcceptance = 'packages/sdk/index.test.mjs';
+const requestAcceptance = 'packages/sdk/request-observation.test.mjs';
+const preparationAcceptance = 'adapters/host-node/remote-checkpoint-host.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase.startsWith('request-')) {
+    const names = {
+      'request-snapshot': ['request lookup snapshots detach a reused held checkpoint'],
+      'request-admission': ['request lookup rejects clone changes a field', 'request lookup rejects reply cannot be cloned'],
+      'request-held-admission': ['submission uncertainty retains original lookup when held clone changes its admitted branch', 'submission uncertainty retains original lookup when held reply cannot be cloned'],
+      'request-held-state': ['held submit explanations retain the admitted preparation state'],
+      'request-ended-public': ['rejected answers end the request without a Run; answers are per item'],
+      'request-absent-public': ['local', 'https'].map(entrance => `${entrance}: program submission inputs survive before-dispatch`),
+      'request-custody': ['absent', 'unknown', 'found', 'waiting_checkpoint', 'resuming', 'ended'].map(label => `request observation retains ${label} without inferring execution or resend permission`),
+    }[phase];
+    if (!names) throw new Error('Unknown request mutation selection');
+    return names.map(name => ({name, assertions: [{id: assertion, operator: 'strictEqual'}]}));
+  }
   if (phase === 'check-expression-type') return ['local', 'http'].map(entrance => ({
     name: `${entrance}: expression type rejections explain only owned expected domains`,
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
@@ -96,6 +111,30 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['request observation loses detached checkpoint custody',
+    "      try { answer = structuredClone(answer); }", "      try {}", 'request-snapshot', 'request-lookup-detached'],
+  ['request observation skips copied-response revalidation',
+    "      if (!validRequestLookup(answer, requestId)) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');", '', 'request-admission', 'request-lookup-admission'],
+  ['request observation permits a copied held reply to change its branch',
+    "admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId)",
+    "!validSubmitReply(admitted, selected.wire, requestId)", 'request-held-admission', 'request-held-admission'],
+  ['request observation loses the submitted held preparation state',
+    "observation: 'request_held', preparationState: answer.state,",
+    "observation: 'request_held', preparationState: undefined,", 'request-held-state', 'request-held-state'],
+  ['request observation presents ended preparation as resuming',
+    'preparationState: answer.state,', "preparationState: answer.state === 'ended' ? 'resuming' : answer.state,",
+    'request-ended-public', 'request-ended-public'],
+  ['request observation treats lookup absence as a Run reference',
+    "const observation = answer.kind === 'found' ? 'run_reference_received' :\n" +
+      "    answer.kind === 'not_found' ? 'lookup_unresolved'",
+    "const observation = answer.kind === 'found' ? 'run_reference_received' :\n" +
+      "    answer.kind === 'not_found' ? 'run_reference_received'",
+    'request-absent-public', 'request-public-observation'],
+  ['request observation copies acquire original custody',
+    'const requestLookupExplanations = new WeakMap();',
+    'const requestLookupExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
+    'request-custody', 'request-observation-custody'],
+
   ['check expression type explanation loses its required domain',
     'Use an expression with number type for the rejected argument.',
     'Correct the argument count.', 'check-expression-type', 'expression-type-explanation'],
@@ -256,7 +295,10 @@ const mutations = [
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase === 'check-locale-snapshot' ? sdkAcceptance
+  const file = phase === 'request-ended-public' ? preparationAcceptance
+    : phase === 'request-absent-public' ? acceptance
+    : phase.startsWith('request-') ? requestAcceptance
+    : phase === 'check-locale-snapshot' ? sdkAcceptance
     : phase.startsWith('frontier-') || phase.startsWith('check-') ? checkAcceptance
     : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
