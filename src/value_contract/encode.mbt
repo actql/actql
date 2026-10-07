@@ -2,11 +2,77 @@
 priv enum Emission {
   Value(Contract)
   FieldMap(Fields)
+  FieldsAt(Fields, Int)
+  Members(Array[(String, Emission)], Int)
   Key(String)
   TextValue(String)
   NumberValue(Double)
   BoolValue(Bool)
   End
+}
+
+///|
+/// Exclusive emission of one checked contract into the caller's writer.
+/// Object children are borrowed one at a time; names and text use the existing
+/// bounded writer cursors. Cancellation invalidates the incomplete document.
+struct CheckedEmission {
+  writer : @encode.Writer
+  mut pending : Array[Emission]
+  max_frames : Int
+  mut key : @encode.OrderedKeyEmitCursor?
+  mut text : @encode.StringEmitCursor?
+  mut done : Bool
+  mut closed : Bool
+}
+
+///|
+pub fn start_checked_emission(
+  contract : Contract,
+  writer : @encode.Writer,
+  max_frames : Int,
+) -> CheckedEmission raise @encode.EncodeFailure {
+  if max_frames < 1 {
+    raise @encode.OutputLimit
+  }
+  {
+    writer,
+    pending: [Value(contract)],
+    max_frames,
+    key: None,
+    text: None,
+    done: false,
+    closed: false,
+  }
+}
+
+///|
+pub fn cancel_checked_emission(value : CheckedEmission) -> Unit {
+  if !value.closed {
+    value.closed = true
+    value.pending = []
+    if value.key is Some(cursor) {
+      @encode.cancel_ordered_key(cursor)
+    }
+    if value.text is Some(cursor) {
+      @encode.cancel_string_value(cursor)
+    }
+    value.key = None
+    value.text = None
+    if !value.done {
+      @encode.cancel_writer(value.writer)
+    }
+  }
+}
+
+///|
+fn push_emission(
+  value : CheckedEmission,
+  frame : Emission,
+) -> Unit raise @encode.EncodeFailure {
+  if value.pending.length() >= value.max_frames {
+    raise @encode.OutputLimit
+  }
+  value.pending.push(frame)
 }
 
 ///|
@@ -45,25 +111,63 @@ pub fn emit_checked(
   contract : Contract,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  let work : Array[Emission] = [Value(contract)]
-  while !work.is_empty() {
-    match work.pop().unwrap() {
-      Key(name) => @encode.key(writer, name)
-      TextValue(value) => @encode.string_value(writer, value)
+  let cursor = start_checked_emission(contract, writer, 2147483647)
+  while !advance_checked_emission(cursor) {
+    ()
+  }
+}
+
+///|
+/// One structural transition or at most 64 UTF-16 units per call. Poll count
+/// does not change the supplied writer's byte, node or depth consumption.
+pub fn advance_checked_emission(
+  cursor : CheckedEmission,
+) -> Bool raise @encode.EncodeFailure {
+  if cursor.closed || cursor.done {
+    raise @encode.ClosedWriter
+  }
+  errdefer cancel_checked_emission(cursor)
+  if cursor.key is Some(key) {
+    if @encode.advance_ordered_key(key) {
+      cursor.key = None
+    }
+  } else if cursor.text is Some(text) {
+    if @encode.advance_string_value(text) {
+      cursor.text = None
+    }
+  } else if cursor.pending.pop() is Some(frame) {
+    let writer = cursor.writer
+    match frame {
+      Key(name) => cursor.key = Some(@encode.start_ordered_key(writer, name))
+      TextValue(value) =>
+        cursor.text = Some(@encode.start_string_value(writer, value))
       NumberValue(value) => @encode.number_value(writer, value)
       BoolValue(value) => @encode.bool_value(writer, value)
       End => @encode.end_object(writer)
       FieldMap(fields) => {
-        @encode.begin_object(writer)
-        work.push(End)
-        for i = fields.values.length() - 1; i >= 0; i = i - 1 {
-          let field = fields.values[i]
-          work.push(Value(field.contract))
-          work.push(Key(field.name))
+        @encode.begin_ordered_object(writer)
+        push_emission(cursor, End)
+        if !fields.values.is_empty() {
+          push_emission(cursor, FieldsAt(fields, 0))
         }
       }
+      FieldsAt(fields, index) => {
+        if index + 1 < fields.values.length() {
+          push_emission(cursor, FieldsAt(fields, index + 1))
+        }
+        let field = fields.values[index]
+        push_emission(cursor, Value(field.contract))
+        push_emission(cursor, Key(field.name))
+      }
+      Members(members, index) => {
+        if index + 1 < members.length() {
+          push_emission(cursor, Members(members, index + 1))
+        }
+        push_emission(cursor, members[index].1)
+        push_emission(cursor, Key(members[index].0))
+      }
       Value(value) => {
-        @encode.begin_object(writer)
+        @encode.begin_ordered_object(writer)
         let members : Array[(String, Emission)] = [
           ("nullable", BoolValue(value.nullable)),
           ("type", TextValue(type_name(value.shape))),
@@ -99,13 +203,17 @@ pub fn emit_checked(
           _ => ()
         }
         members.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
-        work.push(End)
-        for i = members.length() - 1; i >= 0; i = i - 1 {
-          work.push(members[i].1)
-          work.push(Key(members[i].0))
-        }
+        // At most five fixed vocabulary members; never the object's fields.
+        push_emission(cursor, End)
+        push_emission(cursor, Members(members, 0))
       }
     }
+  }
+  if cursor.pending.is_empty() && cursor.key is None && cursor.text is None {
+    cursor.done = true
+    true
+  } else {
+    false
   }
 }
 
