@@ -81,7 +81,7 @@ duplicate-replacement and displaced-range cases assert their exact typed causes.
 These are preparation-state results; no final-SHA CI success is inferred.
 Only focused JS and Node selections run, not full Core or all backends.
 
-## Identity closure
+## Identity closure before the ABS parent integration
 
 Grammar hash is `1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db`;
 query-rule hash is `aadc03925405e78e008a50e3c84b66e8735e11f851b2e3a15ac1146a85e7b35e`.
@@ -222,3 +222,51 @@ Required submitted-HEAD CI, Wasm/native, broad packed coverage and ordered or
 anonymous STRUCT remain unverified. #1060 remains an unmerged parent dependency;
 this is a completed local public cohort, not a merge approval. Draft is retained,
 and neither a manual CI retry nor a merge is performed.
+
+## Current parent and ABS contract integration
+
+The parent subsequently publishes
+`cf52ea3b25e7c12788f977b7a4d5517625365cf3`, which includes main
+`c191b956d9d8be2b9620a862c363ec7b7b583351` and the shared finite-number ABS
+contract. This branch adopts that parent by a normal merge. Conflicts are in
+grammar/document metadata, generated identities and independent grammar/Run
+vectors; the computed-star implementation and public fixture are unchanged.
+
+The adopted common contract changes ordinary Values Program, Unit, proof and
+ResultPlan identities. The merged grammar manifest is
+`sha256:a85a3517afd7a705e99e746f5a08332370b072ddc77868372db19b977ee87ecb`, with
+the computed-star query grammar retained and query-rule hash
+`831de7808000326fdc2e0fe4d8b6224d7bc34495692455e6ff4f85aa026df10a`.
+The independent complete Values oracle derives Run CID
+`sha256:6e1a597d8e0473c402cca0fd54e582189c4d1da5064aadab98a647bb6888f645`.
+
+Both parents' complete grammar preimages remain fixed in
+`submitted-computed-star-grammar.json` and `integrated-object-star-grammar.json`.
+Their original Run identities remain respectively `258d5e59...` under the old
+common closure and `2706813e...` under the ABS closure. Neither old grammar,
+Program nor saved Run is relabeled. Full before/current bodies are retained at
+`/private/tmp/actql-b-computed-star-abs-integration-oracle-20261009.json`.
+
+The four existing generators regenerate the combined source pins; their
+read-only checks pass, including all 380 canonical vectors and the specification
+family (`conformance:false`). Workers and Node Host fixtures pass read-only.
+The changed MoonBit identity/generated files pass pinned formatting; a broader
+format check also exposes inherited formatting differences outside this unit
+(including managed output/Effect preparation files), which are left unchanged.
+
+Focused integration evidence:
+
+- Four Node files initially pass 20/22 (`run-7qetg8` /
+  `focused-test-I7esNs`). Two inherited assertions still used the prior grammar
+  for current Run identity or the current grammar for a historical preimage.
+  Retaining each full historical body and the independently derived current
+  Run closes both. The two affected files then pass 9/9 (`run-R6uOQg` /
+  `focused-test-265q8q`); the other two unchanged files had passed 13/13.
+- Real Run issuance/rebuild: 1/1, `run-E2Ri8w` / `focused-test-XPyQTP`.
+- Computed-star lowering/control regressions: 4/4, `run-MRBPeU` /
+  `focused-test-x2JIvo`.
+
+The successful public cohort above remains evidence for its pre-integration
+clean source. Fresh Local/HTTPS execution of the merged ABS closure and required
+submitted-HEAD CI remain unverified. No full Core, all-target suite or manual
+CI retry is added; the parent dependency and Draft status are retained.

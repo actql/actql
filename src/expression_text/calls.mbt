@@ -54,6 +54,7 @@ fn Parser::call(
   let (minimum, maximum) = match name {
     "len"
     | "sqrt"
+    | "abs"
     | "floor"
     | "lower"
     | "upper"
