@@ -355,7 +355,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
               'strategyEffectFreeCommitCheckAdvance'].includes(property)) {
           return preparation => {
             const result = target[property](preparation,
-              route.cancelValidationPhase === 'suffix-check' ? 1 : 32);
+              ['suffix-check', 'capture-inventory', 'result-lookup']
+                .includes(route.cancelValidationPhase) ? 1 : 32);
             const chain = property === 'strategyEffectFreeChainCheckAdvance';
             const phase = chain
               ? target.strategyEffectFreeChainCheckFixturePhase(preparation)
@@ -372,6 +373,14 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             }
             if (chain && phase === 'suffix-check') {
               route.suffixPolls = (route.suffixPolls ?? 0) + 1;
+              assert.equal(result, 0);
+            }
+            if (chain && phase === 'capture-inventory') {
+              route.captureInventoryPolls = (route.captureInventoryPolls ?? 0) + 1;
+              assert.equal(result, 0);
+            }
+            if (chain && phase === 'result-lookup') {
+              route.resultLookupPolls = (route.resultLookupPolls ?? 0) + 1;
               assert.equal(result, 0);
             }
             if (!chain) {
@@ -393,7 +402,9 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             if (chain && mode === 'cancel-during-publication-validation' &&
                 !scheduled && phase === route.cancelValidationPhase &&
                 route.validationPolls > 1 &&
-                (phase !== 'suffix-check' || route.suffixPolls >= 3)) {
+                (phase !== 'suffix-check' || route.suffixPolls >= 3) &&
+                (phase !== 'capture-inventory' || route.captureInventoryPolls >= 3) &&
+                (phase !== 'result-lookup' || route.resultLookupPolls >= 2)) {
               assert.equal(result, 0);
               assert.ok(route.validationPolls > 1);
               scheduled = true;
@@ -1050,7 +1061,8 @@ for (const phase of ['success', 'root-check', 'context-check', 'rows-check']) {
   });
 }
 
-for (const phase of ['success', 'receipt-check', 'context-check', 'rows-check', 'suffix-check']) {
+for (const phase of ['success', 'receipt-check', 'context-check', 'capture-inventory',
+  'result-lookup', 'rows-check', 'suffix-check']) {
   test(`retained publication validation yields before commit: ${phase}`, async () => {
     const first = {id: 1, note: `${'é'.repeat(257)}e\u0301\r\n😀`};
     const second = {id: 2, note: null};
@@ -1107,6 +1119,8 @@ for (const phase of ['success', 'receipt-check', 'context-check', 'rows-check', 
       }
       assert.ok(route.validationPhases.has('receipt-check'));
       if (phase === 'suffix-check') assert.ok(route.suffixPolls >= 3);
+      if (phase === 'capture-inventory') assert.ok(route.captureInventoryPolls >= 3);
+      if (phase === 'result-lookup') assert.ok(route.resultLookupPolls >= 2);
       assert.ok(route.validationPolls > 1);
       assert.equal(observations().dispatches, 3);
       assert.equal(observations().completedDispatches, 3);

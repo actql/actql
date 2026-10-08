@@ -356,7 +356,8 @@ test "captured evidence cancellation retires private checks without retiring inp
   let original = publication_contract_json(captured)
   for
     phase in [
-      "root-check", "receipt-check", "context-check", "rows-check", "suffix-check",
+      "root-check", "receipt-check", "context-check", "capture-inventory", "result-lookup",
+      "rows-check", "suffix-check",
     ] {
     let check = captured_validation_test_start(chain, captured)
     let mut reached = false

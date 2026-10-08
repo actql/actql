@@ -7140,3 +7140,33 @@ remain blocking; Effectful asynchronous commit, all-target and packed/HTTPS
 acceptance remain unverified. Historical suffix descriptions are not current
 claims about the newly connected continuation. Whole-Local completion remains
 unproven.
+
+### Resumed captured Result inventories and lookup (2026-10-08)
+
+The common computation evidence owner now polls exact captured Artifact
+comparison through the existing canonical stream, then compares borrowed
+admitted Result-name inventories in bounded UTF-16 fragments. Result lookup
+also retains a name cursor and reuses validated field-inventory positions.
+Missing fields, mismatched content/name sets, row shape and definition binding
+remain checked. Cancellation retires private state without losing Store
+custody or mutating borrowed evidence.
+
+The [capture inventory record](2026-10-08-local-bounded-capture-inventories.md)
+binds common JS 276/276, selected release runtime build and Node 13/13 to clean
+source `9160c1c3666e443b2dc1906d27e2eb872e0fbc56`. Eleven actual retained
+Host cases include normal publication, capture issuance and new cancellation
+during capture-inventory and Result-lookup progress. Producer and both consumer
+Named Results use fixed content and exact order. No publication, extra Compute
+or residual retained resources are accepted after cancellation and cleanup.
+
+Independent private boundaries require 30 control transitions at quantum 1,
+7 and 64, and 2077/2076 exact/one-short slots. Long names retain internal
+fragment offsets; changed Artifact content and name inventories have specific
+typed failures. These quantities do not redefine Compute logical work.
+
+This child retains its unmerged #951/#948 prerequisites and adopts main
+`ce6d529d43292733eaa1b6967fc4571627a4ea5c` without production conflicts.
+The original dependency/Effect-preview preflight remains synchronous, as do
+separate issuance inventories, scalar schema checks and normalization.
+Blocking APIs, allocation latency, Effectful asynchronous commit, all-target,
+packed/HTTPS and hosted CI remain outside this unit's completed evidence.
