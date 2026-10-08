@@ -51,6 +51,39 @@ Neither entry estimates parser CPU work from a source span or charges an
 imaginary repeated parse. Source syntax and retention failures keep their
 original typed details, rather than becoming evidence requests.
 
+## Authoring scope and complete template evidence
+
+The scoped common entry selects `TemplateOnly` or `BoundInput` before
+preparation. A supplied binding cursor, including an empty object or null,
+is `BindingsInTemplateScope`, an invalid check request distinct from invalid
+Program input. Bound checking continues the ordinary actual-value constructor.
+
+`TemplateCheckedProgram` is a separate opaque witness. It retains the original
+Program, environment, declaration/reference/wiring owners and compilation
+limits. Completion joins the actual expression and operation obligations,
+Values resource selectors, capacity and result-order application, publication
+candidate selection and interpretation contracts. Declaration use or topology
+success alone cannot construct this witness. Shared prefixes are charged from
+the exact retained owners once; semantic/definition hashes, Values payloads and
+resource metadata use the original cumulative artifact allowance.
+
+Only fully connected static paths produce `Verified` in template scope.
+Unconnected operations, incoming gates, Local/Table inputs, missing resource
+material and exhausted budgets retain the original scope as `Unresolved`.
+These are implementation/preparation limits, not new language restrictions or
+permission to certify a smaller supported fragment. Known independent input
+violations remain rejections with their original typed causes.
+
+Typed execution-value Requirements retain the original Parameter declarations.
+Defaults are admitted by the existing declaration owner; invented values do
+not stand in for missing input. Runtime resource/publication binding and
+enforcement owners remain retained separately. Template verification cannot
+construct executable Units, authorize a Run or Submission, validate runtime
+observations, or trigger automatic execution/resending. Supplementation enters
+a fresh bound-input check and execution still requires an explicit request.
+
+## Bound checking outcomes
+
 The checker distinguishes three outcomes:
 
 - A complete opaque CheckedProgram, constructed only after static closure.

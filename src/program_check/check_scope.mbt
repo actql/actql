@@ -18,6 +18,7 @@ pub enum ScopedCheckOutcome {
 
 ///|
 pub enum TemplateCheckOutcome {
+  Verified(TemplateCheckedProgram)
   Rejected(CheckDiagnostic)
   Unresolved(TemplateCheckFrontier)
 }
@@ -25,12 +26,13 @@ pub enum TemplateCheckOutcome {
 ///|
 priv enum TemplateCheckProgress {
   Stopped(CheckDiagnostic)
-  Declarations(TemplateDeclarationPreparation)
+  Declarations(TemplateDeclarationPreparation, CheckDiagnostic)
 }
 
 ///|
 /// A frontier under the original template scope. Prepared declarations and
-/// wiring are explicitly partial: no complete template witness exists here.
+/// wiring are explicitly partial. Only TemplateCheckedProgram can close this
+/// original scope; a frontier retains the typed reason closure stopped.
 struct TemplateCheckFrontier {
   program : @syntax.Program
   environment : CheckEnvironment
@@ -57,13 +59,27 @@ pub fn check_parsed_scoped(
       }
       match prepare_template_declarations(program, environment, limits) {
         Ok(prepared) =>
-          TemplateOnly(
-            Unresolved({
-              program,
-              environment,
-              progress: Declarations(prepared),
-            }),
-          )
+          match complete_template_check(prepared) {
+            Ok(checked) => TemplateOnly(Verified(checked))
+            Err(issue) => {
+              let cause = LocalConstructionFailure::Template(prepared, issue)
+              let diagnostic : CheckDiagnostic = {
+                cause,
+                category: classify_diagnostic_cause(cause),
+              }
+              if diagnostic.category == InvalidInput {
+                TemplateOnly(Rejected(diagnostic))
+              } else {
+                TemplateOnly(
+                  Unresolved({
+                    program,
+                    environment,
+                    progress: Declarations(prepared, diagnostic),
+                  }),
+                )
+              }
+            }
+          }
         Err(cause) => {
           let diagnostic : CheckDiagnostic = {
             cause,
@@ -106,7 +122,7 @@ pub fn template_frontier_diagnostic(
 ) -> CheckDiagnostic? {
   match value.progress {
     Stopped(diagnostic) => Some(diagnostic)
-    Declarations(_) => None
+    Declarations(_, diagnostic) => Some(diagnostic)
   }
 }
 
@@ -116,6 +132,6 @@ pub fn template_frontier_declarations(
 ) -> TemplateDeclarationPreparation? {
   match value.progress {
     Stopped(_) => None
-    Declarations(prepared) => Some(prepared)
+    Declarations(prepared, _) => Some(prepared)
   }
 }

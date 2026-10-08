@@ -190,7 +190,12 @@ test "scoped template checking keeps partial preparation unresolved and rejects 
   assert_true(
     @program_check.template_frontier_declarations(frontier) is Some(_),
   )
-  assert_true(@program_check.template_frontier_diagnostic(frontier) is None)
+  assert_eq(
+    @program_check.diagnostic_category(
+      @program_check.template_frontier_diagnostic(frontier).unwrap(),
+    ),
+    UnsupportedImplementation,
+  )
   assert_true(
     @program_check.check_parsed_scoped(
       program,
@@ -287,17 +292,27 @@ test "scoped template declarations consume the actual SQL and AQL lowered Progra
         None,
         limits,
       )
-      is TemplateOnly(Unresolved(frontier)) else {
-      fail(
-        "Used x must retain prepared declarations, not claim complete static closure",
-      )
+      is TemplateOnly(Verified(checked)) else {
+      fail("The source-free template must close all static obligations")
     }
     assert_true(
-      @program_check.template_frontier_declarations(frontier) is Some(_),
+      physical_equal(
+        @program_check.template_declarations_program(
+          @program_check.template_checked_declarations(checked),
+        ),
+        used,
+      ),
     )
     assert_true(
-      physical_equal(@program_check.template_frontier_program(frontier), used),
+      physical_equal(@program_check.template_checked_program(checked), used),
     )
+    assert_eq(@program_check.template_checked_input_count(checked), 1)
+    let request = @program_check.template_checked_input_at(checked, 0).unwrap()
+    assert_true(
+      request.kind is ParameterValue(declaration) && declaration.name == "x",
+    )
+    assert_true(physical_equal(request.program, used))
+    assert_true(physical_equal(request.environment, environment))
     assert_true(
       @program_check.check_parsed_scoped(
         used,

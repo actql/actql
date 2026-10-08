@@ -137,6 +137,8 @@ pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnv
 
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
+pub fn complete_template_check(TemplateDeclarationPreparation) -> Result[TemplateCheckedProgram, TemplateConstructionIssue]
+
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
 pub fn diagnostic_alternative_at(CheckDiagnostic, Int) -> (@stage_syntax.Format, DiagnosticLocation)?
@@ -555,6 +557,24 @@ pub fn source_execution_subject(SourceExecution) -> SourceExecutionSubject
 
 pub fn source_identity(CheckedProgram) -> @pipeline_check_context.ProgramSourceIdentity
 
+pub fn template_checked_capacity(TemplateCheckedProgram) -> @check_environment.Capacity
+
+pub fn template_checked_contracts(TemplateCheckedProgram) -> @pipeline_check_context.AuthoringCoreContracts
+
+pub fn template_checked_declarations(TemplateCheckedProgram) -> TemplateDeclarationPreparation
+
+pub fn template_checked_definition(TemplateCheckedProgram) -> @program_references.ProgramDefinition
+
+pub fn template_checked_environment(TemplateCheckedProgram) -> CheckEnvironment
+
+pub fn template_checked_input_at(TemplateCheckedProgram, Int) -> InputRequest?
+
+pub fn template_checked_input_count(TemplateCheckedProgram) -> Int
+
+pub fn template_checked_program(TemplateCheckedProgram) -> @stage_syntax.Program
+
+pub fn template_checked_usage(TemplateCheckedProgram) -> (Int, Int, Int)
+
 pub fn template_declarations_catalog(TemplateDeclarationPreparation) -> @check_environment.SourceRequestContracts
 
 pub fn template_declarations_catalog_references(TemplateDeclarationPreparation) -> @check_environment.CatalogReferences
@@ -743,6 +763,7 @@ pub suberror LocalConstructionFailure {
   Source(SourceFailure)
   Closure(ConstructionFailure)
   Units(UnitBuildFailure)
+  Template(TemplateDeclarationPreparation, TemplateConstructionIssue)
 }
 
 pub suberror SourceFailure {
@@ -1339,8 +1360,25 @@ pub struct SourceResponsePolicy {
 type TemplateCheckFrontier
 
 pub enum TemplateCheckOutcome {
+  Verified(TemplateCheckedProgram)
   Rejected(CheckDiagnostic)
   Unresolved(TemplateCheckFrontier)
+}
+
+type TemplateCheckedProgram
+
+pub enum TemplateConstructionIssue {
+  BudgetExceeded
+  Capacity(@check_environment.CapacityIssue)
+  Semantics(@program_references.ProgramSemanticsIssue)
+  Definition(@encode_core.EncodeFailure)
+  Orders(Int, @pipeline_check_context.Issue)
+  Profiles(Int, @pipeline_check_context.PipelineOperationProfilesIssue)
+  Values(Int, Int, @pipeline_check_context.ValuesPublicationIssue)
+  Pipeline(Int, @pipeline_check_context.PipelineAuthoringIssue)
+  Context(Int, @pipeline_check_context.PipelineAuthoringContextIssue)
+  Publication(Int, @pipeline_check_context.AuthoringPublicationIssue)
+  Contracts(@pipeline_check_context.AuthoringCoreContractIssue)
 }
 
 type TemplateDeclarationPreparation

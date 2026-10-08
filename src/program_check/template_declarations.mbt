@@ -5,6 +5,7 @@
 struct TemplateDeclarationPreparation {
   program : @syntax.Program
   environment : CheckEnvironment
+  limits : CheckLimits
   catalog_references : @environment.CatalogReferences
   source : @context.SourceViewDeclarationPreparation
   work : Int
@@ -29,6 +30,7 @@ pub fn prepare_template_declarations(
     Err(issue) => return Err(Program(issue))
   }
   let compilation = limits.compilation
+  let selected_limits = limits
   let limits = compile_source_limits(compilation)
   let budget = IdentityBudget::{
     work: compilation.work,
@@ -91,6 +93,7 @@ pub fn prepare_template_declarations(
   Ok({
     program,
     environment,
+    limits: selected_limits,
     catalog_references,
     source,
     work: compilation.work - budget.work,
