@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {unnestJoinProgram, unnestObjectJoinProgram, unnestJoinSuccesses, unnestJoinRefusals}
+import {unnestJoinProgram, unnestFullJoinProgram, unnestObjectJoinProgram, unnestJoinSuccesses, unnestJoinRefusals}
   from './fixtures/unnest-join-source-input.mjs';
 import {correlatedUnnestSuccesses, correlatedUnnestRefusals}
   from './fixtures/correlated-unnest-source-input.mjs';
@@ -23,6 +23,18 @@ test('independent control expands before matching and preserves authored bounds'
   assert.deepEqual(JSON.parse(object.text), unnestObjectJoinProgram);
   assert.deepEqual(object.expected, [{code: 2, label: 'b', position: 0, key: 2},
     {code: 2, label: 'b', position: 2, key: 2}]);
+  const full = unnestJoinSuccesses.find(item => item.name === 'unnest-join-full');
+  const fullControl = unnestJoinSuccesses.find(item => item.name === 'unnest-join-full-json-control');
+  assert.deepEqual(JSON.parse(fullControl.text), unnestFullJoinProgram);
+  assert.deepEqual(full.expected, fullControl.expected);
+  assert.deepEqual(full.expected, [{element: 2, position: 0, key: 2},
+    {element: null, position: 1, key: null}, {element: 2, position: 2, key: 2},
+    {element: null, position: null, key: 3}]);
+  assert.deepEqual(unnestFullJoinProgram.stages[0].steps[3].assert_rows, {unique_by: ['position']});
+  assert.deepEqual(unnestFullJoinProgram.stages[0].steps[5].assert_rows, {unique_by: ['key']});
+  assert.equal(unnestFullJoinProgram.stages[0].steps[6].join.max_output_rows, 10);
+  assert.match(full.text, /ASSERT UNIQUE BY \(position\) \|> FULL JOIN/u);
+  assert.match(full.text, /ASSERT UNIQUE BY \(key\)/u);
 });
 
 test('NULL extension, original range and empty schemas have distinct obligations', () => {

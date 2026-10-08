@@ -95,8 +95,66 @@ and MoonBit `0.10.12+1634b282e` through the existing bounded/nonzero wrappers.
    checks pass; 380 canonical identities match their generated inputs.
    Changed MoonBit formatting and `git diff --check` pass.
 
-These checks prove only their executed boundaries. Normal five-package packed
-Local/HTTPS execution, submitted-HEAD CI, Wasm/Native execution and broader Core
-coverage are not yet established by this record. The existing correlated
-UNNEST public cohort includes these fixtures in both normal and selected routes;
-fixture registration alone is not successful execution evidence.
+## Integration and first packed attempt
+
+Main `2fa91dd62fc300f509687f34a9990a7d76c3e031` was normally merged into
+integration revision `26553404ed04dbe6933da869f1fe876e52423005`. No conflict was
+reported; the existing conditional-aggregate implementation and public fixture
+registration were retained. The focused parser/continuation/Run consumer
+selection passed **13/13** again (`run-RUCzGd`), and the read-only pin checks
+also passed after integration.
+
+That clean integration revision produced the usual five packages through normal
+prepack, followed by independent manifest/digest verification. The existing
+`test-packed-public-query.mjs --correlated-unnest-only` consumer failed during
+Local preparation of `unnest-join-full`, before later cases and HTTPS. The
+producer/digest checks succeeded; the campaign itself did not. Evidence:
+`_build/local-checks/attempts/run-2B8PZY` and the external receipt
+`worktrees/.codex-scratch/public-query-evidence-VRHlzd`, whose command 010 logs
+retain the exact failure and preceding successful cases.
+
+The newly authored FULL fixture omitted the existing common requirement for
+identity evidence on both Relation inputs. A bounded diagnostic compared the
+same source with an independent JSON FULL Program: both preparations rejected
+with `check_unclassified`. The focused MoonBit regression verifies the exact
+cause `Closure(Joins(MissingEvidence(_)))`. FULL is not allowed to invent a key
+from an OFFSET name, a constant, or an observed row sample.
+
+The corrected source and independent JSON control explicitly validate
+`position` on expanded rows and `key` on the right input through existing
+`assert_rows.unique_by`. The duplicate elements, NULL extension, unmatched key
+3, expected four rows, column order/types, and JOIN bound 10 are unchanged.
+This is an authored fixture precondition correction, not a checker relaxation
+or a change to expected product output. The keyed source also preserves the
+actual UNNEST → assertion → FULL JOIN continuation under test. The original
+unkeyed source and its failure remain above and in the MoonBit regression.
+
+Focused continuation/FULL tests pass **8/8** (`run-eBxfP2`), and the updated
+three-file fixture Node selection passes **9/9** (`run-nhVRYL`). The public
+cohort now has 58 normal cases and 17 preparation-refusal cases, including 19
+new normal cases and five new refusals. Those counts are obligations, not yet
+successful public execution evidence.
+
+### Separate common diagnostic boundary
+
+Unkeyed FULL rejection reaches the existing common checker but its category
+falls through to `UnclassifiedFailure` in
+`src/program_check/diagnostic_category.mbt::closure_category`; the standard
+preparation bridge reports `check_unclassified`. Public Local consequently
+returns `ClientHostFailure`/500 and the SDK returns `SubmissionUnknown` for
+`packed-local-unnest-join-full`. This is not evidence of an admitted Run failure
+or a wrong row order. The precise missing-evidence classification belongs to
+the common checker/diagnostic owner; it is not repaired here by changing the
+SDK's uncertainty rule or bypassing the checker.
+
+The bounded diagnostic commands and evidence are retained as
+`/private/tmp/actql-b-unnest-join-full-preparation-probe-20261009.mjs`,
+`/private/tmp/actql-b-unnest-join-full-preparation-bounded-20261009.mjs` and
+`_build/local-checks/attempts/run-iqmK5U`. They compare source, independent JSON
+and the explicitly keyed source using the actual generated runtime at the
+integration revision; they are preparation diagnostics, not packed execution.
+
+Submitted-HEAD CI, Wasm/Native execution and broader Core coverage remain
+unverified. The existing correlated UNNEST public cohort includes these
+fixtures in both normal and selected routes; fixture registration alone is not
+successful execution evidence.

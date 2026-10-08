@@ -103,3 +103,44 @@ test "UNNEST JOIN continuation preserves sequential SQL and Pipe admission" {
     assert_true(wire.contains("\"max_output_rows\":10"))
   }
 }
+
+///|
+test "UNNEST FULL JOIN retains the common identity premises" {
+  let context = {
+    ..fixture_context(),
+    inputs: [],
+    parameter_declarations: Some(unnest_parameters()),
+  }
+  let supplied = Some(unnest_value_cursor("{\"items\":[2,null,2]}"))
+  let unkeyed = compile(
+    @query.parse_query(
+      "SELECT element, position, k.key FROM UNNEST(@items) element WITH OFFSET position FULL JOIN (SELECT 2 AS key UNION ALL SELECT 3 AS key) k ON element = k.key MAX_OUTPUT_ROWS 10 ORDER BY position NULLS LAST, k.key",
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  match
+    @check.check_parsed(unkeyed, check_environment(), supplied, check_limits()) {
+    Rejected(error) =>
+      assert_true(
+        @check.diagnostic_cause(error) is Closure(Joins(MissingEvidence(_))),
+      )
+    _ => fail("FULL must not manufacture identity evidence after expansion")
+  }
+  let keyed = compile_query_script(
+    @query.parse_query_script(
+      "DATA keys = FROM (SELECT 2 AS key UNION ALL SELECT 3 AS key) keys_input |> ASSERT UNIQUE BY (key); FROM UNNEST(@items) element WITH OFFSET position |> ASSERT UNIQUE BY (position) |> FULL JOIN keys k ON element = k.key MAX_OUTPUT_ROWS 10 |> SELECT element, position, k.key |> ORDER BY position NULLS LAST, k.key",
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  match
+    @check.check_parsed(keyed, check_environment(), supplied, check_limits()) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("explicit common assertions must retain the FULL premises")
+  }
+  assert_true(semantic(keyed).contains("\"max_output_rows\":10"))
+}

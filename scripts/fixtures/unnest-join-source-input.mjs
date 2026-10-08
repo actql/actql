@@ -23,6 +23,25 @@ const scalarSteps = [
 export const unnestJoinProgram = {version: 'actql/0.1', id: 'fixture.unnest_join', params: declarations,
   stages: [{id: 'main', inputs: {}, steps: scalarSteps,
     results: {rows: {from: 'selected', fields: ['element', 'position', 'key']}}}], results};
+// FULL consumes genuine identity premises from both inputs. OFFSET is checked
+// explicitly; assigning a column name alone never invents uniqueness evidence.
+const fullColumns = [{name: 'element', contract: nullableNumber},
+  {name: 'position', contract: nullableNumber}, {name: 'key', contract: nullableNumber}];
+const fullExpected = [{element: 2, position: 0, key: 2}, {element: null, position: 1, key: null},
+  {element: 2, position: 2, key: 2}, {element: null, position: null, key: 3}];
+export const unnestFullJoinProgram = {version: 'actql/0.1', id: 'fixture.unnest_full_join', params: declarations,
+  stages: [{id: 'main', inputs: {}, steps: [scalarSteps[0], scalarSteps[1], scalarSteps[2],
+    {from: 'expanded', assert_rows: {unique_by: ['position']}, as: 'expanded_keyed'},
+    {values: {schema: {key: number}, rows: [{key: 2}, {key: 3}]}, as: 'keys'},
+    {from: 'keys', assert_rows: {unique_by: ['key']}, as: 'keys_keyed'},
+    {from: 'expanded_keyed', join: {...scalarSteps[4].join, with: 'keys_keyed', kind: 'full'}, as: 'joined'},
+    {from: 'joined', sort: [{field: 'position', dir: 'asc', nulls: 'last'},
+      {field: 'key', dir: 'asc', nulls: 'first'}]}, scalarSteps[6],
+  ], results: {rows: {from: 'selected', fields: ['element', 'position', 'key']}}}], results};
+const fullText = 'DATA keys = FROM (SELECT 2 AS key UNION ALL SELECT 3 AS key) keys_input '
+  + '|> ASSERT UNIQUE BY (key); FROM UNNEST(@items) element WITH OFFSET position '
+  + '|> ASSERT UNIQUE BY (position) |> FULL JOIN keys k ON element = k.key MAX_OUTPUT_ROWS 10 '
+  + '|> SELECT element, position, k.key |> ORDER BY position NULLS LAST, k.key';
 const sql = 'SELECT element, position, k.key FROM UNNEST(@items) element WITH OFFSET position '
   + 'JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 10 ORDER BY position';
 const pipe = 'FROM UNNEST(@items) element WITH OFFSET position '
@@ -71,13 +90,9 @@ export const unnestJoinSuccesses = [
     columns: [scalarColumns[0], {name: 'position', contract: nullableNumber}, scalarColumns[2]],
     expected: [...scalarExpected, {element: null, position: null, key: 3}],
   }),
-  success('full', sql.replace('JOIN (SELECT 2 AS key)', 'FULL JOIN (SELECT 2 AS key UNION ALL SELECT 3 AS key)')
-    .replace('ORDER BY position', 'ORDER BY position NULLS LAST, k.key'), {
-    columns: [scalarColumns[0], {name: 'position', contract: nullableNumber},
-      {name: 'key', contract: nullableNumber}],
-    expected: [{element: 2, position: 0, key: 2}, {element: null, position: 1, key: null},
-      {element: 2, position: 2, key: 2}, {element: null, position: null, key: 3}],
-  }),
+  success('full-json-control', JSON.stringify(unnestFullJoinProgram), {format: 'json',
+    parameterDeclarations: undefined, columns: fullColumns, expected: fullExpected}),
+  success('full', fullText, {columns: fullColumns, expected: fullExpected}),
   success('predicate', pipe.replace('|> JOIN', '|> WHERE element = element |> LEFT JOIN'), {
     columns: [scalarColumns[0], scalarColumns[1], {name: 'key', contract: nullableNumber}],
   }),
