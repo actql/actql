@@ -1,5 +1,50 @@
 import * as owner from './dist/remote_coordinator_abi.js';
 
+const siteInteger = value => typeof value === 'bigint' && value >= 0n &&
+  value <= 9223372036854775807n;
+const siteOptionalInteger = value => value == null || siteInteger(value);
+const siteArray = (value, valid) => {
+  if (!Array.isArray(value) || value.length > 64) return false;
+  // Array.every skips holes; every supplied slot must be a typed observation.
+  for (let index = 0; index < value.length; index++) {
+    if (!Object.hasOwn(value, index) || !valid(value[index])) return false;
+  }
+  return true;
+};
+const siteBoolean = value => typeof value === 'boolean';
+const invalidSiteInput = () => { throw new TypeError('InvalidSitePlanningInput'); };
+
+// Pure planning over trusted current observations. This is the existing common
+// Site selector, not remote authentication, resource admission or a dispatch.
+export const sitePlanning = Object.freeze({
+  plan: input => {
+    if (input === null || typeof input !== 'object' ||
+        !['durationMilliseconds', 'startupMilliseconds', 'transferMilliseconds']
+          .every(key => siteOptionalInteger(input[key])) ||
+        !['capacitySupported', 'acceptsTransfer', 'transferProviderAvailable']
+          .every(key => siteBoolean(input[key])) ||
+        !['transferRequired', 'sharedTransfer', 'sourceRevoked', 'estimateAvailable']
+          .every(key => siteArray(input[key], siteBoolean)) ||
+        !['transferBytes', 'retainedBytes', 'executionBytes']
+          .every(key => siteArray(input[key], siteInteger))) invalidSiteInput();
+    const result = owner.coordinatorPlanSiteCandidate(
+      input.durationMilliseconds ?? undefined, input.startupMilliseconds ?? undefined,
+      input.capacitySupported, input.acceptsTransfer,
+      input.transferProviderAvailable, input.transferMilliseconds ?? undefined,
+      input.transferRequired, input.sharedTransfer, input.sourceRevoked,
+      input.estimateAvailable, input.transferBytes, input.retainedBytes,
+      input.executionBytes);
+    const code = result._0, duration = result._1;
+    return Object.freeze({code, durationMilliseconds: code === 0 ? duration : null});
+  },
+  select: (durations, keys) => {
+    if (!siteArray(durations, siteInteger) || !siteArray(keys, value =>
+      typeof value === 'string' && value.length > 0 && value.length <= 256 &&
+      !/[\u0000-\u001f\u007f]/u.test(value))) invalidSiteInput();
+    return owner.coordinatorSelectSiteCandidate(durations, keys);
+  },
+});
+
 function checked(result) {
   if (result?.$tag === 1) return result._0;
   if (result?.$tag === 0) {
