@@ -785,8 +785,15 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('582ecd6f94df7584160874befda4fa5f2a7d028f347599fc11e9685c10ba36e8'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('e5068efe3ea2216fc07cd3373f3ca0ba9af030ea9b7514aa33e75067d209e869'));
-  assert.equal(current.run.run_definition_cid,
+  // Retain both published feature closures before the normal main merge.
+  assert.equal(vector(pin('209990ef9c813fa9c15f88d4b0898be472b4e4f0068e281512ecfe71769a5d0e'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('0c8106e879020aa6541115ce2199187148b73e07b18170b65ff4c703e8092374'));
+  assert.equal(vector(pin('ba59c48eb915694484664a7daf7f839e492c36eae44137993f39130793c59672'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('afb2b3cedb82f86b5296376ac0dd10cee8991082c1f05971768059bb52d77e2b'));
+  assert.equal(current.run.run_definition_cid,
+    pin('82ce941b0a86d246b67e7071473dd11cffbd263664ff226e65b5d75a93585ed6'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

@@ -110,6 +110,8 @@ pub(all) enum QueryOperation {
   Analytic(Array[Projection])
   // Private window outputs are operands of SELECT expressions, not input aliases.
   AnalyticExpressions(Array[Projection], Array[NamePart])
+  // ORDER windows either consume SELECT aliases or the current projected rows.
+  OrderAnalytic(Array[Projection], Bool)
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
   Limit(QueryInteger, QueryInteger)
@@ -437,6 +439,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Analytic(projections) => Some(Analytic(copy_projections(projections)))
     AnalyticExpressions(projections, names) =>
       Some(AnalyticExpressions(copy_projections(projections), names.copy()))
+    OrderAnalytic(projections, selected_scope) =>
+      Some(OrderAnalytic(copy_projections(projections), selected_scope))
     Qualify(e, calls) =>
       Some(
         Qualify(
@@ -1511,19 +1515,43 @@ fn QueryParser::aggregate_order_term(
 fn QueryParser::order(
   self : QueryParser,
   calls? : Array[(NamePart, AggregateCall)]? = None,
+  windows? : Array[Projection]? = None,
 ) -> Array[SortTerm] raise QueryAbort {
   let terms : Array[SortTerm] = []
   while true {
     self.node()
-    let expression = match calls {
-      Some(calls) => {
-        let (expression, embedded) = self.aggregate_expression(
-          "aql_order_aggregate_",
-        )
-        calls.append(embedded)
-        expression
+    let expression = if windows is Some(outputs) {
+      let (expression, embedded_windows, embedded_calls) = self.window_expression(
+        "aql_order_window_",
+        aggregate_prefix=Some("aql_order_aggregate_"),
+      )
+      for projection in embedded_windows {
+        if projection.analytic.unwrap().window.reference is Some((_, at)) {
+          raise QueryAbort("Named window is not allowed in ORDER BY", at)
+        }
       }
-      None => self.expression()
+      outputs.append(embedded_windows)
+      match calls {
+        Some(calls) => calls.append(embedded_calls)
+        None if !embedded_calls.is_empty() =>
+          raise QueryAbort(
+            "Aggregate ORDER BY requires a SELECT query scope",
+            self.peek().start,
+          )
+        _ => ()
+      }
+      expression
+    } else {
+      match calls {
+        Some(calls) => {
+          let (expression, embedded) = self.aggregate_expression(
+            "aql_order_aggregate_",
+          )
+          calls.append(embedded)
+          expression
+        }
+        None => self.expression()
+      }
     }
     let (direction, nulls) = self.order_suffix()
     terms.push({ expression, direction, nulls, })
@@ -1933,11 +1961,16 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   }
   let tail : Array[QueryOperation] = []
   let order_calls : Array[(NamePart, AggregateCall)] = []
+  let order_windows : Array[Projection] = []
   let order_start = self.peek().start
   if self.has("ORDER") {
     self.keyword("ORDER")
     self.keyword("BY")
-    tail.push(Order(self.order(calls=Some(order_calls))))
+    let terms = self.order(calls=Some(order_calls), windows=Some(order_windows))
+    if !order_windows.is_empty() && !sets.is_empty() {
+      tail.push(OrderAnalytic(order_windows, false))
+    }
+    tail.push(Order(terms))
   }
   if self.has("LIMIT") {
     self.node()
@@ -1983,6 +2016,23 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
         }
         _ => operations.push(operation)
       }
+    }
+    term = { ..term, operations, }
+  }
+  if sets.is_empty() && !order_windows.is_empty() {
+    if term.operations.any(operation => operation is Select(_, true)) {
+      raise QueryAbort(
+        "Analytic ORDER BY is not allowed after SELECT DISTINCT", order_start,
+      )
+    }
+    let operations : Array[QueryOperation] = []
+    let mut inserted = false
+    for operation in term.operations {
+      if !inserted && (operation is Qualify(_, _) || operation is Select(_, _)) {
+        operations.push(OrderAnalytic(order_windows, true))
+        inserted = true
+      }
+      operations.push(operation)
     }
     term = { ..term, operations, }
   }
@@ -2405,12 +2455,17 @@ fn QueryParser::pipe_tail(
     } else if self.has("ORDER") {
       self.keyword("ORDER")
       self.keyword("BY")
-      let operation = Order(self.order())
-      if sets.is_empty() {
-        operations.push(operation)
+      let windows : Array[Projection] = []
+      let operation = Order(self.order(windows=Some(windows)))
+      let destination = if sets.is_empty() {
+        operations
       } else {
-        final_operations.push(operation)
+        final_operations
       }
+      if !windows.is_empty() {
+        destination.push(OrderAnalytic(windows, false))
+      }
+      destination.push(operation)
     } else if self.has("LIMIT") {
       let operation = self.limit()
       if sets.is_empty() {

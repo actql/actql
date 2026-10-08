@@ -105,7 +105,7 @@ node scripts/check-canonical-json.mjs
   `_build` attempt/evidence paths belong to this worktree.
 - Changed MoonBit formatting and `git diff --check` are checked separately.
 
-The normal public corpus and `--group-by-all-only` both include 15 positive
+The normal public corpus and `--group-by-all-only` both include 16 positive
 cases and 6 preparation refusals. Public acceptance uses the existing harness
 for ordered Result.describe contracts, rows, hidden-column absence, one Source
 session, same-request replay and zero Run/provider I/O on refusal.
@@ -116,3 +116,33 @@ digests, command evidence and results will be recorded in the PR body after
 execution. Full Core, Wasm/native execution, full packed campaigns, performance,
 manual CI and service differential testing were not run. Draft is preparation;
 no merge or broad conformance claim is made.
+
+## Normal main integration before public acceptance
+
+Main `266dd5e0c74669c314b0f5adc2ef568daacaaa4d` brings the adopted #1004
+ORDER-window and #1003 pending Output-custody changes. The normal merge retains
+both; conflicts are manifest/import/vector closures and the public selection
+flag. The source generator rebuilds all derived pins from merged grammar and
+rules; no generated file is resolved by manually editing a hash.
+
+Both feature closures remain historical independent vectors. The integrated
+grammar is `sha256:a4fe0db0f0befb3686067941947689af5201985c1af82f77a9cb79406a800ed3`;
+the integrated independent Values Run is
+`sha256:82ce941b0a86d246b67e7071473dd11cffbd263664ff226e65b5d75a93585ed6`.
+The new exact preimages are retained in
+`/private/tmp/actql-b-group-all-integrated-run-preimages-20261008.json`.
+The public corpus now also checks GROUP BY ALL followed by an inline ORDER
+window: independent id order 1,3,2,4, with no window field in the Result.
+This makes 16 positive cases and 6 refusals. Integration verification and
+exact-HEAD public evidence are recorded separately from the earlier results.
+
+Integrated selected JS tests pass 67/67 (`run-hqtTB9`), including the original
+GROUP/HAVING callers, parser snapshots, inline ORDER-window caller and Run
+identity boundary. Integrated affected Node tests pass 34/34 (`run-cAPpsp`),
+including both public-corpus registration tests. Read-only pin/import/canonical
+checks also pass after integration; no full suite was selected.
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 120 -- --target js src/query_syntax/group_by_all_test.mbt src/query_syntax/query_test.mbt src/query_program/sql_group_by_all_test.mbt src/query_program/group_select_input_scope_test.mbt src/query_program/group_property_keys_test.mbt src/query_program/sql_grouped_subexpression_test.mbt src/query_program/group_having_implicit_alias_test.mbt src/query_program/order_window_expression_test.mbt src/run_publication_host/client_values_run_materials_wbtest.mbt
+node scripts/local-checks.mjs test node --timeout-seconds 120 -- scripts/compilation-manifests.test.mjs scripts/client-values-run-materials-vector.test.mjs scripts/frontend-profile.test.mjs scripts/group-by-all-source-input.test.mjs scripts/order-window-source-input.test.mjs scripts/public-query-cases.test.mjs scripts/public-query-profiles.test.mjs
+```

@@ -170,6 +170,7 @@ test "GROUP BY ALL preserves CTE JOIN and SELECT-headed Pipe composition" {
       "WITH chosen AS (SELECT x FROM t) SELECT x, COUNT(*) AS n FROM chosen GROUP BY ALL ORDER BY x",
       "SELECT l.x AS x, COUNT(*) AS n FROM t AS l JOIN t AS r ON l.x = r.x GROUP BY ALL ORDER BY x",
       "SELECT x, COUNT(*) AS n FROM t GROUP BY ALL |> WHERE n > 0 |> ORDER BY x",
+      "SELECT x, COUNT(*) AS n FROM t GROUP BY ALL ORDER BY ROW_NUMBER() OVER (ORDER BY n DESC, x)",
       "SELECT x, ROW_NUMBER() OVER (ORDER BY x) AS n FROM t GROUP BY ALL ORDER BY x",
       "SELECT x, ROW_NUMBER() OVER (ORDER BY x) + 1 AS n FROM t GROUP BY ALL ORDER BY x",
     ] {

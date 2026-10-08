@@ -51,6 +51,8 @@ export const groupByAllSuccesses = [
     groupedRows, ['id', 'n']),
   success('window-excluded', 'SELECT id, ROW_NUMBER() OVER (ORDER BY id) + 1 AS rank FROM records WHERE id > 0 GROUP BY ALL ORDER BY id',
     [{id: 1, rank: 2}, {id: 2, rank: 3}, {id: 3, rank: 4}, {id: 4, rank: 5}], ['id', 'rank']),
+  success('inline-order-window', 'SELECT id, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY ALL ORDER BY ROW_NUMBER() OVER (ORDER BY n DESC, id)',
+    [{id: 1, n: 2}, {id: 3, n: 2}, {id: 2, n: 1}, {id: 4, n: 1}], ['id', 'n']),
   success('cte-pipe-tail', 'WITH summary AS (SELECT id, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY ALL) SELECT id, n FROM summary |> WHERE n > 1 |> ORDER BY id',
     [{id: 1, n: 2}, {id: 3, n: 2}], ['id', 'n'], {format: 'aql-text'}),
   success('empty-keys-empty-input', 'SELECT COUNT(*) AS n, 1 AS marker FROM records WHERE FALSE GROUP BY ALL',
