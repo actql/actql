@@ -12,6 +12,21 @@ const publicTargets = ['local', 'http'].map(entrance => target(
   `${entrance}: check protocol failures retain original input without verdict or retry authority`,
   'protocol-failure-public-rejection'));
 const mutations = [
+  ...['local', 'https'].map(entrance => ({
+    name: `${entrance}: unexposed preparation write misroutes to ordinary admission`,
+    path: entrance === 'local' ? 'adapters/host-node/in-process-client.mjs' : 'adapters/host-node/client-http.mjs',
+    file: 'adapters/host-node/client-unsupported-preparation-write.test.mjs',
+    from: entrance === 'local' ? '  return Object.freeze({async perform(operation, body, signal) {'
+      : "      const operation = request.url.slice('/actql/client/0.1/'.length);",
+    to: entrance === 'local'
+      ? '  return Object.freeze({async perform(operation, body, signal) {\n' +
+        "    if (['supplement-submission', 'respond-submission-checkpoint'].includes(operation)) operation = 'submit-intent';"
+      : "      let operation = request.url.slice('/actql/client/0.1/'.length);\n" +
+        "      if (['supplement-submission', 'respond-submission-checkpoint'].includes(operation)) operation = 'submit-intent';",
+    targets: ['supplement-submission', 'respond-submission-checkpoint'].map(operation => target(
+      `${entrance}: unexposed ${operation} cannot admit a submission or Compute`,
+      'unsupported-preparation-no-write', 'deepStrictEqual')),
+  })),
   {name: 'unknown outcome classified as a known failure', path, file: unit,
     from: "kind: problem === 'unknown_outcome' ? 'uninterpretable' : 'protocol_failure',",
     to: "kind: 'protocol_failure',",
