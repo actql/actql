@@ -196,6 +196,16 @@ pub fn[C, E] compute_host_policy_candidates(
 }
 
 ///|
+pub fn[C, E] validate_compute_host_policy_request(
+  host : ComputeHost[C, E],
+  request : @strategy.PolicyRequest,
+  now_ms : Int64,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  guard host.estimates is Some(policy) else { return Err(InvalidConfiguration) }
+  validate_adaptive_policy_request(policy, request, now_ms)
+}
+
+///|
 pub fn[C, E] prepare_next_compute_task(
   host : ComputeHost[C, E],
   context : C,

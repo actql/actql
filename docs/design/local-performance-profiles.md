@@ -95,66 +95,77 @@ synthetic fixtures can be recorded. Future adapters must bind tenant/project,
 disclosure revision and purpose before aggregation, and validate any extra
 feature disclosure; removing metric dimensions does not remove scope.
 
-## P2: separate sidecar proposal
+## P2: local descriptive sidecar
 
-Implement separately after this design is reviewed. Keep the existing request
-and closed response in `physical_strategy/policy_wire.mbt` unchanged. The common
-Owner mints the request and canonical projection through
-`prepare_dispatch_policy_choice`, `prepare_dispatch_policy_request` and
-`dispatch_policy_candidates`. `strategy_policy_candidates` exposes only a
-minted pending consultation. Its exact canonical UTF-8 bytes, including version,
-are the source of the existing candidate-set CID.
+The first implementation accepts duration references for the Native synthetic
+1,000-row Text fixture. It does not provide calibrated ETA, p90, reranking or
+execution authority. The original placement request/closed response and
+candidate CID are unchanged.
 
-Proposed separate admission inputs:
+The trusted caller selects the local profile directory; payloads cannot select
+files or authenticate their issuer. `loadLocalOperationalProfile` invokes the
+existing profile/record/capture validator, rereads and pins exact report bytes,
+and freezes the admitted original. A configured local producer derives a
+reference only from exact condition matches and observations attributable to
+the same candidate snapshot, task and selected position. Neither digest nor
+three matching samples proves a general performance bound.
 
-| Group | Fields and validation |
-| --- | --- |
-| Envelope | New sidecar contract version, bounded length, issuer identity from configured authentication; no issuer authority inferred from JSON |
-| Pending binding | Exact request ID, Run identity, authority, candidate-set CID, generation, revision and deadline from the held common request |
-| Candidate binding | Existing projected candidate position; must occur in that exact snapshot; no synthesized offers or modified estimates inside the original projection |
-| Feature binding | Immutable authorized feature-snapshot reference/digest, disclosure revision and tenant/project/purpose scope; feature source/coverage/missing values |
-| Model binding | Frozen profile/model revision, objective-policy revision and model scope; never replace these on a pending consultation |
-| Quantity | Name/unit and known/unknown/conditional/statistical status, measurement inclusion, capture/instrumentation revision, sample/coverage/freshness and calibration status |
+The separate closed `actql-operational-estimate/0.1` envelope contains `version`,
+`binding`, `profile_revision`, `candidate_snapshot_cid`, `conditions`,
+`oldest_ms`, `newest_ms`, `max_age_ms`, `capture_ms`, `overhead`, `entries`.
+`binding` echoes the existing request's version, request ID, Run identity,
+authority, candidate-set CID, generation, revision and decimal-string deadline.
+`profile_revision` is the immutable original report digest. There is no learned
+model or optimization objective in this reference-only stage. Conditions are
+the closed P1 fields, including input/runtime/artifact identities, authorized
+local scope, instrumentation/capture/measurement revisions, concurrency and
+uncontrolled OS cache. No feature reads, tenant learning or export are added.
 
-Do not add raw rows, file paths, credentials or opaque live handles. Unknown
-NDV/selectivity or operational resources remain unknown; `plan` must not execute
-reads or external calls to improve its feature snapshot. Proposed initial sidecar ceilings are 64 KiB encoded UTF-8, depth 8, 4,096
-decoded nodes, at most 64 candidate entries and 16 authorized feature references.
-Each candidate position must be unique and present in the held projection; a
-larger presented set yields an explicitly partial/unavailable estimate, never
-silent truncation interpreted as full coverage. IDs/revisions are nonempty and
-bounded to 128 UTF-8 bytes; diagnostics use a bounded enum, not arbitrary text.
-These are proposed decoding/resource ceilings for P2 review, not measured heap
-bounds. Keep the existing 4,096-byte closed policy response ceiling unchanged.
+Each entry contains `position`, `task`, `quantity`, `status`, `reason`,
+`median_ms`, `minimum_ms`, `maximum_ms`, `sample_count`. Supported quantities are
+`task-processing`, `task-release`, `resident-preparation`, `resident-import`.
+The initial reference is the actual selected task's phase processing interval;
+preparation/import are excluded from it, while release is separate. Missing
+phase intervals are unknown, never fabricated zero. Unselected candidates have
+no attributed samples. Observed extrema are descriptions, not prediction
+intervals; quantities are not summed into whole-Run ETA. `capture_ms` is the
+median per-execution capture expense, not a per-task additive charge.
 
-Proposed closed sidecar envelope: `version`, `binding`, `feature_snapshot`,
-`model_revision`, `profile_revision`, `objective_revision`, `scope`, `entries`.
-`binding` contains the exact existing request echoes, not a newly minted request.
-An entry contains `position`, `quantities` and `conditions`; quantity contains
-`name`, `unit`, `status`, `value`, `sample_count`, `coverage`, `freshness` and
-`calibration`. Initially support duration milliseconds only; unknown has null
-value and a typed reason. Finite nonnegative values must remain bounded under
-the chosen decoder representation, and unsupported money/work units stay
-unknown rather than being converted into a score. This is a proposed separate
-0.1 contract shape, not an addition to current canonical preimages or an
-implemented/accepted wire schema. An issuer is supplied by the authenticated
-adapter alongside the envelope, not self-authenticated by a payload field.
+Reference entries need at least three successful, accepted, complete and
+attributed samples. Condition mismatch, insufficient samples or phase coverage,
+and stale/future observations yield nullable values with fixed diagnostic
+codes. An `off` mode cannot supply phase duration references. The 24-hour maximum
+window is an operational analysis rule; callers may tighten it. `overhead` is
+`unknown-no-off-comparison` for the six metadata-only samples. Direct record,
+readback, aggregation and receive costs are reported separately.
 
-The decoder receives the held snapshot/request and authenticated issuer, checks
-closed shape/domains/size and exact bindings, then returns an optional immutable
-estimate record or an unavailable reason. It cannot return a dispatch ticket or
-change candidate CID, Approved binding or reservation. A valid existing policy
-response can proceed without an optional sidecar. An invalid response remains
-invalid regardless of the sidecar. Keep issuer/model identity distinct from the
-authenticated `policy_id` passed to the existing response admission.
+Ceilings are 64 KiB encoded UTF-8, depth 8, 4,096 decoded nodes, at most 64
+entries, and 128 UTF-8 bytes for IDs/revisions/condition strings. Nullable
+quantities must be present. Duplicate (position, task, quantity), absent task
+or candidate, unsupported diagnostic codes, non-finite/negative values and
+unknown root fields are refused. The decoder reads the existing bounded
+candidate projection (8 MiB/depth 24/one million nodes) solely for membership;
+these decoder limits are not measured physical heap upper bounds. Existing
+4,096-byte policy response bounds remain intact.
 
-Acceptance before P2 availability: wrong request/Run/generation/revision/deadline,
-position, projection bytes, feature/disclosure/model scope, stale profile,
-unknown required quantities, oversized sidecar, wrong issuer and a model update
-while the request is pending. Confirm unchanged original candidate bytes/CID,
-closed response refusal of unknown fields and no hidden JSON in `explanation`.
-Compare local-profile availability separately from sidecar admission; no P1
-match test qualifies a pending request.
+`admit_native_operational_estimate` validates the original dispatch Owner's
+pending request before and after decoding using its existing durable Native
+clock. It rechecks generation, revision, search/resources and deadline; expired
+requests or changed pending bindings are refused. Freshness is checked again
+at receive completion. Receipt admission never commits a candidate, reserves
+capacity, retries or reads Source. Optional reference failure does not change
+ordinary policy validity. The caller must authenticate the local producer and
+pin its validated profile outside JSON; the fixture additionally pins each
+producer template's exact bytes in caller configuration before binding it to
+the actual held request. Passing an issuer string for arbitrary unvalidated
+payloads would violate this adapter trust boundary.
+
+The functional Native fixture admits references and reasoned unknowns, refuses
+binding/position/profile/issuer mutations and rechecks refusal after ordinary
+offline commit. It leaves candidate bytes, actual selection, acquisition,
+physical attempts and final ledger cleanup unchanged. The six fixed samples
+are separate from two functional receive runs; failures are recorded without
+replacement. Neither local evidence nor this sidecar is an Actions original.
 
 ## P3: bounded reranking proposal
 

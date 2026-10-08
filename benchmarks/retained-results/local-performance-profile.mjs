@@ -19,6 +19,10 @@ export function nativeProfileSchedule() {
   }).flat().map((entry, index) => Object.freeze({...entry, index}));
 }
 
+export const nativeOperationalSchedule = () => Array.from({length: 3}, (_, round) =>
+  ['fresh', 'resident'].map(realization => ({round, mode: 'metadata-only', realization})))
+  .flat().map((entry, index) => Object.freeze({...entry, index}));
+
 export function validateLocalObservation(value) {
   assert.equal(value?.version, 'actql-local-performance-observation/0.1');
   assert.equal(typeof value.id, 'string');

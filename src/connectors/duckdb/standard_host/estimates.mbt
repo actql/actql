@@ -218,6 +218,20 @@ pub fn prepare_dispatch_policy_request(
 }
 
 ///|
+/// Recheck the existing pending Owner after optional estimate I/O.
+pub fn validate_dispatch_policy_request(
+  host : StrategyHostDispatch,
+  request : @strategy.PolicyRequest,
+  now_ms : Int64,
+) -> Result[Unit, DispatchIssue] {
+  @host_driver.validate_compute_host_policy_request(
+    host.runtime,
+    request,
+    now_ms,
+  ).map_err(adaptive_estimate_issue)
+}
+
+///|
 /// `authenticated_policy_id` is supplied by the environment's authenticated
 /// peer mapping, not by the response body. Common admission checks the current
 /// generation, reservation and registration again before dispatch.

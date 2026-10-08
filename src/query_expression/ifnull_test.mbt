@@ -23,7 +23,7 @@ test "IFNULL keeps exact arity and the closed function namespace" {
       msg=text,
     )
   }
-  for text in ["ACTQL.IFNULL(1, 2)", "`IFNULL`(1, 2)"] {
+  for text in ["ACTQL.IFNULL(1, 2)", "`ACTQL.IFNULL`(1, 2)"] {
     assert_true(
       lower(fixture(text), _ => None, limits())
       is Err({ issue: UnsupportedFunction, .. }),
