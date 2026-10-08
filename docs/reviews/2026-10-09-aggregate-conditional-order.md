@@ -112,5 +112,56 @@ expected demanded-argument failure, must pass through freshly packed Local and
 real HTTPS. Existing checks retain rows, Result.describe types/nullability and
 column order, one Source session, private-column exclusion, unchanged-request
 resend/reread without reacquisition, and admission/provider-I/O zero on preparation
-refusal. Public acceptance, package identities and required CI are pending at
-this implementation commit; focused success does not establish them.
+refusal. At the implementation commit, public acceptance, package identities and
+required CI were pending; focused success alone did not establish them.
+
+
+## Completed fixed-source public acceptance
+
+Source and normal producer: `ebb10c5c1ba3ae71a52db139d3aabecc21461ebd`.
+The checkout and every recorded command were clean at this exact SHA.
+The normal five-package producer retained prepack; independent SHA-256 checks
+matched every manifest tarball. No adapter overlay or corrected Program was used.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-aggregate-conditional-order-ebb10c5c1-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-aggregate-conditional-order-ebb10c5c1-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-aggregate-conditional-order-ebb10c5c1-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --aggregate-property-order-only
+```
+
+Both Embedded Local and real HTTPS completed **64 normal, 32 preparation
+refusal and one expected execution-failure case**, including the new **13 normal
+and five refusal cases**. All 64 normal cases and the demanded-argument failure
+are individually logged per protocol. Eight refusals have individual log lines
+(the new implementation-limit refusals are among these); the remaining refusals
+use the retained unlogged rejection loop. The corpus cardinality and complete
+consumer success establish the 32 total; this is not a claim of 32 refusal lines.
+Rows, Result.describe type/nullability/column order, private-column exclusion,
+Source acquisition count and unchanged-request replay/reread checks remained
+active. Preparation refusals checked admission and Source-I/O counters.
+
+Evidence:
+
+- Wrapper: `run-lexsFX`, terminal success with all three steps complete and locks released.
+- Receipt: `worktrees/.codex-scratch/public-query-evidence-AJoW0E`, ten complete
+  commands with exit/verification zero, clean matching source, no evidence errors.
+- Independent audit: `/private/tmp/actql-b-aggregate-conditional-order-ebb10c5c1-acceptance-audit-20261009.json`.
+- Wrapper/log: `/private/tmp/actql-b-aggregate-conditional-order-ebb10c5c1-packed-20261009.mjs`
+  and the corresponding `.stdout.log`.
+- The owned fresh installation was removed by the successful evidence recorder;
+  receipt/logs and the immutable five tarballs remain.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `5e28c1fabbf8acbb5a00ea2d77a8ce8e3b5aefc04ed849d767b25ac477e29acf` |
+| run-host-core | `41b5d6e6ecdb0ce8efc311766524225d9bb46f0fef3d21506194635c18c20d7f` |
+| local-node | `d591774976f326e7cf0b5efb2368372fcc3a3545f0f236dd76110ab6087d277d` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+The exact-source workflow lookup returned no runs at the observation time;
+there is no CI success or run URL to report. No manual rerun or merge occurred.
+This evidence-only follow-up changes no compiler, fixture, package, contract or
+consumer input from the tested source; its commit SHA is still reported
+separately rather than relabelling the producer's packages.
