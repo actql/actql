@@ -146,7 +146,20 @@ fn settle_stopped_holder_custody(
         recorded_source=owner.recorded_source,
       ) {
       Ok(value) => value
-      Err(_) => return false
+      Err(issue) => {
+        // Report only fixed refusal codes. Historical cleanup must remain
+        // pending; arbitrary messages and saved materials are never printed.
+        let code = match issue {
+          Refused(reason) => refusal_code(reason)
+          _ => "input-custody-unconfirmed"
+        }
+        report("release-recovery-pending", [
+          ("request_cid", @remote.dispatch_request_identity(request)),
+          ("step", "input-admission"),
+          ("code", code),
+        ])
+        return false
+      }
     }
     let recovered = match owner.journal.observation(request) {
       Ok(value) => value
@@ -184,6 +197,11 @@ fn settle_stopped_holder_custody(
     owner.physical_cleanup = Some(cleanup)
   }
   if !owner.physical_cleanup.unwrap()() {
+    report("release-recovery-pending", [
+      ("request_cid", @remote.dispatch_request_identity(request)),
+      ("step", "physical-cleanup"),
+      ("code", "cleanup-unconfirmed"),
+    ])
     return false
   }
   if owner.transfer_journal is Some(journal) && !journal.close() {
