@@ -75,8 +75,40 @@ The existing consumer checks Named Result rows and complete descriptions,
 internal-column non-disclosure, Source acquisition count, attach and same-request
 replay. Exact preparation refusals must precede Run admission and provider I/O.
 
-## Unverified at preparation
+## Clean packed acceptance and artifact correspondence
 
-Clean exact-SHA ordinary five-package Embedded Local/HTTPS acceptance is pending.
-Required CI, full Core, Wasm/native, broad packed campaigns and ordered STRUCT
-conformance have not been established by the focused checks above.
+Normal producer/source SHA: `09a47b6d5207e60919ec4e3bfd08fbfd4fb048f3`.
+The ordinary five-package producer, independent digest verification and
+`node scripts/test-packed-public-query.mjs --computed-object-property-only`
+all pass. Wrapper `run-7EBHaX` finishes passed/complete, exit zero. Receipt
+`public-query-evidence-mrJ1hs` records ten complete successful commands, each
+observing that same clean checkout; no evidence errors, and successful temporary
+installations were removed by the existing harness.
+
+Embedded Local and real HTTPS each finish **27 positives, 12 preparation
+refusals and one expected execution failure**, retaining every original case.
+All nine new positives and four exact `ClientProgramInvalidInput` refusals pass.
+Seven exact refusals are individually logged per boundary; five original
+refusals are established by the reviewed common loop and completed consumer,
+not invented extra log lines. Named Result rows/describe preserve NULLs,
+canonical star and SELECT column order, full types, duplicate rows, original
+versus current slots and no internal field exposure. Source acquisition is once
+per positive; attach and unchanged same-request replay do not acquire again.
+
+Independent five-tarball rehash and retained log inventory:
+`/private/tmp/actql-b-object-column-star-20261009-acceptance-audit.json`.
+Normal package SHA-256 digests:
+
+| Package | Digest |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `5e28c1fabbf8acbb5a00ea2d77a8ce8e3b5aefc04ed849d767b25ac477e29acf` |
+| run-host-core | `bdeaef6c2ac908f5906439ff94a8098b0565221f0dec3bcd53ccde20dd17e87f` |
+| local-node | `266fb4a202b32740dd5ae403a06f2664c5b3e51deb6cd596b2e865884fc82412` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+The subsequent review-record commit changes only this document, not compiled
+source, corpus, consumer or package inputs. It is not a new packed campaign.
+Required submitted-HEAD CI, full Core, Wasm/native, broad packed campaigns and
+ordered STRUCT conformance remain unverified. Draft preparation is not a full
+integration gate. No merge or manual CI retry is performed.
