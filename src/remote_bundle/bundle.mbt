@@ -587,7 +587,10 @@ fn transition(
   phase : RemoteBundlePhase,
   owners : Int,
 ) -> Result[RemoteBundleTransition, RemoteBundleIssue] {
-  if record.record_revision < 0 || record.owners < 0 || owners < 0 {
+  if record.record_revision < 0 ||
+    record.record_revision >= 2147483647 ||
+    record.owners < 0 ||
+    owners < 0 {
     return Err(InvalidBundleState)
   }
   Ok({
