@@ -956,6 +956,9 @@ export class ClientError extends Error {
   }
 }
 const ownedClientFailures = new WeakMap();
+// Only fixed read refusals from this SDK's bounded HTTP reply receive custody.
+// Arbitrary Host codes and borrowed stream errors remain redacted in DSN mode.
+const readRefusalCodes = new Set(['ResultAccessDenied', 'ClientAuthenticationDenied']);
 const ownedClientFailure = (code, details) => {
   const error = new ClientError(code, details);
   ownedClientFailures.set(error, code);
@@ -1472,6 +1475,9 @@ async function connectSelected(selected, port) {
         ? error.code : `HostHTTP${response.status}`;
       if ((operation === 'submit-intent' || operation === 'restart-intent')) {
         throw submissionUnknown(submitContext, new ClientError(code));
+      }
+      if (operation === 'read' && readRefusalCodes.has(code)) {
+        throw ownedClientFailure(code, {status: response.status});
       }
       throw new ClientError(code, {status: response.status});
     }
