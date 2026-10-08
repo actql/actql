@@ -535,7 +535,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--unnest-checked-array-onl
   '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
-  '--relation-data-only', '--acquired-data-only',
+  '--relation-data-only', '--acquired-data-only', '--source-graph-member-only',
   '--data-set-strategy-only', '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
@@ -591,6 +591,7 @@ if (process.argv.includes('--qualify-only')) return;
 if (process.argv.includes('--named-window-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (process.argv.includes('--select-all-only')) return;
+if (process.argv.includes('--source-graph-member-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
     process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-only')) return;
 // The first Host process has exited: no live Local installation still owns
