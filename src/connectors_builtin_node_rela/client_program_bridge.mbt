@@ -365,6 +365,26 @@ pub fn client_program_source_free_input_intent_cid() -> String {
 }
 
 ///|
+/// Compare already verified observation facts without granting Run authority.
+#export_name("clientProgramRunObservationKey")
+pub fn client_program_run_observation_key(
+  outcome : String,
+  revision : Int64,
+  cleanup_pending_present : Bool,
+  cleanup_pending : Bool,
+  physical_stop_present : Bool,
+  physical_stop : Bool,
+) -> String? {
+  let cleanup = if cleanup_pending_present {
+    Some(cleanup_pending)
+  } else {
+    None
+  }
+  let stopped = if physical_stop_present { Some(physical_stop) } else { None }
+  @publication.run_observation_key(outcome, revision, cleanup, stopped)
+}
+
+///|
 /// The installed Host reports an uncommitted Run through the portable
 /// validator. Only a durable confirmed failure before physical dispatch may
 /// make this projection terminal; missing worker observation cannot.

@@ -2,6 +2,16 @@
 // issuer remains the only owner of the state and physical-stop rules.
 import {checked} from './runtime-result.mjs';
 
+export function issueInstalledRunObservationKey(moon, {
+  outcome, revision, cleanupPending, physicalCloseConfirmed,
+}) {
+  // Presence crosses the JS ABI explicitly; MoonBit owns optional values and
+  // their projection. Unconfirmed physical cleanup remains an unknown fact.
+  const stopped = physicalCloseConfirmed === true;
+  return moon.clientProgramRunObservationKey(outcome, BigInt(revision),
+    cleanupPending !== undefined, cleanupPending === true, stopped, stopped);
+}
+
 export function issueInstalledUnpublishedRunState(moon, {
   runId, observedAt, resultNames, dispatchReserved,
   preDispatchFailureConfirmed, cancelledBeforeStart,

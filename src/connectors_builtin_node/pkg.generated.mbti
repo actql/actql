@@ -1263,7 +1263,7 @@ pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcqu
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 
-pub fn client_program_run_observation_key(String, Int64, Bool?, Bool?) -> String?
+pub fn client_program_run_observation_key(String, Int64, Bool, Bool, Bool, Bool) -> String?
 
 pub fn client_program_salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@catalog.QueryRead, @catalog.QueryReadIssue]
 
