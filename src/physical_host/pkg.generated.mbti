@@ -10,6 +10,8 @@ import {
 }
 
 // Values
+pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]
+
 pub fn[E] adaptive_policy_candidates(AdaptiveDispatch[E]) -> @physical_strategy.PolicyCandidateSet?
 
 pub fn[E] adaptive_policy_search_diagnostics(AdaptiveDispatch[E]) -> @physical_strategy.StrategySearchDiagnostics?
@@ -41,6 +43,8 @@ pub fn[C, E] compute_host_exclusions(ComputeHost[C, E], Int) -> Result[Array[(In
 pub fn[C, E] compute_host_has_estimates(ComputeHost[C, E]) -> Bool
 
 pub fn[C, E] compute_host_max_entries(ComputeHost[C, E]) -> Int
+
+pub fn[C, E] compute_host_offline_policy_position(ComputeHost[C, E]) -> Result[Int?, AdaptiveEstimateIssue[E]]
 
 pub fn[C, E] compute_host_policy_candidates(ComputeHost[C, E]) -> @physical_strategy.PolicyCandidateSet?
 
