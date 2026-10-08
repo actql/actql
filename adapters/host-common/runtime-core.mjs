@@ -2977,7 +2977,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-        Math.min(2147483647, limits.maxNodes * 8),
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       );
       return finishCapturedPreparation(preparation, signal);
     },
@@ -3208,7 +3208,7 @@ function publicationControl(moon) {
         plans.map(value => value.name), plans.map(value => value.wire),
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
         evidence.dependencyInventoryWire,
-        Math.min(2147483647, limits.maxNodes * 8),
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       ));
       return finishCapturedPreparation(preparation, signal);
     },
@@ -3672,7 +3672,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-        Math.min(2147483647, limits.maxNodes * 8),
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       );
       return finishPublicationValidation(preparation,
         moon.strategyEffectFreeChainCheckAdvance,
@@ -3701,7 +3701,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-        Math.min(2147483647, limits.maxNodes * 8),
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       );
       // A committed outcome is authoritative even after request cancellation.
       return finishPublicationValidation(preparation,
