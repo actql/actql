@@ -48,7 +48,19 @@ Initial repair scope/property/ORDER JS gate: 16/16 (`run-533RVG`,
 `focused-test-1CLotr`). Expanded scope/JOIN/property/ORDER JS gate: 24/24 (`run-8rNTaD`,
 `focused-test-58JvjX`). Fixture/profile Node gate: 14/14 (`run-L2yDnT`,
 `focused-test-vUbrDy`). Formatting and `git diff --check` pass.
-Normal five-package Local/HTTPS acceptance remains to be completed. Their exact source SHA, package digests and
-receipt must be recorded separately from preparation evidence. Full Core,
+Normal five-package Local/HTTPS acceptance passes at clean source
+`2be8b648904102e7b2db6de2ef7b670c76e8ade8`: wrapper `run-kdS2uE` is
+passed/complete, exit zero with complete output; receipt
+`public-query-evidence-jCdTfx` records ten complete successful commands from that
+same source. Embedded Local and real HTTPS each finish 18 positives, eight
+pre-admission refusals and one expected execution failure. The new seven
+successes and three exact `ClientProgramInvalidInput` refusals all pass. The
+three new refusals are individually logged; five older refusals are established
+by the reviewed common loop and completed consumer, not additional log lines.
+Normal tarballs were independently rehashed against the retained manifest;
+private audit: `/private/tmp/actql-b-parenthesized-source-range-20261009-acceptance-audit.json`.
+Successful temporary installations were reclaimed by the existing harness.
+The subsequent evidence-record commit changes only this document, not compiled
+source, fixture, consumer or package input. Its HEAD is not a new packed source. Full Core,
 Wasm/Native, proofs, performance and required CI are not established here.
 #1053 remains an unmerged dependency until its current public status changes.
