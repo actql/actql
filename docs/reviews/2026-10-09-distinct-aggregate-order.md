@@ -128,3 +128,33 @@ The failed run's logs, receipts, package digest manifest and five tarballs
 remain. Its re-downloadable npm content cache was removed separately; the
 cleanup does not erase failure evidence. New integrated-HEAD public execution
 will be recorded separately rather than relabeling these nine successes.
+
+## Main integration
+
+Normal merge parent: `2e41cbb9aeddfd926f5fbe55cf8fc2d6920e3a9a`.
+Retain its Table grammar, parser/lowerer and publication changes. Resolve the
+five generated/import conflicts through the existing compilation, metadata,
+spec-family and canonical generators, retaining both source rules.
+
+The containing Program schema and Stage SourceRules changed on main. The
+independent normative oracle therefore derives a new Values Unit, ResultPlan
+and Run. The existing `catalog-body-dependencies.mjs --write` also refreshes
+two stale checker pins inherited from main: Program grammar and Stage
+SourceRules. The focused run before this refresh failed 24/26
+(`run-iy5TUm` / `focused-test-vqXlGO`); it is retained separately. The same
+selection after regeneration passed **26/26** (`run-wFCKcD` /
+`focused-test-YF9eWI`), including both Values consumers.
+
+Integrated grammar: `sha256:9ac12fc761a195c9ad3943da462c356b87f125ddcf42b961dd0f6b41c9e557a1`.
+Independent Run: `sha256:cc2b7721096b7a8c6601dd68b8737809d053e5a3f0cd50955a7fa3a8569e8aeb`.
+The pre-Table dependency fixture preserves its complete independently
+assembled local body and contract closure from the normative inputs at
+`9e6c8994f`; it is not compiler output. Historical Runs are rebuilt against
+that frozen closure. The current main parent and the first submitted HEAD's
+Run are retained separately. Program definition, semantic value and barrier
+identity are unchanged; current Unit/ResultPlan follow current contracts.
+
+Integrated fixture/independent-vector/manifest Node tests passed **12/12**
+(`run-ZrG5LK` / `focused-test-gwVAT7`). No expectation was copied from the
+product failure. Exact integrated-HEAD public execution remains pending until
+the subsequent normal producer and consumer finish.

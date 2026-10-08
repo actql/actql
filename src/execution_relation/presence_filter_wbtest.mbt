@@ -58,7 +58,7 @@ fn presence_filter_fixture(
     registered_relation_contracts(),
     sequence,
     if @lower.sequence_step(sequence, 0) is Some(@lower.RowStep(kernel)) &&
-      @lower.kernel_is_distinct(kernel) {
+      (@lower.kernel_is_distinct(kernel) || @lower.kernel_is_projection(kernel)) {
       []
     } else {
       [
@@ -105,6 +105,48 @@ fn presence_filter_complete(
     }
   }
   fail("presence filter exceeded fixture bound")
+}
+
+///|
+test "structural drop uses the same presence projection owner for value NULL and absence" {
+  for empty in [false, true] {
+    let (_, execution, input) = presence_filter_fixture(
+      empty~,
+      operations=Some("[{\"drop\":[\"id\"]}]"),
+    )
+    let output = presence_filter_complete(execution)
+    assert_eq(completed_row_count(output), if empty { 0 } else { 4 })
+    guard output.table is Some(PresenceTable(_)) else {
+      fail("structural drop did not preserve the presence representation")
+    }
+    let schema = @lower.preparation_schema_at(
+      @lower.bound_preparation(
+        @lower.sequence_owner(output.completion.sequence),
+      ),
+      output.target,
+    ).unwrap()
+    let field = @schema.field_at(schema, 0).unwrap()
+    assert_eq(@schema.reference_name(field.name), "p")
+    assert_eq(field.presence, @schema.Conditional)
+    if !empty {
+      assert_true(
+        completed_presence_cell(output, 0, 0)
+        is Ok(Present(@admitted.Number(7))),
+      )
+      assert_true(
+        completed_presence_cell(output, 1, 0) is Ok(Present(@admitted.Null)),
+      )
+      assert_true(completed_presence_cell(output, 2, 0) is Ok(Absent))
+      assert_true(
+        completed_presence_cell(output, 3, 0)
+        is Ok(Present(@admitted.Number(8))),
+      )
+    }
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_false(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(completed_output_available(output))
+    assert_true(producer_read_available(input))
+  }
 }
 
 ///|
@@ -226,32 +268,58 @@ test "presence filter preserves empty schema and admits rejected rows before eva
 }
 
 ///|
-test "presence filter cancellation never publishes private accepted rows" {
-  let (control, execution, input) = presence_filter_fixture()
-  let mut private_row = false
-  for _ in 0..<1000 {
+test "presence filter and structural drop cancellation never publish private accepted rows" {
+  for operations in [None, Some("[{\"drop\":[\"id\"]}]")] {
+    let (control, execution, input) = presence_filter_fixture(operations~)
+    let mut private_row = false
+    for _ in 0..<1000 {
+      assert_true(
+        advance_bounded_binding_rows(execution, 1).unwrap()
+        is BoundedBindingRowsContinue(..),
+      )
+      if execution.state.output.unwrap().buffer.presence_rows.length() == 1 {
+        private_row = true
+        break
+      }
+    }
+    assert_true(private_row)
+    assert_true(execution.state.workspace.live > 0)
+    assert_true(@bounded.request_cancel(control))
     assert_true(
       advance_bounded_binding_rows(execution, 1).unwrap()
-      is BoundedBindingRowsContinue(..),
+      is BoundedBindingRowsStopped(_, ..),
     )
-    if execution.state.output.unwrap().buffer.presence_rows.length() == 1 {
-      private_row = true
-      break
+    assert_true(bounded_binding_rows_cleanup_pending(execution))
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_false(bounded_binding_rows_cleanup_pending(execution))
+    assert_eq(execution.state.workspace.live, 0)
+    assert_true(execution.state.rows.val is None)
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
+test "structural drop admits removed input columns before output copying" {
+  let (_, execution, input) = presence_filter_fixture(
+    operations=Some("[{\"drop\":[\"id\"]}]"),
+    input_limits={ ..run_limits().input_values, max_nodes: 11, },
+  )
+  let mut failed = false
+  for _ in 0..<1000 {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(InputLimit, ..) => {
+        failed = true
+        break
+      }
+      _ => fail("drop skipped complete input admission")
     }
   }
-  assert_true(private_row)
-  assert_true(execution.state.workspace.live > 0)
-  assert_true(@bounded.request_cancel(control))
-  assert_true(
-    advance_bounded_binding_rows(execution, 1).unwrap()
-    is BoundedBindingRowsStopped(_, ..),
-  )
+  assert_true(failed)
   assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(producer_read_available(input))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_false(bounded_binding_rows_cleanup_pending(execution))
-  assert_eq(execution.state.workspace.live, 0)
-  assert_true(execution.state.rows.val is None)
-  assert_true(producer_read_available(input))
 }
 
 ///|

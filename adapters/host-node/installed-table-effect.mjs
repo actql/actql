@@ -2,6 +2,7 @@
 // The common Run, Checkpoint, capture, Ledger, apply and publication owners
 // remain authoritative. A Table member is one operation, including zero rows.
 import {createHash} from 'node:crypto';
+import {checkedTableWriteBinding, verifyTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -101,7 +102,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
   const installed = Object.freeze(targets.map(value => {
     // Copy installation metadata before any physical or authorization await.
     const target = JSON.parse(wire(value));
-    if (!text(target.effectId) || !text(target.resource) || !text(target.targetRef) ||
+    if (target.queryName !== undefined && (!text(target.queryName) || target.queryName.length > 1024) ||
+      !text(target.effectId) || !text(target.resource) || !text(target.targetRef) ||
       !text(target.mappingRef) || !cid(target.mappingCid) ||
       target.catalogCid !== catalogCid || !['create','replace'].includes(target.action) ||
       !Array.isArray(target.namespace) || target.namespace.length === 0 ||
@@ -124,7 +126,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
       connector_registration: connectorRegistration, connector_revision: connectorRevision,
       runtime_bundle_cid: runtimeBundleCid, binding_cid: bindingCid,
       connection, target, input_kind: 'relation', route: 'single_serial', idempotency: 'unavailable'});
-    return Object.freeze({...target, capabilityCid});
+    return Object.freeze({...target, capabilityCid, installationBindingCid: bindingCid});
   }));
   if (new Set(installed.map(target => wire([target.effectId, target.mappingRef]))).size !== installed.length) {
     fail('DuplicateInstalledTableMapping');
@@ -134,8 +136,9 @@ export async function createInstalledTableEffect({moon, environmentWire,
   const openLedger = identity => openEffectLedger({moon, root: ledgerRoot,
     authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
     callerRequestId: moon.clientRequestCallerId(identity), maxEntryBytes: limits.maxEntryBytes});
-  const resolve = descriptor => {
-    const target = installed.find(target => target.effectId === descriptor._1 && target.targetRef === descriptor._3 &&
+  const resolve = (descriptor, capabilityCid) => {
+    const target = installed.find(target => (capabilityCid === undefined
+      ? target.effectId === descriptor._1 : target.capabilityCid === capabilityCid) && target.targetRef === descriptor._3 &&
       target.mappingRef === descriptor._4 && target.mappingCid === descriptor._5);
     if (descriptor._2 !== 'store' ||
         (descriptor._6 === undefined) === (descriptor._8 === undefined) || target === undefined) {
@@ -272,7 +275,13 @@ export async function createInstalledTableEffect({moon, environmentWire,
         unit.stageIndex, effectId, limits.planWork))})).sort((a,b) => a.descriptor._0-b.descriptor._0);
     if (!descriptors.length || descriptors.length > limits.maxMembers ||
       descriptors.some((entry,index) => entry.descriptor._0 !== index)) fail('InstalledTableUnitUnsupported');
-    const targets = descriptors.map(entry => resolve(entry.descriptor));
+    const targets = descriptors.map(entry => {
+      const binding = checkedTableWriteBinding(moon, prepared, unit.stageIndex,
+        entry.effectId, limits.planWork);
+      const target = resolve(entry.descriptor, binding?._4);
+      verifyTableWriteBinding(target, binding);
+      return target;
+    });
     const requestScope = moon.clientProgramEffectRequestScope(prepared, identity);
     const context = facts.previewContext ?? {runDefinition: facts.definition,
       runInvocation: plan.invocationOwner,
@@ -296,7 +305,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
         maxGroupingWork: (descriptors.length + limits.maxPinnedResults)*2,
         limits: moon.clientProgramEffectInputExportLimits(...exportLimits(plan.outputLimits)),
         store, control, maxBytes: limits.maxInputBytes, invocation: plan.invocation,
-        retention: plan.results[0].retention, contractLimits: plan.contractLimits,
+        retention: plan.effectInputRetention, contractLimits: plan.contractLimits,
         localEvidenceContext: plan.localEvidenceContext,
         sourceBindingCid: hash({version: 'actql-installed-local-table-source/0.1',
           run_invocation_cid: plan.invocation.identity, store_authority_cid: store.storeAuthorityCid}), signal});
@@ -343,7 +352,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
       const applyPreview = effect.admitPreviewIdentity(authored.wire, body.run_identity_cid,
         authored.authoringCid, requestScope, authored.keys, limits.preview.maxWireBytes,
         limits.preview.maxNodes, limits.preview.maxDepth);
-      const members = claimsOf(body, authored.keys, requestScope, unit, plan.results[0].retention.identity);
+      const members = claimsOf(body, authored.keys, requestScope, unit, plan.effectInputRetention.identity);
       const scopes = scopesOf(targets);
       const continuationWire = wire({version: 'actql-installed-table-continuation/0.1',
         binding_cid: bindingCid, program_id: unit.programId, stage_id: unit.stageId,
@@ -404,7 +413,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
       const saved = provider.members[index];
       const target = resolve({_1: member.effect_id, _2: member.effect_kind, _3: member.target, _4: member.mapping,
         _5: member.resolved_mapping_contract_cid, _6: member.source_result,
-        _8: member.source_table_input});
+        _8: member.source_table_input}, member.capability_evidence_cid);
       if (saved?.effect_id !== member.effect_id || saved.mapping_cid !== target.mappingCid ||
         member.changes.length !== 1 || member.capability_evidence_cid !== target.capabilityCid) {
         fail('InstalledTableInstallationChanged');
@@ -509,8 +518,17 @@ export async function createInstalledTableEffect({moon, environmentWire,
 
   return Object.freeze({environmentWire, connectorRegistration, connectorRevision,
     connectorBindings: Object.freeze([{connectorId, bindingCid}]),
+    queryTableBindings: Object.freeze(installed.filter(target => target.queryName !== undefined).map(target => Object.freeze({
+      name: target.queryName, targetRef: target.targetRef, mappingRef: target.mappingRef,
+      mappingCid: target.mappingCid, capabilityCid: target.capabilityCid,
+      installationBindingCid: bindingCid, action: target.action,
+      expectedTable: target.expectedTable === null ? null : Object.freeze({...target.expectedTable}),
+    }))),
+    queryTableWriteAccesses: Object.freeze(installed.filter(target => target.queryName !== undefined)
+      .map(target => Object.freeze({connection, resource: target.resource,
+        capabilityCid: target.capabilityCid, authorization}))),
     effectSelectors: Object.freeze(installed.map(target => Object.freeze({
       kind: 'store', target: target.targetRef, mappingRef: target.mappingRef,
-      mappingCid: target.mappingCid, effectId: target.effectId}))),
+      mappingCid: target.mappingCid, effectId: target.effectId, capabilityCid: target.capabilityCid}))),
     prepareCaptured, prepareRecovered, close() {}});
 }

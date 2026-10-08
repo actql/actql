@@ -83,6 +83,7 @@ pub(all) enum Issue {
   UnsupportedNearest
   UnsupportedResult
   UnsupportedEffect
+  TableWriteBinding(TableWriteBindingIssue)
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   // Retain the common checker's cause and authored cursor from scope probes.
@@ -2299,6 +2300,43 @@ fn compile_steps(
         pipe_changed = true
       }
       Drop(names) => {
+        // A structural DROP does not read values from retained columns. When
+        // the current visible names already are the physical row slots, use
+        // the existing operation rather than manufacturing a final SELECT
+        // that would require presence for every retained Conditional column.
+        let mut structural_tail = true
+        for next_index in (i + 1)..<@query.operation_count(query) {
+          match @query.operation_at(query, next_index) {
+            Some(Order(terms)) =>
+              if !terms.all(term => {
+                  match
+                    @query.expression_node(
+                      term.expression,
+                      @query.expression_root(term.expression),
+                    ).unwrap().kind {
+                    Reference(path) => path.length() == 1
+                    _ => false
+                  }
+                }) {
+                structural_tail = false
+              }
+            Some(Limit(_, _)) => ()
+            _ => structural_tail = false
+          }
+        }
+        // A later projection/expression may still use a retained input range.
+        // Do not discard those physical slots while that scope is observable.
+        let direct = preserved_scope is None &&
+          structural_tail &&
+          active_fields.length() == pipe_visible.length() &&
+          pipe_visible.all(pair => {
+            pair.0 == pair.1 && active_fields.contains(pair.1)
+          })
+        let dropped = pipe_visible.filter(current => {
+          names.any(name => {
+            same_name(name, { value: current.0, quoted: false, })
+          })
+        })
         let next : Array[(String, String)] = []
         for name in names {
           if !pipe_name_exists(pipe_visible, name) ||
@@ -2318,8 +2356,22 @@ fn compile_steps(
         if next.is_empty() {
           raise Abort(UnsupportedProjection)
         }
-        pipe_changed = true
-        deferred = true
+        if direct {
+          entries.push(
+            (
+              "drop",
+              construction.array(dropped.map(pair => construction.text(pair.1))),
+            ),
+          )
+          active_fields = next.map(pair => pair.1)
+          pipe_changed = false
+          pipe_ranges = []
+          value_table_receivers = []
+          pipe_rebound = true
+        } else {
+          pipe_changed = true
+          deferred = true
+        }
       }
       Rename(names) => {
         let next : Array[(String, String)] = []
@@ -4689,12 +4741,16 @@ pub fn compile(
   query : @query.Query,
   context : Context,
   limits : Limits,
+  table_writes? : Array[TableWriteBinding] = [],
 ) -> Result[@program.Program, Issue] {
-  if @query.terminal_effect(query) is Some(_) || has_pipe_range_input(query) {
+  if @query.terminal_effect(query) is Some(_) ||
+    @query.terminal_table_effect(query) is Some(_) ||
+    has_pipe_range_input(query) {
     return compile_query_script(
       @query.single_query_script(query),
       context,
       limits,
+      table_writes~,
     )
   }
   let mut has_nearest = false
