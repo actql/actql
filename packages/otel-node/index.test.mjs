@@ -181,7 +181,7 @@ test('closing a managed pipeline revokes queued and not-yet-sent signals', async
     logs: {endpoint: `${base}/v1/logs`}, metrics: {endpoint: `${base}/v1/metrics`}});
   const observer = installHostObservation(adapter.connection);
   t.after(async () => { await adapter.close(); await observer.close(); });
-  observer.emit('compute', 'task_completed');
+  observer.emit('compute', 'task_completed', {}, {durationMs: 1});
   await sending;
   observer.emit('cleanup', 'cleanup_completed');
   await adapter.close();
@@ -216,7 +216,8 @@ test('execution intervals do not duplicate discrete Owner logs', async t => {
   const logs = records(sink.packets, 'logs');
   assert.equal(logs.length, 1);
   assert.equal(attributes(logs[0], 6)['actql.event'], 'check_completed');
-  assert.equal(records(sink.packets, 'traces').length, 2);
+  assert.equal(records(sink.packets, 'traces').length, 1,
+    'only the measured interval is a span; the discrete fact is a log');
 });
 
 test('effective inspection is finite and does not disclose destination credentials or probe', async () => {
