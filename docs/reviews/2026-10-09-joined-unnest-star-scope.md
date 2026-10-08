@@ -7,9 +7,9 @@ or a claim that the overall Frontend migration is complete.
 
 Main inspected: `b25708aa1913cd4735d9d1b5da5558cc2bb0202d`. This unit is stacked
 on PR #1049, `2ab5b8e8d66af2895783621ab76acf120967e39d`, for its immutable
-source-builder snapshot and common-typing prefix inspection. Its PR base stays
-`fix/frontend-correlated-unnest-visible-star` until that dependency reaches main.
-Neither PR is merged by B.
+source-builder snapshot and common-typing prefix inspection. PR #1049 subsequently reached main through
+`4aa66a85ebd90f037b9a5a4af3d0850ed91b1bd1`, normally merged into this unit.
+The new PR targets main and has no unmerged parent dependency. B performs no PR merge.
 
 ```aql
 SELECT p.id, e.*, position
@@ -125,11 +125,32 @@ the unresolved parenthesized receiver. After binding the existing range column,
 that focused case succeeds (`run-6IkOQP`). An intermediate missing closure
 error-type declaration is a compilation/setup failure, not runtime evidence.
 
-Exact clean-HEAD five-package production and the existing
-`test-packed-public-query.mjs --correlated-unnest-only` remain required before
-public execution can be claimed. Record the resulting source SHA, package
-digests, Local/HTTPS counts and retained receipt in the PR body. Success of
-syntax/type checks alone is not that evidence.
+Normal five-package production and the existing
+`test-packed-public-query.mjs --correlated-unnest-only` completed successfully at
+clean source `7cd912cd451701b4ed1e912c735a033905e799cb`. Receipt
+`public-query-evidence-31GLNF` records all ten commands with complete output and
+exit/verification status zero, overall passed/complete and success artifacts
+removed. Local and real HTTPS each finish 38 positive cases and 13 refusals.
+Five exact-code refusals per transport are logged individually; the other eight
+are established by the reviewed refusal loop and completed consumer, not by
+inventing additional log lines. The new unit contributes eleven successes and
+three exact `ClientProgramInvalidInput` refusals. Rows, complete columns/types,
+NULL propagation, multiplicity, private-field exclusion and replay/acquisition
+counter assertions use the unchanged public consumer.
+
+The outer local wrapper `run-d0wMSI` reports exit 1 because its stdout/stderr
+forwarding encountered EPIPE after all three child steps passed. Its retained
+output is complete, but caller forwarding is incomplete. Do not report this
+wrapper as passed or treat it as a product failure; the inner public receipt
+and child command results establish the acceptance evidence. No rerun solely to
+repair the terminal stream is performed.
+
+The main integration changes only unrelated reporting tests and the parent's
+review record. Compiled source, frontend corpus and public consumer remain
+identical to the clean packed source. Retained manifest and independent digest
+verification identify all five tarballs; submission evidence must distinguish
+that source SHA from the later integration/documentation HEAD. Required CI and
+full target coverage remain unverified.
 
 This lightweight prefix does not manufacture absent imported Stage, Graph or
 Model producer facts. Their source-specific paths still need actual common
@@ -137,3 +158,7 @@ schema bindings and separate acceptance where not already available. That is
 remaining Frontend integration coverage, not a permanent language restriction.
 Full Core, Wasm/Native, proofs, performance, full packed corpus and required CI
 are not established by these focused local results.
+
+After the ordinary main merge, the selected fixture/profile Node gate passes
+18/18 (`run-6rR2d0`, `focused-test-XcSyIY`). The retained package/log rehash and
+source-correspondence audit is `/private/tmp/actql-b-joined-unnest-star-20261009-acceptance-audit.json`.
