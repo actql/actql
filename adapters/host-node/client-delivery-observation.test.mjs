@@ -30,7 +30,8 @@ for (const entrance of ['local', 'https']) {
       };
       const host = await connectOpeningHost(fixture, entrance, scratch.path);
       try {
-        const run = await host.client.start(openingProgram, {requestId: 'delivery-observation-run'});
+        const submissionRef = host.client.newSubmission({nonce: 'delivery-observation-run'});
+        const run = await host.client.start(openingProgram, {submissionRef});
         assert.equal((await run.status()).status, 'succeeded');
         const result = run.result('answer');
         if (phase !== 'normal') fixture.arm(phase);
