@@ -68,7 +68,7 @@ the exact retained owners once; semantic/definition hashes, Values payloads and
 resource metadata use the original cumulative artifact allowance.
 
 Only fully connected static paths produce `Verified` in template scope.
-Unconnected operations, incoming gates, Local/Table inputs, missing resource
+Unconnected operations, incoming gates, Source/Local/Table inputs, missing resource
 material and exhausted budgets retain the original scope as `Unresolved`.
 These are implementation/preparation limits, not new language restrictions or
 permission to certify a smaller supported fragment. Known independent input

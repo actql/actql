@@ -30,6 +30,7 @@ import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
+import {createHostObservationConnection} from '../host-common/observation.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const scratch = join(repository, '_build', 'client-check');
@@ -91,7 +92,7 @@ const configurations = Object.freeze({
 });
 
 async function installedSource(root, {readOutcome, aliases,
-  environment = sourceEnvironment}) {
+  environment = sourceEnvironment, seedAuthoringRows = false}) {
   // This is an adapter publication for the installed Host, not a standalone
   // checker profile. Preserve the Host's own policy when adding Source facts.
   const base = JSON.parse(await readFile(join(repository,
@@ -104,6 +105,7 @@ async function installedSource(root, {readOutcome, aliases,
   const connection = await instance.connect();
   try {
     await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+    if (seedAuthoringRows) await connection.run('INSERT INTO records VALUES (1, 23), (2, 5)');
   } finally {
     connection.closeSync();
     instance.closeSync();
@@ -140,23 +142,37 @@ async function installedConfigurations(root, configuration) {
 // must never open an installed source, admit a Run, or reach dispatch.
 function observeCheckOnly(t, root) {
   const original = DuckDBInstance.create;
-  let sourceOpens = 0, dispatches = 0;
+  let sourceOpens = 0, dispatches = 0, explicitExecution = false;
   t.mock.method(DuckDBInstance, 'create', async function(database, ...args) {
     if (typeof database === 'string' && database.startsWith(root) &&
         database.endsWith('records.duckdb')) sourceOpens++;
     return Reflect.apply(original, this, [database, ...args]);
   });
+  const counts = () => {
+    const journal = new DatabaseSync(join(root, 'state', 'requests',
+      'client-requests.sqlite3'), {readOnly: true});
+    try {
+      const runs = journal.prepare(`SELECT COUNT(*) AS runs,
+        COALESCE(SUM(dispatch_reserved), 0) AS dispatchReservations,
+        COALESCE(SUM(physical_start_reserved), 0) AS physicalReservations
+        FROM client_requests`).get();
+      return {...runs, sourceOpens, dispatches,
+        submissions: journal.prepare('SELECT COUNT(*) AS count FROM client_submitted_intents').get().count,
+        issuedSubmissions: journal.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count};
+    } finally { journal.close(); }
+  };
   return {
-    beforeDispatch: () => { dispatches++; throw new Error('UnexpectedCheckDispatch'); },
+    counts,
+    permitExplicitExecution: () => { explicitExecution = true; },
+    beforeDispatch: () => {
+      dispatches++;
+      if (!explicitExecution) throw new Error('UnexpectedCheckDispatch');
+    },
     assertNoExecution: () => {
-      assert.equal(sourceOpens, 0, 'check opens no source-row provider');
-      assert.equal(dispatches, 0, 'check dispatches no Run');
-      const journal = new DatabaseSync(join(root, 'state', 'requests',
-        'client-requests.sqlite3'), {readOnly: true});
-      try {
-        assert.equal(journal.prepare('SELECT count(*) AS count FROM client_requests')
-          .get().count, 0, 'check admits no Run');
-      } finally { journal.close(); }
+      const {submissions: _submissions, issuedSubmissions: _issued, ...execution} = counts();
+      assert.deepEqual(execution, {runs: 0, dispatchReservations: 0, physicalReservations: 0,
+        sourceOpens: 0, dispatches: 0},
+      '[check-mutation:scoped-installed-no-execution]');
     },
   };
 }
@@ -170,6 +186,7 @@ async function localClient(t, configuration, installed = {}) {
     installation: {directory: join(root, 'state'), ...sourceInstallation, ...installed}});
   return {check: client.check, start: client.start, startSource: client.startSource,
     newSubmission: client.newSubmission, lookupSubmission: client.lookupSubmission,
+    executionCounts: observation.counts, permitExplicitExecution: observation.permitExplicitExecution,
     assertNoExecution: observation.assertNoExecution};
 }
 
@@ -210,6 +227,7 @@ async function httpClient(t, configuration, mutateCheckReply, installed = {}) {
       runners: [], consentRefs: []}, ...body})});
   return Object.freeze({check: client.check, post, start: client.start, startSource: client.startSource,
     newSubmission: client.newSubmission, lookupSubmission: client.lookupSubmission,
+    executionCounts: observation.counts, permitExplicitExecution: observation.permitExplicitExecution,
     assertNoExecution: observation.assertNoExecution});
 }
 
@@ -5282,6 +5300,167 @@ for (const entrance of ['local', 'http']) {
 
 // Actual installed providers are observed separately from Run admission.
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: installed scoped authoring checks and supplementation execute only on explicit start`, async t => {
+    let modelCalls = 0, effectCalls = 0, resumes = 0;
+    const records = [];
+    const observation = createHostObservationConnection({deliver: record => records.push(record)});
+    const installed = {observation,
+      registerModelProviders: () => [{providerId: 'models/authoring-fixture',
+        validatePrompt: () => false,
+        invoke() {modelCalls++; throw new Error('UnexpectedAuthoringModelExecution');}}],
+      effectInstallation: {environmentWire: (await readFile(join(repository,
+        'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd(),
+        execute() {effectCalls++; throw new Error('UnexpectedAuthoringEffectExecution');},
+        resume() {resumes++; throw new Error('UnexpectedAuthoringEffectResume');}}};
+    const configuration = {...configurations.allowed, seedAuthoringRows: true};
+    const client = entrance === 'local' ? await localClient(t, configuration, installed)
+      : await httpClient(t, configuration, undefined, installed);
+    const flushObservations = async () => {
+      for (let remaining = 20; remaining > 0; remaining--) {
+        await new Promise(resolve => setTimeout(resolve, 1));
+        if (observation.status().queued === 0 && observation.status().active === 0) break;
+      }
+      assert.equal(observation.status().queued, 0);
+      assert.equal(observation.status().active, 0);
+      assert.equal(observation.status().dropped, 0);
+      assert.equal(observation.status().deliveryFailed, 0);
+    };
+    const noExecution = async () => {
+      await flushObservations();
+      client.assertNoExecution();
+      assert.deepEqual(client.executionCounts(), {runs: 0, dispatchReservations: 0, physicalReservations: 0,
+        sourceOpens: 0, dispatches: 0, submissions: 0, issuedSubmissions: 0},
+      'authoring checks and diagnostic helpers create no Submission');
+      assert.deepEqual({modelCalls, effectCalls, resumes}, {modelCalls: 0, effectCalls: 0, resumes: 0});
+      assert.equal(records.filter(record => ['source', 'compute', 'infer', 'effect'].includes(record.operation) ||
+        record.operation === 'run' && ['definition_admitted', 'dispatch_reserved', 'physical_start_reserved']
+          .includes(record.event)).length, 0, 'checking emits no execution Owner lifecycle facts');
+    };
+    for (const format of ['sql', 'aql-text']) {
+      const unused = await client.check('SELECT 1 AS n', {kind: 'text', scope: 'template_only',
+        format, parameterDeclarations: {x: {type: 'number'}}});
+      assert.equal(unused.report.verdict, 'invalid');
+      const options = {kind: 'text', format, parameterDeclarations: {x: {type: 'number'}}};
+      const session = sdk.createCheckSupplementationSession(client, {maxAttempts: 2});
+      const template = await session.check('SELECT @x AS n', {...options, scope: 'template_only'});
+      const initial = template.outcome;
+      assert.equal(initial.report.verdict, 'verified');
+      assert.deepEqual(initial.report.requirements.map(reason => reason.facts.parameter), ['x']);
+      const original = getCheckInput(initial, 'source');
+      assert.deepEqual(template.decision, {kind: 'more_checks'});
+      const missing = await client.check(original.text, {...options, scope: 'bound_input'});
+      assert.equal(missing.report.verdict, 'undetermined');
+      const wrong = await client.check(original.text, {...options, scope: 'bound_input', parameters: {x: null}});
+      assert.equal(wrong.report.verdict, 'invalid');
+      assert.equal(wrong.report.reasons[0].facts.actual_type, 'null');
+      const completed = await session.check(original.text, {...options, scope: 'bound_input', parameters: {x: 7}});
+      const supplemented = completed.outcome;
+      assert.equal(supplemented.report.verdict, 'verified');
+      assert.deepEqual(supplemented.report.requirements, []);
+      assert.deepEqual(completed.decision, {kind: 'stop', reason: 'no_known_supplement'});
+      const changed = await client.check('SELECT @x + 1 AS n', {...options, scope: 'template_only',
+        parameterDeclarations: {x: {type: 'number', minimum: 1}}});
+      assert.equal(changed.report.verdict, 'verified');
+      assert.notEqual(changed.report.context_ref, initial.report.context_ref);
+      assert.notEqual(getCheckInput(changed, 'source').revision, original.revision);
+      assert.equal(resolveCheckLocation(initial, changed.report.requirements[0].location), undefined);
+      assert.equal(getCheckInput(initial, 'source'), original);
+      for (const checked of [initial, missing, wrong, supplemented, changed]) {
+        for (const reason of [...checked.report.reasons, ...checked.report.requirements]) {
+          explainCheckReason(reason);
+          if (reason.location) assert.ok(resolveCheckLocation(checked, reason.location));
+        }
+        sdk.getCheckFixes(checked);
+        assert.equal(getCheckInput(structuredClone(checked), 'source'), undefined);
+      }
+      await noExecution();
+    }
+    const sourcedProgram = {version: 'actql/0.1', id: 'scoped-authoring-explicit', params: {x: {type: 'number'}},
+      stages: [{id: 'main', inputs: {rows: {connector: 'crm/main', resource: 'r', view: 'v'}},
+        steps: [{derive: {n: 'id + $x'}, as: 'derived'}, {select: ['n'], as: 'selected'}],
+        results: {out: {from: 'selected', fields: ['n']}}}],
+      results: {out: {from: {stage: 'main', result: 'out'}}}};
+    // The common authoring context currently refuses nonempty input ports.
+    // Preserve that static limit and the requested scope beside runtime needs.
+    const sourceLimited = await client.check(sourcedProgram, {kind: 'program', scope: 'template_only'});
+    assert.equal(sourceLimited.report.verdict, 'undetermined');
+    assert.deepEqual(sourceLimited.report.scope, {kind: 'template_only'});
+    assert.deepEqual(sourceLimited.report.coverage.limits, [{code: 'implementation_limit'}]);
+    assert.deepEqual(sourceLimited.report.requirements.map(reason => reason.facts.parameter), ['x']);
+    const program = structuredClone(sourcedProgram);
+    program.stages[0].inputs = {};
+    program.stages[0].steps.unshift({values: {schema: {id: {type: 'number', nullable: false}},
+      rows: [{id: 1}]}, as: 'seed'});
+    const pending = client.check(program, {kind: 'program', scope: 'template_only'});
+    delete program.stages[0].steps;
+    const originalProgram = await pending;
+    assert.equal(originalProgram.report.verdict, 'verified', JSON.stringify(originalProgram.report));
+    assert.equal(resolveCheckLocation(originalProgram, originalProgram.report.requirements[0].location).pointer, '/params/x');
+    const snapshot = getCheckInput(originalProgram, 'program');
+    assert.equal(snapshot.value.stages[0].steps[1].derive.n, 'id + $x');
+    const modified = await client.check(program, {kind: 'program', scope: 'template_only'});
+    assert.equal(modified.report.verdict, 'invalid');
+    assert.equal(modified.report.reasons[0].facts.issue, 'missing_field');
+    assert.equal(resolveCheckLocation(modified, modified.report.reasons[0].location).pointer, '/stages/0');
+    const missing = await client.check(snapshot.value, {kind: 'program', scope: 'bound_input'});
+    assert.equal(missing.report.verdict, 'undetermined');
+    const wrong = await client.check(snapshot.value, {kind: 'program', scope: 'bound_input', parameters: {x: null}});
+    assert.equal(wrong.report.verdict, 'invalid');
+    const supplemented = await client.check(snapshot.value, {kind: 'program', scope: 'bound_input', parameters: {x: 7}});
+    assert.equal(supplemented.report.verdict, 'verified');
+    assert.deepEqual(supplemented.report.requirements, []);
+    const sourceBound = await client.check(sourcedProgram,
+      {kind: 'program', scope: 'bound_input', parameters: {x: 7}});
+    assert.equal(sourceBound.report.verdict, 'verified', JSON.stringify(sourceBound.report));
+    assert.deepEqual(sourceBound.report.requirements, []);
+    assert.equal(getCheckInput(originalProgram, 'program'), snapshot);
+    assert.equal(getCheckInput(structuredClone(originalProgram), 'program'), undefined);
+    assert.equal(getCheckInput({...originalProgram}, 'program'), undefined);
+    for (const checked of [originalProgram, modified, missing, wrong, supplemented, sourceLimited, sourceBound]) {
+      for (const reason of [...checked.report.reasons, ...checked.report.requirements]) {
+        explainCheckReason(reason);
+        if (reason.location) assert.ok(resolveCheckLocation(checked, reason.location));
+      }
+      assert.deepEqual(sdk.getCheckFixes(checked), []);
+    }
+    await noExecution();
+    client.permitExplicitExecution();
+    // Complete bound checking does not promise a physical Program backend.
+    // The ordinary execution Owner currently refuses this direct Source route.
+    await assert.rejects(client.start(getCheckInput(sourceBound, 'program').value, {parameters: {x: 7}}), error => {
+      assert.equal(error.code, 'SubmissionPreparationFailed');
+      assert.equal(sdk.getSubmissionOutcome(error)?.problem.code, 'ClientProgramUnsupported');
+      return true;
+    });
+    client.assertNoExecution();
+    assert.equal(client.executionCounts().submissions, 1);
+    let run;
+    try { run = await client.startSource(query, {format: 'sql',
+      parameterDeclarations: declarations, parameters: {minimum: 20}}); }
+    catch (error) {
+      assert.fail(`Explicit Source query preparation failed: ${JSON.stringify({
+        code: error.code, problem: sdk.getSubmissionOutcome(error)?.problem?.code,
+        cause: error.cause?.code ?? error.cause?.message})}`);
+    }
+    const status = await run.wait({signal: AbortSignal.timeout(20000)});
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(await run.result('answer').all(), [{id: 1}]);
+    await flushObservations();
+    const counts = client.executionCounts();
+    assert.equal(counts.runs, 1);
+    assert.equal(counts.submissions, 2);
+    assert.equal(counts.issuedSubmissions, 2);
+    assert.equal(counts.dispatchReservations, 1);
+    assert.equal(counts.physicalReservations, 1);
+    assert.ok(counts.sourceOpens > 0, 'the explicit Run exercises the same installed Source observer');
+    if (entrance === 'http') assert.equal(counts.dispatches, 1);
+    assert.ok(records.some(record => record.operation === 'compute' && record.event === 'task_started'),
+      'the explicit Run exercises the common task observation path');
+    assert.deepEqual({modelCalls, effectCalls, resumes}, {modelCalls: 0, effectCalls: 0, resumes: 0});
+  });
+}
+
+for (const entrance of ['local', 'http']) {
   test(`${entrance}: installed structured Program rejection invokes no Source Model or Effect`, async t => {
     let modelCalls = 0, effectCalls = 0, resumes = 0;
     const installed = {registerModelProviders: () => [{providerId: 'models/diagnostic-fixture',
@@ -5302,6 +5481,9 @@ for (const entrance of ['local', 'http']) {
     let rejected;
     try {await client.start(program, {parameters: {n: 'wrong'}});} catch (error) {rejected = error;}
     const checked = sdk.getSubmissionCheckObservation(rejected);
+    assert.ok(checked, `Installed Program rejection must retain checking: ${JSON.stringify({
+      code: rejected?.code, problem: sdk.getSubmissionOutcome(rejected)?.problem?.code,
+      cause: rejected?.cause?.code ?? rejected?.cause?.message})}`);
     assert.equal(checked?.report?.verdict, 'invalid', '[check-mutation:program-installed-verdict]');
     assert.equal(checked.report.reasons[0].code, 'supplied_value_type_mismatch');
     assert.equal(sdk.getCheckInput(checked, 'program').kind, 'structured');
