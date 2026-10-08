@@ -1,0 +1,145 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.query_pair",
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "objects": {
+          "connector": "crm/main",
+          "resource": "r",
+          "view": "v"
+        }
+      },
+      "steps": [
+        {
+          "from": "objects",
+          "filter": {
+            "literal": true
+          }
+        },
+        {
+          "select": [
+            "id",
+            "payload"
+          ],
+          "as": "aql_capture_0"
+        }
+      ],
+      "results": {
+        "source": {
+          "from": "aql_capture_0",
+          "fields": [
+            "id",
+            "payload"
+          ]
+        }
+      }
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "objects": {
+          "result": {
+            "stage": "capture",
+            "result": "source"
+          }
+        }
+      },
+      "steps": [
+        {
+          "graph": {
+            "version": "actql-graph-constructor/0.1",
+            "nodes": [
+              {
+                "name": "N",
+                "from": "objects",
+                "key": [
+                  "id"
+                ],
+                "labels": [
+                  {
+                    "name": "Person",
+                    "properties": {
+                      "mode": "columns",
+                      "columns": [
+                        {
+                          "from": "id",
+                          "to": "id"
+                        },
+                        {
+                          "from": "payload",
+                          "to": "payload"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            "edges": []
+          },
+          "as": "aql_data_1"
+        },
+        {
+          "from": "aql_data_1",
+          "match_nodes": {
+            "definition": "N",
+            "where": {
+              "literal": true
+            },
+            "bindings": {
+              "identity": "aql_keyed_identity_2"
+            },
+            "fields": [
+              "aql_keyed_identity_2",
+              "id",
+              "payload"
+            ],
+            "label": "Person"
+          },
+          "as": "aql_keyed_seeds_3"
+        },
+        {
+          "from": "aql_keyed_seeds_3",
+          "derive": {
+            "aql_query_expr_1": {
+              "property": {
+                "name": "score",
+                "value": {
+                  "field": "payload"
+                }
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "id",
+            {
+              "score": "aql_query_expr_1"
+            }
+          ],
+          "as": "aql_script_result"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "aql_script_result",
+          "fields": [
+            "id",
+            "score"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

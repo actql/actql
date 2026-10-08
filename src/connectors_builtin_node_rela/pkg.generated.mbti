@@ -1561,6 +1561,8 @@ pub fn strategy_publication_contract_json(@run_publication.PublicationContract) 
 
 pub fn strategy_publication_contract_name(@run_publication.PublicationContract) -> String
 
+pub fn strategy_publication_evidence_workspace(Int) -> Int
+
 pub fn strategy_publication_preflight_valid(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Bool
 
 pub fn strategy_publication_prepared_release_action(Int, Int, Bool, Bool, Bool) -> Int

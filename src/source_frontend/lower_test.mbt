@@ -15,6 +15,7 @@ fn test_context() -> @query.Context {
     stage_id: "main",
     stage_result: "rows",
     input_schemas: [],
+    source_catalog: None,
     model_tasks: None,
     result_name: "answer",
     captured_stage: Some("capture"),
