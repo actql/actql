@@ -45,6 +45,18 @@ const mutations = [
     to: 'true &&',
     targets: phases.map(phase => target(
       `submission checking is transient, not stored or reference-only ${phase}`, 'submission-check-semantic'))},
+  {name: 'public mixed submission loses its original observation', path: sdk,
+    file: 'adapters/host-node/client-check.test.mjs',
+    from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
+    to: 'void checkObservation;',
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: missing submitted bindings never mask an independent wrong value`, 'submission-mixed-outcome'))},
+  {name: 'public mixed submission downgrades a definite violation to missing input', path: sdk,
+    file: 'adapters/host-node/client-check.test.mjs',
+    from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
+    to: "if (checkObservation.report?.verdict === 'invalid') checkObservation.report.verdict = 'undetermined'; submissionCheckObservations.set(error, freezeInput(checkObservation));",
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: missing submitted bindings never mask an independent wrong value`, 'submission-mixed-verdict'))},
 ];
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {

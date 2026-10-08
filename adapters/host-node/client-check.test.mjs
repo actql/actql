@@ -986,6 +986,69 @@ for (const [entrance, open] of Object.entries(entrances)) {
     client.assertNoExecution();
   });
 
+  test(`${entrance}: missing submitted bindings never mask an independent wrong value`, async t => {
+    const text = 'SELECT @a AS n, @b AS m FROM records';
+    const declared = {a: {type: 'number'}, b: {type: 'number'}};
+    for (const [missing, wrong] of [['a', 'b'], ['b', 'a']]) {
+      const projections = [];
+      for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
+        const client = await open(t, configuration);
+        let error;
+        try {await client.startSource(text, {format: 'sql', parameterDeclarations: declared,
+          parameters: {[wrong]: 'private-mixed-value'}});}
+        catch (cause) {error = cause;}
+        const acceptance = sdk.getSubmissionOutcome(error);
+        assert.equal(acceptance?.kind, 'not_accepted');
+        assert.deepEqual(acceptance.problem,
+          {code: 'ClientProgramInvalidInput', classification: 'invalid_input'},
+          '[check-mutation:submission-mixed-phase]');
+        const checked = sdk.getSubmissionCheckObservation(error);
+        assert.equal(checked?.outcome, 'completed', '[check-mutation:submission-mixed-outcome]');
+        assert.equal(checked.report.verdict, 'invalid', '[check-mutation:submission-mixed-verdict]');
+        assert.deepEqual(checked.report.scope, {kind: 'bound_input'});
+        const supplied = sdk.getCheckInput(checked, 'parameters');
+        assert.deepEqual(supplied.value, {[wrong]: 'private-mixed-value'});
+        const reason = {code: 'supplied_value_type_mismatch', facts: {
+          parameter: wrong, expected_type: 'number', actual_type: 'string'},
+          location: {kind: 'structured', document_id: 'parameters',
+            revision: supplied.revision, pointer: '/' + wrong}};
+        assert.deepEqual(checked.report.reasons, [reason], '[check-mutation:submission-mixed-reason]');
+        assert.equal(sdk.resolveCheckLocation(checked, reason.location).input, supplied,
+          '[check-mutation:submission-mixed-location]');
+        const unresolved = configuration === configurations.allowed ? [] : protectedSource;
+        assert.deepEqual(checked.report.coverage.unresolved, unresolved);
+        assert.doesNotMatch(JSON.stringify(checked), /private-mixed-value/);
+        assert.equal(sdk.getCheckInput(structuredClone(checked), 'parameters'), undefined);
+        // A fail-fast violation does not certify an exhaustive missing frontier.
+        // Correct the supplied value explicitly and ask the same owner again.
+        const fresh = await client.check(text, {format: 'sql', parameterDeclarations: declared,
+          parameters: {[wrong]: 20}});
+        assert.equal(fresh.outcome, 'completed');
+        assert.equal(fresh.report.verdict, 'undetermined');
+        assert.deepEqual(fresh.report.scope, {kind: 'bound_input'});
+        assert.deepEqual(fresh.report.reasons, []);
+        const declaration = sdk.getCheckInput(fresh, 'parameter_declarations');
+        assert.deepEqual(fresh.report.requirements, [{code: 'parameter_value_required',
+          facts: {parameter: missing, expected_type: 'number', admission: expectedNumberAdmission},
+          location: {kind: 'structured', document_id: 'parameter_declarations',
+            revision: declaration.revision, pointer: '/' + missing}}],
+        '[check-mutation:submission-mixed-fresh-requirement]');
+        assert.deepEqual(fresh.report.coverage, {limits: [{code: 'bound_values_missing'}], unresolved});
+        assert.equal(sdk.resolveCheckLocation(fresh, fresh.report.requirements[0].location).input, declaration);
+        assert.notEqual(fresh.report.context_ref, checked.report.context_ref);
+        assert.equal(checked.report.verdict, 'invalid');
+        assert.deepEqual(checked.report.reasons, [reason]);
+        projections.push({problem: acceptance.problem, verdict: checked.report.verdict,
+          reasons: checked.report.reasons.map(value => ({code: value.code, facts: value.facts,
+            kind: value.location.kind, document_id: value.location.document_id, pointer: value.location.pointer})),
+          inputs: checked.report.inputs.map(value => ({document_id: value.document_id,
+            kind: value.kind, byte_length: value.byte_length})), coverage: checked.report.coverage});
+        client.assertNoExecution();
+      }
+      assert.deepEqual(projections[1], projections[2], '[check-mutation:submission-mixed-disclosure]');
+    }
+  });
+
   test(`${entrance}: authored syntax locations retain exact UTF-8 input revisions`, async t => {
     const client = await open(t, configurations.denied);
     // Fixed byte expectations, hand-counted independently of parser output.
