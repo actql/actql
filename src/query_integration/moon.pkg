@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/native_values_integration" @native_values_fixture,
   "actql/actql/client_row_source_host" @row_host,
   "actql/actql/connector_conformance" @conformance,
   "actql/actql/connectors/duckdb/host" @acquisition_host,
@@ -73,9 +74,6 @@ import {
   "actql/actql/platform_native/remote_agent" @native_remote_agent,
   "actql/actql/platform_native/remote_runtime" @native_remote_runtime,
   "actql/actql/platform_native/remote_standard_host" @native_remote_standard,
-  "actql/actql/platform_native/remote_values_host" @native_remote_values,
-  "actql/actql/platform_native/remote_values_https_site" @native_values_https,
-  "actql/actql/platform_native/https_server" @native_https_server,
   "actql/actql/platform_native/remote_transfer_client" @native_transfer,
   "actql/actql/platform_native/remote_transfer_journal" @native_transfer_journal,
   "actql/actql/platform_native/http_client" @native_http,

@@ -11,7 +11,7 @@ const repositorySources = readNativeQuerySources(root);
 // readers are covered by the repository check below and must permit fallback.
 const sources = {
   ...Object.fromEntries(Object.entries(repositorySources).filter(([path]) =>
-    Object.keys(nativeQueryCoverage.files).some(file => path === `src/query_integration/${file}`))),
+    Object.hasOwn(nativeQueryCoverage.files, path))),
   'src/platform_native/remote_journal/inspection_stub.c': 'getenv("TMPDIR")',
   'src/platform_native/executor_slot/executor_slot_stub.c':
     'extern char **environ;\nposix_spawn(&pid, path, &actions, NULL, argv, environ)',
@@ -40,8 +40,24 @@ test('remote owns signed standard runtime and Values cases', () => {
   const selection = select('remote-runtime');
   assert.equal(selection.mode, 'subset');
   assert.equal(selection.expected, 12);
-  assert.deepEqual(selection.paths, [query + 'client_source_free_root_wbtest.mbt',
+  assert.deepEqual(selection.paths, ['src/native_values_integration/values_fixture_wbtest.mbt',
+    query + 'client_source_free_root_wbtest.mbt',
     query + 'native_publication_output_wbtest.mbt']);
+});
+
+test('a missing relocated Values capture is refused before execution', () => {
+  const path = 'src/native_values_integration/values_fixture_wbtest.mbt';
+  assert.throws(() => select('remote-runtime', {...sources, [path]: ''}),
+    /Missing required native query case/u);
+});
+
+test('an unowned reader in the relocated package retains both complete suites', () => {
+  const selection = select('remote-runtime', {...sources,
+    'src/native_values_integration/new_wbtest.mbt':
+      'test "new" { @env.get_env_var("ACTQL_TEST_NEW") }'});
+  assert.equal(selection.mode, 'full-fallback');
+  assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
+  assert.equal(selection.expected, 36);
 });
 
 test('all current required cases exist, and core remains unfiltered', () => {
@@ -57,7 +73,7 @@ test('repository inventory either selects owned cases or explicitly retains full
     const selection = select(owner, repositorySources);
     if (selection.mode === 'full-fallback') {
       assert.ok(selection.reasons.length > 0);
-      assert.deepEqual(selection.paths, ['src/query_integration']);
+      assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
     } else {
       assert.equal(selection.expected, owner === 'http-client' ? 33 : 12);
     }
@@ -85,7 +101,7 @@ test('unknown harness and malformed ownership cannot run', () => {
   assert.throws(() => selectNativeQueryTests('unknown', sources, {}), /Unknown native harness/u);
   for (const owners of [[], ['unknown'], ['http-client', 'http-client']]) {
     const manifest = structuredClone(nativeQueryCoverage);
-    manifest.files['duckdb_native_runtime_wbtest.mbt'].owners = owners;
+    manifest.files['src/query_integration/duckdb_native_runtime_wbtest.mbt'].owners = owners;
     assert.throws(() => select('http-client', sources, environment('http-client'), manifest), /Malformed/u);
   }
 });
@@ -102,7 +118,7 @@ test('new direct environment consumer falls back to full current suite', () => {
   const selection = select('http-client', {...sources,
     [query + 'new_wbtest.mbt']: 'test "new" { @env.get_env_var("NEW") }'});
   assert.equal(selection.mode, 'full-fallback');
-  assert.deepEqual(selection.paths, ['src/query_integration']);
+  assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
   assert.equal(selection.expected, 36);
 });
 
@@ -136,6 +152,17 @@ test('environment helper function values and aliases reject subset selection', (
   }
 });
 
+test('a same-named helper in another package cannot hide an environment dependency', () => {
+  const fixture = query + 'client_source_free_root_wbtest.mbt';
+  const selection = select('remote-runtime', {...sources,
+    [fixture]: sources[fixture] +
+      '\nfn native_values_coordinator_authority() { "pure fixture" }',
+    ['src/native_values_integration/new_wbtest.mbt']:
+      'test "new" { native_values_coordinator_authority() }'});
+  assert.equal(selection.mode, 'full-fallback');
+  assert.ok(selection.reasons.some(reason => reason.includes('new_wbtest')));
+});
+
 test('unknown production reader preserves full harness coverage', () => {
   for (const source of ['fn helper() { @env.get_env_var("NEW") }',
     'const char *value = getenv("NEW");', 'extern char **environ;',
@@ -156,7 +183,7 @@ test('new environment reads beside reviewed C reads are not allowlisted', () => 
 
 test('unknown file ownership falls back, and empty inventory fails', () => {
   const manifest = structuredClone(nativeQueryCoverage);
-  delete manifest.files['resident_native_source_wbtest.mbt'];
+  delete manifest.files['src/query_integration/resident_native_source_wbtest.mbt'];
   assert.equal(select('http-client', sources, environment('http-client'), manifest).mode, 'full-fallback');
   assert.throws(() => select('http-client', sources, environment('http-client'), {files: {}}), /Missing/u);
 });
