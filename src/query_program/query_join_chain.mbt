@@ -570,9 +570,7 @@ fn compile_join_chain_query(
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
     }
-    @program.admit_generated_source(source, limits.program).map_err(issue => {
-      Admission(issue)
-    })
+    admit_query_source(source, document, context, limits)
   } catch {
     Abort(issue) => {
       @builder.discard(builder)

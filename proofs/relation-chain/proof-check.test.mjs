@@ -1,4 +1,6 @@
 import './retirement-proof-check.test.mjs';
+
+import './mutation-retirement.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

@@ -353,6 +353,12 @@ pub fn computation_evidence_check_fixture_phase(
     return "closed"
   }
   match preparation.phase {
+    PreludeCheck(child) =>
+      match child.phase {
+        Root(_) => "root-check"
+        Check(_, _, _) => "receipt-check"
+        _ => "metadata-check"
+      }
     ContextHash(_, _) => "context-check"
     Fields(_, _, _, _, _) | Rows(_, _) => "rows-check"
     Done => "done"
