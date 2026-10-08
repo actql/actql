@@ -31,6 +31,7 @@ pub(all) struct Context {
   parameter_declarations : @parameter_binding.Declarations?
   inputs : Array[Input]
   input_schemas : Array[(String, @relation_schema.Schema)]
+  source_catalog : @check_environment.SourceRequestContracts?
   model_tasks : @check_environment.ModelTasks?
 }
 

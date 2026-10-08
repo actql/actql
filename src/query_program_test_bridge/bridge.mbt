@@ -173,6 +173,7 @@ fn compile_query_json_checked(
     captured_stage,
     parameter_declarations: None,
     input_schemas: [],
+    source_catalog: None,
     model_tasks: None,
     inputs: [
       {
@@ -266,6 +267,7 @@ pub fn compile_two_values_set_query_json(
       captured_stage: None,
       parameter_declarations: None,
       input_schemas: [],
+      source_catalog: None,
       model_tasks: None,
       inputs: [
         values_input(left_name, left_json, left_fields_json),
