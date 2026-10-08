@@ -94,9 +94,10 @@ const server = createServer({
   response.end(JSON.stringify(request.url.endsWith('/connect')
     ? reply : responseValue(active, JSON.parse(raw))));
 });
-const builtExecutable = new URL(
+const builtExecutable = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY ?? new URL(
   '../_build/native/release/build/cmd/native_client/native_client.exe',
   import.meta.url).pathname;
+assert.ok(isAbsolute(builtExecutable), 'Native test binary path must be absolute');
 const executable = join(root, 'actql-native-client');
 await copyFile(builtExecutable, executable);
 await chmod(executable, 0o755);

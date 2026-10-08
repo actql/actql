@@ -3,6 +3,7 @@
 import {spawnSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
 import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 import {runLocalCheck} from './local-checks-guard.mjs';
 
@@ -25,25 +26,33 @@ const from = selected === 'js' ? 'export const validCheckOutcomeContract = value
 const to = selected === 'js' ? from + ' return validCheckOutcomeShape(value);' : '';
 const original = readFileSync(path, 'utf8');
 if (original.split(from).length !== 2) throw new Error('SemanticMutationAnchorNotUnique');
+// Debug retains the same generated Native predicates without three expensive
+// optimizer passes. Release received-response acceptance remains separate.
+const binary = fileURLToPath(new URL('../_build/native/debug/build/cmd/native_client/native_client.exe', import.meta.url));
 const run = () => {
   const escaped = expected.map(value => value.name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'));
   const result = spawnSync(process.execPath, ['--input-type=module', '-e', execute, '--',
     '--test-name-pattern', `^(?:${escaped.join('|')})$`, file],
-  {encoding: 'utf8', timeout: 45000, maxBuffer: 16 * 1024 * 1024});
+  {encoding: 'utf8', timeout: 45000, maxBuffer: 16 * 1024 * 1024,
+    env: selected === 'native' ? {...process.env, ACTQL_TEST_NATIVE_CLIENT_BINARY: binary} : process.env});
   return mutationAcceptance(result, expected, file);
 };
 const build = () => {
   if (selected !== 'native') return;
-  const result = spawnSync('moon', ['build', '--target', 'native', '--release', 'src/cmd/native_client'],
+  const result = spawnSync('moon', ['build', '--target', 'native', '--debug', 'src/cmd/native_client'],
     {encoding: 'utf8', timeout: 120000, maxBuffer: 16 * 1024 * 1024});
   if (result.error || result.signal || result.status !== 0) {
-    throw new Error(`SemanticMutationBuildFailed: ${result.stderr}`);
+    throw new Error(`SemanticMutationBuildFailed: ${JSON.stringify({status: result.status,
+      signal: result.signal, error: result.error?.code})}\n${result.stderr}`);
   }
 };
 const worker = async () => {
   console.log('Semantic mutation: baseline build and named cases');
   build();
   if (!run()) throw new Error('SemanticMutationBaselineFailed');
+  const digest = () => selected === 'native'
+    ? createHash('sha256').update(readFileSync(binary)).digest('hex') : undefined;
+  const baselineBinarySha256 = digest();
   let rejected;
   try {
     writeFileSync(path, original.replace(from, to));
@@ -54,7 +63,9 @@ const worker = async () => {
   }
   console.log('Semantic mutation: restored named cases');
   const restoredAccepted = run();
-  console.log(JSON.stringify({target: selected, rejected, restoredAccepted, expected}, null, 2));
+  console.log(JSON.stringify({target: selected, buildProfile: selected === 'native' ? 'debug' : undefined,
+    binary: selected === 'native' ? binary : undefined, baselineBinarySha256,
+    restoredBinarySha256: digest(), rejected, restoredAccepted, expected}, null, 2));
   if (!rejected || !restoredAccepted) throw new Error('SemanticMutationUndetectedOrUnrestored');
 };
 if (process.env.ACTQL_SEMANTIC_MUTATION_WORKER === selected) {
