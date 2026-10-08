@@ -255,7 +255,7 @@ inputs. Qualified input references retain their input meaning. A scalar alias
 needed by the condition is evaluated once against SELECT's input snapshot and
 reused by final projection; unrelated scalar projections are evaluated after
 the condition. No alias is made visible inside its own or a sibling SELECT
-expression, or inside an OVER specification. Ordinary Boolean and aggregate
+expression, or inside a SELECT-owned OVER specification. Ordinary Boolean and aggregate
 typing, failure, capacity and parameter rules remain common-owner decisions.
 
 `WHERE` and siblings in one SELECT list see the input snapshot, not aliases
@@ -263,8 +263,18 @@ introduced by that list. In `GROUP BY`, `HAVING`, `QUALIFY` and the query's fina
 `ORDER BY`, a visible SELECT alias takes precedence over an input column of
 the same name. Duplicate aliases, qualified references and aggregate
 visibility still undergo their own ambiguity and validity checks. Names in
-an analytic `OVER` clause resolve against the input snapshot, not the final
-ORDER BY scope. These rules follow the adopted GoogleSQL query and window
+a SELECT-owned analytic `OVER` clause resolve against the input snapshot.
+Inline windows in the query ORDER BY instead resolve SELECT aliases before
+same-name inputs, including function arguments and OVER partition/order keys;
+qualified input columns retain their range meaning. An alias containing a
+SELECT window cannot feed another window. New window calls after SELECT
+DISTINCT and named-window references in ORDER BY are refused. The inline
+ORDER windows execute with the other windows before QUALIFY; their private
+outputs and demanded scalar aliases are removed by final projection. Pipe
+ORDER and post-set ORDER run windows over the current projected/combined rows,
+without recovering a removed input range. Existing common signatures, frames,
+NULL and order evidence still apply; no default frame or ordering guarantee is
+invented by this connection. These rules follow the adopted GoogleSQL query and window
 scopes; they do not confer general GoogleSQL compatibility.
 
 In a grouped SELECT, a grouping expression may occur inside a larger scalar

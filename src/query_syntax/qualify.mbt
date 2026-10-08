@@ -8,7 +8,7 @@ fn QueryParser::qualify_expression(
 }
 
 ///|
-// SELECT and QUALIFY extract calls through one bounded primary callback.
+// SELECT, QUALIFY and ORDER extract calls through one bounded primary callback.
 // Generated names avoid every authored identifier in the original token stream.
 fn QueryParser::window_expression(
   self : QueryParser,
