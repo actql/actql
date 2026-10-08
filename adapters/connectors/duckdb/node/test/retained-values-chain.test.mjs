@@ -431,7 +431,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         if (route.observeCapturePreparation &&
             property === 'strategyCapturedRunAdvance') {
           return preparation => {
-            const result = target[property](preparation, 32);
+            const result = target[property](preparation,
+              route.cancelCapturePhase === 'snapshot-inventory' ? 1 : 32);
             const complete = checked(result);
             const phase = target.strategyCapturedRunFixturePhase(preparation);
             route.capturePolls = (route.capturePolls ?? 0) + 1;
@@ -440,9 +441,14 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
               route.captureRootPolls = (route.captureRootPolls ?? 0) + 1;
               assert.equal(complete, false);
             }
+            if (phase === 'snapshot-inventory') {
+              route.captureSnapshotPolls = (route.captureSnapshotPolls ?? 0) + 1;
+              assert.equal(complete, false);
+            }
             assert.equal(completedDispatches, 3);
             if (mode === 'cancel-during-captured-run' && !scheduled &&
-                phase === route.cancelCapturePhase && route.capturePolls > 1) {
+                phase === route.cancelCapturePhase && route.capturePolls > 1 &&
+                (phase !== 'snapshot-inventory' || route.captureSnapshotPolls >= 3)) {
               assert.equal(complete, false);
               assert.ok(route.capturePolls > 1);
               scheduled = true;
@@ -1013,7 +1019,7 @@ for (const mode of ['success', 'cancel-during-result-snapshot']) {
   });
 }
 
-for (const phase of ['success', 'root-check', 'context-check', 'rows-check']) {
+for (const phase of ['success', 'root-check', 'snapshot-inventory', 'context-check', 'rows-check']) {
   test(`retained Captured Run issuance yields through final evidence checking: ${phase}`, async () => {
     const first = {id: 1, note: `${'é'.repeat(257)}e\u0301\r\n😀`};
     const second = {id: 2, note: null};
@@ -1046,6 +1052,7 @@ for (const phase of ['success', 'root-check', 'context-check', 'rows-check']) {
         });
         assert.ok(route.capturePhases.has(phase));
         if (phase === 'root-check') assert.ok(route.captureRootPolls > 1);
+        if (phase === 'snapshot-inventory') assert.ok(route.captureSnapshotPolls >= 3);
         assert.equal(route.captureCancels, 1);
         assert.equal(observations().scheduled, true);
         await assert.rejects(publication.lookupCommittedIndex({
