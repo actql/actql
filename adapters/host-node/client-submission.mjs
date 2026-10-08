@@ -63,7 +63,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     let checkObservation;
     try {
       const report = await checkSubmissionInput?.({principalId: value.principalId,
-        connection: value.connection, kind: intent.kind, input: intent.input, parameters: intent.parameters});
+        connection: value.connection, kind: intent.kind === 'program' ? 'program' : 'text',
+        scope: 'bound_input', input: intent.input, parameters: intent.parameters});
       const observed = report?.report ?? report?.partial_report;
       if (validCheckOutcome(report)) checkObservation = report;
       disclosable = !projectsProblem || validCheckOutcome(report) && (outcome.problem.code === 'ClientProgramInvalidInput'

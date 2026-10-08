@@ -1,4 +1,11 @@
 ///|
+#borrow(path)
+extern "C" fn diagnostic_cleanup_access(path : Bytes, allow : Bool) -> Bool = "actql_probe_cleanup_access"
+
+///|
+extern "C" fn diagnostic_expiry_wait() -> Unit = "actql_probe_expiry_wait"
+
+///|
 /// Native registered-case product path. The wrapper supplies the checked
 /// application files and compares this result with its independent oracle.
 
@@ -132,6 +139,9 @@ priv struct EmpiricalProbe {
   template_pin : String
   offline_fallback : Bool
   clock : @clock.NativeTrustedClock
+  whole_run : Bool
+  validation_probes : Bool
+  mut trajectory : Array[Json]?
 }
 
 ///|
@@ -142,17 +152,27 @@ fn commit_empirical_probe(
   task : Int,
   ledger : @resources.Ledger,
 ) -> String? {
-  if task != 1 || probe.mode == "offline" {
+  if (!probe.whole_run && task != 1) ||
+    probe.mode == "offline" ||
+    (probe.whole_run && task > 1 && probe.trajectory is None) {
     @standard_host.commit_dispatch_offline_policy_choice(dispatch).unwrap()
     println("empirical-fallback:" + task.to_string() + ":preconfigured-offline")
     return None
   }
   let started = @bench.monotonic_clock_start()
-  let policy_revision = "local-task-processing-median/0.1"
+  let policy_revision = if probe.whole_run {
+    "local-run-caller-elapsed-median/0.1"
+  } else {
+    "local-task-processing-median/0.1"
+  }
   let mut position = probe.position
   let mut reason = "experiment-forced-position"
   let mut profile_revision = "unmeasured"
-  if probe.mode == "empirical" {
+  if probe.whole_run && task > 1 && probe.trajectory is Some(trajectory) {
+    position = whole_run_residual_position(dispatch, trajectory, task)
+    operational_require(position is Some(_))
+    reason = "current-snapshot-residual-assignment"
+  } else if probe.mode == "empirical" {
     let template = @files.read_bounded_text_file(
       probe.root,
       "task-1.json",
@@ -177,9 +197,14 @@ fn commit_empirical_probe(
     let ranking = @host.rank_native_operational_estimate(
       dispatch,
       sidecar,
-      1,
+      task,
       policy_revision,
       probe.clock,
+      quantity=if probe.whole_run {
+        "run-caller-elapsed"
+      } else {
+        "task-processing"
+      },
     ).unwrap()
     position = ranking.selected_position
     reason = ranking.reason
@@ -192,7 +217,13 @@ fn commit_empirical_probe(
       profile_revision +
       "\",\"policy_revision\":\"" +
       policy_revision +
-      "\",\"objective\":\"task-processing-median\",\"positions\":" +
+      "\",\"objective\":\"" +
+      (if probe.whole_run {
+        "run-caller-elapsed-median"
+      } else {
+        "task-processing-median"
+      }) +
+      "\",\"positions\":" +
       ranking.positions.to_json().stringify() +
       ",\"selected_position\":" +
       ranking.selected_position.to_json().stringify() +
@@ -217,24 +248,40 @@ fn commit_empirical_probe(
     policy_id: "local-empirical-policy",
     policy_revision,
     explanation: reason +
-    "; objective=first-task-processing; profile=" +
+    "; objective=" +
+    (if probe.whole_run {
+      "run-caller-elapsed"
+    } else {
+      "first-task-processing"
+    }) +
+    "; profile=" +
     profile_revision,
   }
   let wire = @strategy.placement_policy_response_json(response).unwrap()
-  // Invalid binding is rejected by the real closed decoder before any commit.
-  let changed = @strategy.placement_policy_response_json({
-    ..response,
-    request: { ..request, request_id: "different-request", },
-  }).unwrap()
-  operational_require(
-    @host.commit_native_local_policy_response(
-      dispatch,
-      request,
-      changed,
-      "local-empirical-policy",
-      probe.clock,
+  if !probe.whole_run || probe.validation_probes {
+    // Invalid binding is rejected by the real closed decoder before any commit.
+    let changed = @strategy.placement_policy_response_json({
+      ..response,
+      request: { ..request, request_id: "different-request", },
+    }).unwrap()
+    operational_require(
+      @host.commit_native_local_policy_response(
+        dispatch,
+        request,
+        changed,
+        "local-empirical-policy",
+        probe.clock,
+      )
+      is Err(_),
     )
-    is Err(_),
+    println("empirical-modified-request-refused:" + task.to_string())
+  }
+  if probe.whole_run && task == 1 {
+    probe.trajectory = Some(whole_run_selected_trajectory(dispatch, chosen))
+  }
+  println(
+    "empirical-current-request:" +
+    @strategy.placement_policy_request_json(request).unwrap(),
   )
   @host.commit_native_local_policy_response(
     dispatch,
@@ -530,6 +577,9 @@ fn execute_timed_native_strategy_run(
             if observed > request.deadline_ms {
               break
             }
+            // Observe the original request after a real bounded wait, rather
+            // than assuming fast durable reads advance the wall clock.
+            diagnostic_expiry_wait()
             observed = probe.clock.observe().unwrap()
           }
           operational_require(observed > request.deadline_ms)
@@ -563,7 +613,8 @@ fn execute_timed_native_strategy_run(
           return Ok(())
         }
         match (empirical, retired_response) {
-          (Some(probe), Some(body)) => {
+          (Some(probe), Some(body)) if !probe.whole_run ||
+            probe.validation_probes => {
             operational_require(
               @host.commit_native_local_policy_response(
                 dispatch,
@@ -862,8 +913,11 @@ fn close_observed_run(
   run : @host.NativeStandardStrategyRun,
   ledger : @resources.Ledger,
   task : Int,
+  observe_before? : Bool = true,
 ) -> Unit {
-  emit_owner_observation("before-close", task, run, ledger)
+  if observe_before {
+    emit_owner_observation("before-close", task, run, ledger)
+  }
   if !@host.close_native_standard_strategy_run(run).unwrap() {
     abort("native strategy cleanup unconfirmed")
   }
@@ -944,6 +998,11 @@ fn main {
     @argparse.OptionArg("operational-template-pins", default_values=["-"]),
     @argparse.OptionArg("sqlite-library", default_values=["-"]),
     @argparse.OptionArg("empirical-mode", default_values=["-"]),
+    @argparse.OptionArg("diagnostic-cleanup-failure", default_values=["false"]),
+    @argparse.OptionArg("empirical-validation-probes", default_values=["false"]),
+    @argparse.OptionArg("empirical-objective", default_values=[
+      "task-processing",
+    ]),
     @argparse.OptionArg("empirical-position", default_values=["-"]),
     @argparse.OptionArg("empirical-profile-root", default_values=["-"]),
     @argparse.OptionArg("empirical-profile-revision", default_values=["-"]),
@@ -983,6 +1042,17 @@ fn main {
     @argparse.OptionArg("execution-cap", required=true),
   ])
   let matches = command.parse() catch { error => abort(error.to_string()) }
+  operational_require(
+    ["task-processing", "run-caller-elapsed"].contains(
+      required(matches, "empirical-objective"),
+    ),
+  )
+  operational_require(
+    ["true", "false"].contains(required(matches, "diagnostic-cleanup-failure")),
+  )
+  operational_require(
+    ["true", "false"].contains(required(matches, "empirical-validation-probes")),
+  )
   let empirical_mode = required(matches, "empirical-mode")
   operational_require(
     ["-", "forced", "empirical", "offline", "expiry"].contains(empirical_mode),
@@ -1398,6 +1468,11 @@ fn main {
       template_pin: required(matches, "empirical-template-pin"),
       offline_fallback: required(matches, "empirical-fallback") == "offline",
       clock,
+      whole_run: required(matches, "empirical-objective") ==
+      "run-caller-elapsed",
+      validation_probes: required(matches, "empirical-validation-probes") ==
+      "true",
+      trajectory: None,
     })
   }
   let execution = execute_timed_native_strategy_run(
@@ -1536,6 +1611,19 @@ fn main {
     },
     batch_bytes,
   ).unwrap()
+  let result_reference = @example.application_task_reference(app, task) catch {
+    _ => abort("checked final task reference unavailable")
+  }
+  operational_require(
+    @example.application_task_output_matches(result_reference, output),
+  )
+  let schema_fields : Array[String] = []
+  for column in 0..<@execution.completed_column_count(output) {
+    schema_fields.push(
+      @execution.completed_column_name(output, column).unwrap(),
+    )
+  }
+  println("result-schema-fields:" + schema_fields.to_json().stringify())
   let cid = @execution.row_wire_cid(
     @execution.identify_completed_rows(output, {
       max_columns: columns,
@@ -1569,7 +1657,40 @@ fn main {
   }
   phase_boundary("execution-end", execution_start)
   let cleanup_start = @bench.monotonic_clock_start()
-  close_observed_run(run, ledger, task)
+  if required(matches, "diagnostic-cleanup-failure") == "true" {
+    operational_require(retained_task_root == root + "/retained-task")
+    emit_owner_observation("before-close", task, run, ledger)
+    let before = @resources.ledger_usage(ledger)
+    operational_require(
+      diagnostic_cleanup_access(@utf8.encode(retained_task_root), false),
+    )
+    let pending = @host.close_native_standard_strategy_run(run)
+    // Restore the caller-owned directory before inspecting the failure, even
+    // when the diagnostic discovers an unexpected cleanup result.
+    operational_require(
+      diagnostic_cleanup_access(@utf8.encode(retained_task_root), true),
+    )
+    operational_require(pending is Err(_) || pending is Ok(false))
+    let held = @resources.ledger_usage(ledger)
+    operational_require(
+      held.held_bytes > 0L && held.attempts == before.attempts,
+    )
+    operational_require(held.holdings == before.holdings)
+    operational_require(
+      @host.execute_next_native_standard_strategy_task(run) is Err(Closed),
+    )
+    println("whole-run-cleanup-pending:" + held.held_bytes.to_string())
+    emit_owner_observation("failed-cleanup", task, run, ledger)
+  }
+  close_observed_run(
+    run,
+    ledger,
+    task,
+    observe_before=required(matches, "diagnostic-cleanup-failure") != "true",
+  )
+  if required(matches, "diagnostic-cleanup-failure") == "true" {
+    println("whole-run-cleanup-retry-confirmed")
+  }
   @host.close_native_acquisition_runtime(acquisition)
   @strategy.stop_captured_dag(captured)
   let usage = @resources.ledger_usage(ledger)

@@ -267,7 +267,7 @@ test('check refuses source coercion before serialization or transport', async t 
   t.after(() => mock.restoreAll());
   const client = await connect(options);
   await assert.rejects(client.check({toJSON() { assert.fail('source coercion'); }},
-    {format: 'sql'}), {code: 'InvalidCheckRequest'});
+    {kind: 'text', scope: 'bound_input', format: 'sql'}), {code: 'InvalidCheckRequest'});
   assert.equal(sent, 1);
 });
 
@@ -284,10 +284,10 @@ test('check rejects a location inside an original UTF-8 scalar', async t => {
           precision: 'exact'}}], requirements: [], coverage: {limits: [], unresolved: []}}}));
   t.after(() => mock.restoreAll());
   const client = await connect(options);
-  await assert.rejects(client.check("SELECT '😀' AS n", {format: 'sql'}),
+  await assert.rejects(client.check("SELECT '😀' AS n", {kind: 'text', scope: 'bound_input', format: 'sql'}),
     {code: 'InvalidHostCheckOutcome'});
   start = 8;
-  const result = await client.check("SELECT '😀' AS n", {format: 'sql'});
+  const result = await client.check("SELECT '😀' AS n", {kind: 'text', scope: 'bound_input', format: 'sql'});
   assert.equal(resolveCheckLocation(result, result.report.reasons[0].location).text, '😀');
   assert.equal(resolveCheckLocation(result,
     {...result.report.reasons[0].location, revision: undefined}), undefined);
@@ -334,7 +334,7 @@ test('check refuses a Host verdict that contradicts its own evidence',
         : Response.json(reply));
     t.after(() => mock.restoreAll());
     const client = await connect(options);
-    const check = () => client.check('SELECT 1 AS n', {format: 'sql'});
+    const check = () => client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
     for (const inconsistent of [
       report('verified', [], limit, open),
       report('verified', [], limit, []),
@@ -1357,7 +1357,7 @@ test('check retains detached submitted inputs while credentials are pending', as
   waitForCredentials = true;
   const parameterDeclarations = {x: {type: 'number'}};
   const parameters = {x: 'bad'};
-  const pending = client.check('SELECT 1 AS n', {format: 'sql', parameterDeclarations, parameters});
+  const pending = client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql', parameterDeclarations, parameters});
   parameterDeclarations.x.type = 'string';
   parameters.x = 'new';
   release();
@@ -1491,7 +1491,7 @@ test('check refuses lossy numeric serialization before credentials or exchange',
     new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0},
     Object.assign(new Number(1), {valueOf: () => NaN}),
     Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]) {
-    await assert.rejects(client.check('SELECT @x AS n', {format: 'sql',
+    await assert.rejects(client.check('SELECT @x AS n', {kind: 'text', scope: 'bound_input', format: 'sql',
       parameterDeclarations: {x: {type: 'json'}}, parameters: {x: {nested: [value]}}}),
     {code: 'InvalidCheckRequest'});
     assert.equal(credentials, 0, '[check-mutation:numeric-before-credentials]');

@@ -65,7 +65,7 @@ export async function prepareNativeDirectProduct({root, fixture, database,
     await writeFile(join(directory, name), content);
   }
   const retainedTaskRoot = join(directory, 'retained-task');
-  await mkdir(retainedTaskRoot);
+  await mkdir(retainedTaskRoot, {mode: 0o700});
   const library = join(root, 'adapters/connectors/duckdb/node/node_modules/@duckdb',
     `node-bindings-${process.platform}-${process.arch}`,
     process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so');
@@ -119,6 +119,12 @@ export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) 
   const {stdout, stderr} = await promisify(execFile)(invocation.binary,
     invocation.arguments, {cwd: root, timeout: timeoutMs, maxBuffer: 1024 * 1024});
   const processCycleMs = performance.now() - started;
+  return readNativeDirectProductExecution(invocation, {stdout, stderr, processCycleMs});
+}
+
+// Independent consumers reconstruct the same admitted observations from the
+// immutable raw stream. This entry point never executes a binary or a Source.
+export function readNativeDirectProductExecution(invocation, {stdout, stderr, processCycleMs}) {
   const record = JSON.parse(stdout.trim().split('\n').at(-1));
   assert.equal(record.rows_cid, invocation.expected.rowsCid,
     'NativeProductResultMismatch');
@@ -134,7 +140,9 @@ export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) 
     });
   assert.deepEqual(taskIntervals.map(value => value.task),
     Array.from({length: invocation.finalTask}, (_, index) => index + 1));
-  return Object.freeze({record, taskIntervals, stdout,
+  const schemaLine=stdout.split('\n').find(line=>line.startsWith('result-schema-fields:'));
+  const resultSchemaFields=schemaLine?JSON.parse(schemaLine.slice('result-schema-fields:'.length)):null;
+  return Object.freeze({record, taskIntervals, stdout, resultSchemaFields,
     preparation: nativePreparationObservations(stdout, invocation.sourceReadOnly),
     ownerObservations: nativeOwnerObservations(stdout),
     selections: stdout.split('\n').filter(line => line.startsWith('selection:')),
@@ -148,7 +156,7 @@ export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) 
     processCycleMs, stderr});
 }
 
-export function admitNativeDirectProduct(fixture, invocation, execution) {
+export function admitNativeDirectProduct(fixture, invocation, execution, {cleanupRetry = false} = {}) {
   const {record, taskIntervals, selections} = execution;
   const expectedTasks = fixture.workload === workloads[1] ? 4 : 3;
   assert.equal(invocation.finalTask, expectedTasks);
@@ -249,7 +257,7 @@ export function admitNativeDirectProduct(fixture, invocation, execution) {
   'NativeOwnerExceedsDeclaredExecutionCap');
   const physicalPhases = invocation.phaseObserver
     ? admitNativePhysicalPhases({events: execution.physicalPhaseEvents,
-      ownerCorrespondence, taskIntervals, cleanupMicroseconds: record.cleanup_us}) : undefined;
+      ownerCorrespondence, taskIntervals, cleanupMicroseconds: record.cleanup_us,cleanupRetry}) : undefined;
   assert(invocation.phaseObserver || execution.physicalPhaseEvents.length === 0,
     'UnexpectedNativePhysicalPhaseObserver');
   return Object.freeze({record, taskIntervals, taskUsages, taskHoldings,

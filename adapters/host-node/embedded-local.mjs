@@ -40,7 +40,7 @@ import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {issueInstalledRunControlObservation,
+import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
   '../host-common/run-state-observation.mjs';
 import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
@@ -489,12 +489,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       .flatMap(installedSourceReadAccesses)});
   // Checking dispatches nothing and reads no source rows; the audience is
   // the authenticated caller this connection admits.
-  const check = async ({principalId: actual, connection, kind, input, parameters,
-    signal}) => {
+  const check = async ({principalId: actual, connection, ...request}) => {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
-    const result = await checkSource({principalId: actual, kind, input, parameters, signal});
+    // Preserve the selected scope and the absence of template bindings across
+    // this installed-Host authorization boundary.
+    const result = await checkSource({principalId: actual, ...request});
     // The verdict belongs to the common checker. No diagnostic text, source
     // location, authored name, source bytes or hypothetical Run is projected.
     observation?.emit('check', 'check_completed', {checkVerdict: result.report?.verdict,
@@ -541,9 +542,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     try {
       // MoonBit fixes the projection equivalence. SQLite only retains this
       // bounded key; it cannot authorize a transition or reinterpret a Run.
-      const ownerFactKey = moon.clientProgramRunObservationKey(state.status,
-        BigInt(retained.revision), state.cleanupPending,
-        retained.physicalCloseConfirmed === true ? true : undefined);
+      const ownerFactKey = issueInstalledRunObservationKey(moon, {
+        outcome: state.status, revision: retained.revision,
+        cleanupPending: state.cleanupPending,
+        physicalCloseConfirmed: retained.physicalCloseConfirmed,
+      });
       if (ownerFactKey === undefined) { observation.noteLoss(); return; }
       observation.emit('run', 'owner_observed', {ref, outcome: state.status,
         revision: retained.revision,

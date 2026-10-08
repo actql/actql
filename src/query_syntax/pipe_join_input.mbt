@@ -37,7 +37,8 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
       | Qualify(_)
       | Order(_)
       | Limit(_, _)
-      | AssertUnique(_) => ()
+      | AssertUnique(_)
+      | Distinct => ()
       // These operations have their own placement/carrier contracts. Do not
       // move them into a synthetic CTE as a side effect of JOIN composition.
       Infer(_)

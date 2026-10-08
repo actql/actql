@@ -400,6 +400,21 @@ missing control or an unknown stop remains unknown. `controlRevision`, when
 present, belongs to the Run-control observation. It does not certify an atomic
 snapshot across Effect, publication, cancellation or resource owners.
 
+Each attached Execution retains one private Run-control observation. A later
+`status`, `wait` or `reconcile` reply with an older control revision, or changed
+control facts under the same revision, rejects with `InvalidHostRunState` and
+the safe explanation problem `stale_observation`. This includes concurrent
+replies that arrive out of order. Duplicate unchanged control facts are allowed;
+independent Effect or publication progress and observation timestamps are not
+ordered by the control revision. An absent control component supplies no such
+ordering evidence and does not reset the retained control revision.
+
+This guard changes no Host state and performs no retry. It retains no history
+or new ledger, and it cannot establish a composite snapshot's consistency or
+recover missing event history. Keep the original Run reference and explicitly
+refresh under current authorization; a rejected reconcile reply does not prove
+that the requested reconciliation failed or grant permission to repeat it.
+
 ```js
 import {explainEffectUncertainty} from '@actql/sdk';
 
@@ -769,10 +784,38 @@ Graph, VecA/TEA or Effect surface is implemented.
 
 ## Checking authored input
 
+Every `client.check` call selects `kind: 'text'` or `kind: 'program'` and
+`scope: 'template_only'` or `scope: 'bound_input'`. Omitting either selection is
+an invalid check request. The Program overload receives a JSON object snapshot
+and reports JSON pointers; it does not manufacture source-text positions.
+
+```js
+const template = await client.check('SELECT @x AS n', {
+  kind: 'text', scope: 'template_only', format: 'sql',
+  parameterDeclarations: {x: {type: 'number'}},
+});
+const programTemplate = await client.check(program, {
+  kind: 'program', scope: 'template_only',
+});
+const complemented = await client.check('SELECT @x AS n', {
+  kind: 'text', scope: 'bound_input', format: 'sql',
+  parameterDeclarations: {x: {type: 'number'}}, parameters: {x: 1},
+});
+```
+
+Template-only requests cannot contain `parameters`, including `null`, `{}` or
+an explicitly present `undefined`. The SDK and Host refuse these requests;
+this refusal is distinct from an invalid Program. Declaration defaults retain
+their existing admission rules. Template verification requires complete common
+static-scope evidence; it may retain execution-value Requirements. Missing
+bound values, incomplete static checks and truncated reports cannot verify.
+Complementing inputs starts a new bound-input check. Checking and retrieving
+diagnostics do not submit a Program or grant permission to execute or resend it.
+
 ```js
 import {getCheckInput, resolveCheckLocation, explainCheckReason, explainCheckOutcome} from '@actql/sdk';
 
-const outcome = await client.check('SELECT @missing AS n', {format: 'sql'});
+const outcome = await client.check('SELECT @missing AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
 console.log(explainCheckOutcome(outcome));
 if (outcome.outcome === 'completed') {
   const {scope, context_ref, verdict, reasons, requirements} = outcome.report;
@@ -841,7 +884,7 @@ wire schema rejects unknown Requirement codes and malformed known facts.
 import {createCheckSupplementationSession} from '@actql/sdk';
 const checks = createCheckSupplementationSession(client, {maxAttempts: 3});
 const result = await checks.check('SELECT @x AS n', {
-  format: 'sql', parameterDeclarations: {x: {type: 'number'}}, parameters: {},
+  kind: 'text', scope: 'bound_input', format: 'sql', parameterDeclarations: {x: {type: 'number'}}, parameters: {},
 });
 // Present the unchanged Owner outcome, including its scope and verdict.
 console.log(result.outcome, result.decision);
@@ -924,7 +967,7 @@ Reopening requires a new session. The session does not infer text from a URI.
 
 ```js
 const document = createCheckDocumentSession(client, {text: buffer, version: 1});
-const observation = await document.check({format: 'sql'});
+const observation = await document.check({scope: 'bound_input', format: 'sql'});
 const report = observation.outcome.report ?? observation.outcome.partial_report;
 for (const reason of report?.reasons ?? []) {
   const range = reason.location && document.resolveTextRange(observation, reason.location);
@@ -1258,7 +1301,7 @@ complete diagnostic display. If even the observation cannot fit, return
 
 ```js
 import {formatCheckOutcome} from '@actql/sdk';
-const outcome = await client.check(text, {format: 'sql'});
+const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
 const display = formatCheckOutcome(outcome, {format: 'text'});
 if (display === undefined) throw new Error('CheckDisplayUnavailable');
 console.log(display);
@@ -1285,7 +1328,7 @@ applies no edit.
 const session = createCheckDocumentSession(client, {
   text: unsavedText, version: documentVersion, positionEncoding: 'utf-8',
 });
-const observation = await session.check({format: 'sql'});
+const observation = await session.check({scope: 'bound_input', format: 'sql'});
 const display = session.format(observation, {format: 'json'});
 // Call session.update(newText, newVersion) for edits and session.close() on close.
 ```
