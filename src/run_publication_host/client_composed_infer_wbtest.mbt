@@ -1,5 +1,7 @@
 ///|
-fn client_composed_infer_test_program() -> PreparedClientProgram raise {
+fn client_composed_infer_test_program(
+  authored? : String? = None,
+) -> PreparedClientProgram raise {
   let fixture = client_infer_prefix_test_program()
   let environment = @checked.checking_environment(
     @checked.checked_environment(@strategy.graph_program(fixture.graph)),
@@ -12,7 +14,7 @@ fn client_composed_infer_test_program() -> PreparedClientProgram raise {
   let document =
     #|{"version":"actql/0.1","id":"composed-infer","stages":[{"id":"left","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"hello"}]},"as":"rows"}],"results":{"rows":{"from":"rows","fields":["id","text"]}}},{"id":"right","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"tag":{"type":"string","nullable":false}},"rows":[{"id":"a","tag":"match"}]},"as":"rows"}],"results":{"rows":{"from":"rows","fields":["id","tag"]}}},{"id":"classify","inputs":{"left_rows":{"result":{"stage":"left","result":"rows"}},"right_rows":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left_rows","join":{"with":"right_rows","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":2,"select":{"id":"left.id","text":"left.text"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"classify","result":"rows"}}}}
   let prepared = prepare_effect_free_client_program(
-    document,
+    authored.unwrap_or(document),
     Json,
     environment,
     None,
@@ -58,6 +60,143 @@ test "composition selection preserves the existing source-free occurrence" {
   assert_eq(
     client_infer_occurrence_model_task_cid(occurrence),
     prepared_client_infer_model_task_cid(prepared, 2),
+  )
+}
+
+///|
+fn client_two_independent_infer_test_program() -> PreparedClientProgram raise {
+  let document =
+    #|{"version":"actql/0.1","id":"two-independent-infer","stages":[{"id":"input","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"é\r"},{"id":"b","text":"é\n"}]},"as":"items"}],"results":{"rows":{"from":"items","fields":["id","text"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"first_assessment"}],"results":{"rows":{"from":"first_assessment","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"second_assessment"}],"results":{"rows":{"from":"second_assessment","fields":["id","outcome","value"]}}},{"id":"combine","inputs":{"first":{"result":{"stage":"first","result":"rows"}},"second":{"result":{"stage":"second","result":"rows"}}},"steps":[{"from":"first","join":{"with":"second","kind":"inner","cardinality":"one_to_one","max_output_rows":2,"on":[{"left":"id","right":"id"}],"select":{"id":"left.id","first":"left.value","second":"right.value"}},"as":"joined"}],"results":{"rows":{"from":"joined","fields":["id","first","second"]}}}],"results":{"answer":{"from":{"stage":"combine","result":"rows"}}}}
+  client_composed_infer_test_program(authored=Some(document))
+}
+
+///|
+test "two independent INFER Units retain distinct logical occurrences for the same item keys" {
+  let prepared = client_two_independent_infer_test_program()
+  // This old single-component getter must not silently choose just the first.
+  assert_true(prepared_client_composed_infer_occurrence(prepared) is None)
+  let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 2)
+  assert_eq(client_infer_occurrence_coordinates(occurrences[0]), (1, 1, 1))
+  assert_eq(client_infer_occurrence_coordinates(occurrences[1]), (2, 2, 1))
+  assert_eq(
+    client_infer_occurrence_target_name(occurrences[0]),
+    Some("first_assessment"),
+  )
+  assert_eq(
+    client_infer_occurrence_target_name(occurrences[1]),
+    Some("second_assessment"),
+  )
+  for occurrence in occurrences {
+    assert_true(client_infer_occurrence_matches(occurrence, prepared))
+    assert_true(
+      !client_infer_occurrence_matches(
+        occurrence,
+        client_composed_infer_test_program(),
+      ),
+    )
+  }
+}
+
+///|
+test "common graph retains both independent Model barriers and rejects incomplete or substituted inventories" {
+  let prepared = client_two_independent_infer_test_program()
+  let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  let components = occurrences.map(occurrence => {
+    issue_prepared_client_composed_infer_plan_graph(
+      occurrence,
+      client_infer_graph_test_execution(prepared, occurrence=Some(occurrence)),
+      "sha256:" + "b".repeat(64),
+      "sha256:" + "c".repeat(64),
+      run_materials_limits().sequence,
+      100000,
+      10000,
+      100,
+      include_results=false,
+    ).unwrap()
+  })
+  let issued = issue_prepared_client_multi_infer_task_plan_graph(
+    prepared,
+    components,
+    run_materials_limits().sequence,
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let graph = parse_plan_identity_value(issued.wire, 100000, 10000, 100).unwrap()
+  guard @canonical.object_field(graph, "nodes") is Some(@canonical.Array(nodes)) &&
+    @canonical.object_field(graph, "data_edges")
+    is Some(@canonical.Array(edges)) &&
+    @canonical.object_field(graph, "root_refs") is Some(@canonical.Array(roots)) else {
+    fail("complete two-INFER graph")
+  }
+  assert_eq(@canonical.array_values(nodes).length(), 6)
+  assert_eq(@canonical.array_values(edges).length(), 6)
+  let ids = @canonical.array_values(nodes).map(node => {
+    guard @canonical.object_field(node, "node_id")
+      is Some(@canonical.String(id)) else {
+      abort("Model graph node identity")
+    }
+    id
+  })
+  assert_true(ids.contains("task_1_infer_1"))
+  assert_true(ids.contains("task_2_infer_1"))
+  assert_eq(@canonical.array_values(roots).length(), 1)
+  let compilation = issue_prepared_client_multi_infer_compilation(
+    prepared,
+    components,
+    run_materials_manifests(),
+    run_materials_limits().sequence,
+    1000,
+    10000,
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  assert_true(client_task_compilation_infer(compilation) is None)
+  let retained = client_task_compilation_infers(compilation)
+  assert_eq(retained.length(), 2)
+  assert_true(physical_equal(retained[0], components[0]))
+  assert_true(physical_equal(retained[1], components[1]))
+  assert_eq(client_task_compilation_result_names(compilation), ["answer"])
+  assert_true(
+    issue_client_task_source_free_invocation(
+      compilation,
+      "sha256:" + "d".repeat(64),
+      100000,
+      10000,
+      100,
+    )
+    is Err(@publication.RunEvidenceReferenceMismatch("model_capture")),
+  )
+  for
+    inventory in [
+      [components[0]],
+      [components[0], components[0]],
+      components.rev(),
+    ] {
+    assert_true(
+      issue_prepared_client_multi_infer_task_plan_graph(
+        prepared,
+        inventory,
+        run_materials_limits().sequence,
+        100000,
+        10000,
+        100,
+      )
+      is Err(UnsupportedGraph),
+    )
+  }
+  assert_true(
+    issue_prepared_client_multi_infer_task_plan_graph(
+      client_two_independent_infer_test_program(),
+      components,
+      run_materials_limits().sequence,
+      100000,
+      10000,
+      100,
+    )
+    is Err(UnsupportedGraph),
   )
 }
 
@@ -661,6 +800,22 @@ test "two acquired roots JOIN INFER KEEP and downstream Effect compile together"
     client_compiled_run_infer_observation_policy(model_run),
     source_policy,
   )
+  guard client_compiled_run_evaluation_policy_body(model_run)
+    is Some((kind, policy_cid, wire)) else {
+    fail("Source-backed Evidence needs the actual Result policy original")
+  }
+  assert_eq(kind, "data_policy")
+  assert_eq(Some(policy_cid), source_policy)
+  let policy = parse_plan_identity_value(wire, 16384, 1024, 20).unwrap()
+  assert_true(
+    @canonical.object_field(policy, "unknown_provenance")
+    is Some(@canonical.Bool(true)),
+  )
+  guard @canonical.object_field(policy, "source_data_policy_cids")
+    is Some(@canonical.Array(policies)) else {
+    fail("Source constraints cannot be discarded by Evidence capture")
+  }
+  assert_eq(@canonical.array_values(policies).length(), 2)
   // The two declared source policies are unknown. A public provider-side
   // observation must not make their combined input eligible for dispatch.
   assert_true(

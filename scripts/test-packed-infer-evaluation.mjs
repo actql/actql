@@ -6,7 +6,7 @@ import {dirname, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
-import {CLIENT_PACKAGES, checkoutState, packClientPackages, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {CLIENT_PACKAGES, checkoutState, packClientPackages, packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const before = checkoutState(repository);
@@ -31,7 +31,7 @@ async ({root, directory, run, recordTarball}) => {
   await writeFile(join(directory, 'optional-otel-package.json'), JSON.stringify({revision: before.revision,
     sha256: createHash('sha256').update(await readFile(optional)).digest('hex')}, null, 2) + '\n');
   await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
-  run('npm', ['install', '--ignore-scripts', '--omit=optional', '--no-save',
+  run('npm', ['install', '--ignore-scripts', '--no-save', await pinnedDuckDBPackage(repository),
     ...[...CLIENT_PACKAGES, 'otel-node'].map(name => join(root, `actql-${name}-0.0.0-development.tgz`))],
   {cwd: root, env, timeout: 240000});
   await writeFile(join(root, 'infer-evidence.typecheck.mts'), await readFile(join(repository, 'packages/node/infer-evidence.typecheck.mts')));
@@ -40,10 +40,14 @@ async ({root, directory, run, recordTarball}) => {
   {cwd: root, env, timeout: 60000});
   const files = [
     'adapters/host-node/infer-evaluation-public.test.mjs',
+    'adapters/host-node/source-multi-infer-evidence-public.test.mjs',
+    'adapters/host-node/source-multi-infer-evidence-worker.fixture.mjs',
     'scripts/fixtures/installed-infer-fixture.mjs',
+    'scripts/fixtures/source-multi-infer-evidence.mjs',
     'scripts/fixtures/model-provider-binding-fixture.mjs',
     'scripts/test-execution-reporter.mjs',
     'examples/infer-evaluation/evaluate.mjs',
+    'examples/infer-evaluation/compare-source-instructions.mjs',
     'examples/infer-evaluation/capture-sink.mjs',
     'examples/infer-evaluation/evidence-reference.mjs',
     'examples/infer-evaluation/evaluator-process.mjs',
@@ -63,19 +67,24 @@ async ({root, directory, run, recordTarball}) => {
   await writeFile(join(directory, 'external-consumer-files.json'), JSON.stringify({revision: before.revision, copied}, null, 2) + '\n');
   const environment = join(root, 'base-environment.json');
   await writeFile(environment, await readFile(join(repository, 'spec/local-check-environment.json')));
+  const sourceEnvironment = join(root, 'source-environment.json');
+  await writeFile(sourceEnvironment, await readFile(join(repository, 'adapters/host-node/fixtures/query-amount-environment.json')));
   const inputs = join(root, 'evaluation-acceptance-inputs.json');
   await writeFile(inputs, JSON.stringify({revision: before.revision, preserveArtifacts: true, evidenceDirectory: directory,
     client: '@actql/node', httpHost: '@actql/local-node/http-host', observation: '@actql/otel-node',
     inferFixture: pathToFileURL(join(root, 'scripts/fixtures/installed-infer-fixture.mjs')).href,
     providerFixture: pathToFileURL(join(root, 'scripts/fixtures/model-provider-binding-fixture.mjs')).href,
-    environment}));
+    sourceInferFixture: pathToFileURL(join(root, 'scripts/fixtures/source-multi-infer-evidence.mjs')).href,
+    duckdbRequire: pathToFileURL(join(root, 'package.json')).href,
+    sourceEnvironment, environment}));
   const runtimeEnv = {...env, PATH: `${dirname(process.execPath)}:/usr/bin:/bin`, ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS: inputs};
-  for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) delete runtimeEnv[name];
-  const args = nodeTestArguments(['--test-concurrency=1', 'adapters/host-node/infer-evaluation-public.test.mjs']);
+  for (const name of ['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) delete runtimeEnv[name];
+  const args = nodeTestArguments(['--test-concurrency=1', 'adapters/host-node/infer-evaluation-public.test.mjs',
+    'adapters/host-node/source-multi-infer-evidence-public.test.mjs']);
   args[1] = '--test-reporter=' + pathToFileURL(join(root, 'scripts/test-execution-reporter.mjs')).href;
   const stdout = run(process.execPath, args, {cwd: root, env: runtimeEnv, timeout: 600000});
   const checked = assertTestExecution('node', process.execPath, args, {status: 0, stdout});
-  assert.equal(checked.counts.passed, 4, 'Both transports and both actual observability modes must execute');
+  assert.equal(checked.counts.passed, 8, 'Single and Source-backed multiple INFER must execute through both transports and actual observability modes');
   console.log(stdout.trimEnd());
   const receipts = [];
   for (const transport of ['local', 'https']) for (const mode of ['disabled', 'sampling-zero']) {
@@ -88,8 +97,23 @@ async ({root, directory, run, recordTarball}) => {
     assert.equal(new Set(receipt.evaluatorProcessIds).size, 3);
     receipts.push(receipt);
   }
+  const sourceReceipts = [];
+  for (const transport of ['local', 'https']) {
+    const restored = JSON.parse(await readFile(join(directory, `source-evidence-${transport}-disabled.json`), 'utf8'));
+    assert.equal(restored.revision, before.revision); assert.equal(restored.complete, true);
+    assert.equal(restored.sourceCalls, 1); assert.equal(restored.providerCalls, 4);
+    assert.equal(restored.restoredItems.length, 4); assert.equal(restored.otlpRequests, 0);
+    const comparison = JSON.parse(await readFile(join(directory, `source-comparison-${transport}-sampling-zero.json`), 'utf8'));
+    assert.equal(comparison.revision, before.revision); assert.equal(comparison.complete, true);
+    assert.equal(comparison.result.status, 'scored'); assert.equal(comparison.result.selectedCandidate, 'B');
+    assert.equal(comparison.result.records.length, 12); assert.equal(comparison.result.used.providerCalls, 12);
+    assert.equal(comparison.result.used.evaluatorCalls, 12);
+    assert(comparison.runs.every(run => run.revision === before.revision && run.sourceCalls === 1 &&
+      run.calls.length === 4 && run.otlpRequests === 0 && run.terminal.status === 'succeeded'));
+    sourceReceipts.push({transport, restored, comparison});
+  }
   assert.deepEqual(checkoutState(repository), before);
   await writeFile(join(directory, 'evaluation-summary.json'), JSON.stringify({revision: before.revision,
     complete: true, receipts: receipts.map(({transport, observationMode, physicalCalls, observationRecords}) =>
-      ({transport, observationMode, physicalCalls, observationRecords}))}, null, 2) + '\n');
+      ({transport, observationMode, physicalCalls, observationRecords})), sourceReceipts}, null, 2) + '\n');
 });
