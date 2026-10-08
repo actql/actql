@@ -11,10 +11,14 @@ fn expanded_replacement_projections(
 ) -> Array[@query.Projection] raise Abort {
   let is_object_star = fn(projection : @query.Projection) -> Bool {
     guard projection.star == Some("*") &&
-      projection.expression is Some(receiver) &&
-      @query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
-      is Reference(path) &&
-      !path.is_empty() else {
+      projection.expression is Some(receiver) else {
+      return false
+    }
+    guard @query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
+      is Reference(path) else {
+      return true
+    }
+    if path.is_empty() {
       return false
     }
     if path.length() == 1 {
@@ -97,11 +101,8 @@ fn expanded_replacement_projections(
       }
     }
     for column in columns {
-      if object_star &&
-        projection.expression is Some(receiver) &&
-        @query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
-        is Reference(path) {
-        spend(path.length() + 1)
+      if object_star && projection.expression is Some(receiver) {
+        spend(@query.expression_node_count(receiver) + 1)
       }
       values.push(@query.star_column_projection(query, projection, column.0))
     }

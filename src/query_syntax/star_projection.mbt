@@ -20,6 +20,20 @@ pub fn star_column_projection(
       }
     }
   }
+  if projection.expression is Some(receiver) &&
+    !(receiver.nodes[receiver.root].kind is Reference(_)) {
+    let nodes = receiver.nodes.copy()
+    nodes.push({ kind: Property(receiver.root, name), start: 0, end: 0, })
+    return {
+      expression: Some({ ..receiver, nodes, root: nodes.length() - 1, }),
+      aggregate: None,
+      analytic: None,
+      name: Some(name),
+      star: None,
+      except_columns: [],
+      replacements: [],
+    }
+  }
   let path = match projection.expression {
     Some(receiver) =>
       match receiver.nodes[receiver.root].kind {
