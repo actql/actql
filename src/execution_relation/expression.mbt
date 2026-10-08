@@ -817,7 +817,7 @@ fn advance_expression_frame_impl(
                   args.expression,
                   args.values,
                   args.roots,
-                  false,
+                  TextReplace,
                   scope,
                   workspace,
                 ) {
@@ -965,13 +965,17 @@ fn advance_expression_frame_impl(
             if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
-            if op == @lower.Length {
+            if op == @lower.Length || op == @lower.Upper {
               let state = match
                 start_text_function(
                   expr,
                   [value],
                   [frame.current_root],
-                  true,
+                  if op == @lower.Length {
+                    TextLength
+                  } else {
+                    TextUpper
+                  },
                   scope,
                   workspace,
                 ) {

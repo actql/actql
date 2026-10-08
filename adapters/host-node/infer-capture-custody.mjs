@@ -274,6 +274,12 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     captureStored = true;
   };
   return Object.freeze({custody, retainCompleted, persistStoppedAttempts,
+    // This immutable original is available only after the existing Store
+    // commit. It conveys no read/capture permission and retains no new owner.
+    evaluationBundle() {
+      if (!captureStored || !exportComplete || reclaimed) return undefined;
+      return Object.freeze({wire, cid: moon.clientProgramInferCaptureExportIdentity(exporter), count});
+    },
     configureModelJournal({observe, entry}) {
       if (!durableCalls || typeof observe !== 'function' || observeModelEntry !== undefined) {
         throw new TypeError('InvalidInferModelJournal');

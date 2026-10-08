@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:4d1aa4e031f6479013db5c912c59fd629d9cc5dd0dfb54f15581fd86fb591431",
+  "artifact_registry_cid": "sha256:65ae02cddbe0842fde526adba2815449df0b126b82cb8edbf2698e2ad0b2503b",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:801971ab7c91652f2e3a606cdae7567fe313ca2931df81d7ab4c24d3d130e0a9",
-    "check_reason": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739",
+    "check_outcome": "sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f",
+    "check_reason": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -75721,6 +75721,7 @@
                       "document_id": {
                         "enum": [
                           "source",
+                          "program",
                           "parameter_declarations",
                           "parameters"
                         ]
@@ -75765,6 +75766,49 @@
                               "code": {
                                 "type": "string",
                                 "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "code",
+                              "location"
+                            ],
+                            "properties": {
+                              "code": {
+                                "enum": [
+                                  "implementation_limit",
+                                  "analysis_budget_exhausted"
+                                ]
+                              },
+                              "location": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "document_id",
+                                  "revision",
+                                  "pointer"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "const": "structured"
+                                  },
+                                  "document_id": {
+                                    "const": "program"
+                                  },
+                                  "revision": {
+                                    "type": "string",
+                                    "pattern": "^rev:[0-9a-f]{64}$"
+                                  },
+                                  "pointer": {
+                                    "type": "string",
+                                    "maxLength": 4096,
+                                    "pattern": "^(?:/(?:[^~]|~[01])*)*$"
+                                  }
+                                }
                               }
                             }
                           },
@@ -75932,6 +75976,7 @@
                               },
                               "document_id": {
                                 "enum": [
+                                  "program",
                                   "parameter_declarations",
                                   "parameters"
                                 ]
@@ -76479,7 +76524,11 @@
                                   "invalid_arguments",
                                   "expected_boolean",
                                   "invalid_bounds",
-                                  "function_lowering_unresolved"
+                                  "function_lowering_unresolved",
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
                                 ]
                               }
                             }
@@ -76536,6 +76585,54 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "program_structure_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "missing_field",
+                                    "wrong_type",
+                                    "unexpected_null",
+                                    "invalid_structure"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -76715,10 +76812,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -76855,7 +76958,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -76907,7 +77013,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -77018,7 +77127,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -77078,10 +77190,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -77301,7 +77419,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -77336,10 +77463,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -77383,7 +77516,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -77411,7 +77553,8 @@
                                   "expression_type_mismatch",
                                   "implementation_limit",
                                   "host_capacity_policy_required",
-                                  "numeric_reduction_profile_required"
+                                  "numeric_reduction_profile_required",
+                                  "program_structure_invalid"
                                 ]
                               }
                             }
@@ -77519,6 +77662,7 @@
                               },
                               "document_id": {
                                 "enum": [
+                                  "program",
                                   "parameter_declarations",
                                   "parameters"
                                 ]
@@ -78066,7 +78210,11 @@
                                   "invalid_arguments",
                                   "expected_boolean",
                                   "invalid_bounds",
-                                  "function_lowering_unresolved"
+                                  "function_lowering_unresolved",
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
                                 ]
                               }
                             }
@@ -78123,6 +78271,54 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "program_structure_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "missing_field",
+                                    "wrong_type",
+                                    "unexpected_null",
+                                    "invalid_structure"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -78302,10 +78498,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -78442,7 +78644,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -78494,7 +78699,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -78605,7 +78813,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -78665,10 +78876,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -78888,7 +79105,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -78923,10 +79149,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -78970,7 +79202,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -78998,7 +79239,8 @@
                                   "expression_type_mismatch",
                                   "implementation_limit",
                                   "host_capacity_policy_required",
-                                  "numeric_reduction_profile_required"
+                                  "numeric_reduction_profile_required",
+                                  "program_structure_invalid"
                                 ]
                               }
                             }
@@ -79041,7 +79283,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
+              "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -79207,6 +79449,7 @@
                       "document_id": {
                         "enum": [
                           "source",
+                          "program",
                           "parameter_declarations",
                           "parameters"
                         ]
@@ -79251,6 +79494,49 @@
                               "code": {
                                 "type": "string",
                                 "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "code",
+                              "location"
+                            ],
+                            "properties": {
+                              "code": {
+                                "enum": [
+                                  "implementation_limit",
+                                  "analysis_budget_exhausted"
+                                ]
+                              },
+                              "location": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "document_id",
+                                  "revision",
+                                  "pointer"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "const": "structured"
+                                  },
+                                  "document_id": {
+                                    "const": "program"
+                                  },
+                                  "revision": {
+                                    "type": "string",
+                                    "pattern": "^rev:[0-9a-f]{64}$"
+                                  },
+                                  "pointer": {
+                                    "type": "string",
+                                    "maxLength": 4096,
+                                    "pattern": "^(?:/(?:[^~]|~[01])*)*$"
+                                  }
+                                }
                               }
                             }
                           },
@@ -79418,6 +79704,7 @@
                               },
                               "document_id": {
                                 "enum": [
+                                  "program",
                                   "parameter_declarations",
                                   "parameters"
                                 ]
@@ -79965,7 +80252,11 @@
                                   "invalid_arguments",
                                   "expected_boolean",
                                   "invalid_bounds",
-                                  "function_lowering_unresolved"
+                                  "function_lowering_unresolved",
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
                                 ]
                               }
                             }
@@ -80022,6 +80313,54 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "program_structure_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "missing_field",
+                                    "wrong_type",
+                                    "unexpected_null",
+                                    "invalid_structure"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -80201,10 +80540,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -80341,7 +80686,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -80393,7 +80741,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -80504,7 +80855,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -80564,10 +80918,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -80787,7 +81147,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -80822,10 +81191,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -80869,7 +81244,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -80897,7 +81281,8 @@
                                   "expression_type_mismatch",
                                   "implementation_limit",
                                   "host_capacity_policy_required",
-                                  "numeric_reduction_profile_required"
+                                  "numeric_reduction_profile_required",
+                                  "program_structure_invalid"
                                 ]
                               }
                             }
@@ -81005,6 +81390,7 @@
                               },
                               "document_id": {
                                 "enum": [
+                                  "program",
                                   "parameter_declarations",
                                   "parameters"
                                 ]
@@ -81552,7 +81938,11 @@
                                   "invalid_arguments",
                                   "expected_boolean",
                                   "invalid_bounds",
-                                  "function_lowering_unresolved"
+                                  "function_lowering_unresolved",
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
                                 ]
                               }
                             }
@@ -81609,6 +81999,54 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "program_structure_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "missing_field",
+                                    "wrong_type",
+                                    "unexpected_null",
+                                    "invalid_structure"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -81788,10 +82226,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -81928,7 +82372,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -81980,7 +82427,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -82091,7 +82541,10 @@
                                   "const": "structured"
                                 },
                                 "document_id": {
-                                  "const": "parameter_declarations"
+                                  "enum": [
+                                    "parameter_declarations",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -82151,10 +82604,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -82374,7 +82833,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -82409,10 +82877,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
                                 },
                                 "document_id": {
-                                  "const": "source"
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -82456,7 +82930,16 @@
                             "location": {
                               "properties": {
                                 "kind": {
-                                  "const": "text"
+                                  "enum": [
+                                    "text",
+                                    "structured"
+                                  ]
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "source",
+                                    "program"
+                                  ]
                                 }
                               }
                             }
@@ -82484,7 +82967,8 @@
                                   "expression_type_mismatch",
                                   "implementation_limit",
                                   "host_capacity_policy_required",
-                                  "numeric_reduction_profile_required"
+                                  "numeric_reduction_profile_required",
+                                  "program_structure_invalid"
                                 ]
                               }
                             }
@@ -82545,7 +83029,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
+              "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -82591,7 +83075,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
+              "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -82671,6 +83155,7 @@
                 },
                 "document_id": {
                   "enum": [
+                    "program",
                     "parameter_declarations",
                     "parameters"
                   ]
@@ -83218,7 +83703,11 @@
                     "invalid_arguments",
                     "expected_boolean",
                     "invalid_bounds",
-                    "function_lowering_unresolved"
+                    "function_lowering_unresolved",
+                    "missing_field",
+                    "wrong_type",
+                    "unexpected_null",
+                    "invalid_structure"
                   ]
                 }
               }
@@ -83275,6 +83764,54 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "program_structure_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "issue"
+                ],
+                "properties": {
+                  "issue": {
+                    "enum": [
+                      "missing_field",
+                      "wrong_type",
+                      "unexpected_null",
+                      "invalid_structure"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "const": "program"
+                  }
+                }
+              }
+            },
+            "not": {
+              "required": [
+                "fixes"
+              ]
+            }
+          }
+        },
         {
           "if": {
             "properties": {
@@ -83454,10 +83991,16 @@
               "location": {
                 "properties": {
                   "kind": {
-                    "const": "text"
+                    "enum": [
+                      "text",
+                      "structured"
+                    ]
                   },
                   "document_id": {
-                    "const": "source"
+                    "enum": [
+                      "source",
+                      "program"
+                    ]
                   }
                 }
               }
@@ -83594,7 +84137,10 @@
                     "const": "structured"
                   },
                   "document_id": {
-                    "const": "parameter_declarations"
+                    "enum": [
+                      "parameter_declarations",
+                      "program"
+                    ]
                   }
                 }
               }
@@ -83646,7 +84192,10 @@
                     "const": "structured"
                   },
                   "document_id": {
-                    "const": "parameter_declarations"
+                    "enum": [
+                      "parameter_declarations",
+                      "program"
+                    ]
                   }
                 }
               }
@@ -83757,7 +84306,10 @@
                     "const": "structured"
                   },
                   "document_id": {
-                    "const": "parameter_declarations"
+                    "enum": [
+                      "parameter_declarations",
+                      "program"
+                    ]
                   }
                 }
               }
@@ -83817,10 +84369,16 @@
               "location": {
                 "properties": {
                   "kind": {
-                    "const": "text"
+                    "enum": [
+                      "text",
+                      "structured"
+                    ]
                   },
                   "document_id": {
-                    "const": "source"
+                    "enum": [
+                      "source",
+                      "program"
+                    ]
                   }
                 }
               }
@@ -84040,7 +84598,16 @@
               "location": {
                 "properties": {
                   "kind": {
-                    "const": "text"
+                    "enum": [
+                      "text",
+                      "structured"
+                    ]
+                  },
+                  "document_id": {
+                    "enum": [
+                      "source",
+                      "program"
+                    ]
                   }
                 }
               }
@@ -84075,10 +84642,16 @@
               "location": {
                 "properties": {
                   "kind": {
-                    "const": "text"
+                    "enum": [
+                      "text",
+                      "structured"
+                    ]
                   },
                   "document_id": {
-                    "const": "source"
+                    "enum": [
+                      "source",
+                      "program"
+                    ]
                   }
                 }
               }
@@ -84122,7 +84695,16 @@
               "location": {
                 "properties": {
                   "kind": {
-                    "const": "text"
+                    "enum": [
+                      "text",
+                      "structured"
+                    ]
+                  },
+                  "document_id": {
+                    "enum": [
+                      "source",
+                      "program"
+                    ]
                   }
                 }
               }
@@ -84150,7 +84732,8 @@
                     "expression_type_mismatch",
                     "implementation_limit",
                     "host_capacity_policy_required",
-                    "numeric_reduction_profile_required"
+                    "numeric_reduction_profile_required",
+                    "program_structure_invalid"
                   ]
                 }
               }

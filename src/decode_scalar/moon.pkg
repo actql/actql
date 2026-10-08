@@ -1,1 +1,5 @@
 supported_targets = "+js+wasm+native"
+
+formatter(
+  ignore: ["unicode_upper.generated.mbt"],
+)

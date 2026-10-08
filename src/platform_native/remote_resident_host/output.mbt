@@ -399,9 +399,43 @@ pub fn complete_resident_output_intent(
 }
 
 ///|
+/// A stopped process is not permission to destroy an unfinished Output.
+/// Resolve the intent's original attempt through the existing dispatch journal;
+/// only a formally begun release permits this orphan cleanup to reclaim it.
+fn output_intent_release_started(
+  journal : @journal.Journal,
+  body : String,
+) -> Result[Bool, ResidentOutputIssue] {
+  let mut cursor = ""
+  while true {
+    match journal.recover_after(cursor) {
+      Err(issue) => return Err(OutputIntent(issue))
+      Ok(None) => return Err(OutputForeign)
+      Ok(Some((key, record))) => {
+        cursor = key
+        if output_intent_matches_dispatch(
+            body,
+            @remote.dispatch_record_request(record),
+          ) {
+          let (_, _, cleanup, _, _) = @remote.dispatch_record_state(record)
+          return Ok(
+            cleanup is @remote.CleanupReleasing ||
+            cleanup is @remote.CleanupReleased,
+          )
+        }
+      }
+    }
+  } nobreak {
+    Err(OutputForeign)
+  }
+}
+
+///|
 /// Reclaim the payloads of output intents whose holder is gone. The caller
 /// must hold the Site's executor slot, which proves that no holder can still
-/// write them. Each exact request is reclaimed through the existing Store
+/// write them, and the original dispatch must have formally begun release.
+/// A completed task awaiting Output keeps its payload and reservation.
+/// Each exact request is reclaimed through the existing Store
 /// owner, and its intent is completed only after the Store confirmed it.
 /// Returns how many intents are still pending; a failure leaves them pending
 /// for a later call and never re-runs anything.
@@ -424,6 +458,20 @@ pub fn reclaim_resident_output_intents(
         failure = Some(OutputIntentInvalid)
       }
       continue
+    }
+    match output_intent_release_started(journal, body) {
+      Ok(true) => ()
+      Ok(false) => {
+        remaining += 1
+        continue
+      }
+      Err(issue) => {
+        remaining += 1
+        if failure is None {
+          failure = Some(issue)
+        }
+        continue
+      }
     }
     let done = match reclaim_resident_payload(store, request) {
       Ok(true) =>

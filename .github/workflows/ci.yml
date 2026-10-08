@@ -809,6 +809,15 @@ jobs:
         with:
           directory: ${{ steps.packed-infer.outputs.evidence-directory }}
           name: packed-single-infer-${{ github.sha }}
+      - name: Test packed named INFER evaluation with traces off and unsampled
+        id: packed-infer-evaluation
+        run: node scripts/test-packed-infer-evaluation.mjs
+      - name: Retain packed INFER evaluation evidence
+        if: always() && steps.packed-infer-evaluation.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-infer-evaluation.outputs.evidence-directory }}
+          name: packed-infer-evaluation-${{ github.sha }}
       - name: Test packed acquired INFER capture and replay
         id: packed-acquired-infer
         run: node scripts/test-packed-acquired-infer.mjs

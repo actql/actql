@@ -75,7 +75,6 @@ test "UNNEST checked ARRAY scope never guesses unresolved or inadmissible elemen
   for
     text in [
       "SELECT * FROM UNNEST([]) element", "SELECT * FROM UNNEST([NULL]) element",
-      "SELECT * FROM UNNEST([1, 'wrong']) element", "SELECT * FROM UNNEST(ARRAY<BOOL>[1]) element",
     ] {
     assert_true(
       compile(
@@ -84,6 +83,20 @@ test "UNNEST checked ARRAY scope never guesses unresolved or inadmissible elemen
         construction_limits(),
       )
       is Err(UnsupportedProjection),
+      msg=text,
+    )
+  }
+  for
+    text in [
+      "SELECT * FROM UNNEST([1, 'wrong']) element", "SELECT * FROM UNNEST(ARRAY<BOOL>[1]) element",
+    ] {
+    assert_true(
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      )
+      is Err(ExpressionTyping({ kind: TypeMismatch(_), .. })),
       msg=text,
     )
   }

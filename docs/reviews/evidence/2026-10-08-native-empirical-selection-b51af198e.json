@@ -1,0 +1,2671 @@
+{
+  "version": "actql-empirical-comparison/0.1",
+  "revision": "b51af198e7d15b977998c38a3815f657ba7a7b57",
+  "binaryDigest": "sha256:73dc6c1ce415305f7dfe84bc936c053e6fd03822a44da663001eaf6db2c34b1d",
+  "candidateSnapshotCid": "sha256:472edc6d3367fd3f590ad4c314e54b9619f3ea8af34d3425933fc888396e728e",
+  "comparisonProfileRevision": "sha256:31d178beab1af02a5472b992f3545d755ae08d4791bb240faae0ed748f564073",
+  "evaluationOriginalRevision": "sha256:447d327228c52d2a1557350a89e539c01f5449b1a251a121a91f7b54b0651a29",
+  "objective": "first-task-processing-median",
+  "chosenPosition": 7,
+  "selectedAssignmentScope": "includes subsequent tasks; no whole-assignment optimum",
+  "comparedReferences": [
+    {
+      "position": 0,
+      "task": 1,
+      "quantity": "task-processing",
+      "status": "reference",
+      "reason": "",
+      "median_ms": 201.74,
+      "minimum_ms": 174.855,
+      "maximum_ms": 321.887,
+      "sample_count": 3
+    },
+    {
+      "position": 7,
+      "task": 1,
+      "quantity": "task-processing",
+      "status": "reference",
+      "reason": "",
+      "median_ms": 131.567,
+      "minimum_ms": 98.614,
+      "maximum_ms": 283.296,
+      "sample_count": 3
+    }
+  ],
+  "groups": {
+    "empirical": {
+      "taskProcessingMs": {
+        "count": 3,
+        "median": 110.291,
+        "minimum": 96.479,
+        "maximum": 184.394
+      },
+      "processCycleMs": {
+        "count": 3,
+        "median": 1112.997292,
+        "minimum": 1019.5742499999999,
+        "maximum": 1861.301375
+      },
+      "coldMs": {
+        "count": 3,
+        "median": 1098.631292,
+        "minimum": 1012.4852499999998,
+        "maximum": 1852.759375
+      },
+      "warmMs": {
+        "count": 3,
+        "median": 430.536,
+        "minimum": 384.15000000000003,
+        "maximum": 888.072
+      },
+      "cleanupMs": {
+        "count": 3,
+        "median": 8.542,
+        "minimum": 7.089,
+        "maximum": 14.366
+      },
+      "recordingMs": {
+        "count": 3,
+        "median": 3.570415999999568,
+        "minimum": 1.783292000000074,
+        "maximum": 15.333834000000024
+      },
+      "captureMs": {
+        "count": 3,
+        "median": 2.741208999999799,
+        "minimum": 2.2312910000000556,
+        "maximum": 5.084541000000172
+      },
+      "rawStreamRecordingAndDigestMs": {
+        "count": 3,
+        "median": 7.78808300000037,
+        "minimum": 7.134041999999681,
+        "maximum": 11.995583999999326
+      },
+      "templatePreparationMs": {
+        "count": 3,
+        "median": 3.7363330000000587,
+        "minimum": 2.6710000000002765,
+        "maximum": 24.11999999999989
+      },
+      "observedEndToEndMs": {
+        "count": 3,
+        "median": 1181.9770420000004,
+        "minimum": 1138.2761659999999,
+        "maximum": 1923.755709
+      },
+      "consultationMs": {
+        "count": 3,
+        "median": 7.437875,
+        "minimum": 3.191,
+        "maximum": 43.969625
+      },
+      "attempts": [
+        [
+          {
+            "task": 1,
+            "compute": 1,
+            "environments": 1,
+            "imports": 1,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 3
+          },
+          {
+            "task": 2,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          },
+          {
+            "task": 3,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          }
+        ],
+        [
+          {
+            "task": 1,
+            "compute": 1,
+            "environments": 1,
+            "imports": 1,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 3
+          },
+          {
+            "task": 2,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          },
+          {
+            "task": 3,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          }
+        ],
+        [
+          {
+            "task": 1,
+            "compute": 1,
+            "environments": 1,
+            "imports": 1,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 3
+          },
+          {
+            "task": 2,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          },
+          {
+            "task": 3,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          }
+        ]
+      ],
+      "physicalPhases": [
+        {
+          "intervals": [
+            {
+              "phase": "environment",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 20598,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "import",
+              "task": 1,
+              "producer": 0,
+              "elapsedMicroseconds": 46780,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "compute",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 96441,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "compute",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 86768,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "compute",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 81207,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "taskExecutionIntervals": [
+            {
+              "phase": "task",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 163857,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 86810,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 81265,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "taskReleaseIntervals": [
+            {
+              "phase": "task-release",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 547,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 279,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 202,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "environmentCleanupIntervals": [
+            {
+              "phase": "environment-close",
+              "task": 0,
+              "producer": 0,
+              "elapsedMicroseconds": 3911,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "environment-release",
+              "task": 0,
+              "producer": 0,
+              "elapsedMicroseconds": 8,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "scope": "selected physical task execution (nested preparation/import/Compute), task-owner release and resident environment close/release; excludes planner and common Run/acquisition cleanup",
+          "observerCostScope": "clock observation only; buffering/callback overhead remains in process time and requires off/on measurement"
+        },
+        {
+          "intervals": [
+            {
+              "phase": "environment",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 20246,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "import",
+              "task": 1,
+              "producer": 0,
+              "elapsedMicroseconds": 140608,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "compute",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 184348,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "compute",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 370759,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "compute",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 116757,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "taskExecutionIntervals": [
+            {
+              "phase": "task",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 345248,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 371228,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 116810,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "taskReleaseIntervals": [
+            {
+              "phase": "task-release",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 320,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 376,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 507,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "environmentCleanupIntervals": [
+            {
+              "phase": "environment-close",
+              "task": 0,
+              "producer": 0,
+              "elapsedMicroseconds": 4561,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "environment-release",
+              "task": 0,
+              "producer": 0,
+              "elapsedMicroseconds": 9,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "scope": "selected physical task execution (nested preparation/import/Compute), task-owner release and resident environment close/release; excludes planner and common Run/acquisition cleanup",
+          "observerCostScope": "clock observation only; buffering/callback overhead remains in process time and requires off/on measurement"
+        },
+        {
+          "intervals": [
+            {
+              "phase": "environment",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 26360,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "import",
+              "task": 1,
+              "producer": 0,
+              "elapsedMicroseconds": 52364,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "compute",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 110141,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "compute",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 128212,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "compute",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 103687,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "taskExecutionIntervals": [
+            {
+              "phase": "task",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 189015,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 128254,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 103745,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "taskReleaseIntervals": [
+            {
+              "phase": "task-release",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 612,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 375,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 431,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "environmentCleanupIntervals": [
+            {
+              "phase": "environment-close",
+              "task": 0,
+              "producer": 0,
+              "elapsedMicroseconds": 3557,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "environment-release",
+              "task": 0,
+              "producer": 0,
+              "elapsedMicroseconds": 15,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "scope": "selected physical task execution (nested preparation/import/Compute), task-owner release and resident environment close/release; excludes planner and common Run/acquisition cleanup",
+          "observerCostScope": "clock observation only; buffering/callback overhead remains in process time and requires off/on measurement"
+        }
+      ],
+      "taskCosts": [
+        [
+          {
+            "task": 1,
+            "realization": "resident",
+            "executionMicroseconds": 96479,
+            "releaseMicroseconds": 202,
+            "estimatedMicroseconds": 96681
+          },
+          {
+            "task": 2,
+            "realization": "resident",
+            "executionMicroseconds": 86810,
+            "releaseMicroseconds": 279,
+            "estimatedMicroseconds": 87089
+          },
+          {
+            "task": 3,
+            "realization": "resident",
+            "executionMicroseconds": 81265,
+            "releaseMicroseconds": 547,
+            "estimatedMicroseconds": 81812
+          }
+        ],
+        [
+          {
+            "task": 1,
+            "realization": "resident",
+            "executionMicroseconds": 184394,
+            "releaseMicroseconds": 507,
+            "estimatedMicroseconds": 184901
+          },
+          {
+            "task": 2,
+            "realization": "resident",
+            "executionMicroseconds": 371228,
+            "releaseMicroseconds": 376,
+            "estimatedMicroseconds": 371604
+          },
+          {
+            "task": 3,
+            "realization": "resident",
+            "executionMicroseconds": 116810,
+            "releaseMicroseconds": 320,
+            "estimatedMicroseconds": 117130
+          }
+        ],
+        [
+          {
+            "task": 1,
+            "realization": "resident",
+            "executionMicroseconds": 110291,
+            "releaseMicroseconds": 431,
+            "estimatedMicroseconds": 110722
+          },
+          {
+            "task": 2,
+            "realization": "resident",
+            "executionMicroseconds": 128254,
+            "releaseMicroseconds": 375,
+            "estimatedMicroseconds": 128629
+          },
+          {
+            "task": 3,
+            "realization": "resident",
+            "executionMicroseconds": 103745,
+            "releaseMicroseconds": 612,
+            "estimatedMicroseconds": 104357
+          }
+        ]
+      ],
+      "preparation": [
+        {
+          "sourceReadOnly": true,
+          "boundaries": [
+            {
+              "name": "application",
+              "microseconds": 400
+            },
+            {
+              "name": "library",
+              "microseconds": 28557
+            },
+            {
+              "name": "database",
+              "microseconds": 45741
+            },
+            {
+              "name": "acquisition-start",
+              "microseconds": 74554
+            },
+            {
+              "name": "acquisition-execute",
+              "microseconds": 74638
+            },
+            {
+              "name": "acquisition-output",
+              "microseconds": 241216
+            },
+            {
+              "name": "source",
+              "microseconds": 243435
+            },
+            {
+              "name": "capture",
+              "microseconds": 243477
+            },
+            {
+              "name": "dispatch",
+              "microseconds": 245186
+            },
+            {
+              "name": "strategy-open",
+              "microseconds": 245496
+            },
+            {
+              "name": "strategy-execute",
+              "microseconds": 245500
+            },
+            {
+              "name": "output-cid",
+              "microseconds": 718541
+            },
+            {
+              "name": "execution-end",
+              "microseconds": 888963
+            },
+            {
+              "name": "cleanup-end",
+              "microseconds": 896055
+            }
+          ],
+          "applicationMs": 28.157,
+          "libraryMs": 17.184,
+          "databaseMs": 28.813,
+          "acquisitionMs": 166.662,
+          "sourceMaterializationMs": 2.261,
+          "captureMs": 1.709,
+          "dispatchMs": 0.314,
+          "computeAndIdentityMs": 643.463,
+          "cleanupMs": 7.092,
+          "scope": "monotonic enclosing operation-start boundaries; not additive with nested task phases"
+        },
+        {
+          "sourceReadOnly": true,
+          "boundaries": [
+            {
+              "name": "application",
+              "microseconds": 351
+            },
+            {
+              "name": "library",
+              "microseconds": 50669
+            },
+            {
+              "name": "database",
+              "microseconds": 64947
+            },
+            {
+              "name": "acquisition-start",
+              "microseconds": 120874
+            },
+            {
+              "name": "acquisition-execute",
+              "microseconds": 120929
+            },
+            {
+              "name": "acquisition-output",
+              "microseconds": 368327
+            },
+            {
+              "name": "source",
+              "microseconds": 369900
+            },
+            {
+              "name": "capture",
+              "microseconds": 369930
+            },
+            {
+              "name": "dispatch",
+              "microseconds": 374030
+            },
+            {
+              "name": "strategy-open",
+              "microseconds": 374249
+            },
+            {
+              "name": "strategy-execute",
+              "microseconds": 374254
+            },
+            {
+              "name": "output-cid",
+              "microseconds": 1468795
+            },
+            {
+              "name": "execution-end",
+              "microseconds": 1727242
+            },
+            {
+              "name": "cleanup-end",
+              "microseconds": 1735789
+            }
+          ],
+          "applicationMs": 50.318,
+          "libraryMs": 14.278,
+          "databaseMs": 55.927,
+          "acquisitionMs": 247.453,
+          "sourceMaterializationMs": 1.603,
+          "captureMs": 4.1,
+          "dispatchMs": 0.224,
+          "computeAndIdentityMs": 1352.988,
+          "cleanupMs": 8.547,
+          "scope": "monotonic enclosing operation-start boundaries; not additive with nested task phases"
+        },
+        {
+          "sourceReadOnly": true,
+          "boundaries": [
+            {
+              "name": "application",
+              "microseconds": 666
+            },
+            {
+              "name": "library",
+              "microseconds": 51396
+            },
+            {
+              "name": "database",
+              "microseconds": 73445
+            },
+            {
+              "name": "acquisition-start",
+              "microseconds": 120317
+            },
+            {
+              "name": "acquisition-execute",
+              "microseconds": 120362
+            },
+            {
+              "name": "acquisition-output",
+              "microseconds": 275154
+            },
+            {
+              "name": "source",
+              "microseconds": 278744
+            },
+            {
+              "name": "capture",
+              "microseconds": 278784
+            },
+            {
+              "name": "dispatch",
+              "microseconds": 281728
+            },
+            {
+              "name": "strategy-open",
+              "microseconds": 282355
+            },
+            {
+              "name": "strategy-execute",
+              "microseconds": 282361
+            },
+            {
+              "name": "output-cid",
+              "microseconds": 798211
+            },
+            {
+              "name": "execution-end",
+              "microseconds": 988794
+            },
+            {
+              "name": "cleanup-end",
+              "microseconds": 1003163
+            }
+          ],
+          "applicationMs": 50.73,
+          "libraryMs": 22.049,
+          "databaseMs": 46.872,
+          "acquisitionMs": 154.837,
+          "sourceMaterializationMs": 3.63,
+          "captureMs": 2.944,
+          "dispatchMs": 0.633,
+          "computeAndIdentityMs": 706.433,
+          "cleanupMs": 14.369,
+          "scope": "monotonic enclosing operation-start boundaries; not additive with nested task phases"
+        }
+      ]
+    },
+    "offline-fallback": {
+      "taskProcessingMs": {
+        "count": 3,
+        "median": 223.638,
+        "minimum": 214.164,
+        "maximum": 261.691
+      },
+      "processCycleMs": {
+        "count": 3,
+        "median": 1434.8653749999994,
+        "minimum": 1270.995833,
+        "maximum": 2212.1938749999995
+      },
+      "coldMs": {
+        "count": 3,
+        "median": 1432.9433749999994,
+        "minimum": 1269.175833,
+        "maximum": 2210.3988749999994
+      },
+      "warmMs": {
+        "count": 3,
+        "median": 713.475,
+        "minimum": 608.0830000000001,
+        "maximum": 1447.317
+      },
+      "cleanupMs": {
+        "count": 3,
+        "median": 1.82,
+        "minimum": 1.795,
+        "maximum": 1.922
+      },
+      "recordingMs": {
+        "count": 3,
+        "median": 9.740124999999807,
+        "minimum": 9.216292000000976,
+        "maximum": 10.108499999999367
+      },
+      "captureMs": {
+        "count": 3,
+        "median": 6.162041000000045,
+        "minimum": 5.601708000000144,
+        "maximum": 11.572790999999597
+      },
+      "rawStreamRecordingAndDigestMs": {
+        "count": 3,
+        "median": 7.959041999999954,
+        "minimum": 4.626916999999594,
+        "maximum": 8.639666999999463
+      },
+      "templatePreparationMs": {
+        "count": 3,
+        "median": 5.349165999999968,
+        "minimum": 2.668874999999389,
+        "maximum": 8.319042000000081
+      },
+      "observedEndToEndMs": {
+        "count": 3,
+        "median": 1493.7319159999988,
+        "minimum": 1346.381833,
+        "maximum": 2395.9345
+      },
+      "consultationMs": {
+        "count": 3,
+        "median": 16.583833,
+        "minimum": 11.802625,
+        "maximum": 20.942292000000002
+      },
+      "attempts": [
+        [
+          {
+            "task": 1,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          },
+          {
+            "task": 2,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          },
+          {
+            "task": 3,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          }
+        ],
+        [
+          {
+            "task": 1,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          },
+          {
+            "task": 2,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          },
+          {
+            "task": 3,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          }
+        ],
+        [
+          {
+            "task": 1,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          },
+          {
+            "task": 2,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          },
+          {
+            "task": 3,
+            "compute": 1,
+            "environments": 0,
+            "imports": 0,
+            "canonicalRowsBytes": 1047891,
+            "retainedChargeBytes": 26728403,
+            "selectedRetentionBoundBytes": "27728512",
+            "physicalAttempts": 1
+          }
+        ]
+      ],
+      "physicalPhases": [
+        {
+          "intervals": [],
+          "taskExecutionIntervals": [
+            {
+              "phase": "task",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 214164,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 109207,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 267943,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "taskReleaseIntervals": [
+            {
+              "phase": "task-release",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 523,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 271,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 344,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "environmentCleanupIntervals": [],
+          "scope": "selected physical task execution (nested preparation/import/Compute), task-owner release and resident environment close/release; excludes planner and common Run/acquisition cleanup",
+          "observerCostScope": "clock observation only; buffering/callback overhead remains in process time and requires off/on measurement"
+        },
+        {
+          "intervals": [],
+          "taskExecutionIntervals": [
+            {
+              "phase": "task",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 261691,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 482917,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 667422,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "taskReleaseIntervals": [
+            {
+              "phase": "task-release",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 441,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 278,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 322,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "environmentCleanupIntervals": [],
+          "scope": "selected physical task execution (nested preparation/import/Compute), task-owner release and resident environment close/release; excludes planner and common Run/acquisition cleanup",
+          "observerCostScope": "clock observation only; buffering/callback overhead remains in process time and requires off/on measurement"
+        },
+        {
+          "intervals": [],
+          "taskExecutionIntervals": [
+            {
+              "phase": "task",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 223638,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 208980,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 259334,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "taskReleaseIntervals": [
+            {
+              "phase": "task-release",
+              "task": 3,
+              "producer": null,
+              "elapsedMicroseconds": 570,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 2,
+              "producer": null,
+              "elapsedMicroseconds": 314,
+              "clockObservationMicroseconds": 0
+            },
+            {
+              "phase": "task-release",
+              "task": 1,
+              "producer": null,
+              "elapsedMicroseconds": 502,
+              "clockObservationMicroseconds": 0
+            }
+          ],
+          "environmentCleanupIntervals": [],
+          "scope": "selected physical task execution (nested preparation/import/Compute), task-owner release and resident environment close/release; excludes planner and common Run/acquisition cleanup",
+          "observerCostScope": "clock observation only; buffering/callback overhead remains in process time and requires off/on measurement"
+        }
+      ],
+      "taskCosts": [
+        [
+          {
+            "task": 1,
+            "realization": "duckdb",
+            "executionMicroseconds": 214164,
+            "releaseMicroseconds": 344,
+            "estimatedMicroseconds": 214508
+          },
+          {
+            "task": 2,
+            "realization": "duckdb",
+            "executionMicroseconds": 109207,
+            "releaseMicroseconds": 271,
+            "estimatedMicroseconds": 109478
+          },
+          {
+            "task": 3,
+            "realization": "duckdb",
+            "executionMicroseconds": 267943,
+            "releaseMicroseconds": 523,
+            "estimatedMicroseconds": 268466
+          }
+        ],
+        [
+          {
+            "task": 1,
+            "realization": "duckdb",
+            "executionMicroseconds": 261691,
+            "releaseMicroseconds": 322,
+            "estimatedMicroseconds": 262013
+          },
+          {
+            "task": 2,
+            "realization": "duckdb",
+            "executionMicroseconds": 482917,
+            "releaseMicroseconds": 278,
+            "estimatedMicroseconds": 483195
+          },
+          {
+            "task": 3,
+            "realization": "duckdb",
+            "executionMicroseconds": 667422,
+            "releaseMicroseconds": 441,
+            "estimatedMicroseconds": 667863
+          }
+        ],
+        [
+          {
+            "task": 1,
+            "realization": "duckdb",
+            "executionMicroseconds": 223638,
+            "releaseMicroseconds": 502,
+            "estimatedMicroseconds": 224140
+          },
+          {
+            "task": 2,
+            "realization": "duckdb",
+            "executionMicroseconds": 208980,
+            "releaseMicroseconds": 314,
+            "estimatedMicroseconds": 209294
+          },
+          {
+            "task": 3,
+            "realization": "duckdb",
+            "executionMicroseconds": 259334,
+            "releaseMicroseconds": 570,
+            "estimatedMicroseconds": 259904
+          }
+        ]
+      ],
+      "preparation": [
+        {
+          "sourceReadOnly": true,
+          "boundaries": [
+            {
+              "name": "application",
+              "microseconds": 318
+            },
+            {
+              "name": "library",
+              "microseconds": 37130
+            },
+            {
+              "name": "database",
+              "microseconds": 53638
+            },
+            {
+              "name": "acquisition-start",
+              "microseconds": 90653
+            },
+            {
+              "name": "acquisition-execute",
+              "microseconds": 90907
+            },
+            {
+              "name": "acquisition-output",
+              "microseconds": 252665
+            },
+            {
+              "name": "source",
+              "microseconds": 254760
+            },
+            {
+              "name": "capture",
+              "microseconds": 254799
+            },
+            {
+              "name": "dispatch",
+              "microseconds": 258672
+            },
+            {
+              "name": "strategy-open",
+              "microseconds": 258944
+            },
+            {
+              "name": "strategy-execute",
+              "microseconds": 258949
+            },
+            {
+              "name": "output-cid",
+              "microseconds": 890545
+            },
+            {
+              "name": "execution-end",
+              "microseconds": 1159492
+            },
+            {
+              "name": "cleanup-end",
+              "microseconds": 1161316
+            }
+          ],
+          "applicationMs": 36.812,
+          "libraryMs": 16.508,
+          "databaseMs": 37.015,
+          "acquisitionMs": 162.012,
+          "sourceMaterializationMs": 2.134,
+          "captureMs": 3.873,
+          "dispatchMs": 0.277,
+          "computeAndIdentityMs": 900.543,
+          "cleanupMs": 1.824,
+          "scope": "monotonic enclosing operation-start boundaries; not additive with nested task phases"
+        },
+        {
+          "sourceReadOnly": true,
+          "boundaries": [
+            {
+              "name": "application",
+              "microseconds": 1425
+            },
+            {
+              "name": "library",
+              "microseconds": 53110
+            },
+            {
+              "name": "database",
+              "microseconds": 71955
+            },
+            {
+              "name": "acquisition-start",
+              "microseconds": 111602
+            },
+            {
+              "name": "acquisition-execute",
+              "microseconds": 111634
+            },
+            {
+              "name": "acquisition-output",
+              "microseconds": 306311
+            },
+            {
+              "name": "source",
+              "microseconds": 308495
+            },
+            {
+              "name": "capture",
+              "microseconds": 308541
+            },
+            {
+              "name": "dispatch",
+              "microseconds": 312324
+            },
+            {
+              "name": "strategy-open",
+              "microseconds": 312504
+            },
+            {
+              "name": "strategy-execute",
+              "microseconds": 312508
+            },
+            {
+              "name": "output-cid",
+              "microseconds": 1862842
+            },
+            {
+              "name": "execution-end",
+              "microseconds": 2122585
+            },
+            {
+              "name": "cleanup-end",
+              "microseconds": 2124385
+            }
+          ],
+          "applicationMs": 51.685,
+          "libraryMs": 18.845,
+          "databaseMs": 39.647,
+          "acquisitionMs": 194.709,
+          "sourceMaterializationMs": 2.23,
+          "captureMs": 3.783,
+          "dispatchMs": 0.184,
+          "computeAndIdentityMs": 1810.077,
+          "cleanupMs": 1.8,
+          "scope": "monotonic enclosing operation-start boundaries; not additive with nested task phases"
+        },
+        {
+          "sourceReadOnly": true,
+          "boundaries": [
+            {
+              "name": "application",
+              "microseconds": 868
+            },
+            {
+              "name": "library",
+              "microseconds": 83320
+            },
+            {
+              "name": "database",
+              "microseconds": 159681
+            },
+            {
+              "name": "acquisition-start",
+              "microseconds": 206933
+            },
+            {
+              "name": "acquisition-execute",
+              "microseconds": 206973
+            },
+            {
+              "name": "acquisition-output",
+              "microseconds": 399581
+            },
+            {
+              "name": "source",
+              "microseconds": 401397
+            },
+            {
+              "name": "capture",
+              "microseconds": 401430
+            },
+            {
+              "name": "dispatch",
+              "microseconds": 403382
+            },
+            {
+              "name": "strategy-open",
+              "microseconds": 403635
+            },
+            {
+              "name": "strategy-execute",
+              "microseconds": 403641
+            },
+            {
+              "name": "output-cid",
+              "microseconds": 1152537
+            },
+            {
+              "name": "execution-end",
+              "microseconds": 1308346
+            },
+            {
+              "name": "cleanup-end",
+              "microseconds": 1310271
+            }
+          ],
+          "applicationMs": 82.452,
+          "libraryMs": 76.361,
+          "databaseMs": 47.252,
+          "acquisitionMs": 192.648,
+          "sourceMaterializationMs": 1.849,
+          "captureMs": 1.952,
+          "dispatchMs": 0.259,
+          "computeAndIdentityMs": 904.705,
+          "cleanupMs": 1.925,
+          "scope": "monotonic enclosing operation-start boundaries; not additive with nested task phases"
+        }
+      ]
+    }
+  },
+  "selectionChanged": true,
+  "heldOutProcessingMedianDifferenceMs": 113.34700000000001,
+  "reductionClaim": "descriptive held-out first-task processing only; no causal confidence, whole-cycle fastest or ETA claim",
+  "baselineScope": "controlled declared estimates prefer position 0; explicit offline fallback with unknown-profile diagnostics, not an uninstrumented default",
+  "referenceReadbackAndAggregationMs": 1168.5561249999998,
+  "evaluationProfileReadbackAndAggregationMs": 413.2191250000001,
+  "directCostScope": "individual original/raw recording, template construction, capture, consultation and aggregation overlap enclosing intervals; not additive operator costs",
+  "offComparisonOverhead": "unknown",
+  "eta": null,
+  "p90": null,
+  "readbackImplementationRevision": "4cf4a3eae6fe3caa336dbfecbc086345c68929f7",
+  "archive": {
+    "path": "2026-10-08-native-empirical-selection-b51af198e.tar.gz",
+    "bytes": 2298564,
+    "sha256": "2432d5b46c0e10a34e9ed53fe134d9f06f22275dc652a032058a725722e2ac40",
+    "regularFiles": 550,
+    "originalBytesReadbackVerified": true
+  },
+  "functionalBoundaries": {
+    "revision": "b51af198e7d15b977998c38a3815f657ba7a7b57",
+    "binaryDigest": "sha256:73dc6c1ce415305f7dfe84bc936c053e6fd03822a44da663001eaf6db2c34b1d",
+    "receipts": [
+      {
+        "boundary": "stop",
+        "accepted": true,
+        "terminal": {
+          "status": "stopped-between-tasks",
+          "completed_tasks": 1
+        },
+        "command": [
+          "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe",
+          "--application-root",
+          "/private/tmp/g-p3-boundaries-b51af198e-20261008/stop",
+          "--database",
+          "/private/tmp/g-p3-comparison-b51af198e-20261008/source.duckdb",
+          "--duckdb-library",
+          "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/adapters/connectors/duckdb/node/node_modules/@duckdb/node-bindings-darwin-arm64/libduckdb.dylib",
+          "--retained-task-root",
+          "/private/tmp/g-p3-boundaries-b51af198e-20261008/stop/retained-task",
+          "--expected-cid",
+          "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+          "--expected-tasks",
+          "3",
+          "--native-ms",
+          "1000",
+          "--attempt-cap",
+          "12",
+          "--stop-after-task",
+          "1",
+          "--local-eligible",
+          "false",
+          "--resident-policy",
+          "true",
+          "--source-read-only",
+          "true",
+          "--phase-observer",
+          "true",
+          "--resident-prepare-ms",
+          "1000",
+          "--resident-cleanup-ms",
+          "1000",
+          "--resident-task-ms",
+          "1000,1000,1000",
+          "--resident-import-ms",
+          "1000,1000,1000,1000",
+          "--local-task-ms",
+          "-",
+          "--native-task-ms",
+          "1,1,1",
+          "--source-rows",
+          "1000",
+          "--task-rows",
+          "1000",
+          "--columns",
+          "2",
+          "--value-bytes",
+          "2048",
+          "--wire-bytes",
+          "2048000",
+          "--value-nodes",
+          "48000",
+          "--text-bytes",
+          "2048000",
+          "--work",
+          "8192000",
+          "--entries",
+          "48000",
+          "--batch-bytes",
+          "1048576",
+          "--planning-work",
+          "8292000",
+          "--transfer-cap",
+          "34848768",
+          "--retained-cap",
+          "1073741824",
+          "--execution-cap",
+          "4294967296",
+          "--empirical-mode",
+          "forced",
+          "--empirical-position",
+          "7",
+          "--empirical-fallback",
+          "offline",
+          "--sqlite-library",
+          "/usr/lib/libsqlite3.dylib"
+        ],
+        "stdoutDigest": "sha256:13d097304addba8b78d3315840ebbc055cc6ea711f52af6d08954cf92671de54",
+        "owners": [
+          {
+            "boundary": "before-task",
+            "task": 1,
+            "planningWork": 414,
+            "attempts": 0,
+            "holdings": 0,
+            "heldBytes": 0,
+            "reservedExecutionBytes": 0,
+            "reservedRetentionBytes": 0,
+            "reservedTransferBytes": 0,
+            "uncertainTransferBytes": 0,
+            "environments": 0,
+            "imports": 0,
+            "borrowedInputs": 0,
+            "importedRows": 0,
+            "unconfirmedEnvironments": 0,
+            "importScratchBytes": 0,
+            "taskDemandBytes": 0,
+            "temporaryViews": 0,
+            "tables": 0
+          },
+          {
+            "boundary": "after-task",
+            "task": 1,
+            "planningWork": 1013,
+            "attempts": 3,
+            "holdings": 1,
+            "heldBytes": 26728403,
+            "reservedExecutionBytes": 2147483648,
+            "reservedRetentionBytes": 0,
+            "reservedTransferBytes": 0,
+            "uncertainTransferBytes": 0,
+            "environments": 1,
+            "imports": 1,
+            "borrowedInputs": 0,
+            "importedRows": 1000,
+            "unconfirmedEnvironments": 0,
+            "importScratchBytes": 1774688,
+            "taskDemandBytes": 2273458720,
+            "temporaryViews": 0,
+            "tables": 2
+          },
+          {
+            "boundary": "before-close",
+            "task": 1,
+            "planningWork": 1013,
+            "attempts": 3,
+            "holdings": 1,
+            "heldBytes": 26728403,
+            "reservedExecutionBytes": 2147483648,
+            "reservedRetentionBytes": 0,
+            "reservedTransferBytes": 0,
+            "uncertainTransferBytes": 0,
+            "environments": 1,
+            "imports": 1,
+            "borrowedInputs": 0,
+            "importedRows": 1000,
+            "unconfirmedEnvironments": 0,
+            "importScratchBytes": 1774688,
+            "taskDemandBytes": 2273458720,
+            "temporaryViews": 0,
+            "tables": 2
+          },
+          {
+            "boundary": "after-close",
+            "task": 1,
+            "planningWork": 1013,
+            "attempts": 3,
+            "holdings": 1,
+            "heldBytes": 0,
+            "reservedExecutionBytes": 0,
+            "reservedRetentionBytes": 0,
+            "reservedTransferBytes": 0,
+            "uncertainTransferBytes": 0,
+            "environments": 1,
+            "imports": 1,
+            "borrowedInputs": 0,
+            "importedRows": 1000,
+            "unconfirmedEnvironments": 0,
+            "importScratchBytes": 1774688,
+            "taskDemandBytes": 2273458720,
+            "temporaryViews": 0,
+            "tables": 0
+          },
+          {
+            "boundary": "duplicate-close",
+            "task": 1,
+            "planningWork": 1013,
+            "attempts": 3,
+            "holdings": 1,
+            "heldBytes": 0,
+            "reservedExecutionBytes": 0,
+            "reservedRetentionBytes": 0,
+            "reservedTransferBytes": 0,
+            "uncertainTransferBytes": 0,
+            "environments": 1,
+            "imports": 1,
+            "borrowedInputs": 0,
+            "importedRows": 1000,
+            "unconfirmedEnvironments": 0,
+            "importScratchBytes": 1774688,
+            "taskDemandBytes": 2273458720,
+            "temporaryViews": 0,
+            "tables": 0
+          }
+        ],
+        "scope": "Native dispatch stop retains completed holding until confirmed close; not public Run Cancelled"
+      },
+      {
+        "boundary": "expiry",
+        "accepted": true,
+        "terminal": {
+          "status": "rejected-expired-request",
+          "completed_tasks": 0
+        },
+        "command": [
+          "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe",
+          "--application-root",
+          "/private/tmp/g-p3-boundaries-b51af198e-20261008/expiry",
+          "--database",
+          "/private/tmp/g-p3-comparison-b51af198e-20261008/source.duckdb",
+          "--duckdb-library",
+          "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/adapters/connectors/duckdb/node/node_modules/@duckdb/node-bindings-darwin-arm64/libduckdb.dylib",
+          "--retained-task-root",
+          "/private/tmp/g-p3-boundaries-b51af198e-20261008/expiry/retained-task",
+          "--expected-cid",
+          "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+          "--expected-tasks",
+          "3",
+          "--native-ms",
+          "1000",
+          "--attempt-cap",
+          "12",
+          "--stop-after-task",
+          "-",
+          "--local-eligible",
+          "false",
+          "--resident-policy",
+          "true",
+          "--source-read-only",
+          "true",
+          "--phase-observer",
+          "true",
+          "--resident-prepare-ms",
+          "1000",
+          "--resident-cleanup-ms",
+          "1000",
+          "--resident-task-ms",
+          "1000,1000,1000",
+          "--resident-import-ms",
+          "1000,1000,1000,1000",
+          "--local-task-ms",
+          "-",
+          "--native-task-ms",
+          "1,1,1",
+          "--source-rows",
+          "1000",
+          "--task-rows",
+          "1000",
+          "--columns",
+          "2",
+          "--value-bytes",
+          "2048",
+          "--wire-bytes",
+          "2048000",
+          "--value-nodes",
+          "48000",
+          "--text-bytes",
+          "2048000",
+          "--work",
+          "8192000",
+          "--entries",
+          "48000",
+          "--batch-bytes",
+          "1048576",
+          "--planning-work",
+          "8292000",
+          "--transfer-cap",
+          "34848768",
+          "--retained-cap",
+          "1073741824",
+          "--execution-cap",
+          "4294967296",
+          "--empirical-mode",
+          "expiry",
+          "--empirical-position",
+          "7",
+          "--empirical-fallback",
+          "offline",
+          "--sqlite-library",
+          "/usr/lib/libsqlite3.dylib"
+        ],
+        "stdoutDigest": "sha256:4fd213fa4cc1d3a7664b47815b0e5ab16b67009dcc9dcd81bf986d64abc8ad63",
+        "owners": [
+          {
+            "boundary": "before-task",
+            "task": 1,
+            "planningWork": 414,
+            "attempts": 0,
+            "holdings": 0,
+            "heldBytes": 0,
+            "reservedExecutionBytes": 0,
+            "reservedRetentionBytes": 0,
+            "reservedTransferBytes": 0,
+            "uncertainTransferBytes": 0,
+            "environments": 0,
+            "imports": 0,
+            "borrowedInputs": 0,
+            "importedRows": 0,
+            "unconfirmedEnvironments": 0,
+            "importScratchBytes": 0,
+            "taskDemandBytes": 0,
+            "temporaryViews": 0,
+            "tables": 0
+          },
+          {
+            "boundary": "before-close",
+            "task": 0,
+            "planningWork": 1001,
+            "attempts": 0,
+            "holdings": 0,
+            "heldBytes": 0,
+            "reservedExecutionBytes": 0,
+            "reservedRetentionBytes": 0,
+            "reservedTransferBytes": 0,
+            "uncertainTransferBytes": 0,
+            "environments": 0,
+            "imports": 0,
+            "borrowedInputs": 0,
+            "importedRows": 0,
+            "unconfirmedEnvironments": 0,
+            "importScratchBytes": 0,
+            "taskDemandBytes": 0,
+            "temporaryViews": 0,
+            "tables": 0
+          },
+          {
+            "boundary": "after-close",
+            "task": 0,
+            "planningWork": 1001,
+            "attempts": 0,
+            "holdings": 0,
+            "heldBytes": 0,
+            "reservedExecutionBytes": 0,
+            "reservedRetentionBytes": 0,
+            "reservedTransferBytes": 0,
+            "uncertainTransferBytes": 0,
+            "environments": 0,
+            "imports": 0,
+            "borrowedInputs": 0,
+            "importedRows": 0,
+            "unconfirmedEnvironments": 0,
+            "importScratchBytes": 0,
+            "taskDemandBytes": 0,
+            "temporaryViews": 0,
+            "tables": 0
+          },
+          {
+            "boundary": "duplicate-close",
+            "task": 0,
+            "planningWork": 1001,
+            "attempts": 0,
+            "holdings": 0,
+            "heldBytes": 0,
+            "reservedExecutionBytes": 0,
+            "reservedRetentionBytes": 0,
+            "reservedTransferBytes": 0,
+            "uncertainTransferBytes": 0,
+            "environments": 0,
+            "imports": 0,
+            "borrowedInputs": 0,
+            "importedRows": 0,
+            "unconfirmedEnvironments": 0,
+            "importScratchBytes": 0,
+            "taskDemandBytes": 0,
+            "temporaryViews": 0,
+            "tables": 0
+          }
+        ],
+        "scope": "actual durable clock expired original pending request; zero Compute dispatch"
+      }
+    ],
+    "scope": "functional negatives; no performance samples or refill"
+  },
+  "verification": {
+    "build-check": {
+      "startedAt": "2026-10-08T06:51:54.587Z",
+      "status": "passed",
+      "complete": true,
+      "steps": [
+        {
+          "name": "P3 fixed patched source",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-preflight-source.mjs"
+          ],
+          "startedAt": "2026-10-08T06:51:54.874Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:51:58.978Z",
+          "endedAt": "2026-10-08T06:51:58.996Z"
+        },
+        {
+          "name": "P3 fixed-source release build",
+          "command": [
+            "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/.toolchains/moonbit-0.10.12+1634b282e/bin/moon",
+            "build",
+            "--target",
+            "native",
+            "--release",
+            "src/cmd/native_retained_case_probe",
+            "--deny-warn"
+          ],
+          "startedAt": "2026-10-08T06:51:59.851Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:03:52.894Z",
+          "endedAt": "2026-10-08T07:03:52.912Z"
+        },
+        {
+          "name": "P3 actual build witness",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-build-witness.mjs"
+          ],
+          "startedAt": "2026-10-08T07:03:53.132Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:03:54.229Z",
+          "endedAt": "2026-10-08T07:03:54.303Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": true,
+      "timeoutSeconds": 1800,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "7ece550b-7ceb-4d1a-86d4-9ee15e4c4ee5",
+        "pid": 85548,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T06:51:54.718Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-Bkf3Kb"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock",
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/heavy.lock"
+      ],
+      "endedAt": "2026-10-08T07:03:54.473Z",
+      "outputComplete": true,
+      "exitCode": 0,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "runtime-check": {
+      "startedAt": "2026-10-08T07:08:27.505Z",
+      "status": "failed",
+      "complete": false,
+      "steps": [
+        {
+          "name": "P3 frozen patched source",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-preflight-source.mjs"
+          ],
+          "startedAt": "2026-10-08T07:08:27.632Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:08:28.200Z",
+          "endedAt": "2026-10-08T07:08:28.209Z"
+        },
+        {
+          "name": "P3 fixed-source release build",
+          "command": [
+            "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/.toolchains/moonbit-0.10.12+1634b282e/bin/moon",
+            "build",
+            "--target",
+            "native",
+            "--release",
+            "src/cmd/native_retained_case_probe",
+            "--deny-warn"
+          ],
+          "startedAt": "2026-10-08T07:08:28.325Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:08:29.548Z",
+          "endedAt": "2026-10-08T07:08:29.551Z"
+        },
+        {
+          "name": "P3 actual build witness",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-build-witness.mjs"
+          ],
+          "startedAt": "2026-10-08T07:08:29.669Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:08:30.176Z",
+          "endedAt": "2026-10-08T07:08:30.180Z"
+        },
+        {
+          "name": "P3 fixed six comparison executions",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "benchmarks/retained-results/run-local-native-profile.mjs",
+            "/private/tmp/g-p3-comparison-b51af198e-20261008",
+            "--empirical-comparison"
+          ],
+          "startedAt": "2026-10-08T07:08:30.280Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:08:45.323Z",
+          "endedAt": "2026-10-08T07:08:45.338Z"
+        },
+        {
+          "name": "P3 fixed six held-out evaluation executions",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "benchmarks/retained-results/run-local-native-profile.mjs",
+            "/private/tmp/g-p3-evaluation-b51af198e-20261008",
+            "--empirical-evaluation",
+            "/private/tmp/g-p3-comparison-b51af198e-20261008"
+          ],
+          "startedAt": "2026-10-08T07:08:45.480Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:08:57.349Z",
+          "endedAt": "2026-10-08T07:08:57.355Z"
+        },
+        {
+          "name": "P3 Native stop and expired-request boundaries",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "benchmarks/retained-results/run-native-empirical-boundaries.mjs",
+            "/private/tmp/g-p3-comparison-b51af198e-20261008",
+            "/private/tmp/g-p3-boundaries-b51af198e-20261008"
+          ],
+          "startedAt": "2026-10-08T07:08:57.531Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:09:01.027Z",
+          "endedAt": "2026-10-08T07:09:01.036Z"
+        },
+        {
+          "name": "P3 independent held-out readback",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-compare-readback.mjs",
+            "/private/tmp/g-p3-comparison-b51af198e-20261008",
+            "/private/tmp/g-p3-evaluation-b51af198e-20261008"
+          ],
+          "startedAt": "2026-10-08T07:09:01.197Z",
+          "status": "failed",
+          "streamsComplete": true,
+          "code": 1,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:09:03.842Z",
+          "endedAt": "2026-10-08T07:09:03.847Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": true,
+      "timeoutSeconds": 360,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "e48abbd9-fdcd-45ac-84d4-37d3dce86547",
+        "pid": 3251,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T07:08:27.619Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-pmjFLt"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock",
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/heavy.lock"
+      ],
+      "endedAt": "2026-10-08T07:09:03.929Z",
+      "outputComplete": true,
+      "exitCode": 1,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "readback-check": {
+      "startedAt": "2026-10-08T07:11:48.724Z",
+      "status": "passed",
+      "complete": true,
+      "steps": [
+        {
+          "name": "P3 corrected independent readback over immutable b51af198e Native originals",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-compare-readback.mjs",
+            "/private/tmp/g-p3-comparison-b51af198e-20261008",
+            "/private/tmp/g-p3-evaluation-b51af198e-20261008"
+          ],
+          "startedAt": "2026-10-08T07:11:48.916Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T07:11:50.564Z",
+          "endedAt": "2026-10-08T07:11:50.568Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": false,
+      "timeoutSeconds": 180,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "e570494f-1ae7-4db9-8122-e995866dfadb",
+        "pid": 5499,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T07:11:48.895Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-V0VKQX"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock"
+      ],
+      "endedAt": "2026-10-08T07:11:50.675Z",
+      "outputComplete": true,
+      "exitCode": 0,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "initial-failed-check": {
+      "startedAt": "2026-10-08T05:14:42.737Z",
+      "status": "failed",
+      "complete": false,
+      "steps": [
+        {
+          "name": "P3 fixed-SHA selected JS tests",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "--input-type=module",
+            "-e",
+            "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+            "moon",
+            "--target",
+            "js",
+            "src/physical_strategy/empirical_ranking_wbtest.mbt",
+            "src/physical_strategy/operational_estimates_wbtest.mbt",
+            "src/query_integration/adaptive_policy_wbtest.mbt"
+          ],
+          "startedAt": "2026-10-08T05:14:43.737Z",
+          "status": "failed",
+          "streamsComplete": true,
+          "code": 2,
+          "signal": null,
+          "exitedAt": "2026-10-08T05:19:02.320Z",
+          "endedAt": "2026-10-08T05:19:02.328Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": true,
+      "timeoutSeconds": 1200,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "e185057c-e69c-44dc-a374-e929d9a6a52d",
+        "pid": 75316,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T05:14:43.627Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-G8sqHC"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock",
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/heavy.lock"
+      ],
+      "endedAt": "2026-10-08T05:19:02.421Z",
+      "outputComplete": true,
+      "exitCode": 2,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "initial-timeout-check": {
+      "startedAt": "2026-10-08T05:19:54.997Z",
+      "status": "timeout: SIGKILL escalation; locks retained",
+      "complete": false,
+      "steps": [
+        {
+          "name": "P3 fixed-SHA selected JS tests",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "--input-type=module",
+            "-e",
+            "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+            "moon",
+            "--target",
+            "js",
+            "src/physical_strategy/empirical_ranking_wbtest.mbt",
+            "src/physical_strategy/operational_estimates_wbtest.mbt",
+            "src/query_integration/adaptive_policy_wbtest.mbt"
+          ],
+          "startedAt": "2026-10-08T05:19:55.243Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T05:21:27.154Z",
+          "endedAt": "2026-10-08T05:21:27.159Z"
+        },
+        {
+          "name": "P3 fixed-source release build",
+          "command": [
+            "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/.toolchains/moonbit-0.10.12+1634b282e/bin/moon",
+            "build",
+            "--target",
+            "native",
+            "--release",
+            "src/cmd/native_retained_case_probe",
+            "--deny-warn"
+          ],
+          "startedAt": "2026-10-08T05:21:27.229Z",
+          "status": "failed",
+          "streamsComplete": true,
+          "code": null,
+          "signal": "SIGTERM",
+          "exitedAt": "2026-10-08T05:40:00.280Z",
+          "endedAt": "2026-10-08T05:40:00.657Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": true,
+      "timeoutSeconds": 1200,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "e5e43fb1-9ea8-4e13-a284-b48c5208463f",
+        "pid": 78619,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T05:19:55.212Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-Z8XiC2"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock",
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/heavy.lock"
+      ],
+      "outputComplete": false,
+      "exitCode": 124,
+      "locksReleased": false
+    },
+    "prepublication-node-check": {
+      "startedAt": "2026-10-08T05:08:42.783Z",
+      "status": "passed",
+      "complete": true,
+      "steps": [
+        {
+          "name": "selected node tests",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "--input-type=module",
+            "-e",
+            "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+            "node",
+            "benchmarks/retained-results/operational-estimates.test.mjs",
+            "benchmarks/retained-results/native-owner-observations.test.mjs",
+            "benchmarks/retained-results/local-performance-profile.test.mjs"
+          ],
+          "startedAt": "2026-10-08T05:08:43.305Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T05:08:47.097Z",
+          "endedAt": "2026-10-08T05:08:47.139Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/",
+      "heavy": false,
+      "timeoutSeconds": 120,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "88a51126-d8cb-46a0-b1d4-85a4e1dba925",
+        "pid": 71630,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T05:08:43.256Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-PeoWdA"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock"
+      ],
+      "endedAt": "2026-10-08T05:08:47.548Z",
+      "outputComplete": true,
+      "exitCode": 0,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "cost-correction-node-check": {
+      "startedAt": "2026-10-08T05:56:43.598Z",
+      "status": "passed",
+      "complete": true,
+      "steps": [
+        {
+          "name": "P3 targeted Node after direct-cost correction",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "--input-type=module",
+            "-e",
+            "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+            "node",
+            "benchmarks/retained-results/operational-estimates.test.mjs",
+            "benchmarks/retained-results/native-owner-observations.test.mjs",
+            "benchmarks/retained-results/local-performance-profile.test.mjs"
+          ],
+          "startedAt": "2026-10-08T05:56:43.876Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T05:56:46.160Z",
+          "endedAt": "2026-10-08T05:56:46.173Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": false,
+      "timeoutSeconds": 120,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "822d252b-4c57-40aa-a5c9-bf5a0d3af4a7",
+        "pid": 10376,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T05:56:43.857Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-Bpckzs"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock"
+      ],
+      "endedAt": "2026-10-08T05:56:46.301Z",
+      "outputComplete": true,
+      "exitCode": 0,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "initial-successful-build-check": {
+      "startedAt": "2026-10-08T05:41:49.911Z",
+      "status": "passed",
+      "complete": true,
+      "steps": [
+        {
+          "name": "P3 fixed-source release build",
+          "command": [
+            "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/.toolchains/moonbit-0.10.12+1634b282e/bin/moon",
+            "build",
+            "--target",
+            "native",
+            "--release",
+            "src/cmd/native_retained_case_probe",
+            "--deny-warn"
+          ],
+          "startedAt": "2026-10-08T05:41:50.161Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T05:55:24.270Z",
+          "endedAt": "2026-10-08T05:55:24.341Z"
+        },
+        {
+          "name": "P3 actual build witness",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-build-witness.mjs"
+          ],
+          "startedAt": "2026-10-08T05:55:24.594Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T05:55:26.449Z",
+          "endedAt": "2026-10-08T05:55:26.456Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": true,
+      "timeoutSeconds": 1800,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "487e8b92-0be6-4125-b42a-397f18d38cf4",
+        "pid": 99113,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T05:41:50.093Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-UwkiEU"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock",
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/heavy.lock"
+      ],
+      "endedAt": "2026-10-08T05:55:27.056Z",
+      "outputComplete": true,
+      "exitCode": 0,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "zero-position-node-native-check": {
+      "startedAt": "2026-10-08T06:20:18.296Z",
+      "status": "passed",
+      "complete": true,
+      "steps": [
+        {
+          "name": "P3 targeted Node after zero-position and crash classification fixes",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "--input-type=module",
+            "-e",
+            "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+            "node",
+            "benchmarks/retained-results/operational-estimates.test.mjs",
+            "benchmarks/retained-results/native-owner-observations.test.mjs",
+            "benchmarks/retained-results/local-performance-profile.test.mjs"
+          ],
+          "startedAt": "2026-10-08T06:20:18.374Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:20:18.897Z",
+          "endedAt": "2026-10-08T06:20:18.899Z"
+        },
+        {
+          "name": "P3 zero-based position Native compiler diagnostic",
+          "command": [
+            "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/.toolchains/moonbit-0.10.12+1634b282e/bin/moon",
+            "check",
+            "--target",
+            "native",
+            "src/cmd/native_retained_case_probe",
+            "--deny-warn"
+          ],
+          "startedAt": "2026-10-08T06:20:18.942Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:20:23.145Z",
+          "endedAt": "2026-10-08T06:20:23.150Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": false,
+      "timeoutSeconds": 180,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "9d2e914f-9054-4e63-9361-054de6838d03",
+        "pid": 38250,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T06:20:18.368Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-ja4oVE"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock"
+      ],
+      "endedAt": "2026-10-08T06:20:23.244Z",
+      "outputComplete": true,
+      "exitCode": 0,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "failed-18c469a01-guard": {
+      "startedAt": "2026-10-08T06:15:05.612Z",
+      "status": "failed",
+      "complete": false,
+      "steps": [
+        {
+          "name": "P3 frozen source and unchanged Native inputs",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-preflight-source.mjs"
+          ],
+          "startedAt": "2026-10-08T06:15:05.724Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:15:06.035Z",
+          "endedAt": "2026-10-08T06:15:06.037Z"
+        },
+        {
+          "name": "P3 fixed-source release build",
+          "command": [
+            "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/.toolchains/moonbit-0.10.12+1634b282e/bin/moon",
+            "build",
+            "--target",
+            "native",
+            "--release",
+            "src/cmd/native_retained_case_probe",
+            "--deny-warn"
+          ],
+          "startedAt": "2026-10-08T06:15:06.076Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:15:06.351Z",
+          "endedAt": "2026-10-08T06:15:06.352Z"
+        },
+        {
+          "name": "P3 actual build witness",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-build-witness.mjs"
+          ],
+          "startedAt": "2026-10-08T06:15:06.388Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:15:06.614Z",
+          "endedAt": "2026-10-08T06:15:06.617Z"
+        },
+        {
+          "name": "P3 fixed six comparison executions",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "benchmarks/retained-results/run-local-native-profile.mjs",
+            "/private/tmp/g-p3-comparison-18c469a01-20261008",
+            "--empirical-comparison"
+          ],
+          "startedAt": "2026-10-08T06:15:06.659Z",
+          "status": "failed",
+          "streamsComplete": true,
+          "code": 1,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:15:08.375Z",
+          "endedAt": "2026-10-08T06:15:08.376Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": true,
+      "timeoutSeconds": 360,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "0c68bd5e-ddd3-41b9-9262-81a92db519eb",
+        "pid": 35297,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T06:15:05.718Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-Zc3BQW"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock",
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/heavy.lock"
+      ],
+      "endedAt": "2026-10-08T06:15:08.413Z",
+      "outputComplete": true,
+      "exitCode": 1,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "failed-bbba06a98-guard": {
+      "startedAt": "2026-10-08T06:36:52.827Z",
+      "status": "failed",
+      "complete": false,
+      "steps": [
+        {
+          "name": "P3 frozen patched source",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-preflight-source.mjs"
+          ],
+          "startedAt": "2026-10-08T06:36:52.885Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:36:53.259Z",
+          "endedAt": "2026-10-08T06:36:53.261Z"
+        },
+        {
+          "name": "P3 fixed-source release build",
+          "command": [
+            "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/.toolchains/moonbit-0.10.12+1634b282e/bin/moon",
+            "build",
+            "--target",
+            "native",
+            "--release",
+            "src/cmd/native_retained_case_probe",
+            "--deny-warn"
+          ],
+          "startedAt": "2026-10-08T06:36:53.305Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:36:53.606Z",
+          "endedAt": "2026-10-08T06:36:53.608Z"
+        },
+        {
+          "name": "P3 actual build witness",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "/private/tmp/g-p3-build-witness.mjs"
+          ],
+          "startedAt": "2026-10-08T06:36:53.646Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:36:53.981Z",
+          "endedAt": "2026-10-08T06:36:53.983Z"
+        },
+        {
+          "name": "P3 fixed six comparison executions",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "benchmarks/retained-results/run-local-native-profile.mjs",
+            "/private/tmp/g-p3-comparison-bbba06a98-20261008",
+            "--empirical-comparison"
+          ],
+          "startedAt": "2026-10-08T06:36:54.021Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:36:57.836Z",
+          "endedAt": "2026-10-08T06:36:57.838Z"
+        },
+        {
+          "name": "P3 fixed six held-out evaluation executions",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "benchmarks/retained-results/run-local-native-profile.mjs",
+            "/private/tmp/g-p3-evaluation-bbba06a98-20261008",
+            "--empirical-evaluation",
+            "/private/tmp/g-p3-comparison-bbba06a98-20261008"
+          ],
+          "startedAt": "2026-10-08T06:36:57.878Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:37:01.289Z",
+          "endedAt": "2026-10-08T06:37:01.291Z"
+        },
+        {
+          "name": "P3 Native stop and expired-request boundaries",
+          "command": [
+            "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+            "benchmarks/retained-results/run-native-empirical-boundaries.mjs",
+            "/private/tmp/g-p3-comparison-bbba06a98-20261008",
+            "/private/tmp/g-p3-boundaries-bbba06a98-20261008"
+          ],
+          "startedAt": "2026-10-08T06:37:01.336Z",
+          "status": "failed",
+          "streamsComplete": true,
+          "code": 1,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:37:02.458Z",
+          "endedAt": "2026-10-08T06:37:02.461Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": true,
+      "timeoutSeconds": 360,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "6bb5e1aa-505a-4ec6-bf72-0b0b9ef4fa5f",
+        "pid": 72391,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T06:36:52.878Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-gGcyOR"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock",
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/heavy.lock"
+      ],
+      "endedAt": "2026-10-08T06:37:02.538Z",
+      "outputComplete": true,
+      "exitCode": 1,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    },
+    "stop-fixture-native-check": {
+      "startedAt": "2026-10-08T06:44:16.838Z",
+      "status": "passed",
+      "complete": true,
+      "steps": [
+        {
+          "name": "P3 scoped Native compiler check",
+          "command": [
+            "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/.toolchains/moonbit-0.10.12+1634b282e/bin/moon",
+            "check",
+            "--target",
+            "native",
+            "src/cmd/native_retained_case_probe",
+            "--deny-warn"
+          ],
+          "startedAt": "2026-10-08T06:44:16.879Z",
+          "status": "passed",
+          "streamsComplete": true,
+          "code": 0,
+          "signal": null,
+          "exitedAt": "2026-10-08T06:44:17.725Z",
+          "endedAt": "2026-10-08T06:44:17.729Z"
+        }
+      ],
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+      "heavy": false,
+      "timeoutSeconds": 180,
+      "graceSeconds": 5,
+      "owner": {
+        "token": "565d306f-a3ea-4228-a512-0dcb76b4152c",
+        "pid": 77659,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "startedAt": "2026-10-08T06:44:16.874Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/local-checks/attempts/run-sUeCBb"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-b5a751a9b086f0bc1ed5047343503942768d83cae27d817ad52192379a78d27f.lock"
+      ],
+      "endedAt": "2026-10-08T06:44:17.795Z",
+      "outputComplete": true,
+      "exitCode": 0,
+      "locksReleased": true,
+      "callerOutputComplete": true
+    }
+  }
+}

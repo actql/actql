@@ -1846,7 +1846,9 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  Upper
   Floor
+  Sqrt
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

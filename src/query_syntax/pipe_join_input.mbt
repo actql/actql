@@ -25,10 +25,13 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
         safe = true
         current_range = Some(name)
       }
-      Set(_) | Drop(_) | Rename(_) | Extend(_) | Analytic(_) =>
-        if current_range is Some(_) {
-          safe = false
-        }
+      Set(_)
+      | Drop(_)
+      | Rename(_)
+      | Extend(_)
+      | Analytic(_)
+      | AnalyticExpressions(_, _)
+      | OrderAnalytic(_, _) => if current_range is Some(_) { safe = false }
       Where(_)
       | Having(_, _)
       | Qualify(_)

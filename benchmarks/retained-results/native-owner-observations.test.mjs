@@ -69,3 +69,13 @@ test('parse actual owner output and refuse missing observer timings', () => {
   const stdout = e.owners.map(value => 'owner-observation:' + JSON.stringify(value)).join('\n');
   assert.throws(() => nativeOwnerObservations(stdout), /MissingNativeObserverInterval/);
 });
+
+test('external policy explanation must agree with the actually selected history', () => {
+  const e = evidence(), policy = {policy_id:'local',revision:'policy',request_id:'held',explanation:'task-processing only'};
+  e.observations.choices[0].source = 'ExternalPolicy';
+  e.observations.choices[0].policy = policy;
+  Object.assign(e.observations.explanations[0].body.selection, {reason:'external_policy',policy:{...policy}});
+  admit(e);
+  e.observations.explanations[0].body.selection.policy.revision = 'other';
+  assert.throws(() => admit(e), /NativePolicyExplanationMismatch/);
+});

@@ -1,6 +1,6 @@
 # Local performance profile and future estimate binding
 
-P1 defines local diagnostic recording. P2/P3 below specify a future separate estimate binding.
+P1 defines local diagnostic recording. P2 binds separate references and P3 proposes a bounded local empirical choice.
 The initial schema is local diagnostic data, not a new public policy response.
 No empirical estimate is automatically supplied to the product planner.
 
@@ -167,30 +167,66 @@ physical attempts and final ledger cleanup unchanged. The six fixed samples
 are separate from two functional receive runs; failures are recorded without
 replacement. Neither local evidence nor this sidecar is an Actions original.
 
-## P3: bounded reranking proposal
+## P3: local bounded empirical selection
 
-A private or third-party ranker receives only the already admitted bounded
-snapshot and authorized features. It proposes a position/order among those
-positions, with the frozen objective/model revision. It does not enumerate new
-plans, recover candidates pruned by the common search, or certify optimality.
-Record presented count and the existing `search_complete` value independently.
-Test a single remaining candidate and a real multi-position choice; an
-unchanged single candidate is not a ranking improvement.
+The first objective is the first task's processing interval only, excluding
+resident preparation/import and final release. Each selected position still
+identifies a complete assignment including subsequent tasks. Neither a lower
+first-task median nor a selected position proves whole-assignment optimality,
+whole-Run fastest execution or ETA improvement. The Host is an explicit Native
+experiment condition, not a planner-selected Host.
 
-The existing `admit_placement_policy_response_json` and
-`commit_dispatch_policy_response_json` remain the decision and freshness/resource
-revalidation boundary. Common commit retains feasibility, current registration,
-rights, reservation and send permission. A ranking score is not an enforceable
-capacity or a scheduling instruction. Keep absolute ETA evaluation separate
-from ordering/objective comparison; future held-out time-split evaluation must
-include observation, inference and consultation costs.
+`rank_operational_candidates` compares every presented feasible position against
+its attributed descriptive task reference. At most 64 positions are compared;
+missing/unknown/stale references yield no empirical proposal. A single position
+is labelled `single-candidate`, never an ordering improvement. The smallest
+median wins; exact ties use the lowest immutable position. Results carry the
+original request, profile and policy revisions, presented positions and reason.
+No new candidates, search pruning, reservations or authority are generated.
 
-A transport failure preserves the same pending Native consultation. No new
-request, silent offline substitute, task retry or resend grant is introduced.
-Explicit offline selection is a pre-dispatch action through the existing Owner.
-Predictor/sidecar absence means unknown estimates; policy outcomes still obey
-that contract. Learners, remote private adapters, calibration, generic search
-and runtime reallocation are not implemented in this unit.
+`rank_native_operational_estimate` validates the same dispatch Owner and durable
+clock before and after ranking. An accepted result is still only a proposal.
+`placement_policy_response_json` emits the unchanged closed response selecting
+one position, with a plain-text explanation. `commit_native_local_policy_response`
+passes it to common wire admission/commit at the current trusted clock. The
+selected history and private explanation retain actual policy identity,
+revision, request and explanation; the separate sidecar retains quantities,
+sample counts, ranges, unknown reasons and scope. No independent JSON is placed
+inside the explanation field.
+
+Unknown evidence and rejected requests remain distinct. The experimental local
+caller can explicitly configure offline fallback before dispatch. It invokes
+the existing offline Owner only for a valid pending request with insufficient
+comparison evidence. Transport failure, malformed/expired request or stale
+state never creates a request, retries execution or grants silent fallback.
+Offline selection may be `OfflineLatency` or `BoundedLatency` according to the
+common search's completeness; diagnostic APIs retain that fact.
+
+Comparable alternative observations require identical offered controls,
+candidate bytes, input, binary, runtime, instrumentation and capture conditions.
+The intervention (forced position or policy arm) is stored separately in the
+mapping/observation, not erased from a historical record. In the empirical
+pilot `realization=resident` denotes the enabled offered profile; actual chosen
+realization is read from the Owner's choices. Its controls differ from previous
+P1/P2 originals, which cannot be relabelled or pooled. Group-level descriptive
+metrics mix the declared interventions and are not candidate estimates;
+position-attributed references alone feed this ranker.
+
+The finite protocol has six comparison and six later evaluation slots, three
+per arm, fixed alternating order, concurrency one and metadata-only capture.
+Comparison arms force existing positions 0/7 through policy admission. Evaluation
+compares the empirical proposal with preconfigured offline fallback under fixed
+all-unknown condition mismatch, partial unknown and stale-profile cases. This
+baseline includes profile/consultation diagnostics and is not an uninstrumented
+ordinary default. Evaluation samples never update comparison references.
+All positive Runs retain independent output/cardinality, later-task behavior,
+attempt/holding correspondence and confirmed cleanup. Functional dispatch-stop
+and real-clock expiry negatives are separate from performance slots; neither is
+fabricated into a successful Result or public Run `Cancelled` observation.
+Failures/slow/censored samples are retained without replacement. Processing,
+preparation/import, release, process cold/warm/cycle, recording, aggregation and
+consultation costs remain distinct and nested; no interval sums assert ETA.
+All-mode/off comparison overhead, precision, calibration and p90 remain unknown.
 
 OSS owns portable profile/estimate/admission interfaces, basic local analysis,
 offline choice and third-party policy integration. Cloud may implement advanced
