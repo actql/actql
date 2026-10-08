@@ -42,6 +42,23 @@ export const qualifySuccesses = [
     + 'QUALIFY ROW_NUMBER() OVER (ORDER BY amount NULLS LAST, id) = 1 ORDER BY id', {
     columns: [column('id')], expected: [{id: 2}],
   }),
+  success('quoted-hidden-window', 'SELECT id FROM records WHERE id > 0 '
+    + 'QUALIFY `rOw_NuMbEr`() OVER (ORDER BY amount NULLS LAST, id) = 1 ORDER BY id', {
+    columns: [column('id')], expected: [{id: 2}],
+  }),
+  success('escaped-hidden-window', 'SELECT id FROM records WHERE id > 0 '
+    + 'QUALIFY `\\x52OW_NUMBER`() OVER (ORDER BY amount NULLS LAST, id) = 1 ORDER BY id', {
+    columns: [column('id')], expected: [{id: 2}],
+  }),
+  success('quoted-rank-duplicates', 'SELECT id FROM records WHERE id > 0 '
+    + 'QUALIFY `RANK`() OVER (ORDER BY amount NULLS LAST, id) <= 2 ORDER BY id', {
+    columns: [column('id')], expected: [{id: 2}, {id: 3}, {id: 3}],
+  }),
+  success('quoted-window-name-is-column', 'SELECT id AS `ROW_NUMBER`, '
+    + 'ROW_NUMBER() OVER (ORDER BY id) AS n FROM records WHERE id > 0 '
+    + 'QUALIFY `ROW_NUMBER` = 2 ORDER BY n', {
+    columns: [column('ROW_NUMBER'), column('n')], expected: [{ROW_NUMBER: 2, n: 2}],
+  }),
   success('nullable-filter-and-duplicates', 'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n '
     + 'FROM records WHERE id > 0 QUALIFY amount > 25 AND n > 0 ORDER BY n', {
     expected: [{id: 3, n: 3}, {id: 3, n: 4}],
@@ -94,6 +111,9 @@ export const qualifyRefusals = [
   'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records QUALIFY n',
   'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records QUALIFY @missing > 0',
   'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records QUALIFY SUM(n) > 0',
+  'SELECT id FROM records QUALIFY `ROW_NUMBER`(id) OVER (ORDER BY id) = 1',
+  'SELECT id FROM records QUALIFY `LAG`(id, 1, 2) OVER (ORDER BY id) IS NOT NULL',
+  'SELECT id FROM records QUALIFY `ROW_NUMBER`() = 1',
 ].map((text, index) => ({name: 'qualify-refuse-' + index, format: 'aql-text', text}));
 export const qualifyExecutionFailures = [{name: 'qualify-demanded-error', format: 'aql-text',
   text: 'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records WHERE id > 0 '
