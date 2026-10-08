@@ -30,12 +30,14 @@ async function sourceLink(link, target) {
     `Existing source dependency conflict: ${link}`);
 }
 
-export async function prepareSourceNodeClient({assemble = false} = {}) {
+export async function prepareSourceNodeClient({assemble = false, includeOtel = false,
+  duckdb = true} = {}) {
   const dependencies = {
     node: ['sdk', 'local-node'], sdk: ['client-wire'],
     'local-node': ['sdk', 'client-wire', 'run-host-core'],
     'run-host-core': ['client-wire'],
   };
+  if (includeOtel) dependencies['otel-node'] = ['local-node'];
   for (const [name, children] of Object.entries(dependencies)) {
     const modules = join(root, 'packages', name, 'node_modules');
     await directory(modules);
@@ -48,14 +50,16 @@ export async function prepareSourceNodeClient({assemble = false} = {}) {
   }
   // Reuse the already-installed, pinned adapter dependency without changing
   // its borrowed directory or installing another native dependency copy.
-  const adapter = join(root, 'adapters/connectors/duckdb/node');
-  const required = JSON.parse(await readFile(join(adapter, 'package.json'), 'utf8'))
-    .dependencies['@duckdb/node-api'];
-  const api = await realpath(join(adapter, 'node_modules/@duckdb/node-api'));
-  assert.equal(JSON.parse(await readFile(join(api, 'package.json'), 'utf8')).version, required);
-  const scope = join(root, 'packages/local-node/node_modules/@duckdb');
-  await directory(scope);
-  await sourceLink(join(scope, 'node-api'), api);
+  if (duckdb) {
+    const adapter = join(root, 'adapters/connectors/duckdb/node');
+    const required = JSON.parse(await readFile(join(adapter, 'package.json'), 'utf8'))
+      .dependencies['@duckdb/node-api'];
+    const api = await realpath(join(adapter, 'node_modules/@duckdb/node-api'));
+    assert.equal(JSON.parse(await readFile(join(api, 'package.json'), 'utf8')).version, required);
+    const scope = join(root, 'packages/local-node/node_modules/@duckdb');
+    await directory(scope);
+    await sourceLink(join(scope, 'node-api'), api);
+  }
   if (assemble) {
     for (const args of [[], ['--check']]) {
       execFileSync(process.execPath, ['scripts/build-local-node-adapters.mjs', ...args],

@@ -991,3 +991,100 @@ test "recorded Source cleanup waits for consumer release and receiver retry afte
   assert_true(f.journal.close())
   assert_true(f.receiver.close())
 }
+
+///|
+test "completed successor projection keeps exact checked producer after journal reopen" {
+  let f = stopped_cleanup_fixture("completed-successor-projection")
+  let before = @remote.dispatch_record_revision(
+    f.journal.require(f.consumer).unwrap(),
+  )
+  let at = "2026-10-06T00:00:00.000Z"
+  let expected = @remote.dispatch_request_identity(f.producer)
+  assert_eq(
+    resident_completed_consumer_producer_identity(
+      f.journal,
+      f.admission,
+      f.consumer,
+      at,
+    ).unwrap(),
+    expected,
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    before,
+  )
+  assert_true(f.journal.close())
+  let reopened = @journal.open_journal(
+    f.sqlite,
+    f.journal_path,
+    1048576L,
+    @remote.create_site_dispatch_journal(f.site, "actql-remote-site/0.1").unwrap(),
+  ).unwrap()
+  assert_eq(
+    resident_completed_consumer_producer_identity(
+      reopened,
+      f.admission,
+      f.consumer,
+      at,
+    ).unwrap(),
+    expected,
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(reopened.require(f.consumer).unwrap()),
+    before,
+  )
+  assert_true(reopened.close())
+  assert_true(f.receiver.close())
+}
+
+///|
+test "completed successor projection refuses uncompleted and foreign Source custody" {
+  let f = stopped_cleanup_fixture(
+    "completed-successor-uncompleted",
+    complete_consumer=false,
+  )
+  assert_true(
+    resident_completed_consumer_producer_identity(
+      f.journal,
+      f.admission,
+      f.consumer,
+      "2026-10-06T00:00:00.000Z",
+    )
+    is Err(_),
+  )
+  assert_true(f.journal.close())
+  assert_true(f.receiver.close())
+  let completed = stopped_cleanup_fixture("completed-successor-foreign")
+  assert_true(
+    resident_completed_consumer_producer_identity(
+      completed.journal,
+      {
+        ..completed.admission,
+        source: Some(("connector://foreign/main/r#v", cleanup_cid("f"))),
+      },
+      completed.consumer,
+      "2026-10-06T00:00:00.000Z",
+    )
+    is Err(_),
+  )
+  assert_true(
+    resident_completed_consumer_producer_identity(
+      completed.journal,
+      completed.admission,
+      completed.consumer,
+      "2100-01-01T00:00:00.000Z",
+    )
+    is Err(_),
+  )
+  assert_true(
+    resident_completed_consumer_producer_identity(
+      completed.journal,
+      completed.admission,
+      completed.producer,
+      "2026-10-06T00:00:00.000Z",
+    )
+    is Err(_),
+  )
+  assert_true(completed.journal.close())
+  assert_true(completed.receiver.close())
+}

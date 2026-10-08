@@ -111,10 +111,15 @@ export const qualifyRefusals = [
   'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records QUALIFY n',
   'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records QUALIFY @missing > 0',
   'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records QUALIFY SUM(n) > 0',
-  'SELECT id FROM records QUALIFY `ROW_NUMBER`(id) OVER (ORDER BY id) = 1',
-  'SELECT id FROM records QUALIFY `LAG`(id, 1, 2) OVER (ORDER BY id) IS NOT NULL',
   'SELECT id FROM records QUALIFY `ROW_NUMBER`() = 1',
-].map((text, index) => ({name: 'qualify-refuse-' + index, format: 'aql-text', text}));
+].map((text, index) => ({name: 'qualify-refuse-' + index, format: 'aql-text', text})).concat([
+  {name: 'qualify-invalid-ranking-arguments', format: 'aql-text',
+    text: 'SELECT id FROM records QUALIFY `ROW_NUMBER`(id) OVER (ORDER BY id) = 1',
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'qualify-unsupported-lag-default', format: 'aql-text',
+    text: 'SELECT id FROM records QUALIFY `LAG`(id, 1, 2) OVER (ORDER BY id) IS NOT NULL',
+    expectedCode: 'ClientProgramImplementationLimit'},
+]);
 export const qualifyExecutionFailures = [{name: 'qualify-demanded-error', format: 'aql-text',
   text: 'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records WHERE id > 0 '
     + 'QUALIFY 1 / (id - 1) > 0 AND n > 0 ORDER BY n',

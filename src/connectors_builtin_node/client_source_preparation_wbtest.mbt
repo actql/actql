@@ -15,6 +15,31 @@ test "Source preparation retains known lowerer input violations for disclosure" 
 }
 
 ///|
+test "Source-free UNNEST probe rejection is an input violation before submission" {
+  let context = @source_frontend.bind_query_context([], "visible-environment").unwrap()
+  let issue = match
+    @source_frontend.lower(
+      "SELECT element.* FROM UNNEST(@missing.items) element",
+      Sql,
+      Some(context),
+      source_path="submitted.sql",
+    ) {
+    Err(issue) => issue
+    Ok(_) => fail("an undeclared parameter cannot establish UNNEST fields")
+  }
+  assert_true(
+    issue
+    is QueryLowering(
+      ExpressionTyping({ kind: UnknownParameter("missing"), .. })
+    ),
+  )
+  assert_eq(
+    client_source_preparation_issue_code(Frontend(issue)),
+    "source_invalid_input",
+  )
+}
+
+///|
 test "Source preparation does not classify protected resolution as invalid input" {
   assert_eq(
     client_source_preparation_issue_code(
