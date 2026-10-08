@@ -15,7 +15,8 @@ fn append_grouped_expression(
     construction,
     expression,
     grouped_keys,
-    (left, right) => same_group_reference(left, right, resolve_input),
+    resolve_input,
+    resolve_input,
     path => pipe_slot(path, visible, ranges),
     visible.map(entry => entry.0),
     max_work,
@@ -30,7 +31,8 @@ fn append_grouped_expression_resolved(
   construction : Construction,
   expression : @query.Expression,
   grouped_keys : Array[(@query.Expression, String)],
-  references : (Array[@query.NamePart], Array[@query.NamePart]) -> Bool,
+  resolve_key_input : (Array[@query.NamePart]) -> String?,
+  resolve_expression_input : (Array[@query.NamePart]) -> String?,
   resolve : (Array[@query.NamePart]) -> String?,
   reserved_names : Array[String],
   max_work : Int,
@@ -74,14 +76,9 @@ fn append_grouped_expression_resolved(
           }),
         )
       }
-      let same_key = match
-        (
-          group_reference_path(key, @query.expression_root(key)),
-          group_reference_path(child, @query.expression_root(child)),
-        ) {
-        (Some(left), Some(right)) => references(left, right)
-        _ => same_expression(key, child, references~)
-      }
+      let same_key = same_group_expression_in_scopes(
+        key, child, resolve_key_input, resolve_expression_input,
+      )
       if same_key {
         let mut serial = bindings.length()
         let mut reference = "aql_pipe_group_bound_" + serial.to_string()
@@ -127,12 +124,12 @@ fn append_grouped_expression_resolved(
 }
 
 ///|
-// Preserve property paths across parentheses. Looking only at Reference nodes
-// would turn (payload).score into the whole payload column for prefix inference.
-fn group_reference_path(
+// Preserve the receiver boundary across explicit property nodes. Appending
+// members before resolution can turn (payload).score into a range column.
+fn group_reference_parts(
   expression : @query.Expression,
   node : Int,
-) -> Array[@query.NamePart]? {
+) -> (Array[@query.NamePart], Array[@query.NamePart])? {
   let members : Array[@query.NamePart] = []
   let mut current = node
   while true {
@@ -142,17 +139,49 @@ fn group_reference_path(
         members.push(name)
         current = child
       }
-      Reference(path) => {
-        let result = path.copy()
-        let mut index = members.length() - 1
-        while index >= 0 {
-          result.push(members[index])
-          index -= 1
-        }
-        return Some(result)
-      }
+      Reference(path) => return Some((path, members.rev()))
       _ => return None
     }
   }
   None
+}
+
+///|
+// Static property trees compare the resolved receiver first, then members.
+// The rest of the expression retains exact operators, demand and parameter
+// rules; semantic equality never comes from a flattened source spelling.
+fn same_group_expression_in_scopes(
+  left : @query.Expression,
+  right : @query.Expression,
+  resolve_left : (Array[@query.NamePart]) -> String?,
+  resolve_right : (Array[@query.NamePart]) -> String?,
+) -> Bool {
+  let identity = fn(
+    parts : (Array[@query.NamePart], Array[@query.NamePart]),
+    resolve : (Array[@query.NamePart]) -> String?,
+  ) -> (String, Array[@query.NamePart])? {
+    guard order_reference_identity(parts.0, resolve) is Some((slot, length)) else {
+      return None
+    }
+    Some((slot, parts.0[length:].to_owned() + parts.1))
+  }
+  same_expression(
+    left,
+    right,
+    references=(a, b) => {
+      same_group_reference_in_scopes(a, b, resolve_left, resolve_right)
+    },
+    nodes=(a, a_index, b, b_index) => {
+      match
+        (group_reference_parts(a, a_index), group_reference_parts(b, b_index)) {
+        (Some(a), Some(b)) =>
+          match (identity(a, resolve_left), identity(b, resolve_right)) {
+            (Some((a_slot, a_members)), Some((b_slot, b_members))) =>
+              Some(a_slot == b_slot && same_path(a_members, b_members))
+            _ => Some(false)
+          }
+        _ => None
+      }
+    },
+  )
 }

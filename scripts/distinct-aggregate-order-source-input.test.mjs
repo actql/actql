@@ -47,7 +47,7 @@ test('normal packed acceptance and selected cohort share DISTINCT aggregate orde
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));
   }
   assert.ok(fixture.match(/const scopeOnly = ([^;]+);/u)?.[1].split(' || ').includes('distinctAggregateOrderOnly'));
-  assert.ok(fixture.includes('distinctAggregateOrderOnly ? {successes: distinctAggregateOrderSuccesses'));
+  assert.ok(fixture.includes('distinctAggregateOrderOnly ? {successes: [...distinctAggregateOrderSuccesses, ...distinctSignedOrderSuccesses]'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_DISTINCT_AGGREGATE_ORDER_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/distinct-aggregate-order-source-input.mjs', 'distinct-aggregate-order-source-input.mjs']"));
   const narrow = driver.slice(driver.indexOf('const narrowPublicQuery =')).split('];')[0];
