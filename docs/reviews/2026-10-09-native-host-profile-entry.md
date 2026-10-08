@@ -2,9 +2,14 @@
 
 ## Connection and dependency
 
-This unit depends on #1014 (`f028c848412fb2e5644262126f2c00949475f5df`).
+This unit adopts #1014, merged to main as
+`b693899a4c15e0cd30ba638d11a626556e30f141` (published parent
+`fb38a8609693878ac586071b01f0398edd76abcf`). The earlier
+`f028c848412fb2e5644262126f2c00949475f5df` measurements remain original evidence.
 The working branch adopted main `80ca8ab23202cde18123e9a1a790bb7c5f308aa8`
 by a normal merge (`6158440abbcb66b330a5feaf6dba3039be0407f2`).
+After #1014 integration, it normally merged main
+`fc0e48bfb` before publication.
 It introduces the public library connection, not a CLI or a new execution owner.
 
 The edited boundaries are `physical_strategy` (preserved conditions, bounded
