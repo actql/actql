@@ -10,12 +10,15 @@ import {
   "actql/actql/query_syntax",
   "actql/actql/relation_schema",
   "actql/actql/stage_syntax",
+  "moonbitlang/core/debug",
 }
 
 // Values
-pub fn compile(@query_syntax.Query, Context, Limits) -> Result[@stage_syntax.Program, Issue]
+pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[@stage_syntax.Program, Issue]
 
-pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits) -> Result[@stage_syntax.Program, Issue]
+pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[@stage_syntax.Program, Issue]
+
+pub fn resolve_table_write_binding(Array[TableWriteBinding], Array[@query_syntax.NamePart], Bool, Int) -> Result[TableWriteBinding, TableWriteBindingIssue]
 
 pub fn same_relation_path(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
 
@@ -85,6 +88,7 @@ pub(all) enum Issue {
   UnsupportedNearest
   UnsupportedResult
   UnsupportedEffect
+  TableWriteBinding(TableWriteBindingIssue)
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   Admission(@stage_syntax.SyntaxError)
@@ -98,6 +102,29 @@ pub(all) struct Limits {
   max_collection_items : Int64
   max_collection_bytes : Int64
 }
+
+pub(all) enum TableWriteAction {
+  Create
+  Replace(String, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TableWriteBinding {
+  name : Array[@query_syntax.NamePart]
+  target_ref : String
+  mapping_ref : String
+  mapping_cid : String
+  capability_cid : String
+  installation_binding_cid : String
+  action : TableWriteAction
+}
+
+pub(all) enum TableWriteBindingIssue {
+  InvalidBinding
+  UnknownTable
+  AmbiguousTable
+  ActionMismatch
+  WorkLimit
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

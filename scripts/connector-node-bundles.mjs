@@ -439,7 +439,7 @@ export function checkRelaNodeAssembly(root, write = false) {
   } else if (!existsSync(outputPath) || readFileSync(outputPath, 'utf8') !== lean) {
     throw new Error(`RelA Node bridge is stale: ${outputPath}`);
   }
-  for (const file of ['client_multi_source_bridge.mbt',
+  for (const file of ['client_table_write_publication.mbt', 'client_multi_source_bridge.mbt',
     'client_multi_source_host_bridge.mbt',
     'client_source_capture_bridge.mbt',
     'client_pending_capture_capacity_bridge.mbt']) {

@@ -80,6 +80,26 @@ fn minimal() -> String {
 }
 
 ///|
+test "Effect-only Programs are structural roots but not executable authorization" {
+  for kind in ["create", "store", "command"] {
+    let body = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[],\"results\":{},\"effects\":{\"e\":{\"" +
+      kind +
+      "\":{}}}}],\"results\":{}}"
+    let p = parsed(body, format=Json)
+    assert_eq(exports(p), [])
+    assert_eq(result_names(stages(p)[0]), [])
+    assert_eq(effect_names(stages(p)[0]), ["e"])
+    // A syntactically declared Effect with an invalid body still fails the
+    // existing header admission; declaration alone grants no execution.
+    assert_true(collect_effect_headers(p, 1, 100) is Err(_))
+  }
+  let no_roots = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[],\"results\":{},\"effects\":{}}],\"results\":{}}"
+  assert_true(
+    rejected(no_roots, format=Json) is Structure(EmptyDeclarations, ..),
+  )
+}
+
+///|
 test "stage connections preserve ordered control and named data ports" {
   let p = parsed(source())
   assert_eq(p.id, "example")

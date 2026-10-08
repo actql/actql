@@ -678,9 +678,8 @@ test "Pipe DROP and RENAME separate current names from old range snapshots" {
     pair_context(),
     construction_limits(),
   ).unwrap()
-  assert_true(
-    semantic(implicit).contains("\"from\":\"pair\",\"select\":[\"y\"]"),
-  )
+  assert_true(semantic(implicit).contains("\"drop\":[\"x\"]"))
+  assert_true(semantic(implicit).contains("\"from\":\"pair\""))
   let old_order = compile(
     @query.parse_query(
       "FROM pair AS before |> SET x = y |> SELECT x |> ORDER BY before.x",

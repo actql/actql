@@ -4,6 +4,7 @@
 import {createHash} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {checkedTableWriteBinding, verifyTableWriteBinding} from './table-write-binding.mjs';
 
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const pendingCid = `sha256:${'0'.repeat(64)}`;
@@ -54,6 +55,8 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
       fail('TablePreviewMappingNotInstalled');
     }
     stageIndex = member.stageIndex;
+    verifyTableWriteBinding(target, checkedTableWriteBinding(moon, prepared,
+      member.stageIndex, member.effectId, limits.planWork));
     const artifact = member.payload.localResultArtifact;
     const identity = control.issueSourceFreeLocalEffectIdentity(prepared, inputs,
       index, artifact, material);

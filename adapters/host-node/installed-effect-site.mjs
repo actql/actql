@@ -91,7 +91,9 @@ function authorization(facts, stage, beforeDefer) {
     ? facts.retained?.resultNames
     : facts.moon.clientProgramEffectCompilationResultNames(
       facts.compilation);
-  if (!Array.isArray(declaredResults) || declaredResults.length === 0) {
+  if (!Array.isArray(declaredResults) ||
+      declaredResults.some(name => typeof name !== 'string' || !name) ||
+      new Set(declaredResults).size !== declaredResults.length) {
     fail('InvalidInstalledEffectResultInventory');
   }
   return facts.effectAuthorization({
@@ -273,6 +275,8 @@ async function currentRunState(facts, result, stage) {
 // Compute. The recovered hook receives the exact durable capture only.
 export function createInstalledEffectSite({environmentWire,
   prepareCaptured, prepareRecovered, privateEvidenceKey,
+  queryTableBindings,
+  queryTableWriteAccesses,
   targetReadInventory, targetReadAuthorization,
   claimant = 'installed-effect-host', leaseMs = 60_000}) {
   if (typeof environmentWire !== 'string' || !environmentWire ||
@@ -289,6 +293,8 @@ export function createInstalledEffectSite({environmentWire,
   }
   return Object.freeze({
     environmentWire,
+    queryTableBindings,
+    queryTableWriteAccesses,
     targetReadInventory, targetReadAuthorization,
     privateEvidenceKey: privateEvidenceKey === undefined ? undefined :
       Uint8Array.from(privateEvidenceKey),

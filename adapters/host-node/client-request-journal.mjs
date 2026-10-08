@@ -301,7 +301,7 @@ function retainedResultNames(row) {
   let names;
   try { names = JSON.parse(row.result_names_json); }
   catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
-  if (!Array.isArray(names) || names.length === 0 || names.length > 100 ||
+  if (!Array.isArray(names) || names.length > 100 ||
       names.some(name => typeof name !== 'string' || !name) ||
       new Set(names).size !== names.length) {
     fail('ClientRequestJournalCorrupt');
@@ -1174,7 +1174,7 @@ export function openClientRequestJournal(directory, {
               maxRunDefinitionWireBytes) ||
         !Number.isSafeInteger(revision) || revision < 0 ||
         resultNames !== undefined && (!Array.isArray(resultNames) ||
-          resultNames.length === 0 || resultNames.length > 100 ||
+          resultNames.length > 100 ||
           resultNames.some(name => typeof name !== 'string' || !name) ||
           new Set(resultNames).size !== resultNames.length ||
           Buffer.byteLength(JSON.stringify(resultNames)) > 8192) ||

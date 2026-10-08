@@ -21,12 +21,20 @@ test "checked inventory owns aliases tasks and exact Result definitions" {
 }
 
 ///|
-test "checked inventory rejects subsets that are empty duplicate or unaligned" {
+test "Effect-only checked inventory is empty without inventing Result occurrences" {
   let program = "sha256:" + "1".repeat(64)
+  let inventory = prepare_checked_publication_inventory(program, [], []).unwrap()
+  assert_eq(checked_publication_inventory_count(inventory), 0)
+  assert_eq(checked_publication_inventory_program_cid(inventory), program)
   assert_true(
-    prepare_checked_publication_inventory(program, [], [])
-    is Err(EmptyInventory),
+    prepare_checked_publication_inventory(program, [], [1])
+    is Err(LengthMismatch),
   )
+}
+
+///|
+test "checked inventory rejects duplicate or unaligned subsets" {
+  let program = "sha256:" + "1".repeat(64)
   assert_true(
     prepare_checked_publication_inventory(program, ["answer"], [])
     is Err(LengthMismatch),

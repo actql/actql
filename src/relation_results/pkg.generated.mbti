@@ -17,6 +17,8 @@ import {
 // Values
 pub fn check(@pipeline_typing.CheckedPipeline, @decode_core.Cursor, Limits) -> Result[CheckedResults, Issue]
 
+pub fn check_inventory(@pipeline_typing.CheckedPipeline, @decode_core.Cursor, Limits) -> Result[CheckedResults, Issue]
+
 pub fn check_table_inputs(@pipeline_typing.CheckedPipeline, @decode_core.Cursor, Limits) -> Result[CheckedTableInputs, Issue]
 
 pub fn checked_contextual_orders(CheckedOrders) -> @pipeline_typing.ContextualOrders

@@ -243,7 +243,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     const body = JSON.parse(facts.control.effectComputationPreviewWire(preview));
     const descriptors = body.effects.map(member => ({effectId: member.effect_id,
       kind: member.effect_kind, target: member.target, mappingRef: member.mapping,
-      mappingCid: member.resolved_mapping_contract_cid}));
+      mappingCid: member.resolved_mapping_contract_cid,
+      ...(member.source_table_input === undefined ? {} : {capabilityCid: member.capability_evidence_cid})}));
     try { return installedEffectFor(installedEffect, descriptors); }
     catch (cause) {
       // This observes only installation metadata before any new provider work.
@@ -323,7 +324,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       false, numericProfileCid, contentCid(graphLaw));
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
-        sourceProfile?.queryAliases ?? []);
+        sourceProfile?.queryAliases ?? [],
+        installedEffect?.queryTableBindings ?? effectInstallation?.queryTableBindings ?? []);
     }
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
@@ -463,6 +465,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       ref.authorityScopeCid === authorityScopeCid});
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
+    tableWriteAccesses: installedEffect?.queryTableWriteAccesses ??
+      effectInstallation?.queryTableWriteAccesses ?? [],
     sourceAccesses: (sourceProfile?.sources ??
       (sourceProfile === undefined ? [] : [sourceProfile]))
       .flatMap(installedSourceReadAccesses)});
@@ -1207,7 +1211,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                 } finally { modelController?.release(ownedModelToken); }
               }
               const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
-                facts.owner, registry, values, 1n, 0n, 0n, 0n);
+                facts.owner, registry, values, 1n, 0n, 0n, 0n,
+                fragment, ordered);
               if (setup === undefined) {
                 throw new Error('InstalledEffectProgramUnsupported');
               }

@@ -3,14 +3,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, sign} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
-import {readFile, writeFile, readdir} from 'node:fs/promises';
+import {execFile, execFileSync} from 'node:child_process';
+import {readFile, writeFile, readdir, unlink} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
-import {inspect} from 'node:util';
+import {inspect, promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
@@ -70,10 +70,16 @@ function program(rows, id = 'table-public-create') {
     effects: {save: {store: {target: targetRef, mapping: mappingRef, from: {result: 'rows'}}}}}],
     results: {answer: {from: {stage: 'source', result: 'rows'}}}};
 }
-function commits(catalog) {
+function commits(catalog, busyTimeout = 0) {
   const database = new DatabaseSync(catalog.database, {readOnly: true});
-  try { return database.prepare('SELECT request_wire,receipt_wire FROM actql_table_commits ORDER BY request_cid').all()
-    .map(row => ({operation: JSON.parse(row.request_wire), receipt: JSON.parse(row.receipt_wire)})); }
+  try {
+    // Only a live-commit observation needs this bounded read wait. It does
+    // not retry a writer or infer publication from a locked Catalog.
+    if (busyTimeout === 1000) database.exec('PRAGMA busy_timeout=1000');
+    else assert.equal(busyTimeout, 0);
+    return database.prepare('SELECT request_wire,receipt_wire FROM actql_table_commits ORDER BY request_cid').all()
+      .map(row => ({operation: JSON.parse(row.request_wire), receipt: JSON.parse(row.receipt_wire)}));
+  }
   finally { database.close(); }
 }
 function readerProgram(id = 'read-committed-table') {
@@ -111,7 +117,8 @@ async function terminal(run, observations, t) {
     let state;
     try { state = await run.wait({signal}); }
     catch (error) {
-      t.diagnostic(inspect({ref: run.ref, state: await run.status(), observations}, {depth: 12}));
+      t.diagnostic(inspect({ref: run.ref, state: await run.status(), observations,
+        waitAborted: signal.aborted, waitReason: signal.reason}, {depth: 12}));
       throw error;
     }
     if (!['running', 'resuming'].includes(state.status)) return state;
@@ -120,7 +127,9 @@ async function terminal(run, observations, t) {
 }
 
 for (const replyMode of ['saved', 'lost']) {
-test(`Table public concurrent replace ${replyMode} noncommit reply preserves the original failure`, async t => {
+for (const format of replyMode === 'saved' ? ['json', 'sql'] : ['json']) {
+test(`Table public concurrent replace ${replyMode} noncommit reply preserves the original failure` +
+  (format === 'sql' ? ' (Effect-only SQL)' : ''), async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
   const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
   const launcher = join(f.root, 'concurrent-replace');
@@ -174,6 +183,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       connectorId: 'table', connection, python: launcher, catalog: f.catalog,
       accountConfigurationWire: account(), environmentWire: declared.wire,
       targets: [{effectId: 'save', resource, targetRef, mappingRef,
+        ...(format === 'sql' ? {queryName: 'analytics.report'} : {}),
         mappingCid: declared.mapping.mapping_contract_cid, action: expectedTable === null ? 'create' : 'replace',
         catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows', expectedTable,
         permissions: ['scope:store'], footprint: {kind: 'collection',
@@ -184,7 +194,9 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       installation: {directory: join(f.root, name), effectProfilePath, authorization}};
     const client = await connectEmbeddedLocal(options);
     opened.push(client);
-    const run = await client.startSource(JSON.stringify(program(rows, name)), {format: 'json'});
+    const text = `${expectedTable === null ? 'CREATE TABLE' : 'CREATE OR REPLACE TABLE'} analytics.report AS ` +
+      `SELECT ${rows[0].id} AS id, CAST(NULL AS STRING) AS tag`;
+    const run = await client.startSource(format === 'sql' ? text : JSON.stringify(program(rows, name)), {format});
     await waiting(run, observations, t);
     const checkpoint = (await client.checkpoints()).items[0];
     const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
@@ -230,7 +242,15 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     assert.equal(loser.status, replyMode === 'lost' ? 'needs_reconciliation' : 'failed',
       'Reply loss is uncertain until original durable evidence is observed');
     assert.equal(commits(f.catalog).length, 2);
-    assert.deepEqual(multiset(await first.run.result('answer').all()), winnerRows);
+    if (format === 'sql') {
+      assert.deepEqual((await first.run.status()).result_availability, {});
+      const frozen = await f.bridge.resolveGeneration({catalog_identity_cid: f.catalog.catalogCid,
+        namespace: ['test'], table_name: 'rows', table_uuid: original.receipt.table_uuid,
+        schema_cid: original.receipt.schema_cid});
+      assert.equal(frozen.ok, true);
+      assert.deepEqual(plain((await f.bridge.read(frozen.result.receipt, frozen.result.mapping)).result),
+        [{id: 10, tag: null}], 'The conflict cannot overwrite the approved winning SQL input');
+    } else assert.deepEqual(multiset(await first.run.result('answer').all()), winnerRows);
     const noncommit = await f.bridge.reconcileOperation(second.operation);
     assert.equal(noncommit.ok, false);
     assert.equal(noncommit.result.version, 'actql-table-noncommit-receipt/0.1');
@@ -298,11 +318,14 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
   }
 });
 }
+}
 
 for (const lossPoint of ['before', 'after']) {
-test(lossPoint === 'before'
+for (const format of ['json', 'sql']) {
+test((lossPoint === 'before'
   ? 'Table public precommit crash remains unknown across repeated reconciliation'
-  : 'Table public lost commit reply reconciles the original Run without another write', async t => {
+  : 'Table public lost commit reply reconciles the original Run without another write') +
+  (format === 'sql' ? ' (Effect-only SQL)' : ''), async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
   const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
   const launcher = join(f.root, 'lost-commit-reply');
@@ -338,6 +361,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     connectorId: 'table', connection, python: launcher, catalog: f.catalog,
     accountConfigurationWire: account(), environmentWire: declared.wire,
     targets: [{effectId: 'save', resource, targetRef, mappingRef,
+      ...(format === 'sql' ? {queryName: 'analytics.report'} : {}),
       mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
       catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
       expectedTable: null, permissions: ['scope:store'],
@@ -357,8 +381,10 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     installation: {directory: join(f.root, 'host'), effectProfilePath, authorization}};
   let client = await connectEmbeddedLocal(options);
   try {
-    const input = JSON.stringify(program(expectedRows, 'table-lost-reply'));
-    let run = await client.startSource(input, {format: 'json'});
+    const input = format === 'sql'
+      ? 'CREATE TABLE analytics.report AS SELECT 1 AS id, CAST(NULL AS STRING) AS tag'
+      : JSON.stringify(program(expectedRows, 'table-lost-reply'));
+    let run = await client.startSource(input, {format});
     await waiting(run, observations, t);
     assert.equal(commits(f.catalog).length, 0, 'No write before approval');
     const checkpoint = (await client.checkpoints()).items[0];
@@ -408,6 +434,14 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
         fault: await read('lost-reply'), observations}, {depth: 10}));
     }
     assert.equal(original.length, 1, 'Catalog actually committed before reply loss');
+    if (format === 'sql') {
+      const frozen = await f.bridge.resolveGeneration({catalog_identity_cid: f.catalog.catalogCid,
+        namespace: ['test'], table_name: 'rows', table_uuid: original[0].receipt.table_uuid,
+        schema_cid: original[0].receipt.schema_cid});
+      assert.equal(frozen.ok, true);
+      assert.deepEqual(plain((await f.bridge.read(frozen.result.receipt, frozen.result.mapping)).result),
+        [{id: 1, tag: null}], 'The uncertain original SQL operation really saved its input');
+    }
     assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\n');
     t.diagnostic(JSON.stringify({phase: 'committed-reply-lost', ref: run.ref,
       originalCommit: original[0]}));
@@ -425,15 +459,17 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       installation: {...options.installation,
         directory: join(f.root, 'replacement-host'), effectProfilePath: replacementPath}});
     try {
-      const replaced = await replacement.startSource(JSON.stringify(program([{id: 9, tag: null}],
-        'table-later-replacement')), {format: 'json'});
+      const replaced = await replacement.startSource(format === 'sql'
+        ? 'CREATE OR REPLACE TABLE analytics.report AS SELECT 9 AS id, CAST(NULL AS STRING) AS tag'
+        : JSON.stringify(program([{id: 9, tag: null}], 'table-later-replacement')), {format});
       await waiting(replaced, observations, t);
       const laterCheckpoint = (await replacement.checkpoints()).items[0];
       await replacement.resolveCheckpoints([{checkpoint: laterCheckpoint, decision: 'approved'}], {signer: {
         keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: replaced.ref.authorityScopeCid,
         sign: bytes => sign(null, bytes, keys.privateKey)}});
       assert.equal((await terminal(replaced, observations, t)).status, 'succeeded');
-      assert.deepEqual(await replaced.result('answer').all(), [{id: 9, tag: null}]);
+      if (format === 'sql') assert.deepEqual((await replaced.status()).result_availability, {});
+      else assert.deepEqual(await replaced.result('answer').all(), [{id: 9, tag: null}]);
     } finally { await replacement.close(); }
     const afterReplacement = commits(f.catalog);
     assert.equal(afterReplacement.length, 2);
@@ -444,6 +480,9 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       schema_cid: original[0].receipt.schema_cid});
     assert.equal(head.ok, true);
     assert.notEqual(head.result.receipt.generation_cid, original[0].receipt.generation_cid);
+    if (format === 'sql') assert.deepEqual(
+      plain((await f.bridge.read(head.result.receipt, head.result.mapping)).result),
+      [{id: 9, tag: null}], 'OR REPLACE commits its fixed approved generation, not a public Result');
     client = await connectEmbeddedLocal(options);
     run = await client.attach(ref);
     assert.equal((await run.status()).status, 'needs_reconciliation');
@@ -455,18 +494,22 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     }
     assert.deepEqual(reconciled.map(state => state.status), ['succeeded', 'succeeded']);
     assert.deepEqual(commits(f.catalog), afterReplacement);
-    assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\nwrite\n',
+    const expectedWrites = 'write\nwrite\n';
+    assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), expectedWrites,
       'Unknown commit is never resent');
-    assert.deepEqual(multiset(await run.result('answer').all()), multiset(expectedRows));
+    if (format === 'sql') assert.deepEqual((await run.status()).result_availability, {});
+    else assert.deepEqual(multiset(await run.result('answer').all()), multiset(expectedRows));
     await client.close();
     client = await connectEmbeddedLocal(options);
     run = await client.attach(ref);
     assert.equal((await run.reconcile()).status, 'succeeded');
-    assert.deepEqual(multiset(await run.result('answer').all()), multiset(expectedRows));
+    if (format === 'sql') assert.deepEqual((await run.status()).result_availability, {});
+    else assert.deepEqual(multiset(await run.result('answer').all()), multiset(expectedRows));
     assert.deepEqual(commits(f.catalog), afterReplacement);
-    assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\nwrite\n');
+    assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), expectedWrites);
   } finally { await client.close(); }
 });
+}
 }
 
 async function sparseTableClientOpener(t, root, transport) {
@@ -504,7 +547,240 @@ async function sparseTableClientOpener(t, root, transport) {
 }
 
 for (const transport of ['Local', 'HTTPS']) {
-test(`Table sparse private input commits through ${transport} after approval while ordinary Result presence remains required`, async t => {
+for (const empty of [false, true]) {
+test(`Table text Effect-only CTAS through ${transport} (${empty ? 'empty' : 'nonempty'}) retains approval and reads after origin release`, async t => {
+  const f = await tablePhysicalFixture(t), declared = declaration();
+  const openClient = await sparseTableClientOpener(t, f.root, transport);
+  const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
+  const observations = [];
+  const authorization = {accountConfiguration: account(), reviewReaders: [principalId],
+    observe: (name, detail) => observations.push({name, detail}),
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}};
+  const effectProfilePath = join(f.root, 'text-table-effect.json');
+  const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
+  await writeFile(effectProfilePath, JSON.stringify({
+    version: 'actql-installed-local-table-effect/0.1', connectorId: 'table', connection,
+    python, catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
+    targets: [{effectId: 'save', queryName: 'analytics.report', resource, targetRef, mappingRef,
+      mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
+      catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
+      expectedTable: null, permissions: ['scope:store'], footprint: {
+        kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract),
+        provider_namespace: 'table', provider_boundary_cid: f.catalog.catalogCid,
+        resource_kind: 'Table', provider_object_identity_cids: []}}],
+    limits: {reservation: {bytes: 1048576, files: 16}}}));
+  const options = {mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'text-host'), effectProfilePath, authorization}};
+  // These values and the absence of public Results are independent expected
+  // facts. No serializer output is used to construct an oracle.
+  const text = 'CREATE TABLE analytics.report AS SELECT 1 AS id, CAST(NULL AS STRING) AS tag' +
+    (empty ? ' WHERE 1 = 0' : '');
+  let client = await openClient(options).catch(error => {
+    t.diagnostic(inspect(error, {depth: 10})); throw error;
+  });
+  try {
+    const checked = await client.check(text, {format: 'sql'});
+    assert.equal(checked.outcome, 'completed', JSON.stringify(checked));
+    assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked));
+    const run = await client.startSource(text, {format: 'sql'}).catch(error => {
+      t.diagnostic(inspect({phase: 'text-submit', error, observations}, {depth: 15}));
+      throw error;
+    });
+    const state = await waiting(run, observations, t);
+    assert.deepEqual(state.result_availability, {});
+    assert.deepEqual(commits(f.catalog), [], 'Checking and approval wait perform no write');
+    const checkpoint = (await client.checkpoints()).items[0];
+    const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
+    const preview = JSON.parse(Buffer.from(review.bytes).toString());
+    assert.equal(preview.effects.length, 1);
+    assert.equal(preview.effects[0].count, 1);
+    assert.equal(preview.effects[0].approval, 'required');
+    const operation = preview.effects[0].changes[0].intended_changes.value;
+    assert.equal(operation.action, 'create');
+    assert.equal(operation.expected_table, null);
+    const ref = run.ref;
+    await client.close();
+    const restartInput = join(f.root, 'text-restart.json');
+    // Only synthetic fixture keys enter this owned directory. Observers are
+    // process-local diagnostics, not persisted authorization or Run facts.
+    const {observe: _observe, ...restartAuthorization} = authorization;
+    await writeFile(restartInput, JSON.stringify({ref, options: {...options,
+      installation: {...options.installation, authorization: restartAuthorization}}}),
+    {mode: 0o600});
+    const restarted = await promisify(execFile)(process.execPath,
+      [fileURLToPath(new URL('./fixtures/table-text-restart.mjs', import.meta.url)), restartInput],
+      {timeout: 30000, killSignal: 'SIGKILL', maxBuffer: 1048576});
+    assert.deepEqual(JSON.parse(restarted.stdout),
+      {status: 'waiting_checkpoint', result_availability: {}});
+    assert.deepEqual(commits(f.catalog), [], 'A separate process cannot approve or write implicitly');
+    client = await openClient(options);
+    const restored = await client.attach(ref);
+    assert.equal((await restored.status()).status, 'waiting_checkpoint');
+    assert.deepEqual(commits(f.catalog), [], 'Restart neither approves nor resends');
+    await client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {signer: {
+      keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: ref.authorityScopeCid,
+      sign: bytes => sign(null, bytes, keys.privateKey)}});
+    const finished = await terminal(restored, observations, t);
+    assert.equal(finished.status, 'succeeded', JSON.stringify(finished));
+    assert.deepEqual(finished.result_availability, {});
+    assert.equal(commits(f.catalog).length, 1);
+    assert.deepEqual(commits(f.catalog)[0].operation, operation);
+    assert.equal(commits(f.catalog)[0].receipt.row_count, empty ? 0 : 1);
+  } finally { await client.close(); }
+  const committed = commits(f.catalog)[0];
+  const selector = {catalog_identity_cid: f.catalog.catalogCid, namespace: ['test'], table_name: 'rows',
+    table_uuid: committed.receipt.table_uuid, schema_cid: committed.receipt.schema_cid};
+  const frozen = await f.bridge.resolveGeneration(selector);
+  assert.equal(frozen.ok, true);
+  assert.deepEqual(plain((await f.bridge.read(frozen.result.receipt, frozen.result.mapping)).result),
+    empty ? [] : [{id: 1, tag: null}], 'Physical generation survives origin Run cleanup');
+  const sourceProfilePath = join(f.root, 'text-table-source.json');
+  await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-local-table-source/0.1',
+    connectorId: 'table', connection, python, catalog: f.catalog, accountConfigurationWire: account(),
+    targets: [{resource, selector, schemaWire: frozen.result.schema_wire}],
+    limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}}));
+  const reader = await openClient({mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'text-reader'), sourceProfilePath, authorization}});
+  try {
+    const readRun = await reader.start(readerProgram('read-text-created-table'));
+    assert.equal((await terminal(readRun, observations, t)).status, 'succeeded');
+    const result = readRun.result('answer');
+    assert.deepEqual((await result.describe()).columns.map(column => column.name),
+      ['id', 'tag', 'doubled'], 'The schema does not depend on nonempty data');
+    assert.deepEqual(await result.all(), empty ? [] : [{id: 1, tag: null, doubled: 2}]);
+    assert.equal(commits(f.catalog).length, 1);
+  } finally { await reader.close(); }
+});
+}
+}
+
+for (const transport of ['Local', 'HTTPS']) {
+test(`Table text Effect-only cleanup retry through ${transport} retains the committed generation`, async t => {
+  const f = await tablePhysicalFixture(t), declared = declaration();
+  const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
+  const launcher = join(f.root, 'cleanup-retry');
+  const blocked = join(f.root, 'block-cleanup');
+  await writeFile(blocked, 'The fixture withholds physical cleanup confirmation.');
+  await writeFile(launcher, `#!${python}
+import os, sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+from process_worker import serve
+root = Path(__file__).parent
+def factory(*args):
+    from catalog import TableCatalog
+    from physical import PhysicalRefusal
+    class CleanupCatalog(TableCatalog):
+        def write_claimed(self, *args, **kwargs):
+            with (root / "writes.log").open("a") as stream:
+                stream.write(args[0]["request_cid"] + "\\n")
+            return super().write_claimed(*args, **kwargs)
+        def cleanup_after_stop(self, request, **kwargs):
+            # Keep the real original-operation lookup and committed-file
+            # protection. Only physical cleanup confirmation is withheld.
+            result = super().cleanup_after_stop(request, **kwargs)
+            with (root / "cleanup.log").open("a") as stream:
+                stream.write(request["request_cid"] + "\\n")
+            if (root / "block-cleanup").exists():
+                raise PhysicalRefusal("FixtureCleanupPending")
+            return result
+    return CleanupCatalog(*args)
+with os.fdopen(3, "r+b", buffering=0) as channel:
+    serve(channel, factory)
+`, {mode: 0o700});
+  const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
+  const observations = [];
+  const authorization = {accountConfiguration: account(), reviewReaders: [principalId],
+    observe: (name, detail) => observations.push({name, detail}),
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}};
+  const effectProfilePath = join(f.root, 'cleanup-effect.json');
+  await writeFile(effectProfilePath, JSON.stringify({
+    version: 'actql-installed-local-table-effect/0.1', connectorId: 'table', connection,
+    python: launcher, catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
+    targets: [{effectId: 'save', queryName: 'analytics.report', resource, targetRef, mappingRef,
+      mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
+      catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
+      expectedTable: null, permissions: ['scope:store'], footprint: {
+        kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract),
+        provider_namespace: 'table', provider_boundary_cid: f.catalog.catalogCid,
+        resource_kind: 'Table', provider_object_identity_cids: []}}],
+    limits: {reservation: {bytes: 1048576, files: 16}}}));
+  const openClient = await sparseTableClientOpener(t, f.root, transport);
+  const options = {mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'cleanup-host'), effectProfilePath, authorization}};
+  let client = await openClient(options);
+  try {
+    const run = await client.startSource(
+      'CREATE TABLE analytics.report AS SELECT 1 AS id, CAST(NULL AS STRING) AS tag', {format: 'sql'});
+    await waiting(run, observations, t);
+    assert.deepEqual(commits(f.catalog), []);
+    const checkpoint = (await client.checkpoints()).items[0];
+    await client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {signer: {
+      keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: run.ref.authorityScopeCid,
+      sign: bytes => sign(null, bytes, keys.privateKey)}});
+    const signal = AbortSignal.timeout(30000);
+    while (commits(f.catalog, 1000).length === 0) await delay(20, undefined, {signal});
+    const original = commits(f.catalog);
+    assert.equal(original.length, 1);
+    await assert.rejects(client.close(), error => {
+      assert.equal(error.cleanupPending, true);
+      return true;
+    });
+    assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), original[0].operation.request_cid + '\n');
+    assert.ok((await readFile(join(f.root, 'cleanup.log'), 'utf8')).length > 0,
+      'The real retained physical cleanup owner was attempted');
+    for (const failure of observations.filter(item => item.name.endsWith('_failed'))) {
+      assert.equal(failure.name, 'effect_resume_failed');
+      assert.equal(failure.detail.code, 'ClientDispatchCleanupPending');
+      assert.equal(failure.detail.ref.runDefinitionCid, run.ref.runDefinitionCid);
+    }
+    assert.deepEqual(commits(f.catalog), original, 'Pending cleanup cannot delete or replace the original commit');
+    await unlink(blocked);
+    await client.close();
+    await client.close();
+    assert.deepEqual(commits(f.catalog), original);
+    assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), original[0].operation.request_cid + '\n');
+    client = await openClient(options);
+    const restored = await client.attach(run.ref);
+    const state = await restored.status();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    assert.deepEqual(state.result_availability, {});
+  } finally {
+    await unlink(blocked).catch(error => { if (error.code !== 'ENOENT') throw error; });
+    await client.close();
+  }
+  const receipt = commits(f.catalog)[0].receipt;
+  const selector = {catalog_identity_cid: f.catalog.catalogCid, namespace: ['test'], table_name: 'rows',
+    table_uuid: receipt.table_uuid, schema_cid: receipt.schema_cid};
+  const frozen = await f.bridge.resolveGeneration(selector);
+  assert.equal(frozen.ok, true);
+  assert.deepEqual(plain((await f.bridge.read(frozen.result.receipt, frozen.result.mapping)).result),
+    [{id: 1, tag: null}], 'Cleanup retry never reclaims a committed generation');
+  const sourceProfilePath = join(f.root, 'cleanup-source.json');
+  await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-local-table-source/0.1',
+    connectorId: 'table', connection, python, catalog: f.catalog, accountConfigurationWire: account(),
+    targets: [{resource, selector, schemaWire: frozen.result.schema_wire}],
+    limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}}));
+  const readerObservations = [];
+  const reader = await openClient({mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'cleanup-reader'), sourceProfilePath,
+      authorization: {...authorization,
+        observe: (name, detail) => readerObservations.push({name, detail})}}});
+  try {
+    const run = await reader.start(readerProgram('read-after-cleanup-retry'));
+    assert.equal((await terminal(run, readerObservations, t)).status, 'succeeded');
+    assert.deepEqual(await run.result('answer').all(), [{id: 1, tag: null, doubled: 2}]);
+  } finally { await reader.close(); }
+});
+}
+
+for (const transport of ['Local', 'HTTPS']) {
+for (const format of ['json', 'aql-text']) {
+test(`Table sparse private input commits through ${transport} (${format}) after approval while ordinary Result presence remains required`, async t => {
   const f = await tablePhysicalFixture(t), declared = declaration('person_key');
   const openClient = await sparseTableClientOpener(t, f.root, transport);
   const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
@@ -513,7 +789,7 @@ test(`Table sparse private input commits through ${transport} after approval whi
     version: 'actql-installed-local-table-effect/0.1', connectorId: 'table', connection,
     python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
     catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
-    targets: [{effectId: 'save', resource, targetRef, mappingRef,
+    targets: [{effectId: 'save', queryName: 'analytics.report', resource, targetRef, mappingRef,
       mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
       catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
       expectedTable: null, permissions: ['scope:store'], footprint: {
@@ -615,28 +891,54 @@ test(`Table sparse private input commits through ${transport} after approval whi
       {field: 'person_key', dir: 'asc', nulls: 'first'}], as: 'ordered'});
     privateStage.table_inputs.rows.from = 'ordered';
     privateStage.results.answer.from = 'ordered';
-    const input = JSON.stringify(privateInput);
+    const input = format === 'json' ? JSON.stringify(privateInput)
+      : 'DATA persons = SELECT 2 AS person_key, \'a\' AS tenant_key, CAST(NULL AS FLOAT64) AS p '
+        + 'UNION ALL SELECT 1 AS person_key, \'a\' AS tenant_key, 7 AS p; '
+        + 'DATA companies = SELECT 3 AS person_key, \'a\' AS tenant_key; '
+        + 'DATA g = PROPERTY GRAPH (NODE TABLES '
+        + '(persons AS N KEY (person_key, tenant_key) LABEL Person PROPERTIES (p), '
+        + 'companies AS M KEY (person_key, tenant_key) LABEL Company NO PROPERTIES)); '
+        + 'FROM g |> node_rows() |> DROP id, labels, tenant_key |> ORDER BY person_key '
+        + '|> EFFECT save CREATE TABLE analytics.report';
     const privatePreparation = moon.clientProgramPrepareEffectComputationWithParameters(
-      input, 'json', environment, undefined, []);
+      JSON.stringify(privateInput), 'json', environment, undefined, []);
     assert.ok(moon.clientProgramEffectPreparationReady(privatePreparation),
       inspect(moon.clientProgramEffectPreparationIssue(privatePreparation), {depth: 20}));
     assert.equal(moon.clientProgramEffectPreparationResultPresenceField(privatePreparation), undefined,
       'The accepted private input is not an ordinary Result presence refusal');
     const submissionRef = client.newSubmission();
-    let run = await client.startSource(input, {format: 'json', submissionRef});
+    if (format === 'aql-text') {
+      // Ordinary SELECT still cannot read a Conditional value. DROP removes
+      // unrelated fields without reading p; the closed private capture owns
+      // its presence, independently of Named Result publication.
+      const unproven = input.replace('DROP id, labels, tenant_key', 'SELECT person_key, p');
+      await assert.rejects(client.startSource(unproven, {format}), error => {
+        assert.equal(getSubmissionOutcome(error).kind, 'not_accepted');
+        return true;
+      });
+      assert.deepEqual(commits(f.catalog), []);
+    }
+    const checkedInput = await client.check(input, {format});
+    assert.equal(checkedInput.outcome, 'completed', JSON.stringify(checkedInput));
+    assert.equal(checkedInput.report.verdict, 'verified', JSON.stringify(checkedInput));
+    let run = await client.startSource(input, {format, submissionRef}).catch(error => {
+      t.diagnostic(inspect({phase: 'sparse-private-submit', error, observations}, {depth: 15}));
+      throw error;
+    });
     await waiting(run, observations, t);
     assert.deepEqual(commits(f.catalog), [], 'Private capture does not authorize a commit');
     const checkpoint = (await client.checkpoints()).items[0];
     const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
     const preview = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
-    assert.equal(preview.effects[0].source_table_input, 'rows');
+    assert.equal(preview.effects[0].source_table_input,
+      format === 'json' ? 'rows' : 'aql_table_input');
     assert.equal(preview.effects[0].count, 1);
     assert.equal(preview.effects[0].approval, 'required');
     const operation = preview.effects[0].changes[0].intended_changes.value;
     const originalRef = run.ref;
     await client.close();
     client = await openClient(options);
-    run = await client.startSource(input, {format: 'json', submissionRef});
+    run = await client.startSource(input, {format, submissionRef});
     assert.deepEqual(run.ref, originalRef);
     assert.equal((await client.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
     assert.deepEqual(commits(f.catalog), [], 'Restart does not send a private Table operation');
@@ -645,8 +947,9 @@ test(`Table sparse private input commits through ${transport} after approval whi
       sign: bytes => sign(null, bytes, keys.privateKey)}});
     assert.deepEqual(answered.results.map(value => value.status), ['committed']);
     assert.equal((await terminal(run, observations, t)).status, 'succeeded');
-    assert.deepEqual(plain(await run.result('answer').all()),
+    if (format === 'json') assert.deepEqual(plain(await run.result('answer').all()),
       [{person_key: 1}, {person_key: 2}, {person_key: 3}]);
+    else assert.deepEqual((await run.status()).result_availability, {});
     assert.equal(commits(f.catalog).length, 1);
     assert.deepEqual(commits(f.catalog)[0].operation, operation);
     assert.deepEqual((await client.resolveCheckpoints(answered.signed)).results.map(value => value.status),
@@ -696,6 +999,7 @@ test(`Table sparse private input commits through ${transport} after approval whi
     throw error;
   } finally { await later.close(); }
 });
+}
 }
 
 test('Table installed HTTP Host retires capture custody before completing close', async t => {

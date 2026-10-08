@@ -280,6 +280,7 @@ pub fn lower(
   format : Format,
   context : @query.Context?,
   source_path? : String = "<source>",
+  table_writes? : Array[@query.TableWriteBinding] = [],
 ) -> Result[Lowered, Issue] {
   match format {
     Json => Ok({ document, format: @program.Json, program: None, })
@@ -305,13 +306,24 @@ pub fn lower(
         return Err(QueryLowering(@query.UnsupportedGraph))
       }
       let program = if @syntax.data_declaration_count(script) > 0 {
-        match @query.compile_query_script(script, context, query_limits()) {
+        match
+          @query.compile_query_script(
+            script,
+            context,
+            query_limits(),
+            table_writes~,
+          ) {
           Ok(value) => value
           Err(issue) => return Err(QueryLowering(issue))
         }
       } else {
         match
-          @query.compile(@syntax.script_query(script), context, query_limits()) {
+          @query.compile(
+            @syntax.script_query(script),
+            context,
+            query_limits(),
+            table_writes~,
+          ) {
           Ok(value) => value
           Err(issue) => return Err(QueryLowering(issue))
         }
@@ -327,7 +339,8 @@ pub fn lower(
       if @syntax.graph_query(parsed) is Some(_) {
         return Err(QueryLowering(@query.UnsupportedGraph))
       }
-      let program = match @query.compile(parsed, context, query_limits()) {
+      let program = match
+        @query.compile(parsed, context, query_limits(), table_writes~) {
         Ok(value) => value
         Err(issue) => return Err(QueryLowering(issue))
       }

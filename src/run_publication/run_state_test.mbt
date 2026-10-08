@@ -8,6 +8,84 @@ fn observation(
 }
 
 ///|
+test "Effect-only Run state has no public availability and preserves lifecycle actions" {
+  let statuses : Array[RunOutcomeStatus] = [
+    Preparing,
+    Running,
+    Resuming,
+    Succeeded,
+    Failed,
+    Cancelled,
+  ]
+  for status in statuses {
+    assert_true(
+      validate_run_state(status, [], [], false, NoAction, false) is Ok(_),
+    )
+    assert_true(
+      validate_run_state(status, [], [], true, NoAction, false)
+      is Err(AggregateMismatch),
+    )
+  }
+  assert_true(
+    validate_run_state(
+      WaitingCheckpoint,
+      [],
+      [],
+      false,
+      ResolveCheckpoint,
+      true,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    validate_run_state(WaitingCheckpoint, [], [], false, NoAction, true)
+    is Err(ActionStatusMismatch),
+  )
+  assert_true(
+    validate_run_state(NeedsReconciliation, [], [], false, Reconcile, false)
+    is Ok(_),
+  )
+  assert_true(
+    validate_run_state(NeedsReconciliation, [], [], false, ReconcileRun, false)
+    is Ok(_),
+  )
+  assert_true(
+    validate_run_state(NeedsReconciliation, [], [], false, NoAction, false)
+    is Err(ActionStatusMismatch),
+  )
+  assert_true(
+    validate_run_state(Succeeded, [], [], false, ReadResult(["hidden"]), false)
+    is Err(UnknownActionResult("hidden")),
+  )
+  assert_true(
+    validate_run_state(
+      Succeeded,
+      [],
+      [observation("hidden", Available, ConfirmedPresent)],
+      true,
+      NoAction,
+      false,
+    )
+    is Err(ForeignAvailability("hidden")),
+  )
+  assert_eq(
+    issue_succeeded_run_state(
+      "run-effect",
+      "2026-09-18T04:00:00.000Z",
+      [],
+      [],
+      [],
+      16384,
+      256,
+      8,
+    ),
+    Ok(
+      "{\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"run-effect\",\"status\":\"succeeded\",\"updated_at\":\"2026-09-18T04:00:00.000Z\",\"version\":\"actql-run-state/0.1\"}",
+    ),
+  )
+}
+
+///|
 test "succeeded Run admits only availability actions or no action" {
   let available = [observation("answer", Available, ConfirmedPresent)]
   assert_true(

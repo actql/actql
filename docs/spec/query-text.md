@@ -1131,3 +1131,39 @@ preview, approval, capture and cleanup owners remain authoritative. No approval
 policy is authored in this surface, and syntax admission does not authorize
 execution. Other Effect kinds and complete Effect-language coverage remain
 separate implementation obligations.
+
+## Table create and whole-table replace
+
+The initial Table write surface is:
+
+```sql
+CREATE TABLE analytics.report AS SELECT id, p FROM source;
+CREATE OR REPLACE TABLE analytics.report AS (SELECT id, p FROM source);
+FROM source |> SELECT id, p |> CREATE TABLE analytics.report;
+FROM source |> SELECT id, p |> EFFECT save CREATE OR REPLACE TABLE analytics.report;
+```
+
+A Table path resolves against an explicit Host-published write binding to the
+existing Connector Resource, Mapping and Capability. It is not a Source alias
+and confers no authority by itself. Unknown, ambiguous and action-incompatible
+targets are rejected by checking before acquisition or dispatch. Table writes
+are terminal and cannot occur in DATA, CTE or another Table write's input.
+
+CREATE selects only a fixed create binding. CREATE OR REPLACE selects the
+single published create or replace operation; it does not observe the Catalog
+to choose one. A create conflict remains a conflict under OR REPLACE and does
+not switch to replace. Authored intent, selected operation, target, Mapping,
+Capability, installation binding and expected Table identity/generation form
+checked meaning and approval. Execution and recovery recheck that binding;
+conflicts do not refresh the expected generation, change candidates or resend
+unknown operations. Catalog commit checks absence for create and exact approved
+identity/generation for replace.
+
+Lowering uses the existing store Effect and private Table capture. It preserves
+absence, explicit NULL and actual values without creating an implicit public
+Relation. A save-only checked Effect Program has `results: {}` under the common
+Effect-only Program contract; ordinary Named Results remain all-Required.
+Initial support is Relation create and same-schema whole-table replace using
+the installed writer's admitted types. Syntax does not authorize a write.
+Append/upsert, schema evolution, automatic Catalog observation and other Carrier
+writers are separate implementation units.

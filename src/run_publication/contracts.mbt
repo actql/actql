@@ -639,10 +639,11 @@ fn validate_unique_named_array(
   value : @json.CanonicalValue,
   name_field : String,
   cid_field : String,
+  allow_empty? : Bool = false,
 ) -> Bool {
   guard value is @json.Array(values) else { return false }
   let items = @json.array_values(values)
-  if items.is_empty() {
+  if items.is_empty() && !allow_empty {
     return false
   }
   let identities : Array[String] = []
@@ -812,16 +813,18 @@ fn validate_rule(value : @json.CanonicalValue, rule : FieldRule) -> Bool {
       true
     }
     Inventory =>
-      validate_unique_named_array(value, "result_name", "result_definition_cid")
+      validate_unique_named_array(
+        value,
+        "result_name",
+        "result_definition_cid",
+        allow_empty=true,
+      )
     ResultList =>
       validate_unique_named_array(value, "result_name", "result_artifact_cid")
     FormatList =>
       validate_string_array(value, Some(["json", "jsonl", "csv"]), false)
     ManifestResults => {
       guard object_fields(value) is Ok(results) else { return false }
-      if results.is_empty() {
-        return false
-      }
       let artifact_spec = contract_spec("result_artifact").unwrap()
       for (name, artifact) in results {
         if name.is_empty() ||

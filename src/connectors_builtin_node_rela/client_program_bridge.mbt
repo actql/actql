@@ -2831,6 +2831,23 @@ pub fn client_program_effect_member_descriptor(
 }
 
 ///|
+/// Read fixed text Table intent without another Host-side Program parser.
+#export_name("clientProgramEffectTableWriteBinding")
+pub fn client_program_effect_table_write_binding(
+  value : @publication_host.PreparedClientEffectComputation,
+  stage_index : Int,
+  effect_id : String,
+  max_work : Int,
+) -> Result[
+  (String, String, String?, String?, String, String)?,
+  @publication_host.ClientEffectMemberDescriptorIssue,
+] {
+  @publication_host.client_effect_table_write_binding(
+    value, stage_index, effect_id, max_work,
+  )
+}
+
+///|
 /// The local semantic Invocation comes from the checked Unit owner. Its CID
 /// is not the physical Run Invocation and does not authorize Effect apply.
 #export_name("clientProgramIssueSourceFreeLocalEffectInvocation")
@@ -4124,41 +4141,6 @@ pub fn client_program_admit_effect_publication(
     @publication_host.admit_prepared_client_effect_run_publication(
       prepared, template, invocation, authorization, plan,
     ) {
-    Ok(value) => Some(value)
-    Err(_) => None
-  }
-}
-
-///|
-fn client_local_contracts(
-  registry_body : String,
-  values_body : String,
-) -> @execution.RegisteredRelationContracts? {
-  if registry_body.length() > 100000 || values_body.length() > 100000 {
-    return None
-  }
-  let registry_value = @identity.from_json(
-    @json.parse(registry_body),
-    10000,
-    100,
-    100000,
-  ) catch {
-    _ => return None
-  }
-  let values_value = @identity.from_json(
-    @json.parse(values_body),
-    10000,
-    100,
-    100000,
-  ) catch {
-    _ => return None
-  }
-  match
-    @execution.admit_relation_registry(registry_value, values_value, {
-      max_body_bytes: 100000,
-      max_body_nodes: 10000,
-      max_body_depth: 100,
-    }) {
     Ok(value) => Some(value)
     Err(_) => None
   }
@@ -6324,6 +6306,8 @@ pub fn client_program_open_source_free_local_effect_host(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
+  fragment_body : String?,
+  ordered_body : String?,
 ) -> ClientLocalEffectHost? {
   open_client_local_effect_host(
     prepared,
@@ -6334,6 +6318,8 @@ pub fn client_program_open_source_free_local_effect_host(
     per_row_ms,
     per_wire_byte_ms,
     per_pair_ms,
+    fragment_body~,
+    ordered_body~,
   )
 }
 
@@ -6390,9 +6376,6 @@ fn open_client_local_effect_host(
     per_pair_ms < 0L {
     return None
   }
-  guard client_local_contracts(registry_body, values_body) is Some(contracts) else {
-    return None
-  }
   let multiple = !captured_sources.is_empty()
   if multiple &&
     (
@@ -6439,7 +6422,9 @@ fn open_client_local_effect_host(
   )
   let first_compute = if multiple { 2 } else if source is None { 0 } else { 1 }
   let generated = []
-  if first_compute > 0 || !component_providers.is_empty() {
+  // Source-free tasks also need the same checked expression contexts as
+  // acquired tasks. A private Effect input is not a context-free projection.
+  {
     let sequences = match
       @client_local_host.prepare_client_effect_local_sequences(
         computation, registry_body, values_body, fragment_body, ordered_body,
@@ -6452,26 +6437,6 @@ fn open_client_local_effect_host(
     }
     for task in first_compute..<sequences.length() {
       generated.push(sequences[task])
-    }
-  } else {
-    for task in first_compute..<@strategy.graph_task_count(graph) {
-      let sequence = match
-        @publication_host.prepare_client_effect_task_sequence(
-          computation,
-          task,
-          contracts,
-          [],
-          client_local_sequence_limits(),
-          100000,
-          10000,
-        ) {
-        Ok(value) => value
-        Err(_) => {
-          ignore(reject_client_local_run(captured))
-          return None
-        }
-      }
-      generated.push(sequence)
     }
   }
   match
