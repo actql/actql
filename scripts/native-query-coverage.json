@@ -1,12 +1,11 @@
 {
   "files": {
-    "client_source_free_root_wbtest.mbt": {
+    "src/native_values_integration/values_fixture_wbtest.mbt": {
       "owners": [
         "remote-runtime"
       ],
       "tests": [
-        "ordinary AQL values root reaches the installed Local kernel",
-        "captured Values output supports shared Effect and publication borrows"
+        "ordinary AQL values root reaches the installed Local kernel"
       ],
       "variables": [
         "ACTQL_TEST_NATIVE_CRYPTO_LIBRARY",
@@ -39,7 +38,16 @@
         "ACTQL_TEST_NATIVE_VALUES_VALID_UNTIL"
       ]
     },
-    "duckdb_native_compute_wbtest.mbt": {
+    "src/query_integration/client_source_free_root_wbtest.mbt": {
+      "owners": [
+        "remote-runtime"
+      ],
+      "tests": [
+        "captured Values output supports shared Effect and publication borrows"
+      ],
+      "variables": []
+    },
+    "src/query_integration/duckdb_native_compute_wbtest.mbt": {
       "owners": [
         "http-client"
       ],
@@ -55,7 +63,7 @@
         "ACTQL_TEST_NATIVE_STORE_ROOT"
       ]
     },
-    "duckdb_native_runtime_wbtest.mbt": {
+    "src/query_integration/duckdb_native_runtime_wbtest.mbt": {
       "owners": [
         "http-client"
       ],
@@ -65,7 +73,7 @@
       ],
       "variables": []
     },
-    "native_publication_output_wbtest.mbt": {
+    "src/query_integration/native_publication_output_wbtest.mbt": {
       "owners": [
         "http-client",
         "remote-runtime"
@@ -95,7 +103,7 @@
         "ACTQL_TEST_NATIVE_STORE_ROOT"
       ]
     },
-    "native_remote_transfer_input_wbtest.mbt": {
+    "src/query_integration/native_remote_transfer_input_wbtest.mbt": {
       "owners": [
         "http-client"
       ],
@@ -123,7 +131,7 @@
         "ACTQL_TEST_NATIVE_STORE_ROOT"
       ]
     },
-    "native_resident_standard_wbtest.mbt": {
+    "src/query_integration/native_resident_standard_wbtest.mbt": {
       "owners": [
         "http-client"
       ],
@@ -142,7 +150,7 @@
         "ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT"
       ]
     },
-    "physical_adaptive_dispatch_wbtest.mbt": {
+    "src/query_integration/physical_adaptive_dispatch_wbtest.mbt": {
       "owners": [
         "http-client"
       ],
@@ -163,7 +171,7 @@
         "ACTQL_TEST_NATIVE_SQLITE_LIBRARY"
       ]
     },
-    "resident_native_source_wbtest.mbt": {
+    "src/query_integration/resident_native_source_wbtest.mbt": {
       "owners": [
         "http-client"
       ],
