@@ -1802,7 +1802,9 @@ and an old response with another intent cannot acquire custody. Safe catalog
 advice is available through `explainCheckReason`; `getCheckFixes` returns an
 empty list for this completed observation. These getters send no request and
 confer neither execution nor resubmission permission. The SDK's weak associations
-retain the snapshot only while the original outcome/error remains reachable;
+do not independently keep the original error or observation alive. A reachable
+original observation retains its input snapshot, and a held input object can
+retain that snapshot directly;
 Host journal retention, limits and disposal are unchanged, with no added
 persistent diagnostic storage or promised time-based retention.
 
