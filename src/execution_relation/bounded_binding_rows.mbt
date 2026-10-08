@@ -3534,6 +3534,7 @@ fn start_bounded_binding_rows_with_input(
     (
       body is Some(@lower.Filter(_)) ||
       bindings is Some(_) ||
+      (projection is Some(_) && !@schema.all_fields_required(output_schema)) ||
       body is Some(@lower.StableSort(_)) ||
       body is Some(@lower.Limit(_, _, _)) ||
       (
@@ -3549,6 +3550,7 @@ fn start_bounded_binding_rows_with_input(
   }
   if preserve_presence &&
     bindings is None &&
+    projection is None &&
     !physical_equal(input_schema, output_schema) {
     return Err(InvalidExecution)
   }

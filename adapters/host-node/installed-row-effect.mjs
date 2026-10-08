@@ -60,6 +60,7 @@
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {createHash} from 'node:crypto';
+import {checkedTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {refusedEffectPreparation} from
@@ -218,8 +219,11 @@ export function installedRowEffectDescriptors(moon, prepared, compilation) {
   return Object.freeze(unit.effectIds.map(effectId => {
     const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
       prepared, unit.stageIndex, effectId, defaultLimits.planWork));
+    const tableBinding = checkedTableWriteBinding(moon, prepared,
+      unit.stageIndex, effectId, defaultLimits.planWork);
     return Object.freeze({effectId: descriptor._1, kind: descriptor._2,
-      target: descriptor._3, mappingRef: descriptor._4, mappingCid: descriptor._5});
+      target: descriptor._3, mappingRef: descriptor._4, mappingCid: descriptor._5,
+      ...(tableBinding === undefined ? {} : {capabilityCid: tableBinding._4})});
   }));
 }
 
@@ -881,7 +885,7 @@ export async function createInstalledRowEffect({moon, mappings,
       limits: moon.clientProgramEffectInputExportLimits(
         ...exportLimits(plan.outputLimits)),
       store, maxBytes: plan.outputLimits.maxWireBytes, control,
-      invocation: plan.invocation, retention: plan.results[0].retention,
+      invocation: plan.invocation, retention: plan.effectInputRetention,
       sourceBindingCid: cid({version: profile.source,
         run_invocation_cid: runInvocationCid,
         store_authority_cid: store.storeAuthorityCid}),
@@ -1038,7 +1042,7 @@ export async function createInstalledRowEffect({moon, mappings,
         unitCid: cid({version: profile.unit,
           run_definition_cid: plan.runDefinition.identity,
           stage_index: members[0].stageIndex}),
-        retentionId: plan.results[0].retention.identity});
+        retentionId: plan.effectInputRetention.identity});
       const route = physicalRoute({members, entries,
         previewRows: body.effects.map(member => member.changes),
         runInvocationCid, dispatches,

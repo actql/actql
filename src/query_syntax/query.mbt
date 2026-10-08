@@ -134,6 +134,15 @@ pub(all) struct UpdateEffectClause {
 }
 
 ///|
+/// Table writes consume the completed Relation once. A missing name denotes
+/// an anonymous operation whose identity is fixed by ordinary Program lowering.
+pub(all) struct TableEffectClause {
+  name : NamePart?
+  target : Array[NamePart]
+  allow_replace : Bool
+}
+
+///|
 pub(all) struct InferClause {
   contract : NamePart
   keys : Array[Array[NamePart]]
@@ -196,6 +205,7 @@ struct Query {
   sets : Array[SetPart]
   final_operations : Array[QueryOperation]
   effect : UpdateEffectClause?
+  table_effect : TableEffectClause?
   work : Int
 }
 
@@ -281,6 +291,7 @@ pub fn starts_query(
         keyword(first, "WITH") ||
         keyword(first, "FROM") ||
         keyword(first, "DATA") ||
+        keyword(first, "CREATE") ||
         first.value == Symbol(40),
       )
     }
@@ -300,7 +311,11 @@ pub fn starts_sql(
     Ok(tokens) => {
       let first = token_at(tokens, 0).unwrap()
       if first.value != Symbol(40) {
-        return Ok(keyword(first, "SELECT") || keyword(first, "WITH"))
+        return Ok(
+          keyword(first, "SELECT") ||
+          keyword(first, "WITH") ||
+          keyword(first, "CREATE"),
+        )
       }
       // Inspect admitted tokens, not source substrings: parentheses and
       // comments do not change whether the head is SQL or FROM-headed Pipe.
@@ -865,6 +880,7 @@ fn QueryParser::bind_query(
     sets: [],
     final_operations: [],
     effect: None,
+    table_effect: None,
     work: self.work,
   }
 }
@@ -1875,6 +1891,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     sets: [],
     final_operations: [],
     effect: None,
+    table_effect: None,
     work: self.work,
   }
 }
@@ -1884,6 +1901,39 @@ fn QueryParser::query(
   self : QueryParser,
   cte_body? : Bool = false,
 ) -> Query raise QueryAbort {
+  if self.has("CREATE") {
+    if cte_body {
+      raise QueryAbort(
+        "Table write is not allowed in a declaration body",
+        self.peek().start,
+      )
+    }
+    let clause = self.table_create_clause(None)
+    self.keyword("AS")
+    // Direct CTAS computation is top-level. Parentheses do not turn it into
+    // an ordinary CTE or introduce another acquisition/execution owner.
+    let parentheses = self.peek().value == Symbol(40)
+    if parentheses {
+      self.symbol(40)
+    }
+    if self.has("CREATE") {
+      raise QueryAbort(
+        "CTAS input cannot contain another terminal write",
+        self.peek().start,
+      )
+    }
+    let body = self.query()
+    if parentheses {
+      self.symbol(41)
+    }
+    if body.effect is Some(_) || body.table_effect is Some(_) {
+      raise QueryAbort(
+        "CTAS input cannot contain another terminal write",
+        self.peek().start,
+      )
+    }
+    return { ..body, table_effect: Some(clause), work: self.work, }
+  }
   let ctes : Array[CtePart] = []
   let scope : Array[(NamePart, NamePart)] = []
   let nested_scope = !self.cte_scopes.is_empty()
@@ -2134,6 +2184,7 @@ fn QueryParser::pipe(
       sets: [],
       final_operations: [],
       effect: None,
+      table_effect: None,
       work: self.work,
     },
     cte_body~,
@@ -2156,8 +2207,9 @@ fn QueryParser::pipe_tail(
   let sets = input.sets.copy()
   let final_operations = input.final_operations.copy()
   let mut effect = input.effect
+  let mut table_effect = input.table_effect
   while self.peek().value == Pipe {
-    if effect is Some(_) {
+    if effect is Some(_) || table_effect is Some(_) {
       raise QueryAbort("EFFECT must be terminal", self.peek().start)
     }
     // Once a set is complete, a following relational operator consumes its
@@ -2191,6 +2243,7 @@ fn QueryParser::pipe_tail(
         sets,
         final_operations,
         effect: None,
+        table_effect: None,
         work: self.work,
       }
       return self.pipe_tail(self.bind_query(producer), cte_body~)
@@ -2209,6 +2262,7 @@ fn QueryParser::pipe_tail(
         sets,
         final_operations,
         effect: None,
+        table_effect: None,
         work: self.work,
       }
       self.spend(operations.length())
@@ -2558,7 +2612,23 @@ fn QueryParser::pipe_tail(
           self.peek().start,
         )
       }
-      effect = Some(self.update_effect_clause())
+      if token_at(self.source, self.index + 2)
+        .map(token => keyword(token, "CREATE"))
+        .unwrap_or(false) {
+        self.keyword("EFFECT")
+        let name = self.name()
+        table_effect = Some(self.table_create_clause(Some(name)))
+      } else {
+        effect = Some(self.update_effect_clause())
+      }
+    } else if self.has("CREATE") {
+      if cte_body {
+        raise QueryAbort(
+          "Table write is not allowed in a declaration body",
+          self.peek().start,
+        )
+      }
+      table_effect = Some(self.table_create_clause(None))
     } else if self.has("INFER") {
       if cte_body {
         raise QueryAbort(
@@ -2595,6 +2665,7 @@ fn QueryParser::pipe_tail(
     sets,
     final_operations,
     effect,
+    table_effect,
     work: self.work,
   }
 }
@@ -2802,6 +2873,27 @@ pub fn terminal_effect(query : Query) -> UpdateEffectClause? {
 }
 
 ///|
+pub fn terminal_table_effect(query : Query) -> TableEffectClause? {
+  query.table_effect.map(clause => { ..clause, target: clause.target.copy(), })
+}
+
+///|
+fn QueryParser::table_create_clause(
+  self : QueryParser,
+  name : NamePart?,
+) -> TableEffectClause raise QueryAbort {
+  self.node()
+  self.keyword("CREATE")
+  let allow_replace = self.has("OR")
+  if allow_replace {
+    self.keyword("OR")
+    self.keyword("REPLACE")
+  }
+  self.keyword("TABLE")
+  { name, target: self.path(), allow_replace, }
+}
+
+///|
 // Preserve the parsed source and expression origins when a checked Model
 // producer is retained before an Effect continuation. This is AST slicing,
 // not reparsing text or constructing another execution language.
@@ -2809,7 +2901,7 @@ pub fn effect_result_continuation(
   query : Query,
   input : NamePart,
 ) -> (Query, Query)? {
-  if query.effect is None ||
+  if (query.effect is None && query.table_effect is None) ||
     !query.sets.is_empty() ||
     !query.final_operations.is_empty() {
     return None
@@ -2823,6 +2915,7 @@ pub fn effect_result_continuation(
           ..query,
           operations: Array::makei(index + 1, i => query.operations[i]),
           effect: None,
+          table_effect: None,
         }
         let tail = {
           ..query,

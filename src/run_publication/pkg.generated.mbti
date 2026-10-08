@@ -1269,7 +1269,6 @@ pub(all) enum PublicationCommitFailureAction {
 
 pub(all) enum PublicationCommitIssuanceIssue {
   CommitIssuanceWrongContract
-  CommitIssuanceEmptyInventory
   CommitIssuanceInventoryMismatch
   CommitIssuanceDuplicateResult(String)
   CommitIssuanceReferenceMismatch(String)
@@ -1324,7 +1323,6 @@ pub(all) enum PublicationIndexObservation {
 
 pub(all) enum PublicationInventoryIssue {
   InvalidProgramDefinitionCid
-  EmptyInventory
   LengthMismatch
   InvalidTask(Int)
   DuplicateResult(String)
@@ -1492,7 +1490,6 @@ pub(all) enum ResultEvidenceSetIssue {
 
 pub(all) enum ResultManifestIssuanceIssue {
   ManifestIssuanceWrongContract
-  ManifestIssuanceEmptyInventory
   ManifestIssuanceInventoryMismatch
   ManifestIssuanceDuplicateResult(String)
   ManifestIssuanceEncoding
@@ -1628,7 +1625,6 @@ pub(all) enum RunReceiptIssuanceIssue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunStateIssue {
-  EmptyDeclaredResults
   InvalidResultName(String)
   DuplicateDeclaredResult(String)
   DuplicateAvailability(String)

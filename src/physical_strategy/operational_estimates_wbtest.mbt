@@ -106,3 +106,26 @@ test "operational missing phase and unsupported diagnostics stay explicit" {
     is Err(_),
   )
 }
+
+///|
+test "operational whole caller reference retains its quantity without granting prediction" {
+  let whole = operational_test_body().replace(
+    old="task-processing",
+    new="run-caller-elapsed",
+  )
+  let reference = operational_test_admit(whole, 1100L).unwrap().references[0]
+  assert_eq(reference.quantity, "run-caller-elapsed")
+  assert_eq(reference.median_ms, Some(2.0))
+  assert_eq(reference.sample_count, 3)
+  assert_true(
+    operational_test_admit(
+      whole.replace(old="run-caller-elapsed", new="predicted-eta"),
+      1100L,
+    )
+    is Err(_),
+  )
+  assert_eq(
+    operational_test_admit(whole, 1600L).unwrap().references[0].unknown_reason,
+    Some("freshness-insufficient"),
+  )
+}

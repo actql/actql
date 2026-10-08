@@ -262,6 +262,24 @@ test('Run reconciliation is distinct from the unchanged Effect action', () => {
   }
 });
 
+test('Effect-only Run state wire keeps approval and reconciliation without public Results', () => {
+  const state = {version: 'actql-run-state/0.1', run_id: 'run-effect',
+    status: 'succeeded', updated_at: '2026-09-24T00:30:00.000Z',
+    next_action: {kind: 'none'}, result_available: false, result_availability: {}};
+  assert.equal(validRunState(state), true);
+  assert.equal(validRunState({...state, result_available: true}), false);
+  assert.equal(validRunState({...state, next_action: {kind: 'read_result', results: ['hidden']}}), false);
+  const checkpoint = {checkpoint_id: 'paused', checkpoint_cid: `sha256:${'c'.repeat(64)}`,
+    kind: 'effect_set'};
+  const waiting = {...state, status: 'waiting_checkpoint', checkpoint,
+    next_action: {kind: 'resolve_checkpoint', checkpoint_id: 'paused'}};
+  assert.equal(validRunState(waiting), true);
+  assert.equal(validRunState({...waiting, next_action: {kind: 'none'}}), false);
+  assert.equal(validRunState({...state, status: 'needs_reconciliation',
+    next_action: {kind: 'reconcile_run', reason: 'execution_unknown'}}), true);
+  assert.equal(validRunState({...state, status: 'needs_reconciliation'}), false);
+});
+
 test('registered Run state guard checks nested availability and action wire',
   () => {
     const at = '2026-09-24T00:30:00.000Z';

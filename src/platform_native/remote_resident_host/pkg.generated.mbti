@@ -35,6 +35,8 @@ import {
 // Values
 pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 
+pub fn begin_resident_output_release(@remote_journal.Journal, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest) -> Result[Unit, ResidentOutputIssue]
+
 pub fn complete_resident_output_intent(@remote_journal.Journal, @publication_payload.PublicationPayloadRequest) -> Result[Unit, ResidentOutputIssue]
 
 pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput, @publication_store.Store, @http_client.Client, @remote_transfer_journal.Journal, String, String, Int, (String) -> Unit) -> ResidentDelivery

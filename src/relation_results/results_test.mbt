@@ -220,6 +220,40 @@ test "missing order and unorderable projected values remain unresolved rather th
 }
 
 ///|
+test "Effect-only Stage inventories do not manufacture a public Result" {
+  let input = pipeline()
+  let checked = @relation_results.check_inventory(input, cursor("{}"), limits()).unwrap()
+  assert_eq(@relation_results.count(checked), 0)
+  assert_true(@relation_results.lookup(checked, "hidden") is None)
+  assert_true(physical_equal(@relation_results.pipeline(checked), input))
+  let used = @relation_results.usage(checked)
+  let exact = {
+    ..limits(),
+    max_results: 0,
+    max_work: used.work,
+    max_nodes: used.nodes,
+    max_text_bytes: used.text_bytes,
+  }
+  assert_true(
+    @relation_results.check_inventory(pipeline(), cursor("{}"), exact) is Ok(_),
+  )
+  assert_true(
+    @relation_results.check_inventory(pipeline(), cursor("[]"), exact) is Err(_),
+  )
+  assert_true(
+    @relation_results.check_inventory(
+      pipeline(),
+      cursor("{\"r\":{}}"),
+      limits(),
+    )
+    is Err(_),
+  )
+  assert_true(
+    @relation_results.check(pipeline(), cursor("{}"), limits()) is Err(_),
+  )
+}
+
+///|
 test "closed result grammar requires from and nonempty unique field names" {
   for
     text in [

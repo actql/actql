@@ -234,3 +234,37 @@ prediction, tenant-local continuous calibration and authorized service resource
 information. No tenant-crossing data/model aggregation is included. There is no
 new release dependency on Cloud, telemetry export or the deferred CI-original
 qualification work.
+
+## Whole-Run Native pilot
+
+`run-caller-elapsed` is separate from `task-processing`. The primary clock
+begins before local profile access and includes invocation preparation, Source
+acquisition, resident preparation/imports, every checked task, independent
+Result readback, confirmed temporary resource release, observation admission
+and original-record persistence. This is a local caller boundary, not public
+Run publication or calibrated ETA. Nested phases are not summed into it.
+
+An initial candidate describes the unstarted suffix. The adaptive Host can
+refresh its feasible set after completion. The pilot matches remaining task
+identity, registration and resident realization in each current projection,
+then uses a new request-bound closed response through common admission/commit.
+It retains full projections, assessments, generation/revision, choices and
+attempt-counter correspondence. Positions have no lasting physical meaning.
+This single-site comparison does not authenticate opaque environment/attempt
+identities or prove a global optimum. An unavailable residual assignment cannot
+be silently substituted and attributed to the initial assignment.
+
+Every presented initial candidate needs three complete compatible comparison
+observations. Later evaluation is independent. Failed, missing, stale or
+incompatible observations remain unknown; candidates are never dropped to
+manufacture a ranking. Existing sidecar/response bounds and Owner checks stay
+in force. The caller may reuse one admitted immutable profile, but cannot cache
+request validity, authority, deadline, reservation or commit results.
+
+Compare ordinary offline selection without profile access against first-use
+and reuse calls under matching correctness and measurement conditions. Report
+profile creation, first-use extra cost and reuse saving separately. Conditional
+recovery counts creation and first-use extra once and assumes observed reuse
+saving continues. Without a positive saving and adequate observations it is
+unknown. Revision or measurement-condition changes require recollection, whose
+cost cannot be silently transferred from an older revision.
