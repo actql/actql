@@ -79,6 +79,8 @@ pub fn prepare_resident_saved_input_cleanup(@remote_journal.Journal, @remote_tra
 
 pub fn prepare_resident_saved_output(@remote_journal.Journal, @execution_site.ExecutionSite, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, String, String, () -> String, () -> Bool) -> Result[ResidentSavedOutput, ResidentHostIssue]
 
+pub fn reclaim_resident_dispatch_output_intents(@remote_journal.Journal, @publication_store.Store, @remote_site_protocol.DispatchRequest) -> Result[Int, ResidentOutputIssue]
+
 pub fn reclaim_resident_output_intents(@remote_journal.Journal, @publication_store.Store) -> Result[Int, ResidentOutputIssue]
 
 pub fn reclaim_resident_payload(@publication_store.Store, @publication_payload.PublicationPayloadRequest) -> Result[Bool, ResidentOutputIssue]
