@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {localOperationalTemplate, bindOperationalTemplate} from './operational-estimates.mjs';
-import {nativeOperationalSchedule, profileDigest, describeObservationOverhead} from './local-performance-profile.mjs';
+import {nativeOperationalSchedule, nativeEmpiricalSchedule, profileDigest, describeObservationOverhead} from './local-performance-profile.mjs';
 const conditions = {host:'native',realization:'resident',captureMode:'metadata-only',runtimeRevision:'r',binaryDigest:'b',inputDigest:'i',programDigest:'p',inputRows:1000,schemaLayout:'text-1024',limitsDigest:'l',instrumentationRevision:'o',measurementScopeRevision:'m',environmentDigest:'e',controlDigest:'c',concurrency:1,processState:'new-process-and-environment',osCache:'uncontrolled',authorizedScope:'local-synthetic-fixture-only; no export/sharing'};
 const projection = ['actql-policy-candidates/0.1','program',0,0,true,[[0,1,0,1,1,[null,['offer']]]]];
 const candidates = {canonical_json:JSON.stringify(projection),cid:profileDigest(JSON.stringify(projection))};
@@ -50,4 +50,32 @@ test('independent binding refuses another snapshot and does not change candidate
   assert.deepEqual(pending,original);assert.equal(before,candidates.canonical_json);
   assert.deepEqual(sidecar.binding,pending);
   assert.throws(()=>bindOperationalTemplate(reference(),{...pending,candidate_set_cid:'other'}),/SnapshotBindingMismatch/);
+});
+
+
+test('empirical schedules separate exposure, intervention and held-out evaluation without replacement', () => {
+  for (const stage of ['comparison','evaluation']) {
+    const schedule=nativeEmpiricalSchedule(stage);
+    assert.equal(schedule.length,6);assert(schedule.every(s=>s.realization==='resident'&&s.mode==='metadata-only'));
+    assert.deepEqual(schedule.map(s=>s.index),[0,1,2,3,4,5]);
+    assert.deepEqual(schedule.map(s=>s.arm),stage==='comparison'
+      ? ['position-0','position-7','position-7','position-0','position-0','position-7']
+      : ['empirical','offline-fallback','offline-fallback','empirical','empirical','offline-fallback']);
+  }
+});
+
+test('same exposed snapshot attributes three independent samples to each position, never pools interventions', () => {
+  const two=structuredClone(projection);two[5].push([7,1,0,1,1,[null,['other-offer']]]);
+  const candidates={canonical_json:JSON.stringify(two),cid:profileDigest(JSON.stringify(two))};
+  const observations=[0,7].flatMap(position=>[0,1,2].map(index=>{
+    const item=sample(index);item.mapping.candidateProjections[0].body=two;item.mapping.choices[0].position=position;
+    item.operatorMeasurements.tasks[0].executionMicroseconds=(position===7?10:20)*1000;
+    return item;
+  }));
+  const template=reference({profile:{profileRevision:'two',report:{observations}},candidates});
+  assert.deepEqual(template.entries.filter(e=>e.quantity==='task-processing').map(e=>[e.position,e.median_ms,e.sample_count]),[[0,20,3],[7,10,3]]);
+  observations[5].mapping.candidateProjections[0].body=projection;
+  const partial=reference({profile:{profileRevision:'two',report:{observations}},candidates});
+  assert.equal(partial.entries.find(e=>e.position===0&&e.quantity==='task-processing').status,'reference');
+  assert.equal(partial.entries.find(e=>e.position===7&&e.quantity==='task-processing').reason,'candidate-attribution-insufficient');
 });
