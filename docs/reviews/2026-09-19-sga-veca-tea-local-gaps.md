@@ -7107,3 +7107,66 @@ normalization and allocation latency remain distinct synchronous boundaries.
 Blocking convenience callers share the algorithm but remain blocking.
 Effectful asynchronous commit, Native/direct, all-target and packed/HTTPS
 acceptance are not established here. This is not whole-Local completion.
+
+### Resumed authoring and Model evidence suffix (2026-10-08)
+
+The computation validation owner now polls authoring identity and each Model
+identity/listed reference, then uses the existing deferred bounded tuple sorter
+for external observation multiset reconciliation. Exact position, multiplicity
+and typed refusal rules remain unchanged. Tuple and sort-index capacity is
+reserved before append. Cancellation retires private hash/sort state without
+mutating borrowed inventories or releasing Store custody.
+
+The [suffix evidence record](2026-10-08-local-bounded-evidence-suffix.md)
+binds common JS 274/274, selected runtime build and Node 11/11 to
+`88e5751b81aba21b29e170679a735cf29c1bd2e5`. The strengthened actual Host
+suffix cancellation case passed 1/1 at
+`a89c992774229434d7e988cb62c71db4dcab1a36`; compiled inputs are identical.
+The normal producer and both consumers retain exact Named Result content and
+order. Positive suffix hash progress precedes abort; no publication, no extra
+Compute and final resource reclamation remain asserted.
+
+Independent private accounting fixes 98 control transitions at quantum 1, 7
+and 64, and 48/47 exact/one-short slots for four Model/External entries.
+Empty evidence, changed identities, reference order, multiplicity and partial
+hash/sort/compare cancellation have separate typed expectations. These are
+not generic physical latency or whole-Compute work guarantees.
+
+The child depends on unmerged #948 and normally adopts main
+`5f8937a511da19648f63b99cf406390019966de0` without overlapping production
+changes. Capture-inventory comparison, issuance preflight/inventories, scalar
+schema checks and normalization remain synchronous boundaries. Blocking APIs
+remain blocking; Effectful asynchronous commit, all-target and packed/HTTPS
+acceptance remain unverified. Historical suffix descriptions are not current
+claims about the newly connected continuation. Whole-Local completion remains
+unproven.
+
+### Resumed captured Result inventories and lookup (2026-10-08)
+
+The common computation evidence owner now polls exact captured Artifact
+comparison through the existing canonical stream, then compares borrowed
+admitted Result-name inventories in bounded UTF-16 fragments. Result lookup
+also retains a name cursor and reuses validated field-inventory positions.
+Missing fields, mismatched content/name sets, row shape and definition binding
+remain checked. Cancellation retires private state without losing Store
+custody or mutating borrowed evidence.
+
+The [capture inventory record](2026-10-08-local-bounded-capture-inventories.md)
+binds common JS 276/276, selected release runtime build and Node 13/13 to clean
+source `9160c1c3666e443b2dc1906d27e2eb872e0fbc56`. Eleven actual retained
+Host cases include normal publication, capture issuance and new cancellation
+during capture-inventory and Result-lookup progress. Producer and both consumer
+Named Results use fixed content and exact order. No publication, extra Compute
+or residual retained resources are accepted after cancellation and cleanup.
+
+Independent private boundaries require 30 control transitions at quantum 1,
+7 and 64, and 2077/2076 exact/one-short slots. Long names retain internal
+fragment offsets; changed Artifact content and name inventories have specific
+typed failures. These quantities do not redefine Compute logical work.
+
+This child retains its unmerged #951/#948 prerequisites and adopts main
+`ce6d529d43292733eaa1b6967fc4571627a4ea5c` without production conflicts.
+The original dependency/Effect-preview preflight remains synchronous, as do
+separate issuance inventories, scalar schema checks and normalization.
+Blocking APIs, allocation latency, Effectful asynchronous commit, all-target,
+packed/HTTPS and hosted CI remain outside this unit's completed evidence.
