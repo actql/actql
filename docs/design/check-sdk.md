@@ -51,6 +51,39 @@ Neither entry estimates parser CPU work from a source span or charges an
 imaginary repeated parse. Source syntax and retention failures keep their
 original typed details, rather than becoming evidence requests.
 
+## Authoring scope and complete template evidence
+
+The scoped common entry selects `TemplateOnly` or `BoundInput` before
+preparation. A supplied binding cursor, including an empty object or null,
+is `BindingsInTemplateScope`, an invalid check request distinct from invalid
+Program input. Bound checking continues the ordinary actual-value constructor.
+
+`TemplateCheckedProgram` is a separate opaque witness. It retains the original
+Program, environment, declaration/reference/wiring owners and compilation
+limits. Completion joins the actual expression and operation obligations,
+Values resource selectors, capacity and result-order application, publication
+candidate selection and interpretation contracts. Declaration use or topology
+success alone cannot construct this witness. Shared prefixes are charged from
+the exact retained owners once; semantic/definition hashes, Values payloads and
+resource metadata use the original cumulative artifact allowance.
+
+Only fully connected static paths produce `Verified` in template scope.
+Unconnected operations, incoming gates, Local/Table inputs, missing resource
+material and exhausted budgets retain the original scope as `Unresolved`.
+These are implementation/preparation limits, not new language restrictions or
+permission to certify a smaller supported fragment. Known independent input
+violations remain rejections with their original typed causes.
+
+Typed execution-value Requirements retain the original Parameter declarations.
+Defaults are admitted by the existing declaration owner; invented values do
+not stand in for missing input. Runtime resource/publication binding and
+enforcement owners remain retained separately. Template verification cannot
+construct executable Units, authorize a Run or Submission, validate runtime
+observations, or trigger automatic execution/resending. Supplementation enters
+a fresh bound-input check and execution still requires an explicit request.
+
+## Bound checking outcomes
+
 The checker distinguishes three outcomes:
 
 - A complete opaque CheckedProgram, constructed only after static closure.
@@ -1404,6 +1437,42 @@ and environment admissions. Preparation traversal, payload and complete-artifact
 metadata retain their separate budgets. This pipeline evidence still does not
 close whole-Program incoming, publication, authority or other static obligations
 and cannot by itself produce a verified template report.
+
+The common scoped entry selects `TemplateOnly` or `BoundInput` before checking.
+Template-only rejects any submitted bindings, including an empty object or
+explicit null, as a check-request issue before Program preparation. The bound
+branch uses the existing full checker with actual supplied values.
+
+Prebinding declaration preparation retains the exact admitted Program,
+CheckEnvironment, Catalog, Source registrations, Stage/Result wiring and
+whole-Program declaration-use inventory. Default admission, pipeline typing and
+unused-declaration decisions come from their existing owners. Preparation work
+includes the Catalog, registration/topology and reference prefixes; no execution
+values are fabricated to advance a missing-value frontier. Definitive input
+violations preserve their original diagnostic cause. Unsupported, budget or
+incomplete static preparation remains an unresolved template frontier. The
+frontier exposes its retained phase evidence separately from complete template
+verification and does not grant execution or resubmission permission.
+
+Resolved producer/publication orders and their pending expression occurrences
+can also be prepared before execution-value binding. The bound context uses
+that same preparation and charges its exact prefix once. Repeated and unused
+producer visits retain distinct sites; neither resolved order nor an empty
+pending-expression inventory certifies complete Program template checking.
+
+For a closed source-free pipeline, authoring capacity preparation applies real
+Values count proofs and the selected capacity policy through the existing
+coverage and context owners. It retains the original order preparation and
+never supplies execution Parameter values. Pipelines with input obligations
+remain explicitly unconnected at this boundary; their scope is not narrowed.
+This capacity owner is separate from Result publication and complete Program
+template verification.
+
+The connected authoring publication phase retains every Result's exact order
+owner, every applicable Program row candidate, and distinct Host row/byte
+ceilings. Candidate search and row-minimum selection use the same functions as
+bound publication. Work or inventory exhaustion returns no partial closure;
+canonical execution-subject binding and enforcement remain separate.
 
 ### Passive operation diagnostic formats
 

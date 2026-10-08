@@ -1137,13 +1137,61 @@ test "pending Output survives holder loss until formal release and retries the s
   let store = open()
   assert_true(reclaim_resident_output_intents(f.journal, store) is Ok(1))
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
-  let record = @journal.recovered_site_dispatch_record(
-    f.journal.observation(f.consumer).unwrap(),
+  let active_revision = @remote.dispatch_record_revision(
+    f.journal.require(f.consumer).unwrap(),
   )
-  f.journal
-  .commit_transition(@remote.prepare_begin_remote_release(record).unwrap())
-  .unwrap()
-  |> ignore
+  assert_true(
+    begin_resident_output_release(f.journal, f.delegation, 2, f.consumer)
+    is Err(OutputForeign),
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    active_revision,
+  )
+  assert_true(
+    begin_resident_output_release(
+      f.journal,
+      { ..f.delegation, grant_cid: cleanup_cid("0"), },
+      1,
+      f.consumer,
+    )
+    is Err(OutputForeign),
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    active_revision,
+  )
+  // A real competing SQLite writer prevents the release intent from committing.
+  let blocker = f.sqlite.open_database(f.journal_path, 1048576L).unwrap()
+  blocker.begin_immediate().unwrap()
+  assert_true(
+    begin_resident_output_release(f.journal, f.delegation, 1, f.consumer)
+    is Err(OutputJournal(_)),
+  )
+  assert_true(reclaim_resident_output_intents(f.journal, store) is Ok(1))
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  blocker.rollback().unwrap()
+  blocker.close_checked().unwrap()
+  begin_resident_output_release(f.journal, f.delegation, 1, f.consumer).unwrap()
+  let releasing = f.journal.require(f.consumer).unwrap()
+  let release_revision = @remote.dispatch_record_revision(releasing)
+  assert_true(@remote.dispatch_record_state(releasing).2 is CleanupReleasing)
+  begin_resident_output_release(f.journal, f.delegation, 1, f.consumer).unwrap()
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    release_revision,
+  )
+  assert_eq(f.journal.pending_output_intents().unwrap().length(), 1)
+  store.close().unwrap() |> ignore
+  f = stopped_cleanup_reopen(f)
+  let store = open()
+  // Holder/controller reconstruction uses the saved release and exact payload.
+  begin_resident_output_release(f.journal, f.delegation, 1, f.consumer).unwrap()
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    release_revision,
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
   let reader = store
     .open_payload_reader(
       @payload.publication_payload_material_identity(payload),

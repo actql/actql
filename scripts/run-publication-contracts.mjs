@@ -255,7 +255,6 @@ export function runStateSchema(previous) {
   };
   const availability = {
     type: 'object',
-    minProperties: 1,
     propertyNames: {minLength: 1},
     additionalProperties: {
       type: 'object',
@@ -364,6 +363,17 @@ export function runStateSchema(previous) {
   state.properties.result_available = {type: 'boolean'};
   state.properties.result_availability = availability;
   state.allOf = previous.allOf.map(rule => clone(rule));
+  const emptyInventory = {
+    if: {required: ['result_availability'],
+      properties: {result_availability: {maxProperties: 0}}},
+    then: {properties: {result_available: {const: false},
+      next_action: {properties: {kind: {enum: [
+        'none', 'resolve_checkpoint', 'reconcile', 'reconcile_run',
+      ]}}}}},
+  };
+  if (!state.allOf.some(rule => isDeepStrictEqual(rule, emptyInventory))) {
+    state.allOf.push(emptyInventory);
+  }
   const reconciliation = state.allOf.find(
     rule => rule.if?.properties?.status?.const === 'needs_reconciliation');
   reconciliation.then.properties.next_action = {oneOf: [
@@ -415,6 +425,7 @@ export function correctedContracts(registry, cli) {
   const effectSourceArtifact = effectSourceArtifactSchema();
   const preview = effectPreviewSchema(next.artifact_schemas.effect_preview);
   const manifest = clone(next.artifact_schemas.result_manifest);
+  delete manifest.properties.results.minProperties;
   manifest.properties.results.additionalProperties = clone(artifact);
   const receipt = clone(next.artifact_schemas.run_receipt);
   receipt.required = [

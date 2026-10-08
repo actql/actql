@@ -111,6 +111,59 @@ fn client_effect_fixture() -> (
 }
 
 ///|
+test "Effect-only compilation retains checked tasks without a public Result root" {
+  let (source, environment, limits) = client_effect_fixture()
+  let document = source
+    .replace(
+      old="\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"value\"]}}",
+      new="\"results\":{}",
+    )
+    .replace(
+      old="\"from\":{\"result\":\"out\"}",
+      new="\"payload\":{\"Name\":1}",
+    )
+    .replace(
+      old="\"results\":{\"published\":{\"from\":{\"stage\":\"source\",\"result\":\"out\"}}}",
+      new="\"results\":{}",
+    )
+  let prepared = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  let graph = @strategy.checked_effect_computation_graph(
+    prepared_client_effect_computation_graph(prepared),
+  )
+  assert_eq(@strategy.graph_result_count(graph), 0)
+  assert_eq(@strategy.graph_task_count(graph), 1)
+  let candidate = prepared_client_effect_computation_candidate(prepared)
+  assert_eq(
+    @syntax.effect_header_count(
+      @checked.effect_program_static_headers(candidate),
+    ),
+    1,
+  )
+  // Binding errors still fail before producing a checked execution graph.
+  assert_true(
+    prepare_client_effect_computation(
+      document.replace(
+        old="mapping:crm.account.v1",
+        new="mapping:crm.absent.v1",
+      ),
+      Json,
+      environment,
+      None,
+      [],
+      limits,
+    )
+    is Err(_),
+  )
+}
+
+///|
 test "Effect compilation shares the checked Values Fragment issuer" {
   let (document, environment, limits) = client_effect_fixture()
   let prepared = prepare_client_effect_computation(
