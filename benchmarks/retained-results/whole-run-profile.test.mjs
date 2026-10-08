@@ -66,3 +66,25 @@ test('normal Host trajectory consumes actual current decisions and rejects unkno
   assert.throws(()=>admitWholeRunTrajectory({stdout:'normal-host-decision:'+JSON.stringify({...decision,selected_position:null})},product),/UnknownNormalHostRanking/);
   assert.throws(()=>admitWholeRunTrajectory({stdout:'normal-host-decision:'+JSON.stringify({...decision,selected_position:12})},product),/NormalDecisionExecutionChanged/);
 });
+
+test('creation cost remains bound to its immutable original and excludes duplicate admission cost', async()=>{
+  const {mkdtemp,writeFile,rm,symlink}=await import('node:fs/promises');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const {loadWholeRunCreationCost}=await import('./whole-run-profile.mjs');
+  const directory=await mkdtemp(join(tmpdir(),'actql-creation-cost-'));
+  const profile={profileRevision:'original',report:{stage:'comparison',creationMs:20}};
+  const receipt={originalDigest:'original',originalAdmissionMs:2,profileCreationMs:22,scope:'campaign plus final admission once'};
+  const path=join(directory,'cost-receipt.json');
+  try {
+    await writeFile(path,JSON.stringify(receipt));
+    assert.equal((await loadWholeRunCreationCost(directory,profile)).profileCreationMs,22);
+    await writeFile(path,JSON.stringify({...receipt,originalDigest:'another-original'}));
+    await assert.rejects(loadWholeRunCreationCost(directory,profile),/WholeRunCreationOriginChanged/);
+    await writeFile(path,JSON.stringify({...receipt,profileCreationMs:24}));
+    await assert.rejects(loadWholeRunCreationCost(directory,profile),/WholeRunCreationOverlap/);
+    await writeFile(join(directory,'target.json'),JSON.stringify(receipt));
+    await rm(path);await symlink('target.json',path);
+    await assert.rejects(loadWholeRunCreationCost(directory,profile));
+  } finally {await rm(directory,{recursive:true,force:true});}
+});
