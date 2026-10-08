@@ -27,6 +27,7 @@ test "Graph row module emits the existing Bridge without fabricated type facts" 
     builder,
     generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
     model_tasks: None,
+    parameter_names: None,
   }
   let steps = []
   let bound = lower_script_graph_rows(
