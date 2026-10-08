@@ -42,6 +42,24 @@ Configuration digest binds scope, limits, filters, correlation, sampler,
 destinations and selected SDK revision. Destination URLs are not stored in the
 journal. One observation connection is installed on one live Host at a time.
 
+Selection and wire configuration remain observation-adapter concerns, not new
+execution authority. The existing MoonBit Owners still decide admissibility,
+attempt identity, accounting, cancellation, publication and cleanup. Operation,
+measurement, correlation and attribute selectors only narrow copied facts.
+Unavailable measurements stay unavailable; no exporter derives logical work or
+usage from spans. Duration selection controls optional metric instruments, not
+the truthful timestamps of the finite span being represented.
+
+The optional Node package can explicitly select standard environment
+configuration. It never overlays an application-owned provider. Generic
+destinations enable traces only; signal-specific settings and exporter choices
+resolve before SDK construction. Authentication headers are bounded transport
+configuration, never observation fields. The managed Resource has a fixed
+default and only three explicitly disclosed standard installation attributes
+may replace or extend it. Read-only inspection reports keys and credential
+presence, not their values. Unsupported configuration files, transports and
+Hosts are explicitly reported instead of creating an implicit pipeline.
+
 ## Restart and missing observations
 
 Optional custody is in the existing Client request database on a separate

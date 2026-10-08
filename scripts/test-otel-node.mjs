@@ -7,6 +7,7 @@ process.exitCode = runFocusedTests('node', [
   'adapters/host-common/observation.test.mjs',
   'adapters/host-node/client-observation-journal.test.mjs',
   'packages/otel-node/configuration.test.mjs',
+  'packages/otel-node/environment.test.mjs',
   'packages/otel-node/transport.test.mjs',
   'packages/otel-node/index.test.mjs',
   'packages/otel-node/public-host.test.mjs',

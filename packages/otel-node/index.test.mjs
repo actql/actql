@@ -4,7 +4,7 @@ import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {createNodeHostObservability} from './index.mjs';
 import {installHostObservation} from '../local-node/adapters/host-common/observation.mjs';
-import {field, assertNoMetricExemplars} from './test/otlp-fixture.mjs';
+import {field, records, attributes, assertNoMetricExemplars} from './test/otlp-fixture.mjs';
 
 const parent = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
 async function collector(t, failure = false) {
@@ -13,6 +13,7 @@ async function collector(t, failure = false) {
     const chunks = [];
     for await (const chunk of request) chunks.push(chunk);
     packets.push({path: request.url, type: request.headers['content-type'],
+      authorization: request.headers.authorization,
       body: Buffer.concat(chunks)});
     if (failure && request.url === '/v1/traces') response.statusCode = 503;
     response.end();
@@ -165,4 +166,75 @@ test('effective inspection is finite and does not disclose destination credentia
   assert.equal(JSON.stringify(effective).includes('collector.invalid'), false);
   assert.equal(adapter.status().signals.traces.sent, 0);
   await adapter.close();
+});
+
+test('selected measurements and disclosed metadata reach every managed wire carrier', async t => {
+  const sink = await collector(t);
+  const adapter = createNodeHostObservability({traces: {endpoint: `${sink.endpoint}/v1/traces`,
+    headers: {authorization: 'Bearer SECRET_SENTINEL'}},
+    metrics: {endpoint: `${sink.endpoint}/v1/metrics`}, logs: {endpoint: `${sink.endpoint}/v1/logs`},
+    operations: {include: ['check', 'compute'], exclude: ['compute']},
+    measurements: {include: []}, correlation: {include: []},
+    attributes: {exclude: ['actql.check.verdict']}, resource: {'service.name': 'user-service'}});
+  const observer = installHostObservation(adapter.connection);
+  t.after(async () => { await observer.close(); await adapter.close(); });
+  await observer.run('check', parent, () => {
+    observer.emit('compute', 'task_completed', {task: 0});
+    observer.emit('check', 'check_completed', {checkVerdict: 'invalid'});
+  });
+  await observer.close();
+  for (const packet of sink.packets) assert.equal(packet.body.includes(Buffer.from('SECRET_SENTINEL')), false);
+  assert.ok(sink.packets.filter(packet => packet.path === '/v1/traces')
+    .every(packet => packet.authorization === 'Bearer SECRET_SENTINEL'));
+  for (const record of records(sink.packets, 'logs')) {
+    assert.equal(attributes(record, 6)['actql.check.verdict'], undefined);
+    assert.equal(field(field(record, 5), 1).toString().includes('task'), false);
+  }
+  for (const span of records(sink.packets, 'traces')) {
+    assert.equal(field(span, 4), undefined);
+    assert.equal(attributes(span, 9)['actql.check.verdict'], undefined);
+  }
+  const names = records(sink.packets, 'metrics').map(metric => field(metric, 1).toString());
+  assert.ok(names.length > 0);
+  assert.ok(names.every(name => name === 'actql.operation.observations'));
+  assert.equal(adapter.configuration().signals.traces.credentialsPresent, true);
+  assert.equal(JSON.stringify(adapter.configuration()).includes('SECRET_SENTINEL'), false);
+  assertNoMetricExemplars(sink.packets);
+});
+
+test('explicit environment setup exports configured signals without a second global provider', async t => {
+  const sink = await collector(t);
+  const keys = ['OTEL_EXPORTER_OTLP_ENDPOINT', 'OTEL_LOGS_EXPORTER', 'OTEL_METRICS_EXPORTER',
+    'OTEL_TRACES_EXPORTER', 'OTEL_TRACES_SAMPLER', 'OTEL_TRACES_SAMPLER_ARG',
+    'OTEL_SDK_DISABLED', 'OTEL_EXPORTER_OTLP_PROTOCOL', 'OTEL_SERVICE_NAME'];
+  const before = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  for (const key of keys) delete process.env[key];
+  t.after(() => {
+    for (const key of keys) {
+      if (before[key] === undefined) delete process.env[key];
+      else process.env[key] = before[key];
+    }
+  });
+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT = sink.endpoint;
+  process.env.OTEL_LOGS_EXPORTER = 'otlp';
+  process.env.OTEL_TRACES_SAMPLER = 'parentbased_traceidratio';
+  process.env.OTEL_TRACES_SAMPLER_ARG = '0';
+  process.env.OTEL_SERVICE_NAME = 'environment-service';
+  const adapter = createNodeHostObservability({environment: true});
+  const observer = installHostObservation(adapter.connection);
+  t.after(async () => { await observer.close(); await adapter.close(); });
+  observer.emit('check', 'check_completed', {checkVerdict: 'verified'});
+  await observer.close();
+  assert.deepEqual([...new Set(sink.packets.map(packet => packet.path))], ['/v1/logs']);
+  assert.equal(adapter.configuration().source, 'environment+explicit');
+  assert.deepEqual(adapter.configuration().resourceAttributes, ['service.name']);
+  assert.equal(sink.packets[0].body.includes(Buffer.from('environment-service')), true);
+  await adapter.close();
+  process.env.OTEL_SDK_DISABLED = 'true';
+  const disabled = createNodeHostObservability({environment: true});
+  const silent = installHostObservation(disabled.connection);
+  silent.emit('check', 'check_completed');
+  await silent.close(); await disabled.close();
+  assert.deepEqual(disabled.status().signals, {});
+  assert.equal(sink.packets.length, 1);
 });

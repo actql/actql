@@ -204,3 +204,21 @@ pass (`run-OJdWoy`). Narrowed selections passed: adapter/public Host 17/17
 (`run-JxqXAU`, `focused-test-KtUX6U`) and HTTPS cancellation 1/1
 (`run-bKk2xJ`, `focused-test-KKOkDQ`). These are dirty-source diagnostics;
 fixed-source verification is recorded separately in PR #971.
+
+## Adopted Node configuration follow-up
+
+An additional design comparison found that the initial explicit-only options
+did not expose the adopted measurement, attribute and correlation selectors or
+the standalone standard environment mechanism. These are connected without
+adding an execution Owner or changing semantic contracts. Only duration is
+available from the current hooks; selecting other registered groups does not
+fabricate usage. Intrinsic span intervals remain unchanged when optional
+duration metrics are disabled. Explicit Resource/authentication configuration
+is bounded, filtered and omitted from inspection values.
+
+The affected five-file diagnostic passed 38/38 (`run-zqLu7m`,
+`focused-test-U9aqeq`), covering selector validation and actual exported wire,
+environment precedence, disable, missing destinations, credentials and bounded
+standard-setting diagnostics. This was a dirty-source diagnostic, not a claim
+against a submitted clean SHA. The environment fixture is included in the
+ordinary OTel CI selection; final verification is recorded in PR #971.

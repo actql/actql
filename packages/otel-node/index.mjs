@@ -4,13 +4,13 @@ import {TracerProvider, ParentBasedSampler, TraceIdRatioBasedSampler} from '@ope
 import {LoggerProvider} from '@opentelemetry/sdk-logs';
 import {MeterProvider, MetricReader, AggregationTemporality} from '@opentelemetry/sdk-metrics';
 import {resourceFromAttributes} from '@opentelemetry/resources';
-import {ATTR_SERVICE_NAME} from '@opentelemetry/semantic-conventions';
 import {createHash} from 'node:crypto';
 import {ProtobufTraceSerializer, ProtobufLogsSerializer,
   ProtobufMetricsSerializer} from '@opentelemetry/otlp-transformer';
 import {createHostObservationConnection} from '@actql/local-node/observation';
 import {observationConfiguration} from './configuration.mjs';
 import {createBoundedOtlpSender} from './transport.mjs';
+import {environmentOptions} from './environment.mjs';
 
 const scope = 'actql.node-host', version = '0.0.0-development';
 const schemaUrl = 'https://opentelemetry.io/schemas/1.43.0';
@@ -26,10 +26,12 @@ class OnDemandReader extends MetricReader {
 
 /** Optional Node adapter. Never registers globals or detects a Resource. */
 export function createNodeHostObservability(options = {}) {
+  const initialized = environmentOptions(options);
+  options = initialized.options;
   const config = observationConfiguration(options);
-  const resource = resourceFromAttributes({[ATTR_SERVICE_NAME]: 'actql.node-host'});
+  const resource = resourceFromAttributes(config.resource);
   const senders = Object.fromEntries(Object.entries(config.signals)
-    .map(([signal, setting]) => [signal, createBoundedOtlpSender(setting.endpoint, config.limits)]));
+    .map(([signal, setting]) => [signal, createBoundedOtlpSender(setting.endpoint, config.limits, setting.headers)]));
   let endedSpan, emittedLog, closed = false, busy = false;
   let deliveryConflicts = 0;
   const empty = async () => {};
@@ -59,20 +61,25 @@ export function createNodeHostObservability(options = {}) {
   const meter = options.metrics === false ? undefined :
     (options.meterProvider ?? ownedMeter)?.getMeter(scope, version, {schemaUrl});
   const counter = meter?.createCounter('actql.operation.observations', {unit: '{observation}'});
-  const duration = meter?.createHistogram('actql.operation.duration', {unit: 's'});
-  const httpDuration = meter?.createHistogram('http.server.request.duration', {unit: 's'});
-  const currentContext = () => trace.getSpanContext(context.active());
+  const projectedConfiguration = createHostObservationConnection({deliver() {},
+    ...config.projection}).configuration();
+  const selectedMeasurements = projectedConfiguration.measurements;
+  const durationEnabled = selectedMeasurements.selected.includes('duration');
+  const duration = durationEnabled ? meter?.createHistogram('actql.operation.duration', {unit: 's'}) : undefined;
+  const httpDuration = durationEnabled ? meter?.createHistogram('http.server.request.duration', {unit: 's'}) : undefined;
+  const currentContext = () => projectedConfiguration.correlations.includes('external_trace')
+    ? trace.getSpanContext(context.active()) : undefined;
   const revision = createHash('sha256').update(JSON.stringify({profile: config.applicationOwned,
     signals: config.signals, limits: config.limits, schemaUrl,
     sdk: '2.12.0/0.223.0', sampler: 'parentbased_traceidratio',
+    resource: config.resource,
     revision: options.revision ?? 'otel-metadata/0.1',
     disabled: ['traces', 'metrics', 'logs'].filter(key => options[key] === false)})).digest('hex');
   const connection = createHostObservationConnection({
+    ...config.projection,
     scope: options.scope ?? 'node', revision,
-    limits: options.projectionLimits,
     include: tracer === undefined && meter === undefined && logger === undefined
-      ? [] : options.include,
-    exclude: options.exclude, correlation: options.correlation,
+      ? [] : config.projection.include,
     currentContext,
     async deliver(record) {
       if (closed) return;
@@ -92,8 +99,9 @@ export function createNodeHostObservability(options = {}) {
           await attempt(async () => {
             endedSpan = undefined;
             const method = record.attributes['http.request.method'];
+            const route = record.attributes['http.route'];
             const span = tracer.startSpan(method === undefined ? `actql.${record.operation}` :
-              `${method} ${record.attributes['http.route']}`, {
+              route === undefined ? method : `${method} ${route}`, {
               kind: method === undefined ? SpanKind.INTERNAL : SpanKind.SERVER, attributes: record.attributes,
               startTime: record.observedAt - (record.durationMs ?? 0),
               links: record.link === undefined ? [] : [{context: {...record.link, isRemote: true}}],
@@ -118,7 +126,7 @@ export function createNodeHostObservability(options = {}) {
         await attempt(async () => {
           counter?.add(1, labels, ROOT_CONTEXT);
           if (record.durationMs !== undefined) duration?.record(record.durationMs / 1000, labels, ROOT_CONTEXT);
-          if (record.durationMs !== undefined && record.attributes['http.request.method'] !== undefined) {
+          if (httpDuration !== undefined && record.durationMs !== undefined && record.attributes['http.request.method'] !== undefined) {
             const httpLabels = Object.fromEntries(['http.request.method', 'http.route',
               'http.response.status_code', 'error.type'].filter(key => record.attributes[key] !== undefined)
               .map(key => [key, record.attributes[key]]));
@@ -152,10 +160,15 @@ export function createNodeHostObservability(options = {}) {
   return Object.freeze({connection, currentContext,
     configuration: () => Object.freeze({host: 'node', transport: 'http/protobuf',
       disclosure: 'metadata-only', ...connection.configuration(),
+      source: initialized.source, diagnostics: Object.freeze([...initialized.diagnostics]),
+      resourceAttributes: Object.freeze(Object.keys(config.resource)),
+      unsupported: Object.freeze(['native-host', 'worker-host', 'grpc', 'http/json',
+        'declarative-file', 'baggage', 'content-capture', 'hosted-multi-tenant']),
       schemaUrl, sdk: '2.12.0/0.223.0',
       signals: Object.freeze(Object.fromEntries(['traces', 'metrics', 'logs'].map(signal =>
         [signal, Object.freeze({enabled: ({traces: tracer, metrics: meter, logs: logger})[signal] !== undefined,
           destination: senders[signal] === undefined ? undefined : 'explicit',
+          credentialsPresent: config.signals[signal]?.headers !== undefined,
           sampler: signal === 'traces' && config.signals.traces !== undefined
             ? 'parentbased_traceidratio' : undefined,
           sampleRate: config.signals[signal]?.sampleRate})]))),

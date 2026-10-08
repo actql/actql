@@ -5,7 +5,7 @@
   "type": "module",
   "engines": {"node": ">=22"},
   "exports": {".": {"types": "./index.d.ts", "default": "./index.mjs"}},
-  "files": ["index.mjs", "index.d.ts", "configuration.mjs", "transport.mjs", "README.md"],
+  "files": ["index.mjs", "index.d.ts", "configuration.mjs", "environment.mjs", "transport.mjs", "README.md"],
   "peerDependencies": {"@actql/local-node": "0.0.0-development"},
   "peerDependenciesMeta": {"@actql/local-node": {"optional": true}},
   "devDependencies": {"@opentelemetry/context-async-hooks": "2.12.0"},

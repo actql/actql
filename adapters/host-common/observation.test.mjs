@@ -177,3 +177,35 @@ test('unknown event content never enters the queue', async () => {
   assert.equal(records.length, 0);
   assert.equal(observer.status().limited, 1);
 });
+
+test('measurement and correlation selections preserve facts while narrowing disclosure', async () => {
+  const records = [];
+  const connection = createHostObservationConnection({deliver: record => records.push(record),
+    measurements: {include: ['duration'], exclude: ['duration']},
+    correlation: {include: ['task']}, attributes: {exclude: ['actql.task.ordinal']}});
+  const observer = installHostObservation(connection, {journal: {observationStorage: () => ({
+    consume: () => ({accepted: true, context: trace}),
+  })}, runId: () => 'original-run'});
+  await observer.run('check', trace, () => observer.emit('compute', 'task_completed',
+    {ref, task: 0, slot: 0, attempt: 1, attemptCid: `sha256:${'c'.repeat(64)}`}, {durationMs: 100}));
+  await observer.close();
+  assert.deepEqual(connection.configuration().measurements.selected, []);
+  assert.deepEqual(connection.configuration().measurements.available, ['duration']);
+  for (const record of records) {
+    if (record.event === 'task_completed') assert.equal(record.durationMs, 100);
+    assert.equal(record.parent, undefined);
+    assert.equal(record.link, undefined);
+    for (const key of ['actql.task.ordinal', 'actql.run.id', 'actql.model.attempt_cid',
+      'actql.model.slot.ordinal', 'actql.attempt.ordinal']) assert.equal(record.attributes[key], undefined);
+  }
+});
+
+test('excluding required metadata suppresses a record instead of emitting a misleading schema', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({
+    attributes: {exclude: ['actql.operation']}, deliver: record => records.push(record)}));
+  assert.equal(await observer.run('check', trace, () => 42), 42);
+  await observer.close();
+  assert.equal(records.length, 0);
+  assert.equal(observer.status().loss.requiredAttributeExcluded, 2);
+});
