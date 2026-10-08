@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {issueInstalledRunControlObservation,
+import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from './run-state-observation.mjs';
 
 const state = Object.freeze({runId: 'run-a',
@@ -11,6 +11,29 @@ const state = Object.freeze({runId: 'run-a',
 const control = Object.freeze({revision: 3, cancellationRequested: true,
   physicallyUnstarted: false, preDispatchFailureConfirmed: false,
   physicalCloseConfirmed: false});
+
+test('installed Run keys marshal absence separately and retain common refusal', () => {
+  const calls = [];
+  const moon = {clientProgramRunObservationKey(...args) {
+    calls.push(args);
+    return undefined;
+  }};
+  for (const [cleanupPending, physicalCloseConfirmed] of [
+    [undefined, undefined], [undefined, false], [false, false],
+    [true, true], [false, true],
+  ]) {
+    assert.equal(issueInstalledRunObservationKey(moon, {
+      outcome: 'running', revision: 7, cleanupPending, physicalCloseConfirmed,
+    }), undefined);
+  }
+  assert.deepEqual(calls, [
+    ['running', 7n, false, false, false, false],
+    ['running', 7n, false, false, false, false],
+    ['running', 7n, true, false, false, false],
+    ['running', 7n, true, true, true, true],
+    ['running', 7n, true, false, true, true],
+  ]);
+});
 
 test('installed Run observations name each physical-control input', () => {
   let stateArgs;
