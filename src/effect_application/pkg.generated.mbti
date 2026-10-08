@@ -167,7 +167,7 @@ pub fn table_operation_cid(TableOperation) -> String
 
 pub fn table_operation_json(TableOperation) -> String
 
-pub fn table_operation_matches_input(TableOperation, @logical_request_scope.LogicalRequestScope, String, String, String, StorageMappingReference, String) -> Bool
+pub fn table_operation_matches_input(TableOperation, @logical_request_scope.LogicalRequestScope, String, String, @carrier_contract.Kind, String, StorageMappingReference, String) -> Bool
 
 // Errors
 
@@ -561,7 +561,8 @@ pub struct TableOperation {
   expected_uuid : String?
   expected_generation_cid : String?
   input_artifact_cid : String
-  input_relation_cid : String
+  input_kind : @carrier_contract.Kind
+  input_carrier_cid : String
   schema_cid : String
   mapping_cid : String
   data_policy_cid : String

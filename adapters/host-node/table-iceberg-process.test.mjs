@@ -8,7 +8,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
+import {createIcebergPhysicalBridge, supportsIcebergTableOperation} from '../connectors/local/host/iceberg-process.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
@@ -27,6 +27,28 @@ const wireValue = value => JSON.parse(JSON.stringify(value));
 
 // Share this exact physical setup with installed read acceptance.
 const fixture = tablePhysicalFixture;
+
+test('Local Table declaration rejects unsupported Carrier operations before physical invocation', () => {
+  const bridge = createIcebergPhysicalBridge({python: pathToFileURL('/not-installed/table-python'),
+    run: 'unsupported-kind', catalog: {database: '/not-created/catalog.db',
+      warehouse: '/not-created/warehouse', catalogCid: cid('3'),
+      limits: {bytes: 1048576, files: 16, operations: 4}}});
+  for (const kind of ['graph', 'vectors', 'events']) {
+    assert.equal(supportsIcebergTableOperation({action: 'create', kind}), false);
+    assert.equal(bridge.supportsOperation({action: 'replace', kind}), false);
+    assert.throws(() => bridge.prepareWrite({operation: {action: 'create',
+      input_carrier: {kind, cid: cid('5')}}, mapping: {}, rows: [],
+      reservation: {bytes: 1024, files: 1}, schemaWire: '{}'}),
+    {code: 'UnsupportedTableCarrierOperation'});
+  }
+  for (const action of ['create', 'replace', 'snapshot_read']) {
+    assert.equal(bridge.supportsOperation({action, kind: 'relation'}), true);
+  }
+  assert.equal(bridge.supportsOperation({action: 'append', kind: 'relation'}), false);
+  assert.throws(() => bridge.prepareWrite({operation: {action: 'create', input_relation_cid: cid('5')},
+    mapping: {}, rows: [], reservation: {bytes: 1024, files: 1}, schemaWire: '{}'}),
+  {code: 'InvalidTableCarrierReference'});
+});
 
 test('Table managed framing rejects malformed material and performs partial I/O exactly', () => {
   const result = spawnSync(fileURLToPath(python), ['-m', 'unittest', '-v', 'process_worker_test'],
@@ -158,7 +180,7 @@ test('lost noncommit reply recovers the original durable fence without resending
   const first = await f.bridge.execute(f.prepare(f.operation(), [{id: 1}]), {useCid: cid('7')});
   const committed = JSON.parse(first.observation.body).result;
   const {request_cid: _, ...body} = f.operation();
-  const preimage = {...body, input_relation_cid: cid('9')};
+  const preimage = {...body, input_carrier: {kind: 'relation', cid: cid('9')}};
   const operation = {...preimage, request_cid: machineCid(preimage)};
   const lost = createIcebergPhysicalBridge({python, run: 'table-run', catalog: f.catalog,
     entry: new URL('../connectors/local/iceberg/fixtures/lost-noncommit-process.py', import.meta.url)});

@@ -101,6 +101,7 @@ pub fn bind_recovered_client_table_preview(
       scope,
       effect_cid,
       @publication.publication_contract_identity(result),
+      @carrier.RelationKind,
       relation,
       mapping,
       policy,

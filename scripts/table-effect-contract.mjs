@@ -35,7 +35,7 @@ export function tableEffectContract() {
       physical_receipt: 'opaque_self_cid_of_connector_validated_original_receipt_retained_with_saved_response',
     },
     semantics: {
-      input: 'one_complete_checked_relation_per_operation_not_per_row',
+      input: 'one_complete_checked_carrier_per_operation_not_per_row_connector_declares_supported_kind',
       create: 'name_absent_at_atomic_publication',
       replace: 'same_table_uuid_exact_expected_generation_same_schema_cid',
       empty: 'typed_empty_table_no_fabricated_row',
@@ -69,7 +69,7 @@ export function tableEffectContract() {
         table_name: text,
         expected_table: nullable(object({table_uuid: uuid, generation_cid: cid})),
         input_artifact_cid: cid,
-        input_relation_cid: cid,
+        input_carrier: object({kind: {enum: ['relation', 'graph', 'vectors', 'events']}, cid}),
         schema_cid: cid,
         storage_mapping_cid: cid,
         data_policy_cid: cid,
@@ -115,6 +115,7 @@ export function tableEffectContract() {
 export function localTablePhysicalContract() {
   return {
     version: 'actql-local-table-iceberg-contract/0.1',
+    operations: {create: ['relation'], replace: ['relation'], snapshot_read: ['relation']},
     identity: {generation: 'sha256_of_exact_published_iceberg_metadata_file_bytes',
       table: 'immutable_iceberg_table_uuid_projected_to_logical_table_identity'},
     presence: {binding: 'sealed_logical_column_to_value_and_companion_iceberg_field_ids',
@@ -167,6 +168,9 @@ export function checkTableOperation(body) {
   }
   assert.equal(body.version, 'actql-table-operation/0.1');
   assert.ok(['create', 'replace'].includes(body.action));
+  assert.deepEqual(Object.keys(body.input_carrier).sort(), ['cid', 'kind']);
+  assert.ok(['relation', 'graph', 'vectors', 'events'].includes(body.input_carrier.kind));
+  assert.match(body.input_carrier.cid, /^sha256:[0-9a-f]{64}$/u);
   assert.ok(Array.isArray(body.namespace) && body.namespace.length > 0 &&
     body.namespace.length <= 16);
   for (const part of [...body.namespace, body.table_name]) {

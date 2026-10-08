@@ -1,5 +1,16 @@
 {
   "version": "actql-local-table-iceberg-contract/0.1",
+  "operations": {
+    "create": [
+      "relation"
+    ],
+    "replace": [
+      "relation"
+    ],
+    "snapshot_read": [
+      "relation"
+    ]
+  },
   "identity": {
     "generation": "sha256_of_exact_published_iceberg_metadata_file_bytes",
     "table": "immutable_iceberg_table_uuid_projected_to_logical_table_identity"

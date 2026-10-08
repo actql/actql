@@ -102,6 +102,7 @@ pub fn bind_client_table_input(
       scope,
       identity.cid,
       client_effect_local_result_artifact_cid(artifact),
+      @carrier.RelationKind,
       relation,
       mapping,
       policy,

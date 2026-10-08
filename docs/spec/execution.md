@@ -2323,16 +2323,26 @@ and coverage evidence without changing ordinary join or inference failures.
 
 ## Catalog-backed Table actions
 
-These provider envelopes define one Relation-wide operation, not record-oriented
-create/update or per-row receipt semantics. Contract admission alone establishes
-neither checked Program execution nor a physical writer installation.
+These provider envelopes define one complete Carrier operation, not record-oriented
+create/update or per-row receipt semantics. The initial captured input consumer
+and Local writer support Relation create/replace only. A logical Carrier
+reference does not declare another kind's writer or grant write authority.
+Contract admission alone establishes neither checked Program execution nor a
+physical writer installation.
 
 <!-- requirement-block: table-actions.binding -->
 A Table operation MUST bind the original logical request scope and checked
 Effect identity, installed Catalog and namespace/name, action, expected Table
-UUID/generation, captured input Artifact and logical Relation, complete schema,
+UUID/generation, captured input Artifact and logical Carrier kind/CID, complete schema,
 storage mapping and data policy. Repeated operations remain distinct even when
 their target and content are equal.
+
+The closed input reference is `input_carrier: {kind, cid}`, with kind `relation`,
+`graph`, `vectors` or `events`. The complete operation identity includes both.
+Input binding matches the checked kind and Connector-validated mapping kind;
+the selected Connector declares its supported operation/kind combinations.
+Unsupported combinations are refused, not flattened into a Relation. The
+retired `input_relation_cid` operation shape has no alias or implicit conversion.
 
 <!-- requirement-block: table-actions.create-precondition table-actions.replace-precondition -->
 Catalog create MUST publish only under a name-absent precondition; whole-table
@@ -2386,11 +2396,11 @@ metadata, presence, staging and uncertain operations; exhaustion rejects new
 commit without deleting live or uncertain data. Initial automatic old-generation
 GC and external writers are unsupported.
 
-<!-- machine-import: ../../spec/contracts/actql-table-effect.json# sha256:4dfdfbd895048d5aec0c947dc9614bcfb085931dafc8eb2cc37a85d4b27537a5 -->
-<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/operation sha256:10b0ef06b14951fb148c84efac69ae2841cd607b8b81f94863cd30169f9f650a -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json# sha256:3f0d1f002e4638e01be25fb37193914e412b9b71ba170756afb89ded860f22fb -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/operation sha256:63acf78ea92c825ad7087ae4cd19e44f85170f25a2427f4a5c3145ce72199cf5 -->
 <!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/receipt sha256:05afe996705f41ca6fa66aa3a0fa2023b9c5e1638d7cf33babbff6d047dc0fb1 -->
 <!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/noncommit_receipt sha256:d9ff33a005f235cde2f6889c5f841f1e1af4a759c1cc0fc7864443781de929de -->
 <!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/storage_mapping sha256:f3536388d44108630672f7b9948ba25e928e8d075132c9b8f051985186891224 -->
-<!-- machine-import: ../../spec/contracts/actql-local-table-iceberg.json# sha256:dd3be000768f1c97dac88f093317e9872e8d5033ef2f16e57fef009f8e1eb9fa -->
+<!-- machine-import: ../../spec/contracts/actql-local-table-iceberg.json# sha256:6702d5387236e077b9d68e06fc182652592e45ffd428110ac71fe871c237796f -->
 <!-- machine-import: ../../spec/contracts/actql-local-table-iceberg.json#/schemas/receipt sha256:353cc74878dc9edbd93b235c0976b922a000f2cb08b96fd69aa6516b49444432 -->
 <!-- machine-import: ../../spec/contracts/actql-local-table-iceberg.json#/schemas/storage_mapping sha256:684261d68d4f3c71d357c3dd32b9cabc25abf2fa72cc125eeedd17ce4bf81dd1 -->

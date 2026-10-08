@@ -5944,7 +5944,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             logical_request_scope_cid: effect.logicalRequestScopeCid(scope),
             effect_identity_cid: identity.identity,
             input_artifact_cid: artifact.identity,
-            input_relation_cid: input.logical_result_cid,
+            input_carrier: {kind: 'relation', cid: input.logical_result_cid},
             schema_cid: input.result_schema_cid,
             storage_mapping_cid: storage.identity,
             data_policy_cid: input.effective_data_policy_cid,
@@ -5978,14 +5978,21 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               artifact, otherIdentity), false);
             assert.throws(() => control.tableInputMatchesSource({...boundTable},
               artifact, identity), {name: 'TypeError'});
-            for (const key of ['input_artifact_cid', 'input_relation_cid',
+            for (const key of ['input_artifact_cid', 'input_carrier',
               'schema_cid', 'storage_mapping_cid', 'data_policy_cid',
               'effect_identity_cid', 'logical_request_scope_cid']) {
-              const foreign = {...operation, [key]: cid('f')};
+              const foreign = {...operation, [key]: key === 'input_carrier'
+                ? {kind: 'relation', cid: cid('f')} : cid('f')};
               foreign.request_cid = canonicalHashWithoutSelf(foreign,
                 'request_cid');
               assert.throws(() => bind(canonicalJson(foreign)),
                 {code: 'MoonBitHostFailure'});
+            }
+            for (const kind of ['graph', 'vectors', 'events']) {
+              const foreign = {...operation, input_carrier: {kind, cid: input.logical_result_cid}};
+              foreign.request_cid = canonicalHashWithoutSelf(foreign, 'request_cid');
+              assert.throws(() => bind(canonicalJson(foreign)), {code: 'MoonBitHostFailure'},
+                'A sealed reference of another kind cannot replace the captured Relation owner');
             }
             assert.throws(() => control.bindTableInput(prepared, inputs, 1,
               artifact, identity, scope, canonicalJson(operation), storage.wire, tableLimits),
@@ -6194,11 +6201,12 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               reorderedCapture, 0), {code: 'MoonBitHostFailure'});
             // Resealing a substituted request does not turn its Preview into
             // the approved exact operation. Test target and input substitutions.
-            for (const key of ['table_name', 'input_relation_cid',
+            for (const key of ['table_name', 'input_carrier',
               'storage_mapping_cid', 'catalog_identity_cid']) {
               const foreign = structuredClone(template);
               const request = foreign.effects[0].changes[0].intended_changes.value;
-              request[key] = key === 'table_name' ? 'elsewhere' : cid('9');
+              request[key] = key === 'table_name' ? 'elsewhere'
+                : key === 'input_carrier' ? {kind: 'relation', cid: cid('9')} : cid('9');
               request.request_cid = canonicalHashWithoutSelf(request, 'request_cid');
               foreign.effects[0].changes[0].target_row_identity = request.request_cid;
               const foreignCapture = bindPreview(foreign).captured;

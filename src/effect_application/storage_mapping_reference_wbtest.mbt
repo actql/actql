@@ -115,11 +115,28 @@ test "Relation Table input cannot bind another Carrier kind through the same map
         scope,
         "sha256:" + "2".repeat(64),
         "sha256:" + "4".repeat(64),
+        @carrier.RelationKind,
         "sha256:" + "5".repeat(64),
         reference,
         "sha256:" + "8".repeat(64),
       ),
       kind == @carrier.RelationKind,
     )
+    let name = match kind {
+      @carrier.RelationKind => "relation"
+      @carrier.GraphKind => "graph"
+      @carrier.VectorsKind => "vectors"
+      @carrier.EventsKind => "events"
+    }
+    let same_kind = admit_table_operation(table_test_reseal(
+      operation_wire.replace(old="\"kind\":\"relation\"", new="\"kind\":\"" + name + "\""),
+      "request_cid",
+    ), 8192, 256, 8).unwrap()
+    assert_true(table_operation_matches_input(
+      same_kind, scope, "sha256:" + "2".repeat(64), "sha256:" + "4".repeat(64),
+      kind, "sha256:" + "5".repeat(64), reference, "sha256:" + "8".repeat(64),
+    ))
+    // This proves shared content correspondence, not a captured input owner,
+    // installed writer, authorization or an implemented Graph/Vector/Event I/O.
   }
 }

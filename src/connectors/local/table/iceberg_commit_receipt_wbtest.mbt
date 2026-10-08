@@ -20,7 +20,7 @@ fn iceberg_test_reseal(wire : String) -> String {
 test "Local physical receipts project independently sealed logical facts without replacing evidence" {
   assert_true(
     iceberg_vector_empty_physical().contains(
-      "sha256:149de5e72a2606adbd663368827a94e5a297aa5105577c8984ed1e97d488290b",
+      "sha256:80734ef46efe6f689a92af8fbddf027bb843f20ed45d6d1184ecf36314e93141",
     ),
   )
   for

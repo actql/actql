@@ -55,7 +55,7 @@ test('create and guarded replace refuse changed binding and mixed preconditions'
   const replace = corpus.cases.find(entry => entry.id === 'replace').body;
   checkTableOperation(replace);
   for (const key of ['effect_identity_cid', 'input_artifact_cid',
-    'input_relation_cid', 'schema_cid', 'storage_mapping_cid', 'data_policy_cid']) {
+    'input_carrier', 'schema_cid', 'storage_mapping_cid', 'data_policy_cid']) {
     assert.throws(() => checkTableOperation({...request,
       [key]: `sha256:${'f'.repeat(64)}`}));
   }
@@ -82,6 +82,27 @@ test('original operation binding does not collapse into name or current head', (
   const contract = read('spec/contracts/actql-table-effect.json');
   assert.equal(contract.semantics.unknown,
     'reconcile_original_operation_no_resend_no_potentially_published_file_cleanup');
+});
+
+test('logical Carrier kinds are identity-bound while Local declares only Relation operations', () => {
+  const identities = new Set();
+  for (const kind of ['relation', 'graph', 'vectors', 'events']) {
+    const operation = reseal({...request, input_carrier: {kind, cid: request.input_carrier.cid}});
+    checkTableOperation(operation);
+    identities.add(operation.request_cid);
+    if (kind !== 'relation') assert.throws(() => checkTableOperation({...operation,
+      input_carrier: request.input_carrier}));
+  }
+  assert.equal(identities.size, 4, 'A CID without its Carrier kind cannot alias another input');
+  for (const input_carrier of [{kind: 'unknown', cid: request.input_carrier.cid},
+    {kind: 'graph'}, {...request.input_carrier, extra: true}]) {
+    assert.throws(() => checkTableOperation(reseal({...request, input_carrier})));
+  }
+  const {input_carrier, ...legacy} = request;
+  assert.throws(() => checkTableOperation(reseal({...legacy, input_relation_cid: input_carrier.cid})),
+    'Actual retired operation shape is refused, not implicitly converted');
+  assert.deepEqual(localTablePhysicalContract().operations,
+    {create: ['relation'], replace: ['relation'], snapshot_read: ['relation']});
 });
 
 // JSON Schema maxLength and common admission count Unicode scalar values.

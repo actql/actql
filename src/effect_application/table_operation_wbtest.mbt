@@ -30,7 +30,8 @@ test "bulk Table operation admits independent create and replace identities" {
   assert_true(replace.replace)
   assert_eq(create.expected_uuid, None)
   assert_eq(replace.expected_generation_cid, Some("sha256:" + "9".repeat(64)))
-  assert_eq(create.input_relation_cid, "sha256:" + "5".repeat(64))
+  assert_eq(create.input_kind, @carrier.RelationKind)
+  assert_eq(create.input_carrier_cid, "sha256:" + "5".repeat(64))
   assert_eq(create.mapping_cid, "sha256:" + "7".repeat(64))
   assert_true(create.cid != replace.cid)
 }
@@ -44,8 +45,8 @@ test "bulk Table operation rejects changed material and mixed action guards" {
   assert_true(admit_table_operation(wire, 8, 256, 8) is Err(InvalidWire))
   assert_true(admit_table_operation(wire, 8192, 0, 8) is Err(InvalidLimits))
   let changed = wire.replace(
-    old="\"input_relation_cid\":\"sha256:" + "5".repeat(64),
-    new="\"input_relation_cid\":\"sha256:" + "f".repeat(64),
+    old="\"cid\":\"sha256:" + "5".repeat(64),
+    new="\"cid\":\"sha256:" + "f".repeat(64),
   )
   assert_true(
     admit_table_operation(changed, 8192, 256, 8) is Err(InvalidIdentity),
@@ -72,6 +73,56 @@ test "bulk Table operation rejects changed material and mixed action guards" {
   assert_true(
     admit_table_operation(empty_namespace, 8192, 256, 8) is Err(InvalidShape),
   )
+}
+
+///|
+test "Table operation binds all Carrier kinds and rejects the retired Relation-only shape" {
+  let wire = table_vector_create()
+  let kinds = [
+    ("relation", @carrier.RelationKind),
+    ("graph", @carrier.GraphKind),
+    ("vectors", @carrier.VectorsKind),
+    ("events", @carrier.EventsKind),
+  ]
+  let identities : Array[String] = []
+  for (name, kind) in kinds {
+    let changed = wire.replace(
+      old="\"kind\":\"relation\"",
+      new="\"kind\":\"" + name + "\"",
+    )
+    let operation = admit_table_operation(
+      table_test_reseal(changed, "request_cid"),
+      8192,
+      256,
+      8,
+    ).unwrap()
+    assert_eq(operation.input_kind, kind)
+    assert_eq(operation.input_carrier_cid, "sha256:" + "5".repeat(64))
+    assert_false(identities.contains(operation.cid))
+    identities.push(operation.cid)
+    if kind != @carrier.RelationKind {
+      assert_true(
+        admit_table_operation(changed, 8192, 256, 8) is Err(InvalidIdentity),
+      )
+    }
+  }
+  let old_shape = table_test_reseal(
+    wire.replace(
+      old="\"input_carrier\":{\"cid\":\"sha256:" +
+        "5".repeat(64) +
+        "\",\"kind\":\"relation\"}",
+      new="\"input_relation_cid\":\"sha256:" + "5".repeat(64) + "\"",
+    ),
+    "request_cid",
+  )
+  assert_true(
+    admit_table_operation(old_shape, 8192, 256, 8) is Err(InvalidShape),
+  )
+  let unknown = table_test_reseal(
+    wire.replace(old="\"kind\":\"relation\"", new="\"kind\":\"unknown\""),
+    "request_cid",
+  )
+  assert_true(admit_table_operation(unknown, 8192, 256, 8) is Err(InvalidShape))
 }
 
 ///|

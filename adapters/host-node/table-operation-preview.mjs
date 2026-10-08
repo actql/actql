@@ -70,7 +70,7 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
       table_name: target.tableName, expected_table: target.expectedTable,
       logical_request_scope_cid: moon.strategyEffectLogicalRequestScopeCid(requestScope),
       effect_identity_cid: identity.identity, input_artifact_cid: artifact.identity,
-      input_relation_cid: source.logical_result_cid, schema_cid: source.result_schema_cid,
+      input_carrier: {kind: 'relation', cid: source.logical_result_cid}, schema_cid: source.result_schema_cid,
       storage_mapping_cid: mapping.identity,
       data_policy_cid: source.effective_data_policy_cid,
     };

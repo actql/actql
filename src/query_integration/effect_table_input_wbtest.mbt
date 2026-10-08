@@ -298,13 +298,13 @@ fn verify_captured_private_table_input(
       @publication_host.client_effect_local_identity_cid(identity) +
       "\",\"expected_table\":null,\"input_artifact_cid\":\"" +
       artifact_cid +
-      "\",\"input_relation_cid\":\"" +
+      "\",\"input_carrier\":{\"cid\":\"" +
       native_publication_cid(
         "{\"sort\":\"relation\",\"value\":" +
         (if empty { "[]" } else { "[{\"value\":1}]" }) +
         "}",
       ) +
-      "\",\"logical_request_scope_cid\":\"" +
+      "\",\"kind\":\"relation\"},\"logical_request_scope_cid\":\"" +
       @request_scope.logical_request_scope_cid(scope) +
       "\",\"namespace\":[\"analytics\"],"
     let suffix = "\"schema_cid\":\"" +

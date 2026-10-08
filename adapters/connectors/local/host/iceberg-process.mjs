@@ -5,6 +5,7 @@
 // managed-process owner; none are taken from an IPC acknowledgement.
 import {isAbsolute} from 'node:path';
 import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {prepareManagedExecution, startManagedExecution} from '../../../host-node/process-channel.mjs';
 import {encodeProcessFrame} from '../../../host-node/process-frames.mjs';
 
@@ -15,6 +16,18 @@ const snapshot = value => JSON.parse(encodeProcessFrame(value, frames).subarray(
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
 const keys = (value, names) => value && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join(',') === names.slice().sort().join(',');
+
+// This is the selected Connector's pinned declaration, not a second registry
+// or authority grant. Its contract bytes are in the installation inventory.
+const operationKinds = JSON.parse(readFileSync(
+  new URL('../../../../spec/contracts/actql-local-table-iceberg.json', import.meta.url), 'utf8')).operations;
+if (!keys(operationKinds, ['create', 'replace', 'snapshot_read']) ||
+    Object.values(operationKinds).some(kinds => !Array.isArray(kinds) ||
+      kinds.length !== 1 || kinds[0] !== 'relation')) fail('InvalidLocalTableOperationDeclaration');
+
+export function supportsIcebergTableOperation({action, kind}) {
+  return Object.hasOwn(operationKinds, action) && operationKinds[action].includes(kind);
+}
 
 // The selected Local installation admits physical fields through its MoonBit
 // contract. Common Table settlement sees only this logical projection; the
@@ -99,6 +112,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     return invoke('reconcile', payload, signal);
   };
   const bridge = Object.freeze({
+    supportsOperation(values) { assertImplementation(); return supportsIcebergTableOperation(values); },
     issueStorageMapping(values) { assertImplementation(); return issueIcebergStorageMapping(values); },
     admitStorageMapping(values) { assertImplementation(); return admitIcebergStorageMapping(values); },
     projectCommitResponse(values) { assertImplementation(); return projectIcebergCommitResponse(values); },
@@ -124,6 +138,11 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       assertImplementation();
       if (typeof schemaWire !== 'string') fail('InvalidTableLogicalSchema');
       const payload = snapshot({operation, mapping, rows, reservation, schema_wire: schemaWire});
+      if (!keys(payload.operation?.input_carrier, ['kind', 'cid']) ||
+          !cid(payload.operation.input_carrier.cid)) fail('InvalidTableCarrierReference');
+      if (!['create', 'replace'].includes(payload.operation.action) ||
+          !supportsIcebergTableOperation({action: payload.operation.action,
+            kind: payload.operation.input_carrier.kind})) fail('UnsupportedTableCarrierOperation');
       if (!cid(payload.operation?.request_cid) || !Array.isArray(payload.rows)) {
         fail('InvalidTablePhysicalPreparation');
       }

@@ -30,11 +30,23 @@ while shared validation, approval and Effect governance remain common.
 `actql-table-operation/0.1` binds the saved logical request scope and Effect
 identity, installed Catalog identity, exact namespace/name, create/replace
 action, expected Table UUID and generation (replace only), captured input
-Artifact and logical Relation, schema, data policy and storage mapping. Its
+Artifact and a closed `input_carrier: {kind, cid}` reference, schema, data policy
+and storage mapping. The reference admits Relation, Graph, Vectors and Events;
+its kind is part of the complete request preimage and must match the checked
+input and Connector-validated mapping. This does not install a writer for every
+kind. The current captured input consumer and Local physical declaration support
+Relation create/replace only; unsupported operation/kind pairs are refused
+before writer invocation and persistent reservation. Its
 `request_cid` excludes only that root self-field. Repeated statements retain
 their distinct checked Effect identities; a table name is not an idempotency
 key. Current authority remains a separate prerequisite, never reconstructed
 from saved values or refreshed by changing the original request.
+
+This pre-v0.1 contract replaces the retired `input_relation_cid` operation
+shape without aliases, implicit conversion or a compatibility reader. Request
+identities and dependent receipts change with the new complete preimage; saved
+operations are not relabelled with new CIDs. Historical evidence remains bound
+to its original source revision.
 
 A Table's UUID is stable through replace. A generation is the content CID of
 the exact immutable Iceberg metadata file published by the Catalog, not a
@@ -58,7 +70,7 @@ including Required/Conditional independently of nullable. Field IDs, not column
 names or positions inferred on reload, bind each logical value column to its
 Iceberg value field and, for Conditional columns, a required boolean companion.
 Companion names use a reserved physical namespace and never overwrite user
-fields. The common issuer selects consecutive IDs in canonical schema order,
+fields. The Local physical issuer selects consecutive IDs in canonical schema order,
 with each companion immediately after its value field. The pinned new-table
 writer verifies Catalog schema assignment against this sealed mapping before
 writing; silently renumbering an approved mapping is not allowed.

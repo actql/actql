@@ -21,7 +21,8 @@ pub struct TableOperation {
   expected_uuid : String?
   expected_generation_cid : String?
   input_artifact_cid : String
-  input_relation_cid : String
+  input_kind : @carrier.Kind
+  input_carrier_cid : String
   schema_cid : String
   mapping_cid : String
   data_policy_cid : String
@@ -140,7 +141,10 @@ pub fn admit_table_operation(
     ledger_cid(value, "effect_identity_cid") is Some(effect_cid) &&
     ledger_cid(value, "catalog_identity_cid") is Some(catalog_cid) &&
     ledger_cid(value, "input_artifact_cid") is Some(input_artifact_cid) &&
-    ledger_cid(value, "input_relation_cid") is Some(input_relation_cid) &&
+    @json.object_field(value, "input_carrier") is Some(input_carrier) &&
+    @json.object_field_count(input_carrier) == Some(2) &&
+    ledger_string(input_carrier, "kind") is Some(input_kind_name) &&
+    ledger_cid(input_carrier, "cid") is Some(input_carrier_cid) &&
     ledger_cid(value, "schema_cid") is Some(schema_cid) &&
     ledger_cid(value, "storage_mapping_cid") is Some(mapping_cid) &&
     ledger_cid(value, "data_policy_cid") is Some(data_policy_cid) &&
@@ -159,6 +163,13 @@ pub fn admit_table_operation(
     }
   }
   let replace = action == "replace"
+  let input_kind = match input_kind_name {
+    "relation" => @carrier.RelationKind
+    "graph" => @carrier.GraphKind
+    "vectors" => @carrier.VectorsKind
+    "events" => @carrier.EventsKind
+    _ => return Err(InvalidShape)
+  }
   let (expected_uuid, expected_generation_cid) = match
     @json.object_field(value, "expected_table") {
     Some(@json.Null) if !replace => (None, None)
@@ -183,7 +194,8 @@ pub fn admit_table_operation(
     expected_uuid,
     expected_generation_cid,
     input_artifact_cid,
-    input_relation_cid,
+    input_kind,
+    input_carrier_cid,
     schema_cid,
     mapping_cid,
     data_policy_cid,

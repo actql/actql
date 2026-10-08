@@ -92,7 +92,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
     !Array.isArray(targets) || targets.length === 0 ||
     typeof authorization?.authorize !== 'function' ||
     !['prepareWrite','execute','inspect','cleanup','status','reconcileOperation',
-      'projectCommitResponse','issueStorageMapping','admitStorageMapping']
+      'projectCommitResponse','issueStorageMapping','admitStorageMapping','supportsOperation']
       .every(name => typeof bridge?.[name] === 'function') ||
     Object.values(limits).some(value => typeof value === 'object'
       ? Object.values(value).some(bound => !positive(bound)) : !positive(value))) {
@@ -114,10 +114,16 @@ export async function createInstalledTableEffect({moon, environmentWire,
       new Set(target.permissions).size !== target.permissions.length || !target.footprint) {
       fail('InvalidInstalledTableTarget');
     }
+    // The current captured input consumer is Relation-only. The selected
+    // Connector declares whether this operation/kind is actually implemented;
+    // admitting an opaque mapping never supplies that capability or authority.
+    if (bridge.supportsOperation({action: target.action, kind: 'relation'}) !== true) {
+      fail('UnsupportedTableCarrierOperation');
+    }
     const capabilityCid = hash({version: 'actql-installed-table-capability/0.1',
       connector_registration: connectorRegistration, connector_revision: connectorRevision,
       runtime_bundle_cid: runtimeBundleCid, binding_cid: bindingCid,
-      connection, target, route: 'single_serial', idempotency: 'unavailable'});
+      connection, target, input_kind: 'relation', route: 'single_serial', idempotency: 'unavailable'});
     return Object.freeze({...target, capabilityCid});
   }));
   if (new Set(installed.map(target => wire([target.effectId, target.mappingRef]))).size !== installed.length) {

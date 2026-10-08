@@ -10,7 +10,7 @@
     "physical_receipt": "opaque_self_cid_of_connector_validated_original_receipt_retained_with_saved_response"
   },
   "semantics": {
-    "input": "one_complete_checked_relation_per_operation_not_per_row",
+    "input": "one_complete_checked_carrier_per_operation_not_per_row_connector_declares_supported_kind",
     "create": "name_absent_at_atomic_publication",
     "replace": "same_table_uuid_exact_expected_generation_same_schema_cid",
     "empty": "typed_empty_table_no_fabricated_row",
@@ -49,7 +49,7 @@
         "table_name",
         "expected_table",
         "input_artifact_cid",
-        "input_relation_cid",
+        "input_carrier",
         "schema_cid",
         "storage_mapping_cid",
         "data_policy_cid",
@@ -121,9 +121,27 @@
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
-        "input_relation_cid": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
+        "input_carrier": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "cid"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "relation",
+                "graph",
+                "vectors",
+                "events"
+              ]
+            },
+            "cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
         },
         "schema_cid": {
           "type": "string",

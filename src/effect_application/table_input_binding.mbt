@@ -6,15 +6,17 @@ pub fn table_operation_matches_input(
   scope : @request_scope.LogicalRequestScope,
   effect_cid : String,
   artifact_cid : String,
-  relation_cid : String,
+  kind : @carrier.Kind,
+  carrier_cid : String,
   mapping : StorageMappingReference,
   data_policy_cid : String,
 ) -> Bool {
-  mapping.kind == @carrier.RelationKind &&
+  value.input_kind == kind &&
+  mapping.kind == kind &&
   value.scope_cid == @request_scope.logical_request_scope_cid(scope) &&
   value.effect_cid == effect_cid &&
   value.input_artifact_cid == artifact_cid &&
-  value.input_relation_cid == relation_cid &&
+  value.input_carrier_cid == carrier_cid &&
   value.schema_cid == mapping.schema_cid &&
   value.mapping_cid == mapping.cid &&
   value.data_policy_cid == data_policy_cid

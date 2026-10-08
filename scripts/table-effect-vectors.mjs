@@ -23,7 +23,7 @@ export function authoredTableVectors() {
     table_name: 'tickets',
     expected_table: null,
     input_artifact_cid: pin('4'),
-    input_relation_cid: pin('5'),
+    input_carrier: {kind: 'relation', cid: pin('5')},
     schema_cid: pin('6'),
     storage_mapping_cid: pin('7'),
     data_policy_cid: pin('8'),

@@ -84,13 +84,22 @@ registering another runtime or execution owner.
 The first installed operations are whole-Relation create, same-schema replace,
 and immutable-generation read. Other Carrier writers, append/update/upsert,
 external Catalogs and compute pushdown are not provided by this installation.
-The shared opaque storage-mapping reference can carry Relation, Graph, Vectors
-or Events kinds; that content reference is not an operation Capability. The
-current Relation input admission and Local physical mapping validator reject
+The shared operation binds `input_carrier: {kind, cid}`, retaining Relation,
+Graph, Vectors and Events as distinct logical kinds even for the same CID.
+The opaque storage-mapping reference must match that checked kind; neither
+content reference is an operation Capability. The pinned Local physical
+contract declares Relation create/replace/snapshot-read support, used by the
+installed operation check and physical preparation before any writer starts.
+The current Relation input admission and Local physical mapping validator reject
 unsupported inputs rather than flattening them or filling absent values.
 Future Connectors must declare and validate their actual operation/kind support
 through the existing installation and Capability owners. Read, write and
 compute authorization remain independent.
+
+This pre-v0.1 operation shape replaces `input_relation_cid`; no compatibility
+reader, conversion, old-profile alias or fallback is provided. Operation and
+dependent receipt identities include the new complete preimage. Evidence for
+retired operations remains at its original revision, not a repinned fixture.
 
 Approval binds the selected registration/revision, runtime bundle,
 installation, connection, target and physical mapping. The Local installation

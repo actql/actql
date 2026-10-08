@@ -41,7 +41,7 @@ export async function tablePhysicalFixture(t, entry) {
     version: 'actql-table-operation/0.1', logical_request_scope_cid: control.logicalRequestScopeCid(scope),
     effect_identity_cid: cid('2'), action, catalog_identity_cid: catalog.catalogCid,
     namespace: ['test'], table_name: suffix, expected_table: expected,
-    input_artifact_cid: cid('4'), input_relation_cid: cid('5'),
+    input_artifact_cid: cid('4'), input_carrier: {kind: 'relation', cid: cid('5')},
     schema_cid: mapping.schema_cid, storage_mapping_cid: mapping.mapping_cid,
     data_policy_cid: cid('6')}, 'request_cid');
   const bridge = createIcebergPhysicalBridge({python, run: 'table-run', catalog, ...(entry ? {entry} : {})});

@@ -8,7 +8,8 @@ import {DatabaseSync} from 'node:sqlite';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {tableFixturePublicationPlan, tableFixtureWriteFootprint} from './fixtures/table-completed-capture.mjs';
-import {issueIcebergStorageMapping, admitIcebergStorageMapping, projectIcebergCommitResponse}
+import {issueIcebergStorageMapping, admitIcebergStorageMapping, projectIcebergCommitResponse,
+  supportsIcebergTableOperation}
   from '../connectors/local/host/iceberg-process.mjs';
 import {recoverCompletedEffectfulComputation, suspendCompletedEffectfulComputation,
   releaseCompletedRunPreparedPayloads, retireCompletedEffectfulCapture}
@@ -33,6 +34,7 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
         const cleanupFailure = new Error('FirstTableCleanupFailure');
         let preparations = 0, cleanupCalls = 0;
         const bridge = {
+          supportsOperation: supportsIcebergTableOperation,
           issueStorageMapping: issueIcebergStorageMapping,
           admitStorageMapping: admitIcebergStorageMapping,
           projectCommitResponse: projectIcebergCommitResponse,
@@ -101,6 +103,7 @@ for (const sparseTableInput of [false, true]) for (const empty of [false,true]) 
         const materials = new WeakMap();
         let cleanupCalls = 0, testCleanup = false, finishCleanup = false;
         const bridge = {
+          supportsOperation: supportsIcebergTableOperation,
           issueStorageMapping: issueIcebergStorageMapping,
           admitStorageMapping: admitIcebergStorageMapping,
           projectCommitResponse: projectIcebergCommitResponse,
@@ -132,6 +135,14 @@ for (const sparseTableInput of [false, true]) for (const empty of [false,true]) 
             material: f.tableLimits, reservation: {bytes: 1048576, files: 16}}};
         await assert.rejects(createInstalledTableEffect({...options,
           targets: [...options.targets, ...options.targets]}), {code: 'DuplicateInstalledTableMapping'});
+        await assert.rejects(createInstalledTableEffect({...options,
+          bridge: {...bridge, supportsOperation: () => false}}),
+        {code: 'UnsupportedTableCarrierOperation'});
+        await assert.rejects(createInstalledTableEffect({...options,
+          bridge: {...bridge, supportsOperation: undefined}}),
+        {code: 'InvalidInstalledTableEffect'});
+        assert.deepEqual(writes, []);
+        assert.deepEqual(inspections, [], 'An absent declared operation cannot start physical I/O');
         const factory = await createInstalledTableEffect(options);
         const identity = moon.clientProgramEffectRequestIdentity(f.prepared, cid('e'), 'table-bind', cid('b'));
         const plan = tableFixturePublicationPlan(f);
