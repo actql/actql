@@ -83,7 +83,7 @@ join          = [ "INNER" | "LEFT", [ "OUTER" ]
               | "CROSS", "JOIN", unnest_source ;
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
-group_clause  = "GROUP", "BY", ( "(", ")" | expression, { ",", expression } ) ;
+group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | expression, { ",", expression } ) ;
 pipe_group_clause = "GROUP", [ "AND", "ORDER" ], "BY", ( "(", ")" | pipe_group_item, { ",", pipe_group_item } ) ;
 pipe_group_item = expression, [ [ "AS" ], identifier ], [ pipe_group_order ] ;
 pipe_group_order = [ "ASC" | "DESC" ], "NULLS", ( "FIRST" | "LAST" )

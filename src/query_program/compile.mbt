@@ -1697,7 +1697,7 @@ fn having_column(
           }
           matched = true
           if projection.aggregate is Some(_) {
-            selected = Some(name.value)
+            selected = resolve([name])
           } else {
             match projection.expression {
               Some(expression) => {
@@ -1784,6 +1784,7 @@ fn compile_steps(
   let mut analytic_input_fields : Array[String]? = None
   let mut analytic_input_scope : JoinChainScope? = None
   let qualify_values : Array[(@query.Expression, String)] = []
+  let sql_group_aggregate_slots : Array[(String, String)] = []
   let having_aggregate_slots : Array[(String, String)] = []
   let order_aggregate_slots : Array[(String, String)] = []
   let mut first = true
@@ -2357,7 +2358,33 @@ fn compile_steps(
         let projections = expanded_replacement_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
-        sql_group_projection = grouping_scope == @query.SqlSelect
+        sql_group_projection = grouping_scope == @query.SqlSelect ||
+          grouping_scope == @query.SqlSelectAll
+        let all = grouping_scope == @query.SqlSelectAll
+        let keys = if all {
+          inferred_group_keys(
+            query,
+            projections,
+            input_visible,
+            input_ranges,
+            path => {
+              if scoped {
+                pipe_slot(
+                  path,
+                  unnest_expression_columns(
+                    input_visible, value_table_receivers,
+                  ),
+                  input_ranges,
+                )
+              } else {
+                resolve_column(path, query, input, input_fields)
+              }
+            },
+            max_work,
+          )
+        } else {
+          keys
+        }
         if sql_group_projection {
           // SQL star names the input row, before grouping removes columns or
           // adds aggregate slots. Every expanded value must still be grouped.
@@ -2389,7 +2416,7 @@ fn compile_steps(
           }
         }
         // Classify against expanded SELECT aggregates, preserving input aliases.
-        let order_calls = if grouping_scope == @query.SqlSelect {
+        let order_calls = if sql_group_projection {
           order_aggregate_calls(
             query, projections, sql_group_selected_projections,
           )
@@ -2400,6 +2427,7 @@ fn compile_steps(
         grouped_keys.clear()
         having_values.clear()
         having_aggregate_slots.clear()
+        sql_group_aggregate_slots.clear()
         order_aggregate_slots.clear()
         // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
         // value can obtain its candidate key from ordinary row DISTINCT.
@@ -2459,23 +2487,29 @@ fn compile_steps(
         let key_names : Array[String] = []
         let key_display_names : Array[String] = []
         let key_aliases = match grouping_scope {
-          SqlSelect => []
+          SqlSelect | SqlSelectAll => []
           PipeAggregate(names, _) => names
         }
         let pipe_embedded = match grouping_scope {
-          SqlSelect => []
+          SqlSelect | SqlSelectAll => []
           PipeAggregate(_, names) => names
         }
         let by : Array[@builder.Node] = []
         for index in 0..<keys.length() {
-          let expression = match
+          // Inferred SELECT expressions already name the input snapshot.
+          // Applying explicit GROUP alias/ordinal resolution would change them.
+          let key = if all {
+            GroupKeyReference::Expression(keys[index])
+          } else {
             resolved_group_key(
               keys[index],
               projections,
               input_visible,
               sql_group_projection,
               ranges=input_ranges,
-            ) {
+            )
+          }
+          let expression = match key {
             Expression(expression) => expression
             StarColumn(column) => {
               key_names.push(column.1)
@@ -2666,10 +2700,7 @@ fn compile_steps(
                   let output_name = if (
                       embedded && active_fields.contains(name)
                     ) ||
-                    (
-                      (embedded || !sql_group_projection) &&
-                      result_fields.contains(name)
-                    ) {
+                    result_fields.contains(name) {
                     pipe_physical_name(
                       order_reserved + result_fields,
                       "aql_select_aggregate_",
@@ -2717,6 +2748,11 @@ fn compile_steps(
                   select_calls.push((call, output_name))
                   output_name
                 }
+              }
+              if sql_group_projection && !embedded {
+                // The SELECT alias may have the same name as a retained key.
+                // The input binding and aggregate result are distinct values.
+                sql_group_aggregate_slots.push((name, slot))
               }
               if embedded && sql_group_projection {
                 // Only parser-owned embedded calls enter SELECT's scalar
@@ -2933,7 +2969,12 @@ fn compile_steps(
         )
         active_fields = result_fields.copy()
         output = result_fields
-        if sql_group_projection && (scoped || !order_calls.is_empty()) {
+        if sql_group_projection &&
+          (
+            scoped ||
+            !order_calls.is_empty() ||
+            sql_group_aggregate_slots.any(entry => entry.0 != entry.1)
+          ) {
           // SQL retains only grouped input bindings until its SELECT. Private
           // JOIN slots stay physical; qualified names are never flattened.
           pipe_visible = input_visible.filter(entry => {
@@ -2941,6 +2982,15 @@ fn compile_steps(
           })
           for entry in aggregates {
             pipe_visible.push((entry.0, entry.0))
+          }
+          for (name, slot) in sql_group_aggregate_slots {
+            pipe_visible = pipe_visible.filter(entry => {
+              !same_name({ value: name, quoted: false, }, {
+                value: entry.0,
+                quoted: false,
+              })
+            })
+            pipe_visible.push((name, slot))
           }
           for (name, _) in order_calls {
             for (logical, slot) in having_aggregate_slots {
@@ -3634,12 +3684,24 @@ fn compile_steps(
             None => {
               if projection.aggregate is Some(_) {
                 let name = projection.name.unwrap().value
-                if !sql_group_projection || !active_fields.contains(name) {
+                let matches = sql_group_aggregate_slots.filter(entry => {
+                  entry.0 == name
+                })
+                if !sql_group_projection ||
+                  matches.length() != 1 ||
+                  !active_fields.contains(matches[0].1) {
                   raise Abort(UnsupportedAggregate)
                 }
+                let slot = matches[0].1
                 names.push(name)
-                bindings.push((name, name))
-                selected.push(construction.text(name))
+                bindings.push((name, slot))
+                selected.push(
+                  if slot == name {
+                    construction.text(slot)
+                  } else {
+                    construction.object([(name, construction.text(slot))])
+                  },
+                )
                 continue
               }
               if projection.analytic is Some(_) {
