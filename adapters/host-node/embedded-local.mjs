@@ -1,3 +1,4 @@
+import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
@@ -156,6 +157,7 @@ async function embeddedInstallationIdentity(root, installation) {
     resolveSourceSecret: installation?.resolveSourceSecret,
     resolveEffectSecret: installation?.resolveEffectSecret,
     registerModelProviders: installation?.registerModelProviders,
+    inferEvidence: installation?.inferEvidence,
     observation: installation?.observation,
     decide: authorization?.decide, observe: authorization?.observe,
     faultInjection: authorization?.faultInjection})});
@@ -189,7 +191,7 @@ function validateValuesMaxRows(value) {
 async function openInstalledHost({root, mode = 'local', beforeDispatch, workspaceId,
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-  modelInstallation, registerModelProviders, resultDataPolicy, hostCapacityPolicy,
+  modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   retainedRelationOutput = false, valuesMaxRows, observation: observationConnection}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
@@ -215,6 +217,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const control = runtimeCore(moon).publicationControl;
   const installedResultDataPolicy = resultDataPolicy === undefined ? undefined :
     control.admitSourceFreeResultPolicy(resultDataPolicy, localContractLimits);
+  const evidenceConfiguration = configureInferEvidence(inferEvidence);
   const modelProviders = installModelProviders(moon, registerModelProviders);
   const inferSelections = new WeakMap();
   const effectSubmissions = new WeakMap();
@@ -1092,7 +1095,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const observed = diagnostic;
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
-    storeAuthorityCid, now, modelController,
+    storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
     faultInjection: authorization?.faultInjection});
   dispatchOwner = installNodeClientDispatchOwner({moon, control,
     journal, store, checkpoints, startRun, hostConnection, beforeDispatch,
@@ -2554,7 +2557,7 @@ export async function openInstalledRemoteHttpHost({directory,
   loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
-  resultDataPolicy, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows, observation}) {
+  resultDataPolicy, inferEvidence, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows, observation}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
@@ -2566,7 +2569,7 @@ export async function openInstalledRemoteHttpHost({directory,
     workspaceId,
     beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-    modelInstallation, registerModelProviders, resultDataPolicy,
+    modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence,
     retainedRelationOutput, hostCapacityPolicy, valuesMaxRows, observation});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
@@ -2684,6 +2687,7 @@ export async function connectEmbeddedLocal(options) {
         modelInstallation: installation?.modelInstallation,
         registerModelProviders: installation?.registerModelProviders,
         resultDataPolicy: installation?.resultDataPolicy,
+        inferEvidence: installation?.inferEvidence,
         hostCapacityPolicy: installation?.hostCapacityPolicy,
         retainedRelationOutput: installation?.retainedRelationOutput,
         observation: installation?.observation,

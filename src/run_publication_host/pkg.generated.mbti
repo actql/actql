@@ -926,6 +926,8 @@ pub fn prepared_client_infer_model_task_cid(PreparedClientProgram, Int) -> Strin
 
 pub fn prepared_client_infer_step(PreparedClientProgram) -> Int?
 
+pub fn prepared_client_infer_target_name(PreparedClientProgram, Int) -> String?
+
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_publication_data_policy_cid(PreparedClientProgram) -> String?
@@ -1003,6 +1005,8 @@ pub fn validate_client_retained_input_transfer_current(ClientRetainedInputProduc
 pub fn validate_client_retained_task_input_current(ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn verify_client_retained_source_cleanup_observation(ClientRetainedSourceCleanup, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, Int, Int, Int, Int64) -> Result[Unit, ClientRetainedTaskInputIssue]
+
+pub fn with_client_infer_result_policy(ClientCompiledRun, String, String, Int, Int, Int) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
 pub fn with_prepared_client_values_row_limit(PreparedClientProgram, Int) -> PreparedClientProgram?
 

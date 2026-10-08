@@ -76,6 +76,33 @@ fn client_infer_metadata_owner(
 }
 
 ///|
+/// A checked occurrence's local name, not a physical task index or row offset.
+pub fn prepared_client_infer_target_name(
+  value : PreparedClientProgram,
+  step : Int,
+) -> String? {
+  guard client_infer_metadata_owner(value, 0, step) is Some(owner) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.payload(node) is @lower.Infer(_) else {
+    return None
+  }
+  // Read metadata from the already checked authored step. Physical lowering
+  // IDs such as step_3 are not the user's explicitly named INFER target.
+  let source = match @decode.open_object(@lower.source(node)) {
+    Ok(source) => source
+    Err(_) => return None
+  }
+  match @decode.lookup(source, "as") {
+    Some(name) =>
+      match @decode.text(name) {
+        Ok(name) => Some(name)
+        Err(_) => None
+      }
+    None => None
+  }
+}
+
+///|
 /// Select the checked Relation owner consumed by the initial source-free
 /// Infer path. Both compilation and execution use this exact selection;
 /// equal source text, row values, or model identities cannot replace it.

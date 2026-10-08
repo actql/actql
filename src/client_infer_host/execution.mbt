@@ -1158,6 +1158,20 @@ pub fn invocation_evidence(
 }
 
 ///|
+pub fn evaluation_request(
+  active : Execution,
+  slot : Int,
+) -> (@model.ModelRequest, @model.ModelPhysicalRequestEvidence)? {
+  if active.reclaimed {
+    return None
+  }
+  match active.model {
+    Some(model) => @model.model_evaluation_request(model, slot)
+    None => None
+  }
+}
+
+///|
 /// Retain an opaque read of the checked model owner, independently of output
 /// readers. Durable persistence and Run publication are not implied.
 pub fn acquire_capture(active : Execution) -> @model.VerifiedModelCapture? {
