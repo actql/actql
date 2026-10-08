@@ -1,0 +1,11 @@
+{
+  "unicode_version": "16.0.0",
+  "ucd_url": "https://www.unicode.org/Public/16.0.0/ucd/",
+  "license": "LICENSE.txt",
+  "operation": "default_full_uppercase",
+  "source_sha256": {
+    "UnicodeData.txt": "ff58e5823bd095166564a006e47d111130813dcf8bf234ef79fa51a870edb48f",
+    "SpecialCasing.txt": "8d5de354eef79f2395a54c9c7dcebbaf3d30fc962d0f85611ea97aa973a0c451",
+    "LICENSE.txt": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+  }
+}

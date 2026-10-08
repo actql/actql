@@ -56,6 +56,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/full-join-scope-source-input.mjs', 'full-join-scope-source-input.mjs'],
   ['scripts/fixtures/star-replace-source-input.mjs', 'star-replace-source-input.mjs'],
   ['scripts/fixtures/qualified-star-source-input.mjs', 'qualified-star-source-input.mjs'],
+  ['scripts/fixtures/upper-source-input.mjs', 'upper-source-input.mjs'],
   ['scripts/fixtures/replace-call-source-input.mjs', 'replace-call-source-input.mjs'],
   ['scripts/fixtures/character-length-source-input.mjs', 'character-length-source-input.mjs'],
   ['scripts/fixtures/select-all-source-input.mjs', 'select-all-source-input.mjs'],
@@ -191,6 +192,9 @@ await writeFile(join(root, 'quickstart.mjs'), quickstart.client);
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+if (process.argv.includes('--upper-only')) {
+  runtimeEnvironment.ACTQL_TEST_UPPER_ONLY = '1';
+}
 if (process.argv.includes('--replace-call-only')) {
   runtimeEnvironment.ACTQL_TEST_REPLACE_CALL_ONLY = '1';
 }
@@ -529,7 +533,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -596,6 +600,7 @@ if (process.argv.includes('--unnest-checked-array-only')) return;
 if (process.argv.includes('--unnest-parameter-path-only')) return;
 if (process.argv.includes('--sqrt-only')) return;
 if (process.argv.includes('--ceiling-only')) return;
+if (process.argv.includes('--upper-only')) return;
 if (process.argv.includes('--unary-plus-only')) return;
 if (process.argv.includes('--qualified-star-only')) return;
 if (process.argv.includes('--right-join-only')) return;

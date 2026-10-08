@@ -28,6 +28,8 @@ pub fn start_utf8_admission(String, Int64) -> Result[Utf8Admission, Utf8Admissio
 
 pub fn unicode_scalar_count(String) -> Int?
 
+pub fn unicode_upper_mapping(Char) -> String?
+
 pub fn utf8_length_within(String, Int) -> Int?
 
 // Errors
