@@ -248,9 +248,13 @@ async function finishCommittedAttempt(
     );
   } catch (error) {
     const current = await store.latestRecordContract(attempt.identity);
-    if (error?.code !== 'PublicationRecordConflict' ||
+    // A competing append can win before the Store checks the transition,
+    // rather than at its final link/CAS. Adopt only the same durable success.
+    if (!['PublicationRecordConflict', 'InvalidPublicationRecordTransition']
+      .includes(error?.code) ||
         control.committedPublicationFinalizationAction(current) !==
-          'finished') {
+          'finished' ||
+        JSON.parse(current.wire).public_index_entry_cid !== index.identity) {
       throw error;
     }
   }

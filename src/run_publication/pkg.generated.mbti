@@ -538,6 +538,8 @@ pub fn publication_contract_json(PublicationContract) -> String
 
 pub fn publication_contract_name(PublicationContract) -> String
 
+pub fn publication_evidence_workspace(Int) -> Int
+
 pub fn publication_finalization_action_code(PublicationFinalizationAction) -> Int
 
 pub fn publication_index_scope_storage_key(String, String, String, Int, Int, Int) -> Result[String, PublicationCommitIssuanceIssue]
