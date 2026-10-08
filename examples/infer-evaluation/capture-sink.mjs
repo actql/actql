@@ -59,7 +59,9 @@ export async function createCaptureSink({directory, destination, authorize,
     catch (error) {if (error.code === 'ENOENT') {pendingRemoval.delete(path); forgetStored(path);} else throw error;}
   }
   async function boundedRead(path, ceiling) {
+    if (pendingHandles.size >= 256) fail('EvaluationBudgetExceeded');
     const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    pendingHandles.add(file);
     try {
       const stat = await file.stat();
       if (!stat.isFile() || stat.size > ceiling) fail('RequiredEvidenceUnavailable');
@@ -72,7 +74,7 @@ export async function createCaptureSink({directory, destination, authorize,
         if (bytesRead === 0) break;
       }
       return new TextDecoder('utf-8', {fatal: true}).decode(bytes.subarray(0, length));
-    } finally {await file.close();}
+    } finally {await file.close(); pendingHandles.delete(file);}
   }
   async function persistImmutable(path, wire, revalidate = async () => {}) {
     const temporary = join(root, `pending-${randomUUID()}`), size = Buffer.byteLength(wire);

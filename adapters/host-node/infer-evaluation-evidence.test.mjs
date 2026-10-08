@@ -50,6 +50,19 @@ test('optional sink failure reports missing Evidence and releases its bounded co
   assert.equal(f.retained[0].cleanupPending(), false);
 });
 
+test('typed output retains missing members and explicit NULL as different values', async () => {
+  let copied;
+  const f = fixture({structuredResponse: {absent: {}, present: {value: null}}, capture: async ({wires}) => {
+    copied = JSON.parse(wires.typedOutput).value;
+    return {status: 'complete', references: {}};
+  }});
+  await projectInferEvidence(f.facts);
+  assert.equal(f.manifests[0].manifest.status, 'complete');
+  assert.deepEqual(copied, {absent: {}, present: {value: null}});
+  assert.equal(Object.hasOwn(copied.absent, 'value'), false);
+  assert.equal(Object.hasOwn(copied.present, 'value'), true);
+});
+
 test('copy exhaustion does not serialize or hand off protected originals', async () => {
   const f = fixture({maxBytes: 1});
   await projectInferEvidence(f.facts);

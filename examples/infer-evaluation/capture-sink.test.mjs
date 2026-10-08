@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, rm, unlink} from 'node:fs/promises';
+import fsPromises, {mkdtemp, rm, unlink} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -175,3 +176,49 @@ test('altered captured output cannot be scored as the original common response',
       deadline: Date.now() + 10000}), {code: 'RequiredEvidenceUnavailable'});
   });
 });
+
+for (const kind of ['original', 'manifest']) {
+  test(`failed ${kind} read close retains its actual handle until cleanup succeeds once`, async t => {
+    const f = await fixture(t);
+    await f.sink.record({subject, target: 'named', manifest: {status: 'complete'}});
+    const originalOpen = fsPromises.open;
+    const name = f.capture.references.typedInput.evidenceRefCid.slice(7);
+    // Match the manifest by its prefix; the product's canonical member order
+    // is irrelevant to this physical close failure.
+    let handle, actualClose, closeCalls = 0, handedOff = 0;
+    fsPromises.open = async (...args) => {
+      const opened = await originalOpen(...args);
+      if (kind === 'original' ? String(args[0]).endsWith(name) :
+          String(args[0]).includes('/manifest-')) {
+        handle = opened;
+        actualClose = opened.close.bind(opened);
+        opened.close = async () => {
+          closeCalls++;
+          if (closeCalls <= 2) throw Object.assign(new Error('read close failed'), {code: 'EIO'});
+          return actualClose();
+        };
+      }
+      return opened;
+    };
+    syncBuiltinESMExports();
+    try {
+      await assert.rejects(kind === 'original' ?
+        f.sink.withEvaluatorEvidence(f.request, () => {handedOff++;}) :
+        f.sink.lookup(subject, 'named'), {code: 'EIO'});
+      assert(handle);
+      assert.equal(handedOff, 0);
+      assert.equal(f.sink.pendingBytes(), 0);
+      assert.equal(f.sink.cleanupPending(), true);
+      await assert.rejects(f.sink.cleanup(), {code: 'EIO'});
+      assert.equal(f.sink.cleanupPending(), true);
+      assert.equal(await f.sink.cleanup(), true);
+      assert.equal(f.sink.cleanupPending(), false);
+      assert.equal(await f.sink.cleanup(), true);
+      assert.equal(closeCalls, 3);
+    } finally {
+      fsPromises.open = originalOpen;
+      syncBuiltinESMExports();
+      if (actualClose && closeCalls < 3) await actualClose().catch(() => {});
+    }
+  });
+}

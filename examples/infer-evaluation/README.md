@@ -61,6 +61,8 @@ retained accounting is reconstructed on reopen. Immutable files are fsynced,
 linked without overwriting, and followed by directory sync. Cleanup failure
 retains its handle/path for retry. Each sink directory has one application owner;
 concurrent external writers are outside this example's guarantee.
+Original and manifest read handles also remain owned until close succeeds;
+failed closes are retried by the same sink cleanup handle.
 
 Embedded user callbacks must settle within their declared finite work. Arbitrary
 callback CPU, networking, or shutdown behavior is application-owned; callbacks
