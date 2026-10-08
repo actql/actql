@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {buildSync} from 'esbuild';
 import {readHostBundles, generateInstallations} from './connector-node-bundles.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -78,10 +79,12 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
   mkdirSync(join(directory, 'scripts'));
   for (const name of ['build-runtime-packages', 'check-owned-contract-versions',
     'local-node-package-inputs', 'connector-node-bundles', 'connector-compute-bundles',
-    'connector-manifest-selection', 'connector-host-bundles',
+    'connector-manifest-selection', 'connector-host-bundles', 'adapter-module-graph',
     ...Object.values(packages).map(item => item.builder)]) {
     copyFileSync(join(root, `scripts/${name}.mjs`), join(directory, `scripts/${name}.mjs`));
   }
+  put(directory, 'adapters/host-common/installed-connector-declaration.mjs',
+    readFileSync(join(root, 'adapters/host-common/installed-connector-declaration.mjs')));
   put(directory, 'adapters/host-common/http-exchange.mjs',
     readFileSync(join(root, 'adapters/host-common/http-exchange.mjs'), 'utf8'));
   for (const entry of readHostBundles(root)) {
@@ -90,6 +93,21 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
       ...[entry.source, entry.effect].filter(Boolean).map(role => role.module), ...entry.assets]) {
       put(directory, path, readFileSync(join(root, path)));
     }
+  }
+  // Implementation inventories now resolve real transitive imports. This
+  // scheduling fixture needs their complete source inputs before generation,
+  // not only the installation entry file. No provider code is executed here;
+  // the independently authored compiled payloads below still test each builder.
+  const fixtureGraph = buildSync({
+    entryPoints: readHostBundles(root).flatMap(entry => [entry.source, entry.effect]
+      .filter(Boolean).map(role => role.module)),
+    bundle: true, packages: 'external', platform: 'node', format: 'esm',
+    metafile: true, write: false, absWorkingDir: root,
+    outdir: join(root, '_build/runtime-preparation-fixture-graph'),
+  });
+  for (const path of Object.keys(fixtureGraph.metafile.inputs)) {
+    assert.ok(!path.startsWith('../') && !path.startsWith('/'));
+    put(directory, path, readFileSync(join(root, path)));
   }
   if (additionalProvider) {
     put(directory, 'src/connectors/third/host-bundle.json', JSON.stringify({installation: {
