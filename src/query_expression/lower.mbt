@@ -191,6 +191,7 @@ fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort 
   match upper(path[0].value) {
     "LENGTH" | "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("len", 1, 1)
     "SQRT" => ("sqrt", 1, 1)
+    "ABS" => ("abs", 1, 1)
     "FLOOR" => ("floor", 1, 1)
     "CEIL" | "CEILING" => ("ceil", 1, 1)
     "LOWER" => ("lower", 1, 1)

@@ -61,6 +61,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/star-replace-source-input.mjs', 'star-replace-source-input.mjs'],
   ['scripts/fixtures/qualified-star-source-input.mjs', 'qualified-star-source-input.mjs'],
   ['scripts/fixtures/upper-source-input.mjs', 'upper-source-input.mjs'],
+  ['scripts/fixtures/abs-source-input.mjs', 'abs-source-input.mjs'],
   ['scripts/fixtures/pipe-distinct-source-input.mjs', 'pipe-distinct-source-input.mjs'],
   ['scripts/fixtures/lower-source-input.mjs', 'lower-source-input.mjs'],
   ['scripts/fixtures/replace-call-source-input.mjs', 'replace-call-source-input.mjs'],
@@ -221,6 +222,9 @@ if (process.argv.includes('--analytic-distinct-frame-only')) {
 }
 if (process.argv.includes('--upper-only')) {
   runtimeEnvironment.ACTQL_TEST_UPPER_ONLY = '1';
+}
+if (process.argv.includes('--abs-only')) {
+  runtimeEnvironment.ACTQL_TEST_ABS_ONLY = '1';
 }
 if (process.argv.includes('--pipe-distinct-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_DISTINCT_ONLY = '1';
@@ -590,7 +594,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -658,6 +662,7 @@ if (process.argv.includes('--unnest-parameter-path-only')) return;
 if (process.argv.includes('--sqrt-only')) return;
 if (process.argv.includes('--ceiling-only')) return;
 if (process.argv.includes('--upper-only')) return;
+if (process.argv.includes('--abs-only')) return;
 if (process.argv.includes('--pipe-distinct-only')) return;
 if (process.argv.includes('--lower-only')) return;
 if (process.argv.includes('--unary-plus-only')) return;
