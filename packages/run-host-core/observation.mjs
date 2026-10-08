@@ -5,7 +5,7 @@ const scopes = new WeakMap(), budgets = new WeakMap();
 const integer = value => Number.isInteger(value) && value >= -2147483648 &&
   value <= 2147483647;
 const fields = ['scopeKey', 'requestKey', 'maxRecords', 'maxBytes',
-  'records', 'bytes', 'lastFact'];
+  'records', 'bytes', 'factHashes'];
 function token(map, value, kind) {
   const handle = Object.freeze({kind});
   map.set(handle, value);
@@ -51,14 +51,15 @@ export function openObservationBudget(scope, requestKey,
     Object.keys(saved).some(key => !fields.includes(key)) ||
     typeof saved.scopeKey !== 'string' || typeof saved.requestKey !== 'string' ||
     ['maxRecords', 'maxBytes', 'records', 'bytes'].some(key => !integer(saved[key])) ||
-    saved.lastFact !== null && typeof saved.lastFact !== 'string')) {
+    !Array.isArray(saved.factHashes) || saved.factHashes.length > 2048 ||
+    saved.factHashes.some(value => typeof value !== 'string'))) {
     throw new TypeError('InvalidObservationBudgetSnapshot');
   }
   const value = checked(owner.clientValuesHostObservationBudget(
     requireToken(scopes, scope), requestKey, maxRecords, maxBytes, freshRequest,
     saved?.scopeKey, saved?.requestKey ?? '', saved?.maxRecords ?? 0,
     saved?.maxBytes ?? 0, saved?.records ?? 0, saved?.bytes ?? 0,
-    saved?.lastFact ?? undefined));
+    saved?.factHashes ?? []));
   return token(budgets, value, 'observation-budget');
 }
 export function chargeObservation(budget, scope, requestKey, recordBytes, fact) {
@@ -74,5 +75,6 @@ export function observationBudgetSnapshot(budget) {
   const values = owner.clientValuesHostObservationBudgetSnapshot(
     requireToken(budgets, budget));
   return Object.freeze(Object.fromEntries(fields.map((key, index) =>
-    [key, values[`_${index}`] ?? null])));
+    [key, key === 'factHashes' ? Object.freeze([...values[`_${index}`]]) :
+      values[`_${index}`]])));
 }
