@@ -158,3 +158,49 @@ Integrated fixture/independent-vector/manifest Node tests passed **12/12**
 (`run-ZrG5LK` / `focused-test-gwVAT7`). No expectation was copied from the
 product failure. Exact integrated-HEAD public execution remains pending until
 the subsequent normal producer and consumer finish.
+
+## Follow-up: property receivers and range aliases
+
+Exact clean `ed9d6896041476c2c3e11219e24f46d4b0ea7de7` subsequently passed normal
+five-package production and 10 normal / 6 refusal cases in each Embedded Local
+and HTTPS (`run-0n22z7`, `public-query-evidence-Hbjy4H`). That historical success
+does not cover the additional counterexample below or a later source revision.
+
+```sql
+SELECT STRING_AGG(DISTINCT (payload).name, '|' ORDER BY payload.name) AS names
+FROM objects AS payload
+```
+
+With input scalar `name = 'outer'` and object `payload.name = 'inner'`, the
+parenthesized receiver denotes the object column, whereas the ORDER reference
+denotes scalar `name` qualified by the range alias. Flattening both ASTs before
+resolving their prefixes incorrectly admits this query. The fixed refusal test
+failed **3/4** before repair (`run-ov52OY` / `focused-test-qmxUEO`). This is a
+compiler-admission defect; no incorrect completed public Result is claimed.
+
+Resolve the actual Reference receiver before appending explicit Property AST
+members. Compare its physical slot and remaining property path. Keep the valid
+control `(payload).name` versus `objects.payload.name`, normally checked, and
+retain the original independent complete Program/row/schema expectations.
+No checker, runtime owner, capacity ceiling or normative identity is changed.
+
+After repair, affected aggregate JS tests passed **25/25** (`run-oqvwch` /
+`focused-test-GWLJfI`), and the public fixture/profile tests passed **11/11**
+(`run-ShJFoH` / `focused-test-mjrJoq`). An intervening test compilation attempt
+omitted a required parser-limits argument (`run-ydQ3RQ` /
+`focused-test-CVnpGV`); it is retained and is not test success. Formatting and
+diff whitespace checks passed. The new typed-parameter refusal joins the normal
+packed corpus: **10 normal / 7 refusal cases per Local/HTTPS**. Its refusal must
+retain zero Run admission and zero source I/O; exact follow-up HEAD production
+and execution are still pending at this evidence commit.
+
+```sh
+node scripts/local-checks.mjs test moon -- --target js \
+  src/query_program/distinct_aggregate_order_test.mbt \
+  src/query_program/aggregate_property_order_test.mbt \
+  src/query_program/aggregate_filter_test.mbt \
+  src/query_program/aggregate_filter_scope_test.mbt
+node scripts/local-checks.mjs test node -- \
+  scripts/distinct-aggregate-order-source-input.test.mjs \
+  scripts/public-query-profiles.test.mjs
+```

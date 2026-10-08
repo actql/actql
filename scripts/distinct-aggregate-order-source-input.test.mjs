@@ -27,6 +27,14 @@ test('DISTINCT aggregate order obligations distinguish multiplicity and input sn
   for (const item of distinctAggregateOrderRefusals) {
     assert.equal(item.expectedCode, 'ClientProgramImplementationLimit');
   }
+  const collision = distinctAggregateOrderRefusals.find(item =>
+    item.name === 'distinct-aggregate-order-refuse-object-range-collision');
+  assert.equal(collision.text, "DATA objects = SELECT id, 'outer' AS name, @payload AS payload FROM records WHERE id > 0; "
+    + "SELECT STRING_AGG(DISTINCT (payload).name, '|' ORDER BY payload.name) AS names FROM objects AS payload");
+  assert.deepEqual(collision.parameterDeclarations, {payload: {type: 'object', nullable: true,
+    fields: {name: {type: 'string', nullable: true}}}});
+  assert.deepEqual(collision.parameters, {payload: {name: 'inner'}});
+  assert.notEqual(collision.parameters.payload.name, 'outer');
   const all = [...distinctAggregateOrderSuccesses, ...distinctAggregateOrderRefusals];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
 });

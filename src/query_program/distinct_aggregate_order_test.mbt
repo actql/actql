@@ -95,3 +95,49 @@ test "DISTINCT order checks computed and property receiver identity" {
     )
   }
 }
+
+///|
+test "DISTINCT order keeps a parenthesized object receiver separate from a range" {
+  let seed = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"name":{"type":"string","nullable":false},"payload":{"type":"object","nullable":false,"fields":{"name":{"type":"string","nullable":false}}}},"rows":[{"name":"outer","payload":{"name":"inner"}}]},"as":"objects"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context : Context = {
+    ..pair_context(),
+    inputs: [
+      {
+        relation: [{ value: "objects", quoted: false, }],
+        name: "objects",
+        source: GeneratedValues(seed),
+        visible_fields: ["name", "payload"],
+        graph_bindings: [],
+      },
+    ],
+  }
+  let text = "SELECT STRING_AGG(DISTINCT (payload).name, '|' ORDER BY payload.name) AS names FROM objects AS payload"
+  assert_true(
+    compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      context,
+      construction_limits(),
+    )
+    is Err(UnsupportedAggregate),
+  )
+  let valid = compile(
+    @query.parse_query(
+      "SELECT STRING_AGG(DISTINCT (payload).name, '|' ORDER BY objects.payload.name) AS names FROM objects",
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(valid, check_environment(), None, check_limits())
+    is Checked(_),
+  )
+}

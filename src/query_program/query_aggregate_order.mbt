@@ -7,7 +7,9 @@ fn aggregate_order_matches_argument(
   order : @query.Expression,
   resolve : (Array[@query.NamePart]) -> String?,
 ) -> Bool {
-  let path = fn(expression : @query.Expression) -> Array[@query.NamePart]? {
+  let identity = fn(
+    expression : @query.Expression,
+  ) -> (String, Array[@query.NamePart])? {
     let mut index = @query.expression_root(expression)
     let suffix : Array[@query.NamePart] = []
     while true {
@@ -18,11 +20,16 @@ fn aggregate_order_matches_argument(
           index = child
         }
         Reference(parts) => {
-          let result = parts.copy()
-          for i = suffix.length() - 1; i >= 0; i = i - 1 {
-            result.push(suffix[i])
+          // Resolve this receiver before appending explicit property nodes.
+          // (payload).name must not become the range-qualified payload.name.
+          guard order_reference_identity(parts, resolve) is Some((slot, length)) else {
+            return None
           }
-          return Some(result)
+          let members = parts[length:].to_owned()
+          for i = suffix.length() - 1; i >= 0; i = i - 1 {
+            members.push(suffix[i])
+          }
+          return Some((slot, members))
         }
         _ => return None
       }
@@ -30,26 +37,18 @@ fn aggregate_order_matches_argument(
       None
     }
   }
-  match (path(argument), path(order)) {
-    (Some(left), Some(right)) =>
-      match
-        (
-          order_reference_identity(left, resolve),
-          order_reference_identity(right, resolve),
-        ) {
-        (Some((a, n)), Some((b, m))) => {
-          if a != b || left.length() - n != right.length() - m {
-            return false
-          }
-          for index in 0..<(left.length() - n) {
-            if !same_name(left[n + index], right[m + index]) {
-              return false
-            }
-          }
-          true
-        }
-        _ => false
+  match (identity(argument), identity(order)) {
+    (Some((a, left)), Some((b, right))) => {
+      if a != b || left.length() != right.length() {
+        return false
       }
+      for index in 0..<left.length() {
+        if !same_name(left[index], right[index]) {
+          return false
+        }
+      }
+      true
+    }
     _ => same_expression(argument, order)
   }
 }
