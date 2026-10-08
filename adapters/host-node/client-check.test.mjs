@@ -919,6 +919,48 @@ for (const [entrance, open] of Object.entries(entrances)) {
     client.assertNoExecution();
   });
 
+  test(`${entrance}: rejected original submission exposes review-required fixes without granting retry`, async t => {
+    const client = await open(t, configurations.denied);
+    // Byte intervals and editor positions are independently counted.
+    for (const [text, bytes, comment, position] of [
+      ['SELECT 1 AS n /*', 16, 14, {line: 0, character: 14}],
+      ['/*😀*/\r\nSELECT 1 AS n /*', 26, 24, {line: 1, character: 14}],
+      ['\ufeffSELECT 1 AS n /*', 19, 17, {line: 0, character: 15}],
+      ['SELECT 1 AS n /* e\u0301😀\r\n', 26, 14, {line: 0, character: 14}],
+    ]) {
+      const original = await client.newSubmission();
+      let error;
+      try {await client.startSource(text, {format: 'sql', submissionRef: original});}
+      catch (cause) {error = cause;}
+      const accepted = sdk.getSubmissionOutcome(error);
+      assert.equal(accepted?.kind, 'not_accepted');
+      const checked = sdk.getSubmissionCheckObservation(error);
+      assert.equal(checked?.report.verdict, 'invalid');
+      const input = sdk.getCheckInput(checked, 'source');
+      assert.equal(input.text, text);
+      assert.equal(checked.report.inputs[0].byte_length, bytes);
+      const fix = {code: 'close_block_comment', applicability: 'requires_review',
+        risk: 'syntax_structure', target: {document_id: 'source', revision: input.revision},
+        edits: [{start_byte: bytes, end_byte: bytes, replacement: '*/'}]};
+      const reason = {code: 'query_lexical_invalid', facts: {issue: 'unterminated_comment'},
+        location: {kind: 'text', document_id: 'source', revision: input.revision,
+          start_byte: comment, end_byte: comment, precision: 'exact'}, fixes: [fix]};
+      assert.deepEqual(checked.report.reasons, [reason]);
+      assert.deepEqual(sdk.getCheckFixes(checked), [fix]);
+      assert.equal(sdk.explainCheckReason(reason).kind, 'known');
+      assert.deepEqual(sdk.resolveCheckTextRange(checked, reason.location).range,
+        {start: position, end: position});
+      assert.equal(sdk.getCheckFixes(structuredClone(checked)), undefined);
+      assert.equal(sdk.resolveCheckTextRange(checked, reason.location,
+        {...input, text: text + '*/'}), undefined);
+      assert.equal(sdk.resolveCheckTextRange(checked,
+        {...reason.location, revision: 'rev:' + '0'.repeat(64)}), undefined);
+      assert.deepEqual(await client.lookupSubmission(original), accepted);
+      assert.equal(sdk.getSubmissionCheckObservation(structuredClone(error)), undefined);
+    }
+    client.assertNoExecution();
+  });
+
   test(`${entrance}: submission checking preserves safe parameter origin beside protected resolution`, async t => {
     const projections = [];
     for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
