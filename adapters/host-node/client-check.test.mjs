@@ -1663,7 +1663,9 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
       // A reporting-capacity fault at the existing producer: even its minimal
       // original binding cannot fit the reserved envelope. No second checker.
       if (reportContextOverflow) args[6] = 'ctx:' + 'x'.repeat(65536);
-      return moon.clientProgramCheckSource(...args);
+      const outcome = moon.clientProgramCheckSource(...args);
+      observations?.producerOutcomes?.push(JSON.parse(outcome));
+      return outcome;
     },
     clientProgramCheckUnavailable: (...args) => {
       if (observations) observations.unavailable++; return moon.clientProgramCheckUnavailable(...args);
@@ -5641,5 +5643,87 @@ for (const entrance of ['local', 'http']) {
     assert.equal(sdk.getCheckInput(checked, 'program'), original);
     client.assertNoExecution();
     assert.deepEqual({modelCalls, effectCalls, resumes}, {modelCalls: 0, effectCalls: 0, resumes: 0});
+  });
+}
+
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: independent reporting failure preserves protected Source equivalence`, async t => {
+    const root = await mkdtemp(join(scratch, `reporting-${entrance}-`));
+    const records = [];
+    const visibility = [
+      ['absent', {}],
+      ['denied', {aliases: [alias], readOutcome: 'deny'}],
+      ['failed-owner', {aliases: [alias], readOutcome: 'allow', closed: true}],
+      ['hidden-inventory', {aliases: [alias, {...alias, name: 'private_other'}], readOutcome: 'deny'}],
+    ];
+    const normalize = outcome => Object.hasOwn(outcome, 'correlation_ref')
+      ? {...outcome, correlation_ref: '<attempt>'} : outcome;
+    for (const reportContextOverflow of [false, true]) {
+      const peers = new Map();
+      for (const [variant, configuration] of visibility) {
+        const observations = {analysis: 0, unavailable: 0, sourceDecisions: 0,
+          authorization: 0, wireOutcomes: [], statuses: [], producerOutcomes: []};
+        const client = await contextClient(t, entrance, sourceEnvironment,
+          {...configuration, observations, reportContextOverflow});
+        for (const invalid of [false, true]) {
+          const outcome = await client.check(query, {kind: 'text', scope: 'bound_input', format: 'sql',
+            parameterDeclarations: declarations,
+            parameters: {minimum: invalid ? 'private-reporting-value' : 20}});
+          // Preserve producer and ingress facts before any oracle can fail.
+          records.push({variant, reportContextOverflow, invalid, outcome,
+            producer: observations.producerOutcomes.at(-1),
+            wire: observations.wireOutcomes.at(-1),
+            counts: {analysis: observations.analysis, unavailable: observations.unavailable,
+              sourceDecisions: observations.sourceDecisions, authorization: observations.authorization},
+            statuses: [...observations.statuses]});
+          await writeFile(join(root, 'observations.json'), JSON.stringify(records), {mode: 0o600});
+          assert.equal(outcome.outcome, reportContextOverflow ? 'failed' : 'completed',
+            '[check-mutation:mixed-reporting-outcome]');
+          assert.deepEqual(observations.producerOutcomes.at(-1), outcome,
+            '[check-mutation:mixed-reporting-producer]');
+          assert.deepEqual(observations.wireOutcomes.at(-1), outcome,
+            '[check-mutation:mixed-reporting-wire]');
+          assert.equal(observations.analysis, invalid ? 2 : 1);
+          assert.equal(observations.unavailable, 0);
+          assert.equal(observations.sourceDecisions, variant === 'absent' ? 0 : invalid ? 2 : 1);
+          assert.equal(observations.authorization, invalid ? 2 : 1);
+          assert.deepEqual(observations.statuses, entrance === 'http'
+            ? Array.from({length: invalid ? 2 : 1}, () => 200) : []);
+          if (reportContextOverflow) {
+            assert.match(outcome.correlation_ref, /^corr:[0-9a-f]{32}$/u);
+            assert.deepEqual(normalize(outcome), {version: 'actql-check-outcome/0.1',
+              reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
+              outcome: 'failed', correlation_ref: '<attempt>', problem: {code: 'check_report_unbounded'}},
+            '[check-mutation:mixed-reporting-boundary]');
+            assert.equal(getCheckInput(outcome, 'source'), undefined);
+            assert.equal(Object.hasOwn(sdk.explainCheckOutcome(outcome), 'report'), false);
+            assert.equal(Object.hasOwn(sdk.explainCheckOutcome(outcome), 'next'), false);
+          } else {
+            assert.equal(outcome.report.verdict, invalid ? 'invalid' : 'undetermined',
+              '[check-mutation:mixed-reporting-verdict]');
+            assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+            assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
+            assert.deepEqual(outcome.report.reasons.map(({location, ...reason}) => reason),
+              invalid ? [{code: 'supplied_value_type_mismatch', facts: {
+                parameter: 'minimum', expected_type: 'number', actual_type: 'string'}}] : [],
+              '[check-mutation:mixed-reporting-reasons]');
+            assert.equal(getCheckInput(outcome, 'source').text, query);
+            if (invalid) {
+              const location = outcome.report.reasons[0].location;
+              assert.equal(location.pointer, '/minimum');
+              assert.equal(resolveCheckLocation(outcome, location).input, getCheckInput(outcome, 'parameters'));
+            }
+          }
+          assert.equal(getCheckInput(structuredClone(outcome), 'source'), undefined);
+          assert.doesNotMatch(JSON.stringify(outcome),
+            /private-reporting-value|private_other|crm\/main|records\.duckdb|AuthorizationGateClosed/u);
+          const first = peers.get(invalid);
+          if (first) assert.deepEqual(normalize(outcome), normalize(first),
+            '[check-mutation:mixed-reporting-disclosure]');
+          else peers.set(invalid, outcome);
+        }
+      }
+    }
   });
 }
