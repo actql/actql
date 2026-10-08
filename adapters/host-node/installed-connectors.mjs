@@ -23,6 +23,8 @@
 // `load` also receives the Host's own `ledgerRoot` and returns the Effect
 // Site hooks (`installed-effect.mjs`).
 import {basename} from 'node:path';
+import {validInstalledEffectIdentityProfile, validInstalledResponseHeaders}
+  from '../host-common/installed-connector-declaration.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new TypeError(code, {cause}), {code});
@@ -36,28 +38,119 @@ function checkEntry(entry) {
       !registrationPattern.test(entry.name) ||
       (entry.source === undefined && entry.effect === undefined) ||
       (entry.source !== undefined && (!entry.source || typeof entry.source !== 'object' ||
+        typeof entry.source.profileVersion !== 'string' ||
         !profileVersionPattern.test(entry.source.profileVersion ?? '') ||
         typeof entry.source.load !== 'function')) ||
       (entry.registration !== undefined && (entry.registration !== entry.name ||
         !text(entry.revision) ||
         !entry.revision.startsWith(`${entry.registration}/`))) ||
+      (entry.revision !== undefined && !text(entry.revision)) ||
       (entry.providerBundle !== undefined &&
-        !/^connectors\/[a-z][a-z0-9_]*\/[a-z][a-z0-9_]*$/u.test(
-          entry.providerBundle)) ||
+        (typeof entry.providerBundle !== 'string' ||
+          !/^connectors\/[a-z][a-z0-9_]*\/[a-z][a-z0-9_]*$/u.test(
+            entry.providerBundle))) ||
       (entry.responseHeaders !== undefined &&
-        !Array.isArray(entry.responseHeaders)) ||
+        !validInstalledResponseHeaders(entry.responseHeaders)) ||
       (entry.implementationFiles !== undefined && (!Array.isArray(entry.implementationFiles) ||
         entry.implementationFiles.length < 1 || entry.implementationFiles.length > 128 ||
         new Set(entry.implementationFiles.map(file => file?.path)).size !== entry.implementationFiles.length ||
         entry.implementationFiles.some(file => typeof file?.path !== 'string' || typeof file.href !== 'string'))) ||
       (entry.effect !== undefined && (!entry.effect ||
         typeof entry.effect !== 'object' ||
+        typeof entry.effect.profileVersion !== 'string' ||
         !profileVersionPattern.test(entry.effect.profileVersion ?? '') ||
         entry.effect.profileVersion === entry.source?.profileVersion ||
+        (entry.effect.identityProfile !== undefined &&
+          !validInstalledEffectIdentityProfile(entry.effect.identityProfile)) ||
         typeof entry.effect.load !== 'function'))) {
     fail('InvalidInstalledConnectorEntry');
   }
   return entry;
+}
+
+// Handles and admitted entries carry owner-held provenance, not an exposed
+// Map or a structural marker that caller data can copy.
+const connectorTables = new WeakMap();
+const connectorTableEntries = new WeakSet();
+
+function snapshotRole(section, role) {
+  if (section === undefined) return undefined;
+  if (!section || typeof section !== 'object' || Array.isArray(section)) {
+    fail('InvalidInstalledConnectorEntry');
+  }
+  const {profileVersion, load} = section;
+  const identityProfile = role === 'effect' ? section.identityProfile : undefined;
+  if (identityProfile !== undefined && (!identityProfile ||
+      typeof identityProfile !== 'object' || Array.isArray(identityProfile))) {
+    fail('InvalidInstalledConnectorEntry');
+  }
+  return Object.freeze({profileVersion, load,
+    ...(identityProfile === undefined ? {} :
+      {identityProfile: Object.freeze({...identityProfile})})});
+}
+
+function snapshotEntry(entry) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    fail('InvalidInstalledConnectorEntry');
+  }
+  const {name, registration, revision, providerBundle, responseHeaders, implementationFiles,
+    source, effect} = entry;
+  if (responseHeaders !== undefined && !Array.isArray(responseHeaders)) {
+    fail('InvalidInstalledConnectorEntry');
+  }
+  if (implementationFiles !== undefined && (!Array.isArray(implementationFiles) ||
+      implementationFiles.some(file => !file || typeof file !== 'object' || Array.isArray(file)))) {
+    fail('InvalidInstalledConnectorEntry');
+  }
+  const snapshot = {
+    name,
+    ...(registration === undefined ? {} : {registration}),
+    ...(revision === undefined ? {} : {revision}),
+    ...(providerBundle === undefined ? {} : {providerBundle}),
+    ...(responseHeaders === undefined ? {} :
+      {responseHeaders: Object.freeze([...responseHeaders])}),
+    ...(implementationFiles === undefined ? {} :
+      {implementationFiles: Object.freeze(implementationFiles.map(file =>
+        Object.freeze({path: file.path, href: file.href})))}),
+    ...(source === undefined ? {} : {source: snapshotRole(source, 'source')}),
+    ...(effect === undefined ? {} : {effect: snapshotRole(effect, 'effect')}),
+  };
+  return Object.freeze(checkEntry(snapshot));
+}
+
+// Trusted Host bootstrap code chooses this complete, process-local table.
+// Copy and validate every declaration before returning; loader references
+// remain lazy. This handle provides neither durable identity nor authority.
+export function createInstalledConnectorTable(entries) {
+  if (!Array.isArray(entries)) fail('InvalidInstalledConnectorEntry');
+  const snapshots = entries.map(snapshotEntry);
+  const source = installedConnectorTable(snapshots);
+  const effect = installedEffectTable(snapshots);
+  const handle = Object.freeze({});
+  connectorTables.set(handle, {source, effect});
+  for (const entry of snapshots) connectorTableEntries.add(entry);
+  return handle;
+}
+
+export function assertInstalledConnectorTable(handle) {
+  if (!connectorTables.has(handle)) fail('InvalidInstalledConnectorTable');
+  return handle;
+}
+
+export function installedConnectorForTable(handle, role, profile,
+  code = role === 'effect' ? 'InvalidInstalledEffectProfile' :
+    'InvalidInstalledSourceProfile') {
+  const table = connectorTables.get(assertInstalledConnectorTable(handle));
+  if (role !== 'source' && role !== 'effect') {
+    fail('InvalidInstalledConnectorRole');
+  }
+  return installedConnectorFor(table[role], profile, code);
+}
+
+// Only the table owner can admit an entry; frozen caller objects and copies
+// of admitted entries cannot supply an Effect identity profile.
+export function isInstalledConnectorTableEntry(entry) {
+  return connectorTableEntries.has(entry);
 }
 
 // The table by installed Effect profile version, over the entries that

@@ -5,6 +5,28 @@
 compiler and runtime, and the built-in Local Host adapters.
 Connected Remote mode imports only the lightweight SDK path.
 
+Trusted Host bootstrap code can create a complete, process-local installation
+table with `createInstalledConnectorTable(entries)` from `@actql/local-node`.
+Pass its opaque handle as `installation.connectorTable` to an embedded Client,
+or as `connectorTable` to the HTTP Host and `publishSource`/`publishEffect`.
+Use the same handle for publication and Host startup. Entries retain the existing
+Source/Effect profile schema, registration, revision, provider bundle and lazy
+module-loader declarations. Construction snapshots these declarations without
+loading modules, resolving secrets or contacting providers.
+
+An explicit table has no implicit built-in fallback; an empty table supports
+source-free Values. Duplicate profile versions within one role are rejected.
+Different tables may select different implementations of the same profile
+schema. Clients sharing an open embedded root must supply the identical table
+handle; another handle refuses with `InstalledHostConfigurationMismatch`.
+Separate roots can use different tables. Omitting the option preserves the
+generated default installation and lazy optional DuckDB behavior.
+
+This table snapshots loader references and metadata, not executable file or
+closure contents. It does not issue durable Connector Set identity, retain old
+artifact bytes, or activate a Workspace revision. Those require the artifact
+and Set lifecycle owners; serializing or copying a handle cannot recreate it.
+
 Each embedded Client holds a private lease on the compatible installed Host.
 `await client.close()` seals that Client, disposes its readers, then releases
 the lease. Other Clients retain their own leases. The final close stops new
