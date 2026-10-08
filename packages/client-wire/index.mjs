@@ -14,7 +14,7 @@ import {clientHostOperations, clientHostRequestKeys,
   validRunRefShape, validRunStateShape, validCheckOutcomeShape,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 import {validSubmissionEpochShape, validSubmissionRefShape,
-  validSubmissionOutcomeShape, validSubmissionLookupShape} from './client-host.generated.js';
+  validSubmissionOutcomeShape, validSubmissionLookupShape, validSubmissionRestartShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 // Legacy JSON/YAML spellings remain accepted by the transport Client. The
 // named spellings select the corresponding installed source frontend.
@@ -135,9 +135,23 @@ export function sameSubmissionRef(left, right) {
       'notBefore', 'expiresAt', 'authenticator'].every(key => left.epoch[key] === right.epoch[key]);
 }
 
+export function validSubmissionRestart(value, fresh) {
+  return validSubmissionRestartShape(value) && validSubmissionRef(value.submissionRef) &&
+    validSubmissionRef(fresh) &&
+    value.submissionRef.epoch.authorityScopeCid === fresh.epoch.authorityScopeCid &&
+    value.submissionRef.epoch.expiresAt < fresh.epoch.expiresAt;
+}
+
+function restartMatches(actual, expected) {
+  if (actual === undefined || expected === undefined) return actual === expected;
+  return actual.acknowledgement === expected.acknowledgement &&
+    sameSubmissionRef(actual.submissionRef, expected.submissionRef);
+}
+
 function submissionFactsMatch(value, expected, intentCid) {
   if (!sameSubmissionRef(value.submissionRef, expected) ||
-      intentCid !== undefined && value.intentCid !== intentCid) return false;
+      intentCid !== undefined && value.intentCid !== intentCid ||
+      value.unresolvedHistory !== undefined && !validSubmissionRestart(value.unresolvedHistory, expected)) return false;
   if (value.kind === 'ready') return value.admission.ref.authorityScopeCid === expected.epoch.authorityScopeCid;
   if (value.kind === 'held') return validHeldRequest(value.held, expected.nonce);
   return true;
@@ -151,8 +165,9 @@ export function validStoredSubmissionOutcome(value, expected, intentCid) {
     (value.kind !== 'ready' || value.admission.durability === 'durable');
 }
 
-export function validSubmissionOutcome(value, selected, expected, intentCid) {
+export function validSubmissionOutcome(value, selected, expected, intentCid, unresolvedHistory) {
   return validSubmissionOutcomeShape(value) &&
+    (arguments.length < 5 || restartMatches(value.unresolvedHistory, unresolvedHistory)) &&
     submissionFactsMatch(value, expected, intentCid) &&
     (value.kind !== 'ready' || validClientAdmission(value.admission, selected)) &&
     (value.kind !== 'held' || validSubmitReply(value.held, selected, expected.nonce));
@@ -246,8 +261,9 @@ export function validClientBody(operation, body) {
   if (bodyKeys === undefined || !exact(body, bodyKeys) ||
       !validClientConnection(body.connection)) return false;
   if (operation === 'connect') return true;
-  if (operation === 'submit-intent') {
+  if (operation === 'submit-intent' || operation === 'restart-intent') {
     if (!validSubmissionRef(body.submissionRef) || !cid.test(body.intentCid)) return false;
+    if (operation === 'restart-intent' && !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) return false;
     return validClientBody('submit', {connection: body.connection,
       requestId: body.submissionRef.nonce, kind: body.kind,
       input: body.input, parameters: body.parameters}) &&

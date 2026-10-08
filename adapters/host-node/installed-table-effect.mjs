@@ -91,7 +91,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
     ![runtimeBundleCid, bindingCid, catalogCid].every(cid) ||
     !Array.isArray(targets) || targets.length === 0 ||
     typeof authorization?.authorize !== 'function' ||
-    !['prepareWrite','execute','inspect','cleanup','status','reconcileOperation']
+    !['prepareWrite','execute','inspect','cleanup','status','reconcileOperation',
+      'projectCommitResponse','issueStorageMapping','admitStorageMapping','supportsOperation']
       .every(name => typeof bridge?.[name] === 'function') ||
     Object.values(limits).some(value => typeof value === 'object'
       ? Object.values(value).some(bound => !positive(bound)) : !positive(value))) {
@@ -113,10 +114,16 @@ export async function createInstalledTableEffect({moon, environmentWire,
       new Set(target.permissions).size !== target.permissions.length || !target.footprint) {
       fail('InvalidInstalledTableTarget');
     }
+    // The current captured input consumer is Relation-only. The selected
+    // Connector declares whether this operation/kind is actually implemented;
+    // admitting an opaque mapping never supplies that capability or authority.
+    if (bridge.supportsOperation({action: target.action, kind: 'relation'}) !== true) {
+      fail('UnsupportedTableCarrierOperation');
+    }
     const capabilityCid = hash({version: 'actql-installed-table-capability/0.1',
       connector_registration: connectorRegistration, connector_revision: connectorRevision,
       runtime_bundle_cid: runtimeBundleCid, binding_cid: bindingCid,
-      connection, target, route: 'single_serial', idempotency: 'unavailable'});
+      connection, target, input_kind: 'relation', route: 'single_serial', idempotency: 'unavailable'});
     return Object.freeze({...target, capabilityCid});
   }));
   if (new Set(installed.map(target => wire([target.effectId, target.mappingRef]))).size !== installed.length) {
@@ -291,11 +298,11 @@ export async function createInstalledTableEffect({moon, environmentWire,
         store, control, maxBytes: limits.maxInputBytes, invocation: plan.invocation,
         retention: plan.results[0].retention, contractLimits: plan.contractLimits,
         localEvidenceContext: plan.localEvidenceContext,
-        sourceBindingCid: hash({version: 'actql-installed-table-source/0.1',
+        sourceBindingCid: hash({version: 'actql-installed-local-table-source/0.1',
           run_invocation_cid: plan.invocation.identity, store_authority_cid: store.storeAuthorityCid}), signal});
       if (sources.dependencies !== undefined) retainPinnedEffectDependencyPayloads({sources,
         execution, store, storedResults, control, runDefinition: plan.runDefinition});
-      const authored = authorTableOperationPreview({moon, control, prepared, inputs,
+      const authored = authorTableOperationPreview({moon, control, prepared, inputs, bridge,
         checkedHost, requestScope, context: {...context, storeAuthorityCid: store.storeAuthorityCid},
         members: descriptors.map((entry,index) => ({stageIndex: unit.stageIndex,
           effectId: entry.effectId, payload: sources.members[index].payload, target: targets[index]})), limits});
@@ -385,6 +392,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
     if (provider?.version !== 'actql-installed-table-continuation/0.1' ||
       !cid(provider.binding_cid) || !text(provider.program_id) || !text(provider.stage_id) ||
       !Array.isArray(provider.members)) fail('InstalledTableContinuationMismatch');
+    if (provider.binding_cid !== bindingCid) fail('InstalledTableInstallationChanged');
     const {requestIdentity, requestScope, computation: durable} = recovered;
     const {preview, computation, storedResults} = durable;
     const previewWire = control.effectComputationPreviewWire(preview);
@@ -428,7 +436,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
       for (let index=0; index<targets.length; index++) {
         const input = await prepareRecoveredTableInput({recovered: durable, store,
           control, memberIndex: index, requestScope, contractLimits: localContractLimits,
-          tableLimits: limits.material, signal});
+          tableLimits: limits.material, bridge, signal});
         recoveredInputs.push(input);
         const schema = await store.putPreparedResultSchema(input.schemaWire,
           JSON.parse(input.operationWire).schema_cid, inventory.chain.runDefinition.identity);

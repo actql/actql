@@ -41,6 +41,15 @@ struct ClientEffectLocalResultArtifact {
 }
 
 ///|
+/// Expose only the already-issued complete export to installed Connector
+/// mapping admission. This does not restore input availability or authorize I/O.
+pub fn client_effect_local_relation_export_receipt(
+  artifact : ClientEffectLocalResultArtifact,
+) -> @execution.CompletedRelationExportReceipt {
+  artifact.export_receipt
+}
+
+///|
 /// Issue only from the checked source-free Unit and its live Effect input pin.
 /// Scope, policy, and capture authority come from the exact admitted Run,
 /// not from caller-authored CID strings. Current mutation authority remains

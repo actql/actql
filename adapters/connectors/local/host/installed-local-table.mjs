@@ -1,20 +1,21 @@
-// Optional same-Host Iceberg installation. The generic Host selects these
-// entries by profile version; Programs cannot supply paths or authority.
+// Local Connector Table Source and Effect installation. The generic Host
+// selects the declared roles; Programs cannot supply paths or authority.
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
-import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
-import {installRowSourceAuthorization} from './installed-row-source.mjs';
-import {createInstalledTableSource} from './installed-table-source.mjs';
-import {createInstalledTableEffect, checkInstalledTableEffectLimits} from './installed-table-effect.mjs';
-import {createIcebergPhysicalBridge} from './table-iceberg-process.mjs';
-import {encodeProcessFrame} from './process-frames.mjs';
+import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
+import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
+import {composeInstalledCheckEnvironment} from '../../../host-node/installed-check-environment.mjs';
+import {installRowSourceAuthorization} from '../../../host-node/installed-row-source.mjs';
+import {createInstalledTableSource} from '../../../host-node/installed-table-source.mjs';
+import {createInstalledTableEffect, checkInstalledTableEffectLimits} from '../../../host-node/installed-table-effect.mjs';
+import {createIcebergPhysicalBridge} from './iceberg-process.mjs';
+import {encodeProcessFrame} from '../../../host-node/process-frames.mjs';
+import {captureInstalledConnectorImplementation} from '../../../host-node/installed-connector-implementation.mjs';
 
-export const INSTALLED_TABLE_SOURCE_VERSION = 'actql-installed-table-source/0.1';
-export const INSTALLED_TABLE_EFFECT_VERSION = 'actql-installed-table-effect/0.1';
-const registration = 'table', revision = 'table/0.1';
+export const INSTALLED_TABLE_SOURCE_VERSION = 'actql-installed-local-table-source/0.1';
+export const INSTALLED_TABLE_EFFECT_VERSION = 'actql-installed-local-table-effect/0.1';
+const registration = 'local', revision = 'local/0.1';
 const fail = (code, cause) => { throw Object.assign(new TypeError(code, {cause}), {code}); };
 const text = value => typeof value === 'string' && value.length > 0;
 const cid = value => /^sha256:[0-9a-f]{64}$/u.test(value ?? '');
@@ -36,8 +37,15 @@ const snapshot = value => {
       .subarray(4).toString('utf8'));
   } catch (cause) { fail('InvalidInstalledTableProfile', cause); }
 };
-const bridgeOf = profile => createIcebergPhysicalBridge({
-  python: pathToFileURL(profile.python), run: 'installed-table', catalog: profile.catalog});
+const bridgeOf = (profile, implementation) => createIcebergPhysicalBridge({
+  python: pathToFileURL(profile.python), run: 'installed-table', catalog: profile.catalog,
+  implementation});
+const selectedImplementation = installation => {
+  if (installation?.registration !== registration || installation.revision !== revision) {
+    fail('InstalledConnectorRegistrationMismatch');
+  }
+  return captureInstalledConnectorImplementation(installation);
+};
 
 function commonProfile(profile, version, extraKeys) {
   const value = snapshot(profile);
@@ -99,15 +107,16 @@ export function checkInstalledTableEffectProfile(profile) {
 // The generic installation identity canonicalizes descriptive strings. An
 // additional exact-data digest prevents that from aliasing different physical
 // namespace/name values. No operation, Table head or data receipt is inferred.
-function identityParts(profile, checked) {
+function identityParts(profile, checked, installation) {
   return [{...profile, accountConfigurationWire: JSON.parse(checked.accountConfigurationWire)},
-    {exact_table_profile_cid: dataCid(checked)}];
+    {exact_table_profile_cid: dataCid(checked),
+      connector_implementation_cid: selectedImplementation(installation).identity}];
 }
-export function installedTableSourceIdentityParts(profile, providerProfile) {
-  return identityParts(profile, checkInstalledTableSourceProfile(providerProfile));
+export function installedTableSourceIdentityParts(profile, providerProfile, _read, installation) {
+  return identityParts(profile, checkInstalledTableSourceProfile(providerProfile), installation);
 }
-export function installedTableEffectIdentityParts(profile) {
-  return identityParts(profile, checkInstalledTableEffectProfile(profile));
+export function installedTableEffectIdentityParts(profile, _read, installation) {
+  return identityParts(profile, checkInstalledTableEffectProfile(profile), installation);
 }
 
 // No external credential is needed for local Catalog I/O. This Site only
@@ -156,13 +165,15 @@ export function installedTableReadSite({connection, authorization, principalId, 
   });
 }
 
-const binding = (profile, root, principalId) => dataCid({
+const binding = (profile, root, principalId, implementation) => dataCid({
   version: 'actql-installed-table-host-binding/0.1', root, principalId,
   connection: profile.connection, python: profile.python, catalog: profile.catalog,
-  connectorId: profile.connectorId, targets: profile.targets});
+  connectorId: profile.connectorId, targets: profile.targets,
+  connector_implementation_cid: implementation.identity});
 
-export async function loadInstalledTableSource(profile, {root, principalId, moon, baseEnvironmentWire}) {
+export async function loadInstalledTableSource(profile, {root, principalId, moon, baseEnvironmentWire, installation}) {
   const checkedProfile = checkInstalledTableSourceProfile(profile);
+  const implementation = selectedImplementation(installation);
   const authorization = await installRowSourceAuthorization({
     accountConfiguration: checkedProfile.accountConfigurationWire, root, principalId,
     connectorRegistration: registration});
@@ -171,17 +182,19 @@ export async function loadInstalledTableSource(profile, {root, principalId, moon
     principalId, targets: () => installedTargets});
   try {
     const adapter = await createInstalledTableSource({moon, baseEnvironmentWire,
-      connectorId: checkedProfile.connectorId, site, authorization,
-      bridge: bridgeOf(checkedProfile), targets: checkedProfile.targets, limits: checkedProfile.limits});
+      connectorId: checkedProfile.connectorId, connectorRegistration: registration,
+      connectorRevision: revision, site, authorization,
+      bridge: bridgeOf(checkedProfile, implementation), targets: checkedProfile.targets, limits: checkedProfile.limits});
     installedTargets = adapter.tableReadTargets;
     return Object.freeze({...adapter, connectorBindings: Object.freeze([Object.freeze({
-      connectorId: checkedProfile.connectorId, bindingCid: binding(checkedProfile, root, principalId)})])});
+      connectorId: checkedProfile.connectorId, bindingCid: binding(checkedProfile, root, principalId, implementation)})])});
   } catch (cause) { site.close(); throw cause; }
 }
 
 export async function loadInstalledTableEffect(profile, {root, ledgerRoot, principalId,
-  moon, runtimeBundleCid, baseEnvironmentWire}) {
+  moon, runtimeBundleCid, baseEnvironmentWire, installation}) {
   const checkedProfile = checkInstalledTableEffectProfile(profile);
+  const implementation = selectedImplementation(installation);
   const environmentWire = composeInstalledCheckEnvironment(moon, baseEnvironmentWire,
     undefined, checkedProfile.environmentWire);
   const environment = JSON.parse(environmentWire);
@@ -203,18 +216,7 @@ export async function loadInstalledTableEffect(profile, {root, ledgerRoot, princ
   return createInstalledTableEffect({moon, environmentWire,
     connectorId: checkedProfile.connectorId, connectorRegistration: registration,
     connectorRevision: revision, connection: checkedProfile.connection,
-    runtimeBundleCid, bindingCid: binding(checkedProfile, root, principalId),
+    runtimeBundleCid, bindingCid: binding(checkedProfile, root, principalId, implementation),
     catalogCid: checkedProfile.catalog.catalogCid, targets: checkedProfile.targets,
-    bridge: bridgeOf(checkedProfile), authorization, ledgerRoot, limits: checkedProfile.limits});
+    bridge: bridgeOf(checkedProfile, implementation), authorization, ledgerRoot, limits: checkedProfile.limits});
 }
-
-// Like the existing built-in DuckDB binding, this requires no connector bundle.
-// Python and its pinned libraries are explicit optional Table installation I/O.
-export const tableInstallation = Object.freeze({name: registration, registration, revision,
-  source: Object.freeze({profileVersion: INSTALLED_TABLE_SOURCE_VERSION,
-    load: async () => Object.freeze({check: checkInstalledTableSourceProfile,
-      identityParts: installedTableSourceIdentityParts, load: loadInstalledTableSource})}),
-  effect: Object.freeze({profileVersion: INSTALLED_TABLE_EFFECT_VERSION,
-    load: async () => Object.freeze({check: checkInstalledTableEffectProfile,
-      identityParts: installedTableEffectIdentityParts, load: loadInstalledTableEffect})}),
-});

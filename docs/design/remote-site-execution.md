@@ -707,7 +707,13 @@ and packaging of the executable with a complete native Site distribution
 remain later integration steps.
 
 Remote dispatch resolves only a registration for the exact active bundle. It
-retains a durable bundle owner before execution, verifies the installed
+compares the requested Connector registration, Connector revision and strategy
+revision with the admitted signed manifest before invoking the component loader.
+The runtime capability and evidence issuer then use that admitted member tuple.
+Sharing physical component bytes across individual Connector manifests does not
+grant another manifest's member or operation capability.
+
+The runtime retains a durable bundle owner before execution, verifies the installed
 artifact immediately before invoking the registered handler, and releases the
 owner only after physical output cleanup and Site holding release. Activating
 a new revision therefore drains the prior revision without invalidating an
