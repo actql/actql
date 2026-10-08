@@ -64,7 +64,8 @@ fn unnest_source_element(
     @contract.Array(element, ..) => Some(element)
     // The checked receiver is known not to be an ARRAY. Missing star fields
     // must not hide that input violation behind an implementation limit.
-    _ => raise Abort(Expression({ issue: @expression.InvalidArguments, origin, }))
+    _ =>
+      raise Abort(Expression({ issue: @expression.InvalidArguments, origin, }))
   }
 }
 

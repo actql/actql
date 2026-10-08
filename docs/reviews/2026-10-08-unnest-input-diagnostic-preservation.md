@@ -76,6 +76,18 @@ retention. Its full row/schema/order/replay obligations remain intact.
 
 ## Remaining verification
 
+Normally merged main `2a77b066ad2ab56278fe657ad07487e7b84688f7` without
+conflicts. At clean integration revision
+`41d76fa44969e5eff117414ca0da26cf924fb162`, the changed type-diagnostic,
+parameter-path and Host-preparation controls passed **9/9 JS**, `run-BRWp9N`,
+`focused-test-XkfIb3`. This revision precedes the final direct-file formatting
+and evidence-record commit; do not relabel it as final-HEAD CI.
+
+The integrated normal producer/public consumer attempt `run-0ACR5w` was
+refused by the heavy guard before any step began. The other owner's PID 85548
+had a matching live cwd in `actql-local-native-performance-profile`; its lock
+was not altered. This attempt has no package-generation or execution result.
+
 After ordinary main integration, generate the normal five packages from a clean
 fixed revision, retain the original manifest and independently verify every
 digest. Run the entire existing parameter-UNNEST cohort on Local and real HTTPS,
