@@ -88,14 +88,15 @@ export type WireClientBodyByOperation = Readonly<{
   'restart-intent': WireClientBodyByOperation['submit-intent'] & Readonly<{
     unresolvedHistory: WireSubmissionRestart}>;
   'lookup-submission': WireBodyBase & Readonly<{submissionRef: WireSubmissionRef}>;
-  check: WireBodyBase & Readonly<{
-    input: Readonly<{
+  check: WireBodyBase & (Readonly<{
+    kind: 'text'; input: Readonly<{
       text: string;
       format: 'aql-text' | 'sql';
       parameterDeclarations?: Record<string, unknown>;
     }>;
-    parameters: Record<string, unknown> | null;
-  }>;
+  }> | Readonly<{kind: 'program'; input: Record<string, unknown>}>) &
+    (Readonly<{scope: 'template_only'; parameters?: never}> |
+      Readonly<{scope: 'bound_input'; parameters: Record<string, unknown> | null}>);
   attach: WireRefBody;
   'lookup-request': WireBodyBase & Readonly<{requestId: string}>;
   status: WireRefBody;

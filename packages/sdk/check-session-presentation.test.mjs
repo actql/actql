@@ -32,7 +32,7 @@ async function fixture(t, pending) {
 
 test('check display coordinates honor the selected position encoding', async t => {
   const {client} = await fixture(t);
-  const outcome = await client.check('é😀', {format: 'sql'});
+  const outcome = await client.check('é😀', {kind: 'text', scope: 'bound_input', format: 'sql'});
   for (const [positionEncoding, character] of [['utf-8', 6], ['utf-16', 3], ['utf-32', 2]]) {
     const display = JSON.parse(formatCheckOutcome(outcome, {format: 'json', positionEncoding}));
     assert.deepEqual(display.entries[0].location,
@@ -47,7 +47,7 @@ test('check display coordinates honor the selected position encoding', async t =
 test('session displays retain safe explanations but only current owned positions', async t => {
   const {client, calls} = await fixture(t);
   const session = createCheckDocumentSession(client, {text: 'é😀', version: 1, positionEncoding: 'utf-8'});
-  const observation = await session.check({format: 'sql'});
+  const observation = await session.check({scope: 'bound_input', format: 'sql'});
   const display = value => JSON.parse(session.format(value, {format: 'json'}));
   const first = display(observation);
   assert.equal(first.entries[0].location.positionEncoding, 'utf-8');
@@ -68,7 +68,7 @@ test('session displays retain safe explanations but only current owned positions
   noPosition(JSON.parse(JSON.stringify(observation)));
   session.update('é😀', 2);
   noPosition(observation);
-  const current = await session.check({format: 'sql'});
+  const current = await session.check({scope: 'bound_input', format: 'sql'});
   assert.equal(display(current).entries[0].location.range.start.character, 6);
   const other = createCheckDocumentSession(client, {text: 'é😀', version: 2});
   assert.equal(Object.hasOwn(JSON.parse(other.format(current, {format: 'json'})).entries[0], 'location'), false);
@@ -80,7 +80,7 @@ test('session displays retain safe explanations but only current owned positions
 test('session display drops positions if option callbacks edit the current buffer', async t => {
   const {client, calls} = await fixture(t);
   const session = createCheckDocumentSession(client, {text: 'é😀', version: 1});
-  const observation = await session.check({format: 'sql'});
+  const observation = await session.check({scope: 'bound_input', format: 'sql'});
   const shown = JSON.parse(session.format(observation, {format: 'json', get locale() {
     session.update('edited', 2); return 'ja';
   }}));
@@ -94,7 +94,7 @@ test('session display drops positions if option callbacks edit the current buffe
 test('session display rechecks its revision after current-input accessors run', async t => {
   const {client, calls} = await fixture(t);
   const session = createCheckDocumentSession(client, {text: 'é😀', version: 1});
-  const observation = await session.check({format: 'sql'});
+  const observation = await session.check({scope: 'bound_input', format: 'sql'});
   let edited = false;
   const current = {documentId: 'source', revision, kind: 'text', get text() {
     if (!edited) { edited = true; session.update('edited', 2); }
@@ -110,7 +110,7 @@ test('session display rechecks its revision after current-input accessors run', 
 test('session display refuses old and pending requests even when their text is equal', async t => {
   const pending = [], {client} = await fixture(t, pending);
   const session = createCheckDocumentSession(client, {text: 'é😀', version: 1});
-  const first = session.check({format: 'sql'}), second = session.check({format: 'sql'});
+  const first = session.check({scope: 'bound_input', format: 'sql'}), second = session.check({scope: 'bound_input', format: 'sql'});
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(pending.length, 2);
   pending[1](); const current = await second;
@@ -119,7 +119,7 @@ test('session display refuses old and pending requests even when their text is e
   assert.equal(Object.hasOwn(shown(old).entries[0], 'location'), false,
     '[check-mutation:session-format-order]');
   assert.equal(shown(current).entries[0].location.range.start.character, 3);
-  const third = session.check({format: 'sql'});
+  const third = session.check({scope: 'bound_input', format: 'sql'});
   assert.equal(Object.hasOwn(shown(current).entries[0], 'location'), false,
     '[check-mutation:session-format-pending]');
   await new Promise(resolve => setImmediate(resolve)); pending[2](); await third;

@@ -90,7 +90,14 @@ const mutations = [
   ], syntax],
   ['invalid rows increase the yielded count', [
     ['                  let row;', '                  rowsYielded++;\n                  let row;'],
-    ['                  rowsYielded++;\n                  yield row;', '                  yield row;'],
+    ['                    rowsYielded++;\n                    yield output;', '                    yield output;'],
+    ['              for (const row of acceptText(decoder.decode())) {\n' +
+      '                const output = await acceptRow(row);\n' +
+      '                controller.signal.throwIfAborted();\n' +
+      '                rowsYielded++;',
+      '              for (const row of acceptText(decoder.decode())) {\n' +
+      '                const output = await acceptRow(row);\n' +
+      '                controller.signal.throwIfAborted();'],
   ], shape],
   ['absent lookup becomes Host delivery success', [
     ["const observation = answer.kind === 'not_found' ? 'lookup_unresolved'", "const observation = answer.kind === 'not_found' ? 'host_delivery_succeeded'"],

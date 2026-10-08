@@ -71,13 +71,14 @@ fn inferred_group_keys(
       let normalized : Array[(String, Array[@query.NamePart])] = []
       let normalize = fn(
         path : Array[@query.NamePart],
+        members : Array[@query.NamePart],
         node : Int,
       ) -> Unit raise Abort {
         let mut length = path.length()
         while length > 0 {
           spend(length)
           if resolve(path[:length].to_owned()) is Some(slot) {
-            normalized.push((slot, path[length:].to_owned()))
+            normalized.push((slot, path[length:].to_owned() + members))
             return
           }
           length -= 1
@@ -92,8 +93,8 @@ fn inferred_group_keys(
       let pending = [@query.expression_root(expression)]
       while pending.pop() is Some(node) {
         spend(@query.expression_node_count(expression))
-        if group_reference_path(expression, node) is Some(path) {
-          normalize(path, node)
+        if group_reference_parts(expression, node) is Some((path, members)) {
+          normalize(path, members, node)
           continue
         }
         match @query.expression_node(expression, node).unwrap().kind {
@@ -120,7 +121,7 @@ fn inferred_group_keys(
       let position = expressions.length()
       expressions.push(expression)
       paths.push(normalized)
-      if group_reference_path(expression, @query.expression_root(expression))
+      if group_reference_parts(expression, @query.expression_root(expression))
         is Some(_) {
         simple.push((position, normalized[0]))
       }

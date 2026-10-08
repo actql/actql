@@ -112,6 +112,10 @@ test "Infer compilation reaches the shared Run owner with the checked barrier" {
     assert_true(
       client_compiled_run_source_free_result_policy_body(admitted) is Some(_),
     )
+    assert_eq(
+      client_compiled_run_evaluation_policy_body(admitted),
+      Some(("data_policy", policy_cid, policy_wire)),
+    )
     assert_true(
       client_compiled_run_infer(admitted) is Some(selected) &&
       physical_equal(selected, graph),

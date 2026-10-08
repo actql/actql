@@ -444,3 +444,31 @@ source, parent, blob, mode, path and dependency checks still run. The immutable
 original and the supplement remain in the generated evidence; only the verified
 redundant field is omitted when comparing effective source bindings. Without an
 explicit valid supplement the existing refusal remains.
+
+## Correcting irrelevant ancestral inputs without rewriting history
+
+An immutable resolution may overstate its dependency closure by naming actual
+ancestral source groups that change none of its protected resolution paths.
+This remains a refusal by default. An explicit
+`actql-foundation-irrelevant-input-normalization/0.1` supplement can correct
+only those unrelated inputs. Its closed fields are `version`, `id`, `target`
+(the original ID and bytes' digest), nonempty sorted unique `removeInputs`
+and a nonempty `reason`. One correction per target is allowed. It must follow
+the original and each named dependency's introduction.
+
+The composer independently checks the original ordered Git parents, changed
+paths, blobs and modes before accepting any correction. Removed IDs must be
+raw original inputs. Each removed source revision must be an actual ancestor
+of a parent and must change none of the actual resolution obligation paths,
+including independently validated change completions. Every raw alias in a
+removed source group must be named; partial removal is ambiguous and rejects.
+The remaining revision set, plus separately validated late receipts, must
+still equal the complete required source closure. Missing or relevant inputs,
+non-ancestral sources, unknown IDs and changed target digests remain refusals.
+A late supplement still cannot repair a required omission visible at an
+original introduction. Existing equivalence rules are unchanged.
+
+Original receipts and introductions remain immutable in the composed output.
+The correction remains separately visible under `supplements` and the target
+integration's `inputNormalizations`. It is not a blanket exclusion, source
+approval or relaxation of the exact dependency-set check.

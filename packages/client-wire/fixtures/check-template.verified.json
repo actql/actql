@@ -1,0 +1,29 @@
+{
+  "version": "actql-check-outcome/0.1",
+  "reason_schema_cid": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a",
+  "outcome_schema_cid": "sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9",
+  "outcome": "completed",
+  "report": {
+    "context_ref": "ctx:independent-template",
+    "scope": {"kind": "template_only"},
+    "verdict": "verified",
+    "inputs": [{
+      "document_id": "program",
+      "revision": "rev:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "structured",
+      "byte_length": 1
+    }],
+    "reasons": [],
+    "requirements": [{
+      "code": "parameter_value_required",
+      "facts": {"parameter": "x", "expected_type": "number"},
+      "location": {
+        "kind": "structured",
+        "document_id": "program",
+        "revision": "rev:1111111111111111111111111111111111111111111111111111111111111111",
+        "pointer": "/params/x"
+      }
+    }],
+    "coverage": {"limits": [], "unresolved": []}
+  }
+}

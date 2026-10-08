@@ -358,17 +358,27 @@ fn prepare_client_local_sequences_owned(
     return None
   }
   let generated = []
-  let composed_boundary = match prepared {
+  let composed_boundaries = match prepared {
     Effect(value) =>
-      @publication_host.prepared_client_effect_infer_occurrence(value).map(
-        @publication_host.client_infer_occurrence_coordinates,
+      match @publication_host.prepared_client_effect_infer_occurrence(value) {
+        Some(occurrence) => [occurrence]
+        None => []
+      }
+    Pure(value) =>
+      @publication_host.prepared_client_composed_infer_occurrences(value).unwrap_or([],
       )
-    Pure(_) => None
   }
   if selected_task is Some(task) && (task < 0 || task >= count) {
     return None
   }
   for task in 0..<count {
+    let composed_boundary = composed_boundaries
+      .filter(occurrence => {
+        @publication_host.client_infer_occurrence_coordinates(occurrence).0 ==
+        task
+      })
+      .get(0)
+      .map(@publication_host.client_infer_occurrence_coordinates)
     if selected_task is Some(selected) && task != selected {
       continue
     }

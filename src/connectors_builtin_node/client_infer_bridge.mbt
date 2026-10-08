@@ -295,6 +295,12 @@ pub fn client_program_model_request_input_frame(
       @admitted.emit_checked_wire_value(value, writer)
     }
     @encode.end_array(writer)
+    @encode.key(writer, "key_contracts")
+    @encode.begin_array(writer)
+    for value in request.key {
+      @parameter_contract.emit_checked(value.contract, writer)
+    }
+    @encode.end_array(writer)
     @encode.key(writer, "inputs")
     @encode.begin_object(writer)
     for (name, value) in request.inputs {

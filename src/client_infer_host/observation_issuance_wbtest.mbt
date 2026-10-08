@@ -25,6 +25,29 @@ fn issuance_finish(issued : ObservationIssuance) -> Unit raise {
 }
 
 ///|
+test "complete observation inventory refuses empty duplicate and foreign owners before reservation" {
+  let calls = Ref(0)
+  let active = failed_outcome_start(@model.Timeout, calls)
+  evidence_authorize(active)
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  let foreign = failed_outcome_start(@model.Timeout, calls)
+  evidence_authorize(foreign)
+  assert_true(fixture_finish(foreign) is Complete(_, ..))
+  for owners in [[], [active, active], [active, foreign]] {
+    let ledger = issuance_ledger(65792L)
+    assert_true(
+      start_complete_observation_issuance(owners, ledger, issuance_limits())
+      is Err(Model(@model.OutputIdentity)),
+    )
+    assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  }
+  assert_true(cleanup(active).unwrap())
+  assert_true(cleanup(foreign).unwrap())
+  assert_eq(calls.val, 2)
+}
+
+///|
 test "common observation issuer includes every adopted slot and retains custody" {
   let calls = Ref(0)
   let active = failed_outcome_start(
@@ -274,7 +297,11 @@ test "zero-key saved replay validates its original observation and actual input"
           )
         _ =>
           (
-            "\"data_policy_cid\":\"sha256:" + "a".repeat(64) + "\"",
+            "\"data_policy_cid\":\"" +
+            @publication_host.client_compiled_run_infer_observation_policy(
+              bound.compiled,
+            ).unwrap() +
+            "\"",
             "\"data_policy_cid\":\"sha256:" + "b".repeat(64) + "\"",
           )
       }

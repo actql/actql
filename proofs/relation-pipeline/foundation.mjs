@@ -294,6 +294,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     declarations.push({ path, digest: hash(bytes(entry)), introductions: declarationIntroductions, ...declaration });
   }
   const supplements = [], supplementsByTarget = new Map(), completionsByTarget = new Map();
+  const inputNormalizationsByTarget = new Map();
   // Originals remain immutable. A completion may only add separately checked
   // missing source paths, never replace an original field or acceptance rule.
   const effectiveChanges = declaration => [...declaration.changes,
@@ -304,8 +305,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     const completion = supplement.version === 'actql-foundation-change-completion/0.1';
     const normalization = supplement.version === 'actql-foundation-single-base-normalization/0.1';
     const equivalence = supplement.version === 'actql-foundation-supplement-equivalence/0.1';
-    keys(supplement, ['version', 'id', 'target', ...(normalization ? [] : [completion ? 'changes' : equivalence ? 'members' : 'inputs']), 'reason'], 'foundation supplement');
-    if (!completion && !normalization && !equivalence) assert.equal(supplement.version, 'actql-foundation-resolution-supplement/0.1');
+    const inputNormalization = supplement.version === 'actql-foundation-irrelevant-input-normalization/0.1';
+    keys(supplement, ['version', 'id', 'target', ...(normalization ? [] : [completion ? 'changes' : equivalence ? 'members' : inputNormalization ? 'removeInputs' : 'inputs']), 'reason'], 'foundation supplement');
+    if (!completion && !normalization && !equivalence && !inputNormalization) assert.equal(supplement.version, 'actql-foundation-resolution-supplement/0.1');
     assert.match(supplement.id, id, 'Invalid foundation supplement ID');
     assert.equal(path, `${supplementDirectory}/${supplement.id}.json`, 'Ambiguous foundation supplement filename');
     keys(supplement.target, ['id', 'digest'], 'foundation supplement target');
@@ -348,6 +350,15 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
       assert.deepEqual(supplement.members.map(member => member.id),
         sorted(new Set(supplement.members.map(member => member.id))),
         'Noncanonical foundation supplement equivalence members');
+    } else if (inputNormalization) {
+      assert(!inputNormalizationsByTarget.has(original.id), 'Duplicate foundation input normalization');
+      assert(Array.isArray(supplement.removeInputs) && supplement.removeInputs.length
+        && supplement.removeInputs.every(value => typeof value === 'string' && byId.has(value)),
+      'Unknown or empty foundation input normalization');
+      assert.deepEqual(supplement.removeInputs, sorted(new Set(supplement.removeInputs)),
+        'Noncanonical foundation input normalization');
+      assert(Array.isArray(original.inputs) && supplement.removeInputs.every(value => original.inputs.includes(value)),
+        'Foundation input normalization must name original inputs');
     } else {
       assert(Array.isArray(supplement.inputs) && supplement.inputs.length
         && supplement.inputs.every(value => typeof value === 'string' && byId.has(value)), 'Unknown or empty foundation supplement inputs');
@@ -357,7 +368,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     for (const introduction of introduced) {
       assert(original.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
         'Foundation supplement must follow its original declaration');
-      if (!completion && !normalization && !equivalence) for (const input of supplement.inputs) {
+      if (!completion && !normalization && !equivalence) for (const input of inputNormalization ? supplement.removeInputs : supplement.inputs) {
         const dependency = declarations.find(value => value.id === input);
         assert(dependency.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
           'Foundation supplement must follow its dependency declaration');
@@ -365,6 +376,10 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     }
     const record = { path, digest: hash(raw), introductions: introduced, ...supplement };
     supplements.push(record);
+    if (inputNormalization) {
+      inputNormalizationsByTarget.set(original.id, record);
+      continue;
+    }
     if (normalization || equivalence) continue;
     const collection = completion ? completionsByTarget : supplementsByTarget;
     if (!collection.has(original.id)) collection.set(original.id, []);
@@ -452,7 +467,25 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
         assert(Array.isArray(declaration.inputs) && declaration.inputs.every(value => typeof value === 'string' && byId.has(value)),
           'Unknown foundation resolution input');
         assert.deepEqual(declaration.inputs, sorted(new Set(declaration.inputs)), 'Noncanonical foundation resolution inputs');
-        inputRevisions = sorted(new Set(declaration.inputs.map(value => byId.get(value).revision)));
+        const normalization = inputNormalizationsByTarget.get(declaration.id);
+        const removed = new Set(normalization?.removeInputs ?? []);
+        if (normalization) {
+          // Only a reviewed, digest-bound correction may remove raw inputs.
+          // Each complete source group must be a real ancestor but unrelated
+          // to every actual resolution obligation, including completed paths.
+          const removedRevisions = new Set([...removed].map(value => byId.get(value).revision));
+          for (const source of removedRevisions) {
+            assert(actualParents.some(parent => ancestor(source, parent)),
+              'Non-ancestral foundation input normalization');
+            assert(!declarations.some(value => value.revision === source
+              && effectiveChanges(value).some(change => required.includes(change.path))),
+            'Relevant foundation input cannot be normalized');
+            assert(declaration.inputs.filter(value => byId.get(value).revision === source)
+              .every(value => removed.has(value)), 'Ambiguous partial foundation input normalization');
+          }
+        }
+        inputRevisions = sorted(new Set(declaration.inputs.filter(value => !removed.has(value))
+          .map(value => byId.get(value).revision)));
         const additions = supplementsByTarget.get(declaration.id) ?? [];
         if (additions.length) {
           // A supplement repairs only a source group whose receipt was absent
@@ -492,6 +525,10 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
       integrations.push({ revision, parents: actualParents,
         ...(bases.length === 1 ? { mergeBase: bases[0] } : { mergeBases: bases, obligations }),
         declarations: sorted(candidates.map(candidate => candidate.id)),
+        ...(candidates.some(value => inputNormalizationsByTarget.has(value.id)) ? {
+          inputNormalizations: sorted(candidates.filter(value => inputNormalizationsByTarget.has(value.id))
+            .map(value => inputNormalizationsByTarget.get(value.id).id)),
+        } : {}),
         ...(candidates.some(value => supplementsByTarget.has(value.id)) ? {
           supplements: sorted(candidates.flatMap(value => (supplementsByTarget.get(value.id) ?? []).map(value => value.id))),
         } : {}) });

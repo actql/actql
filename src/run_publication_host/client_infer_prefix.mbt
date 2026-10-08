@@ -53,8 +53,18 @@ pub fn prepared_client_infer_model_task_cid(
   value : PreparedClientProgram,
   step : Int,
 ) -> String? {
-  guard client_infer_metadata_owner(value, 0, step) is Some(owner) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+  guard client_infer_metadata_owner(value, 0, step) is Some(owner) else {
+    return None
+  }
+  client_infer_owner_model_task_cid(owner, step)
+}
+
+///|
+fn client_infer_owner_model_task_cid(
+  owner : @lower.BoundPrepared,
+  step : Int,
+) -> String? {
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(infer) else {
     return None
   }
@@ -81,8 +91,18 @@ pub fn prepared_client_infer_target_name(
   value : PreparedClientProgram,
   step : Int,
 ) -> String? {
-  guard client_infer_metadata_owner(value, 0, step) is Some(owner) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+  guard client_infer_metadata_owner(value, 0, step) is Some(owner) else {
+    return None
+  }
+  client_infer_owner_target_name(owner, step)
+}
+
+///|
+fn client_infer_owner_target_name(
+  owner : @lower.BoundPrepared,
+  step : Int,
+) -> String? {
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(_) else {
     return None
   }
