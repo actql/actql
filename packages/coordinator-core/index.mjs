@@ -3,8 +3,14 @@ import * as owner from './dist/remote_coordinator_abi.js';
 const siteInteger = value => typeof value === 'bigint' && value >= 0n &&
   value <= 9223372036854775807n;
 const siteOptionalInteger = value => value == null || siteInteger(value);
-const siteArray = (value, valid) => Array.isArray(value) && value.length <= 64 &&
-  value.every(valid);
+const siteArray = (value, valid) => {
+  if (!Array.isArray(value) || value.length > 64) return false;
+  // Array.every skips holes; every supplied slot must be a typed observation.
+  for (let index = 0; index < value.length; index++) {
+    if (!Object.hasOwn(value, index) || !valid(value[index])) return false;
+  }
+  return true;
+};
 const siteBoolean = value => typeof value === 'boolean';
 const invalidSiteInput = () => { throw new TypeError('InvalidSitePlanningInput'); };
 

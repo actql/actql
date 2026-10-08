@@ -38,3 +38,21 @@ test('the public boundary rejects truncation and unbounded input before Moon adm
   assert.throws(() => sitePlanning.plan({...input, capacitySupported: 1}), /InvalidSitePlanningInput/u);
   assert.throws(() => sitePlanning.select([1n], ['x'.repeat(257)]), /InvalidSitePlanningInput/u);
 });
+
+test('missing observation slots cannot become false facts or reach the typed ABI', () => {
+  for (const name of ['transferRequired', 'sharedTransfer', 'sourceRevoked',
+    'estimateAvailable', 'transferBytes', 'retainedBytes', 'executionBytes']) {
+    assert.throws(() => sitePlanning.plan({...input, [name]: Array(1)}),
+      /^TypeError: InvalidSitePlanningInput$/u, name);
+  }
+  assert.throws(() => sitePlanning.select(Array(1), ['cloud']),
+    /^TypeError: InvalidSitePlanningInput$/u);
+  assert.throws(() => sitePlanning.select([1n], Array(1)),
+    /^TypeError: InvalidSitePlanningInput$/u);
+  const inherited = Array(1);
+  const prototype = Object.create(Array.prototype);
+  prototype[0] = false;
+  Object.setPrototypeOf(inherited, prototype);
+  assert.throws(() => sitePlanning.plan({...input, sourceRevoked: inherited}),
+    /^TypeError: InvalidSitePlanningInput$/u);
+});
