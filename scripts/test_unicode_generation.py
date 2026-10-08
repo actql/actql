@@ -11,6 +11,7 @@ import unittest
 
 # Keep casing provenance/freshness under the existing Unicode CI entry point.
 from test_unicode_upper_generation import UnicodeUpperGenerationTests
+from test_unicode_lower_generation import UnicodeLowerGenerationTests
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]

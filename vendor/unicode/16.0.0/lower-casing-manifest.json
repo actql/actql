@@ -1,0 +1,18 @@
+{
+  "unicode_version": "16.0.0",
+  "ucd_url": "https://www.unicode.org/Public/16.0.0/ucd/",
+  "license": "LICENSE.txt",
+  "operation": "default_full_lowercase",
+  "source_sha256": {
+    "UnicodeData.txt": "ff58e5823bd095166564a006e47d111130813dcf8bf234ef79fa51a870edb48f",
+    "SpecialCasing.txt": "8d5de354eef79f2395a54c9c7dcebbaf3d30fc962d0f85611ea97aa973a0c451",
+    "DerivedCoreProperties.txt": "39d35161f2954497f69e08bdb9e701493f476a3d30222de20028feda36c1dabd",
+    "LICENSE.txt": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+  },
+  "compressed_source": {
+    "path": "DerivedCoreProperties.txt.xz",
+    "sha256": "71dc893a4d7526af7aa680ee16744dd186cd799a75eae73417fc4a37a2f74405",
+    "bytes": 88776,
+    "uncompressed_bytes": 1115959
+  }
+}
