@@ -1967,13 +1967,21 @@ function publicationControl(moon) {
           : moon.clientProgramCompileLocalTasks(checkedProgram),
       kind === 'values' ? 'RunHostCompilationRejected'
         : 'RunHostTaskCompilationRejected');
-      const value = compiledRunResult(kind === 'values'
+      let value = compiledRunResult(kind === 'values'
         ? moon.clientProgramIssueValuesCompiledRun(checkedProgram,
           compilation, policy.executionContextCid, policy.hostPolicyCid,
           policy.expiresAt)
         : moon.clientProgramIssueTaskCompiledRun(checkedProgram,
           compilation, policy.executionContextCid, policy.hostPolicyCid,
           policy.expiresAt), 'RunHostAdmissionRejected');
+      if (kind === 'infer') {
+        const original = policy.resultDataPolicy;
+        if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
+            typeof original.wire !== 'string') throw new TypeError('InvalidHostResultDataPolicy');
+        value = compiledRunResult(moon.clientProgramBindCompiledInferResultPolicy(
+          value, original.cid, original.wire, 1000000, 100000, 64),
+        'RunHostResultPolicyRejected');
+      }
       const result = Object.freeze({
         kind,
         template: inspectEvidence(moon.clientProgramCompiledRunTemplate(value)),

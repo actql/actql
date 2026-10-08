@@ -1,5 +1,6 @@
 // Installed physical composition of the checked Infer, original per-call
 // journal/custody and publication owners. No JS slot scheduler is introduced.
+import {projectInferEvidence} from './infer-evaluation-evidence.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {publishCompletedEffectFreeRun} from '../host-common/completed-run-publication.mjs';
 import {openNodeInferOperation} from './infer-operation.mjs';
@@ -8,7 +9,7 @@ import {inferPublicationExecution} from './infer-result-publication.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
-  namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController}) {
+  namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence}) {
   const control = core.publicationControl;
   return async ({preparedProgram, plan, store, principalId, signal,
     retainExecution, acquiredInfer, replay = false, beginPhysicalWork = () => {},
@@ -126,5 +127,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const execution = inferPublicationExecution({moon, core, operation,
       binding: publication.binding, compiled: plan.compiled, preparedProgram});
     await publishCompletedEffectFreeRun({...publication.plan, execution, store, control, signal});
+    await projectInferEvidence({configuration: inferEvidence, moon, control, preparedProgram,
+      plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainExecution});
   };
 }

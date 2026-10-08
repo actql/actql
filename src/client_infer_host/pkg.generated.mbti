@@ -69,6 +69,8 @@ pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
 pub fn composed_local_provider(@run_publication_host.ClientInferOccurrence, Limits, (Array[@local.ManagedProviderInput]) -> Result[Execution, Issue], (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool) -> @local.ManagedProvider
 
+pub fn evaluation_request(Execution, Int) -> (@model_execution.ModelRequest, @model_execution.ModelPhysicalRequestEvidence)?
+
 pub fn execution_quantity_usage(Execution) -> @physical_resources.QuantityUsage?
 
 pub fn execution_stopped(Execution) -> Bool

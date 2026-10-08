@@ -1,5 +1,5 @@
 import type {HostCapacityPolicy, SourceProfilePaths, EffectProfilePaths,
-  InstalledConnectorTable} from '@actql/local-node';
+  InstalledConnectorTable, HostInstallation} from '@actql/local-node';
 export type {HostCapacityPolicy, SourceProfilePaths, EffectProfilePaths,
   InstalledConnectorTable} from '@actql/local-node';
 import type {Client, ConnectionOptions, ConnectionStringOptions, Durability} from '@actql/sdk';
@@ -24,6 +24,10 @@ export type EmbeddedHostInstallation = Readonly<{
   effectProfilePaths?: EffectProfilePaths;
   resolveEffectSecret?: (...args: any[]) => any;
   authorization?: Readonly<Record<string, unknown>>;
+  modelInstallation?: HostInstallation['modelInstallation'];
+  registerModelProviders?: HostInstallation['registerModelProviders'];
+  resultDataPolicy?: HostInstallation['resultDataPolicy'];
+  inferEvidence?: HostInstallation['inferEvidence'];
 }>;
 
 export type EmbeddedLocalOptions = Readonly<{

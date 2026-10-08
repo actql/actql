@@ -213,6 +213,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),
     invocationEvidence: slot => moon.clientProgramInferInvocationEvidence(active,
       slot),
+    evaluationRequest: slot => moon.clientProgramInferEvaluationRequest(active, slot),
     // The ordinary publication control owns compilation and contract tokens.
     // It passes the original owner to MoonBit, never recompiling this Program.
     bindRun: (control, {compiled, runDefinition}) =>

@@ -17,6 +17,16 @@ pub struct ModelPhysicalRequestPlan {
   wire_bytes : Int64
   quantities : @resources.QuantityAmounts
   invoke : () -> Result[ModelResponse, ModelProviderFailure]
+  evidence : ModelPhysicalRequestEvidence?
+}
+
+///|
+/// Optional physical-port originals, not reconstructed semantic requests.
+/// The adapter must invoke the same retained rendered input. Unknown provider
+/// internals belong in the context manifest as unknown, never invented context.
+pub(all) struct ModelPhysicalRequestEvidence {
+  rendered_input : String
+  context_manifest : String
 }
 
 ///|
@@ -25,6 +35,7 @@ pub fn model_physical_request_plan(
   wire_bytes : Int64,
   quantities : @resources.QuantityAmounts,
   invoke : () -> Result[ModelResponse, ModelProviderFailure],
+  evidence? : ModelPhysicalRequestEvidence,
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   if wire_bytes < 0L ||
     wire_bytes > 9007199254740991L ||
@@ -40,7 +51,65 @@ pub fn model_physical_request_plan(
     @environment.model_task_generation_config(request.task).max_output_tokens {
     return Err(InvalidLimits)
   }
-  Ok({ request, wire_bytes, quantities, invoke, })
+  let mut retained_evidence = evidence
+  if evidence is Some(original) {
+    // Retention shares the existing request envelope; optional Evidence may
+    // not allocate another unreserved payload. Count UTF-8 without copying.
+    let remaining = Ref(wire_bytes.min(1048576L))
+    for text in [original.rendered_input, original.context_manifest] {
+      if text.length().to_int64() > remaining.val {
+        retained_evidence = None
+        break
+      }
+      let mut index = 0
+      while index < text.length() {
+        let unit = text[index].to_int()
+        let bytes = if unit < 128 {
+          1L
+        } else if unit < 2048 {
+          2L
+        } else if unit >= 55296 &&
+          unit <= 56319 &&
+          index + 1 < text.length() &&
+          text[index + 1].to_int() >= 56320 &&
+          text[index + 1].to_int() <= 57343 {
+          index += 1
+          4L
+        } else {
+          3L
+        }
+        if remaining.val < bytes {
+          retained_evidence = None
+          break
+        }
+        remaining.val -= bytes
+        index += 1
+      }
+      if retained_evidence is None {
+        break
+      }
+    }
+  }
+  // Optional capture exhaustion cannot reject or resend a normal Model call.
+  Ok({ request, wire_bytes, quantities, invoke, evidence: retained_evidence, })
+}
+
+///|
+/// Read only before the physical owner is reclaimed and only for an adopted
+/// response. Missing physical originals stay missing, including restored calls.
+pub fn model_evaluation_request(
+  execution : ModelExecution,
+  slot : Int,
+) -> (ModelRequest, ModelPhysicalRequestEvidence)? {
+  if execution.state.reclaimed ||
+    model_execution_invocation_evidence(execution, slot) is None {
+    return None
+  }
+  guard execution.state.physical_plans.get(slot) is Some(plan) &&
+    plan.evidence is Some(evidence) else {
+    return None
+  }
+  Some((plan.request, evidence))
 }
 
 ///|
