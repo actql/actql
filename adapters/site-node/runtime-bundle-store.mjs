@@ -18,6 +18,9 @@ const fail = (code, cause) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
+const retentionVersion = 'actql-runtime-bundle-retention/0.1';
+// Caller-selected dispatch IDs cannot address Coordinator-owned holds.
+const retentionHoldPrefix = 'set-retention:';
 
 function transaction(database, body) {
   database.exec('BEGIN IMMEDIATE');
@@ -164,6 +167,10 @@ export async function openRuntimeBundleStore(root, {
   });
   let closed = false;
   try {
+    const newCatalog = database.prepare(`
+      SELECT COUNT(*) AS count FROM sqlite_schema
+      WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+    `).get().count === 0;
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     database.exec(`
@@ -204,6 +211,10 @@ export async function openRuntimeBundleStore(root, {
         );
         insert.run('schema_version', 'actql-runtime-bundle-store/0.1');
         insert.run('active_bundle_cid', '');
+        if (newCatalog) {
+          insert.run('owned_retention_version', retentionVersion);
+          insert.run('catalog_incarnation', randomUUID());
+        }
       } else if (version.value !== 'actql-runtime-bundle-store/0.1') {
         fail('UnsupportedRemoteBundleStoreVersion');
       }
@@ -246,6 +257,12 @@ export async function openRuntimeBundleStore(root, {
   const deleteHold = database.prepare(
     'DELETE FROM bundle_holds WHERE hold_id = ?',
   );
+  const ownedHoldCount = database.prepare(`
+    SELECT COUNT(*) AS count FROM bundle_holds WHERE hold_id LIKE ?
+  `);
+  const memberHoldCount = database.prepare(`
+    SELECT COUNT(*) AS count FROM bundle_holds WHERE runtime_bundle_cid = ?
+  `);
   const artifactUsers = database.prepare(`
     SELECT COUNT(*) AS count FROM bundles
     WHERE artifact_name = ? AND phase != 3 AND runtime_bundle_cid != ?
@@ -313,9 +330,243 @@ export async function openRuntimeBundleStore(root, {
     return after;
   };
   const artifactName = componentCid => componentCid.replace(':', '-');
+  let retentionInitialized =
+    activeRow.get('owned_retention_version') !== undefined ||
+    activeRow.get('catalog_incarnation') !== undefined;
+  const requireRetentionControl = control => {
+    requireControl(control);
+    for (const name of [
+      'catalogIncarnationValid', 'holdBindingIdentity', 'holdBindingJson',
+      'holdBindingProjection', 'observeHold', 'prepareHoldFence',
+      'prepareHoldRetain',
+    ]) {
+      if (typeof control[name] !== 'function') {
+        fail('MissingRemoteBundleRetentionControl');
+      }
+    }
+    return control;
+  };
+  const catalogIncarnation = control => {
+    const version = activeRow.get('owned_retention_version');
+    const incarnation = activeRow.get('catalog_incarnation');
+    if (version === undefined && incarnation === undefined) {
+      fail(retentionInitialized
+        ? 'RemoteBundleRetentionUnavailable'
+        : 'RemoteBundleRetentionUninitialized');
+    }
+    if (version?.value !== retentionVersion ||
+        !control.catalogIncarnationValid(incarnation?.value ?? '')) {
+      fail('RemoteBundleRetentionUnavailable');
+    }
+    return incarnation.value;
+  };
+  const memberIdentity = (binding, control) => {
+    const body = control.holdBindingJson(binding);
+    const projection = control.holdBindingProjection(binding);
+    const bindingCid = control.holdBindingIdentity(binding);
+    return Object.freeze({
+      binding,
+      bindingCid,
+      body,
+      holdId: `${retentionHoldPrefix}${bindingCid}`,
+      runtimeBundleCid: projection[8],
+    });
+  };
+  const restoreMember = (row, control) => {
+    const value = restore(row, control);
+    const projection = control.projection(value.manifest);
+    if (value.reclaimPending || projection[4] !== targetTriple ||
+        row.artifact_name !== artifactName(projection[5]) ||
+        row.component_cid !== projection[5] ||
+        row.component_bytes !== projection[6] ||
+        Number(memberHoldCount.get(row.runtime_bundle_cid).count) !==
+          row.owners) {
+      fail('RemoteBundleRetentionUnavailable');
+    }
+    return value;
+  };
+  const memberSnapshot = (member, control) => {
+    // Recheck after asynchronous artifact verification without changing the
+    // originally admitted attempt, revision, or owner-derived identity.
+    if (control.holdBindingJson(member.binding) !== member.body ||
+        control.holdBindingIdentity(member.binding) !== member.bindingCid) {
+      fail('RemoteBundleHoldCollision');
+    }
+    const hold = selectHold.get(member.holdId);
+    if (hold !== undefined &&
+        (hold.runtime_bundle_cid !== member.runtimeBundleCid ||
+          hold.kind !== member.body)) {
+      fail('RemoteBundleHoldCollision');
+    }
+    let incarnation;
+    let value;
+    try {
+      incarnation = catalogIncarnation(control);
+      const row = select.get(member.runtimeBundleCid);
+      value = row === undefined ? undefined : restoreMember(row, control);
+    } catch {
+      return Object.freeze({status: 'unavailable'});
+    }
+    const status = control.observeHold({
+      catalogIncarnation: incarnation,
+      record: value?.record,
+      binding: member.binding,
+      exactLiveHold: hold !== undefined,
+    });
+    return Object.freeze({status, incarnation, value,
+      revision: value === undefined ? undefined :
+        Number(control.recordProjection(value.record)[0]),
+      exactLiveHold: hold !== undefined});
+  };
+  const memberReceipt = (member, snapshot) => Object.freeze({
+    status: snapshot.status,
+    bindingCid: member.bindingCid,
+    catalogIncarnation: snapshot.incarnation,
+    runtimeBundleCid: member.runtimeBundleCid,
+    revision: snapshot.revision,
+  });
+  const verifyMember = async (snapshot, control) => {
+    if (snapshot.status !== 'retained' && snapshot.status !== 'unresolved') {
+      return snapshot;
+    }
+    try {
+      const projection = control.projection(snapshot.value.manifest);
+      await digestFile(snapshot.value.artifactPath,
+        BigInt(projection[6]), projection[5]);
+      return snapshot;
+    } catch {
+      return Object.freeze({...snapshot, status: 'unavailable'});
+    }
+  };
 
   const store = {
     path: join(directory, 'bundles.sqlite3'),
+    initializeRetention(control) {
+      active();
+      requireRetentionControl(control);
+      const incarnation = transaction(database, () => {
+        const version = activeRow.get('owned_retention_version');
+        const existing = activeRow.get('catalog_incarnation');
+        if (version !== undefined || existing !== undefined) {
+          return catalogIncarnation(control);
+        }
+        // This is a legacy opt-in, never a repair or replacement of custody.
+        if (retentionInitialized || Number(ownedHoldCount.get(
+          `${retentionHoldPrefix}%`,
+        ).count) !== 0) {
+          fail('RemoteBundleRetentionUnavailable');
+        }
+        const value = randomUUID();
+        const insertMetadata = database.prepare(
+          'INSERT INTO metadata (key, value) VALUES (?, ?)',
+        );
+        insertMetadata.run('owned_retention_version', retentionVersion);
+        insertMetadata.run('catalog_incarnation', value);
+        return value;
+      });
+      retentionInitialized = true;
+      return incarnation;
+    },
+    async retentionContext(runtimeBundleCid, control) {
+      active();
+      requireRetentionControl(control);
+      const incarnation = catalogIncarnation(control);
+      const row = select.get(runtimeBundleCid);
+      if (row === undefined) fail('RemoteBundleMissing');
+      const installed = restoreMember(row, control);
+      const component = control.projection(installed.manifest);
+      await digestFile(installed.artifactPath,
+        BigInt(component[6]), component[5]);
+      active();
+      return transaction(database, () => {
+        if (catalogIncarnation(control) !== incarnation) {
+          fail('RemoteBundleRetentionUnavailable');
+        }
+        const row = select.get(runtimeBundleCid);
+        if (row === undefined) fail('RemoteBundleMissing');
+        const value = restoreMember(row, control);
+        const projection = control.recordProjection(value.record);
+        if (projection[1] === '3') fail('RemoteBundleRetentionUnavailable');
+        return Object.freeze({
+          catalogIncarnation: incarnation,
+          runtimeBundleCid,
+          initialRevision: Number(projection[0]),
+          manifest: value.manifest,
+        });
+      });
+    },
+    async retainMember(binding, control) {
+      active();
+      requireRetentionControl(control);
+      const member = memberIdentity(binding, control);
+      const before = transaction(database, () =>
+        memberSnapshot(member, control));
+      if (before.status === 'fenced' || before.status === 'unavailable') {
+        return memberReceipt(member, before);
+      }
+      const verified = await verifyMember(before, control);
+      active();
+      if (verified.status === 'unavailable') {
+        return memberReceipt(member, verified);
+      }
+      return transaction(database, () => {
+        const snapshot = memberSnapshot(member, control);
+        if (snapshot.status !== 'unresolved') {
+          return memberReceipt(member, snapshot);
+        }
+        const activeBundleCid = activeRow.get('active_bundle_cid')?.value;
+        const transition = control.prepareHoldRetain({
+          catalogIncarnation: snapshot.incarnation,
+          activeBundleCid: activeBundleCid === ''
+            ? undefined : activeBundleCid,
+          record: snapshot.value.record,
+          binding,
+          maxOwners,
+        });
+        persist(transition, control);
+        insertHold.run(member.holdId, member.runtimeBundleCid, member.body);
+        control.commitTransition(transition, true);
+        return memberReceipt(member, memberSnapshot(member, control));
+      });
+    },
+    async inspectMemberHold(binding, control) {
+      active();
+      requireRetentionControl(control);
+      const member = memberIdentity(binding, control);
+      const snapshot = transaction(database, () =>
+        memberSnapshot(member, control));
+      const verified = await verifyMember(snapshot, control);
+      active();
+      if (verified.status === 'unavailable') {
+        return memberReceipt(member, verified);
+      }
+      return transaction(database, () =>
+        memberReceipt(member, memberSnapshot(member, control)));
+    },
+    releaseMember(binding, control) {
+      active();
+      requireRetentionControl(control);
+      const member = memberIdentity(binding, control);
+      return transaction(database, () => {
+        const snapshot = memberSnapshot(member, control);
+        if (snapshot.status === 'fenced' ||
+            snapshot.status === 'unavailable') {
+          return memberReceipt(member, snapshot);
+        }
+        const transition = snapshot.status === 'retained'
+          ? control.prepareRelease(snapshot.value.record)
+          : control.prepareHoldFence({
+            catalogIncarnation: snapshot.incarnation,
+            record: snapshot.value.record,
+            binding,
+            exactLiveHold: snapshot.exactLiveHold,
+          });
+        persist(transition, control);
+        if (snapshot.exactLiveHold) deleteHold.run(member.holdId);
+        control.commitTransition(transition, true);
+        return memberReceipt(member, memberSnapshot(member, control));
+      });
+    },
     async install(sourcePath, signed, control) {
       active();
       requireControl(control);
@@ -451,7 +702,10 @@ export async function openRuntimeBundleStore(root, {
     retain(runtimeBundleCid, holdId, kind, control) {
       active();
       requireControl(control);
-      if (!text(holdId) || !text(kind)) fail('InvalidRemoteBundleHold');
+      if (!text(holdId) || !text(kind) ||
+          holdId.startsWith(retentionHoldPrefix)) {
+        fail('InvalidRemoteBundleHold');
+      }
       return transaction(database, () => {
         const existing = selectHold.get(holdId);
         if (existing !== undefined) {
@@ -479,7 +733,9 @@ export async function openRuntimeBundleStore(root, {
     release(holdId, control) {
       active();
       requireControl(control);
-      if (!text(holdId)) fail('InvalidRemoteBundleHold');
+      if (!text(holdId) || holdId.startsWith(retentionHoldPrefix)) {
+        fail('InvalidRemoteBundleHold');
+      }
       return transaction(database, () => {
         const hold = selectHold.get(holdId);
         if (hold === undefined) return false;

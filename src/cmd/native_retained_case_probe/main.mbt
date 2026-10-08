@@ -1,6 +1,129 @@
 ///|
 /// Native registered-case product path. The wrapper supplies the checked
 /// application files and compares this result with its independent oracle.
+
+///|
+// This fixture authenticates the local producer through pins supplied by its
+// trusted caller configuration, outside the payload. It never grants dispatch.
+fn operational_require(value : Bool) -> Unit {
+  if !value {
+    abort("OperationalEstimateAcceptance")
+  }
+}
+
+///|
+fn inspect_operational_estimate(
+  dispatch : @standard_host.StrategyHostDispatch,
+  request : @strategy.PolicyRequest,
+  task : Int,
+  root : String,
+  profile_revision : String,
+  pins : Array[String],
+  clock : @clock.NativeTrustedClock,
+) -> String {
+  let started = @bench.monotonic_clock_start()
+  operational_require(pins.length() == 6)
+  let template = @files.read_bounded_text_file(
+    root,
+    "task-" + task.to_string() + ".json",
+    61440L,
+  ).unwrap()
+  operational_require(
+    "sha256:" + @sha.hex(@utf8.encode(template)) == pins[task - 1],
+  )
+  let request_json = @strategy.placement_policy_request_json(request).unwrap()
+  let body = "{\"binding\":" +
+    request_json +
+    "," +
+    template.strip_prefix("{").unwrap().to_owned()
+  let admitted = @host.admit_native_operational_estimate(
+    dispatch, request, body, "configured-local-profile-producer", profile_revision,
+    clock,
+  ).unwrap()
+  operational_require(
+    admitted.references.any(reference => {
+      reference.quantity == "task-processing" && reference.median_ms is Some(_)
+    }),
+  )
+  println("operational-estimate:" + task.to_string() + ":" + body)
+  // Every binding mutation reaches the real held Native request boundary.
+  for
+    changed in [
+      { ..request, request_id: "other-request", },
+      { ..request, run_identity: "other-run", },
+      { ..request, authority: "other-authority", },
+      { ..request, generation: request.generation + 1, },
+      { ..request, revision: request.revision + 1, },
+      { ..request, deadline_ms: request.deadline_ms - 1L, },
+      { ..request, candidate_set_cid: "other-snapshot", },
+    ] {
+    operational_require(
+      @host.admit_native_operational_estimate(
+        dispatch, changed, body, "configured-local-profile-producer", profile_revision,
+        clock,
+      )
+      is Err(_),
+    )
+  }
+  operational_require(
+    @host.admit_native_operational_estimate(
+      dispatch, request, body, "", profile_revision, clock,
+    )
+    is Err(_),
+  )
+  operational_require(
+    @host.admit_native_operational_estimate(
+      dispatch, request, body, "configured-local-profile-producer", "different-profile",
+      clock,
+    )
+    is Err(_),
+  )
+  let wrong_position = body.replace(
+    old="\"position\":" + admitted.references[0].position.to_string(),
+    new="\"position\":2147483647",
+  )
+  operational_require(wrong_position != body)
+  operational_require(
+    @host.admit_native_operational_estimate(
+      dispatch, request, wrong_position, "configured-local-profile-producer", profile_revision,
+      clock,
+    )
+    is Err(_),
+  )
+  let unknown_template = @files.read_bounded_text_file(
+    root,
+    "task-" + task.to_string() + "-unknown.json",
+    61440L,
+  ).unwrap()
+  operational_require(
+    "sha256:" + @sha.hex(@utf8.encode(unknown_template)) == pins[task + 2],
+  )
+  let unknown_body = "{\"binding\":" +
+    request_json +
+    "," +
+    unknown_template.strip_prefix("{").unwrap().to_owned()
+  let unknown = @host.admit_native_operational_estimate(
+    dispatch, request, unknown_body, "configured-local-profile-producer", profile_revision,
+    clock,
+  ).unwrap()
+  operational_require(!unknown.references.is_empty())
+  operational_require(
+    unknown.references.all(reference => {
+      reference.median_ms is None && reference.unknown_reason is Some(_)
+    }),
+  )
+  println("operational-unknown:" + task.to_string() + ":" + unknown_body)
+  println("operational-refusals:" + task.to_string() + ":10")
+  println(
+    "operational-admission-us:" +
+    task.to_string() +
+    ":" +
+    @bench.monotonic_clock_end(started).to_string(),
+  )
+  body
+}
+
+///|
 fn required(matches : @argparse.Matches, name : String) -> String {
   match matches.values.get(name) {
     Some([value]) if !value.is_empty() => value
@@ -208,6 +331,7 @@ fn execute_timed_native_strategy_run(
   captured : @strategy.CapturedDAG,
   ledger : @resources.Ledger,
   stop_after_task : Int?,
+  operational : (String, String, Array[String], @clock.NativeTrustedClock)?,
 ) -> Result[Unit, @host.NativeStandardStrategyRunIssue] {
   let mut next_task = 1
   while true {
@@ -225,7 +349,11 @@ fn execute_timed_native_strategy_run(
         let planning_before = @resources.ledger_usage(ledger).planning_work
         // The existing bounded consultation owns the immutable projection.
         // Its planning charge is part of this instrumented experiment.
-        match
+        let now = match operational {
+          Some((_, _, _, clock)) => clock.observe().unwrap()
+          None => 0L
+        }
+        let request = match
           @standard_host.prepare_dispatch_policy_request(
             dispatch,
             "benchmark-task-" + next_task.to_string(),
@@ -233,11 +361,15 @@ fn execute_timed_native_strategy_run(
               @strategy.captured_dag_graph(captured),
             ),
             "native-benchmark-offline",
-            1L,
-            0L,
+            if operational is None {
+              1L
+            } else {
+              now + 60000L
+            },
+            now,
           ) {
           Err(issue) => return Err(@host.Dispatch(issue))
-          Ok(_) => ()
+          Ok(value) => value
         }
         let candidates = @standard_host.dispatch_policy_candidates(dispatch).unwrap()
         println(
@@ -246,9 +378,35 @@ fn execute_timed_native_strategy_run(
           ":" +
           candidates.canonical_json,
         )
+        let admitted_body = match operational {
+          Some((root, profile_revision, pins, clock)) => {
+            let before_estimate = @resources.ledger_usage(ledger)
+            let body = inspect_operational_estimate(
+              dispatch, request, next_task, root, profile_revision, pins, clock,
+            )
+            operational_require(
+              @resources.ledger_usage(ledger) == before_estimate,
+            )
+            Some(body)
+          }
+          None => None
+        }
         match @standard_host.commit_dispatch_offline_policy_choice(dispatch) {
           Err(issue) => return Err(@host.Dispatch(issue))
           Ok(_) => ()
+        }
+        match (operational, admitted_body) {
+          (Some((_, profile_revision, _, clock)), Some(body)) => {
+            operational_require(
+              @host.admit_native_operational_estimate(
+                dispatch, request, body, "configured-local-profile-producer", profile_revision,
+                clock,
+              )
+              is Err(_),
+            )
+            println("operational-after-commit-refused:" + next_task.to_string())
+          }
+          _ => ()
         }
         // Preserve the owner's rejected assessments as well as feasible
         // policy candidates. Unknown estimates and capacity refusals stay
@@ -535,6 +693,10 @@ fn main {
   let execution_start = @bench.monotonic_clock_start()
   let command = @argparse.Command("actql-native-retained-case-probe", options=[
     @argparse.OptionArg("application-root", required=true),
+    @argparse.OptionArg("operational-estimate-root", default_values=["-"]),
+    @argparse.OptionArg("operational-profile-revision", default_values=["-"]),
+    @argparse.OptionArg("operational-template-pins", default_values=["-"]),
+    @argparse.OptionArg("sqlite-library", default_values=["-"]),
     @argparse.OptionArg("database", required=true),
     @argparse.OptionArg("duckdb-library", required=true),
     @argparse.OptionArg("retained-task-root", required=true),
@@ -917,9 +1079,36 @@ fn main {
     observe_phase?,
   ).unwrap()
   phase_boundary("strategy-execute", execution_start)
+  let estimate_root = required(matches, "operational-estimate-root")
+  let operational = if estimate_root == "-" {
+    None
+  } else {
+    let sqlite = @sqlite.load_library(required(matches, "sqlite-library")).unwrap()
+    let clock = @clock.open(
+      sqlite,
+      estimate_root + "/estimate-clock.sqlite",
+      "operational-estimate/0.1",
+      "host",
+    ).unwrap()
+    Some(
+      (
+        estimate_root,
+        required(matches, "operational-profile-revision"),
+        required(matches, "operational-template-pins")
+        .split(",")
+        .map(v => v.to_owned())
+        .to_array(),
+        clock,
+      ),
+    )
+  }
   let execution = execute_timed_native_strategy_run(
-    run, dispatch, captured, ledger, stop_after_task,
+    run, dispatch, captured, ledger, stop_after_task, operational,
   )
+  match operational {
+    Some((_, _, _, clock)) => operational_require(clock.close())
+    None => ()
+  }
   // Flush only after the physical work interval: diagnostic output is not
   // charged to environment, import or Compute durations. Clock/buffer overhead
   // remains part of the enclosing process measurement.

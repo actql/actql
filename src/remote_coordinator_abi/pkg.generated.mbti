@@ -3,6 +3,7 @@ package "actql/actql/remote_coordinator_abi"
 
 import {
   "actql/actql/publication_payload",
+  "actql/actql/remote_bundle",
   "actql/actql/remote_site_protocol",
 }
 
@@ -26,6 +27,70 @@ pub fn coordinator_admit_output_transfer_reply_json(@remote_site_protocol.Durabl
 pub fn coordinator_admit_poll_not_seen(String, @remote_site_protocol.DispatchRequest) -> Result[Bool, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_admit_response_json(String, @remote_site_protocol.DispatchRequest, Bool) -> Result[@remote_site_protocol.RemoteDispatchResponse, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_bundle_custody_context_query_prepare(@remote_bundle.RemoteBundleDistribution, @remote_bundle.RemoteBundleHoldScope) -> Result[@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_custody_request_admit_json(String, String) -> Result[@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_custody_request_bindings(@remote_bundle.RemoteBundleCustodyRequest) -> Array[@remote_bundle.RemoteBundleHoldBinding]
+
+pub fn coordinator_bundle_custody_request_identity(@remote_bundle.RemoteBundleCustodyRequest) -> String
+
+pub fn coordinator_bundle_custody_request_json(@remote_bundle.RemoteBundleCustodyRequest) -> Result[String, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_custody_request_operation(@remote_bundle.RemoteBundleCustodyRequest) -> String
+
+pub fn coordinator_bundle_custody_request_prepare(@remote_bundle.RemoteBundleDistribution, @remote_bundle.RemoteBundleHoldBinding, String) -> Result[@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_custody_request_scope(@remote_bundle.RemoteBundleCustodyRequest) -> @remote_bundle.RemoteBundleHoldScope
+
+pub fn coordinator_bundle_custody_response_admit_json(@remote_bundle.RemoteBundleCustodyRequest, String, String) -> Result[@remote_bundle.RemoteBundleCustodyResponse, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_custody_response_binding(@remote_bundle.RemoteBundleCustodyResponse) -> @remote_bundle.RemoteBundleHoldBinding
+
+pub fn coordinator_bundle_custody_response_catalog_text(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn coordinator_bundle_custody_response_identity(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn coordinator_bundle_custody_response_json(@remote_bundle.RemoteBundleCustodyResponse) -> Result[String, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_custody_response_kind(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn coordinator_bundle_custody_response_observation_text(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn coordinator_bundle_custody_response_revision_text(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn coordinator_bundle_distribution_admit_json(String, String) -> Result[@remote_bundle.RemoteBundleDistribution, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_distribution_contains(@remote_bundle.RemoteBundleDistribution, String) -> Bool
+
+pub fn coordinator_bundle_distribution_identity(@remote_bundle.RemoteBundleDistribution) -> String
+
+pub fn coordinator_bundle_distribution_json(@remote_bundle.RemoteBundleDistribution) -> Result[String, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_distribution_prepare(Array[String]) -> Result[@remote_bundle.RemoteBundleDistribution, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_distribution_projection(@remote_bundle.RemoteBundleDistribution) -> Array[String]
+
+pub fn coordinator_bundle_hold_binding_admit_json(@remote_bundle.RemoteBundleDistribution, String, String) -> Result[@remote_bundle.RemoteBundleHoldBinding, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_hold_binding_identity(@remote_bundle.RemoteBundleHoldBinding) -> String
+
+pub fn coordinator_bundle_hold_binding_json(@remote_bundle.RemoteBundleHoldBinding) -> Result[String, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_hold_binding_projection(@remote_bundle.RemoteBundleHoldBinding) -> Array[String]
+
+pub fn coordinator_bundle_hold_binding_scope(@remote_bundle.RemoteBundleHoldBinding) -> Result[@remote_bundle.RemoteBundleHoldScope, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_hold_scope_admit_json(@remote_bundle.RemoteBundleDistribution, String, String) -> Result[@remote_bundle.RemoteBundleHoldScope, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_hold_scope_identity(@remote_bundle.RemoteBundleHoldScope) -> String
+
+pub fn coordinator_bundle_hold_scope_json(@remote_bundle.RemoteBundleHoldScope) -> Result[String, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_hold_scope_prepare(@remote_bundle.RemoteBundleDistribution, String, String, String, String, String, String, String, Int, String) -> Result[@remote_bundle.RemoteBundleHoldScope, @remote_bundle.RemoteBundleIssue]
+
+pub fn coordinator_bundle_hold_scope_projection(@remote_bundle.RemoteBundleHoldScope) -> Array[String]
 
 pub fn coordinator_can_retire_cancellation_delivery(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
 

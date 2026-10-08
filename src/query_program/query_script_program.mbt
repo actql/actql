@@ -164,6 +164,9 @@ fn lower_script_relation_term(
     reserved,
     predicate~,
   )
+  let nearest_inputs = bind_script_nearest_inputs(
+    construction, query, known, selected, input, context, sources, steps, reserved,
+  )
   let (body, output_fields) = compile_steps(
     construction,
     query,
@@ -176,6 +179,7 @@ fn lower_script_relation_term(
     start_at,
     false,
     output,
+    nearest_inputs~,
     retained~,
     parameter_declarations=context.parameter_declarations,
     initial_scope=sources.ranges.get(input.name),
@@ -245,7 +249,21 @@ pub fn compile_query_script(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let parameter_names = query_parameter_names(
+    context.parameter_declarations,
+    limits.max_expression_work,
+  ) catch {
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
+  }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+    parameter_names,
+  }
   try {
     let steps : Array[@builder.Node] = []
     let sources : ScriptSources = {

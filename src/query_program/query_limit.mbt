@@ -9,6 +9,6 @@ fn lower_query_integer(
   match value {
     Integer(value) => construction.add(Number(value.to_double()))
     BoundParameter(name) =>
-      construction.object([("$param", construction.text(name))])
+      construction.object([("$param", construction.parameter_text(name))])
   }
 }

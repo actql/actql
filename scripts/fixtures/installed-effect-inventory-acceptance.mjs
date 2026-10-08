@@ -353,6 +353,16 @@ export async function runInstalledEffectInventoryAcceptance({connect,
         [{node_id: 'I_ALPHA', comment: 'must be cancelled'}]));
     const cancelled = await original(await cancelFirst.as(),
       JSON.parse(await readFile(cancelPath, 'utf8')));
+    // The Checkpoint can be visible before its producer finishes cleanup.
+    // Observe that owner's persisted stop receipt before admitting the one
+    // cancellation, so its revision cannot race the remaining cleanup step.
+    const cancelState = await waitFor(async () => {
+      const current = await cancelled.status();
+      assert.equal(terminal.includes(current.status), false, JSON.stringify(current));
+      return current.status === 'waiting_checkpoint' &&
+        current.control?.physical_stop === 'confirmed' ? current : undefined;
+    });
+    assert.equal(cancelState.control.cancellation_requested, false);
     await cancelled.cancel();
     await waitFor(async () => (await cancelled.status()).status === 'cancelled');
     await cancelFirst.close();

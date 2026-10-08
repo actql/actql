@@ -232,8 +232,34 @@ acquisition and authority boundaries remain common execution obligations.
 | UNION / INTERSECT / EXCEPT | Positional or exact BY NAME alignment | projection plus append/distinct/row-set | No implicit type promotion or missing-column padding |
 | Nonrecursive CTE | SELECT or relational Pipe body; SELECT or Pipe head after WITH | Shared Stage captured input and step references | No reacquisition per reference; no recursive CTE |
 | FROM subquery | Named noncorrelated query source | Checked Stage Result with a source alias | No correlated reference or independent runtime; nested source stages preserve ordinary admission |
-| Parameter | Named query parameter | Existing parameter expression | New @name spelling; legacy $name remains unchanged |
+| Parameter | Named query parameter | Existing parameter expression | @name binds without ASCII case to the exact admitted declaration name; legacy machine $name remains unchanged |
 | CONCAT / ACTQL.CONCAT | Closed function mapping | concat_strict / concat | Strict STRING NULL propagation versus explicit legacy null-skipping |
 
 The table defines obligations, not implementation status. Delivery evidence
 records unimplemented features separately from intentional incompatibilities.
+
+
+### Query parameter name binding
+
+The selected GoogleSQL source rule resolves named parameters without ASCII case,
+including decoded backtick names. The pinned resolver
+[`ResolveParameterExpr`](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/analyzer/resolver_expr.cc#L2418)
+uses `AsciiStrToLower` before looking up named query parameters. The Frontend
+binds that namespace to the exact name of an admitted Program declaration.
+For example, declaration `p` and source `SELECT @P AS value` emit `$param: "p"`;
+declaration `P` emits `$param: "P"` even when the source spells `@p`.
+
+This is source name resolution, not a change to machine Parameter identity,
+types, defaults, bound values, nullability, or permissions. Value dictionaries
+still use the exact admitted declaration names. Two declarations whose names
+collide under ASCII case folding reject the source compile context; an unknown
+name remains unknown for ordinary checking. No declaration or value is inferred
+from the source text.
+
+One bounded declaration-name index supplies expression lowering, whole-operation
+parameter slots, and expression type probes such as nullable ARRAY/STRUCT
+UNNEST. Source expression reuse and analytic window sharing compare names in
+that same namespace; case variants must not cause SELECT reevaluation or
+separate equivalent window computations. Literal data and non-ASCII characters
+are not changed by ASCII lookup. Common checker and execution owners retain
+all missing-value, extra-value, type, domain and resource admission rules.
