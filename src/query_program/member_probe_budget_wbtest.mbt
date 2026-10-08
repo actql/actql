@@ -111,6 +111,28 @@ test "Graph prefix uses common output and charges copying plus successful pipeli
 }
 
 ///|
+test "Graph prefix lends its remaining work before copying any over-budget tree" {
+  let (source, document) = probe_graph_prefix_source()
+  let steps = @wire.elements(@builder.cursor(source)).unwrap()
+  // This fixture is already an array of the exact prefix. Its independent
+  // admitted source node count includes the replacement array's single root.
+  let nodes = @builder.usage(source).nodes
+  for allowance in [0, nodes - 1] {
+    let short = probe_budget_state(source, document, work=allowance)
+    let rejected = try {
+      ignore(short.closed_prefix_carrier(steps, None))
+      false
+    } catch {
+      Abort(Expression({ issue: @expression.WorkLimit, .. })) => true
+      _ => false
+    }
+    assert_true(rejected)
+    // Failed partial construction retains the loan; it cannot fund a retry.
+    assert_eq(short.work, 0)
+  }
+}
+
+///|
 test "refused Graph prefix retains its remaining allowance and stops continuation" {
   let (source, document) = probe_graph_prefix_source(bad_key=true)
   let resolution = probe_budget_state(source, document)
