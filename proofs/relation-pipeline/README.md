@@ -197,3 +197,28 @@ past results are not new derive mutation evidence. The arithmetic-expression
 kernel, all unadmitted expression/failure forms, physical capacity and Host
 custody still need their own obligations. This extension does not retire tests,
 authorize another cached action, or establish CI savings.
+
+### Subsequent registry additions
+
+`registry.mjs` keeps accepted descriptor stages in `corpusFoundations`: the
+original six-descriptor foundation and the seven-descriptor numeric derive
+stage. `fixedCorpus` completes them in order and appends only inputs containing
+descriptors new to the next stage. It preserves every earlier input and identity,
+deduplicates equal input bodies, and resolves new identity collisions without
+renaming original cases. Each accumulated stage must discharge its concrete
+obligations. Reversed, repeated or nonprefix stages are rejected.
+
+For another operation, retain those explicit arrays, register the operation's
+local premises/independent oracle/contract/argument reductions and connection
+obligations, then append its descriptor stage and select that stage as the
+current registry. Update the independently reviewed final corpus count in
+`proof-parts.mjs` to the actual complete union; preserve its three targets and
+all unrelated campaigns. Do not replace an old stage with a regenerated latest
+registry or retire inputs solely because the new random stream has coverage.
+Any changed generator, oracle, contract or descriptor still invalidates its
+source-bound evidence; stage retention is not a receipt-reuse permission.
+
+The current 114 inputs and corpus digest remain unchanged. Future additions in
+the corpus regression use generator-only fixtures to demonstrate two successive
+extensions; they are not registered product operations, runtime acceptance or
+new semantic guarantees.

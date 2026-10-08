@@ -40,7 +40,15 @@ is reconciled and never automatically recomputed. The default profile has no
 external connector registrations yet, so Programs requiring acquired input
 return `ClientProgramNeedsInputs`. An explicit DuckDB or Salesforce source profile selected
 with `ACTQL_LOCAL_SOURCE_PROFILE` enables the acquired-input path, including
-read approval and restart. This does not imply arbitrary multi-source support.
+read approval and restart. Multiple published Sources can instead be selected
+with `installation.sourceProfilePaths` (or `sourceProfilePaths` on the HTTP
+Host). This plural option accepts 2–128 absolute, distinct profile paths and
+cannot be combined with the singular option or environment fallback. The
+combined inventory remains bounded to 128 read bindings, 64 per member,
+1024 exact query aliases and the existing 16 MiB environment limit. Every
+member's declaration and physical binding is checked; installing a member
+does not read it or resolve its credentials. Each Run retains the existing
+maximum of two checked acquisition occurrences, selected by SourceRef.
 See the [current implementation status](../../docs/reviews/current-product-status.md)
 for merged capabilities and work that is still in a PR. Salesforce requires
 explicit declaration publication through the packaged `publishSource` export;
@@ -59,7 +67,11 @@ Source and Effect profiles can be selected together after both publications
 are installed in the same Host root; shared connector bindings must match and
 read/commit authorization remains separate. The bounded acquired
 Read→Compute→Effect profile also supports approval and restart, with an
-immediate read decision and one installed Source. See the
+immediate read decision for a checked Source selected from the inventory.
+The existing two-Source Effect profile still requires two distinct DuckDB
+owners; an unused member neither becomes an acquisition nor changes that
+selected pair's continuation support. Host admission and each selected
+Source's own read authorization remain separate. See the
 [installation and recovery evidence](../../docs/reviews/current-product-status.md#source-and-effect-installation).
 
 Preparation, compilation, and Run evidence issuance retain the same checked

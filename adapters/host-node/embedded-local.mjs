@@ -18,6 +18,7 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
@@ -810,26 +811,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       const acquired = count > 0;
       if (count > 0) {
         if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
-        if (count > 2 || count === 2 && sourceProfile.sources?.length !== 2 ||
-            count === 1 && sourceProfile.sources !== undefined) {
-          throw clientOperationError('ClientProgramUnsupported');
+        try {
+          selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
+            sourceProfile, registry, values, fragment, ordered});
+        } catch (cause) {
+          throw clientOperationError('ClientProgramUnsupported', cause);
         }
-        const selected = new Set();
-        for (let task = 0; task < count; task++) {
-          try {
-            const requirement = checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
-              preparedProgram, task, 0, registry, values, fragment, ordered));
-            const adapter = installedSourceFor(sourceProfile,
-              moon.clientProgramQueryRequirementSourceRef(requirement));
-            if (count === 2 && adapter.realizationKey !== 'duckdb-acquired') {
-              throw new Error('UnsupportedEffectSourceRealization');
-            }
-            selected.add(adapter);
-          } catch (cause) {
-            throw clientOperationError('ClientProgramUnsupported', cause);
-          }
-        }
-        if (selected.size !== count) throw clientOperationError('ClientProgramUnsupported');
       }
       const occurrence = moon.clientProgramEffectInferOccurrence(preparedProgram);
       if (occurrence !== undefined) prepareInferSelection(preparedProgram, occurrence);
@@ -1127,9 +1114,14 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                       retainedModel = {record, token, view: targetResume.view};
                     }
                   }
+                  const selectedSources = selectAcquiredEffectSources({moon,
+                    preparedEffect: facts.prepared, sourceProfile,
+                    registry, values, fragment, ordered});
                   const sourceContinuation = acquiredEffectContinuation({
-                    checkpoints: sourceProfile?.realizationKey !== 'duckdb-acquired'
-                      ? undefined : sourceCheckpoints,
+                    checkpoints: (selectedSources.length === 0
+                      ? sourceProfile?.realizationKey === 'duckdb-acquired'
+                      : selectedSources.every(({adapter}) => adapter.realizationKey === 'duckdb-acquired'))
+                      ? sourceCheckpoints : undefined,
                     moon, acquired: facts.preparedExecution,
                     submission: effectSubmissions.get(facts.prepared),
                     declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),

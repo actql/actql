@@ -401,6 +401,10 @@ function inspectSubmissionStorage(database, enabled) {
 
 const epochMarkerName = 'submission-epoch-format.json';
 const intentMarkerName = 'submitted-intent-format.json';
+const retirementMarkerName = 'submitted-intent-retirement-format.json';
+const retirementMarker = Buffer.from(JSON.stringify({
+  version: 'actql-client-request-journal/0.1', feature: 'submitted_intent_retirement',
+}));
 const intentMarker = Buffer.from(JSON.stringify({
   version: 'actql-client-request-journal/0.1', feature: 'submitted_intents',
 }));
@@ -440,6 +444,21 @@ function inspectIntentStorage(database, enabled) {
   if (JSON.stringify(fields) !== JSON.stringify(expected) || custody.length !== 1 ||
       custody[0].singleton !== 1 || !Number.isSafeInteger(custody[0].issued_count) ||
       custody[0].issued_count < 0) fail('UnknownClientRequestJournalFormat');
+}
+
+function inspectIntentRetirementStorage(database, enabled) {
+  const tables = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
+    AND name = 'client_submitted_intent_retirement'`).all();
+  if (!enabled && tables.length === 0) return;
+  if (!enabled || tables.length !== 1) fail('UnknownClientRequestJournalFormat');
+  const fields = database.prepare('PRAGMA table_info(client_submitted_intent_retirement)')
+    .all().map(field => field.name).sort();
+  const rows = database.prepare('SELECT * FROM client_submitted_intent_retirement').all();
+  if (JSON.stringify(fields) !== JSON.stringify(['retired_count', 'singleton']) ||
+      rows.length !== 1 || rows[0].singleton !== 1 ||
+      !Number.isSafeInteger(rows[0].retired_count) || rows[0].retired_count < 0) {
+    fail('UnknownClientRequestJournalFormat');
+  }
 }
 
 function inspectCancellationStorage(database, enabled) {
@@ -486,6 +505,10 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
   const intentEnabled = entries.includes(intentMarkerName);
   if (intentEnabled && (!lstatSync(intentPath).isFile() ||
       !readFileSync(intentPath).equals(intentMarker))) fail('UnknownClientRequestJournalFormat');
+  const retirementPath = join(directory, retirementMarkerName);
+  const retirementEnabled = entries.includes(retirementMarkerName);
+  if (retirementEnabled && (!intentEnabled || !lstatSync(retirementPath).isFile() ||
+      !readFileSync(retirementPath).equals(retirementMarker))) fail('UnknownClientRequestJournalFormat');
   inspectSqliteSnapshot(databasePath, database => {
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
@@ -496,12 +519,14 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
     inspectSubmissionStorage(database, submissionEnabled);
     inspectEpochStorage(database, epochEnabled);
     inspectIntentStorage(database, intentEnabled);
+    inspectIntentRetirementStorage(database, retirementEnabled);
   }, {code: 'UnknownClientRequestJournalFormat',
     validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
       (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
       (!submissionEnabled || readFileSync(submissionPath).equals(submissionMarker)) &&
       (!epochEnabled || readFileSync(epochPath).equals(epochMarker)) &&
       (!intentEnabled || readFileSync(intentPath).equals(intentMarker)) &&
+      (!retirementEnabled || readFileSync(retirementPath).equals(retirementMarker)) &&
       JSON.stringify(readdirSync(directory).sort()) === JSON.stringify(entries)});
 }
 
@@ -670,6 +695,21 @@ export function openClientRequestJournal(directory, {
       finally {closeSync(marker);}
       syncDirectory(root);
     }
+    if (!existsSync(join(root, retirementMarkerName))) {
+      // Adoption records zero formal retirements; it never resets issuance
+      // or repairs a missing original row in a previously admitted journal.
+      transaction.run(() => database.exec(`
+        CREATE TABLE client_submitted_intent_retirement (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          retired_count INTEGER NOT NULL CHECK (retired_count >= 0)
+        ) STRICT;
+        INSERT INTO client_submitted_intent_retirement VALUES (1, 0);
+      `));
+      const marker = openSync(join(root, retirementMarkerName), 'wx', 0o600);
+      try {writeFileSync(marker, retirementMarker); fsyncSync(marker);}
+      finally {closeSync(marker);}
+      syncDirectory(root);
+    }
     if (!existsSync(join(root, cancellationMarkerName))) {
       transaction.run(() => database.exec(`
         CREATE TABLE client_cancellation_operations (
@@ -824,10 +864,16 @@ export function openClientRequestJournal(directory, {
   const intentSelect = database.prepare('SELECT * FROM client_submitted_intents WHERE submission_id = ?');
   const intentCount = database.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(CAST(intent_wire AS BLOB))), 0) AS bytes FROM client_submitted_intents');
   const intentIssued = database.prepare('SELECT issued_count FROM client_submitted_intent_custody WHERE singleton = 1');
+  const intentRetired = database.prepare('SELECT retired_count FROM client_submitted_intent_retirement WHERE singleton = 1');
   const assertIntentCustody = () => {
     const retained = intentCount.get();
-    if (retained.n !== intentIssued.get()?.issued_count) fail('ClientSubmittedIntentCustodyLost');
-    return retained;
+    const issued = intentIssued.get()?.issued_count;
+    const retired = intentRetired.get()?.retired_count;
+    if (!Number.isSafeInteger(issued) || !Number.isSafeInteger(retired) || retired < 0 ||
+        !Number.isSafeInteger(retained.n + retired) || retained.n + retired !== issued) {
+      fail('ClientSubmittedIntentCustodyLost');
+    }
+    return {...retained, issued, retired};
   };
   const originalIntent = (intent, control) => {
     const wire = control.clientSubmittedIntentWire(intent);
@@ -1140,7 +1186,8 @@ export function openClientRequestJournal(directory, {
         const current = verifyEpochLocked(submissionRef.epoch, {authorityScopeCid,
           currentAuthorization, purpose: 'admit'}, control);
         if (current.validity !== 'admissible') return {epochRejected: current.validity};
-        if (retained.n >= maxRecords || retained.bytes + Buffer.byteLength(original.wire) > 64 * 1024 * 1024) {
+        if (retained.n >= maxRecords || retained.issued === Number.MAX_SAFE_INTEGER ||
+            retained.bytes + Buffer.byteLength(original.wire) > 64 * 1024 * 1024) {
           fail('ClientSubmittedIntentCapacity');
         }
         database.prepare(`INSERT INTO client_submitted_intents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
@@ -1150,7 +1197,7 @@ export function openClientRequestJournal(directory, {
             outcome === undefined ? null : canonicalValueJson(outcome, {dataKeys: true}));
         if (Number(database.prepare(`UPDATE client_submitted_intent_custody
           SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
-          .run(retained.n).changes) !== 1) fail('ClientSubmittedIntentCustodyLost');
+          .run(retained.issued).changes) !== 1) fail('ClientSubmittedIntentCustodyLost');
         return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control)};
       });
       if (result.epochRejected !== undefined) refuseEpoch(result.epochRejected);
@@ -1164,6 +1211,38 @@ export function openClientRequestJournal(directory, {
       if (requestId === undefined) fail('InvalidClientSubmissionNonce');
       const row = intentSelect.get(requestId);
       return row === undefined ? undefined : retainedIntent(row, control);
+    },
+    // Explicit trusted-Host retention operation, not a Client cancellation
+    // or evidence of nonexecution. In-progress and Run-connected custody stays
+    // with its existing owners. No automatic eviction during new admission.
+    retireSubmittedIntent(submissionRef, {authorityScopeCid, currentAuthorization,
+      expectedRevision}, control) {
+      ensureOpen();
+      const fields = {authorityScopeCid, currentAuthorization, purpose: 'lookup'};
+      const verified = verifyEpoch(submissionRef.epoch, fields, control);
+      const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
+      if (requestId === undefined || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
+        fail('InvalidClientSubmittedIntentRetirement');
+      }
+      return Object.freeze(transaction.run(() => {
+        const custody = assertIntentCustody();
+        const current = verifyEpochLocked(submissionRef.epoch, fields, control);
+        if (current.validity !== 'expired') fail('ClientSubmittedIntentNotRetirable');
+        const row = intentSelect.get(requestId);
+        if (row === undefined) return {retired: false};
+        const original = retainedIntent(row, control);
+        if (original.revision !== expectedRevision) fail('ClientSubmittedIntentRetirementConflict');
+        if (!['not_accepted', 'preparation_failed'].includes(original.phase) ||
+            select.get(authorityScopeCid, requestId) !== undefined) {
+          fail('ClientSubmittedIntentNotRetirable');
+        }
+        if (Number(database.prepare(`DELETE FROM client_submitted_intents
+          WHERE submission_id = ? AND revision = ?`).run(requestId, expectedRevision).changes) !== 1 ||
+            Number(database.prepare(`UPDATE client_submitted_intent_retirement
+              SET retired_count = retired_count + 1 WHERE singleton = 1 AND retired_count = ?`)
+              .run(custody.retired).changes) !== 1) fail('ClientSubmittedIntentCustodyLost');
+        return {retired: true};
+      }));
     },
     completeSubmittedIntent(submissionRef, outcome, {authorityScopeCid,
       currentAuthorization, expectedRevision, connection}, control) {

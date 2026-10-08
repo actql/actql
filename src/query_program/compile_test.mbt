@@ -998,15 +998,53 @@ test "JOIN computes SELECT expressions once after matching rows" {
 }
 
 ///|
+fn assert_selected_distinct_result(program : @program.Program) -> Unit raise {
+  let mut found = 0
+  for stage in @program.stages(program) {
+    let body = @wire.open_object(@program.stage_body(stage)).unwrap()
+    let steps = @wire.elements(@wire.required(body, "steps").unwrap()).unwrap()
+    for step in steps {
+      let view = @wire.open_object(step).unwrap()
+      if @wire.lookup(view, "distinct") is Some(fields) {
+        found += 1
+        assert_eq(@wire.array_length(fields), Some(1))
+        assert_eq(
+          @wire.text(@wire.element_at(fields, 0).unwrap()).unwrap(),
+          "a",
+        )
+        let binding = @wire.text(@wire.required(view, "as").unwrap()).unwrap()
+        let results = @wire.open_object(
+          @wire.required(body, "results").unwrap(),
+        ).unwrap()
+        let rows = @wire.open_object(@wire.required(results, "rows").unwrap()).unwrap()
+        assert_eq(
+          @wire.text(@wire.required(rows, "from").unwrap()).unwrap(),
+          binding,
+        )
+        let exported = @wire.required(rows, "fields").unwrap()
+        assert_eq(@wire.array_length(exported), Some(1))
+        assert_eq(
+          @wire.text(@wire.element_at(exported, 0).unwrap()).unwrap(),
+          "a",
+        )
+      }
+    }
+  }
+  assert_eq(
+    found,
+    1,
+    msg="the Stage Result must publish exactly one selected-row DISTINCT",
+  )
+}
+
+///|
 test "JOIN DISTINCT compares only the selected output row" {
   let query = @query.parse_query(
     "SELECT DISTINCT l.a AS a FROM left_rows AS l JOIN right_rows AS r ON l.a = r.c",
     syntax_limits(),
   ).unwrap()
   let program = compile(query, set_context(), construction_limits()).unwrap()
-  let wire = semantic(program)
-  assert_true(wire.contains("\"distinct\":[\"a\"]"))
-  assert_true(wire.contains("\"from\":\"aql_join_unique\""))
+  assert_selected_distinct_result(program)
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
     Checked(_) => ()
@@ -1166,9 +1204,7 @@ test "CTE JOIN DISTINCT publishes the deduplicated Stage Result" {
     ] {
     let query = @query.parse_query(text, syntax_limits()).unwrap()
     let program = compile(query, set_context(), construction_limits()).unwrap()
-    let wire = semantic(program)
-    assert_true(wire.contains("\"distinct\":[\"a\"]"), msg=text)
-    assert_true(wire.contains("\"from\":\"aql_join_unique\""), msg=text)
+    assert_selected_distinct_result(program)
     match
       @check.check_parsed(program, check_environment(), None, check_limits()) {
       Checked(_) => ()
