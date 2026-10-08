@@ -1212,6 +1212,7 @@ fn lower_aggregate_resolved(
   max_collection_items : Int64,
   max_collection_bytes : Int64,
   order_fields? : Array[String]? = None,
+  analytic? : Bool = false,
 ) -> @builder.Node raise Abort {
   let name = match call.function_name {
     "COUNT" => "count"
@@ -1336,7 +1337,9 @@ fn lower_aggregate_resolved(
         ]),
       )
     }
-    entries.push(("order_by", construction.array(order)))
+    if !analytic {
+      entries.push(("order_by", construction.array(order)))
+    }
   }
   match call.delimiter {
     Some(delimiter) => entries.push(("delimiter", construction.text(delimiter)))
@@ -1408,6 +1411,7 @@ fn lower_analytic_call(
   call : @query.AnalyticCall,
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
+  max_collection_bytes : Int64,
 ) -> @builder.Node raise Abort {
   match call.aggregate {
     Some(aggregate) => {
@@ -1416,12 +1420,26 @@ fn lower_analytic_call(
       }
       if ![
           "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "VAR_POP", "VAR_SAMP",
-          "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
+          "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV", "STRING_AGG",
         ].contains(aggregate.function_name) {
         raise Abort(UnsupportedAnalytic)
       }
+      if aggregate.function_name == "STRING_AGG" &&
+        (
+          aggregate.distinct ||
+          aggregate.filter is Some(_) ||
+          !aggregate.order_by.is_empty()
+        ) {
+        raise Abort(UnsupportedAnalytic)
+      }
       lower_aggregate_resolved(
-        construction, aggregate, resolve, max_work, 0L, 0L,
+        construction,
+        aggregate,
+        resolve,
+        max_work,
+        0L,
+        max_collection_bytes,
+        analytic=true,
       )
     }
     None => {
@@ -1565,6 +1583,7 @@ fn lower_analytic(
   projections : Array[@query.Projection],
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
+  max_collection_bytes : Int64,
   reserved : Array[String],
   evaluated : Array[(@query.Expression, String)],
   derives : Array[(String, @builder.Node)],
@@ -1613,6 +1632,7 @@ fn lower_analytic(
           projection.analytic.unwrap(),
           resolve,
           max_work,
+          max_collection_bytes,
         ),
       ),
     )
@@ -3484,7 +3504,8 @@ fn compile_steps(
         for group in groups {
           operations.push(
             lower_analytic(
-              construction, group, resolve, max_work, reserved, evaluated, derives,
+              construction, group, resolve, max_work, max_collection_bytes, reserved,
+              evaluated, derives,
             ),
           )
         }
