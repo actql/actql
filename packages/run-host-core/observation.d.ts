@@ -4,7 +4,7 @@ export type ObservationScope = Readonly<{[scopeBrand]: true}>;
 export type ObservationBudget = Readonly<{[budgetBrand]: true}>;
 export type ObservationBudgetSnapshot = Readonly<{
   scopeKey: string; requestKey: string; maxRecords: number; maxBytes: number;
-  records: number; bytes: number; lastFact: string | null;
+  records: number; bytes: number; factHashes: readonly string[];
 }>;
 /** The caller supplies an existing, authorized installation; no authority grant. */
 export function admitObservationScope(options: Readonly<{
