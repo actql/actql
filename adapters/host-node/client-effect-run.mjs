@@ -22,7 +22,7 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
-  inferPlanFor, resultPolicyOriginalFor,
+  inferPlanFor, resultPolicyOriginalFor, validateInstallation,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
@@ -31,6 +31,7 @@ export function installNodeClientEffectRun({moon,
       (inferPlanFor !== undefined && typeof inferPlanFor !== 'function') ||
       (resultPolicyOriginalFor !== undefined &&
         typeof resultPolicyOriginalFor !== 'function') ||
+      (validateInstallation !== undefined && typeof validateInstallation !== 'function') ||
       typeof execute !== 'function' ||
       typeof journal?.reservePhysicalStart !== 'function' ||
       typeof now !== 'function' ||
@@ -52,6 +53,7 @@ export function installNodeClientEffectRun({moon,
     if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
         'unsupported_program') throw unsupported();
     compilation = checked(outcome);
+    validateInstallation?.({prepared, compilation});
     compilations.set(prepared, compilation);
     return compilation;
   };

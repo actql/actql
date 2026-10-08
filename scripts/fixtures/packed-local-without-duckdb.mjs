@@ -90,7 +90,7 @@ const sourceProfilePaths = await Promise.all(sourceNames
       .update(canonicalJson({fixture: name})).digest('hex');
     const path = resolve(`${name}.json`);
     await writeFile(path, JSON.stringify({
-      version: 'actql-installed-table-source/0.1', connectorId: name, connection: name,
+      version: 'actql-installed-local-table-source/0.1', connectorId: name, connection: name,
       python: resolve('uninstalled-python'),
       catalog: {database: resolve(`${name}.db`), warehouse: resolve(name),
         catalogCid, limits: {bytes: 1048576, files: 16, operations: 8}},

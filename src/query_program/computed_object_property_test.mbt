@@ -10,6 +10,39 @@ fn computed_object_expected() -> @program.Program {
 }
 
 ///|
+// Independent slot control: SELECT and qualified ORDER both read the original
+// payload/other pair. The projected payload alias does not change that pair.
+// One derive feeds original_score, then ORDER reads that evaluated output.
+fn computed_qualified_reuse_expected() -> @program.Program {
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}},"other":{"type":"object","nullable":false,"fields":{"score":{"type":"number","nullable":false}}}},"rows":[{"id":2,"payload":{"score":10},"other":{"score":30}},{"id":1,"payload":{"score":20},"other":{"score":5}},{"id":3,"payload":null,"other":{"score":15}}]},"as":"objects"},{"from":"objects","derive":{"aql_query_expr_1":{"property":{"name":"score","value":{"coalesce":[{"field":"payload"},{"field":"other"}]}}}}},{"select":["id",{"original_score":"aql_query_expr_1"},{"payload":"other"}]},{"sort":[{"field":"original_score","dir":"asc","nulls":"last"},{"field":"id","dir":"asc","nulls":"first"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["id","original_score","payload"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
+///|
+test "computed qualified ORDER shares the independent SELECT input slot" {
+  let expected = computed_qualified_reuse_expected()
+  match
+    @check.check_parsed(expected, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("independent reuse control requires no acquisition")
+  }
+  for
+    text in [
+      "SELECT id, COALESCE(payload, other).score AS original_score, other AS payload FROM objects ORDER BY COALESCE(objects.payload, objects.other).score NULLS LAST, id",
+      "SELECT id, COALESCE(payload, other).SCORE AS original_score, other AS payload FROM objects ORDER BY COALESCE(objects.payload, objects.other).score NULLS LAST, id",
+      "SELECT id, COALESCE(payload, other).score AS original_score, other AS payload FROM objects ORDER BY COALESCE(`objects`.`payload`, `objects`.`other`).`SCORE` NULLS LAST, id",
+    ] {
+    assert_eq(semantic(checked_computed_object(text)), semantic(expected))
+  }
+}
+
+///|
 fn checked_computed_object(
   text : String,
   context? : Context = analytic_property_context(),
@@ -66,7 +99,10 @@ test "computed object properties guard ORDER reuse by receiver reference meaning
       "SELECT id, COALESCE(payload, other).score AS original_score, other AS payload FROM objects ORDER BY COALESCE(objects.payload, objects.other).score NULLS LAST, id",
     ),
   )
-  assert_eq(qualified.split("\"coalesce\":").length(), 3)
+  // Qualified ORDER resolves to SELECT's original receiver pair, so the
+  // independently authored control requires reuse of the evaluated slot.
+  // Comparing the whole Program also fixes sort fields and projection order.
+  assert_eq(qualified, semantic(computed_qualified_reuse_expected()))
 }
 
 ///|

@@ -103,6 +103,7 @@ export async function prepareInstalledRemoteRuntimeRegistration({
       typeof bundleStore.verify !== 'function' ||
       bundleControl === null || typeof bundleControl !== 'object' ||
       typeof bundleControl.identity !== 'function' ||
+      typeof bundleControl.projection !== 'function' ||
       !text(runtimeBundleCid) || typeof load !== 'function') {
     fail('InvalidInstalledRemoteRuntimeRegistration');
   }
@@ -112,11 +113,26 @@ export async function prepareInstalledRemoteRuntimeRegistration({
     fail('RemoteRuntimeBundleNotActive');
   }
   const bundle = await bundleStore.verify(runtimeBundleCid, bundleControl);
+  // The signed manifest owns the member tuple. A verified component alone
+  // cannot authorize caller-supplied registrations for other implementations.
+  const projection = bundleControl.projection(bundle.manifest);
+  if (!Array.isArray(projection) || projection.length !== 10 ||
+      projection[0] !== runtimeBundleCid ||
+      projection[7] !== registration.connectorRegistration ||
+      projection[8] !== registration.connectorRevision ||
+      projection[9] !== registration.strategyRevision) {
+    fail('RemoteRuntimeBundleRegistrationMismatch');
+  }
+  const [, , , , , , , connectorRegistration, connectorRevision,
+    strategyRevision] = projection;
   const execute = await load(bundle);
   if (typeof execute !== 'function') fail('InvalidRemoteRuntimeBundleLoader');
   return prepareRemoteRuntimeRegistration({
     ...registration,
     runtimeBundleCid,
+    connectorRegistration,
+    connectorRevision,
+    strategyRevision,
     execute,
   });
 }

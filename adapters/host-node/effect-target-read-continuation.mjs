@@ -33,7 +33,7 @@ export function assertEffectTargetReadBinding(binding, expected) {
 
 export async function effectTargetReadContinuation({checkpoints, runId,
   runDefinitionCid, unitId, declaredResults, submission, inventory,
-  principalId, resume, signal, journalPort,
+  principalId, resume, signal, journalPort, effectTargetAuthority,
   allowDefer = true, assertCurrent = () => {}}) {
   if (checkpoints === undefined) fail('EffectTargetCheckpointUnavailable');
   submission = JSON.parse(canonicalValueJson(submission, {dataKeys: true}));
@@ -107,6 +107,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
       state.gate = await checkpoints.effectTargetAuthorization({runId,
         runDefinitionCid, unitId, declaredResults, inventoryCid: bound.inventoryCid,
         target: state.target, continuation,
+        ...(effectTargetAuthority === undefined ? {} : {effectTargetAuthority}),
         beforeDefer() {
           current();
           if (!allowDefer) fail('EffectTargetReadRepeatDeferralUnsupported');

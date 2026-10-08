@@ -64,6 +64,7 @@ pub(all) enum AliasIssue {
   EmptySourceRef
   EnvironmentMismatch
   InputNameMismatch
+  InvalidInputSchema
   ConflictingName
   TooManyAliases
   InvalidProgramId
@@ -77,6 +78,7 @@ pub fn bind_query_context(
   environment_cid : String,
   program_id? : String = "adhoc.query",
   parameter_declarations? : @parameters.Declarations? = None,
+  input_schemas? : Array[(String, @schema.Schema)] = [],
 ) -> Result[@query.Context, AliasIssue] {
   if aliases.length() > 1024 {
     return Err(TooManyAliases)
@@ -113,10 +115,25 @@ pub fn bind_query_context(
       }
     }
   }
+  for index, (name, schema) in input_schemas {
+    if input_schemas[:index].any(previous => previous.0 == name) {
+      return Err(InvalidInputSchema)
+    }
+    let matched = inputs.filter(input => input.name == name)
+    guard matched.length() == 1 && matched[0].source is @query.Captured(_) else {
+      return Err(InvalidInputSchema)
+    }
+    let fields = matched[0].visible_fields
+    if @schema.field_count(schema) != fields.length() ||
+      fields.any(field => @schema.lookup_reference(schema, field) is None) {
+      return Err(InvalidInputSchema)
+    }
+  }
   Ok({
     program_id,
     stage_id: "main",
     stage_result: "rows",
+    input_schemas,
     result_name: "answer",
     captured_stage: if captured {
       Some("capture")

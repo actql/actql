@@ -1,0 +1,35 @@
+{
+  "installation": {
+    "registration": "local",
+    "revision": "local/0.1",
+    "responseHeaders": [],
+    "assets": [
+      "spec/contracts/actql-local-table-iceberg.json",
+      "adapters/connectors/local/iceberg/catalog.py",
+      "adapters/connectors/local/iceberg/custody.py",
+      "adapters/connectors/local/iceberg/physical.py",
+      "adapters/connectors/local/iceberg/process_worker.py",
+      "adapters/connectors/local/iceberg/requirements.in",
+      "adapters/connectors/local/iceberg/requirements.lock",
+      "adapters/connectors/local/iceberg/README.md"
+    ],
+    "source": {
+      "profileVersion": "actql-installed-local-table-source/0.1",
+      "module": "adapters/connectors/local/host/installed-local-table.mjs",
+      "exports": {
+        "check": "checkInstalledTableSourceProfile",
+        "identityParts": "installedTableSourceIdentityParts",
+        "load": "loadInstalledTableSource"
+      }
+    },
+    "effect": {
+      "profileVersion": "actql-installed-local-table-effect/0.1",
+      "module": "adapters/connectors/local/host/installed-local-table.mjs",
+      "exports": {
+        "check": "checkInstalledTableEffectProfile",
+        "identityParts": "installedTableEffectIdentityParts",
+        "load": "loadInstalledTableEffect"
+      }
+    }
+  }
+}

@@ -78,11 +78,45 @@ await writeFile(join(application, 'package.json'), '{"private":true,"type":"modu
 run('npm', ['install', '--ignore-scripts', '--offline', '--no-audit', '--no-fund',
   '--no-save', ...packs.map(pack => pack.path)], application);
 auditPackedPackages(application, names);
+for (const name of ['source-inventory.typecheck.mts', 'effect-inventory.typecheck.mts',
+  'connector-table.typecheck.mts']) {
+  await copyFile(join(repository, 'packages/local-node', name), join(application, name));
+}
+run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
+  '--strict', '--target', 'ES2022', '--module', 'NodeNext',
+  '--moduleResolution', 'NodeNext', '--noEmit',
+  'source-inventory.typecheck.mts', 'effect-inventory.typecheck.mts',
+  'connector-table.typecheck.mts'], application);
 await copyFile(join(repository, 'scripts/fixtures/packed-installed-connectors.mjs'),
   join(application, 'acceptance.mjs'));
 const output = run(process.execPath, ['acceptance.mjs'], application, 30000);
 assert.match(output, /PACKED_INSTALLED_CONNECTORS/);
 console.log(output.trim());
+// Keep the source and packed campaigns on the exact same authored fixture.
+// Only independent HTTPS responders are copied beside the public consumer.
+for (const path of [
+  'scripts/fixtures/installed-effect-inventory-acceptance.mjs',
+  'adapters/site-node/https-exchange-fixture.mjs',
+  'adapters/connectors/github/test/github-graphql.fixture.mjs',
+]) {
+  const target = join(application, path);
+  await mkdir(dirname(target), {recursive: true});
+  await copyFile(join(repository, path), target);
+  assert.deepEqual(await readFile(target), await readFile(join(repository, path)));
+}
+await copyFile(join(repository, 'scripts/fixtures/packed-effect-inventory.mjs'),
+  join(application, 'effect-inventory.mjs'));
+const effectOutput = run(process.execPath, ['effect-inventory.mjs'], application, 120000);
+assert.match(effectOutput, /PACKED_EFFECT_INVENTORY/);
+console.log(effectOutput.trim());
+for (const [source, target] of [
+  ['scripts/fixtures/installed-connector-table-acceptance.mjs', 'connector-table-acceptance.mjs'],
+  ['scripts/fixtures/packed-connector-table.mjs', 'connector-table.mjs'],
+  ['packages/sdk/fixtures/values.json', 'table-values.json'],
+]) await copyFile(join(repository, source), join(application, target));
+const tableOutput = run(process.execPath, ['connector-table.mjs'], application, 30000);
+assert.match(tableOutput, /PACKED_CONNECTOR_TABLE/);
+console.log(tableOutput.trim());
 console.log('FRESH_CONNECTOR_PACKS', JSON.stringify({
   sourceRevision: run('git', ['rev-parse', 'HEAD'], repository).trim(),
   copiedSourceFiles: sourceDigests.length, initiallyEmptyBuild: true,

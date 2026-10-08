@@ -24,9 +24,10 @@ const closedReply = (value, resultKeys) => {
 // metadata during Check or uses observed rows to issue a declaration. A new
 // acquisition resolves one immutable generation under current read authority.
 export async function createInstalledTableSource({moon, baseEnvironmentWire,
-  connectorId, connectorRegistration = 'table', connectorRevision = 'table/0.1',
+  connectorId, connectorRegistration, connectorRevision,
   site, authorization, bridge, targets, limits}) {
   if (!moon || !text(baseEnvironmentWire) || !text(connectorId) ||
+      !text(connectorRegistration) || !text(connectorRevision) ||
       !text(site?.connection) || typeof site?.issueReadGrant !== 'function' ||
       typeof authorization?.authorize !== 'function' ||
       !['checkReadSelector', 'resolveGeneration', 'read'].every(key => typeof bridge?.[key] === 'function') ||

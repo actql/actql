@@ -6,12 +6,20 @@ This unit connects the computation evidence suffix to the existing retained
 Effect-free publication and Captured Run validation owners. It does not
 complete all retained Local processing.
 
-PR #948 at `8e342713a9b578b1472ab50c4c28cf9ab22f3d43` is the unmerged
-prerequisite. The branch normally adopted main
+PR #948 at `8e342713a9b578b1472ab50c4c28cf9ab22f3d43` is now included
+in main. The branch initially adopted main
 `5f8937a511da19648f63b99cf406390019966de0` without conflicts.
 Incoming changes are independent public Effect cancellation and packed Read
 acceptance material, not overlapping production implementation. The child PR
-keeps its parent dependency until main contains it.
+kept its parent dependency until main contained it. PR #951 now targets main.
+
+The subsequent normal merge adopted main
+`0ed193460b2c220e78dc840b3fde23661fc926b9` without conflicts, producing
+`f25d61d9bc0ac358751fde9a3a65ec346bfec1f8`. The suffix implementation,
+all `src/run_publication` inputs and the retained Host fixture are unchanged
+from the previously submitted `3f179ac3df3d40100c2c48a2dcab785186f115a6`.
+Existing source-specific receipts are not relabeled as new Host acceptance.
+The later capture units remain separate dependent PRs, #953 and #959.
 
 Common JS and release runtime checks used clean source
 `88e5751b81aba21b29e170679a735cf29c1bd2e5`.
@@ -163,6 +171,14 @@ commit subjects and all body lines follow Conventional Commits and the
 72-character limit. Documentation-only commits do not relabel earlier test
 receipts. Hosted required CI is not claimed by local success.
 
+At integration source `f25d61d9bc0ac358751fde9a3a65ec346bfec1f8`, the
+focused JS command above passed 274/274 again. Evidence is `run-Q2qB5l`
+and `focused-test-Z5SgHy`. The initial sandbox attempt could not start the
+wrapper's process supervision; it did not execute tests. The completed
+supervised attempt is the execution evidence. This integration did not run
+a new runtime build, Host/packed campaign, all-target tests or hosted CI.
+The following record-only update does not change compiled or fixture inputs.
+
 ## Remaining boundaries
 
 Capture snapshot/dependency preflight and issuance inventories, computation
@@ -175,4 +191,3 @@ Effectful asynchronous commit connection, explicit blocking Native/direct
 callers, all-target, packed/HTTPS and required hosted CI are unverified by this
 unit. Whole publication and whole retained Local completion remain separate
 goals.
-

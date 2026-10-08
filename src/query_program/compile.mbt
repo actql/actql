@@ -44,6 +44,7 @@ pub(all) struct Context {
   captured_stage : String?
   parameter_declarations : @parameters.Declarations?
   inputs : Array[Input]
+  input_schemas : Array[(String, @schema.Schema)]
 }
 
 ///|
@@ -425,7 +426,7 @@ fn same_expression(
         pending.push((a_child, b_child))
       }
       (Property(a_child, a_name), Property(b_child, b_name)) => {
-        if a_name.value != b_name.value {
+        if !same_name(a_name, b_name) {
           return false
         }
         pending.push((a_child, b_child))
@@ -439,7 +440,8 @@ fn same_expression(
 ///|
 // GROUP expressions resolve against one input snapshot. A range-qualified
 // receiver and its unqualified spelling may denote the same physical value.
-// Unknown receivers never prove equality; property names retain their values.
+// Unknown receivers never prove equality. Member spelling follows Frontend
+// lookup; common typing must still establish a unique declared field.
 fn same_group_reference(
   left : Array[@query.NamePart],
   right : Array[@query.NamePart],
@@ -475,7 +477,7 @@ fn same_group_reference_in_scopes(
         return false
       }
       for index in 0..<(left.length() - a_length) {
-        if left[a_length + index].value != right[b_length + index].value {
+        if !same_name(left[a_length + index], right[b_length + index]) {
           return false
         }
       }
@@ -4670,9 +4672,9 @@ pub fn compile(
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
     }
-    match @program.admit_generated_source(source, limits.program) {
+    match admit_query_source(source, document, context, limits) {
       Ok(program) => Ok(program)
-      Err(issue) => Err(Admission(issue))
+      Err(issue) => Err(issue)
     }
   } catch {
     Abort(issue) => {
@@ -5044,9 +5046,9 @@ fn compile_cte_query(
       Ok(value) => value
       Err(issue) => raise Abort(Construction(issue))
     }
-    match @program.admit_generated_source(source, limits.program) {
+    match admit_query_source(source, document, context, limits) {
       Ok(program) => Ok(program)
-      Err(issue) => Err(Admission(issue))
+      Err(issue) => Err(issue)
     }
   } catch {
     Abort(issue) => {
@@ -5733,9 +5735,9 @@ fn compile_set_query(
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
     }
-    match @program.admit_generated_source(source, limits.program) {
+    match admit_query_source(source, document, context, limits) {
       Ok(program) => Ok(program)
-      Err(issue) => Err(Admission(issue))
+      Err(issue) => Err(issue)
     }
   } catch {
     Abort(issue) => {
@@ -7368,9 +7370,7 @@ fn compile_join_query(
       Ok(value) => value
       Err(issue) => raise Abort(Construction(issue))
     }
-    @program.admit_generated_source(source, limits.program).map_err(issue => {
-      Admission(issue)
-    })
+    admit_query_source(source, document, context, limits)
   } catch {
     Abort(issue) => {
       @builder.discard(builder)
