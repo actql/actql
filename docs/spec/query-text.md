@@ -370,8 +370,7 @@ successive Pipe set operator can declare its own list against the current
 Relation. ORDER BY and downstream Pipe operators see only the combined output.
 Normal type compatibility, NULL, duplicate and equality contracts remain with
 the common checker and operations. DATA and CTE sets use the same rules without
-additional acquisition. FULL/LEFT name propagation and CORRESPONDING
-spelling remain separate unimplemented surfaces; omitting those modes does not
+additional acquisition. FULL/LEFT name propagation remains a separate unimplemented surface; omitting those modes does not
 implicitly drop unlisted columns or add NULL-filled columns.
 The selected [GoogleSQL set modifier](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#by_name_or_corresponding)
 defines that equivalence. The pinned resolver and pipe-set fixtures corroborate
@@ -396,9 +395,21 @@ Projection drops unmatched names using evaluated input slots, and the existing
 checker and set operations still determine types, NULL and duplicate behavior.
 ORDER BY and later operators cannot recover dropped names or input ranges.
 No source acquisition, execution owner or placement boundary is introduced.
-FULL/LEFT name propagation and CORRESPONDING spelling remain unimplemented.
+FULL/LEFT name propagation remains unimplemented.
 This subset follows the same pinned GoogleSQL reference above; selected local
 checks and packed acceptance establish only their recorded execution scope.
+
+`CORRESPONDING` uses the same common-name alignment as `INNER ... BY NAME`;
+`INNER ... CORRESPONDING` has the same meaning. `STRICT CORRESPONDING`
+uses the exact-name-set rule of unprefixed `BY NAME`. The optional
+`CORRESPONDING BY (column_list)` corresponds to `BY NAME ON (column_list)`:
+default CORRESPONDING selects listed common names, while STRICT requires the
+list to match each input's complete field set. List order and authored spelling,
+case-insensitive lookup, duplicate-name rejection and evaluated-slot reuse are
+unchanged. SQL chains and sequential Pipe sets keep their existing scope and
+common typing rules. These are selected GoogleSQL spellings of the existing
+set semantics, not a new execution or acquisition mechanism. FULL/LEFT variants
+remain unsupported pending common nullable-padding evidence.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
 body, named FROM/JOIN subquery and parenthesized query operand use the same

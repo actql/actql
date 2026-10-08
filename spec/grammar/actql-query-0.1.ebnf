@@ -123,8 +123,12 @@ limit_clause  = "LIMIT", limit_integer, [ "OFFSET", limit_integer ] ;
 limit_integer = integer | parameter_token ;
 set_operator  = "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ;
-set_names     = "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ] ;
-set_matching  = set_operator, [ set_names ] | "INNER", set_operator, set_names ;
+set_names     = "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ]
+              | [ "STRICT" ], "CORRESPONDING", [ "BY", "(", identifier, { ",", identifier }, ")" ] ;
+set_matching  = set_operator, [ set_names ]
+              | "INNER", set_operator,
+                ( "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ]
+                | "CORRESPONDING", [ "BY", "(", identifier, { ",", identifier }, ")" ] ) ;
 set_part      = set_matching, sql_operand ;
 pipe_item     = relation_pipe_item | infer_operator | nearest_operator
               | result_operator | terminal_effect | named_sga_call ;
