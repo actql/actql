@@ -430,6 +430,21 @@ pub fn finish(builder : Builder, root : Node) -> Result[Source, Issue] {
     return Err(Closed)
   }
   builder.closed = true
+  admit_node_source(builder, root)
+}
+
+///|
+/// Admit an immutable fragment for bounded, nonexecuted type inspection.
+/// This does not finish the construction session or grant Program admission.
+pub fn snapshot(builder : Builder, root : Node) -> Result[Source, Issue] {
+  if builder.closed {
+    return Err(Closed)
+  }
+  admit_node_source(builder, root)
+}
+
+///|
+fn admit_node_source(builder : Builder, root : Node) -> Result[Source, Issue] {
   if !physical_equal(builder.owner, root.owner) {
     return Err(ForeignNode)
   }

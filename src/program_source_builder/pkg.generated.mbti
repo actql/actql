@@ -31,6 +31,8 @@ pub fn origin(Source, @decode_core.Cursor) -> @frontend_source_map.Origin?
 
 pub fn output_bytes(Source) -> Int
 
+pub fn snapshot(Builder, Node) -> Result[Source, Issue]
+
 pub fn usage(Source) -> @source_value.ParseUsage
 
 // Errors

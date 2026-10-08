@@ -1119,8 +1119,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
       ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, 29, {line: 1, character: 0}],
     ];
     const revisions = [];
-    for (const [text, start, end, position] of cases) {
-      const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+    for (const format of ['sql', 'aql-text']) for (const [text, start, end, position] of cases) {
+      let outcome;
+      try { outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format}); }
+      catch (cause) {
+        if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+      }
+      assert.notEqual(outcome, undefined, '[check-mutation:syntax-original-binding]');
       assert.equal(outcome.outcome, 'completed', '[check-mutation:syntax-outcome]');
       assert.equal(outcome.report.verdict, 'invalid');
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
@@ -1243,7 +1248,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
           unknownName: withoutContext(await client.check(
             'SELECT id FROM accounts', {kind: 'text', scope: 'bound_input', format: 'sql'}))};
         if (entrance === 'http') {
-          const response = await client.post({input: {text: query,
+          const response = await client.post({kind: 'text', scope: 'bound_input', input: {text: query,
             format: 'sql', parameterDeclarations: declarations},
           parameters: requests.violation.parameters});
           assert.equal(response.status, 200);
@@ -1658,7 +1663,9 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
       // A reporting-capacity fault at the existing producer: even its minimal
       // original binding cannot fit the reserved envelope. No second checker.
       if (reportContextOverflow) args[6] = 'ctx:' + 'x'.repeat(65536);
-      return moon.clientProgramCheckSource(...args);
+      const outcome = moon.clientProgramCheckSource(...args);
+      observations?.producerOutcomes?.push(JSON.parse(outcome));
+      return outcome;
     },
     clientProgramCheckUnavailable: (...args) => {
       if (observations) observations.unavailable++; return moon.clientProgramCheckUnavailable(...args);
@@ -2145,7 +2152,7 @@ for (const entrance of ['local', 'http']) {
     const ordinaryCases = await contextClient(t, entrance, absentEnvironment);
     for (const [text, options, verdict, summary, hint] of [
       ['SELECT 1 AS n', {}, 'verified',
-        'The report verifies only its bound checking scope and context.',
+        'The report verifies only its selected checking scope and context.',
         'Use the execution, cancellation and release owners for their respective results.'],
       ['SELECT', {}, 'invalid',
         'The report establishes an input violation in its checking scope.',
@@ -2808,16 +2815,17 @@ for (const entrance of ['local', 'http']) {
         withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
         {aliases: [rightAlias], readOutcome: 'allow', closed: true}),
     ];
-    for (const [text, options, verdict, codes, limits] of [
+    for (const [text, options, verdict, codes, limits, missing] of [
       ['SELECT 1 AS n', {format: 'sql'}, 'verified', [], []],
       ['SELECT id FROM records', {format: 'sql'}, 'undetermined', [], []],
       ['/*😀*/\r\nSELECT missing AS n', {format: 'sql'}, 'invalid', ['query_expression_invalid'], []],
       [query, {format: 'sql', parameterDeclarations: declarations,
         parameters: {minimum: 'twenty'}}, 'invalid', ['supplied_value_type_mismatch'], []],
       [query, {format: 'sql', parameterDeclarations: declarations},
-        'undetermined', [], [{code: 'bound_values_missing'}]],
+        'undetermined', [], [{code: 'bound_values_missing'}], 'minimum'],
       [query, {format: 'sql', parameterDeclarations: {...declarations, another: {type: 'number'}},
-        parameters: {minimum: 'twenty'}}, 'invalid', ['supplied_value_type_mismatch'], []],
+        parameters: {minimum: 'twenty'}}, 'invalid', ['supplied_value_type_mismatch'],
+      [{code: 'bound_values_missing'}], 'another'],
     ]) {
       const expected = await absent.check(text, {kind: 'text', scope: 'bound_input', ...options});
       assert.equal(expected.outcome, 'completed');
@@ -2845,12 +2853,12 @@ for (const entrance of ['local', 'http']) {
               kind: 'structured', pointer: '/minimum'}});
           assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, original);
         }
-        if (limits.length) {
+        if (missing) {
           const declared = getCheckInput(outcome, 'parameter_declarations');
           assert.deepEqual(outcome.report.requirements, [{code: 'parameter_value_required',
-            facts: {parameter: 'minimum', expected_type: 'number', admission: expectedNumberAdmission},
+            facts: {parameter: missing, expected_type: 'number', admission: expectedNumberAdmission},
             location: {document_id: 'parameter_declarations', revision: declared.revision,
-              kind: 'structured', pointer: '/minimum'}}]);
+              kind: 'structured', pointer: `/${missing}`}}]);
         }
       }
     }
@@ -4511,6 +4519,76 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check migration rejects legacy diagnostics and planning labels`, async t => {
+    const legacy = JSON.parse(await readFile(join(repository,
+      'scripts/fixtures/pre-public-check-diagnostic-contract.json'), 'utf8'));
+    let alter = value => value;
+    const transport = [];
+    const observations = {authorization: 0, analysis: 0, unavailable: 0,
+      sourceDecisions: 0, wireOutcomes: [], statuses: []};
+    const client = await contextClient(t, entrance, absentEnvironment,
+      {observations, mutateCheckTransportReply: value => {
+        const changed = alter(value);
+        transport.push({original: structuredClone(value), received: structuredClone(changed)});
+        return changed;
+      }});
+    const text = '/*e\u0301😀*/\r\nSELECT (';
+    const parameterDeclarations = {x: {type: 'string'}};
+    const parameters = {x: 'private-migration-binding'};
+    const options = {kind: 'text', scope: 'bound_input', format: 'sql', parameterDeclarations, parameters};
+    const first = await client.check(text, options);
+    assert.equal(first.version, 'actql-check-outcome/0.1');
+    assert.equal(first.report.verdict, 'invalid');
+    assert.equal(getCheckInput(first, 'source').text, text);
+    for (const change of [
+      value => ({...value, version: 'actql-diagnostics/0.1'}),
+      value => ({...value, version: 'actql-plan-result/0.1'}),
+      value => ({...value, outcome_schema_cid: legacy.plan_result_schema_cid}),
+    ]) {
+      alter = change;
+      let failure;
+      try { await client.check(text, options); } catch (error) { failure = error; }
+      assert.equal(failure?.code, 'InvalidHostCheckOutcome',
+        '[check-mutation:legacy-diagnostic-public-rejection]');
+      const view = sdk.explainCheckFailure(failure);
+      assert.deepEqual({kind: view.kind, problem: view.problem},
+        {kind: 'protocol_failure', problem: 'contract_mismatch'});
+      assert.deepEqual(sdk.getCheckFailureInput(failure),
+        {kind: 'text', scope: 'bound_input', text, format: 'sql', parameterDeclarations, parameters});
+      assert.equal(getCheckInput(failure, 'source'), undefined);
+      assert.equal(sdk.explainCheckOutcome(failure), undefined);
+      assert.equal(resolveCheckLocation(failure, first.report.reasons[0].location), undefined);
+      assert.equal(sdk.getCheckFailureInput(structuredClone(failure)), undefined);
+      for (const field of ['verdict', 'report', 'scope', 'contextRef', 'next', 'ref']) {
+        assert.equal(Object.hasOwn(view, field), false);
+      }
+      assert.doesNotMatch(JSON.stringify({failure, view}), /private-migration-binding|SELECT|diagnostics\/0.1/u);
+      assert.equal(getCheckInput(first, 'source').text, text);
+    }
+    alter = value => value;
+    const restored = await client.check(text, options);
+    assert.equal(restored.report.verdict, 'invalid');
+    assert.equal(getCheckInput(restored, 'source').text, text);
+    assert.notEqual(restored, first);
+    assert.notEqual(getCheckInput(restored, 'source'), getCheckInput(first, 'source'));
+    assert.equal(getCheckInput(restored, 'source').revision, getCheckInput(first, 'source').revision);
+    assert.deepEqual({analysis: observations.analysis, authorization: observations.authorization,
+      unavailable: observations.unavailable, sourceDecisions: observations.sourceDecisions},
+    {analysis: 5, authorization: 5, unavailable: 0, sourceDecisions: 0});
+    assert.equal(transport.every(({original}) => original.version === 'actql-check-outcome/0.1'), true);
+    assert.deepEqual(transport.map(({received}) => received.version),
+      ['actql-check-outcome/0.1', 'actql-diagnostics/0.1', 'actql-plan-result/0.1',
+        'actql-check-outcome/0.1', 'actql-check-outcome/0.1']);
+    assert.equal(transport[3].received.outcome_schema_cid, legacy.plan_result_schema_cid);
+    // The Local observer precedes alteration; the HTTPS observer sees the
+    // altered response bytes. Keep both facts explicit rather than relabeling.
+    assert.deepEqual(observations.wireOutcomes,
+      transport.map(pair => entrance === 'http' ? pair.received : pair.original));
+    assert.deepEqual(observations.statuses, entrance === 'http' ? [200, 200, 200, 200, 200] : []);
+  });
+}
+
 
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: lexical fixes retain original EOF edits and require review`, async t => {
@@ -5635,5 +5713,87 @@ for (const entrance of ['local', 'http']) {
     assert.equal(sdk.getCheckInput(checked, 'program'), original);
     client.assertNoExecution();
     assert.deepEqual({modelCalls, effectCalls, resumes}, {modelCalls: 0, effectCalls: 0, resumes: 0});
+  });
+}
+
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: independent reporting failure preserves protected Source equivalence`, async t => {
+    const root = await mkdtemp(join(scratch, `reporting-${entrance}-`));
+    const records = [];
+    const visibility = [
+      ['absent', {}],
+      ['denied', {aliases: [alias], readOutcome: 'deny'}],
+      ['failed-owner', {aliases: [alias], readOutcome: 'allow', closed: true}],
+      ['hidden-inventory', {aliases: [alias, {...alias, name: 'private_other'}], readOutcome: 'deny'}],
+    ];
+    const normalize = outcome => Object.hasOwn(outcome, 'correlation_ref')
+      ? {...outcome, correlation_ref: '<attempt>'} : outcome;
+    for (const reportContextOverflow of [false, true]) {
+      const peers = new Map();
+      for (const [variant, configuration] of visibility) {
+        const observations = {analysis: 0, unavailable: 0, sourceDecisions: 0,
+          authorization: 0, wireOutcomes: [], statuses: [], producerOutcomes: []};
+        const client = await contextClient(t, entrance, sourceEnvironment,
+          {...configuration, observations, reportContextOverflow});
+        for (const invalid of [false, true]) {
+          const outcome = await client.check(query, {kind: 'text', scope: 'bound_input', format: 'sql',
+            parameterDeclarations: declarations,
+            parameters: {minimum: invalid ? 'private-reporting-value' : 20}});
+          // Preserve producer and ingress facts before any oracle can fail.
+          records.push({variant, reportContextOverflow, invalid, outcome,
+            producer: observations.producerOutcomes.at(-1),
+            wire: observations.wireOutcomes.at(-1),
+            counts: {analysis: observations.analysis, unavailable: observations.unavailable,
+              sourceDecisions: observations.sourceDecisions, authorization: observations.authorization},
+            statuses: [...observations.statuses]});
+          await writeFile(join(root, 'observations.json'), JSON.stringify(records), {mode: 0o600});
+          assert.equal(outcome.outcome, reportContextOverflow ? 'failed' : 'completed',
+            '[check-mutation:mixed-reporting-outcome]');
+          assert.deepEqual(observations.producerOutcomes.at(-1), outcome,
+            '[check-mutation:mixed-reporting-producer]');
+          assert.deepEqual(observations.wireOutcomes.at(-1), outcome,
+            '[check-mutation:mixed-reporting-wire]');
+          assert.equal(observations.analysis, invalid ? 2 : 1);
+          assert.equal(observations.unavailable, 0);
+          assert.equal(observations.sourceDecisions, variant === 'absent' ? 0 : invalid ? 2 : 1);
+          assert.equal(observations.authorization, invalid ? 2 : 1);
+          assert.deepEqual(observations.statuses, entrance === 'http'
+            ? Array.from({length: invalid ? 2 : 1}, () => 200) : []);
+          if (reportContextOverflow) {
+            assert.match(outcome.correlation_ref, /^corr:[0-9a-f]{32}$/u);
+            assert.deepEqual(normalize(outcome), {version: 'actql-check-outcome/0.1',
+              reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
+              outcome: 'failed', correlation_ref: '<attempt>', problem: {code: 'check_report_unbounded'}},
+            '[check-mutation:mixed-reporting-boundary]');
+            assert.equal(getCheckInput(outcome, 'source'), undefined);
+            assert.equal(Object.hasOwn(sdk.explainCheckOutcome(outcome), 'report'), false);
+            assert.equal(Object.hasOwn(sdk.explainCheckOutcome(outcome), 'next'), false);
+          } else {
+            assert.equal(outcome.report.verdict, invalid ? 'invalid' : 'undetermined',
+              '[check-mutation:mixed-reporting-verdict]');
+            assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+            assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
+            assert.deepEqual(outcome.report.reasons.map(({location, ...reason}) => reason),
+              invalid ? [{code: 'supplied_value_type_mismatch', facts: {
+                parameter: 'minimum', expected_type: 'number', actual_type: 'string'}}] : [],
+              '[check-mutation:mixed-reporting-reasons]');
+            assert.equal(getCheckInput(outcome, 'source').text, query);
+            if (invalid) {
+              const location = outcome.report.reasons[0].location;
+              assert.equal(location.pointer, '/minimum');
+              assert.equal(resolveCheckLocation(outcome, location).input, getCheckInput(outcome, 'parameters'));
+            }
+          }
+          assert.equal(getCheckInput(structuredClone(outcome), 'source'), undefined);
+          assert.doesNotMatch(JSON.stringify(outcome),
+            /private-reporting-value|private_other|crm\/main|records\.duckdb|AuthorizationGateClosed/u);
+          const first = peers.get(invalid);
+          if (first) assert.deepEqual(normalize(outcome), normalize(first),
+            '[check-mutation:mixed-reporting-disclosure]');
+          else peers.set(invalid, outcome);
+        }
+      }
+    }
   });
 }

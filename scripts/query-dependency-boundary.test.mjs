@@ -784,4 +784,9 @@ test('filesystem-free integration fixtures use the same adopted engine contract 
     'registered_fragment',
   ]);
   for (const [name, body] of integration) assert.equal(body, engine.get(name), name);
+  const nativeValues = bodies('src/native_values_integration/pinned_engine_contracts_wbtest.mbt');
+  assert.deepEqual([...nativeValues.keys()], [
+    'registered_body', 'registered_values', 'registered_fragment',
+  ]);
+  for (const [name, body] of nativeValues) assert.equal(body, engine.get(name), name);
 });

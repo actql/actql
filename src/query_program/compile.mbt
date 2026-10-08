@@ -464,19 +464,6 @@ fn same_expression(
 }
 
 ///|
-// GROUP expressions resolve against one input snapshot. A range-qualified
-// receiver and its unqualified spelling may denote the same physical value.
-// Unknown receivers never prove equality. Member spelling follows Frontend
-// lookup; common typing must still establish a unique declared field.
-fn same_group_reference(
-  left : Array[@query.NamePart],
-  right : Array[@query.NamePart],
-  resolve : (Array[@query.NamePart]) -> String?,
-) -> Bool {
-  same_group_reference_in_scopes(left, right, resolve, resolve)
-}
-
-///|
 // Compare receivers in their own clause scopes before matching property members.
 fn same_group_reference_in_scopes(
   left : Array[@query.NamePart],
@@ -790,17 +777,9 @@ fn append_pipe_expression(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
 ) -> @builder.Node raise Abort {
-  match
-    @expression.append_with_properties(
-      expression,
-      path => pipe_slot(path, visible, ranges),
-      construction.builder,
-      max_work,
-      resolve_parameter=construction.parameter_resolver(),
-    ) {
-    Ok(node) => node
-    Err(error) => raise Abort(Expression(error))
-  }
+  append_pipe_range_expression(
+    construction, expression, visible, ranges, max_work,
+  )
 }
 
 ///|
@@ -916,23 +895,42 @@ fn append_expression(
     }
     resolve_column(path, query, input, fields)
   }
+  let (bound, slots, remaining) = bind_range_property_expression(
+    expression,
+    resolve,
+    name => {
+      resolve([name]) is Some(_) ||
+      ambiguous_column([name], query, input, fields)
+    },
+    max_work,
+  )
+  let bound_resolve = fn(path : Array[@query.NamePart]) -> String? {
+    if path.length() == 1 {
+      for (name, slot) in slots {
+        if path[0].value == name {
+          return Some(slot)
+        }
+      }
+    }
+    resolve(path)
+  }
   let lowered = if input.graph_bindings.is_empty() {
     @expression.append_with_properties(
-      expression,
-      resolve,
+      bound,
+      bound_resolve,
       construction.builder,
-      max_work,
+      remaining,
       resolve_parameter=construction.parameter_resolver(),
     )
   } else {
     @expression.append_with_macros(
-      expression,
-      resolve,
+      bound,
+      bound_resolve,
       (path, argument) => {
         graph_macro_value(path, argument, input.graph_bindings)
       },
       construction.builder,
-      max_work,
+      remaining,
       resolve_properties=true,
       resolve_parameter=construction.parameter_resolver(),
     )
@@ -1007,12 +1005,12 @@ fn reusable_order_expression(
     }
   }
   for (value, slot) in selected {
-    if same_expression(expression, value, references=(left, right) => {
-        // The preceding check proves ORDER's alias-first meaning. Compare
-        // both expressions' input receivers and remaining property paths,
-        // including qualified columns and parser-owned aggregate slots.
-        same_group_reference(left, right, input_slot)
-      }) {
+    // Keep explicit properties separate until their receivers resolve, just
+    // as the expression lowerer does. Different AST spellings can denote
+    // the same evaluated value; a range column and an object member cannot.
+    if same_group_expression_in_scopes(
+        expression, value, input_slot, input_slot,
+      ) {
       return Some(slot)
     }
   }
@@ -1138,36 +1136,11 @@ fn same_aggregate_call(
     left.order_by.length() != right.order_by.length() {
     return false
   }
-  let prefix = fn(
-    path : Array[@query.NamePart],
-    resolve : (Array[@query.NamePart]) -> String?,
-  ) -> (String, Int)? {
-    let mut length = path.length()
-    while length > 0 {
-      if resolve(path[:length].to_owned()) is Some(slot) {
-        return Some((slot, length))
-      }
-      length -= 1
-    }
-    None
-  }
   let same = (a, b) => {
-    same_expression(a, b, references=(x, y) => {
-      match (prefix(x, left_resolve), prefix(y, right_resolve)) {
-        (Some((left, n)), Some((right, m))) => {
-          if left != right || x.length() - n != y.length() - m {
-            return false
-          }
-          for index in 0..<(x.length() - n) {
-            if x[n + index].value != y[m + index].value {
-              return false
-            }
-          }
-          true
-        }
-        _ => false
-      }
-    })
+    // Clause scopes resolve the receiver before comparing static members.
+    // Equivalent Property/Reference AST spellings may reuse one aggregate;
+    // an output alias and the original input remain different value slots.
+    same_group_expression_in_scopes(a, b, left_resolve, right_resolve)
   }
   match (left.argument, right.argument) {
     (None, None) => ()
@@ -1260,10 +1233,12 @@ fn lower_aggregate_resolved(
   ]
   match call.argument {
     Some(argument) => {
-      let root = @query.expression_node(
-        argument,
-        @query.expression_root(argument),
-      ).unwrap()
+      let mut root_index = @query.expression_root(argument)
+      while @query.expression_node(argument, root_index).unwrap().kind
+            is Parenthesized(child) {
+        root_index = child
+      }
+      let root = @query.expression_node(argument, root_index).unwrap()
       let field = if conditional_count {
         None
       } else {
@@ -1820,6 +1795,8 @@ fn compile_steps(
   initial_scope? : JoinChainScope? = None,
   preserved_scope? : Array[JoinChainScope]? = None,
   parameter_declarations? : @parameters.Declarations? = None,
+  prefix_steps? : Array[@builder.Node] = [],
+  prefix_context? : Context? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1931,35 +1908,32 @@ fn compile_steps(
         if offset is Some(name) && same_name(element, name) {
           raise Abort(DuplicateOutput)
         }
-        let element_contract = unnest_source_element(
+        let mut element_contract = unnest_source_element(
           expression,
           parameter_declarations,
           query_limits,
           max_work,
           construction.parameter_resolver(),
         )
-        if selected_projections(query).any(projection => {
-            if projection.star is None {
-              false
-            } else {
-              match projection.expression {
-                None => true
-                Some(receiver) =>
-                  match
-                    @query.expression_node(
-                      receiver,
-                      @query.expression_root(receiver),
-                    ) {
-                    Some({ kind: Reference(path), .. }) =>
-                      !path.is_empty() && same_name(path[0], element)
-                    _ => false
-                  }
-              }
+        let requires_element_scope = selected_projections(query).any(projection => {
+          if projection.star is None {
+            false
+          } else {
+            match projection.expression {
+              None => true
+              Some(receiver) =>
+                match
+                  @query.expression_node(
+                    receiver,
+                    @query.expression_root(receiver),
+                  ) {
+                  Some({ kind: Reference(path), .. }) =>
+                    !path.is_empty() && same_name(path[0], element)
+                  _ => false
+                }
             }
-          }) &&
-          element_contract is None {
-          raise Abort(UnsupportedProjection)
-        }
+          }
+        })
         let physical = if correlated {
           active_fields.copy() + [element.value]
         } else {
@@ -1990,6 +1964,24 @@ fn compile_steps(
         entries.push(("derive", construction.object([(column, derived)])))
         step_entries.push(entries.copy())
         entries.clear()
+        if correlated && requires_element_scope && element_contract is None {
+          let prefix = if prefix_steps.is_empty() &&
+            input.source is GeneratedValues(seed) {
+            [import_query_cursor(construction, seed)]
+          } else {
+            prefix_steps.copy()
+          }
+          prefix.append(
+            step_entries.map(entries => construction.object(entries)),
+          )
+          element_contract = unnest_prefix_element(
+            construction, prefix, column, expression, prefix_context, parameter_declarations,
+            query_limits, max_work,
+          )
+        }
+        if requires_element_scope && element_contract is None {
+          raise Abort(UnsupportedProjection)
+        }
         let arguments : Array[(String, @builder.Node)] = [
           ("column", construction.text(column)),
           ("as", construction.text(element_slot)),
@@ -2553,21 +2545,24 @@ fn compile_steps(
               call.distinct &&
               call.order_by.length() == 1 =>
               match call.argument {
-                Some(argument) if same_expression(
+                Some(argument) if aggregate_order_matches_argument(
                     argument,
                     call.order_by[0].expression,
+                    path => resolve_column(path, query, input, active_fields),
                   ) => {
-                  let root = @query.expression_node(
-                    argument,
-                    @query.expression_root(argument),
-                  ).unwrap()
+                  let mut root_index = @query.expression_root(argument)
+                  while @query.expression_node(argument, root_index).unwrap().kind
+                        is Parenthesized(child) {
+                    root_index = child
+                  }
+                  let root = @query.expression_node(argument, root_index).unwrap()
                   match root.kind {
-                    Reference(path) => {
-                      let field = match
-                        resolve_column(path, query, input, active_fields) {
-                        Some(field) => field
-                        None => raise Abort(UnknownColumn)
-                      }
+                    // This key is established only for a complete input column.
+                    // Static members retain ordinary property/order checking.
+                    Reference(path) if resolve_column(
+                        path, query, input, active_fields,
+                      )
+                      is Some(field) => {
                       let selected = entries.copy()
                       entries.clear()
                       selected.push(
@@ -4466,6 +4461,17 @@ fn compile_steps(
                         distinct_order_scope,
                         max_work,
                       )
+                    } else if distinct_order_scope {
+                      append_distinct_order_member_expression(
+                        construction,
+                        expression,
+                        selected_expressions,
+                        selected_input_scope,
+                        order_aggregate_slots + selected_output_slots,
+                        resolve,
+                        active_fields,
+                        max_work,
+                      )
                     } else {
                       match
                         @expression.append_with_properties(
@@ -5088,6 +5094,8 @@ pub fn compile(
         dependencies.filter(other => other.name != input.name),
       retained=Some(retained),
       parameter_declarations=context.parameter_declarations,
+      prefix_steps=seed_steps,
+      prefix_context=Some(context),
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -5712,6 +5720,8 @@ fn compile_cte_stage(
     input.source is Captured(_),
     final_alias,
     parameter_declarations=context.parameter_declarations,
+    prefix_steps=seed,
+    prefix_context=Some(context),
   )
   // A CTE with no remaining computation binds the existing producer after
   // scope validation. compile_steps may emit a synthetic identity projection

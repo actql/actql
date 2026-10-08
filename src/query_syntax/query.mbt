@@ -870,6 +870,8 @@ fn QueryParser::optional_source_alias(
   if self.has("AS") {
     self.keyword("AS")
     Some(self.name())
+  } else if self.peek().value is QuotedName(_) {
+    Some(self.name())
   } else if self.peek().value is Word(value) &&
     ![
       "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "WHERE", "GROUP", "HAVING",

@@ -121,3 +121,46 @@ export const computedObjectPropertyExecutionFailures = [{
   text: 'SELECT id, (CASE WHEN id / (id - id) = 0 THEN @p1 ELSE @p2 END).score AS score FROM records',
   ...suppliedParameters(['p1', 'p2']), resultNames: ['answer'], sourceReadSessionCount: 1,
 }];
+
+// Independent original-source column control; parentheses do not create a row
+// evaluator or change predicate, nullable arithmetic, duplicate rows or order.
+export const parenthesizedSourceRangeProgram = {version: 'actql/0.1',
+  id: 'fixture.parenthesized_source_range', stages: [{id: 'capture',
+    inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {gt: [{field: 'id'}, {literal: 0}]}},
+      {select: ['id', 'amount'], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['id', 'amount']}}},
+  {id: 'main', inputs: {source: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{from: 'source', derive: {value: {add: [{field: 'amount'}, {literal: 0}]}}},
+      {sort: [{field: 'value', dir: 'asc', nulls: 'last'}, {field: 'id', dir: 'asc', nulls: 'first'}]},
+      {select: ['id', 'value'], as: 'selected'}],
+    results: {rows: {from: 'selected', fields: ['id', 'value']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const rangeExpected = [{id: 2, value: 10}, {id: 2, value: 10},
+  {id: 1, value: 20}, {id: 4, value: 40}, {id: 3, value: null}];
+const rangeColumns = [column('id'), column('value', nullableNumber)];
+const sourceRangeSql = 'SELECT id, ((r)).amount + 0 AS value FROM records r '
+  + 'WHERE ((r)).id > 0 ORDER BY value NULLS LAST, id';
+const rangeSuccess = (name, text, extra = {}) => ({name: 'parenthesized-source-range-' + name,
+  format: 'sql', text, sourceRows, sourceReadSessionCount: 1,
+  expected: rangeExpected, columns: rangeColumns, ...extra});
+export const parenthesizedSourceRangeSuccesses = [
+  rangeSuccess('json-control', JSON.stringify(parenthesizedSourceRangeProgram), {format: 'json'}),
+  rangeSuccess('sql', sourceRangeSql),
+  rangeSuccess('pipe', 'FROM records r |> WHERE ((r)).id > 0 '
+    + '|> SELECT id, ((r)).amount + 0 AS value |> ORDER BY value NULLS LAST, id', {format: 'aql-text'}),
+  rangeSuccess('quoted', sourceRangeSql.replaceAll('((r))', '((`R`))').replace('records r', 'records `r`')),
+  rangeSuccess('empty', sourceRangeSql, {sourceRows: [], expected: []}),
+  success('parenthesized-range-nested', 'SELECT id, ((o)).payload.score AS score FROM objects o ORDER BY id',
+    {expected: [{id: 1, score: 20}, {id: 2, score: 10}, {id: 2, score: 10}, {id: 3, score: null}, {id: 4, score: null}]}),
+  success('parenthesized-value-range-collision', 'SELECT id, (payload).score AS score FROM objects payload ORDER BY id',
+    {expected: [{id: 1, score: 20}, {id: 2, score: 10}, {id: 2, score: 10}, {id: 3, score: null}, {id: 4, score: null}]}),
+];
+export const parenthesizedSourceRangeRefusals = [
+  'SELECT ((r)).missing AS value FROM records r',
+  'SELECT ((r)).id.score AS value FROM records r',
+  'FROM records old |> AS current |> SELECT ((old)).id AS value',
+].map((text, index) => ({name: 'parenthesized-source-range-refusal-' + index,
+  format: 'aql-text', text, expectedCode: 'ClientProgramInvalidInput'}));
+computedObjectPropertySuccesses.push(...parenthesizedSourceRangeSuccesses);
+computedObjectPropertyRefusals.push(...parenthesizedSourceRangeRefusals);
