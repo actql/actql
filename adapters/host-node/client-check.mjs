@@ -1,4 +1,4 @@
-// Public `check` of authored source for one audience. The Host decides which
+// Public checking observations of authored source or Program for one audience. The Host decides which
 // installed query names the audience may see with the source's own read
 // authorization; absent, denied and undecided names are all left out before
 // MoonBit checks anything, so the private distinction never reaches the
@@ -25,6 +25,7 @@ export function installNodeClientCheck({moon, environment, publication,
   sourceAccesses = [], contextKey = randomBytes(32)}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckSource !== 'function' ||
+      typeof moon.clientProgramCheckProgram !== 'function' ||
       typeof moon.clientProgramCheckUnavailable !== 'function' ||
       typeof moon.clientProgramCheckCompilerIdentity !== 'function' ||
       typeof moon.clientProgramCheckContextIdentity !== 'function' ||
@@ -86,7 +87,7 @@ export function installNodeClientCheck({moon, environment, publication,
   // the visible names and supplied
   // bindings. Equal requests give an equal reference here; the reference is
   // not a public hash of supplied values.
-  const contextRef = (principalId, input, parameters, visible) => {
+  const contextRef = (principalId, input, parameters, visible, kind) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
       compiler, reason_schema_cid: checkReasonSchemaCid,
@@ -95,9 +96,10 @@ export function installNodeClientCheck({moon, environment, publication,
     let preimage;
     try {
       preimage = canonicalJson({...bound,
-        source: {format: input.format, text: input.text},
-        parameter_declarations: input.parameterDeclarations ?? null,
-        parameters: parameters ?? null});
+        ...(kind === 'program' ? {program: {kind: 'structured', received: JSON.stringify(input)}} : {source: {format: input.format, text: input.text},
+        parameter_declarations: input.parameterDeclarations ?? null}),
+        parameters: kind === 'program' && parameters != null
+          ? {kind: 'structured', received: JSON.stringify(parameters)} : parameters ?? null});
     } catch {
       // Input the common encoding cannot represent (colliding member names
       // or ill-formed text) is bound by its exact received spelling.
@@ -111,13 +113,21 @@ export function installNodeClientCheck({moon, environment, publication,
     .update('actql-check-input/0.1\0').update(documentId).update('\0')
     .update(bytes).digest('hex')}`;
 
-  const check = async ({principalId, input, parameters, signal}) => {
+  const check = async ({principalId, kind, input, parameters, signal}) => {
     // One opaque reference for this reporting attempt, independent of source,
     // context, authorization and the presence of any protected Source.
     const correlationRef = `corr:${randomBytes(16).toString('hex')}`;
     signal?.throwIfAborted();
     const visible = await visibleAliases(signal);
     signal?.throwIfAborted();
+    if (kind === 'program') {
+      const document = JSON.stringify(input);
+      const supplied = parameters == null ? undefined : JSON.stringify(parameters);
+      const outcome = JSON.parse(moon.clientProgramCheckProgram(document, environment, JSON.stringify({environmentCid, aliases: visible}), supplied,
+        contextRef(principalId, input, parameters, visible, kind), revision('program', document),
+        supplied === undefined ? undefined : revision('parameters', supplied), correlationRef));
+      return validCheckOutcome(outcome) ? outcome : failed('check_internal', correlationRef);
+    }
     const declarations = input.parameterDeclarations === undefined
       ? undefined : JSON.stringify(input.parameterDeclarations);
     const supplied = parameters === null ? undefined :

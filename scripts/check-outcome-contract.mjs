@@ -15,7 +15,7 @@ const opaqueRef = {type: 'string', minLength: 1, maxLength: 128,
 // A constant equal to this schema's own CID would create a cyclic preimage.
 const schemaCid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
 
-const documentId = {enum: ['source', 'parameter_declarations', 'parameters']};
+const documentId = {enum: ['source', 'program', 'parameter_declarations', 'parameters']};
 const revision = {type: 'string', pattern: '^rev:[0-9a-f]{64}$'};
 const integer = {type: 'integer', minimum: 0, maximum: 1048576};
 // This is the submitted size, including inputs rejected by admission budgets.
@@ -28,7 +28,7 @@ const location = {oneOf: [
   {type: 'object', additionalProperties: false,
     required: ['kind', 'document_id', 'revision', 'pointer'],
     properties: {kind: {const: 'structured'},
-      document_id: {enum: ['parameter_declarations', 'parameters']}, revision,
+      document_id: {enum: ['program', 'parameter_declarations', 'parameters']}, revision,
       pointer: {type: 'string', maxLength: 4096, pattern: '^(?:/(?:[^~]|~[01])*)*$'}}},
 ]};
 // The catalog owns the existing closed schema; no semantic checker is added.
@@ -64,6 +64,10 @@ function report(verdicts, reasonSchema = checkReasonSchema) {
         properties: {
           limits: {type: 'array', items: {oneOf: [
             {type: 'object', additionalProperties: false, required: ['code'], properties: {code}},
+            {type: 'object', additionalProperties: false, required: ['code', 'location'],
+              properties: {code: {enum: ['implementation_limit', 'analysis_budget_exhausted']},
+                location: {...location.oneOf[1], properties: {...location.oneOf[1].properties,
+                  document_id: {const: 'program'}}}}},
             {type: 'object', additionalProperties: false, required: ['code', 'facts'],
               properties: {code: {const: 'implementation_limit'},
                 facts: {type: 'object', additionalProperties: false, required: ['issue'],
