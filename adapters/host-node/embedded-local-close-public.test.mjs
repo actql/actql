@@ -7,7 +7,6 @@ import {tmpdir, userInfo} from 'node:os';
 import {setImmediate} from 'node:timers/promises';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {RequestHeld} from '../../packages/sdk/index.mjs';
 
 test('embedded final close releases the physical owner and reopens the same saved Run', async t => {
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-client-close-',
@@ -32,7 +31,8 @@ test('embedded final close releases the physical owner and reopens the same save
   {message: 'InstalledHostConfigurationMismatch'});
   let c;
   t.after(async () => {await a.close(); await b.close(); await c?.close();});
-  const run = await a.startSource(text, {format: 'json', requestId: 'original'});
+  const submissionRef = a.newSubmission({nonce: 'original'});
+  const run = await a.startSource(text, {format: 'json', submissionRef});
   assert.equal((await run.wait()).status, 'succeeded');
   await setImmediate();
   assert.equal(computations, 1);
@@ -50,8 +50,8 @@ test('embedded final close releases the physical owner and reopens the same save
   await assert.rejects(readFile(ownerPath), {code: 'ENOENT'});
   c = await connectEmbeddedLocal(options);
   assert.notEqual(await readFile(ownerPath, 'utf8'), firstOwner);
-  assert.deepEqual((await c.lookupRequest('original')).ref, run.ref);
-  const repeated = await c.startSource(text, {format: 'json', requestId: 'original'});
+  assert.deepEqual((await c.lookupSubmission(submissionRef)).admission.ref, run.ref);
+  const repeated = await c.startSource(text, {format: 'json', submissionRef});
   assert.deepEqual(repeated.ref, run.ref);
   assert.deepEqual(await repeated.result('answer').all(), [{id: 1}, {id: 2}]);
   await setImmediate();
@@ -64,7 +64,7 @@ test('embedded final close releases the physical owner and reopens the same save
   scratch.passed();
 });
 
-test('embedded close preserves an unanswered Checkpoint for the next Host', async t => {
+test('embedded close preserves refusal of an unsupported pre-Run wait for the next Host', async t => {
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-held-close-',
     label: 'Local held request lifecycle'});
   const keys = generateKeyPairSync('ed25519');
@@ -85,21 +85,28 @@ test('embedded close preserves an unanswered Checkpoint for the next Host', asyn
   const first = await connectEmbeddedLocal(options);
   let next;
   t.after(async () => {await first.close(); await next?.close();});
-  await assert.rejects(first.startSource(text, {format: 'json', requestId: 'held-original'}),
-    error => error instanceof RequestHeld);
-  const before = await first.lookupRequest('held-original');
-  assert.equal(before.kind, 'held');
-  assert.equal(before.state, 'waiting_checkpoint');
-  const [checkpoint] = (await first.checkpoints()).items;
-  const review = await first.reviewCheckpoint(checkpoint);
+  const submissionRef = first.newSubmission({nonce: 'held-original'});
+  await assert.rejects(first.startSource(text, {format: 'json', submissionRef}),
+    error => {
+      assert.equal(error.code, 'SubmissionPreparationFailed');
+      assert.equal(error.outcome.problem.code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
+      return true;
+    });
+  // The original-intent owner explicitly forbids this pre-Run deferral.
+  // Actual Run-scoped Effect/Model approval recovery has separate public cases;
+  // do not revive a legacy request route merely to manufacture a held reply.
+  const before = await first.lookupSubmission(submissionRef);
+  assert.equal(before.kind, 'preparation_failed');
+  assert.equal(before.problem.code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
+  assert.deepEqual((await first.checkpoints()).items, []);
   await first.close();
   next = await connectEmbeddedLocal(options);
-  const after = await next.lookupRequest('held-original');
-  assert.equal(after.kind, 'held');
-  assert.equal(after.state, 'waiting_checkpoint');
-  assert.equal(after.prepareAttemptId, before.prepareAttemptId);
-  assert.equal((await next.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
-  assert.deepEqual((await next.reviewCheckpoint(checkpoint)).bytes, review.bytes);
+  const after = await next.lookupSubmission(submissionRef);
+  assert.deepEqual(after, before);
+  assert.deepEqual((await next.checkpoints()).items, []);
+  await assert.rejects(next.startSource(text, {format: 'json', submissionRef}),
+    {code: 'SubmissionPreparationFailed'});
+  assert.deepEqual(await next.lookupSubmission(submissionRef), before);
   assert.equal(computations, 0);
   await next.close();
   scratch.passed();

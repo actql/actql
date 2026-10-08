@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { clone, generate, oracle } from './engine.mjs';
+import {corpusFoundations} from './registry.mjs';
 
 const methods = ['enabled', 'admits', 'generate', 'contract', 'syntax', 'oracle', 'shrinks'];
 export function checkRegistration(registry, registrations) {
@@ -33,7 +34,7 @@ export function coverage(cases, registry, registrations) {
 // Deterministic completion searches the same typed generator used for exploration.
 // It adds only cases which discharge a missing predicate, never a labelled pair
 // or a per-operation handwritten pipeline. Failure to find a witness is fatal.
-export function fixedCorpus(registry, registrations) {
+function completeCorpus(registry, registrations) {
   checkRegistration(registry, registrations);
   const cases = generate(registry);
   const obligations = registry.flatMap(d => registrations[d.name].obligations);
@@ -53,4 +54,33 @@ export function fixedCorpus(registry, registrations) {
   }
   coverage(cases, registry, registrations);
   return cases;
+}
+
+const extendsRegistry = (before, after) => before.length < after.length &&
+  before.every((descriptor, index) => after[index] === descriptor);
+export function fixedCorpus(registry, registrations, foundations = corpusFoundations) {
+  assert(Array.isArray(foundations) && foundations.every((foundation, index) =>
+    Array.isArray(foundation) && foundation.length > 0 &&
+    (index === 0 || extendsRegistry(foundations[index - 1], foundation))),
+  'Corpus foundations must be ordered strict registry prefixes');
+  const prior = foundations.filter(foundation => extendsRegistry(foundation, registry));
+  if (!prior.length) return completeCorpus(registry, registrations);
+  let previous = prior[0];
+  const retained = completeCorpus(previous, registrations);
+  for (const next of [...prior.slice(1), registry]) {
+    const current = completeCorpus(next, registrations);
+    const previousNames = new Set(previous.map(descriptor => descriptor.name));
+    const sameCase = value => JSON.stringify({rows: value.rows, steps: value.steps});
+    const contents = new Set(retained.map(sameCase)), ids = new Set(retained.map(value => value.id));
+    for (const candidate of current) {
+      if (candidate.steps.every(step => previousNames.has(step.op))) continue;
+      if (contents.has(sameCase(candidate))) continue;
+      const value = clone(candidate);
+      while (ids.has(value.id)) value.id = `extension:${value.id}`;
+      retained.push(value); ids.add(value.id); contents.add(sameCase(value));
+    }
+    coverage(retained, next, registrations);
+    previous = next;
+  }
+  return retained;
 }

@@ -22,15 +22,20 @@ import {composeInstalledEffects, validPluralEffectPaths}
 export {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
-import {tableInstallation} from './installed-table-installation.mjs';
 import {installedConnectorFor, installedConnectorForTable, installedEffectTable,
   loadInstalledEffectModule, providerBundleUrl,
   verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
-const installations = installedEffectTable([tableInstallation, ...installedConnectors]);
+const installations = installedEffectTable(installedConnectors);
 
 const refuse = (code, cause) => {
-  throw Object.assign(new TypeError(code, {cause}), {code});
+  const failure = Object.assign(new TypeError(code, {cause}), {code});
+  if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) {
+    Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
+      cleanupPending: cause.cleanupPending, cleanupErrors: cause.cleanupErrors,
+      primaryFailure: cause.primaryFailure ?? cause});
+  }
+  throw failure;
 };
 
 // Bound profile and identity-part reads before buffering, including files that
@@ -38,6 +43,12 @@ const refuse = (code, cause) => {
 async function readProfileJson(path) {
   const maxBytes = 8 * 1024 * 1024;
   const file = await open(path, 'r');
+  let released = false;
+  const release = async () => {
+    if (released) return;
+    await file.close();
+    released = true;
+  };
   let failure;
   try {
     const chunks = [];
@@ -60,10 +71,12 @@ async function readProfileJson(path) {
     }
   } catch (cause) { failure = cause; throw cause; }
   finally {
-    try { await file.close(); }
+    try { await release(); }
     catch (cause) {
-      if (failure === undefined) throw cause;
-      throw new AggregateError([failure, cause], failure.message, {cause: failure});
+      // No installation has returned yet. Preserve the same file's release
+      // responsibility through the existing initialization cleanup owner.
+      throw await retainInstalledHostInitializationFailure(failure ?? cause,
+        {installedEffect: {close: release}});
     }
   }
 }
@@ -106,9 +119,9 @@ async function providerRuntime(entry, runtimeUrl) {
 // never an access token; no profile contents are returned to the caller.
 export async function installedEffectIdentity(path, {connectorTable} = {}) {
   const profile = await readProfile(path);
-  const {module} = await selectInstallation(profile, connectorTable);
+  const {entry, module} = await selectInstallation(profile, connectorTable);
   module.check(profile);
-  const parts = await module.identityParts(profile, readProfileJson);
+  const parts = await module.identityParts(profile, readProfileJson, entry);
   if (!Array.isArray(parts) || parts.length === 0) {
     refuse('InvalidInstalledEffectProfile');
   }

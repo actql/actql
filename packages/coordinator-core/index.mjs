@@ -52,21 +52,36 @@ export const admitPollNotSeen = (body, request) =>
   checked(owner.coordinatorAdmitPollNotSeen(body, request));
 export const deliveryEnvelopeJson = (request, body) =>
   checked(owner.coordinatorDeliveryEnvelopeJson(request, body));
-export const redeliveryEligible = (record, request, notSeenBody, context) => {
+function validateDeliveryContext(context) {
   if (context === null || typeof context !== 'object' ||
       typeof context.coordinatorAuthority !== 'string' ||
       typeof context.siteKey !== 'string' ||
       !Number.isSafeInteger(context.siteGeneration) ||
       context.siteGeneration < 0 || context.siteGeneration > 2147483647 ||
       typeof context.authorizationCurrent !== 'boolean' ||
-      typeof context.cancellationRequested !== 'boolean' ||
-      typeof notSeenBody !== 'string') {
+      typeof context.cancellationRequested !== 'boolean') {
+    throw new TypeError('InvalidCoordinatorRedeliveryContext');
+  }
+}
+export const redeliveryEligible = (record, request, notSeenBody, context) => {
+  validateDeliveryContext(context);
+  if (typeof notSeenBody !== 'string') {
     throw new TypeError('InvalidCoordinatorRedeliveryContext');
   }
   return checked(owner.coordinatorRedeliveryEligible(record, request,
     notSeenBody, context.coordinatorAuthority, context.siteKey,
     context.siteGeneration, context.authorizationCurrent,
     context.cancellationRequested));
+};
+export const initialDeliveryEligible = (record, request, context) => {
+  validateDeliveryContext(context);
+  if (typeof context.outcomePersistedBeforeEverySend !== 'boolean') {
+    throw new TypeError('InvalidCoordinatorInitialDeliveryContext');
+  }
+  return checked(owner.coordinatorInitialDeliveryEligible(record, request,
+    context.coordinatorAuthority, context.siteKey, context.siteGeneration,
+    context.authorizationCurrent, context.cancellationRequested,
+    context.outcomePersistedBeforeEverySend));
 };
 export const prepareIntent = (journal, request) =>
   checked(owner.coordinatorPrepareIntent(journal, request));

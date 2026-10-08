@@ -165,6 +165,24 @@ pub fn coordinator_redelivery_eligible(
 }
 
 ///|
+#export_name("coordinatorInitialDeliveryEligible")
+pub fn coordinator_initial_delivery_eligible(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  request : @remote.DispatchRequest,
+  expected_authority : String,
+  expected_site : String,
+  expected_generation : Int,
+  authorization_current : Bool,
+  cancellation_requested : Bool,
+  outcome_persisted_before_every_send : Bool,
+) -> Result[Bool, @remote.DispatchIssue] {
+  @remote.coordinator_initial_delivery_eligible(
+    record, request, expected_authority, expected_site, expected_generation, authorization_current,
+    cancellation_requested, outcome_persisted_before_every_send,
+  )
+}
+
+///|
 #export_name("coordinatorPrepareIntent")
 pub fn coordinator_prepare_intent(
   journal : @remote.CoordinatorDispatchJournal,

@@ -15,15 +15,18 @@ import {canonicalJson, contentCid, sourceReadAccountConfiguration} from './local
 import {installRowSourceAuthorization} from './installed-row-source.mjs';
 import {installedSourceIdentity, loadInstalledSource} from './installed-source.mjs';
 import {installedEffectIdentity, loadInstalledEffect} from './installed-effect.mjs';
+import {createInstalledConnectorTable} from './installed-connectors.mjs';
+import {installedConnectors} from '../connectors-builtin/installations.generated.mjs';
 import {checkInstalledTableSourceProfile, checkInstalledTableEffectProfile,
-  installedTableReadSite} from './installed-table-installation.mjs';
+  installedTableReadSite, loadInstalledTableSource, loadInstalledTableEffect}
+  from '../connectors/local/host/installed-local-table.mjs';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const baseEnvironmentWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
-const schemaWire = (await readFile(new URL('../table-iceberg/fixtures/presence-schema.json', import.meta.url), 'utf8')).trimEnd();
+const schemaWire = (await readFile(new URL('../connectors/local/iceberg/fixtures/presence-schema.json', import.meta.url), 'utf8')).trimEnd();
 const schemaCid = 'sha256:8f5aaf81ac549e3e1b2724b949725bffe152abbae67451b31276b17f11c74e9a';
 const connection = 'table-local', principalId = 'table-reader';
 async function directory(t) {
@@ -37,7 +40,7 @@ const common = root => ({connectorId: 'table', connection,
   catalog: {database: join(root, 'catalog.db'), warehouse: join(root, 'warehouse'),
     catalogCid: cid('3'), limits: {bytes: 16777216, files: 256, operations: 32}},
   accountConfigurationWire: sourceReadAccountConfiguration({connection, resource: 'rows'})});
-const sourceProfile = root => ({...common(root), version: 'actql-installed-table-source/0.1',
+const sourceProfile = root => ({...common(root), version: 'actql-installed-local-table-source/0.1',
   targets: [{resource: 'rows', schemaWire, selector: {catalog_identity_cid: cid('3'),
     namespace: ['test'], table_name: 'rows',
     table_uuid: '00000000-0000-0000-0000-000000000001', schema_cid: schemaCid}}],
@@ -61,7 +64,7 @@ function effectProfile(root, approval = 'required') {
   body.mapping_contracts = [mapping];
   delete body.evidence_bundle_cid;
   const environmentWire = canonicalJson({...body, evidence_bundle_cid: contentCid(body)});
-  return {...common(root), version: 'actql-installed-table-effect/0.1', environmentWire,
+  return {...common(root), version: 'actql-installed-local-table-effect/0.1', environmentWire,
     targets: [{effectId: 'save', resource: 'rows', targetRef, mappingRef,
       mappingCid: mapping.mapping_contract_cid, action: 'create', catalogCid: cid('3'),
       namespace: ['test'], tableName: 'rows', expectedTable: null,
@@ -75,14 +78,30 @@ async function installedProfile(t, value) {
     resolveSecret() { assert.fail('Local Table installation needs no external credential'); }}};
 }
 
+test('explicit tables preserve real Local Table identity and generic loading', async t => {
+  const connectorTable = createInstalledConnectorTable(installedConnectors);
+  for (const [make, identity, load] of [
+    [sourceProfile, installedSourceIdentity, loadInstalledSource],
+    [effectProfile, installedEffectIdentity, loadInstalledEffect],
+  ]) {
+    const f = await installedProfile(t, make);
+    assert.equal(await identity(f.path, {connectorTable}), await identity(f.path));
+    const adapter = await load(f.path, {...f.options, connectorTable});
+    assert.equal(adapter.connectorRegistration, 'local');
+    assert.equal(adapter.connectorRevision, 'local/0.1');
+    await adapter.close();
+    await adapter.close();
+  }
+});
+
 test('Table Source loads through the generic Host without physical I/O', async t => {
   const f = await installedProfile(t, sourceProfile);
   const identity = await installedSourceIdentity(f.path);
   assert.match(identity, /^sha256:[0-9a-f]{64}$/u);
   const adapter = await loadInstalledSource(f.path, f.options);
   try {
-    assert.equal(adapter.connectorRegistration, 'table');
-    assert.equal(adapter.connectorRevision, 'table/0.1');
+    assert.equal(adapter.connectorRegistration, 'local');
+    assert.equal(adapter.connectorRevision, 'local/0.1');
     assert.equal(adapter.sourceAccess.connection, connection);
     assert.equal(adapter.tableReadTargets[0].selector.table_name, 'rows');
     assert.equal(typeof adapter.open, 'function');
@@ -93,6 +112,22 @@ test('Table Source loads through the generic Host without physical I/O', async t
     assert.deepEqual((await readdir(f.root)).sort(), ['profile.json']);
     assert.equal(await installedSourceIdentity(f.path), identity);
   } finally { await adapter.close(); }
+});
+
+test('Local Table cannot load without the selected Connector implementation declaration', async t => {
+  const f = await installedProfile(t, sourceProfile);
+  await assert.rejects(loadInstalledTableSource(f.profile, f.options),
+    {code: 'InstalledConnectorRegistrationMismatch'});
+  const effect = effectProfile(f.root);
+  await assert.rejects(loadInstalledTableEffect(effect, {...f.options, ledgerRoot: join(f.root, 'ledger')}),
+    {code: 'InstalledConnectorRegistrationMismatch'});
+  for (const installation of [{registration: 'local', revision: 'local/0.1'},
+    {registration: 'local', revision: 'local/0.1', implementationFiles: []}]) {
+    await assert.rejects(loadInstalledTableSource(f.profile, {...f.options, installation}),
+      {code: 'InvalidConnectorImplementationInventory'});
+  }
+  assert.deepEqual((await readdir(f.root)).sort(), ['profile.json'],
+    'Missing implementation binding cannot create a Catalog, Ledger or authorization store');
 });
 
 test('Table Effect loads its admitted Mapping and existing runtime hooks without publication', async t => {

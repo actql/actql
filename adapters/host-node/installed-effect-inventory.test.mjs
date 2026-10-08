@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import './installed-effect-inventory.integration.test.mjs';
+import './installed-effect-profile-cleanup.test.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';

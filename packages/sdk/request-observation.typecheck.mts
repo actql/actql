@@ -77,3 +77,29 @@ if (cancellation) {
 }
 const cancellationText: string | undefined = formatRequestCancellation(lookup, {format: 'html', locale: 'ja'});
 void cancellationText;
+
+import {type Client, type SubmissionReference, getSubmissionInput} from '@actql/sdk';
+import {type WireClientBodyByOperation} from '@actql/client-wire';
+declare const client: Client;
+declare const originalRef: SubmissionReference;
+declare const freshRef: SubmissionReference;
+const restartDecision = {submissionRef: originalRef,
+  acknowledgement: 'possible_prior_execution_and_effects' as const};
+const pendingRestart = client.startSource('SELECT 1 AS n', {
+  format: 'sql', submissionRef: freshRef, unresolvedHistory: restartDecision});
+const savedRestart = getSubmissionInput(pendingRestart)?.unresolvedHistory;
+if (savedRestart) {
+  const acknowledgement: 'possible_prior_execution_and_effects' = savedRestart.acknowledgement;
+  const original: SubmissionReference = savedRestart.submissionRef;
+  void [acknowledgement, original];
+}
+// @ts-expect-error Deliberate new work requires an explicitly retained fresh identity.
+client.start({}, {unresolvedHistory: restartDecision});
+// @ts-expect-error A generic retry is not the explicit risk acknowledgement.
+client.start({}, {submissionRef: freshRef, unresolvedHistory: {...restartDecision, acknowledgement: 'retry'}});
+declare const ordinarySubmission: WireClientBodyByOperation['submit-intent'];
+const restartBody: WireClientBodyByOperation['restart-intent'] = {
+  ...ordinarySubmission, unresolvedHistory: restartDecision};
+// @ts-expect-error The registered restart request requires its explicit decision.
+const missingDecision: WireClientBodyByOperation['restart-intent'] = ordinarySubmission;
+void [restartBody, missingDecision];

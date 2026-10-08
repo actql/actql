@@ -13,6 +13,8 @@ export type InstalledConnectorEntry = Readonly<{
   revision?: string;
   providerBundle?: string;
   responseHeaders?: readonly string[];
+  /** Finite Connector-owned files consumed by implementation binding. */
+  implementationFiles?: readonly Readonly<{path: string; href: string}>[];
   /** The selected loader's returned module is checked before use. */
   source?: Readonly<{profileVersion: string; load: () => unknown}>;
   effect?: Readonly<{

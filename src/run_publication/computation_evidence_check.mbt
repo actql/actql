@@ -24,6 +24,7 @@ priv struct ComputationEvidencePrelude {
 ///|
 priv enum ComputationEvidencePhase {
   Prelude
+  PreludeCheck(ComputationPreludePreparation)
   ContextHash(@json.CanonicalEmit, String)
   Inventory
   Artifact(Int)
@@ -44,7 +45,7 @@ priv enum ComputationEvidencePhase {
 /// The existing chain validator's context hash and Result-row checks. Metadata
 /// leaf checks still use their original validators; no CID-only shortcut grants
 /// validity to a row inventory. Borrowed contracts remain with the caller.
-priv struct ComputationEvidenceCheck {
+struct ComputationEvidenceCheck {
   mut inputs : ComputationEvidenceInputs?
   max_workspace : Int
   mut prelude : ComputationEvidencePrelude?
@@ -101,9 +102,26 @@ fn ComputationEvidenceCheck::step(
       if self.max_workspace < self.live {
         return Err(EvidenceEncoding)
       }
-      let prelude = match computation_evidence_prelude(inputs) {
-        Ok(prelude) => prelude
+      if self.max_workspace - self.live < 16 {
+        return Err(EvidenceEncoding)
+      }
+      self.phase = PreludeCheck(
+        start_computation_prelude(inputs, self.max_workspace - self.live),
+      )
+    }
+    PreludeCheck(child) => {
+      let (done, _) = match child.advance(1) {
+        Ok(result) => result
         Err(issue) => return Err(issue)
+      }
+      self.peak = Int::max(self.peak, self.live + child.peak)
+      if !done {
+        return Ok(())
+      }
+      let prelude = child.finish().unwrap()
+      match self.reserve(prelude.external_model_cids.length()) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
       self.prelude = Some(prelude)
       guard evidence_string(prelude.effect_context, "effect_context_cid")
@@ -251,7 +269,7 @@ fn ComputationEvidenceCheck::step(
 }
 
 ///|
-fn ComputationEvidenceCheck::advance(
+pub fn ComputationEvidenceCheck::advance(
   self : ComputationEvidenceCheck,
   quantum : Int,
 ) -> Result[(Bool, Int), RunEvidenceChainIssue] {
@@ -272,7 +290,7 @@ fn ComputationEvidenceCheck::advance(
 }
 
 ///|
-fn ComputationEvidenceCheck::finish(
+pub fn ComputationEvidenceCheck::finish(
   self : ComputationEvidenceCheck,
 ) -> Result[Unit, RunEvidenceChainIssue] {
   if self.closed || !(self.phase is Done) {
@@ -283,12 +301,15 @@ fn ComputationEvidenceCheck::finish(
 }
 
 ///|
-fn ComputationEvidenceCheck::cancel(self : ComputationEvidenceCheck) -> Unit {
+pub fn ComputationEvidenceCheck::cancel(
+  self : ComputationEvidenceCheck,
+) -> Unit {
   if self.closed {
     return
   }
   self.closed = true
   match self.phase {
+    PreludeCheck(child) => child.cancel()
     ContextHash(cursor, _) => @json.cancel_emit(cursor)
     Rows(_, child) => child.cancel()
     _ => ()

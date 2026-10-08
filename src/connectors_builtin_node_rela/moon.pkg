@@ -49,6 +49,7 @@ import {
   "actql/actql/client_row_source_host",
   "actql/actql/graph_contract",
   "actql/actql/value_contract" @parameter_contract,
+  "actql/actql/connectors/local/table" @local_table,
   "actql/actql/stage_results" @effect_results,
   "actql/actql/source_frontend",
   "actql/actql/query_program",

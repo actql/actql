@@ -1,8 +1,24 @@
+import {retirementModelExecution, retirementFixture, retirementBindings, isRetirement, retirementPremises, retirementGuarantees, retirementResidual, executedRetirementCoverage, checkRetirementConnection} from './retirement-evidence.mjs';
+export {retirementModelExecution, retirementFixture, retirementBindings, executedRetirementCoverage};
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { snapshot as sessionSnapshot, artifacts, targets, includesObligations } from '../bounded-session/evidence.mjs';
 export { artifacts, targets };
+// The actual checker inventories 14 Session, 22 chain and 18 stop/pause laws.
+export const modelExecution = Object.freeze({target: 'model', count: 14 + 22 + 18,
+  command: Object.freeze([process.execPath, 'proofs/relation-chain/check.mjs']),
+  summary: 'Checked 54 theorems, expected claim types and axiom dependencies'});
+// Parse the complete observed checker result, never a caller-supplied count.
+// Capacity and pipeline supply their independently reviewed checker descriptor.
+export function modelObservationUnits(output, exit, expected = modelExecution) {
+  const summaries = output.split(/\r?\n/u).filter(line => line.startsWith('Checked '));
+  if (exit !== 0 || summaries.length !== 1 || summaries[0] !== expected.summary || output.includes('sorryAx')) {
+    throw new Error('Missing or incomplete typed model observation');
+  }
+  return expected.count;
+}
+
 export const fixture = 'src/query_integration/relation_chain_evidence_wbtest.mbt';
 export const pauseFixture = 'src/query_integration/relation_chain_stop_pause_wbtest.mbt';
 export const stopFixture = 'src/query_integration/relation_chain_delayed_work_wbtest.mbt';
@@ -75,7 +91,7 @@ const isStopping = binding => isStop(binding) || isPause(binding);
 const stoppingPremises = binding => isPause(binding) ? pausePremises : stopPremises;
 const stoppingGuarantees = binding => isPause(binding) ? pauseGuarantees : stopGuarantees;
 const connectionRun = (binding, target) =>
-  `${isPause(binding) ? 'pause-connection' : isStop(binding) ? 'stop-connection' : 'connection'}-${target}`;
+  `${isRetirement(binding) ? 'retirement-connection' : isPause(binding) ? 'pause-connection' : isStop(binding) ? 'stop-connection' : 'connection'}-${target}`;
 export const pauseResidual = Object.freeze([
   'finite diagnostic child only; no arbitrary Model/Store provider refinement or eventual stop',
   'slot/schema authority, machine overflow, invalid reports and physical capacity remain separate obligations',
@@ -95,7 +111,7 @@ export const promptResidual = Object.freeze([
     'capacity sum soundness, machine overflow and physical backend remain separate obligations',
     'finite real traces are tested refinement, not an implementation correspondence proof',
 ]);
-const residualFor = scope => isPause(scope) ? pauseResidual : isStop(scope) ? stopResidual : promptResidual;
+const residualFor = scope => isRetirement(scope) ? retirementResidual : isPause(scope) ? pauseResidual : isStop(scope) ? stopResidual : promptResidual;
 export const bindings = () => reviewed.map(scope => ({ ...clone(scope),
   premises: [...premises], residual: [...promptResidual],
 }));
@@ -103,10 +119,11 @@ export const bindings = () => reviewed.map(scope => ({ ...clone(scope),
 export function checkBindings(root, requested, {read = path => readFileSync(join(root, path), 'utf8')} = {}) {
   if (!requested.length) throw new Error('Missing chain bindings');
   for (const binding of requested) {
-    if (!isStopping(binding) && !reviewed.some(scope => matches(binding, scope))) throw new Error('Unverified chain execution scope');
-    if (!includesObligations(binding.premises, isStopping(binding) ? stoppingPremises(binding) : premises)) throw new Error('Missing child premise');
+    if (!isRetirement(binding) && !isStopping(binding) && !reviewed.some(scope => matches(binding, scope))) throw new Error('Unverified chain execution scope');
+    if (!includesObligations(binding.premises, isRetirement(binding) ? retirementPremises : isStopping(binding) ? stoppingPremises(binding) : premises)) throw new Error('Missing child premise');
     if (!includesObligations(binding.residual, residualFor(binding))) throw new Error('Missing chain residual obligation');
   }
+  if (requested.some(isRetirement)) checkRetirementConnection(read);
   // Reviewed real route, not a provider name or a reported capability flag.
   const chain = read(reviewed[0].provider);
   const tea = read(reviewed[0].children[0]);
@@ -187,16 +204,18 @@ export function graph(requested, target) {
     { id: 'model', kind: 'formal-model', scope: { ...universal, target: 'model' }, dependencies: [], run: 'lean' },
     { id: 'session', kind: 'tested-refinement', scope: universal, dependencies: ['model'], run: `session-${target}` },
   ];
+  if (requested.some(isRetirement)) nodes.push({id: 'retirement-model', kind: 'formal-model',
+    scope: {...universal, target: 'model'}, dependencies: ['model'], run: 'retirement-lean'});
   for (const binding of requested) {
     const scope = Object.fromEntries(keys.map(key => [key, clone(binding[key])]));
     scope.target = target;
     const id = binding.operation;
     const stopping = isStopping(binding);
     nodes.push({ id: `${id}:connection`, kind: 'tested-refinement', scope: clone(scope),
-      dependencies: ['model'], run: connectionRun(binding, target) });
+      dependencies: [isRetirement(binding) ? 'retirement-model' : 'model'], run: connectionRun(binding, target) });
     nodes.push({ id, kind: 'derived', scope: clone(scope),
-      dependencies: [stopping ? 'model' : 'session', `${id}:connection`],
-      premises: clone(binding.premises), guarantees: [...(stopping ? stoppingGuarantees(binding) : guarantees)], residual: clone(binding.residual) });
+      dependencies: [...(isRetirement(binding) ? ['session', 'retirement-model'] : [stopping ? 'model' : 'session']), `${id}:connection`],
+      premises: clone(binding.premises), guarantees: [...(isRetirement(binding) ? retirementGuarantees : stopping ? stoppingGuarantees(binding) : guarantees)], residual: clone(binding.residual) });
   }
   return nodes;
 }
@@ -213,12 +232,14 @@ export function validate(nodes, report, current, target) {
     const model = node.kind === 'formal-model';
     if (node.id === 'model') {
       if (!model || node.run !== 'lean' || node.dependencies.length) throw new Error('Invalid model root');
+    } else if (node.id === 'retirement-model') {
+      if (!model || node.run !== 'retirement-lean' || !same(node.dependencies, ['model'])) throw new Error('Invalid retirement model root');
     } else if (node.id === 'session') {
       if (node.kind !== 'tested-refinement' || node.run !== `session-${target}` ||
           !same(node.dependencies, ['model'])) throw new Error('Invalid Session correspondence');
     } else if (node.id.endsWith(':connection')) {
       if (node.kind !== 'tested-refinement' || node.run !== connectionRun(node.scope, target) ||
-          !same(node.dependencies, ['model'])) throw new Error('Invalid connection evidence');
+          !same(node.dependencies, [isRetirement(node.scope) ? 'retirement-model' : 'model'])) throw new Error('Invalid connection evidence');
     } else if (node.kind !== 'derived') throw new Error('Unknown evidence role');
     if (node.scope.target !== (model ? 'model' : target)) throw new Error('Claim target mismatch');
     if (!['formal-model', 'tested-refinement', 'derived'].includes(node.kind)) throw new Error('Unsupported evidence kind');
@@ -230,10 +251,10 @@ export function validate(nodes, report, current, target) {
     }
     if (node.kind === 'derived') {
       const stopping = isStopping(node.scope);
-      if (!stopping && !reviewed.some(scope => matches(node.scope, scope))) throw new Error('Unverified derived execution scope');
-      if (!same(node.guarantees, stopping ? stoppingGuarantees(node.scope) : guarantees) || !includesObligations(node.premises, stopping ? stoppingPremises(node.scope) : premises) ||
+      if (!isRetirement(node.scope) && !stopping && !reviewed.some(scope => matches(node.scope, scope))) throw new Error('Unverified derived execution scope');
+      if (!same(node.guarantees, isRetirement(node.scope) ? retirementGuarantees : stopping ? stoppingGuarantees(node.scope) : guarantees) || !includesObligations(node.premises, isRetirement(node.scope) ? retirementPremises : stopping ? stoppingPremises(node.scope) : premises) ||
           !includesObligations(node.residual, residualFor(node.scope))) throw new Error('Missing or unsupported obligations');
-      for (const id of [stopping ? 'model' : 'session', `${node.id}:connection`]) {
+      for (const id of [...(isRetirement(node.scope) ? ['session', 'retirement-model'] : [stopping ? 'model' : 'session']), `${node.id}:connection`]) {
         if (!node.dependencies.includes(id)) throw new Error('Missing derivation premise');
       }
     } else {
@@ -241,17 +262,26 @@ export function validate(nodes, report, current, target) {
       const suite = node.run === `session-${target}` ? 'src/bounded_execution'
         : node.run === `connection-${target}` ? fixture
         : node.run === `stop-connection-${target}` ? stopFixture
-        : node.run === `pause-connection-${target}` ? pauseFixture : null;
-      const command = model ? [process.execPath, 'proofs/relation-chain/check.mjs']
+        : node.run === `pause-connection-${target}` ? pauseFixture
+        : node.run === `retirement-connection-${target}` ? retirementFixture : null;
+      const expectedModel = node.id === 'retirement-model' ? retirementModelExecution : modelExecution;
+      const command = model ? expectedModel.command
         : ['moon', 'test', suite, '--target', target, '--deny-warn'];
       if (!result?.passed || result.exit !== 0 || result.sourceDigest !== current.digest ||
           !same(result.command, command)) throw new Error('Missing or unrelated executed evidence');
+      if (model && (result.target !== expectedModel.target || result.count !== expectedModel.count))
+        throw new Error('Invalid model target or theorem count');
       if (!model) {
-        if (!suite || result.target !== target || !(result.count >= (suite === pauseFixture ? 2 : suite === stopFixture ? 6 : suite === fixture ? 4 : 1)) ||
+        if (!suite || result.target !== target || !(result.count >= (suite === retirementFixture ? 8 : suite === pauseFixture ? 2 : suite === stopFixture ? 6 : suite === fixture ? 4 : 1)) ||
             !Object.keys(result.artifacts ?? {}).length) throw new Error('Invalid executed target/artifact');
         for (const [path, digest] of Object.entries(result.artifacts)) {
           if (current.builtArtifacts?.[path] !== digest) throw new Error('Stale built artifact');
         }
+      }
+      if (suite === retirementFixture && (!Number.isSafeInteger(result.count) ||
+          !same(result.coverage, executedRetirementCoverage()) ||
+          !result.coverage.scopes.some(scope => isRetirement(scope) && isRetirement(node.scope)))) {
+        throw new Error('Retirement scope not independently executed');
       }
       if (suite === fixture && (!same(result.coverage, executedCoverage()) ||
           !result.coverage.scopes.some(scope => matches(node.scope, scope)))) {

@@ -219,3 +219,13 @@ test('unknown mutation dependency configuration preserves broad sources and expl
   assert(selected.unresolved.length > 0);
   assert(selected.directories.some(entry => entry.path === 'src/**'));
 });
+
+test('the evaluated Bridge scope observer is bound even for shared Session consumers', () => {
+  const path = 'proofs/events-bridge/observations.mjs';
+  assert(sharedFiles.includes(path));
+  const original = inventory();
+  const changed = new Map(base); changed.set(path, 'changed observer or new dynamic read');
+  assert.equal(compareInputs(original, inventory(changed)).eligible, false);
+  changed.delete(path);
+  assert(inventory(changed).unresolved.includes(`missing source input: ${path}`));
+});

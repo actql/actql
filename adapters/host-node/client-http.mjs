@@ -201,7 +201,7 @@ export function createClientHttpHandler({
         catch { invalid('InvalidClientRequest'); }
       }
       if (operation === 'check' && !validClientBody(operation, body)) invalid('InvalidClientRequest');
-      if (operation === 'submit-intent' || operation === 'lookup-submission') {
+      if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
         try {body = snapshotClientRequest(body);}
         catch {invalid('InvalidClientRequest');}
         if (!validClientBody(operation, body)) invalid('InvalidClientRequest');
@@ -272,10 +272,11 @@ export function createClientHttpHandler({
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, undefined, prepared)});
         sendJson(admission);
-      } else if (operation === 'submit-intent' || operation === 'lookup-submission') {
-        const answer = await invoke(operation === 'submit-intent' ? submitIntent : lookupSubmission);
-        const valid = operation === 'submit-intent'
-          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid)
+      } else if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
+        const submitting = operation !== 'lookup-submission';
+        const answer = await invoke(submitting ? submitIntent : lookupSubmission);
+        const valid = submitting
+          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid, body.unresolvedHistory)
           : validSubmissionLookup(answer, connection, body.submissionRef);
         if (!valid) invalid('InvalidClientHostSubmissionOutcome');
         sendJson(answer);

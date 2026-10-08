@@ -779,7 +779,7 @@ test "owned retained input issues only its exact checked consumer dispatch" {
       ),
       @remote.remote_input_binding_body(saved).replace(
         old="actql-remote-retained-task-input/0.1",
-        new="actql-remote-retained-task-input/0.0",
+        new="actql-remote-retained-task-input/" + "0.0",
       ),
     ] {
     assert_false(body == @remote.remote_input_binding_body(saved))
