@@ -503,6 +503,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
         store, storeAuthorityCid, authorityScopeCid, namespaceId, now, observe: diagnostic,
+        observation,
         getCheckpoints: () => checkpoints});
     }
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
@@ -529,10 +530,19 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           installedSourceReadAccesses(source).map(access => ({
             sourceRef: access.sourceRef, ...source.readAuthorization})))})});
   const projectRunObservation = (ref, state, retained) => {
-    observation?.emit('run', 'owner_observed', {ref, outcome: state.status,
-      revision: retained.revision,
-      physicalStop: retained.physicalCloseConfirmed === true ? 'confirmed' : undefined,
-      cleanupPending: state.cleanupPending});
+    if (observation === undefined) return;
+    try {
+      // MoonBit fixes the projection equivalence. SQLite only retains this
+      // bounded key; it cannot authorize a transition or reinterpret a Run.
+      const ownerFactKey = moon.clientProgramRunObservationKey(state.status,
+        BigInt(retained.revision), state.cleanupPending,
+        retained.physicalCloseConfirmed === true ? true : undefined);
+      if (ownerFactKey === undefined) { observation.noteLoss(); return; }
+      observation.emit('run', 'owner_observed', {ref, outcome: state.status,
+        revision: retained.revision,
+        physicalStop: retained.physicalCloseConfirmed === true ? 'confirmed' : undefined,
+        cleanupPending: state.cleanupPending}, {ownerFactKey});
+    } catch { observation.noteLoss(); }
   };
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.namespaceId !== namespaceId ||

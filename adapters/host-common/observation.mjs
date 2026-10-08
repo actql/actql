@@ -70,6 +70,7 @@ const events = Object.freeze({
 });
 const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
   'owner_observed', 'cancellation_requested', 'task_started', 'task_completed',
+  'transport_completed', 'acquisition_interval',
   ...Object.values(events).map(value => value[1])]);
 
 export function validObservationContext(value) {
@@ -201,7 +202,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
   const queue = [], pending = new Set();
   let queuedBytes = 0, closed = false, pumping = false, sequence = 0, activeSegments = 0;
   const counts = {dropped: 0, deliveryFailed: 0, budgetUnavailable: 0,
-    queueOverflow: 0, limited: 0};
+    queueOverflow: 0, limited: 0, repeated: 0};
   const diagnostics = Object.create(null);
   const drop = reason => {
     counts.dropped++;
@@ -265,7 +266,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         if (typeof id === 'string' && id.length <= 128) attributes['actql.run.id'] = id;
       }
       if (config.correlations.has('attempt') && cid(facts.attemptCid)) attributes['actql.model.attempt_cid'] = facts.attemptCid;
-      if (options.segment !== undefined && context?.http !== undefined) {
+      if (options.ingress === true && context?.http !== undefined) {
         const method = context.http.method;
         if (['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(method)) {
           attributes['http.request.method'] = method;
@@ -291,8 +292,10 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         if (storageUnavailable || storage === undefined) { drop('budgetUnavailable'); return; }
         const budget = storage.consume({ref, scope: config.scope,
           revision: config.revision, bytes, maxRecords: config.selected.runRecords,
-          maxBytes: config.selected.runBytes});
+          maxBytes: config.selected.runBytes,
+          ownerFactKey: event === 'owner_observed' ? options.ownerFactKey : undefined});
         if (budget === undefined) { drop('budgetUnavailable'); return; }
+        if (budget.repeated === true) { counts.repeated++; return; }
         if (!budget.accepted) { drop('limited'); return; }
         // A saved caller context is a link, not a resumed lifetime span.
         if (config.correlation && budget.context !== undefined &&
@@ -334,21 +337,23 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       records: 0, http}, async () => {
       const category = operation === 'check' || operation === 'prepareSubmit' ? 'check' : 'run';
       const segment = randomUUID(), started = performance.now();
-      emit(category, 'segment_started', {}, {segment});
+      emit(category, 'segment_started', {}, {segment, ingress: true});
       try {
         const result = await work();
         emit(category, 'segment_ended', {outcome: http?.response?.statusCode >= 400
           ? 'failed' : 'succeeded'},
-          {segment, durationMs: performance.now() - started});
+          {segment, ingress: true, durationMs: performance.now() - started});
         return result;
       } catch (cause) {
         emit(category, 'segment_ended', {outcome: 'failed'},
-          {segment, durationMs: performance.now() - started});
+          {segment, ingress: true, durationMs: performance.now() - started});
         throw cause;
       }
     }); } finally { activeSegments--; }
   };
   const projection = Object.freeze({run, accepted, emit,
+    canMeasure: operation => !closed && config.allowed.has(operation) &&
+      config.measurements.has('duration'),
     noteLoss: () => drop('budgetUnavailable'),
     diagnostic(name, detail) {
       const mapping = events[name];

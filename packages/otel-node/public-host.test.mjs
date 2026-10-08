@@ -108,6 +108,13 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
     assert.deepEqual(await run.result('answer').all(),
       [{id: 1, secret: sentinel}, {id: 2, secret: sentinel}]);
     assert.equal(requestRows(journal), 1);
+    if (mode === 'normal') {
+      assert.equal((await run.status()).status, 'succeeded');
+      const before = adapter.status().projection.repeated;
+      for (let n = 0; n < 2; n++) assert.equal((await run.status()).status, 'succeeded');
+      assert.equal(adapter.status().projection.repeated, before + 2,
+        'each unchanged public status suppresses the same Owner fact');
+    }
     await client.close();
     if (server) { await new Promise(resolve => server.close(resolve)); server = undefined; }
     await host?.close(); host = undefined;

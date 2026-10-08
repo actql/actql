@@ -76,6 +76,35 @@ test('unavailable Run budget stops new observations without changing execution',
   assert.equal(observer.status().budgetUnavailable, 2);
 });
 
+test('repeated Owner facts are neither delivered nor reported as observation loss', async () => {
+  const records = [], charges = [];
+  let key;
+  const observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record)}), {journal: {observationStorage: () => ({
+      consume(value) {
+        charges.push(value);
+        if (key === value.ownerFactKey) return {accepted: false, repeated: true};
+        key = value.ownerFactKey;
+        return {accepted: true};
+      },
+    })}});
+  const facts = {ref, outcome: 'succeeded', revision: 7, cleanupPending: true};
+  observer.emit('run', 'owner_observed', facts, {ownerFactKey: 'succeeded;7;1;?'});
+  observer.emit('run', 'owner_observed', facts, {ownerFactKey: 'succeeded;7;1;?'});
+  observer.emit('run', 'owner_observed', {...facts, cleanupPending: false,
+    physicalStop: 'confirmed'}, {ownerFactKey: 'succeeded;7;0;1'});
+  await observer.close();
+  assert.equal(records.length, 2);
+  assert.equal(records[0].attributes['actql.cleanup.pending'], true);
+  assert.equal(records[1].attributes['actql.physical_stop'], 'confirmed');
+  assert.equal(observer.status().repeated, 1);
+  assert.equal(observer.status().dropped, 0);
+  assert.deepEqual(charges.map(value => value.ownerFactKey),
+    ['succeeded;7;1;?', 'succeeded;7;1;?', 'succeeded;7;0;1']);
+  assert.equal(JSON.stringify(records).includes('succeeded;7;'), false,
+    'the internal comparison key is not an exported attribute');
+});
+
 test('failed optional storage initialization retains retryable close custody', async () => {
   let closes = 0;
   const connection = createHostObservationConnection({deliver() {}});
