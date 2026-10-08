@@ -1435,6 +1435,12 @@ remain explicitly unconnected at this boundary; their scope is not narrowed.
 This capacity owner is separate from Result publication and complete Program
 template verification.
 
+The connected authoring publication phase retains every Result's exact order
+owner, every applicable Program row candidate, and distinct Host row/byte
+ceilings. Candidate search and row-minimum selection use the same functions as
+bound publication. Work or inventory exhaustion returns no partial closure;
+canonical execution-subject binding and enforcement remain separate.
+
 ### Passive operation diagnostic formats
 
 Submission presentation follows admitted `SubmissionOutcome` and

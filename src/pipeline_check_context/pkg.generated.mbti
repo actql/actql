@@ -106,6 +106,28 @@ pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work
 
 pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.Checked, Array[BoundParameters], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int) -> Result[StageContexts, StageIssue]
 
+pub fn authoring_publication_at(AuthoringPublicationChecks, Int) -> AuthoringPublicationSelection?
+
+pub fn authoring_publication_byte_host(AuthoringPublicationSelection) -> @capacity_policy.Ceiling
+
+pub fn authoring_publication_candidate_at(AuthoringPublicationSelection, Int) -> @capacity_graph_preflight.TargetMembership?
+
+pub fn authoring_publication_candidate_count(AuthoringPublicationSelection) -> Int
+
+pub fn authoring_publication_count(AuthoringPublicationChecks) -> Int
+
+pub fn authoring_publication_maximum_rows(AuthoringPublicationSelection) -> Int64
+
+pub fn authoring_publication_owner(AuthoringPublicationChecks) -> PipelineAuthoringContext
+
+pub fn authoring_publication_port(AuthoringPublicationSelection) -> @relation_results.ResultPort
+
+pub fn authoring_publication_ports(AuthoringPublicationChecks) -> @relation_results.ResultPorts
+
+pub fn authoring_publication_row_host(AuthoringPublicationSelection) -> @capacity_policy.Ceiling
+
+pub fn authoring_publication_work(AuthoringPublicationChecks) -> Int
+
 pub fn authoring_values_capacity(AuthoringValuesPublicationCheck) -> @check_environment.Capacity
 
 pub fn authoring_values_metadata_usage(AuthoringValuesPublicationCheck) -> (Int, Int)
@@ -760,6 +782,8 @@ pub fn preparation_sources(ProgramPreparation) -> SourceProducerContext
 
 pub fn preparation_usage(ProgramPreparation) -> PreparationBudget
 
+pub fn prepare_authoring_publications(PipelineAuthoringContext, @relation_results.ResultPorts, Int, Int) -> Result[AuthoringPublicationChecks, AuthoringPublicationIssue]
+
 pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidationLimits) -> Result[ExpressionValidationContext, ExpressionValidationIssue]
 
 pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
@@ -1344,6 +1368,19 @@ pub struct AssertionConsumptionLink {
   site : OperationRequirementSite
   results : @relation_results.CheckedResults
 }
+
+type AuthoringPublicationChecks
+
+pub enum AuthoringPublicationIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOrders
+  MissingHostCeiling(String)
+  RowTarget(Int, @capacity_program_step.TargetRowsIssue)
+  RowMembership(Int, @capacity_graph_preflight.TargetMembershipIssue)
+}
+
+type AuthoringPublicationSelection
 
 pub struct AuthoringRuntimeRequirement {
   step : Int
