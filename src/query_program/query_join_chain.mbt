@@ -149,6 +149,8 @@ fn compile_join_chain_steps(
   initial_scope? : JoinChainScope? = None,
   preserved_scope? : Array[JoinChainScope]? = None,
   parameter_declarations? : @parameters.Declarations? = None,
+  prefix_steps? : Array[@builder.Node] = [],
+  prefix_context? : Context? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if inputs.length() != @query.join_part_count(query) + 1 ||
     inputs.length() < 2 ||
@@ -373,6 +375,8 @@ fn compile_join_chain_steps(
   }
   let final_from = pipe_physical_name(reserved, "aql_chain_result_")
   reserved.push(final_from)
+  // Type inspection needs the already-bound inputs and actual JOIN projection.
+  // Forward that prefix without adding acquisition or evaluation steps.
   let (tail, output) = compile_steps(
     construction,
     query,
@@ -389,6 +393,8 @@ fn compile_join_chain_steps(
     initial_scope=Some(scope),
     preserved_scope~,
     parameter_declarations~,
+    prefix_steps=prefix_steps + steps,
+    prefix_context~,
   )
   steps.append(tail)
   (steps, output, if tail.is_empty() { from } else { final_from })
@@ -456,6 +462,8 @@ fn compile_join_chain_stage_body(
     reserved,
     retained,
     parameter_declarations=context.parameter_declarations,
+    prefix_steps=seeds,
+    prefix_context=Some(context),
   )
   (seeds + steps, output, declarations, from)
 }
