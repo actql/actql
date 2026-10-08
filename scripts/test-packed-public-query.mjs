@@ -88,6 +88,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/window-scalar-source-input.mjs', 'window-scalar-source-input.mjs'],
   ['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs'],
   ['scripts/fixtures/distinct-aggregate-order-source-input.mjs', 'distinct-aggregate-order-source-input.mjs'],
+  ['scripts/fixtures/distinct-signed-order-source-input.mjs', 'distinct-signed-order-source-input.mjs'],
   ['scripts/fixtures/analytic-string-agg-source-input.mjs', 'analytic-string-agg-source-input.mjs'],
   ['scripts/fixtures/statistical-aggregate-source-input.mjs', 'statistical-aggregate-source-input.mjs'],
   ['scripts/fixtures/graph-subtraction-source-input.mjs', 'graph-subtraction-source-input.mjs'],

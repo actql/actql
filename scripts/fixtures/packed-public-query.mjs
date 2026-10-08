@@ -1,4 +1,5 @@
 import {groupPropertyReceiverSuccesses, groupPropertyReceiverRefusals} from './group-property-receiver-source-input.mjs';
+import {distinctSignedOrderSuccesses, distinctSignedOrderRefusals} from './distinct-signed-order-source-input.mjs';
 import {distinctAggregateOrderSuccesses, distinctAggregateOrderRefusals} from './distinct-aggregate-order-source-input.mjs';
 import {analyticDistinctFrameSuccesses, analyticDistinctFrameRefusals} from './analytic-distinct-frame-source-input.mjs';
 import {countifDistinctSuccesses, countifDistinctRefusals} from './countif-distinct-source-input.mjs';
@@ -323,7 +324,7 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   : shortRowsOnly ? {successes: shortRowsSuccesses, refusals: shortRowsRefusals}
   : orderWindowOnly ? {successes: orderWindowSuccesses, refusals: orderWindowRefusals}
   : windowScalarOnly ? {successes: windowScalarSuccesses, refusals: windowScalarRefusals, executionFailures: windowScalarExecutionFailures}
-  : distinctAggregateOrderOnly ? {successes: distinctAggregateOrderSuccesses, refusals: distinctAggregateOrderRefusals}
+  : distinctAggregateOrderOnly ? {successes: [...distinctAggregateOrderSuccesses, ...distinctSignedOrderSuccesses], refusals: [...distinctAggregateOrderRefusals, ...distinctSignedOrderRefusals]}
   : analyticStringAggOnly ? {successes: analyticStringAggSuccesses, refusals: analyticStringAggRefusals, executionFailures: analyticStringAggExecutionFailures}
   : analyticCountifOnly ? {successes: analyticCountifSuccesses, refusals: analyticCountifRefusals, executionFailures: analyticCountifExecutionFailures}
   : analyticFrameParameterOnly ? {successes: analyticFrameParameterSuccesses, refusals: analyticFrameParameterRefusals}
@@ -511,6 +512,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...windowScalarRefusals);
   scopeInputs.executionFailures.push(...windowScalarExecutionFailures);
   scopeInputs.successes.push(...distinctAggregateOrderSuccesses);
+  scopeInputs.successes.push(...distinctSignedOrderSuccesses);
+  scopeInputs.refusals.push(...distinctSignedOrderRefusals);
   scopeInputs.refusals.push(...distinctAggregateOrderRefusals);
   scopeInputs.successes.push(...analyticStringAggSuccesses);
   scopeInputs.refusals.push(...analyticStringAggRefusals);
