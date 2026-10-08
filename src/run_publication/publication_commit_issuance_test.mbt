@@ -178,7 +178,7 @@ test "commit retries cannot relabel final receipt or Result custody" {
 }
 
 ///|
-test "publication issuance rejects empty inventories and foreign Runs" {
+test "publication issuance preserves empty Effect-only inventories and rejects foreign Runs" {
   let run = manifest_test_run(ordering_test_cid("1"))
   let definition = result_definition_contract(
     prepare_result_definition(ordering_test_cid("2"), "answer").unwrap(),
@@ -196,7 +196,7 @@ test "publication issuance rejects empty inventories and foreign Runs" {
       256,
       8,
     )
-    is Err(CommitIssuanceEmptyInventory),
+    is Ok(_),
   )
   let request = issue_publication_request(
     run,

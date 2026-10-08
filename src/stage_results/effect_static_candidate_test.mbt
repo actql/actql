@@ -36,6 +36,68 @@ fn effect_static_candidate_catalogs(
 }
 
 ///|
+test "Effect-only static candidate validates Mapping without a public Result" {
+  let effects = ",\"effects\":{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7}}}}"
+  let input_operations = prepared("unused", effects~, effect_only=true)
+  let checked = check(input_operations, limits()).unwrap()
+  let program = @parameters.program(
+    @parameters.operations_source(input_operations),
+  )
+  assert_eq(@syntax.export_count(program), 0)
+  for i in 0..<2 {
+    assert_eq(@results.count(stage_at(checked, i).unwrap()), 0)
+  }
+  let headers = @syntax.collect_effect_headers(program, 2, 32).unwrap()
+  let mappings = effect_mapping_shape_fixture()
+  let candidate = prepare_effect_static_candidate(
+    headers,
+    checked,
+    @environment.mapping_shape_environment(mappings),
+    mappings,
+    effect_static_candidate_catalogs(mappings),
+    effect_static_candidate_limits(),
+  ).unwrap()
+  assert_eq(
+    effect_result_binding_count(effect_static_candidate_results(candidate)),
+    2,
+  )
+  assert_eq(
+    effect_mapping_rule_count(effect_static_candidate_mapping_rules(candidate)),
+    2,
+  )
+  for i in 0..<2 {
+    let binding = effect_result_binding_at(
+      effect_static_candidate_results(candidate),
+      i,
+    ).unwrap()
+    assert_true(effect_result_binding_result(binding) is None)
+  }
+  let invalid = check(
+    prepared(
+      "unused",
+      effects=effects.replace(old="Name", new="Undeclared"),
+      effect_only=true,
+    ),
+    limits(),
+  ).unwrap()
+  let invalid_program = @parameters.program(
+    @parameters.operations_source(operations(invalid)),
+  )
+  let invalid_headers = @syntax.collect_effect_headers(invalid_program, 2, 32).unwrap()
+  assert_true(
+    prepare_effect_static_candidate(
+      invalid_headers,
+      invalid,
+      @environment.mapping_shape_environment(mappings),
+      mappings,
+      effect_static_candidate_catalogs(mappings),
+      effect_static_candidate_limits(),
+    )
+    is Err(_),
+  )
+}
+
+///|
 test "static Effect candidate closes one Mapping inventory and shared work" {
   let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7}}}}"
   let (checked, headers) = effect_binding_inputs(effects)

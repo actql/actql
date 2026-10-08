@@ -12,7 +12,8 @@ const hash = body => `sha256:${createHash('sha256').update(canonicalText(body)).
 
 // An issued Result names a retention policy, whose original is a separate
 // dependency from the installed clock/retention contracts and Data Policy.
-test('source-free Model Effect retains the exact issued retention policy closure', () => {
+for (const resultNames of [[], ['updates']]) {
+test(`source-free Model Effect retains the exact issued retention policy closure (${resultNames.length} public Results)`, () => {
   const control = runtimeCore(runtime).publicationControl;
   const at = '2026-10-04T00:00:00.000Z';
   const policyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
@@ -29,7 +30,7 @@ test('source-free Model Effect retains the exact issued retention policy closure
   // admission below use the actual common runtime. Packed acceptance checks closure.
   const plan = sourceFreeInferEffectPublicationPlan({
     acquired: {moon: {clientProgramEffectDefinitionCid: () => programCid,
-      clientProgramEffectCompilationResultNames: () => ['updates'],
+      clientProgramEffectCompilationResultNames: () => resultNames,
       clientProgramEffectCompilationResultTransformation: () => ({$tag: 1, _0: undefined})},
       control: {...control,
         checkedClientEffectInferInvocation: () => ({observation, invocation: {}, owner: {}}),
@@ -58,6 +59,10 @@ test('source-free Model Effect retains the exact issued retention policy closure
     version: 'actql-result-retention-policy/0.1'};
   const expectedCid = hash(expected);
   const expectedWire = canonicalText({...expected, effective_retention_policy_cid: expectedCid});
+  assert.equal(plan.results.length, resultNames.length);
+  assert.equal(plan.effectInputRetention.identity, expectedCid);
+  assert.equal(plan.effectInputRetention.wire, expectedWire,
+    'Private Effect retention does not require a fabricated public Result');
   const retained = plan.localEvidenceContext.retentionDependencies;
   assert.deepEqual(retained.find(body => body.kind === 'result_retention_policy'),
     {kind: 'result_retention_policy', cid: expectedCid, wire: expectedWire});
@@ -68,3 +73,4 @@ test('source-free Model Effect retains the exact issued retention policy closure
       'each original is admitted by the real dependency-body owner');
   }
 });
+}
