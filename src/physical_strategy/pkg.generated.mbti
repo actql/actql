@@ -548,6 +548,8 @@ pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) 
 
 pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
 
+pub fn placement_policy_response_json(PolicyResponse) -> Result[String, SearchIssue]
+
 pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry) -> Result[StrategyChoiceSet, SearchIssue]
 
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
@@ -599,6 +601,8 @@ pub fn prepare_strategy_policy_request(StrategyChoiceSet, String, String, String
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
 
 pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), CapturedEffectProposalIssue]
+
+pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64) -> Result[EmpiricalRanking, SearchIssue]
 
 pub fn record_host_cleanup_closes_awaited(HostCleanupProgress) -> Bool
 
@@ -1022,6 +1026,16 @@ pub struct DataEdge {
   source_input : Int?
   operation_input : (Int, Int)?
 }
+
+pub(all) struct EmpiricalRanking {
+  request : PolicyRequest
+  profile_revision : String
+  policy_revision : String
+  task : Int
+  positions : Array[Int]
+  selected_position : Int?
+  reason : String
+} derive(Eq, @debug.Debug)
 
 pub(all) enum GraphIssue {
   InvalidLimits

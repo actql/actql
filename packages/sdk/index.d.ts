@@ -71,7 +71,7 @@ export type CheckFailureInput = Readonly<{text: string; format: ClientSourceForm
 export declare function getCheckFailureInput(error: unknown): CheckFailureInput | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
   Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
-/** Available only for the exact response of this SDK check call. */
+/** Available only for the exact check or rejection observation of this SDK call. */
 export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
 export type CheckFix = WireCheckFix;
@@ -310,6 +310,8 @@ type ConnectedEndpoint = Readonly<{
   workspaceId?: string;
   durability?: Durability;
   consentRefs?: readonly string[];
+  /** Optional correlation only; never supplies authorization or baggage. */
+  traceContext?: () => Readonly<{traceId: string; spanId: string; traceFlags: number}> | undefined;
 }>;
 
 export type ConnectionOptions =
@@ -592,6 +594,7 @@ export type ConnectionStringOptions = Readonly<{
   token?: string | (() => string | Promise<string>);
   durability?: Durability;
   consentRefs?: readonly string[];
+  traceContext?: ConnectedEndpoint['traceContext'];
 }>;
 export declare function connect(connectionString: string,
   options?: ConnectionStringOptions): Promise<Client>;

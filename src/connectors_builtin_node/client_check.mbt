@@ -7,6 +7,7 @@
 priv enum CheckFinding {
   // A disclosable proven violation of the caller's own input.
   Violation(String)
+  ProgramStructureViolation(String)
   SyntaxViolation(Int, Int)
   LexicalViolation(String, (Int, Int)?)
   ExpressionViolation(String, (Int, Int)?)
@@ -30,6 +31,7 @@ priv enum CheckFinding {
   Unresolved(String)
   // An allowed construct or budget the checker could not close.
   Limit(String)
+  ProgramLimit(String, String?)
   FunctionLimit((Int, Int)?)
 }
 
@@ -65,6 +67,8 @@ pub fn client_program_check_source(
     findings, document, format, environment, visible_publication, declarations, parameters,
   )
   check_outcome_json(findings, stop, context_ref, correlation_ref, {
+    structured_program: false,
+    program_pointer: None,
     source_revision,
     source_bytes: @utf8.encode(document).length(),
     declarations_revision,
@@ -310,6 +314,16 @@ fn check_source_findings(
           findings.push(ExpressionViolation("unknown_reference", None))
         QueryLowering(AmbiguousRelation | AmbiguousColumn | DuplicateOutput) =>
           findings.push(Violation("query_invalid"))
+        // A Frontend scope probe retains the same typed cause as ordinary
+        // Program checking. No generated cursor becomes an authored location.
+        QueryLowering(ExpressionTyping(issue)) =>
+          match issue.kind {
+            UnknownParameter(name) if name.length() <= 256 =>
+              findings.push(UndeclaredParameter(name, None))
+            InvalidLimits | InvalidScope(_) => return Failed("check_internal")
+            BudgetExceeded => findings.push(Limit("analysis_budget_exhausted"))
+            _ => findings.push(Violation("query_invalid"))
+          }
         // Expression lowering wraps the same construction owner and its
         // budgets. The wrapper cannot turn its own limit into bad input.
         QueryLowering(
@@ -857,6 +871,9 @@ fn check_unused_parameter_finding(
 ///|
 /// Public verdict from disclosable evidence only.
 fn check_verdict(findings : Array[CheckFinding]) -> String {
+  if findings.iter().any(finding => finding is ProgramStructureViolation(_)) {
+    return "invalid"
+  }
   if findings
     .iter()
     .any(finding => {
@@ -915,6 +932,7 @@ fn write_check_report(
   let violations = check_codes(findings, finding => {
     match finding {
       Violation(code) => Some(code)
+      ProgramStructureViolation(_) => Some("program_structure_invalid")
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
       LexicalViolation(_, _) => Some("query_lexical_invalid")
       ExpressionViolation(_, _) => Some("query_expression_invalid")
@@ -945,6 +963,7 @@ fn write_check_report(
   let limits = check_codes(findings, finding => {
     match finding {
       Limit(code) => Some(code)
+      ProgramLimit(code, _) => Some(code)
       FunctionLimit(_) => Some("implementation_limit")
       _ => None
     }
@@ -960,6 +979,17 @@ fn write_check_report(
     @encode.begin_object(writer)
     @encode.key(writer, "code")
     @encode.string_value(writer, code)
+    for finding in findings {
+      if finding is ProgramLimit(selected, Some(pointer)) && selected == code {
+        write_check_structured_location(
+          writer,
+          "program",
+          documents.source_revision,
+          pointer,
+        )
+        break
+      }
+    }
     if code == "implementation_limit" {
       for finding in findings {
         if finding is FunctionLimit(range) {
@@ -999,12 +1029,21 @@ fn write_check_report(
   @encode.begin_array(writer)
   write_check_document(
     writer,
-    "source",
+    if documents.structured_program {
+      "program"
+    } else {
+      "source"
+    },
     documents.source_revision,
-    "text",
+    if documents.structured_program {
+      "structured"
+    } else {
+      "text"
+    },
     documents.source_bytes,
   )
-  if documents.declarations_revision is Some(revision) {
+  if !documents.structured_program &&
+    documents.declarations_revision is Some(revision) {
     write_check_document(
       writer,
       "parameter_declarations",
@@ -1045,6 +1084,18 @@ fn write_check_report(
     @encode.begin_object(writer)
     @encode.key(writer, "code")
     @encode.string_value(writer, code)
+    if code == "program_structure_invalid" {
+      for finding in findings {
+        if finding is ProgramStructureViolation(issue) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "issue")
+          @encode.string_value(writer, issue)
+          @encode.end_object(writer)
+          break
+        }
+      }
+    }
     if code == "query_lexical_invalid" {
       for finding in findings {
         if finding is LexicalViolation(issue, range) {
@@ -1143,7 +1194,14 @@ fn write_check_report(
           if documents.declarations_revision is Some(revision) &&
             pointer is Some(pointer) {
             write_check_structured_location(
-              writer, "parameter_declarations", revision, pointer,
+              writer,
+              if documents.structured_program {
+                "program"
+              } else {
+                "parameter_declarations"
+              },
+              revision,
+              pointer,
             )
           }
           break
@@ -1178,7 +1236,11 @@ fn write_check_report(
                 expected,
                 actual,
                 pointer,
-                "parameter_declarations",
+                if documents.structured_program {
+                  "program"
+                } else {
+                  "parameter_declarations"
+                },
                 documents.declarations_revision,
               ),
             )
@@ -1255,7 +1317,14 @@ fn write_check_report(
         if finding is DeclarationViolation(Some(pointer)) &&
           documents.declarations_revision is Some(revision) {
           write_check_structured_location(
-            writer, "parameter_declarations", revision, pointer,
+            writer,
+            if documents.structured_program {
+              "program"
+            } else {
+              "parameter_declarations"
+            },
+            revision,
+            pointer,
           )
           break
         }
@@ -1332,6 +1401,19 @@ fn write_check_report(
         }
       }
     }
+    if documents.structured_program &&
+      documents.program_pointer is Some(pointer) &&
+      [
+        "program_structure_invalid", "program_invalid", "expression_type_mismatch",
+        "graph_operation_invalid", "query_frame_invalid", "query_expression_invalid",
+      ].contains(code) {
+      write_check_structured_location(
+        writer,
+        "program",
+        documents.source_revision,
+        pointer,
+      )
+    }
     @encode.end_object(writer)
   }
   @encode.end_array(writer)
@@ -1396,9 +1478,13 @@ fn write_check_report(
       if documents.declarations_revision is Some(revision) {
         write_check_structured_location(
           writer,
-          "parameter_declarations",
+          if documents.structured_program {
+            "program"
+          } else {
+            "parameter_declarations"
+          },
           revision,
-          "/" + name,
+          (if documents.structured_program { "/params/" } else { "/" }) + name,
         )
       }
       @encode.end_object(writer)
@@ -1528,6 +1614,8 @@ fn check_failed_json(problem : String, correlation_ref : String) -> String {
 
 ///|
 priv struct CheckDocuments {
+  structured_program : Bool
+  program_pointer : String?
   source_revision : String
   source_bytes : Int
   declarations_revision : String?

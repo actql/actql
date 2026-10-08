@@ -6,6 +6,10 @@ export const captureModes = Object.freeze(['off', 'metadata-only', 'evidence-ena
 export const profileMetrics = Object.freeze(['processCycleMs', 'coldMs', 'warmMs',
   'cleanupMs', 'executionMs', 'captureMs', 'recordingMs', 'observedEndToEndMs']);
 const outcomes = ['succeeded', 'failed', 'cancelled', 'interrupted', 'unobserved'];
+// Process crashes are failures, not cancellation or successful cleanup.
+export const localProcessFailureOutcome = error => error?.killed ||
+  ['SIGINT','SIGTERM','SIGKILL'].includes(error?.signal) ? 'interrupted' : 'failed';
+
 export const profileDigest = value => 'sha256:' + createHash('sha256')
   .update(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest('hex');
 const duration = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
@@ -22,6 +26,16 @@ export function nativeProfileSchedule() {
 export const nativeOperationalSchedule = () => Array.from({length: 3}, (_, round) =>
   ['fresh', 'resident'].map(realization => ({round, mode: 'metadata-only', realization})))
   .flat().map((entry, index) => Object.freeze({...entry, index}));
+
+// Every arm sees the same resident-enabled offer configuration. The intervention
+// is recorded separately from conditions; chosen realization stays in mapping.
+export function nativeEmpiricalSchedule(stage) {
+  assert(['comparison', 'evaluation'].includes(stage));
+  const arms = stage === 'comparison' ? ['position-0', 'position-7'] : ['empirical', 'offline-fallback'];
+  return Array.from({length:3}, (_, round) => (round % 2 ? [...arms].reverse() : arms)
+    .map(arm => ({round, mode:'metadata-only', realization:'resident', arm})))
+    .flat().map((entry,index) => Object.freeze({...entry,index}));
+}
 
 export function validateLocalObservation(value) {
   assert.equal(value?.version, 'actql-local-performance-observation/0.1');

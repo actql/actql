@@ -6,10 +6,18 @@ const rules = {
     native: `if documents.size() != inputs.length() { return false }`,
   },
   input_document_kinds: {
-    js: `if (documents.get('source')?.kind !== 'text' ||
-      report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;`,
-    native: `guard documents.get("source") is Some(Object(source)) &&
-      source.get("kind") == Some(Json::string("text")) else { return false }
+    js: `const program = documents.get('program');
+    if (program ? program.kind !== 'structured' || documents.has('source') ||
+        documents.has('parameter_declarations') : documents.get('source')?.kind !== 'text') return false;
+    if (report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;`,
+    native: `if documents.get("program") is Some(program) {
+      guard program is Object(fields) &&
+        fields.get("kind") == Some(Json::string("structured")) &&
+        !documents.contains("source") && !documents.contains("parameter_declarations") else { return false }
+    } else {
+      guard documents.get("source") is Some(Object(source)) &&
+        source.get("kind") == Some(Json::string("text")) else { return false }
+    }
     for id, input in documents {
       guard input is Object(fields) else { return false }
       if id != "source" && fields.get("kind") != Some(Json::string("structured")) { return false }
