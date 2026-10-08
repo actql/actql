@@ -156,7 +156,7 @@ export function readNativeDirectProductExecution(invocation, {stdout, stderr, pr
     processCycleMs, stderr});
 }
 
-export function admitNativeDirectProduct(fixture, invocation, execution) {
+export function admitNativeDirectProduct(fixture, invocation, execution, {cleanupRetry = false} = {}) {
   const {record, taskIntervals, selections} = execution;
   const expectedTasks = fixture.workload === workloads[1] ? 4 : 3;
   assert.equal(invocation.finalTask, expectedTasks);
@@ -257,7 +257,7 @@ export function admitNativeDirectProduct(fixture, invocation, execution) {
   'NativeOwnerExceedsDeclaredExecutionCap');
   const physicalPhases = invocation.phaseObserver
     ? admitNativePhysicalPhases({events: execution.physicalPhaseEvents,
-      ownerCorrespondence, taskIntervals, cleanupMicroseconds: record.cleanup_us}) : undefined;
+      ownerCorrespondence, taskIntervals, cleanupMicroseconds: record.cleanup_us,cleanupRetry}) : undefined;
   assert(invocation.phaseObserver || execution.physicalPhaseEvents.length === 0,
     'UnexpectedNativePhysicalPhaseObserver');
   return Object.freeze({record, taskIntervals, taskUsages, taskHoldings,

@@ -101,7 +101,7 @@ for(const boundary of schedule) {
       assert(lines[index+1].startsWith('observer-elapsed-us:'));lines.splice(index,2);normal.stdout=lines.join('\n');
     }
     const parsed=readNativeDirectProductExecution(selected,normal);
-    const product=admitNativeDirectProduct(fixture,selected,parsed);
+    const product=admitNativeDirectProduct(fixture,selected,parsed,{cleanupRetry:boundary==='cleanup'});
     assert.deepEqual(parsed.resultSchemaFields,fixture.workload==='fixed-join-count-shrinking-intermediate'?['n','present']:fixture.fields);
     if(boundary==='binding'||boundary==='cleanup') {
       admitWholeRunTrajectory(execution,product);
