@@ -33,10 +33,17 @@ test "SELECT aggregate expression retains analytic and placement boundaries" {
     query_limits(),
   ).unwrap()
   assert_true(operation_at(analytic, 0) is Some(Analytic(_)))
+  let aggregate = parse_query(
+    "FROM t |> AGGREGATE COUNT(*) + 1 AS n",
+    query_limits(),
+  ).unwrap()
+  assert_true(
+    operation_at(aggregate, 0) is Some(Group(_, _, PipeAggregate(_, _))),
+  )
   for
     source in [
       "SELECT COUNT(*) + 1 AS n FROM t WHERE COUNT(*) > 0", "FROM t |> EXTEND COUNT(*) + 1 AS n",
-      "FROM t |> AGGREGATE COUNT(*) + 1 AS n",
+      "FROM t |> SELECT COUNT(*) + 1 AS n",
     ] {
     assert_true(parse_query(source, query_limits()) is Err(_), msg=source)
   }
