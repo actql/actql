@@ -5,7 +5,7 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 
 const sdk = 'packages/sdk/index.mjs', sdkTests = 'packages/sdk/check-fixes.test.mjs';
-const wire = 'packages/client-wire/index.mjs', wireTests = 'packages/client-wire/check-fixes.test.mjs';
+const wire = 'packages/client-wire/client-host.generated.js', wireTests = 'packages/client-wire/check-fixes.test.mjs';
 const host = 'src/connectors_builtin_node/client_check.mbt', hostTests = 'adapters/host-node/client-check.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const mutations = [
