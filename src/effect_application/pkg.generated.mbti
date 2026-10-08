@@ -2,7 +2,7 @@
 package "actql/actql/effect_application"
 
 import {
-  "actql/actql/execution_relation",
+  "actql/actql/carrier_contract",
   "actql/actql/logical_request_scope",
   "actql/actql/run_publication",
   "moonbitlang/core/debug",
@@ -19,11 +19,11 @@ pub fn admit_effect_risk_acceptance_body(String, Int, Int, Int) -> Result[Effect
 
 pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
 
+pub fn admit_storage_mapping_reference(@carrier_contract.Kind, String, Int, Int, Int) -> Result[StorageMappingReference, TableContractIssue]
+
 pub fn admit_table_operation(String, Int, Int, Int) -> Result[TableOperation, TableContractIssue]
 
 pub fn admit_table_receipt(TableOperation, String, Int, Int, Int) -> Result[TableReceipt, TableContractIssue]
-
-pub fn admit_table_storage_mapping(String, Int, Int, Int) -> Result[TableStorageMapping, TableStorageMappingIssue]
 
 pub fn check_admitted_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Array[Array[EffectDispatchKey]]) -> Result[Unit, EffectPreviewApplyIdentityIssue]
 
@@ -125,8 +125,6 @@ pub fn issue_next_effect_ledger_entry(EffectLedgerEntry, String, String?, Int, I
 
 pub fn issue_prepared_effect_ledger_entry(EffectLedgerBasis, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
 
-pub fn issue_table_storage_mapping(@execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> Result[TableStorageMapping, TableStorageMappingIssue]
-
 pub fn logical_item_locator_cid(LogicalItemLocator) -> String
 
 pub fn logical_request_scope_authority(@logical_request_scope.LogicalRequestScope) -> String
@@ -157,17 +155,19 @@ pub fn recover_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity,
 
 pub fn recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[RecoveredEffectTargetGuards, EffectSetProgressIssue]
 
+pub fn storage_mapping_reference_cid(StorageMappingReference) -> String
+
+pub fn storage_mapping_reference_json(StorageMappingReference) -> String
+
+pub fn storage_mapping_reference_kind(StorageMappingReference) -> @carrier_contract.Kind
+
+pub fn storage_mapping_reference_schema_cid(StorageMappingReference) -> String
+
 pub fn table_operation_cid(TableOperation) -> String
 
 pub fn table_operation_json(TableOperation) -> String
 
-pub fn table_operation_matches_input(TableOperation, @logical_request_scope.LogicalRequestScope, String, String, String, TableStorageMapping, String) -> Bool
-
-pub fn table_storage_mapping_cid(TableStorageMapping) -> String
-
-pub fn table_storage_mapping_json(TableStorageMapping) -> String
-
-pub fn table_storage_mapping_schema_cid(TableStorageMapping) -> String
+pub fn table_operation_matches_input(TableOperation, @logical_request_scope.LogicalRequestScope, String, String, @carrier_contract.Kind, String, StorageMappingReference, String) -> Bool
 
 // Errors
 
@@ -531,6 +531,8 @@ pub struct LogicalItemLocator {
 
 type RecoveredEffectTargetGuards
 
+type StorageMappingReference
+
 pub(all) enum TableCommitIssue {
   InvalidLimits
   InvalidResponse
@@ -559,7 +561,8 @@ pub struct TableOperation {
   expected_uuid : String?
   expected_generation_cid : String?
   input_artifact_cid : String
-  input_relation_cid : String
+  input_kind : @carrier_contract.Kind
+  input_carrier_cid : String
   schema_cid : String
   mapping_cid : String
   data_policy_cid : String
@@ -585,21 +588,9 @@ pub struct TableReceipt {
   generation_cid : String
   schema_cid : String
   mapping_cid : String
-  snapshot_id : String?
+  physical_receipt_cid : String
   row_count : Int64
 }
-
-type TableStorageMapping
-
-pub(all) enum TableStorageMappingIssue {
-  InvalidLimits
-  UnsupportedColumnCount
-  InvalidColumnName(String)
-  ColumnCollision(String)
-  UnsupportedType(String)
-  SavedMapping(TableContractIssue)
-  Encoding
-} derive(Eq, @debug.Debug)
 
 // Type aliases
 pub using @logical_request_scope {type LogicalRequestScope}

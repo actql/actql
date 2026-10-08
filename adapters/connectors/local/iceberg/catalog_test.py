@@ -18,7 +18,7 @@ def request(action, name, suffix, expected=None):
                  "namespace": ["test"], "table_name": name,
                  "expected_table": expected,
                  "input_artifact_cid": "sha256:" + "4" * 64,
-                 "input_relation_cid": "sha256:" + "5" * 64,
+                 "input_carrier": {"kind": "relation", "cid": "sha256:" + "5" * 64},
                  "schema_cid": mapping()["schema_cid"],
                  "storage_mapping_cid": mapping()["mapping_cid"],
                  "data_policy_cid": "sha256:" + "6" * 64}, "request_cid")
@@ -41,6 +41,23 @@ class CatalogTests(unittest.TestCase):
     def write(self, catalog, operation, rows, reservation=None):
         return catalog.write_claimed(operation, mapping(), rows,
                                      reservation or {"bytes": 1048576, "files": 16}, schema_wire())
+
+    def test_unsupported_carrier_refuses_before_any_staging_or_reservation(self):
+        with tempfile.TemporaryDirectory(prefix="actql-table-kind-") as root:
+            catalog = self.open(root)
+            try:
+                for kind in ["graph", "vectors", "events"]:
+                    operation = request("create", "rows", "7")
+                    operation["input_carrier"]["kind"] = kind
+                    operation = seal({k: v for k, v in operation.items() if k != "request_cid"}, "request_cid")
+                    with self.assertRaisesRegex(CatalogRefusal, "UnsupportedTableCarrierOperation"):
+                        self.write(catalog, operation, [{"id": 1}])
+                    self.assertIsNone(catalog.reconcile(operation))
+                self.assertFalse(catalog.warehouse.exists())
+                with closing(catalog.connection()) as db:
+                    self.assertEqual(db.execute("SELECT COUNT(*) FROM actql_table_allocations").fetchone()[0], 0)
+            finally:
+                catalog.engine.dispose()
 
     def test_create_replace_and_original_operation_after_later_commit(self):
         rows = [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2, "p": None}, {"id": 3}, {"id": 3}]

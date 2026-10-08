@@ -4,6 +4,9 @@ import test from 'node:test';
 // All-member installation admission and custody use the same composer.
 import './installed-source-inventory.test.mjs';
 import './installed-effect-inventory.test.mjs';
+import './installed-connector-table-loading.test.mjs';
+import './installed-connector-table-profile.test.mjs';
+import './installed-connector-table-public.test.mjs';
 import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';

@@ -1,4 +1,26 @@
 ///|
+// Resealing negative inputs exercises semantic admission, not stale self-CIDs.
+// Fixed positive expectations come from the independent Node corpus.
+fn table_test_reseal(wire : String, field : String) -> String {
+  let source = @source.parse_json(wire, {
+    max_input_bytes: 8192,
+    max_nodes: 256,
+    max_depth: 8,
+  }).unwrap()
+  let value = @json.from_source(source, 256, 8, 8192) catch {
+    _ => abort("invalid test JSON")
+  }
+  let body = @json.object_without_field(value, field).unwrap()
+  let cid = @json.cid_value(body, 8192, 256, 8) catch {
+    _ => abort("invalid test preimage")
+  }
+  let envelope = @json.object_with_string_field(body, field, cid).unwrap()
+  @json.stringify_value(envelope, 8192, 256, 8) catch {
+    _ => abort("invalid test wire")
+  }
+}
+
+///|
 fn table_mapping_schema(
   fields : Array[(@schema.FieldName, @contract.Contract, @schema.Presence)],
 ) -> (@schema.Schema, @execution.RelationSchemaIdentity) {
@@ -53,6 +75,17 @@ test "Table mapping fixes field IDs and presence from the complete schema" {
     @execution.relation_schema_cid(identity),
   )
   let saved = admit_table_storage_mapping(mapping.wire, 8192, 256, 8).unwrap()
+  let reference = storage_mapping_reference(saved, 8192, 256, 8).unwrap()
+  assert_eq(
+    @effect.storage_mapping_reference_kind(reference),
+    @carrier.RelationKind,
+  )
+  assert_eq(@effect.storage_mapping_reference_cid(reference), mapping.cid)
+  assert_eq(
+    @effect.storage_mapping_reference_schema_cid(reference),
+    mapping.schema_cid,
+  )
+  assert_eq(@effect.storage_mapping_reference_json(reference), mapping.wire)
   assert_eq(
     saved.cid,
     "sha256:dc2091f5f63460997f1f0adb3b5e99d8f2e5d0e6a61adbcbd9395e8958213505",
@@ -91,7 +124,7 @@ test "saved Table mapping rejects malformed companions and noncanonical field ID
   ).unwrap()
   assert_true(
     admit_table_storage_mapping(mapping.wire + " ", 8192, 256, 8)
-    is Err(SavedMapping(InvalidWire)),
+    is Err(SavedMapping(@effect.InvalidWire)),
   )
   for
     (before, after) in [
@@ -109,7 +142,7 @@ test "saved Table mapping rejects malformed companions and noncanonical field ID
     )
     assert_true(
       admit_table_storage_mapping(bad, 8192, 256, 8)
-      is Err(SavedMapping(InvalidShape)),
+      is Err(SavedMapping(@effect.InvalidShape)),
     )
   }
   let bad_type = table_test_reseal(
