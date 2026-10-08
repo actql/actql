@@ -6,7 +6,7 @@ declare const outcome: CheckOutcome;
 const frontier = getCheckRequirementFrontier(outcome);
 if (frontier) {
   const context: string = frontier.contextRef;
-  const scope: 'bound_input' = frontier.scope.kind;
+  const scope: 'bound_input' | 'template_only' = frontier.scope.kind;
   void context; void scope;
   for (const requirement of frontier.requirements) {
     const parameter: string = requirement.facts.parameter;
@@ -47,7 +47,7 @@ if (frontier) {
 const equal: boolean | undefined = equalCheckRequirementFrontiers(outcome, outcome);
 void equal;
 const session = createCheckSupplementationSession(client, {maxAttempts: 3});
-const result = await session.check('SELECT @x', {format: 'sql', parameters: {x: 1}});
+const result = await session.check('SELECT @x', {kind: 'text', scope: 'bound_input', format: 'sql', parameters: {x: 1}});
 if (result.decision.kind === 'stop') {
   const reason: 'frontier_unavailable' | 'no_known_supplement' | 'unchanged_frontier' |
     'attempt_budget' = result.decision.reason;

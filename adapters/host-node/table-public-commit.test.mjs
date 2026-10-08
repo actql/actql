@@ -581,7 +581,11 @@ test(`Table text Effect-only CTAS through ${transport} (${empty ? 'empty' : 'non
     t.diagnostic(inspect(error, {depth: 10})); throw error;
   });
   try {
-    const checked = await client.check(text, {format: 'sql'});
+    const template = await client.check(text, {kind: 'text', scope: 'template_only', format: 'sql'});
+    assert.equal(template.outcome, 'completed', JSON.stringify(template));
+    assert.equal(template.report.verdict, 'undetermined', JSON.stringify(template));
+    assert.deepEqual(commits(f.catalog), [], 'Incomplete static scope performs no write');
+    const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
     assert.equal(checked.outcome, 'completed', JSON.stringify(checked));
     assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked));
     const run = await client.startSource(text, {format: 'sql'}).catch(error => {
@@ -931,14 +935,14 @@ test(`Table sparse private input commits through ${transport} (${format}) after 
       assert.deepEqual(commits(f.catalog), []);
     }
     if (format === 'aql-text') {
-      const checkedInput = await client.check(input, {format});
+      const checkedInput = await client.check(input, {kind: 'text', scope: 'bound_input', format});
       assert.equal(checkedInput.outcome, 'completed', JSON.stringify(checkedInput));
       assert.equal(checkedInput.report.verdict, 'verified', JSON.stringify(checkedInput));
     } else {
       // Public advisory check accepts query text, not a JSON Program string.
       // The actual common preparation above and public submission below must
       // still admit the private input; a diagnostic API refusal is no substitute.
-      await assert.rejects(client.check(input, {format}), {code: 'InvalidCheckRequest'});
+      await assert.rejects(client.check(input, {kind: 'text', scope: 'bound_input', format}), {code: 'InvalidCheckRequest'});
       assert.deepEqual(commits(f.catalog), []);
       assert.equal((await client.checkpoints()).items.length, 0);
     }

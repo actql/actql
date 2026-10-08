@@ -31,7 +31,7 @@ const tick = async () => {await new Promise(resolve => setImmediate(resolve));};
 
 test('negotiated coordinates use original scalar boundaries in all supported encodings', async t => {
   const client = await clientFixture(t, null);
-  const outcome = await client.check('\ufeffAé😀e\u0301\r\nB\rC\n', {format: 'sql'});
+  const outcome = await client.check('\ufeffAé😀e\u0301\r\nB\rC\n', {kind: 'text', scope: 'bound_input', format: 'sql'});
   const original = outcome.report.reasons[0].location;
   // Independent literal byte, line, UTF-8, UTF-16 and UTF-32 coordinates.
   const cases = [[0,0,0,0,0], [3,0,3,1,1], [4,0,4,2,2], [6,0,6,3,3],
@@ -59,7 +59,7 @@ test('negotiated coordinates use original scalar boundaries in all supported enc
 test('document sessions reject reused versions without replacing exact buffer bytes', async t => {
   const client = await clientFixture(t, null);
   const session = createCheckDocumentSession(client, {text: 'é😀', version: -2});
-  const first = await session.check({format: 'sql'});
+  const first = await session.check({scope: 'bound_input', format: 'sql'});
   for (const [text, version] of [['edited', -2], ['edited', -3], ['\ud800', -1],
     ['edited', 1.5], ['edited', 2147483648], ['edited', -2147483649]]) {
     let refusal;
@@ -71,7 +71,7 @@ test('document sessions reject reused versions without replacing exact buffer by
   session.update('e\u0301😀', -1);
   assert.equal(session.resolveTextRange(first, location(first)), undefined,
     '[check-mutation:document-current]');
-  const second = await session.check({format: 'sql'});
+  const second = await session.check({scope: 'bound_input', format: 'sql'});
   assert.equal(second.version, -1);
   assert.equal(getCheckInput(second.outcome, 'source').text, 'e\u0301😀');
   assert.deepEqual(session.resolveTextRange(second, location(second)).range,
@@ -81,7 +81,7 @@ test('document sessions reject reused versions without replacing exact buffer by
 test('document replies cannot replace a newer request even when completion is reordered', async t => {
   const pending = [], client = await clientFixture(t, pending);
   const session = createCheckDocumentSession(client, {text: '\ufeff/*😀*/\r\nSELECT (', version: 1});
-  const first = session.check({format: 'sql'}), second = session.check({format: 'sql'});
+  const first = session.check({scope: 'bound_input', format: 'sql'}), second = session.check({scope: 'bound_input', format: 'sql'});
   await tick();
   assert.equal(pending.length, 2);
   pending[1].release(); const newer = await second;
@@ -90,7 +90,7 @@ test('document replies cannot replace a newer request even when completion is re
     '[check-mutation:document-response-order]');
   assert.deepEqual(session.resolveTextRange(newer, location(newer)).range,
     {start: {line: 1, character: 8}, end: {line: 1, character: 8}});
-  const failing = session.check({format: 'sql'});
+  const failing = session.check({scope: 'bound_input', format: 'sql'});
   await tick();
   assert.equal(session.resolveTextRange(newer, location(newer)), undefined,
     '[check-mutation:document-pending]');
@@ -102,23 +102,23 @@ test('document replies cannot replace a newer request even when completion is re
 test('pending replies remain historical after editing, closing or reopening a document', async t => {
   const pending = [], client = await clientFixture(t, pending);
   const session = createCheckDocumentSession(client, {text: 'SELECT (', version: 1});
-  const checking = session.check({format: 'sql'});
+  const checking = session.check({scope: 'bound_input', format: 'sql'});
   session.update('SELECT 1 AS n', 2);
   await tick(); pending[0].release(); const old = await checking;
   assert.equal(getCheckInput(old.outcome, 'source').text, 'SELECT (');
   assert.equal(session.resolveTextRange(old, location(old)), undefined,
     '[check-mutation:document-current]');
-  const closing = session.check({format: 'sql'});
+  const closing = session.check({scope: 'bound_input', format: 'sql'});
   session.close(); session.close();
   await tick(); pending[1].release(); const closed = await closing;
   assert.equal(session.resolveTextRange(closed, location(closed)), undefined,
     '[check-mutation:document-closed]');
   assert.throws(() => session.update('SELECT (', 3), {code: 'CheckDocumentClosed'});
-  await assert.rejects(session.check({format: 'sql'}), {code: 'CheckDocumentClosed'});
+  await assert.rejects(session.check({scope: 'bound_input', format: 'sql'}), {code: 'CheckDocumentClosed'});
   const reopened = createCheckDocumentSession(client, {text: 'SELECT (', version: 1});
   assert.equal(reopened.resolveTextRange(old, location(old)), undefined,
     '[check-mutation:document-session]');
-  const next = reopened.check({format: 'sql'});
+  const next = reopened.check({scope: 'bound_input', format: 'sql'});
   await tick(); pending[2].release(); const current = await next;
   assert.ok(reopened.resolveTextRange(current, location(current)));
   assert.equal(reopened.resolveTextRange({...current}, location(current)), undefined,
@@ -135,7 +135,7 @@ test('document sessions refuse invalid options and outcomes without owned source
   }
   const copiedClient = {check: async () => reply(1)};
   const session = createCheckDocumentSession(copiedClient, {text: 'x', version: 1});
-  const observation = await session.check({format: 'sql'});
+  const observation = await session.check({scope: 'bound_input', format: 'sql'});
   assert.equal(session.resolveTextRange(observation, location(observation)), undefined);
 });
 
@@ -148,7 +148,7 @@ for (const [property, transition] of [
     const client = await clientFixture(t, null);
     const session = createCheckDocumentSession(client, {text: 'é😀', version: 1});
     t.after(() => session.close());
-    const observation = await session.check({format: 'sql'});
+    const observation = await session.check({scope: 'bound_input', format: 'sql'});
     const original = location(observation);
     assert.deepEqual(session.resolveTextRange(observation, original)?.range,
       {start: {line: 0, character: 3}, end: {line: 0, character: 3}});
@@ -159,7 +159,7 @@ for (const [property, transition] of [
         changed = true;
         if (transition === 'edit') session.update('edited', 2);
         else if (transition === 'close') session.close();
-        else newer = session.check({format: 'sql'});
+        else newer = session.check({scope: 'bound_input', format: 'sql'});
       }
       return original[property];
     }});
