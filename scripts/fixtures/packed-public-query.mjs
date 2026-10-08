@@ -50,6 +50,8 @@ import {analyticPartitionPropertySuccesses, analyticPartitionPropertyRefusals}
   from './analytic-partition-property-source-input.mjs';
 import {aggregatePropertyOrderSuccesses, aggregatePropertyOrderRefusals, aggregatePropertyOrderExecutionFailures}
   from './aggregate-property-order-source-input.mjs';
+import {aggregateConditionalOrderSuccesses, aggregateConditionalOrderRefusals}
+  from './aggregate-conditional-order-source-input.mjs';
 import {aggregateSignedOrderSuccesses, aggregateSignedOrderRefusals}
   from './aggregate-signed-order-source-input.mjs';
 import {orderAggregateExpressionSuccesses, orderAggregateExpressionRefusals, orderAggregateExpressionExecutionFailures}
@@ -346,8 +348,8 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   : analyticPropertyOnly ? {successes: analyticPropertySuccesses, refusals: analyticPropertyRefusals}
   : subgraphOnly ? {successes: subgraphSourceSuccesses, refusals: subgraphSourceRefusals, executionFailures: subgraphSourceExecutionFailures}
   : graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSuccesses, refusals: graphDiagnosticSourceRefusals, executionFailures: graphDiagnosticSourceExecutionFailures}
-  : aggregatePropertyOrderOnly ? {successes: [...aggregatePropertyOrderSuccesses, ...aggregateSignedOrderSuccesses],
-    refusals: [...aggregatePropertyOrderRefusals, ...aggregateSignedOrderRefusals], executionFailures: aggregatePropertyOrderExecutionFailures}
+  : aggregatePropertyOrderOnly ? {successes: [...aggregatePropertyOrderSuccesses, ...aggregateSignedOrderSuccesses, ...aggregateConditionalOrderSuccesses],
+    refusals: [...aggregatePropertyOrderRefusals, ...aggregateSignedOrderRefusals, ...aggregateConditionalOrderRefusals], executionFailures: aggregatePropertyOrderExecutionFailures}
   : orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
   : sourceGraphMemberOnly ? {successes: sourceGraphMemberSuccesses, refusals: sourceGraphMemberRefusals}
   : graphProjectionPropertyOnly ? {successes: graphProjectionPropertySuccesses, refusals: graphProjectionPropertyRefusals}
@@ -400,6 +402,8 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   executionFailures: [...pipeResultExecutionFailures, ...graphSourceExecutionFailures]};
 if (!scopeOnly) {
   scopeInputs.refusals.push(...aggregateSignedOrderRefusals);
+  scopeInputs.refusals.push(...aggregateConditionalOrderRefusals);
+  scopeInputs.successes.push(...aggregateConditionalOrderSuccesses);
   scopeInputs.successes.push(...aggregateSignedOrderSuccesses);
   scopeInputs.refusals.push(...analyticDistinctFrameRefusals);
   scopeInputs.successes.push(...analyticDistinctFrameSuccesses);

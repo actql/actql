@@ -65,8 +65,9 @@ fn aggregate_order_matches_argument(
 
 ///|
 // Aggregate-local order keys use the input scope, never SELECT siblings.
-// Typed parameters, static properties and numeric unary signs are total after
-// admission. The common checker validates receivers and numeric signatures;
+// Typed parameters, static properties, numeric unary signs and conditional
+// trees with total operands are total after admission. The common checker
+// validates receivers and numeric signatures;
 // the expression owner preserves NULL propagation and evaluates each operand
 // once. Do not hoist potentially failing calls or binary arithmetic out of
 // aggregate demand here.
@@ -120,6 +121,10 @@ fn aggregate_order_fields(
         }
       }
       ParameterReference(_) => ()
+      Call(_, _) | SearchedCase(_, _) =>
+        if !aggregate_order_total_conditional(expression) {
+          raise Abort(UnsupportedAggregate)
+        }
       _ => raise Abort(UnsupportedAggregate)
     }
     let mut reused : String? = None
@@ -152,4 +157,61 @@ fn aggregate_order_fields(
     fields.push(field)
   }
   fields
+}
+
+///|
+// This is an admission guard for moving an order key before GROUP, not an
+// evaluator or a type checker. In particular, laziness inside IF/CASE does
+// not prove that a failing operand is safe outside aggregate demand.
+fn aggregate_order_total_conditional(expression : @query.Expression) -> Bool {
+  let total : Array[Bool] = []
+  for index in 0..<@query.expression_node_count(expression) {
+    let admitted = match
+      @query.expression_node(expression, index).unwrap().kind {
+      Null
+      | Boolean(_)
+      | Number(_)
+      | StringLiteral(_)
+      | Reference(_)
+      | ParameterReference(_) => true
+      Parenthesized(child) | Property(child, _) => total[child]
+      Unary("+" | "-" | "NOT", child) => total[child]
+      Binary(
+        "="
+        | "!="
+        | "<>"
+        | "<"
+        | "<="
+        | ">"
+        | ">="
+        | "AND"
+        | "OR",
+        left,
+        right
+      ) => total[left] && total[right]
+      Predicate(
+        "IS NULL"
+        | "IS NOT NULL"
+        | "IS TRUE"
+        | "IS NOT TRUE"
+        | "IS FALSE"
+        | "IS NOT FALSE"
+        | "IS UNKNOWN"
+        | "IS NOT UNKNOWN",
+        args
+      ) => args.all(child => total[child])
+      Call(path, args) =>
+        path.length() == 1 &&
+        ["COALESCE", "IFNULL", "IF", "NULLIF"].contains(
+          ascii_upper(path[0].value),
+        ) &&
+        args.all(child => total[child])
+      SearchedCase(branches, otherwise) =>
+        total[otherwise] &&
+        branches.all(branch => total[branch.0] && total[branch.1])
+      _ => false
+    }
+    total.push(admitted)
+  }
+  total[@query.expression_root(expression)]
 }
