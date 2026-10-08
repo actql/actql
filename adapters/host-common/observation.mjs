@@ -20,6 +20,31 @@ const outcomes = new Set(['running', 'resuming', 'succeeded', 'failed', 'cancell
   'confirmed', 'accepted', 'already_terminal', 'committed', 'rejected']);
 const operations = new Set(['run', 'check', 'planning', 'source', 'compute',
   'infer', 'effect', 'approval', 'checkpoint', 'recovery', 'publication', 'cleanup']);
+const measurements = ['duration', 'rows', 'bytes', 'requests', 'tokens', 'resources', 'cost'];
+const correlations = ['run', 'task', 'attempt', 'external_trace'];
+const attributeNames = ['actql.operation', 'actql.event', 'actql.observation.version',
+  'actql.outcome', 'actql.check.verdict', 'actql.task.ordinal', 'actql.attempt.ordinal',
+  'actql.model.slot.ordinal', 'actql.owner.revision', 'actql.cleanup.pending',
+  'actql.physical_stop', 'actql.run.definition_cid', 'actql.run.id',
+  'actql.model.attempt_cid', 'http.request.method', 'http.route',
+  'http.response.status_code', 'error.type', 'service.name', 'service.version',
+  'deployment.environment.name'];
+const mandatoryAttributes = ['actql.operation', 'actql.event', 'actql.observation.version'];
+function selection(value, names, defaults) {
+  if (value === undefined) return defaults;
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).some(key => !['include', 'exclude'].includes(key))) {
+    throw new TypeError('InvalidHostObservationSelection');
+  }
+  const include = value.include ?? defaults, exclude = value.exclude ?? [];
+  for (const items of [include, exclude]) {
+    if (!Array.isArray(items) || items.length > names.length ||
+        new Set(items).size !== items.length || items.some(item => !names.includes(item))) {
+      throw new TypeError('InvalidHostObservationSelection');
+    }
+  }
+  return include.filter(item => !exclude.includes(item));
+}
 const events = Object.freeze({
   definition_admitted: ['run', 'definition_admitted'],
   dispatch_reserved: ['run', 'dispatch_reserved'],
@@ -41,6 +66,7 @@ const events = Object.freeze({
   model_call_observed: ['infer', 'attempt_observed'],
   model_call_replayed: ['recovery', 'attempt_replayed'],
   checkpoint_resolved: ['approval', 'checkpoint_resolved'],
+  effect_application_observed: ['effect', 'application_observed'],
 });
 const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
   'owner_observed', 'cancellation_requested', 'task_started', 'task_completed',
@@ -73,7 +99,8 @@ export function observationTraceParent(headers) {
 export function createHostObservationConnection(options = {}) {
   if (options === null || typeof options !== 'object' || Array.isArray(options) ||
       Object.keys(options).some(key => !['deliver', 'currentContext', 'scope',
-        'revision', 'limits', 'include', 'exclude', 'correlation'].includes(key))) {
+        'revision', 'limits', 'include', 'exclude', 'correlation',
+        'measurements', 'attributes', 'events'].includes(key))) {
     throw new TypeError('InvalidHostObservationConfiguration');
   }
   const {deliver, currentContext,
@@ -83,7 +110,7 @@ export function createHostObservationConnection(options = {}) {
       typeof currentContext !== 'function' ||
       typeof scope !== 'string' || !/^[a-zA-Z0-9._-]{1,64}$/u.test(scope) ||
       typeof revision !== 'string' || !/^[a-zA-Z0-9._/-]{1,64}$/u.test(revision) ||
-      typeof correlation !== 'boolean' || !Array.isArray(include) ||
+      !Array.isArray(include) ||
       !Array.isArray(exclude) || include.length > operations.size ||
       exclude.length > operations.size || new Set(include).size !== include.length ||
       new Set(exclude).size !== exclude.length ||
@@ -91,6 +118,27 @@ export function createHostObservationConnection(options = {}) {
       limits === null || typeof limits !== 'object' || Array.isArray(limits) ||
       Object.keys(limits).some(x => !Object.hasOwn(observationLimits, x))) {
     throw new TypeError('InvalidHostObservationConfiguration');
+  }
+  const selectedCorrelation = correlation === true ? correlations : correlation === false ? [] :
+    selection(correlation, correlations, correlations);
+  const selectedMeasurements = selection(options.measurements, measurements,
+    measurements.filter(item => item !== 'cost'));
+  // No pricing source is admitted by this metadata-only profile.
+  if (selectedMeasurements.includes('cost')) throw new TypeError('UnsupportedObservationCostSource');
+  selection(options.attributes === undefined ? undefined :
+    {include: [], ...options.attributes}, attributeNames, []);
+  if (options.attributes !== undefined && (!options.attributes ||
+      typeof options.attributes !== 'object' || Array.isArray(options.attributes) ||
+      Object.keys(options.attributes).some(key => key !== 'exclude'))) {
+    throw new TypeError('InvalidHostObservationSelection');
+  }
+  const attributeExclusions = options.attributes?.exclude ?? [];
+  const eventLevel = options.events?.level ?? 'lifecycle';
+  if (options.events !== undefined && (!options.events ||
+      typeof options.events !== 'object' || Array.isArray(options.events) ||
+      Object.keys(options.events).some(key => key !== 'level')) ||
+      !['lifecycle', 'diagnostic'].includes(eventLevel)) {
+    throw new TypeError('InvalidHostObservationSelection');
   }
   const selected = Object.freeze({...observationLimits, ...limits});
   for (const [key, value] of Object.entries(selected)) {
@@ -100,17 +148,37 @@ export function createHostObservationConnection(options = {}) {
   }
   const allowed = new Set(include.filter(x => !exclude.includes(x)));
   const boundRevision = createHash('sha256').update(JSON.stringify({scope, revision,
-    limits: selected, operations: [...allowed].sort(), correlation})).digest('hex');
+    limits: selected, operations: [...allowed].sort(), correlations: selectedCorrelation,
+    measurements: selectedMeasurements, attributeExclusions, eventLevel})).digest('hex');
   const config = {deliver, currentContext, scope, revision: boundRevision, selected,
-    allowed, correlation};
+    allowed, correlation: selectedCorrelation.includes('external_trace'),
+    correlations: new Set(selectedCorrelation), measurements: new Set(selectedMeasurements),
+    attributeExclusions: new Set(attributeExclusions), eventLevel};
   const token = Object.freeze({status: () => config.status?.(),
     configuration: () => Object.freeze({scope, revision: boundRevision,
-      limits: selected, operations: Object.freeze([...allowed]), correlation})});
+      limits: selected, operations: Object.freeze([...allowed]),
+      correlation: selectedCorrelation.length !== 0,
+      correlations: Object.freeze([...selectedCorrelation]),
+      measurements: Object.freeze({selected: Object.freeze([...selectedMeasurements]),
+        available: Object.freeze(['duration'])}),
+      attributes: Object.freeze({exclude: Object.freeze([...attributeExclusions])}),
+      events: Object.freeze({level: eventLevel})})});
   connections.set(token, config);
   return token;
 }
 
 export const isHostObservationProjection = value => projections.has(value);
+
+// Copy only the common receipt/publication Owner's returned disposition. This
+// does not interpret transport errors or call an arbitrary completion hook.
+export function projectEffectApplication(projection, ref, result) {
+  if (!projections.has(projection)) return;
+  try {
+    const outcome = {published: 'committed', waiting: 'waiting_checkpoint',
+      needs_reconciliation: 'needs_reconciliation', failed: 'failed'}[result.status];
+    if (outcome !== undefined) projection.diagnostic('effect_application_observed', {ref, outcome});
+  } catch { /* Optional metadata cannot change receipt or cleanup custody. */ }
+}
 
 export function installHostObservation(connection, {journal, runId} = {}) {
   if (connection === undefined) return undefined;
@@ -173,9 +241,13 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (['verified', 'invalid', 'undetermined'].includes(facts.checkVerdict)) {
         attributes['actql.check.verdict'] = facts.checkVerdict;
       }
-      if (Number.isSafeInteger(facts.task) && facts.task >= 0) attributes['actql.task.ordinal'] = facts.task;
-      if (Number.isSafeInteger(facts.attempt) && facts.attempt >= 0) attributes['actql.attempt.ordinal'] = facts.attempt;
-      if (Number.isSafeInteger(facts.slot) && facts.slot >= 0) attributes['actql.model.slot.ordinal'] = facts.slot;
+      if (config.correlations.has('task') && Number.isSafeInteger(facts.task) && facts.task >= 0) {
+        attributes['actql.task.ordinal'] = facts.task;
+      }
+      if (config.correlations.has('attempt')) {
+        if (Number.isSafeInteger(facts.attempt) && facts.attempt >= 0) attributes['actql.attempt.ordinal'] = facts.attempt;
+        if (Number.isSafeInteger(facts.slot) && facts.slot >= 0) attributes['actql.model.slot.ordinal'] = facts.slot;
+      }
       if (Number.isSafeInteger(facts.revision) && facts.revision >= 0) attributes['actql.owner.revision'] = facts.revision;
       if (typeof facts.cleanupPending === 'boolean') attributes['actql.cleanup.pending'] = facts.cleanupPending;
       if (outcomes.has(facts.physicalStop)) attributes['actql.physical_stop'] = facts.physicalStop;
@@ -187,12 +259,12 @@ export function installHostObservation(connection, {journal, runId} = {}) {
           ? {} : {durationMs: options.durationMs}),
         ...(!config.correlation || context?.trace === undefined ? {} : {parent: context.trace}),
       };
-      if (config.correlation && cid(ref?.runDefinitionCid)) {
+      if (config.correlations.has('run') && cid(ref?.runDefinitionCid)) {
         attributes['actql.run.definition_cid'] = ref.runDefinitionCid;
         const id = runId?.(ref);
         if (typeof id === 'string' && id.length <= 128) attributes['actql.run.id'] = id;
       }
-      if (config.correlation && cid(facts.attemptCid)) attributes['actql.model.attempt_cid'] = facts.attemptCid;
+      if (config.correlations.has('attempt') && cid(facts.attemptCid)) attributes['actql.model.attempt_cid'] = facts.attemptCid;
       if (options.segment !== undefined && context?.http !== undefined) {
         const method = context.http.method;
         if (['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(method)) {
@@ -205,6 +277,10 @@ export function installHostObservation(connection, {journal, runId} = {}) {
           if (code >= 500) attributes['error.type'] = String(code);
         }
       }
+      if (mandatoryAttributes.some(key => config.attributeExclusions.has(key))) {
+        drop('requiredAttributeExcluded'); return;
+      }
+      for (const key of config.attributeExclusions) delete attributes[key];
       // Reserve space for both restored correlation contexts before reading
       // optional journal metadata. Neither contains arbitrary attribute data.
       const bytes = Buffer.byteLength(JSON.stringify(record)) + 384;

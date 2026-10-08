@@ -188,3 +188,81 @@ Integration is separate from this implementation handoff. PR #971 targets
 `connector-installation` exports/files from main and `observation` exports/files
 from this branch. Integration-owner conflict resolution, final Ready coverage
 and user merge remain outside this handoff. No CI success is claimed.
+
+## Public wire acceptance follow-up
+
+The public Local/HTTPS fixtures now decode actual OTLP log records independently
+of the product serializer. They assert that pre-Run checker records have no Run
+or Program identity, that successful Owner observations carry the admitted Run
+identity, and that actual metric data points contain no Exemplars. The same
+decoder serves the adapter-level assertions rather than a second expectation
+implementation. HTTPS waiting cancellation also uses the existing public Model
+process fixture: zero dispatch, Owner-confirmed cancellation and no Result.
+
+The combined three-file diagnostic reached its 120-second bound and is not a
+pass (`run-OJdWoy`). Narrowed selections passed: adapter/public Host 17/17
+(`run-JxqXAU`, `focused-test-KtUX6U`) and HTTPS cancellation 1/1
+(`run-bKk2xJ`, `focused-test-KKOkDQ`). These are dirty-source diagnostics;
+fixed-source verification is recorded separately in PR #971.
+
+## Adopted Node configuration follow-up
+
+An additional design comparison found that the initial explicit-only options
+did not expose the adopted measurement, attribute and correlation selectors or
+the standalone standard environment mechanism. These are connected without
+adding an execution Owner or changing semantic contracts. Only duration is
+available from the current hooks; selecting other registered groups does not
+fabricate usage. Intrinsic span intervals remain unchanged when optional
+duration metrics are disabled. Explicit Resource/authentication configuration
+is bounded, filtered and omitted from inspection values.
+
+The affected five-file diagnostic passed 38/38 (`run-zqLu7m`,
+`focused-test-U9aqeq`), covering selector validation and actual exported wire,
+environment precedence, disable, missing destinations, credentials and bounded
+standard-setting diagnostics. This was a dirty-source diagnostic, not a claim
+against a submitted clean SHA. The environment fixture is included in the
+ordinary OTel CI selection; final verification is recorded in PR #971.
+
+## Effect receipt and delivery follow-up
+
+The existing HTTPS Effect fixture now has a narrow observability selection:
+one successful independently approved Set, waiting cancellation without send,
+and an applied request whose reply is lost. The original full inventory
+selection is unchanged. Both completed and unknown recovery retain original
+Run references, exact independent rows/transcripts, and no additional sends.
+The expected physical sends are one to each installed provider.
+
+An initial 90-second inventory diagnostic timed out (`run-1iXxLX`); it does not
+establish a product failure or a pass. The narrowed diagnostic completed with
+15 projection cases passing and its public Effect case failing on missing
+`application_observed` records (`run-dsLGD8`, `focused-test-jjjXYI`). Execution,
+approval, independent Results and unknown non-resend had passed before that
+assertion. This caught a projection defect: recovered background dispatch is
+not guaranteed to inherit an ingress AsyncLocalStorage context.
+
+The first explicit-ref correction was insufficient (`run-e9u1Dw`,
+`focused-test-gFYJUn`: 40 passed, 2 failed). The wire-kind assertion also
+compared a protobuf integer decoded as BigInt with Number; it now uses `3n`.
+A later diagnostic (`run-tSev6n`, `focused-test-N6BTXG`: 29 passed, 2 failed)
+confirmed waiting/unknown facts on the explicit Owner hook but showed the
+log export window exhausted by polling interval records before publication.
+It also exposed a managed export deadline under concurrently running public
+and unit fixtures. Neither run is a successful acceptance claim.
+
+The correction projects the common receipt/publication Owner result through
+the installed Host's explicit original Run reference. It adds no outcome
+inference, replay authority or execution state machine. Rejected adapters do
+not invent a semantic Effect outcome. Source/Model attempt receipt facts use
+CLIENT span kind; Effect disposition remains an INTERNAL fact without an
+invented transport interval. Logs replace duplicate span events when enabled.
+Managed close aborts in-flight delivery and suppresses remaining signals and
+queued records; external data already sent cannot be recalled.
+Interval boundaries now use spans only, leaving discrete lifecycle logs for
+Owner facts without increasing the finite export caps. The OTel selection runs
+test files sequentially, including public fixtures, under a finite total budget.
+
+Selected public declarations passed strict TypeScript checking, and Node
+adapter assembly/freshness and whitespace checks passed after the correction.
+These diagnostics are not final clean-SHA acceptance. The final command,
+counts, receipt directories and SHA are recorded in PR #971. No additional
+full Core, packed, Native or performance campaign was run for this follow-up.

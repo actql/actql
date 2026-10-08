@@ -3,7 +3,7 @@ import {request as httpsRequest} from 'node:https';
 
 // One sender per signal. Capacity is held until physical close, including
 // errors/timeout. There are no retries or response bodies retained beyond cap.
-export function createBoundedOtlpSender(endpoint, limits) {
+export function createBoundedOtlpSender(endpoint, limits, headers = {}) {
   let closed = false, active, records = 0, bytes = 0, window = performance.now();
   const counters = {sent: 0, failed: 0, limited: 0};
   return Object.freeze({
@@ -28,6 +28,7 @@ export function createBoundedOtlpSender(endpoint, limits) {
           const url = new URL(endpoint);
           req = (url.protocol === 'https:' ? httpsRequest : httpRequest)(url, {
             method: 'POST', agent: false, headers: {
+              ...headers,
               'content-type': 'application/x-protobuf',
               'content-length': payload.byteLength,
             },

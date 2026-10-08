@@ -39,8 +39,9 @@ authorization. Baggage and tracestate are neither propagated nor persisted.
 ## Configuration and disclosure
 
 - The supported managed transport is OTLP/HTTP protobuf. Other transports and
-  Hosts are rejected when configured. No environment endpoint/resource defaults
-  are read. Install the package's pinned dependencies; a normal SDK/Local install
+  Hosts are rejected when configured. Environment defaults are not read unless
+  `environment: true` explicitly selects the standalone mechanism. Install the
+  package's pinned dependencies; a normal SDK/Local install
   does not need them.
 - `traces`, `metrics` and `logs` each accept an explicit endpoint or `false`.
   The generic `endpoint` enables traces only and appends `/v1/traces`.
@@ -51,7 +52,7 @@ authorization. Baggage and tracestate are neither propagated nor persisted.
   It is not error-based sampling. Metrics/logs and Evidence
   are independent of trace sampling. Tail sampling is a Collector concern.
 - Default disclosure is metadata-only. Names/bodies are fixed operation/event
-  labels. Managed Resource is fixed `service.name=actql.node-host`. No Program text,
+  labels. Default managed Resource is `service.name=actql.node-host`. No Program text,
   rows, Result names, error text, credentials, arbitrary Resource or baggage
   enters a record. Run/CID correlation is opt-out via `correlation: false`;
   this also removes caller context and recovery links. IDs are not metric labels.
@@ -62,9 +63,61 @@ authorization. Baggage and tracestate are neither propagated nor persisted.
 - `include`/`exclude` select fixed operation categories; exclusion wins. Empty
   selection disables observation. Missing all signals is complete disable and
   does not allocate the optional journal tables. Configuration is immutable.
+- The adopted `operations: {include, exclude}` form selects the same categories;
+  do not combine it with flat `include`/`exclude`. `measurements: {include,
+  exclude}` selects registered groups independently of trace sampling. Only
+  `duration` is currently available from these observation hooks. Other selected
+  groups remain explicitly unavailable, never invented as zero. `cost` requires
+  a pricing source and is rejected in this profile. Excluding duration suppresses
+  its metric instruments; actual span interval timestamps remain truthful.
+- `correlation: {include, exclude}` selects `run`, `task`, `attempt` and
+  `external_trace` independently. `attributes: {exclude}` removes registered
+  optional attributes before queueing and metrics recording. Excluding required
+  envelope attributes suppresses the record and reports loss. `events.level`
+  accepts `lifecycle` and `diagnostic`; both retain only the same fixed Owner
+  lifecycle facts, with bounded local loss diagnostics, never raw error detail.
+- Resource customization is explicit and limited to `service.name`,
+  `service.version` and `deployment.environment.name`, each at most 128 UTF-8
+  bytes. These are disclosed installation metadata, not per-Run input. Unknown
+  keys are rejected without reading their values. Attribute exclusions also
+  remove these fields before private SDK Resource construction.
 - `configuration()` inspects effective signals, sampler, versions and finite
   caps without URLs/secrets or a connectivity probe. `status()` reports queue,
   sender counters and explicit loss reasons. No raw errors are retained there.
+
+### Explicit standard environment mechanism
+
+```js
+const telemetry = createNodeHostObservability({environment: true});
+```
+
+This reads the standard `OTEL_EXPORTER_OTLP_ENDPOINT`, signal-specific
+`OTEL_EXPORTER_OTLP_{TRACES,METRICS,LOGS}_ENDPOINT`, protocol, headers and timeout,
+`OTEL_{TRACES,METRICS,LOGS}_EXPORTER` (`otlp`/`none`), `OTEL_SDK_DISABLED`,
+`OTEL_TRACES_SAMPLER`/`OTEL_TRACES_SAMPLER_ARG`, `OTEL_SERVICE_NAME` and
+`OTEL_RESOURCE_ATTRIBUTES`. Specific endpoints are used exactly; generic paths
+are constructed once. A generic endpoint alone enables only traces. Explicit
+metrics/logs `otlp` uses their specific endpoint or the generic base; without
+either destination the signal stays disabled with a bounded diagnostic.
+Direct signal options take precedence; `none` and complete disable do not
+create a localhost fallback. Empty values are unset. Invalid numeric and
+unsupported enum values produce fixed diagnostic codes, not echoed values.
+The supported sampler is `parentbased_traceidratio`; unsupported sampler
+selections fall back to that reported default. Export timeouts cannot exceed
+the managed 500 ms ceiling. SDK limit controls cannot widen the Host caps.
+
+Signal headers override generic headers. Code `headers` provide the same direct
+configuration equivalent. Headers are at most 16 entries/4,096 total bytes;
+framing and context/baggage headers are forbidden. Credentials go only to the
+explicit collector, never to observation records, inspection or diagnostics.
+Only the three admitted Resource keys are retained, and `OTEL_SERVICE_NAME`
+wins over the Resource attribute's name; code Resource fields win over both.
+`OTEL_PROPAGATORS=tracecontext` is supported; `none` narrows external linkage.
+Baggage and declarative configuration files are explicitly unsupported, not
+silently ignored. Application providers cannot select this environment overlay.
+
+This is an API configuration mechanism, not a new CLI or YAML parser. The
+adapter neither installs a global propagator nor modifies unrelated libraries.
 
 SDK pins: API 1.9.1; trace/metrics/resources 2.12.0; logs/OTLP transformer
 0.223.0; semantic-conventions package and schema 1.43.0. The package lock fixes

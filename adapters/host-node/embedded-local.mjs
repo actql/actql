@@ -1166,7 +1166,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
               journalPort: modelResume === undefined ? undefined : nextJournal});
           } catch (error) { observePreEffectFailure(); throw error; }
           return effectInstallation.execute(
-          Object.freeze({...facts, signal, retainExecution, targetReads,
+          Object.freeze({...facts, signal, retainExecution, targetReads, observation,
             beginPhysicalWork, observePreEffectFailure, moon, control,
             assertContinuationCurrent: activeResume?.assertCurrent,
             publicationPlan: facts.preparedExecution,
@@ -2084,7 +2084,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           const continuation = await checkpoints.effectContinuation(view);
           const flight = dispatchOwner.track(ref, {
             run: ({signal, retainExecution, beginPhysicalWork}) =>
-              effectInstallation.resume(Object.freeze({ref, view,
+              effectInstallation.resume(Object.freeze({ref, view, observation,
                 reconciliationOnly: observing,
                 continuation, retained, moon, control, store,
                 storeAuthorityCid, authorityScopeCid, signal,

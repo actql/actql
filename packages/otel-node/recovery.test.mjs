@@ -123,7 +123,8 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
   }
 });
 }
-test('public Local: cancellation while waiting preserves Owner-confirmed outcome without dispatch', async () => {
+for (const transport of ['local', 'https']) {
+test(`public ${transport}: cancellation while waiting preserves Owner-confirmed outcome without dispatch`, async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-otel-cancel-'));
   const packets = [];
   const server = createServer(async (request, response) => {
@@ -132,9 +133,13 @@ test('public Local: cancellation while waiting preserves Owner-confirmed outcome
   }).listen(0, '127.0.0.1');
   await once(server, 'listening');
   try {
+    if (transport === 'https') execFileSync('openssl', ['req', '-x509', '-nodes',
+      '-newkey', 'rsa:2048', '-keyout', 'host.key', '-out', 'host.crt', '-days', '1',
+      '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+    {cwd: root, stdio: 'ignore'});
     const endpoint = `http://127.0.0.1:${server.address().port}`;
-    await phase(root, 'local', endpoint, 'wait');
-    const cancelled = await phase(root, 'local', endpoint, 'cancel');
+    await phase(root, transport, endpoint, 'wait');
+    const cancelled = await phase(root, transport, endpoint, 'cancel');
     assert.equal(cancelled.status, 'cancelled');
     assert.equal(cancelled.calls, 0);
     assert.equal(cancelled.rows, undefined);
@@ -144,3 +149,4 @@ test('public Local: cancellation while waiting preserves Owner-confirmed outcome
     await rm(root, {recursive: true, force: true});
   }
 });
+}

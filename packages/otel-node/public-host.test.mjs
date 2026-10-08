@@ -16,6 +16,7 @@ import {createNodeHostObservability} from './index.mjs';
 import {connect as localConnect} from '../local-node/index.mjs';
 import {openInstalledRemoteHttpHost} from '../local-node/http-host.mjs';
 import {connect as remoteConnect} from '../sdk/index.mjs';
+import {records, attributes, field, assertNoMetricExemplars} from './test/otlp-fixture.mjs';
 
 const sentinel = 'SECRET_SENTINEL';
 const parent = {traceId: '3'.repeat(32), spanId: '4'.repeat(16), traceFlags: 1};
@@ -133,6 +134,21 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
     'result_committed', 'cleanup_completed', 'owner_observed']) {
     assert.equal(logs.includes(Buffer.from(event)), true, event);
   }
+  const logRecords = records(sink.packets, 'logs');
+  const checks = logRecords.filter(record =>
+    field(field(record, 5), 1).toString() === 'check_completed');
+  assert.ok(checks.length > 0);
+  for (const record of checks) {
+    const values = attributes(record, 6);
+    assert.equal(values['actql.check.verdict'], 'invalid');
+    assert.equal(Object.keys(values).some(key => /run|program/iu.test(key)), false,
+      'actual pre-Run checker records have no invented Run or Program identity');
+  }
+  const ownerRecords = logRecords.map(record => attributes(record, 6))
+    .filter(values => values['actql.event'] === 'owner_observed');
+  assert.ok(ownerRecords.some(values => values['actql.outcome'] === 'succeeded' &&
+    /^sha256:[a-f0-9]{64}$/u.test(values['actql.run.definition_cid'])));
+  assertNoMetricExemplars(sink.packets);
   assert.equal(logs.includes(Buffer.from('actql.check.verdict')), true);
   assert.equal(logs.includes(Buffer.from('invalid')), true);
   assert.equal(sink.packets.some(packet => packet.path === '/v1/traces' &&

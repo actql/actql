@@ -13,6 +13,7 @@ Native, Workers and hosted multi-tenant export are not supported by this adapter
 | Run admission | `client-request-journal.acceptDefinition` | After semantic admission commit; only a new admission initializes optional consumption |
 | Task activation/completion | `strategy` activation and checked completion | Bounded internal hook after the confirmed operation; no output handle passed to exporters |
 | Model physical attempt | `installed-model-continuation` / Checkpoint journal | After entry/observation receipt; actual task, slot, attempt and attempt CID |
+| Effect application | Common Set receipt / publication disposition through the installed Effect Site | Confirmed application fact with the original Run ref; interrupted adapters cannot supply a semantic outcome |
 | Approval waiting | Dispatch owner with retained Checkpoint | Waiting event, not inferred permission or a long-lived span |
 | Resolution | Installed Checkpoint owner | Committed resolution and original Run ref, not automatically resumed execution |
 | Recovery | Existing journal/controller diagnostics and Run inspection | New finite ingress segment, saved caller link, actual observed state |
@@ -30,6 +31,9 @@ Discrete verified facts use correlated log records, including Model attempt
 receipts. They do not create instant spans or duplicate Span Events. Only a
 measured finite segment or task produces a duration span. Logical
 work/accounting is not inferred from these clocks.
+Measured Source/Model attempts use standard CLIENT span kind. Finite interval
+boundaries do not duplicate lifecycle logs or spend the discrete-log allowance
+merely because a caller polls status.
 
 The common projection copies fixed fields into a bounded queue and delivers
 after `setImmediate`. The Host does not import an OTel SDK. SDK/HTTP propagation
@@ -43,6 +47,24 @@ The observation projection's `actql-observation/0.1` version and private journal
 Configuration digest binds scope, limits, filters, correlation, sampler,
 destinations and selected SDK revision. Destination URLs are not stored in the
 journal. One observation connection is installed on one live Host at a time.
+
+Selection and wire configuration remain observation-adapter concerns, not new
+execution authority. The existing MoonBit Owners still decide admissibility,
+attempt identity, accounting, cancellation, publication and cleanup. Operation,
+measurement, correlation and attribute selectors only narrow copied facts.
+Unavailable measurements stay unavailable; no exporter derives logical work or
+usage from spans. Duration selection controls optional metric instruments, not
+the truthful timestamps of the finite span being represented.
+
+The optional Node package can explicitly select standard environment
+configuration. It never overlays an application-owned provider. Generic
+destinations enable traces only; signal-specific settings and exporter choices
+resolve before SDK construction. Authentication headers are bounded transport
+configuration, never observation fields. The managed Resource has a fixed
+default and only three explicitly disclosed standard installation attributes
+may replace or extend it. Read-only inspection reports keys and credential
+presence, not their values. Unsupported configuration files, transports and
+Hosts are explicitly reported instead of creating an implicit pipeline.
 
 ## Restart and missing observations
 
@@ -65,7 +87,8 @@ owner. A failed close prevents retiring that Host generation; retry closes only
 unfinished children, without repeating execution or successful closes.
 
 The first profile is immutable and metadata-only. Explicit adapter close
-disables owned delivery. Live disclosure reconfiguration, content redaction,
+revokes queued and not-yet-sent owned delivery and aborts outstanding sends;
+already-delivered data cannot be recalled. Live disclosure reconfiguration, content redaction,
 tenant routing, hosted export and recall of downstream buffers are not offered.
 Application providers are not a way to extend the guaranteed managed boundary.
 

@@ -17,30 +17,51 @@ export function observationConfiguration(options = {}) {
   if (!options || typeof options !== 'object' || Array.isArray(options) ||
       Object.keys(options).some(key => !['endpoint', 'traces', 'metrics', 'logs',
         'transport', 'host', 'limits', 'scope', 'revision', 'include', 'exclude',
-        'correlation', 'projectionLimits', 'tracerProvider', 'meterProvider', 'loggerProvider'].includes(key)) ||
+        'correlation', 'projectionLimits', 'tracerProvider', 'meterProvider', 'loggerProvider',
+        'operations', 'measurements', 'attributes', 'events', 'environment', 'resource'].includes(key)) ||
+      options.environment !== undefined && typeof options.environment !== 'boolean' ||
       options.transport !== undefined && options.transport !== 'http/protobuf' ||
       options.host !== undefined && options.host !== 'node') fail();
   // Validate bounded labels, selectors and projection caps before constructing
   // any SDK/provider. Use the Host's validation, not another rule table.
-  createHostObservationConnection({deliver() {}, scope: options.scope,
-    revision: options.revision, include: options.include, exclude: options.exclude,
-    correlation: options.correlation, limits: options.projectionLimits});
+  if (options.operations !== undefined && (!options.operations ||
+      typeof options.operations !== 'object' || Array.isArray(options.operations) ||
+      Object.keys(options.operations).some(key => !['include', 'exclude'].includes(key)) ||
+      options.include !== undefined || options.exclude !== undefined)) fail();
+  const projection = Object.freeze({scope: options.scope, revision: options.revision,
+    include: options.operations?.include ?? options.include,
+    exclude: options.operations?.exclude ?? options.exclude,
+    correlation: options.correlation, measurements: options.measurements,
+    attributes: options.attributes, events: options.events,
+    limits: options.projectionLimits});
+  createHostObservationConnection({deliver() {}, ...projection});
   const selected = {};
   for (const signal of signals) {
     let setting = options[signal];
     if (setting === undefined && signal === 'traces' && options.endpoint !== undefined) {
       const base = new URL(endpoint(options.endpoint));
-      base.pathname = `${base.pathname.replace(/\/$/u, '')}/v1/traces`;
+      if (!base.pathname.endsWith('/v1/traces')) {
+        base.pathname = `${base.pathname.replace(/\/$/u, '')}/v1/traces`;
+      }
       setting = {endpoint: base.href};
     }
     if (setting === undefined || setting === false) continue;
     if (!setting || typeof setting !== 'object' || Array.isArray(setting) ||
-        Object.keys(setting).some(key => !['endpoint', 'sampleRate'].includes(key)) ||
+        Object.keys(setting).some(key => !['endpoint', 'sampleRate', 'headers'].includes(key)) ||
         typeof setting.endpoint !== 'string' || signal !== 'traces' &&
           setting.sampleRate !== undefined) fail();
     const sampleRate = setting.sampleRate ?? 1;
     if (!Number.isFinite(sampleRate) || sampleRate < 0 || sampleRate > 1) fail();
-    selected[signal] = Object.freeze({endpoint: endpoint(setting.endpoint), sampleRate});
+    const headers = setting.headers;
+    if (headers !== undefined && (!headers || typeof headers !== 'object' || Array.isArray(headers) ||
+        Object.keys(headers).length > 16 || Object.entries(headers).some(([key, value]) =>
+          !/^[a-z0-9!#$%&'*+.^_`|~-]{1,64}$/iu.test(key) ||
+          ['host', 'content-type', 'content-length', 'connection', 'transfer-encoding',
+            'traceparent', 'tracestate', 'baggage'].includes(key.toLowerCase()) ||
+          typeof value !== 'string' || value.length > 1024 || /[^\x20-\x7e]/u.test(value)) ||
+        Buffer.byteLength(JSON.stringify(headers)) > 4096)) fail();
+    selected[signal] = Object.freeze({endpoint: endpoint(setting.endpoint), sampleRate,
+      ...(headers === undefined ? {} : {headers: Object.freeze({...headers})})});
   }
   const limits = {...managedLimits};
   if (options.limits !== undefined) {
@@ -53,6 +74,18 @@ export function observationConfiguration(options = {}) {
     }
   }
   if (limits.payloadBytes > limits.windowBytes) fail();
+  if (options.resource !== undefined && (!options.resource || typeof options.resource !== 'object' ||
+      Array.isArray(options.resource) || Object.keys(options.resource).length > 3 ||
+      Object.keys(options.resource).some(key =>
+        !['service.name', 'service.version', 'deployment.environment.name'].includes(key)))) fail();
+  const resource = {};
+  for (const key of ['service.name', 'service.version', 'deployment.environment.name']) {
+    if (options.attributes?.exclude?.includes(key)) continue;
+    const value = options.resource?.[key] ?? (key === 'service.name' ? 'actql.node-host' : undefined);
+    if (value === undefined) continue;
+    if (typeof value !== 'string' || value.length === 0 || Buffer.byteLength(value) > 128) fail();
+    resource[key] = value;
+  }
   const applicationOwned = ['tracerProvider', 'meterProvider', 'loggerProvider']
     .some(key => options[key] !== undefined);
   if (applicationOwned && Object.keys(selected).length !== 0) fail();
@@ -60,6 +93,7 @@ export function observationConfiguration(options = {}) {
     ['meterProvider', 'getMeter'], ['loggerProvider', 'getLogger']]) {
     if (options[key] !== undefined && typeof options[key]?.[method] !== 'function') fail();
   }
-  return Object.freeze({signals: Object.freeze(selected), limits: Object.freeze(limits),
+  return Object.freeze({signals: Object.freeze(selected), limits: Object.freeze(limits), projection,
+    resource: Object.freeze(resource),
     applicationOwned});
 }
