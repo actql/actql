@@ -3,6 +3,9 @@
 extern "C" fn diagnostic_cleanup_access(path : Bytes, allow : Bool) -> Bool = "actql_probe_cleanup_access"
 
 ///|
+extern "C" fn diagnostic_expiry_wait() -> Unit = "actql_probe_expiry_wait"
+
+///|
 /// Native registered-case product path. The wrapper supplies the checked
 /// application files and compares this result with its independent oracle.
 
@@ -574,6 +577,9 @@ fn execute_timed_native_strategy_run(
             if observed > request.deadline_ms {
               break
             }
+            // Observe the original request after a real bounded wait, rather
+            // than assuming fast durable reads advance the wall clock.
+            diagnostic_expiry_wait()
             observed = probe.clock.observe().unwrap()
           }
           operational_require(observed > request.deadline_ms)
@@ -907,8 +913,11 @@ fn close_observed_run(
   run : @host.NativeStandardStrategyRun,
   ledger : @resources.Ledger,
   task : Int,
+  observe_before? : Bool = true,
 ) -> Unit {
-  emit_owner_observation("before-close", task, run, ledger)
+  if observe_before {
+    emit_owner_observation("before-close", task, run, ledger)
+  }
   if !@host.close_native_standard_strategy_run(run).unwrap() {
     abort("native strategy cleanup unconfirmed")
   }
@@ -1650,6 +1659,7 @@ fn main {
   let cleanup_start = @bench.monotonic_clock_start()
   if required(matches, "diagnostic-cleanup-failure") == "true" {
     operational_require(retained_task_root == root + "/retained-task")
+    emit_owner_observation("before-close", task, run, ledger)
     let before = @resources.ledger_usage(ledger)
     operational_require(
       diagnostic_cleanup_access(@utf8.encode(retained_task_root), false),
@@ -1672,7 +1682,12 @@ fn main {
     println("whole-run-cleanup-pending:" + held.held_bytes.to_string())
     emit_owner_observation("failed-cleanup", task, run, ledger)
   }
-  close_observed_run(run, ledger, task)
+  close_observed_run(
+    run,
+    ledger,
+    task,
+    observe_before=required(matches, "diagnostic-cleanup-failure") != "true",
+  )
   if required(matches, "diagnostic-cleanup-failure") == "true" {
     println("whole-run-cleanup-retry-confirmed")
   }

@@ -4,6 +4,14 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdint.h>
+#include <errno.h>
+#include <time.h>
+
+/* Functional expiry only; the Native trusted clock is still authoritative. */
+void actql_probe_expiry_wait(void) {
+  struct timespec remaining = {.tv_sec = 0, .tv_nsec = 5000000L};
+  while (nanosleep(&remaining, &remaining) && errno == EINTR) {}
+}
 
 int32_t actql_probe_cleanup_access(moonbit_bytes_t path, int32_t allow) {
   int32_t length = Moonbit_array_length(path);
