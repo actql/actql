@@ -32,6 +32,8 @@ pub fn dispatch_duckdb_registration(StrategyHostDispatch) -> @connector_sdk.Capa
 
 pub fn dispatch_excluded_realizations(StrategyHostDispatch, Int) -> Result[Array[(Int, String, String)], @physical_host.ComputeDiagnosticsIssue]
 
+pub fn dispatch_has_estimates(StrategyHostDispatch) -> Bool
+
 pub fn dispatch_installation(StrategyHostDispatch) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn dispatch_is_resident(TaskDispatch) -> Bool
@@ -39,6 +41,8 @@ pub fn dispatch_is_resident(TaskDispatch) -> Bool
 pub fn dispatch_local_registration(StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
 
 pub fn dispatch_module_keys(StrategyHostDispatch) -> Array[String]
+
+pub fn dispatch_offline_policy_position(StrategyHostDispatch) -> Result[Int?, DispatchIssue]
 
 pub fn dispatch_policy_candidates(StrategyHostDispatch) -> @physical_strategy.PolicyCandidateSet?
 
