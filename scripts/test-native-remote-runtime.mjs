@@ -1,4 +1,5 @@
 import {runNativeQueryTests} from './native-query-coverage.mjs';
+import {assertTestExecution} from './test-execution.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
@@ -147,7 +148,7 @@ async function testValuesHttps(tls, environment, transferControl) {
   // Build before an external driver accepts work. Compilation latency must
   // not be mistaken for an unavailable Site during its first observation.
   execFileSync(moon, ['test',
-    'src/query_integration/client_source_free_root_wbtest.mbt',
+    'src/native_values_integration/values_fixture_wbtest.mbt',
     '--target', 'native', '--strip', '--build-only'], {
     cwd: repositoryRoot, env: environment, stdio: 'inherit',
   });
@@ -232,7 +233,7 @@ async function testValuesHttps(tls, environment, transferControl) {
     }
   }
   const child = spawn(moon, [
-    'test', 'src/query_integration/client_source_free_root_wbtest.mbt',
+    'test', 'src/native_values_integration/values_fixture_wbtest.mbt',
     '--target', 'native', '--strip',
   ], {cwd: repositoryRoot, env: destination === undefined &&
     externalDestinationOrigin === undefined ? environment : {
@@ -259,9 +260,15 @@ async function testValuesHttps(tls, environment, transferControl) {
   child.stderr.on('data', chunk => { stderr += chunk; });
   const exited = new Promise((resolve, reject) => {
     child.on('error', reject);
-    child.on('exit', (code, signal) => {
-      if (code === 0) resolve();
-      else reject(new Error(`native Values Site exited ${code ?? signal}: ${stdout}\n${stderr}`));
+    child.on('close', (code, signal) => {
+      try {
+        const checked = assertTestExecution('moon', moon,
+          ['test', 'src/native_values_integration/values_fixture_wbtest.mbt',
+            '--target', 'native', '--strip'],
+          {status: code, signal, stdout, stderr});
+        assert.equal(checked.counts.passed, 1);
+        resolve();
+      } catch (error) { reject(error); }
     });
   });
   void exited.catch(() => {});

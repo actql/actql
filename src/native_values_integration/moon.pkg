@@ -1,0 +1,54 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "moonbitlang/core/encoding/utf8",
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/platform_native/remote_journal" @native_remote_journal,
+  "actql/actql/platform_native/remote_agent" @native_remote_agent,
+  "actql/actql/platform_native/remote_runtime" @native_remote_runtime,
+}
+
+import {
+  "actql/actql/connectors_builtin" @builtin,
+  "actql/actql/physical_host" @host_driver,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/canonical_json" @identity,
+  "moonbitlang/core/json",
+  "actql/actql/check_environment" @environment,
+  "actql/actql/stage_syntax" @syntax,
+  "actql/actql/program_check",
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/execution_site" @site,
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/client_local_host",
+  "actql/actql/run_publication" @publication,
+  "actql/actql/platform_native/filesystem" @native_filesystem,
+  "actql/actql/platform_native/remote_journal" @native_remote_journal,
+  "actql/actql/platform_native/remote_runtime" @native_remote_runtime,
+  "actql/actql/platform_native/remote_standard_host" @native_remote_standard,
+  "actql/actql/platform_native/remote_values_host" @native_remote_values,
+  "actql/actql/platform_native/remote_values_https_site" @native_values_https,
+  "actql/actql/platform_native/https_server" @native_https_server,
+  "actql/actql/platform_native/remote_transfer_journal" @native_transfer_journal,
+  "actql/actql/platform_native/http_client" @native_http,
+  "actql/actql/platform_native/runtime_bundle" @native_runtime_bundle,
+  "actql/actql/platform_native/signature" @native_signature,
+  "actql/actql/platform_native/sqlite" @native_sqlite,
+  "actql/actql/remote_transfer" @transfer,
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  link: {
+    "native": {
+      "cc": "./scripts/native-cxx-link-driver.sh",
+      "stub-cc": "c++",
+      "cc-link-flags": "-lssl -lcrypto",
+    },
+  },
+)
