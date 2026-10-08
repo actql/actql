@@ -25,6 +25,11 @@ priv enum CapturedRunPreparationPhase {
   Prepare
   Root(PublicationRootPreparation)
   PrepareChecked
+  Advances(Int, String)
+  SnapshotInventory(CapturedOrderedInventoryPreparation)
+  Sources
+  ModelInventory(CapturedOrderedInventoryPreparation)
+  PrepareContext
   Context(EffectContextPreparation)
   Envelope(Int)
   Emit(@json.CanonicalEmit, Int)
@@ -43,6 +48,13 @@ struct CapturedRunIssuancePreparation {
   mut context : @json.CanonicalValue?
   mut writer : @encode.Writer?
   mut contract : PublicationContract?
+  mut snapshot_inventory : Array[CapturedResultSnapshot]?
+  mut source_inventory : (
+    Array[CapturedEffectSourceArtifact],
+    Array[CapturedLocalEffectSourceEvidence],
+  )?
+  mut model_inventory : Array[RunEvidenceValue]?
+  mut inventory_slots : Int
   mut phase : CapturedRunPreparationPhase
   mut live : Int
   mut peak : Int
@@ -60,6 +72,10 @@ fn start_captured_computation_preparation(
     context: None,
     writer: None,
     contract: None,
+    snapshot_inventory: None,
+    source_inventory: None,
+    model_inventory: None,
+    inventory_slots: 0,
     phase: Prepare,
     live: 16,
     peak: 16,
@@ -213,8 +229,108 @@ fn CapturedRunIssuancePreparation::step(
         }
       }
     PrepareChecked => {
+      if inputs.receipt.name != "run_receipt" {
+        return Err(CaptureIssuanceWrongContract("run_receipt"))
+      }
+      guard contract_string(inputs.invocation, "observation_set_cid")
+        is Some(observation_set_cid) else {
+        return Err(CaptureIssuanceReferenceMismatch("observation_set_cid"))
+      }
+      self.phase = Advances(0, observation_set_cid)
+    }
+    Advances(index, observation_set_cid) =>
+      if index < inputs.advances.length() {
+        if evidence_string(inputs.advances[index].value, "observation_set_cid") !=
+          Some(observation_set_cid) {
+          return Err(CaptureIssuanceReferenceMismatch("source_state_advance"))
+        }
+        self.phase = Advances(index + 1, observation_set_cid)
+      } else {
+        guard evidence_string(inputs.receipt.value, "program_definition_cid")
+          is Some(program_definition_cid) else {
+          return Err(CaptureIssuanceReferenceMismatch("program_definition_cid"))
+        }
+        if evidence_string(inputs.authoring.value, "program_definition_cid") !=
+          Some(program_definition_cid) {
+          return Err(CaptureIssuanceReferenceMismatch("authoring_context"))
+        }
+        if self.max_workspace - self.live < 12 {
+          return Err(CaptureIssuanceEncoding)
+        }
+        self.phase = SnapshotInventory(
+          start_captured_ordered_inventory(
+            Snapshots(inputs.definitions, inputs.artifacts, inputs.snapshots),
+            self.max_workspace - self.live,
+          ),
+        )
+      }
+    SnapshotInventory(child) => {
+      let (done, _) = match child.advance(1) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      self.peak = Int::max(self.peak, self.live + child.peak)
+      if done {
+        guard child.finish() is Ok(OrderedSnapshots(snapshots)) else {
+          return Err(CaptureIssuanceEncoding)
+        }
+        match self.reserve(snapshots.length()) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        self.inventory_slots += snapshots.length()
+        self.snapshot_inventory = Some(snapshots)
+        self.phase = Sources
+      }
+    }
+    Sources => {
+      // Effect-specific admission keeps its original position and semantics.
+      // It is not yet an asynchronous dependency-closure preparation.
+      self.source_inventory = Some(
+        match prepare_captured_effect_sources(inputs) {
+          Ok(sources) => sources
+          Err(issue) => return Err(issue)
+        },
+      )
+      if self.max_workspace - self.live < 12 {
+        return Err(CaptureIssuanceEncoding)
+      }
+      self.phase = ModelInventory(
+        start_captured_ordered_inventory(
+          Models(inputs.receipt, inputs.models),
+          self.max_workspace - self.live,
+        ),
+      )
+    }
+    ModelInventory(child) => {
+      let (done, _) = match child.advance(1) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      self.peak = Int::max(self.peak, self.live + child.peak)
+      if done {
+        guard child.finish() is Ok(OrderedModels(models)) else {
+          return Err(CaptureIssuanceEncoding)
+        }
+        match self.reserve(models.length()) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        self.inventory_slots += models.length()
+        self.model_inventory = Some(models)
+        self.phase = PrepareContext
+      }
+    }
+    PrepareContext => {
+      let (sources, local_sources) = self.source_inventory.unwrap()
       let prepared = match
-        prepare_captured_computation_inputs_after_root(inputs) {
+        prepare_captured_context_inputs(
+          inputs,
+          self.snapshot_inventory.unwrap(),
+          sources,
+          local_sources,
+          self.model_inventory.unwrap(),
+        ) {
         Ok(prepared) => prepared
         Err(issue) => return Err(issue)
       }
@@ -251,6 +367,15 @@ fn CapturedRunIssuancePreparation::step(
                 Err(issue) => return Err(issue)
               },
             )
+            // These detached reference arrays were held through context
+            // emission. Retire them only after the child has stopped using them.
+            self.snapshot_inventory.unwrap().clear()
+            self.model_inventory.unwrap().clear()
+            self.snapshot_inventory = None
+            self.model_inventory = None
+            self.source_inventory = None
+            self.live -= self.inventory_slots
+            self.inventory_slots = 0
             try {
               let writer = @encode.writer(
                 inputs.max_wire_bytes,
@@ -441,6 +566,7 @@ pub fn CapturedRunIssuancePreparation::cancel(
   self.closed = true
   match self.phase {
     Root(child) => child.cancel()
+    SnapshotInventory(child) | ModelInventory(child) => child.cancel()
     Context(child) => child.cancel()
     Emit(cursor, _) => @json.cancel_emit(cursor)
     Seal(child) => child.cancel()
@@ -454,6 +580,16 @@ pub fn CapturedRunIssuancePreparation::cancel(
   self.context = None
   self.writer = None
   self.contract = None
+  if self.snapshot_inventory is Some(snapshots) {
+    snapshots.clear()
+  }
+  if self.model_inventory is Some(models) {
+    models.clear()
+  }
+  self.snapshot_inventory = None
+  self.source_inventory = None
+  self.model_inventory = None
+  self.inventory_slots = 0
   self.phase = Done
   self.live = 0
 }
@@ -470,10 +606,27 @@ pub fn captured_run_preparation_fixture_phase(
     Prepare => "prepare"
     Root(_) => "root-check"
     PrepareChecked => "prepare"
+    Advances(_, _) => "source-advances"
+    SnapshotInventory(_) => "snapshot-inventory"
+    Sources | PrepareContext => "prepare"
+    ModelInventory(_) => "model-inventory"
     Context(_) => "context"
     Envelope(_) | Emit(_, _) => "envelope"
     Seal(_) => "seal"
     Check(child) => computation_evidence_check_fixture_phase(child)
     Done => "done"
   }
+}
+
+///|
+/// Read-only fixture accounting; not custody, authority or completion evidence.
+pub fn captured_run_preparation_fixture_inventory(
+  preparation : CapturedRunIssuancePreparation,
+) -> (Int, Int, Bool, Bool) {
+  (
+    preparation.live,
+    preparation.inventory_slots,
+    preparation.snapshot_inventory is Some(_),
+    preparation.model_inventory is Some(_),
+  )
 }
