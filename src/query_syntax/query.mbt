@@ -78,6 +78,7 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum GroupingScope {
   SqlSelect
+  SqlSelectAll
   PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 
@@ -170,6 +171,7 @@ pub(all) struct SetPart {
   kind : String
   duplicates : String
   by_name : Bool
+  by_name_columns : Array[NamePart]?
   right : Query
 }
 
@@ -235,7 +237,12 @@ pub fn join_part_at(query : Query, index : Int) -> JoinPart? {
 
 ///|
 pub fn set_part_at(query : Query, index : Int) -> SetPart? {
-  query.sets.get(index)
+  query.sets
+  .get(index)
+  .map(part => {
+    ..part,
+    by_name_columns: part.by_name_columns.map(columns => columns.copy()),
+  })
 }
 
 ///|
@@ -435,6 +442,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
           copy_projections(projections),
           match scope {
             SqlSelect => SqlSelect
+            SqlSelectAll => SqlSelectAll
             PipeAggregate(names, embedded) =>
               PipeAggregate(names.copy(), embedded.copy())
           },
@@ -647,6 +655,54 @@ fn QueryParser::name(self : QueryParser) -> NamePart raise QueryAbort {
     Word(value) => { value, quoted: false, }
     QuotedName(value) => { value, quoted: true, }
     _ => raise QueryAbort("Expected identifier", token.start)
+  }
+}
+
+///|
+fn QueryParser::set_column_list(
+  self : QueryParser,
+) -> Array[NamePart]? raise QueryAbort {
+  if !self.has("ON") {
+    return None
+  }
+  self.keyword("ON")
+  if self.advance().value != Symbol(40) {
+    raise QueryAbort(
+      "Expected BY NAME ON opening parenthesis",
+      self.peek().start,
+    )
+  }
+  let columns : Array[NamePart] = []
+  while true {
+    self.node()
+    columns.push(self.name())
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    ignore(self.advance())
+  }
+  if self.advance().value != Symbol(41) {
+    raise QueryAbort(
+      "Expected BY NAME ON closing parenthesis",
+      self.peek().start,
+    )
+  }
+  Some(columns)
+}
+
+///|
+fn same_set_column_list(
+  left : Array[NamePart]?,
+  right : Array[NamePart]?,
+) -> Bool {
+  match (left, right) {
+    (None, None) => true
+    (Some(left), Some(right)) =>
+      left.length() == right.length() &&
+      left
+      .mapi((index, name) => same_cte_name(name, right[index]))
+      .all(value => value)
+    _ => false
   }
 }
 
@@ -1768,7 +1824,17 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     }) ||
     !embedded.is_empty()
   if self.has("GROUP") {
-    operations.push(Group(self.group_keys(), group_projections, SqlSelect))
+    if self.source.tokens
+      .get(self.index + 2)
+      .map(token => keyword(token, "ALL"))
+      .unwrap_or(false) {
+      self.keyword("GROUP")
+      self.keyword("BY")
+      self.keyword("ALL")
+      operations.push(Group([], group_projections, SqlSelectAll))
+    } else {
+      operations.push(Group(self.group_keys(), group_projections, SqlSelect))
+    }
   } else if grouped {
     operations.push(Group([], group_projections, SqlSelect))
   }
@@ -1949,7 +2015,7 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   let mut term = self.sql_operand()
   let ctes = term.ctes.copy()
   let sets : Array[SetPart] = []
-  let mut set_spelling : (String, String, Bool)? = None
+  let mut set_spelling : (String, String, Bool, Array[NamePart]?)? = None
   while self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
     self.node()
     let kind = if self.has("UNION") {
@@ -1979,23 +2045,38 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     } else {
       false
     }
+    let mut by_name_columns = if by_name {
+      self.set_column_list()
+    } else {
+      None
+    }
     match set_spelling {
-      Some((old_kind, old_duplicates, old_by_name)) =>
+      Some((old_kind, old_duplicates, old_by_name, old_columns)) => {
         if old_kind != kind ||
           old_duplicates != duplicates ||
-          old_by_name != by_name {
+          old_by_name != by_name ||
+          !same_set_column_list(old_columns, by_name_columns) {
           raise QueryAbort(
             "Mixed set operators require parentheses",
             self.peek().start,
           )
         }
-      None => set_spelling = Some((kind, duplicates, by_name))
+        // One SQL set chain uses its first modifier's display spelling.
+        by_name_columns = old_columns
+      }
+      None => set_spelling = Some((kind, duplicates, by_name, by_name_columns))
     }
     let right = self.sql_operand()
     for cte in right.ctes {
       ctes.push(cte)
     }
-    sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
+    sets.push({
+      kind,
+      duplicates,
+      by_name,
+      by_name_columns,
+      right: { ..right, ctes: [], },
+    })
   }
   let tail : Array[QueryOperation] = []
   let order_calls : Array[(NamePart, AggregateCall)] = []
@@ -2042,8 +2123,9 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       })[0]
     for operation in term.operations {
       match operation {
-        Group(keys, projections, SqlSelect) => {
-          operations.push(Group(keys, projections + hidden, SqlSelect))
+        Group(keys, projections, scope) if scope == SqlSelect ||
+          scope == SqlSelectAll => {
+          operations.push(Group(keys, projections + hidden, scope))
           grouped = true
         }
         Analytic(_) | AnalyticExpressions(_, _) | Select(_, _) if !grouped => {
@@ -2282,6 +2364,7 @@ fn QueryParser::pipe_tail(
       } else {
         false
       }
+      let by_name_columns = if by_name { self.set_column_list() } else { None }
       if self.advance().value != Symbol(40) {
         raise QueryAbort(
           "Pipe set input must be parenthesized",
@@ -2308,7 +2391,13 @@ fn QueryParser::pipe_tail(
           self.peek().start,
         )
       }
-      sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
+      sets.push({
+        kind,
+        duplicates,
+        by_name,
+        by_name_columns,
+        right: { ..right, ctes: [], },
+      })
     } else if self.starts_correlated_unnest() {
       if !sets.is_empty() {
         raise QueryAbort(

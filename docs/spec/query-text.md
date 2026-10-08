@@ -299,6 +299,23 @@ NULL and order evidence still apply; no default frame or ordering guarantee is
 invented by this connection. These rules follow the adopted GoogleSQL query and window
 scopes; they do not confer general GoogleSQL compatibility.
 
+SQL `GROUP BY ALL` infers keys from SELECT expressions in the original FROM
+scope. It excludes expressions containing aggregates or windows, constants,
+parameters, and expressions whose input paths are covered by other inferred
+simple-path keys. The shortest resolved column/property path wins even when
+selected later; qualified and unqualified paths use their input-slot meanings.
+Computed keys do not supply prefixes for other computed keys. Inferred keys
+retain SELECT order and do not undergo GROUP alias or positional lookup. Stars
+use the same input snapshot, EXCEPT and REPLACE rules as ordinary projection.
+An empty key set uses the existing global `group` operation, including one
+group on empty input. The common checker owns key admissibility; unsupported
+functions and types do not gain permission through inference. These rules follow
+[GoogleSQL GROUP BY ALL](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#group_by_all).
+An aggregate alias that collides with a retained input key has a separate
+physical result slot. SELECT siblings still see the input key; HAVING and final
+ORDER see the evaluated alias. Private keys and aggregate slots are removed by
+ordinary projection before Result publication.
+
 In a grouped SELECT, a grouping expression may occur inside a larger scalar
 expression. Its input references must resolve to the same pre-group value slots
 and property members as the grouping key. The evaluated key is reused; retaining
@@ -352,6 +369,26 @@ refusal when a public Result cannot represent duplicate field names. No second
 join implementation, source re-acquisition or evidence fabrication is added.
 The selected [GoogleSQL RIGHT JOIN](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#right_outer_join)
 is a logical outer join, not a new placement or authorization instruction.
+
+Supported SQL and Pipe set operators also accept `BY NAME ON (column_list)`.
+This is strict name matching, equivalent to GoogleSQL `STRICT CORRESPONDING BY`:
+each input must have exactly the listed column names, with no duplicate input
+or list names under case-insensitive column lookup. The list specifies output
+column order and authored spelling, including backtick-quoted names. Both
+operands are projected to that order using evaluated fields before the existing
+append/intersect/except operation; expressions are not reevaluated. SQL chains
+require the same ordered list and retain the first modifier's spelling. Each
+successive Pipe set operator can declare its own list against the current
+Relation. ORDER BY and downstream Pipe operators see only the combined output.
+Normal type compatibility, NULL, duplicate and equality contracts remain with
+the common checker and operations. DATA and CTE sets use the same rules without
+additional acquisition. INNER/FULL/LEFT name propagation and CORRESPONDING
+spelling remain separate unimplemented surfaces; omitting those modes does not
+implicitly drop unlisted columns or add NULL-filled columns.
+The selected [GoogleSQL set modifier](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#by_name_or_corresponding)
+defines that equivalence. The pinned resolver and pipe-set fixtures corroborate
+strict matching and ON-list spelling; parser acceptance does not establish
+backend execution coverage.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
 body, named FROM/JOIN subquery and parenthesized query operand use the same

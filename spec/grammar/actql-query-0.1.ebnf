@@ -89,7 +89,7 @@ join          = [ "INNER" | "LEFT", [ "OUTER" ]
               | "CROSS", "JOIN", unnest_source ;
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
-group_clause  = "GROUP", "BY", ( "(", ")" | expression, { ",", expression } ) ;
+group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | expression, { ",", expression } ) ;
 pipe_group_clause = "GROUP", [ "AND", "ORDER" ], "BY", ( "(", ")" | pipe_group_item, { ",", pipe_group_item } ) ;
 pipe_group_item = expression, [ [ "AS" ], identifier ], [ pipe_group_order ] ;
 pipe_group_order = [ "ASC" | "DESC" ], "NULLS", ( "FIRST" | "LAST" )
@@ -123,7 +123,7 @@ limit_clause  = "LIMIT", limit_integer, [ "OFFSET", limit_integer ] ;
 limit_integer = integer | parameter_token ;
 set_part      = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME" ], sql_operand ;
+                [ "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ] ], sql_operand ;
 pipe_item     = relation_pipe_item | infer_operator | nearest_operator
               | result_operator | terminal_effect | named_sga_call ;
 (* Named SGA calls are ActQL extensions for existing logical Graph operators.
@@ -173,7 +173,7 @@ keep_clause   = "KEEP", "(", keep_item, { ",", keep_item }, ")" ;
 keep_item     = path, [ "AS", identifier ] | "*" | path, ".", "*" ;
 pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME" ], "(", relational_body, ")" ;
+                [ "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ] ], "(", relational_body, ")" ;
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;

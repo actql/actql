@@ -12,6 +12,10 @@ if (view) {
     const problem: 'observation_unavailable' = view.problem;
     void problem;
   }
+  if (view.kind === 'protocol_failure') {
+    const problem: 'contract_mismatch' | 'malformed_response' | 'stale_observation' = view.problem;
+    void problem;
+  }
   // @ts-expect-error Rejected observations do not establish a status.
   view.status;
   // @ts-expect-error Original lookup identity is immutable.
