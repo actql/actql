@@ -1425,6 +1425,12 @@ fn lower_analytic_call(
 ) -> @builder.Node raise Abort {
   match call.aggregate {
     Some(aggregate) => {
+      // The selected SQL analytic contract forbids DISTINCT with window ORDER
+      // BY or an authored frame. Default/unordered DISTINCT needs a separate
+      // common window connection; never turn it into this explicit ROWS path.
+      if aggregate.distinct {
+        raise Abort(UnsupportedAnalytic)
+      }
       if call.window.frame is None {
         raise Abort(UnsupportedAnalytic)
       }
