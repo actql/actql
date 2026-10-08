@@ -161,6 +161,7 @@ fn emit_frames(
               Op(
                 match op {
                   Negate => "negate"
+                  Upper => "upper"
                   Floor => "floor"
                   Not => "not"
                   IsNull => "is_null"
