@@ -28,6 +28,17 @@ const success = (name, text, extra = {}) => ({name: 'statistical-aggregate-' + n
 export const statisticalAggregateSuccesses = [
   success('independent-json', JSON.stringify(statisticalAggregateProgram), {format: 'json'}),
   success('sql-null-exclusion', sql),
+  success('quoted-sql',
+    'SELECT `vAr_PoP`(amount + 1) AS population, `VAR_SAMP`(amount + 1) AS sample, ' +
+    '`STDDEV_POP`(amount + 1) AS population_sd, `STDDEV_SAMP`(amount + 1) AS sample_sd ' +
+    'FROM records WHERE id > 0'),
+  success('quoted-pipe',
+    'FROM records |> WHERE id > 0 |> AGGREGATE `\\x56AR_POP`(amount + 1) AS population, ' +
+    '`VAR_SAMP`(amount + 1) AS sample, `STDDEV_POP`(amount + 1) AS population_sd, ' +
+    '`STDDEV_SAMP`(amount + 1) AS sample_sd', {format: 'aql-text'}),
+  success('quoted-count-empty', 'SELECT `COUNT`(*) AS n WHERE FALSE',
+    {sourceReadSessionCount: 0, expected: [{n: 0}],
+      columns: [{name: 'n', contract: {type: 'number', nullable: false}}]}),
   success('pipe-expressions', `FROM records |> WHERE id > 0 |> AGGREGATE ${select}`,
     {format: 'aql-text'}),
   success('sample-aliases', 'SELECT VARIANCE(amount) AS sample, STDDEV(amount) AS sample_sd FROM records WHERE id > 0',
@@ -49,6 +60,10 @@ export const statisticalAggregateSuccesses = [
     {sourceRows: [{id: 3, amount: 3}, {id: 1, amount: null}, {id: 2, amount: 1}],
       expected: [{id: 1, v: null}, {id: 2, v: 0}, {id: 3, v: 1}],
       columns: [{name: 'id', contract: {type: 'number', nullable: false}}, {name: 'v', contract: number}]}),
+  success('quoted-analytic-prefix', 'SELECT id, `VAR_POP`(amount) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS v FROM records WHERE id > 0 ORDER BY id',
+    {sourceRows: [{id: 3, amount: 3}, {id: 1, amount: null}, {id: 2, amount: 1}],
+      expected: [{id: 1, v: null}, {id: 2, v: 0}, {id: 3, v: 1}],
+      columns: [{name: 'id', contract: {type: 'number', nullable: false}}, {name: 'v', contract: number}]}),
 ];
 export const statisticalAggregateRefusals = [
   "SELECT VAR_POP('not a number') AS v FROM records",
@@ -56,6 +71,9 @@ export const statisticalAggregateRefusals = [
   'SELECT STDDEV_POP(amount + @missing) AS v FROM records',
   'SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM records',
   'SELECT VAR_POP(*) AS v FROM records',
+  'SELECT `VAR_POP`(*) AS v FROM records',
+  "SELECT `VAR_POP`('not a number') AS v FROM records",
+  'SELECT `COUNT`(DISTINCT *) AS n FROM records',
 ].map((text, index) => ({name: 'statistical-aggregate-refuse-' + index, format: 'sql', text}));
 export const statisticalAggregateExecutionFailures = [{
   name: 'statistical-aggregate-demanded-error', format: 'sql',
