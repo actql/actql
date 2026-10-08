@@ -392,6 +392,8 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...graphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...graphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.refusals.push(...aggregateSignedOrderRefusals);
+  scopeInputs.successes.push(...aggregateSignedOrderSuccesses);
   scopeInputs.refusals.push(...analyticDistinctFrameRefusals);
   scopeInputs.successes.push(...analyticDistinctFrameSuccesses);
   scopeInputs.refusals.push(...countifDistinctRefusals);

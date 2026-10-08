@@ -886,6 +886,16 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('dd0cf33c4527b25af461f42a4f4bd057dcdfa4b50ae017bb92155690b5a5ac73'),
     cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('3f22e96d512f36bde8dde361640530ce5a749fb68dc15396faa32cf60bd2a89b'));
+  // Preserve the signed-order source and additional fixed parent preimages.
+  assert.equal(vector('sha256:f36b20c837ff42642c5ccb147fc236c2c04d99e5dfa08cc63370a9f230d98ece',
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:6aa682a0996249db7e4925fe71838dd078b242dd30efd193d34b35faa22c5ff4');
+  assert.equal(vector('sha256:5cd2e4e1e6b40930a9df5addd8486027d22a4e930d682f02ac7eaa44d0d5e329',
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:abc035d01c1cc5622311cbba12c56c960e6eb169aeaf7a2618cd8aa617c96ad3');
+  assert.equal(vector(pin('17b95025f2fe4b83389c467ea0b35fb5fcfb571a146ee862ddcc91fea10cb131'),
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('bfeaee4389acbd2a5f74ff3b909fc1a1255abf4954b2a083ab2d4b8e2cc9ebf8'));
   assert.equal(current.run.run_definition_cid,
     pin('093170ff7e898c3ef58a1fd5d3930222b06aafd64bda70ab62f311d1b9ac56df'));
 
