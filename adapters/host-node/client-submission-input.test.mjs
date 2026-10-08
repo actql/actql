@@ -21,6 +21,8 @@ import {installNodeClientProgramPreparation} from './client-program-preparation.
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {sourceFreeValuesPlan} from './local-values-plan.mjs';
+import {createNodeAuthorizationGate} from './authorization.mjs';
+import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 
 const scratch = new URL('../../_build/client-submission-input-tests/', import.meta.url).pathname;
 await mkdir(scratch, {recursive: true});
@@ -66,7 +68,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
     maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
 
-async function fixture(t, entrance, loss) {
+async function fixture(t, entrance, loss, {checkingEnvironment = environment, publication, sourceAccesses = []} = {}) {
   const directory = await mkdtemp(join(scratch, 'request-'));
   const journal = openClientRequestJournal(directory);
   const submissionEpoch = journal.issueSubmissionEpoch({...scope, currentAuthorization: true}, moon);
@@ -79,8 +81,8 @@ async function fixture(t, entrance, loss) {
     const pending = pause; pause = undefined;
     if (pending) await pending;
   };
-  const prepare = installNodeClientProgramPreparation({moon, environment});
-  const check = installNodeClientCheck({moon, environment});
+  const prepare = installNodeClientProgramPreparation({moon, environment: checkingEnvironment});
+  const check = installNodeClientCheck({moon, environment: checkingEnvironment, publication, sourceAccesses});
   t.after(async () => {
     client?.close();
     if (server) {
@@ -177,6 +179,13 @@ async function fixture(t, entrance, loss) {
       }});
   }
   return {client, endpoint, operations, received,
+    retainPreparingProgram(input, submissionRef) {
+      const owned = moon.clientSubmittedIntent(JSON.stringify({kind: 'program', input, parameters: null}),
+        1048576, 65536, 64);
+      assert.ok(owned);
+      return journal.recordSubmittedIntent(submissionRef, owned,
+        {...scope, currentAuthorization: true, actorId: 'principal-a'}, moon);
+    },
     activity: () => ({credentials, authentications, preparations}),
     pauseNext: () => {
       let release; pause = new Promise(resolve => { release = resolve; });
@@ -303,6 +312,199 @@ for (const entrance of ['local', 'https']) {
 }
 
 for (const entrance of ['local', 'https']) {
+  test(`${entrance}: structured Program rejection binds the original parent pointer`, async t => {
+    const f = await fixture(t, entrance);
+    const program = {version: 'actql/0.1', id: 'missing-stages'};
+    let rejected;
+    try {await f.client.start(program);}
+    catch (error) {rejected = error;}
+    assert.equal(rejected?.code, 'SubmissionNotAccepted');
+    const checked = sdk.getSubmissionCheckObservation(rejected);
+    assert.equal(checked?.report.verdict, 'invalid', '[check-mutation:program-structure-verdict]');
+    const input = sdk.getCheckInput(checked, 'program');
+    assert.deepEqual(input.value, program);
+    assert.equal(input.kind, 'structured');
+    assert.deepEqual(checked.report.reasons, [{code: 'program_structure_invalid', facts: {issue: 'missing_field'}, location: {
+      kind: 'structured', document_id: 'program', revision: input.revision, pointer: ''}}],
+    '[check-mutation:program-structure-location]');
+    assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location).input, input);
+    assert.equal(sdk.resolveCheckTextRange(checked, checked.report.reasons[0].location), undefined);
+    assert.equal(sdk.getCheckInput(structuredClone(checked), 'program'), undefined);
+    assert.equal(sdk.getSubmissionCheckObservation(structuredClone(rejected)), undefined);
+    assert.deepEqual(sdk.getCheckFixes(checked), []);
+    assert.equal(f.counts().submits, 0);
+    assert.equal(f.counts().issues, 0);
+  });
+
+  test(`${entrance}: structured Program accepted preparation failure retains passive original checking`, async t => {
+    const f = await fixture(t, entrance);
+    const program = {version: 'actql/0.1', id: 'original'};
+    const submissionRef = f.client.newSubmission({nonce: 'preparing-program'});
+    // The existing journal Owner supplies a durable preparing intent, as after
+    // restart before preflight. No response or execution outcome is fabricated.
+    assert.equal(f.retainPreparingProgram(program, submissionRef).phase, 'preparing');
+    let rejected;
+    try {await f.client.start(program, {submissionRef});} catch (error) {rejected = error;}
+    const outcome = sdk.getSubmissionOutcome(rejected);
+    assert.equal(outcome?.kind, 'preparation_failed', '[check-mutation:program-original-phase]');
+    const checked = sdk.getSubmissionCheckObservation(rejected);
+    assert.equal(checked?.report.verdict, 'invalid');
+    const original = sdk.getCheckInput(checked, 'program');
+    assert.deepEqual(original.value, program);
+    assert.equal(checked.report.reasons[0].location.pointer, '');
+    const before = [...f.operations];
+    sdk.resolveCheckLocation(checked, checked.report.reasons[0].location);
+    sdk.explainCheckReason(checked.report.reasons[0]); sdk.getCheckFixes(checked);
+    assert.deepEqual(f.operations, before, '[check-mutation:program-passive]');
+    const retained = await f.client.lookupSubmission(submissionRef);
+    assert.deepEqual(retained, outcome);
+    assert.equal(Object.hasOwn(retained, 'checkObservation'), false);
+    assert.equal(sdk.getSubmissionCheckObservation(retained), undefined);
+    assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+  });
+
+  test(`${entrance}: structured Program missing null and wrong-type nodes remain distinct`, async t => {
+    const f = await fixture(t, entrance);
+    for (const [value, issue, pointer] of [[{version: 'actql/0.1', id: 'missing'}, 'missing_field', ''],
+      [{version: 'actql/0.1', id: 'null', stages: null}, 'unexpected_null', '/stages'],
+      [{version: 'actql/0.1', id: 'wrong', stages: {}}, 'wrong_type', '/stages']]) {
+      let rejected;
+      try {await f.client.start(value);} catch (error) {rejected = error;}
+      const checked = sdk.getSubmissionCheckObservation(rejected);
+      assert.equal(checked?.report.verdict, 'invalid', '[check-mutation:program-structure-verdict]');
+      const owned = sdk.getCheckInput(checked, 'program');
+      assert.deepEqual(checked.report.reasons, [{code: 'program_structure_invalid', facts: {issue},
+        location: {kind: 'structured', document_id: 'program', revision: owned.revision, pointer}}],
+      '[check-mutation:program-structure-location]');
+      assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location).input, owned);
+      assert.equal(sdk.explainCheckReason(checked.report.reasons[0]).kind, 'known');
+      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+    }
+  });
+
+  test(`${entrance}: structured Program supplied violations coexist with missing declarations`, async t => {
+    const f = await fixture(t, entrance);
+    const program = JSON.parse(document);
+    program.params = {missing: {type: 'number'}, wrong: {type: 'number'}};
+    program.stages[0].steps.push({derive: {n: '$missing + $wrong'}});
+    for (const wrong of ['private-value', null]) {
+      let rejected;
+      try {await f.client.start(program, {parameters: {wrong}});} catch (error) {rejected = error;}
+      const checked = sdk.getSubmissionCheckObservation(rejected);
+      assert.equal(checked?.report.verdict, 'invalid', '[check-mutation:program-mixed-verdict]');
+      const programInput = sdk.getCheckInput(checked, 'program');
+      const parametersInput = sdk.getCheckInput(checked, 'parameters');
+      assert.deepEqual(checked.report.reasons, [{code: 'supplied_value_type_mismatch', facts: {
+        parameter: 'wrong', expected_type: 'number', actual_type: wrong === null ? 'null' : 'string'},
+        location: {kind: 'structured', document_id: 'parameters', revision: parametersInput.revision, pointer: '/wrong'}}],
+      '[check-mutation:program-mixed-facts]');
+      const requirement = checked.report.requirements[0];
+      assert.equal(requirement.code, 'parameter_value_required');
+      assert.equal(requirement.facts.parameter, 'missing');
+      assert.deepEqual(requirement.location, {kind: 'structured', document_id: 'program',
+        revision: programInput.revision, pointer: '/params/missing'});
+      assert.equal(sdk.resolveCheckLocation(checked, requirement.location).input, programInput);
+      assert.equal(JSON.stringify(checked).includes('private-value'), false);
+      const before = [...f.operations];
+      sdk.getCheckParameterAdmission(checked, 'missing');
+      sdk.getCheckFixes(checked); sdk.explainCheckReason(requirement);
+      assert.deepEqual(f.operations, before, '[check-mutation:program-passive]');
+      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+    }
+  });
+
+  test(`${entrance}: structured Program implementation and budget limits retain input pointers`, async t => {
+    const f = await fixture(t, entrance);
+    const unsupported = JSON.parse(document);
+    unsupported.bindings = {opaque: {type: 'string'}};
+    const budget = JSON.parse(document);
+    budget.stages = Array.from({length: 33}, (_, index) => ({...budget.stages[0], id: `stage-${index}`}));
+    for (const [program, code, pointer] of [[unsupported, 'implementation_limit', '/bindings'],
+      [budget, 'analysis_budget_exhausted', '/stages']]) {
+      let rejected;
+      try {await f.client.start(program);} catch (error) {rejected = error;}
+      const checked = sdk.getSubmissionCheckObservation(rejected);
+      assert.equal(checked?.report.verdict, 'undetermined', '[check-mutation:program-limit-verdict]');
+      assert.deepEqual(checked.report.reasons, []);
+      const owned = sdk.getCheckInput(checked, 'program');
+      assert.deepEqual(checked.report.coverage.limits, [{code, ...(pointer === undefined ? {} : {
+        location: {kind: 'structured', document_id: 'program', revision: owned.revision, pointer}})}],
+      '[check-mutation:program-limit-facts]');
+      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+    }
+  });
+
+  test(`${entrance}: structured Program Unicode pointers and declaration types retain exact input`, async t => {
+    const f = await fixture(t, entrance);
+    const unicode = {...JSON.parse(document), 'e\u0301/😀~': null};
+    const defaultType = {...JSON.parse(document), params: {n: {type: 'number', default: 'private-default'}}};
+    for (const [program, code, pointer, facts] of [[unicode, 'program_structure_invalid', '/e\u0301~1😀~0', {issue: 'invalid_structure'}],
+      [defaultType, 'parameter_default_type_mismatch', '/params/n/default', {parameter: 'n', expected_type: 'number', actual_type: 'string'}]]) {
+      let rejected;
+      try {await f.client.start(program);} catch (error) {rejected = error;}
+      const checked = sdk.getSubmissionCheckObservation(rejected);
+      assert.equal(checked?.report?.verdict, 'invalid');
+      const input = sdk.getCheckInput(checked, 'program');
+      assert.deepEqual(checked.report.reasons, [{code, facts,
+        location: {kind: 'structured', document_id: 'program', revision: input.revision, pointer}}],
+      '[check-mutation:program-unicode-location]');
+      assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location).input, input);
+      assert.deepEqual(input.value, program);
+      assert.equal(JSON.stringify(checked).includes('private-default'), false);
+      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+    }
+  });
+
+  test(`${entrance}: structured Program protected Sources retain only independent public obligations`, async t => {
+    const wire = JSON.parse(await readFile(new URL('./fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+    const checkingEnvironment = moon.clientProgramCheckEnvironment(canonicalText(wire), wire.evidence_bundle_cid,
+      false, false, true, false, false, false, false);
+    assert.ok(checkingEnvironment);
+    const view = wire.source_views[0];
+    const publication = {environmentCid: wire.evidence_bundle_cid, aliases: [{name: 'records',
+      sourceRef: 'connector://crm/main/r#v', sourceViewContractCid: view.contract_cid,
+      schemaContractCid: view.output.schema.cid}]};
+    const denied = await createNodeAuthorizationGate({configuration: JSON.stringify({
+      version: 'actql-execution-account-config/0.1', account_id: 'structured-test', entries: [{
+        entry_id: 'read-denied', outcome: 'deny', principal: {all: true}, connection: {all: true},
+        resource: {all: true}, operation: {any_of: ['read']}, exclusions: []}]}),
+      context: {principal: 'principal-a', contextCid: cid('3')}});
+    t.after(() => denied.close());
+    const peers = [await fixture(t, entrance), await fixture(t, entrance, undefined, {checkingEnvironment}),
+      await fixture(t, entrance, undefined, {checkingEnvironment, publication, sourceAccesses: [{
+        authorization: denied, sourceRef: 'connector://crm/main/r#v', connection: 'source', resource: 'r'}]})];
+    const program = {version: 'actql/0.1', id: 'protected',
+      params: {missing: {type: 'number'}, wrong: {type: 'number'}},
+      stages: [{id: 'main', inputs: {rows: {connector: 'crm/main', resource: 'r', view: 'v'}},
+        steps: [{select: ['private_field'], as: 'selected'}],
+        results: {out: {from: 'selected', fields: ['private_field']}}}],
+      results: {out: {from: {stage: 'main', result: 'out'}}}};
+    const observations = [];
+    for (const f of peers) {
+      let rejected;
+      try {await f.client.start(program, {parameters: {wrong: 'private-supplied'}});} catch (error) {rejected = error;}
+      const checked = sdk.getSubmissionCheckObservation(rejected);
+      assert.ok(sdk.getSubmissionOutcome(rejected), `Expected a retained rejection, received ${rejected?.code}: ${rejected?.cause?.code ?? rejected?.cause?.message}`);
+      assert.deepEqual(sdk.getSubmissionOutcome(rejected).problem, {code: 'ClientProgramRejected', classification: 'operation_failed'}, '[check-mutation:program-protected-problem]');
+      assert.equal(checked?.report?.verdict, 'invalid', '[check-mutation:program-protected-verdict]');
+      assert.deepEqual(checked.report.coverage.unresolved, [{boundary: 'source_resolution', reason: 'unresolved_protected'}],
+        '[check-mutation:program-protected-coverage]');
+      assert.equal(checked.report.reasons.length, 1);
+      assert.equal(checked.report.reasons[0].code, 'supplied_value_type_mismatch');
+      assert.equal(checked.report.reasons[0].location.pointer, '/wrong');
+      assert.equal(checked.report.requirements[0].location.pointer, '/params/missing');
+      assert.equal(JSON.stringify(checked).includes('private_field'), false, '[check-mutation:program-protected-disclosure]');
+      assert.equal(JSON.stringify(checked).includes('private-supplied'), false);
+      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+      observations.push(checked);
+    }
+    // Host-keyed references differ between fixtures; disclosable facts do not.
+    const facts = value => ({verdict: value.report.verdict, coverage: value.report.coverage,
+      reasons: value.report.reasons.map(({location, ...reason}) => ({...reason, pointer: location.pointer})),
+      requirements: value.report.requirements.map(({location, ...reason}) => ({...reason, pointer: location.pointer}))});
+    for (const observation of observations.slice(1)) assert.deepEqual(facts(observations[0]), facts(observation), '[check-mutation:program-protected-equivalence]');
+  });
+
   test(`${entrance}: bound count input refusal precedes Run acceptance`, async t => {
     const f = await fixture(t, entrance);
     const program = {version: 'actql/0.1', id: 'bound-count',

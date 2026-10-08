@@ -3,8 +3,8 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-07.3",
-  "reasonSchemaCid": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
+  "revision": "2026-10-08.1",
+  "reasonSchemaCid": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {
@@ -321,7 +321,8 @@ const entries = freeze({
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
     "locations": [
-      "source:text (owned authored range only; omit when unknown)"
+      "source:text (owned authored range only; omit when unknown)",
+      "program"
     ],
     "default_severity": "error",
     "family": "input",
@@ -379,7 +380,8 @@ const entries = freeze({
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit caller-owned typed facts and origins; private Source facts are excluded.",
     "locations": [
-      "source:text (owned authored range only; omit when unknown)"
+      "source:text (owned authored range only; omit when unknown)",
+      "program"
     ],
     "default_severity": "error",
     "family": "input",
@@ -458,7 +460,8 @@ const entries = freeze({
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
     "locations": [
-      "source:text (owned authored range only; omit when unknown)"
+      "source:text (owned authored range only; omit when unknown)",
+      "program:structured (original existing node only)"
     ],
     "default_severity": "warning",
     "family": "limit",
@@ -630,7 +633,8 @@ const entries = freeze({
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
     "locations": [
-      "parameter_declarations:structured (original submitted pointer)"
+      "parameter_declarations:structured (original submitted pointer)",
+      "program:structured (original existing node only)"
     ],
     "default_severity": "error",
     "family": "input",
@@ -657,7 +661,8 @@ const entries = freeze({
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
     "locations": [
-      "parameter_declarations:structured (original submitted pointer)"
+      "parameter_declarations:structured (original submitted pointer)",
+      "program:structured (original existing node only)"
     ],
     "default_severity": "error",
     "family": "input",
@@ -711,7 +716,8 @@ const entries = freeze({
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
     "locations": [
-      "parameter_declarations:structured (original submitted pointer)"
+      "parameter_declarations:structured (original submitted pointer)",
+      "program:structured (original existing node only)"
     ],
     "default_severity": "error",
     "family": "input",
@@ -738,7 +744,8 @@ const entries = freeze({
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
     "locations": [
-      "parameter_declarations:structured (original submitted pointer)"
+      "parameter_declarations:structured (original submitted pointer)",
+      "program"
     ],
     "default_severity": "info",
     "family": "requirement",
@@ -764,7 +771,9 @@ const entries = freeze({
     "condition": "The input violates the checked Program contract.",
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
-    "locations": [],
+    "locations": [
+      "program"
+    ],
     "default_severity": "error",
     "family": "input",
     "presentation": {
@@ -784,13 +793,72 @@ const entries = freeze({
       }
     ]
   },
+  "program_structure_invalid": {
+    "code": "program_structure_invalid",
+    "condition": "The existing Program admission Owner proves a violation of the submitted structured document.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Only authored structural facts independent of private resolution are public. Missing members locate an existing enclosing node; actual values and protected Source facts are excluded.",
+    "locations": [
+      "program:structured (original existing node only)"
+    ],
+    "default_severity": "error",
+    "family": "input",
+    "presentation": {
+      "default": {
+        "key": "reason.program_structure_invalid",
+        "english": [
+          "The structured Program violates its input contract.",
+          "Correct the indicated Program node and submit an explicitly new intent."
+        ]
+      },
+      "variants": [
+        {
+          "when": {
+            "issue": "missing_field"
+          },
+          "key": "reason.program_structure_invalid.missing_field",
+          "english": [
+            "A required Program field is missing.",
+            "Add the required field to the indicated enclosing node."
+          ]
+        },
+        {
+          "when": {
+            "issue": "wrong_type"
+          },
+          "key": "reason.program_structure_invalid.wrong_type",
+          "english": [
+            "A Program field has the wrong JSON type.",
+            "Use the JSON type required by the Program contract."
+          ]
+        },
+        {
+          "when": {
+            "issue": "unexpected_null"
+          },
+          "key": "reason.program_structure_invalid.unexpected_null",
+          "english": [
+            "A required Program field cannot be null.",
+            "Provide the required field value; null is distinct from absence."
+          ]
+        }
+      ]
+    },
+    "examples": [
+      {
+        "file": "adapters/host-node/client-submission-input.test.mjs",
+        "scenario": "structured Program rejection binds the original parent pointer"
+      }
+    ]
+  },
   "query_expression_invalid": {
     "code": "query_expression_invalid",
     "condition": "An expression violates its reference, argument or numeric contract.",
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
     "locations": [
-      "source:text (owned authored range only; omit when unknown)"
+      "source:text (owned authored range only; omit when unknown)",
+      "program:structured (original existing node only)"
     ],
     "default_severity": "error",
     "family": "input",
@@ -858,7 +926,8 @@ const entries = freeze({
     "facts_schema": "#/reason_schema",
     "disclosure": "Only the existing pre-serialization projection may emit this reason; actual values, private Source distinctions and arbitrary causes are excluded.",
     "locations": [
-      "source:text (owned authored range only; omit when unknown)"
+      "source:text (owned authored range only; omit when unknown)",
+      "program"
     ],
     "default_severity": "error",
     "family": "input",

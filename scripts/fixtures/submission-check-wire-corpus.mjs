@@ -6,8 +6,8 @@ const declarationRevision = 'rev:' + '6'.repeat(64);
 const location = {kind: 'text', document_id: 'source', revision,
   start_byte: 6, end_byte: 6, precision: 'exact'};
 const observation = {version: 'actql-check-outcome/0.1',
-  reason_schema_cid: 'sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739',
-  outcome_schema_cid: 'sha256:801971ab7c91652f2e3a606cdae7567fe313ca2931df81d7ab4c24d3d130e0a9',
+  reason_schema_cid: 'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a',
+  outcome_schema_cid: 'sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f',
   outcome: 'completed', report: {context_ref: 'ctx:independent', scope: {kind: 'bound_input'},
     verdict: 'invalid', inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 6}],
     reasons: [{code: 'query_syntax_invalid', location}], requirements: [],
@@ -71,5 +71,48 @@ export const submissionCheckWireCorpus = [
     report.reasons[0].location.revision = otherRevision;
     delete checked.report; checked.outcome = 'failed'; checked.partial_report = report;
     checked.problem = {code: 'reporting_failed'}; checked.correlation_ref = 'corr:partial';
+  }),
+];
+
+// Program cases are fixed independently of either checker or response producer.
+const programFixed = (name, expected, change = () => {}, options = {}) => {
+  const checked = structuredClone(observation);
+  checked.report.inputs = [{document_id: 'program', kind: 'structured', revision, byte_length: 32}];
+  checked.report.reasons = [{code: 'program_structure_invalid', facts: {issue: 'missing_field'},
+    location: {kind: 'structured', document_id: 'program', revision, pointer: ''}}];
+  change(checked.report, checked);
+  return {name: `submission Program check: ${name}`, expected, kind: 'submission', operation: 'start',
+    failureCode: 'SubmissionUnknown', program: {version: 'actql/0.1', id: 'p'},
+    value: {kind: options.phase ?? 'not_accepted', problem:
+      {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, checkObservation: checked}};
+};
+export const submissionProgramCheckWireCorpus = [
+  programFixed('missing field uses original parent', true),
+  programFixed('preparation failure retains original parent', true, () => {}, {phase: 'preparation_failed'}),
+  programFixed('Program must be structured', false, report => {report.inputs[0].kind = 'text';}),
+  programFixed('Program cannot borrow a source document', false, report => {
+    report.inputs.push({document_id: 'source', kind: 'text', revision: otherRevision, byte_length: 6});
+  }),
+  programFixed('Program cannot borrow declaration custody', false, report => {
+    report.inputs.push({document_id: 'parameter_declarations', kind: 'structured', revision: otherRevision, byte_length: 2});
+  }),
+  programFixed('pointer revision mismatch', false, report => {report.reasons[0].location.revision = otherRevision;}),
+  programFixed('invalid pointer escape', false, report => {report.reasons[0].location.pointer = '/bad~2key';}),
+  programFixed('structure cause cannot carry a private value', false, report => {report.reasons[0].facts.value = 'private';}),
+  programFixed('Program cannot acquire a text fix', false, report => {report.reasons[0].fixes = [{
+    code: 'close_block_comment', applicability: 'requires_review', risk: 'syntax_structure',
+    target: {document_id: 'program', revision}, edits: [{start_byte: 32, end_byte: 32, replacement: '*/'}]}];}),
+  programFixed('Program implementation location', true, report => {
+    report.verdict = 'undetermined'; report.reasons = [];
+    report.coverage.limits = [{code: 'implementation_limit',
+      location: {kind: 'structured', document_id: 'program', revision, pointer: ''}}];
+  }),
+  programFixed('Program budget location', true, report => {
+    report.verdict = 'undetermined'; report.reasons = [];
+    report.coverage.limits = [{code: 'analysis_budget_exhausted',
+      location: {kind: 'structured', document_id: 'program', revision, pointer: ''}}];
+  }),
+  programFixed('old schema pin is rejected', false, (_report, checked) => {
+    checked.reason_schema_cid = 'sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739';
   }),
 ];
