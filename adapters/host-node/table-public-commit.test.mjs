@@ -918,9 +918,18 @@ test(`Table sparse private input commits through ${transport} (${format}) after 
       });
       assert.deepEqual(commits(f.catalog), []);
     }
-    const checkedInput = await client.check(input, {format});
-    assert.equal(checkedInput.outcome, 'completed', JSON.stringify(checkedInput));
-    assert.equal(checkedInput.report.verdict, 'verified', JSON.stringify(checkedInput));
+    if (format === 'aql-text') {
+      const checkedInput = await client.check(input, {format});
+      assert.equal(checkedInput.outcome, 'completed', JSON.stringify(checkedInput));
+      assert.equal(checkedInput.report.verdict, 'verified', JSON.stringify(checkedInput));
+    } else {
+      // Public advisory check accepts query text, not a JSON Program string.
+      // The actual common preparation above and public submission below must
+      // still admit the private input; a diagnostic API refusal is no substitute.
+      await assert.rejects(client.check(input, {format}), {code: 'InvalidCheckRequest'});
+      assert.deepEqual(commits(f.catalog), []);
+      assert.equal((await client.checkpoints()).items.length, 0);
+    }
     let run = await client.startSource(input, {format, submissionRef}).catch(error => {
       t.diagnostic(inspect({phase: 'sparse-private-submit', error, observations}, {depth: 15}));
       throw error;
