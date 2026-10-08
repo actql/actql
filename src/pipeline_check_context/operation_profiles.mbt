@@ -51,37 +51,23 @@ pub fn check_operation_profiles(
     work += 1
     let visits = stages.contexts[stage].visits
     for visit in 0..<visits.length() {
-      if work == max_work {
-        return Err(BudgetExceeded)
-      }
-      work += 1
       let pipeline = @parameter_slots.pipeline(visits[visit].collected)
-      for step in 0..<@pipeline.step_count(pipeline) {
-        let operation = @pipeline.step_at(pipeline, step).unwrap().operation
-        let n = @pipeline.operation_profile_count(operation)
-        if work >= max_work || n > max_work - work - 1 {
-          return Err(BudgetExceeded)
-        }
-        work += n + 1
-        for i in 0..<n {
-          let profile = @pipeline.operation_profile_at(operation, i).unwrap()
-          let claimed = match profile {
-            RelA => declared.rela
-            SGA => declared.sga
-            // The new contract needs an explicit checker declaration; the
-            // legacy SGA switch cannot silently claim its distinct laws.
-            GraphProfile => graph
-            TEA => declared.tea
-            VecA => preparation.profiles.profiles.veca
-            CalendarProfile => declared.calendar
-            TextRankProfile => declared.text_rank
-          }
-          if !claimed {
-            return Err(UnsupportedProfile(stage, visit, step, profile))
-          }
-          count += 1
-        }
+      let checked = match
+        check_pipeline_operation_profiles(
+          pipeline,
+          declared,
+          preparation.profiles.profiles,
+          max_work - work,
+          graph~,
+        ) {
+        Ok(v) => v
+        Err(InvalidLimits) => return Err(InvalidLimits)
+        Err(BudgetExceeded) => return Err(BudgetExceeded)
+        Err(UnsupportedProfile(step, profile)) =>
+          return Err(UnsupportedProfile(stage, visit, step, profile))
       }
+      work += checked.work
+      count += checked.count
     }
   }
   Ok({ preparation, declared, graph, count, work, })

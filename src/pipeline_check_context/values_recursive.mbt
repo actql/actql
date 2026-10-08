@@ -47,13 +47,8 @@ pub fn check_values_recursive_resources(
   }
   let wire = rows.wire
   let bound = wire.bound
-  let site = bound.site
-  guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
-    return Err(ForeignOwner)
-  }
-  guard step.operation is @pipeline.Values(values) else {
-    return Err(ForeignOwner)
-  }
+  let owner = bound.owner
+  let values = owner.values
   guard @policy.ceiling(wire.policy, "max_nested_value_bytes")
     is Some(byte_ceiling) else {
     return Err(MissingCeiling)
@@ -143,16 +138,7 @@ pub fn check_values_recursive_resources(
       }
       work += 1
       let (value, next) = match
-        resolved_values_cell(
-          bound.cells,
-          site,
-          values,
-          bound.requirement_index,
-          row,
-          row_index,
-          column,
-          next_binding,
-        ) {
+        values_resource_cell(owner, row, row_index, column, next_binding) {
         Ok(v) => v
         Err(e) => return Err(Measurement(e))
       }

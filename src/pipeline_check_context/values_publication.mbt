@@ -111,7 +111,7 @@ fn values_recursive_limit(
       @encode.string_value(
         out,
         "values:checked-step:" +
-        recursive.rows.wire.bound.site.step.to_string() +
+        values_resource_step(recursive.rows.wire.bound.owner).to_string() +
         ":recursive",
       )
       @encode.key(out, "unit")
@@ -247,7 +247,8 @@ pub fn resolve_program_values_resources(
       Ok(v) => v
       Err(e) => return Err(Wire(i, e))
     }
-    if !physical_equal(wire.bound.site, site) {
+    guard wire.bound.owner.source is BoundCells(_, _, retained_site) &&
+      physical_equal(retained_site, site) else {
       return Err(ForeignOccurrence(i))
     }
     bytes -= wire.bound.bytes
@@ -258,10 +259,7 @@ pub fn resolve_program_values_resources(
       Ok(v) => v
       Err(e) => return Err(Rows(i, e))
     }
-    if @wire.value(
-        @wire.program_proof_witness(@step_bounds.checked_proof(rows.rows)),
-      ) >
-      @derivation.minimum_value(@wire.limit_minimum(rows.limit)) {
+    if !values_rows_fit_selected_limit(rows) {
       return Err(RowsExceeded(i))
     }
     let recursive = match

@@ -17,10 +17,13 @@ test "values row selection retains exact count and applicable Host ceiling" {
   assert_true(
     physical_equal(
       @program.checked_pipeline(result.rows),
-      wire.bound.site.pipeline,
+      values_wire_bound_pipeline(wire.bound),
     ),
   )
-  assert_eq(@program.checked_step(result.rows), wire.bound.site.step)
+  assert_eq(
+    @program.checked_step(result.rows),
+    values_wire_bound_step(wire.bound),
+  )
   assert_true(
     physical_equal(
       @policy.ceiling_policy(@host.ceiling(result.host)),
