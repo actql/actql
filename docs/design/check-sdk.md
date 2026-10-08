@@ -910,8 +910,8 @@ metadata member. The pointer must resolve to an admitted submitted node; a missi
 member is omitted rather than invented. An admitted empty declaration map has the
 known root pointer `""`. Admission budgets and internal failures remain separate
 from declaration violations and do not receive a violation location.
-A missing value is a Requirement for bound-input checking, not a diagnostic or
-verified template report. Its declaration pointer/revision identifies the full
+A missing value is a Requirement for bound-input checking, not a diagnostic.
+That Requirement alone does not establish template verification. Its declaration pointer/revision identifies the full
 submitted admission contract, including constraints; supplying a value requires
 a new complete check. Other typed causes retain their less-specific registered
 public reason until their projection is implemented. Protected Source resolution
