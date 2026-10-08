@@ -69,7 +69,7 @@ pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
           Default => ProgramDocument
         },
       )
-    Source(_) | Closure(_) | Units(_) => None
+    Source(_) | Closure(_) | Units(_) | Template(_, _) => None
   }
 }
 
