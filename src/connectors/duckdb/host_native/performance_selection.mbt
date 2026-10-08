@@ -134,7 +134,7 @@ fn prepare_native_performance_selection(
             run.dispatch,
             request,
             body,
-            "configured-local-profile",
+            "configured-local-profile-producer",
             profile.original_revision,
             configuration.clock,
           ) {

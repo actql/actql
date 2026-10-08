@@ -1609,8 +1609,21 @@ fn main {
         native_strategy_issue_name(issue),
       )
     Err(@host.Local(_)) => abort("native strategy Local task rejected")
-    Err(@host.Performance(_)) =>
-      abort("native performance consultation rejected")
+    Err(@host.Performance(issue)) => {
+      let stage = match issue {
+        @host.InvalidConfiguration => "configuration"
+        @host.DisclosureDenied => "disclosure"
+        @host.EnvelopeTooLarge => "envelope"
+        @host.AlreadyCommitted => "committed"
+        @host.InvalidResponse => "response"
+        @host.HttpStatus(_) => "http-status"
+        @host.Dispatch(_) => "dispatch"
+        @host.Clock(_) => "clock"
+        @host.Transport(_) => "transport"
+        @host.Wire(_) => "wire"
+      }
+      abort("native performance consultation rejected: " + stage)
+    }
   }
   if empirical_mode == "expiry" {
     close_observed_run(run, ledger, 0)

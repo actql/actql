@@ -84,3 +84,19 @@ last immutable projection afterwards. Only the latest bounded projection is
 retained; confirmed close clears it. This diagnostic cannot authorize dispatch.
 Raw failure/control logs are preserved. No comparison/evaluation samples existed
 at either setup failure. LLDB launch timed out and supplies no runtime evidence.
+
+At `91253a0c3a623122496883b2556b144d4e347cb9`, both exposure Runs
+passed; Text presented two assignments and JOIN sixteen. The six Text and
+forty-eight JOIN comparison slots all passed independent Result/schema and
+formal release. Held-out Text's offline slot passed, but its first-use slot
+failed before any physical attempt. Close and duplicate close returned unchanged
+zero live resources. The normal adapter supplied `configured-local-profile`
+where the existing sidecar validator requires the trusted configured identity
+`configured-local-profile-producer`. The adapter now uses that existing identity;
+the validator and its rejection rules are unchanged. Fixed categorical failure
+stages are exposed by the caller without disclosing arbitrary error messages.
+
+This failed evaluation and its unobserved remaining slots stay in the original.
+A corrected runtime/artifact revision requires its own fixed comparison and
+held-out evaluation; old successful comparisons are not relabelled or pooled.
+The plan retains the same cases, rounds, order, ceilings and termination rule.
