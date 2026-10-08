@@ -7170,3 +7170,36 @@ The original dependency/Effect-preview preflight remains synchronous, as do
 separate issuance inventories, scalar schema checks and normalization.
 Blocking APIs, allocation latency, Effectful asynchronous commit, all-target,
 packed/HTTPS and hosted CI remain outside this unit's completed evidence.
+
+### Resumed capture issuer input preparation (2026-10-08)
+
+The existing capture issuer now resumes Source-advance reference scans,
+snapshot ordering and definition/Artifact membership, and Model inventory
+reconciliation through its existing driver and deferred bounded sorter.
+Canonical ordering, membership semantics, observation multiplicity and typed
+failure precedence remain unchanged. Detached output-reference reservations
+survive context emission and retire once after completion or cancellation;
+caller inputs and physical Store custody are not discarded.
+
+The [input preparation record](2026-10-08-local-bounded-capture-inputs.md)
+binds common JS 280/280 and the selected release runtime build to clean source
+`1fce2861a2b6e43717535d862e6aad4297bc22cd`. Host fixture source
+`97de89b3166d692cb8884669d38eec0c4fb1009a` changes only polling scope and
+has identical compiled inputs. Targeted Node selections pass 1/1 and 6/6,
+including five actual retained Host cases. Normal producer/two-consumer
+publication retains fixed content and exact order; progress-before-abort,
+non-publication, no additional Compute and final reclamation remain checked.
+
+Independent private control totals are 20 snapshot and 29 Model transitions
+at quantum 1/7/64, with 22/21 exact/one-short slots. Empty cases, long Unicode
+comparison cursors, typed ownership failures and internal cancellation have
+separate evidence. These quantities are not new Compute logical-work rules.
+The initial larger Node selection timed out and is not counted as passing.
+
+This child preserves unmerged #953/#951/#948 dependencies and normally adopts
+main `f2ceac7e0c673780b053b9a323e76a03c152e09a`. Effect-source/body/preview
+checks, plans/dependency admission and pre-scan Source-advance body admission
+remain separate synchronous boundaries. Scalar checks, normalization,
+allocation latency, blocking APIs, Effectful asynchronous commit, all-target,
+packed/HTTPS and hosted required CI remain unverified by this unit. Historical
+issuance-inventory gaps above are not claims about this new continuation.
