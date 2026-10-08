@@ -40,7 +40,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   const expressionRules = '<a id="expression-text"></a>' + language
     .split('<a id="expression-text"></a>')[1]
     .split('<a id="predicates"></a>')[0];
-  const installedBody = {
+  const currentBody = {
     version: 'actql-grammar-manifest/0.1',
     source_grammar_cid: cid(program),
     operations,
@@ -54,17 +54,11 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   };
   const manifest = read('spec/manifests/actql-grammar-0.1.json');
   const {grammar_manifest_cid: currentCid, ...currentPreimage} = manifest;
-  assert.deepEqual(currentPreimage, installedBody);
-  assert.equal(currentCid, cid(installedBody));
-  // These previously fixed predecessor vectors use their complete original
-  // Program schema closure. A later source-schema change must not rebind them.
-  const history = JSON.parse(execFileSync('git', ['show',
-    '1402d256473b7c0facd17a1040291559db911b0a:spec/manifests/actql-grammar-0.1.json'],
-  {encoding: 'utf8'}));
-  const {grammar_manifest_cid: historicalCid, ...predecessorBody} = history;
-  assert.equal(historicalCid,
-    'sha256:440dfe0c1508b744e4ce22e6729dc362678785119932aa142aba313dc57b8680');
-  assert.equal(cid(predecessorBody), historicalCid);
+  assert.deepEqual(currentPreimage, currentBody);
+  assert.equal(currentCid, cid(currentBody));
+  const {grammar_manifest_cid: preAbsCid, ...preAbsBody} =
+    read('scripts/fixtures/pre-abs-values-identities.json').grammar;
+  assert.equal(cid(preAbsBody), preAbsCid);
   const frozen = JSON.parse(execFileSync('git', ['show',
     'f503f2afa804a05e58ea430af1782319c007bfc9:spec/manifests/actql-grammar-0.1.json'],
   {encoding: 'utf8'}));
@@ -202,13 +196,13 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   // Preserve the exact sole-Graph predecessor rather than deriving history
   // from the current Program schema or qualified-star grammar.
   const soleGraph = {
-    ...predecessorBody,
+    ...preAbsBody,
     source_grammar_cid: 'sha256:c6d41701c5ef0653a17d1472cfed07a657f3f655de70aa9c9a24b343fe571947',
     query_text_grammar_sha256: 'f1e8e656c38e31aefa3113f58f1e9c175b5f76f6ecd9a00e767f8f0523ea4c06',
     query_text_rules_sha256: 'e073701e0ba2126603b448877323cec95ad4955614c43b31aa8b472cf57c9619',
   };
   assert.equal(cid(soleGraph), 'sha256:3fe450061e6884fc773ecda7492de02dd27a15219a6832e8e490a096e29b1c9a');
-  const beforeSchemaClosure = {...predecessorBody,
+  const beforeSchemaClosure = {...preAbsBody,
     source_grammar_cid: 'sha256:c6d41701c5ef0653a17d1472cfed07a657f3f655de70aa9c9a24b343fe571947',
     query_text_grammar_sha256: '446694190a1e5c1412db556a0a1f7bbff024ba08b3d6edfae56a8c461c4f93bd',
     query_text_rules_sha256: '8f25caaec8d851767a09937831cd91aac30f48fad99f2851c7dddbfcc5095d14'};
@@ -218,50 +212,50 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     'sha256:1e69c47a6aba9a6bc728c10d4edbeeb1e72964e0504d82d7f54fde65293de06a');
   assert.equal(cid(beforeSchemaClosure),
     'sha256:57b2c75f3483e89a325a216c10636c5f098d8b09d190f7ce11b0895f1ac7c09a');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '7fbe8e64052773d288c04c39d3f1e6930ca43060cf1de1f01faffac5d52d7f0c',
     query_text_rules_sha256: '2a53290cbfe58e8f5a9bb50066b45746ecf2f1bb6d14b15dda53318a170b55ed'}),
     'sha256:efa41daa81570153a600aa1459bf498135d4ac67b1df4555651d6ff879229062');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '446694190a1e5c1412db556a0a1f7bbff024ba08b3d6edfae56a8c461c4f93bd',
     query_text_rules_sha256: '8f25caaec8d851767a09937831cd91aac30f48fad99f2851c7dddbfcc5095d14'}),
     'sha256:ebd855090f5f4695042910f4f0471a460929aeb4e26de36609b965b6c4623922');
   // Retain both QUALIFY predecessor preimages before combining RIGHT JOIN.
-  const qualifyPredecessor = {...predecessorBody,
+  const qualifyPredecessor = {...preAbsBody,
     query_text_grammar_sha256: '67ed2926780d3365eb2f553d88918cf7fcc99a922e9f6af7477d19fa211c1b52',
     query_text_rules_sha256: 'c0040e451571db4605aa616c148798413d07dfc834e5ee252addc8f5155c012d'};
   assert.equal(cid(qualifyPredecessor), 'sha256:3d5a575c2ca9885b0a8d0f24c8fe9cbb08dd1c2ce923937c36d7db576ea7361f');
   assert.equal(cid({...qualifyPredecessor,
     source_grammar_cid: 'sha256:c6d41701c5ef0653a17d1472cfed07a657f3f655de70aa9c9a24b343fe571947'}),
     'sha256:bec586d9fa597461b69570df1287e9a30f5c46772f4d29a7ab0e65efcb013429');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: 'eaf5f1daf3c35ac62831f2ba92010aa047700bfef5435b1dcecec30818f6696a',
     query_text_rules_sha256: '4b2ffdf0c184c931a4d87738435532a42290d9af03e888706c5703fd78e13cf6'}),
     'sha256:436d5d5ed652cbdf5b1ddc22c50de549bcf57241022d6a0bc4b1636aa8dd61bb');
   // Named WINDOW and merged QUALIFY/RIGHT JOIN retain separate predecessor preimages.
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '58f8fd3ce72b47ad9a6029e74ca3501646eeafb01b6509ceaea1d7bb6b62f022',
     query_text_rules_sha256: '713a059c6a666895bbef616426e0d57d61194417a12cd23b0723d6472e91c66b'}),
     'sha256:313692ca4371f8802b8593c0feae61a7ed43836dd36cefe379a6b187ecf1cb0a');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: 'eec0bc3d94b6b54cd58ccc71d3801cb915b1c6dcf3b61ae75448984accc42bc2',
     query_text_rules_sha256: '9c44ff3295dc62f766a6752a00cc427b439f107493f4338d8fc602d5b4b10611'}),
     'sha256:edf8426fd0a6448c628b1681bbb00ff99542057cb1346d6b85d67869e0720fa0');
   // Preserve the reviewed WINDOW/QUALIFY/JOIN-star preimages.
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '0b961eacd150b63d3abb62fb974eda40310ed39e0406faf73e18f52a0bf01eb5',
     query_text_rules_sha256: '3d73570fdf8243e613f9ec554225f445e6df5a0051bba2739467c00697cbc4f2'}),
     'sha256:4a4edbe3ea73b23bebe2220bed00e52a41797a81d781020a5f3522d2e7e54c53');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: 'eec0bc3d94b6b54cd58ccc71d3801cb915b1c6dcf3b61ae75448984accc42bc2',
     query_text_rules_sha256: '78db317bfc2ece17f8343e4141c2b9fd5dca2ff6bf0ffc2229e2386cc5f5a20f'}),
     'sha256:b61090c3267de06917642327d2f3acce9bb2a5a419de2279e994644ec77e3f63');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: 'eaf5f1daf3c35ac62831f2ba92010aa047700bfef5435b1dcecec30818f6696a',
     query_text_rules_sha256: '4e05cc33de7da0c3d38727908d969a015db00acfbc5ffbbc7df0fe5b54c27678'}),
     'sha256:6788acd1b4d3d2771311442d3ddbf881680d319c79cb0ebe46e4f333341c2835');
   // Retain complete predecessor bytes rather than reusing the new edge grammar.
-  const beforeAnyDirection = {...predecessorBody,
+  const beforeAnyDirection = {...preAbsBody,
     query_text_grammar_sha256: '0b961eacd150b63d3abb62fb974eda40310ed39e0406faf73e18f52a0bf01eb5'};
   assert.equal(cid({...beforeAnyDirection,
     query_text_rules_sha256: 'cdaef72756f3e36f2e1603ba8c02b6fb16772be1a1cbcdc19bfd5df837135e39'}),
@@ -273,95 +267,103 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_rules_sha256: 'c0c91e6b436646fb05e0e22d29ae3e05dbe6f7be451cf069cc807f479177ca3c'}),
     'sha256:675ce07e2792ad6736f526ffb894e987463ff1eee7f94dfd8e391bcfbfc3dd20');
   // Freeze the complete full-edge predecessor before adding abbreviations.
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: 'c7f9802419d92bf1f53ee28edf277d9ed8b5f628733d78355d54c448fc106c98',
     query_text_rules_sha256: 'f0b099fa9773e872b430f691cfe54523e74f5ef8bd1da352d9ab41acd763fb50'}),
     'sha256:3766a009afd7d8e22904ace1507becb871c62c5fb0dd969f7ee0886c17892c55');
   // Keep the ARRAY constructor profile's exact normative predecessor.
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '2023c8b252f362a5233ba8a9eb08c1765e9770e70249e52dde81e826654abb58',
     query_text_rules_sha256: 'd7c0e3eb9184cb53c37ea0640dffb1492d07baa184c2f255a4ea5e72d77013ee'}),
     'sha256:eb7c8d7239e90b612a3bca095d29d74a828e47187609a893ff4d7406ac6512a6');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '2023c8b252f362a5233ba8a9eb08c1765e9770e70249e52dde81e826654abb58',
     query_text_rules_sha256: 'd89b03d3746695b09c641b9200458e9c352c1b34138b3a4adf198ba366f7604f'}),
     'sha256:4ce6abb00008cc0752dda4797487ef815287e30d21bc6e1ae5fca3941f7005a9');
   // Retain the abbreviated-edge grammar before connecting finite bound forms.
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '5f0a569b54a83d942d0e9f686a1f58881f91f007a024edb20ceab14890ab1941',
     query_text_rules_sha256: 'bd2c35846681c920ee1d402566aa53e38d6372d20d9cbffa585003ad3eda9b74'}),
     'sha256:e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '6b4d8903da723dbb5cc57f9d7a472701d853393771c995fbb84a05b2feb553a9',
     query_text_rules_sha256: '21b55f49ca04705e30d2c3d0600e3d2f4c14c7dec534b7dfa85350c8def3e789'}),
     'sha256:3fe077253a1f7ec230316eb1d6cca21d464c5292ea63f95f19ca53052b03ee9f');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: 'd321f2a0709aace01b032d25e6697ed4fdc3f6ca6aed7fec2ebabeba551febff',
     query_text_rules_sha256: '40e119d1a33b72c82cdccbd90c7042bfe3593313f35d503998fdffa95660ee26'}),
     'sha256:883c032ce81e5a9f4a192a1d3c5af36bfa48a3d108945f832d9e1c4e7c13b135');
   // Preserve the integrated ARRAY/finite Graph normative predecessor.
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '987ab8dafe80bd6765856455245ff30525b2041b4e246fd20d16b076b0f74cca',
     query_text_rules_sha256: '7c1751cd8cd3d3ddde325ba408ad8be6f4578f785496a7c89c234522e3264e4d'}),
     'sha256:422c4edd4dd34bbf715e3d464a07f8654e51af7bf5bba74c93a13aa6de999968');
   // Preserve complete adopted predecessors before allowing grouping-only Pipe.
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '987ab8dafe80bd6765856455245ff30525b2041b4e246fd20d16b076b0f74cca',
     query_text_rules_sha256: '722518b9ac8b39ab39ffc061657b32140de92b862fe04768908cdbb114c6e24a'}),
     'sha256:383eb60f32169402f128cb1e0187b8445ebb33931e75ab035e20d1e434b52ad4');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '464206b5055bab14262fd3af69a888df04ce5e67e85ba675185c1e398d5568eb',
     query_text_rules_sha256: '0069325d73a38ed716c361d1abd4409bf422a89100f5745166e2249b333ea380'}),
     'sha256:e14a88db3f98d88cb24edefca31ecd1c0d63f81e152a61d464756a83c5850329');
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: 'bc34b24a8a8ed39ecc61473e0d3aafc8b5b2541c70951d75b95707039fe5eb5a',
     query_text_rules_sha256: '474b4b442d4b486097278d9a0d91c0c670c943f302b7e3a882c332398cd49b1e'}),
     'sha256:bb311179f5afee3d6e03181b66113f045cbd6190ce4174b32d40ac9a67459a8d');
   // Retain the complete grouping-output-alias normative predecessor.
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '6d6dcbc805bc916f9ed1ced0a0fc1d7c52d5d763b9ee51ba5a81e4c2c605b9a4',
     query_text_rules_sha256: '154069abe470214f5e51f0a9b960e09eefffb8932327eeb52774c658caaea18b'}),
     'sha256:4ac55d221c3878197277681acc425497bc6705a864745d4ae004bbcc17915444');
   // Retain the shorthand-ordering normative predecessor.
-  assert.equal(cid({...predecessorBody, query_text_grammar_sha256: '6f25704123fd2d1fd4ee3a7fd57d4d7d2502b76994743edbc6322de0e54641ca', query_text_rules_sha256:
+  assert.equal(cid({...preAbsBody, query_text_grammar_sha256: '6f25704123fd2d1fd4ee3a7fd57d4d7d2502b76994743edbc6322de0e54641ca', query_text_rules_sha256:
     '0c288ee063666d6e529fa354ded3539b32556d65e425a40ce05657b9740376e3'}),
     'sha256:fc3d401cf6db3bf3349114cc019111bbc32a112317d1e397b9573776d9ee7d6b');
   // Retain the scalar Pipe aggregate normative predecessor.
-  assert.equal(cid({...predecessorBody, query_text_grammar_sha256: '6f25704123fd2d1fd4ee3a7fd57d4d7d2502b76994743edbc6322de0e54641ca', query_text_rules_sha256:
+  assert.equal(cid({...preAbsBody, query_text_grammar_sha256: '6f25704123fd2d1fd4ee3a7fd57d4d7d2502b76994743edbc6322de0e54641ca', query_text_rules_sha256:
     'f5f1f5767586ab84b569d4d3126ada4c36e0ae244dbf33c41a46d800cab922fa'}),
     'sha256:2a433f295994301675ad42d4acc1859474b8e0e31b3583482f057602164c8951');
   // Keep the complete grammar closure before single-boundary ROWS frames.
-  assert.equal(cid({...predecessorBody,
+  assert.equal(cid({...preAbsBody,
     query_text_grammar_sha256: '6f25704123fd2d1fd4ee3a7fd57d4d7d2502b76994743edbc6322de0e54641ca',
     query_text_rules_sha256: '13238f8dccbc99f4244427ac8362ee093307ceff6151f6116638b44b1fb0c885'}),
     'sha256:582ecd6f94df7584160874befda4fa5f2a7d028f347599fc11e9685c10ba36e8');
   // Each parent's full normative preimage retains its original identity.
-  assert.equal(cid({...predecessorBody, query_text_grammar_sha256:
+  assert.equal(cid({...preAbsBody, query_text_grammar_sha256:
     'f503d7097c17b26ce592fe87357441f6ea86420478f2a3e66b4fa765aa051fd8',
     query_text_rules_sha256: '27fe4f563feb13443d7995f51f770399019e9645cbbc5a3105e0d0c48f870c73'}),
     'sha256:de630432fb2b6f3700294801070100e3340fc6ad295c2671fe9c0b3222f16169');
-  assert.equal(cid({...predecessorBody, query_text_grammar_sha256:
+  assert.equal(cid({...preAbsBody, query_text_grammar_sha256:
     '6f25704123fd2d1fd4ee3a7fd57d4d7d2502b76994743edbc6322de0e54641ca',
     query_text_rules_sha256: '4c6e449ca893a50395143e5c1f54acb14251aacdde816f5df74f66ff4816bd60'}),
     'sha256:ba59c48eb915694484664a7daf7f839e492c36eae44137993f39130793c59672');
-  // Preserve the exact formerly current preimage rather than rebinding it to
-  // the newly documented object-star rule.
-  assert.equal(cid({...predecessorBody,
-    query_text_grammar_sha256: 'f503d7097c17b26ce592fe87357441f6ea86420478f2a3e66b4fa765aa051fd8',
-    query_text_rules_sha256: 'f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33'}),
-    'sha256:440dfe0c1508b744e4ce22e6729dc362678785119932aa142aba313dc57b8680');
-  assert.equal(cid({...installedBody,
+  assert.equal(preAbsCid, "sha256:440dfe0c1508b744e4ce22e6729dc362678785119932aa142aba313dc57b8680");
+  // Preserve the submitted ABS parent's full normative grammar independently.
+  const {grammar_manifest_cid: submittedCid, ...submittedBody} =
+    read('scripts/fixtures/submitted-abs-values-identities.json').grammar;
+  assert.equal(cid(submittedBody), submittedCid);
+  assert.equal(submittedCid, 'sha256:0325886c76522de57048ef35ac3abb43e843e418d92c3b3d40e73a6d5c669222');
+  const {grammar_manifest_cid: objectStarCid, ...objectStarBody} =
+    read('scripts/fixtures/submitted-object-star-grammar.json').grammar;
+  assert.equal(cid(objectStarBody), objectStarCid);
+  assert.equal(objectStarCid, 'sha256:f403b42dd4a19e8a22629ba7f14f6bb6de754490194277e4f083ae0f08515bb5');
+  assert.equal(cid({...objectStarBody,
     query_text_rules_sha256: '4833bf1144ceea372ce4b95c0ec78ea1aceb473a83dab930bcebb1cb42fe8d12'}),
     'sha256:4943caba75b011ab9aebfc07d4f30ea4a5aefa72c50bc2eab44724cc3e6aaff9');
-  const currentExpected = 'sha256:f403b42dd4a19e8a22629ba7f14f6bb6de754490194277e4f083ae0f08515bb5';
+  assert.equal(cid({...currentBody,
+    query_text_rules_sha256: 'f04041e8cb9706ee535612f3f2e51f7b732e4fb5f9ac7f76836f82645262c749'}),
+    'sha256:ad974dd510c1491960ebc6c86b0c426fecf6874895e4a0dc00ce07e714e145dc');
+  const currentExpected = 'sha256:aa72c07d6ede6683c451532f247b661fe5c440723625d79302c5c65cf4537216';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
-  assert.equal(installedBody.query_text_grammar_sha256, 'a9065e539f56e2d8d57bbd4b9e813abf1ad5340dcfaa846517bbd22371959538');
-  assert.equal(installedBody.query_text_rules_sha256, 'cf3c7ae714ecd006a8e350aa84d7ae4c322e7eb2d7a275db06078ffad0d9cee9');
-  assert.equal(cid(installedBody), currentExpected);
+  assert.equal(currentBody.query_text_grammar_sha256, 'a9065e539f56e2d8d57bbd4b9e813abf1ad5340dcfaa846517bbd22371959538');
+  assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
+  assert.equal(currentBody.query_text_rules_sha256, "dfb42ce15eb058ef489b71595daa73778299e510b0bcb933dad502d0017b67e1");
+  assert.equal(cid(currentBody), currentExpected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
-  assert.deepEqual(pinned, installedBody);
+  assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);
   for (const field of ['query_text_grammar_sha256', 'query_text_rules_sha256']) {
-    assert.notEqual(cid({...installedBody, [field]: '0'.repeat(64)}), currentExpected);
+    assert.notEqual(cid({...currentBody, [field]: '0'.repeat(64)}), currentExpected);
   }
 });

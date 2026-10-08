@@ -158,6 +158,7 @@ fn flatten(
       | "is_unknown"
       | "len"
       | "sqrt"
+      | "abs"
       | "floor"
       | "lower"
       | "upper"
