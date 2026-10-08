@@ -79,6 +79,12 @@ for (const transport of ['local', 'https']) {
         const reply = await sink.withEvaluatorEvidence({subject, attemptCid: item.attemptCid,
           references: item.references}, async resolvedEvidence => {
           const facts = checkModelCaptureCorrespondence(job, checkResolvedEvidence(job, resolvedEvidence));
+          const sent = saved.calls.filter(call => call.slotCid === item.modelCallSlotCid);
+          assert.equal(sent.length, 1);
+          assert.deepEqual(sent[0].key, facts.typedInput.key);
+          assert.equal(sent[0].taskCid, facts.typedInput.model_task_contract_cid);
+          assert.equal(sent[0].semanticRequestCid, facts.typedInput.semantic_request_cid);
+          assert.deepEqual(facts.renderedInput, {instructions: sent[0].instructions, text: sent[0].text});
           associations.push({target, key: facts.typedInput.key,
             keyContracts: facts.typedInput.key_contracts, text: facts.typedInput.inputs.text});
           attempts.add(item.attemptCid);
@@ -191,6 +197,12 @@ for (const transport of ['local', 'https']) {
             const entry = entries.find(entry => entry.key === facts.typedInput.key[0]);
             assert(entry); assert.deepEqual(facts.typedInput.key_contracts, [{type: 'number', nullable: false}]);
             assert.equal(facts.typedInput.inputs.text, entry.text);
+            const sent = trial.saved.calls.filter(call => call.slotCid === original.modelCallSlotCid);
+            assert.equal(sent.length, 1);
+            assert.deepEqual(sent[0].key, facts.typedInput.key);
+            assert.equal(sent[0].taskCid, facts.typedInput.model_task_contract_cid);
+            assert.equal(sent[0].semanticRequestCid, facts.typedInput.semantic_request_cid);
+            assert.deepEqual(facts.renderedInput, {instructions: sent[0].instructions, text: sent[0].text});
             items.push({target, key: facts.typedInput.key, evidence});
           }
         }

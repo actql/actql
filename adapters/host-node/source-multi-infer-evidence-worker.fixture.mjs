@@ -102,7 +102,9 @@ try {
         return moon.clientProgramModelRequestPreflight(() => ({_0: true,
           _1: checked(moon.clientProgramModelPhysicalEvidencePlan(request, 1000n, 33n, 0n, 500n,
             renderedInput, contextManifest, () => {
-            calls.push({taskCid: task.contract_cid, instructions, text});
+            calls.push({slotCid: input.model_call_slot_cid,
+              semanticRequestCid: input.semantic_request_cid,
+              taskCid: task.contract_cid, key: input.key, instructions, text});
             const urgent = first && scenarioName !== 'unicode' &&
               (instructions === instructionsA ? text === 'urgent' : text.toLowerCase() === 'urgent');
             return moon.clientProgramModelResponse(request, canonical({risk: urgent ? 'high' : 'low', reason: text}),
