@@ -6,7 +6,7 @@ import {pathToFileURL} from 'node:url';
 import {performance} from 'node:perf_hooks';
 import {nativeOwnerObservations, admitNativeOwnerObservations} from './native-owner-observations.mjs';
 import {retainedCase, workloads} from './fixtures.mjs';
-import {profileDigest, nativeProfileSchedule, validateLocalObservation,
+import {profileDigest, nativeProfileSchedule, nativeOperationalSchedule, validateLocalObservation,
   aggregateLocalProfiles, describeObservationOverhead} from './local-performance-profile.mjs';
 import {captureLimitBytes} from './local-profile-capture.mjs';
 
@@ -22,9 +22,11 @@ async function boundedRead(path, maximum) {
 
 export async function readLocalNativeProfile(directory, {now = Date.now(), maxAgeMs = 86400000} = {}) {
   const started = performance.now();
-  const report = JSON.parse(await boundedRead(join(directory, 'experiment.json'), 40 * 1024 * 1024));
+  const reportBytes = await boundedRead(join(directory, 'experiment.json'), 40 * 1024 * 1024);
+  const report = JSON.parse(reportBytes);
   assert.equal(report.version, 'actql-local-native-profile-experiment/0.1');
-  assert.deepEqual(report.schedule, nativeProfileSchedule(), 'ChangedExperimentSchedule');
+  assert.deepEqual(report.schedule, report.scheduleKind === 'operational-six'
+    ? nativeOperationalSchedule() : nativeProfileSchedule(), 'ChangedExperimentSchedule');
   assert(report.observations.length <= 18);
   const fixture = retainedCase(workloads[2], 'text-1024', 1000);
   assert.equal(report.caseId, fixture.id);
@@ -83,7 +85,7 @@ export async function readLocalNativeProfile(directory, {now = Date.now(), maxAg
   }
   const profiles = aggregateLocalProfiles(report.observations,
     {now, maxAgeMs, minimumSamples: report.freshnessPolicy.minimumSamples});
-  return {revision: report.revision, executions: report.observations.length,
+  return {revision: report.revision, reportDigest: profileDigest(reportBytes), executions: report.observations.length,
     profiles, overhead: describeObservationOverhead(report.observations),
     readbackAndAggregationMs: performance.now() - started,
     scope: 'offline local readback; no Actions provenance or empirical planner admission'};

@@ -1,0 +1,702 @@
+{
+  "revision": "c73c7fc900be865d94395e01eb69c4a61195e5e6",
+  "compiledSourceRevision": "c73c7fc900be865d94395e01eb69c4a61195e5e6",
+  "binaryDigest": "sha256:74371f10e6eed0c6b38363127731f3f52b72ec20d18897d16807422258bcbbc7",
+  "instrumentationRevision": "sha256:fe1987bf99cae9e890fb9905bfc4e3da8a5d39c02a12503523af074813a5e1ab",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "osRelease": "25.2.0",
+    "cpuModels": [
+      "Apple M4"
+    ],
+    "logicalCpus": 10,
+    "node": "v22.23.2",
+    "libraryDigest": "sha256:b9027d18ef3e8d960568f77e946a83ca68009cb22d71cf7f94de842afdd094d8",
+    "toolchain": {
+      "version": "0.10.12+1634b282e",
+      "moon": "0.1.20260904 (94521db 2026-09-04)",
+      "moonc": "v0.10.12+1634b282e (2026-09-07)",
+      "archives": {
+        "darwin-arm64": {
+          "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+          "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+        },
+        "linux-x64": {
+          "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+          "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+        }
+      },
+      "core": {
+        "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+        "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+      }
+    },
+    "experimentConcurrency": 1,
+    "providerThreads": "unknown",
+    "competingLoad": "uncontrolled"
+  },
+  "schedule": [
+    {
+      "round": 0,
+      "mode": "metadata-only",
+      "realization": "fresh",
+      "index": 0
+    },
+    {
+      "round": 0,
+      "mode": "metadata-only",
+      "realization": "resident",
+      "index": 1
+    },
+    {
+      "round": 1,
+      "mode": "metadata-only",
+      "realization": "fresh",
+      "index": 2
+    },
+    {
+      "round": 1,
+      "mode": "metadata-only",
+      "realization": "resident",
+      "index": 3
+    },
+    {
+      "round": 2,
+      "mode": "metadata-only",
+      "realization": "fresh",
+      "index": 4
+    },
+    {
+      "round": 2,
+      "mode": "metadata-only",
+      "realization": "resident",
+      "index": 5
+    }
+  ],
+  "scheduleKind": "operational-six",
+  "caseId": "retained-large-output-downstream-reuse/text-1024/1000",
+  "controls": {
+    "fresh": {
+      "residentPolicy": false,
+      "nativeRates": [
+        "1000",
+        "1000",
+        "1000"
+      ]
+    },
+    "resident": {
+      "residentPolicy": true,
+      "nativeRates": [
+        "1000",
+        "1000",
+        "1000"
+      ]
+    }
+  },
+  "limits": {
+    "sourceRows": 1000,
+    "intermediateRows": 1000,
+    "sourceCells": 2000,
+    "maxColumns": 2,
+    "maxValueBytes": 2048,
+    "cumulativeValueNodes": 48000,
+    "cumulativeValueTextBytes": 2048000,
+    "cumulativeGuardWork": 8192000,
+    "representationBytes": 2048000,
+    "rowFrameBytes": 16384,
+    "batchBytes": 1048576,
+    "executionMemoryBytes": 4294967296,
+    "timeoutMs": 120000,
+    "cleanupTimeoutMs": 60000
+  },
+  "dataStatistics": {
+    "source": "independent synthetic fixture, not inferred runtime statistics",
+    "rows": 1000,
+    "expectedOutput": {
+      "rows": 1000,
+      "bytes": 1047891,
+      "rowsCid": "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce"
+    },
+    "ndv": null,
+    "selectivity": null
+  },
+  "freshnessPolicy": {
+    "maxAgeMs": 86400000,
+    "minimumSamples": 3,
+    "scope": "explicit local analysis window, not a scientifically calibrated expiry"
+  },
+  "measurementScopes": {
+    "processCycleMs": "parent preparation through child exit; excludes subsequent local capture/admission",
+    "coldMs": "same process cycle minus child cleanup; existing coldMs boundary",
+    "warmMs": "same-Run sequential task intervals, not a warm subsequent Run",
+    "observedEndToEndMs": "parent preparation, child, Owner admission, local capture and recording; not customer application/Run latency",
+    "commonSourcePreparation": "separate cost before all executions",
+    "aggregate": "separate parent basic aggregation cost; not an operator interval",
+    "overlapping": true,
+    "osCache": "uncontrolled"
+  },
+  "profiles": [
+    {
+      "version": "actql-local-performance-profile/0.1",
+      "key": "sha256:fed91c1dfc5c23f83e2738d884efa92e201c590329ae65ae933c0aadce50fa88",
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "c73c7fc900be865d94395e01eb69c4a61195e5e6",
+        "binaryDigest": "sha256:74371f10e6eed0c6b38363127731f3f52b72ec20d18897d16807422258bcbbc7",
+        "inputDigest": "sha256:939a320ba6a99c293d0e49b2ed1d063c994d3f8ac6b55296288526580217a4c6",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:fe1987bf99cae9e890fb9905bfc4e3da8a5d39c02a12503523af074813a5e1ab",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "status": "descriptive-only",
+      "reasons": [],
+      "statuses": {
+        "succeeded": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "interrupted": 0,
+        "unobserved": 0
+      },
+      "attempted": 3,
+      "compatibleCompleteSuccesses": 3,
+      "metrics": {
+        "processCycleMs": {
+          "count": 3,
+          "median": 785.2881659999998,
+          "min": 743.2464170000003,
+          "max": 1603.214875,
+          "status": "descriptive-only"
+        },
+        "coldMs": {
+          "count": 3,
+          "median": 784.2941659999998,
+          "min": 741.2844170000003,
+          "max": 1601.339875,
+          "status": "descriptive-only"
+        },
+        "warmMs": {
+          "count": 3,
+          "median": 415.44599999999997,
+          "min": 406.238,
+          "max": 434.36300000000006,
+          "status": "descriptive-only"
+        },
+        "cleanupMs": {
+          "count": 3,
+          "median": 1.875,
+          "min": 0.994,
+          "max": 1.962,
+          "status": "descriptive-only"
+        },
+        "executionMs": {
+          "count": 3,
+          "median": 706.237,
+          "min": 682.462,
+          "max": 739.573,
+          "status": "descriptive-only"
+        },
+        "captureMs": {
+          "count": 3,
+          "median": 3.2220830000001115,
+          "min": 2.484875000000102,
+          "max": 12.13983400000052,
+          "status": "descriptive-only"
+        },
+        "recordingMs": {
+          "count": 3,
+          "median": 1.4543750000002547,
+          "min": 1.1320830000004207,
+          "max": 1.665541999999732,
+          "status": "descriptive-only"
+        },
+        "observedEndToEndMs": {
+          "count": 3,
+          "median": 817.5351249999999,
+          "min": 783.9840000000004,
+          "max": 1648.001708,
+          "status": "descriptive-only"
+        }
+      },
+      "observationIds": [
+        "trial-0",
+        "trial-2",
+        "trial-4"
+      ],
+      "latestObservationAt": 1791433382611,
+      "earliestObservationAt": 1791433378830,
+      "freshnessPolicy": {
+        "maxAgeMs": 86400000,
+        "minimumSamples": 3
+      },
+      "calibration": "not-calibrated",
+      "precision": "not-established",
+      "populationFailureRate": null,
+      "plannerEstimate": null
+    },
+    {
+      "version": "actql-local-performance-profile/0.1",
+      "key": "sha256:cf316a4cc2958814fa91a8977e2a40c8b53f6f65b1d9d793cca2f125699b8ab4",
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "c73c7fc900be865d94395e01eb69c4a61195e5e6",
+        "binaryDigest": "sha256:74371f10e6eed0c6b38363127731f3f52b72ec20d18897d16807422258bcbbc7",
+        "inputDigest": "sha256:939a320ba6a99c293d0e49b2ed1d063c994d3f8ac6b55296288526580217a4c6",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:fe1987bf99cae9e890fb9905bfc4e3da8a5d39c02a12503523af074813a5e1ab",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "status": "descriptive-only",
+      "reasons": [],
+      "statuses": {
+        "succeeded": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "interrupted": 0,
+        "unobserved": 0
+      },
+      "attempted": 3,
+      "compatibleCompleteSuccesses": 3,
+      "metrics": {
+        "processCycleMs": {
+          "count": 3,
+          "median": 596.0126250000003,
+          "min": 530.8100409999997,
+          "max": 662.6651250000004,
+          "status": "descriptive-only"
+        },
+        "coldMs": {
+          "count": 3,
+          "median": 592.3136250000003,
+          "min": 526.6270409999997,
+          "max": 659.4051250000005,
+          "status": "descriptive-only"
+        },
+        "warmMs": {
+          "count": 3,
+          "median": 261.692,
+          "min": 225.29000000000002,
+          "max": 288.799,
+          "status": "descriptive-only"
+        },
+        "cleanupMs": {
+          "count": 3,
+          "median": 3.699,
+          "min": 3.26,
+          "max": 4.183,
+          "status": "descriptive-only"
+        },
+        "executionMs": {
+          "count": 3,
+          "median": 528.705,
+          "min": 488.461,
+          "max": 631.025,
+          "status": "descriptive-only"
+        },
+        "captureMs": {
+          "count": 3,
+          "median": 7.72912499999984,
+          "min": 2.0289160000002084,
+          "max": 10.68054200000006,
+          "status": "descriptive-only"
+        },
+        "recordingMs": {
+          "count": 3,
+          "median": 1.687249999999949,
+          "min": 1.4042499999995925,
+          "max": 2.808665999999903,
+          "status": "descriptive-only"
+        },
+        "observedEndToEndMs": {
+          "count": 3,
+          "median": 638.1866669999999,
+          "min": 572.266666,
+          "max": 698.2742079999998,
+          "status": "descriptive-only"
+        }
+      },
+      "observationIds": [
+        "trial-1",
+        "trial-3",
+        "trial-5"
+      ],
+      "latestObservationAt": 1791433383405,
+      "earliestObservationAt": 1791433380490,
+      "freshnessPolicy": {
+        "maxAgeMs": 86400000,
+        "minimumSamples": 3
+      },
+      "calibration": "not-calibrated",
+      "precision": "not-established",
+      "populationFailureRate": null,
+      "plannerEstimate": null
+    }
+  ],
+  "overhead": [
+    {
+      "realization": "fresh",
+      "mode": "metadata-only",
+      "pairs": [],
+      "processCycleDelta": {
+        "count": 0,
+        "median": null,
+        "min": null,
+        "max": null
+      },
+      "endToEndDelta": {
+        "count": 0,
+        "median": null,
+        "min": null,
+        "max": null
+      },
+      "status": "unknown",
+      "scope": "matched local modes; order/environment variation not causally separated; no overhead upper bound"
+    },
+    {
+      "realization": "fresh",
+      "mode": "evidence-enabled",
+      "pairs": [],
+      "processCycleDelta": {
+        "count": 0,
+        "median": null,
+        "min": null,
+        "max": null
+      },
+      "endToEndDelta": {
+        "count": 0,
+        "median": null,
+        "min": null,
+        "max": null
+      },
+      "status": "unknown",
+      "scope": "matched local modes; order/environment variation not causally separated; no overhead upper bound"
+    },
+    {
+      "realization": "resident",
+      "mode": "metadata-only",
+      "pairs": [],
+      "processCycleDelta": {
+        "count": 0,
+        "median": null,
+        "min": null,
+        "max": null
+      },
+      "endToEndDelta": {
+        "count": 0,
+        "median": null,
+        "min": null,
+        "max": null
+      },
+      "status": "unknown",
+      "scope": "matched local modes; order/environment variation not causally separated; no overhead upper bound"
+    },
+    {
+      "realization": "resident",
+      "mode": "evidence-enabled",
+      "pairs": [],
+      "processCycleDelta": {
+        "count": 0,
+        "median": null,
+        "min": null,
+        "max": null
+      },
+      "endToEndDelta": {
+        "count": 0,
+        "median": null,
+        "min": null,
+        "max": null
+      },
+      "status": "unknown",
+      "scope": "matched local modes; order/environment variation not causally separated; no overhead upper bound"
+    }
+  ],
+  "aggregationMs": 1.5375829999993584,
+  "provenanceReadback": {
+    "sourceUnchanged": true,
+    "binaryUnchanged": true,
+    "libraryUnchanged": true,
+    "sourceRevisionUnchanged": true
+  },
+  "accepted": true,
+  "acceptance": {
+    "version": "actql-operational-estimate-acceptance/0.1",
+    "revision": "c73c7fc900be865d94395e01eb69c4a61195e5e6",
+    "binaryDigest": "sha256:74371f10e6eed0c6b38363127731f3f52b72ec20d18897d16807422258bcbbc7",
+    "profileRevision": "sha256:65caf077ac37526d59b51f329413b5709e0bfce9504d70a1b361fa0b9867c43d",
+    "profileOriginal": "/private/tmp/g-p2-profile-c73c7fc90-20261008",
+    "readAndAggregateMs": 251.2835,
+    "receipts": [
+      {
+        "realization": "fresh",
+        "accepted": true,
+        "taskReferences": 3,
+        "unknownReceives": 3,
+        "bindingRefusals": 30,
+        "afterCommitRefusals": 3,
+        "stdoutDigest": "sha256:e9ae02afd747bf7fd34c1e84b2da3c8c94e3a21fcd472034ea1d8323c27fd355",
+        "acquisition": {
+          "host": "native",
+          "provided": [
+            "native"
+          ],
+          "registration": "duckdb",
+          "milliseconds": null,
+          "reason": "HostPreferred",
+          "transferBytes": null,
+          "retainedBytes": null,
+          "moneyUnits": null,
+          "receiverRetentionBytes": "256592512",
+          "receiverExecutionBytes": "152520448",
+          "capacityScope": "declared receiver, not physical heap"
+        },
+        "usage": {
+          "planning_work": 869,
+          "attempts": 3,
+          "holdings": 3,
+          "transferred_bytes": 0,
+          "uncertain_transfer_bytes": 0,
+          "reserved_transfer_bytes": 0,
+          "held_bytes": 0,
+          "reserved_retention_bytes": 0,
+          "reserved_execution_bytes": 0,
+          "peak_retention_bytes": 81185318
+        },
+        "admissionScope": "template read/pinning, normal and unknown receive plus ten refusal checks; not normal one-sidecar overhead",
+        "admissionMicroseconds": [
+          19459.875,
+          2585.125,
+          5533.7080000000005
+        ],
+        "command": [
+          "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe",
+          "--application-root",
+          "/private/tmp/g-p2-acceptance-c73c7fc90-20261008/fresh",
+          "--database",
+          "/private/tmp/g-p2-profile-c73c7fc90-20261008/source.duckdb",
+          "--duckdb-library",
+          "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/adapters/connectors/duckdb/node/node_modules/@duckdb/node-bindings-darwin-arm64/libduckdb.dylib",
+          "--retained-task-root",
+          "/private/tmp/g-p2-acceptance-c73c7fc90-20261008/fresh/retained-task",
+          "--expected-cid",
+          "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+          "--expected-tasks",
+          "3",
+          "--native-ms",
+          "1000",
+          "--attempt-cap",
+          "12",
+          "--stop-after-task",
+          "-",
+          "--local-eligible",
+          "false",
+          "--resident-policy",
+          "false",
+          "--source-read-only",
+          "true",
+          "--phase-observer",
+          "true",
+          "--local-task-ms",
+          "-",
+          "--native-task-ms",
+          "1000,1000,1000",
+          "--source-rows",
+          "1000",
+          "--task-rows",
+          "1000",
+          "--columns",
+          "2",
+          "--value-bytes",
+          "2048",
+          "--wire-bytes",
+          "2048000",
+          "--value-nodes",
+          "48000",
+          "--text-bytes",
+          "2048000",
+          "--work",
+          "8192000",
+          "--entries",
+          "48000",
+          "--batch-bytes",
+          "1048576",
+          "--planning-work",
+          "8292000",
+          "--transfer-cap",
+          "34848768",
+          "--retained-cap",
+          "1073741824",
+          "--execution-cap",
+          "4294967296",
+          "--operational-estimate-root",
+          "/private/tmp/g-p2-acceptance-c73c7fc90-20261008/fresh",
+          "--operational-profile-revision",
+          "sha256:65caf077ac37526d59b51f329413b5709e0bfce9504d70a1b361fa0b9867c43d",
+          "--operational-template-pins",
+          "sha256:0bdb3357dc575cfdcaad28612f16425db4a94c4d3a32346549913ac23c1f6889,sha256:4590d71b69198cef9e58fe5a7e9e63137832b38280b2eda2e10f17e881cfe857,sha256:ce0de2d4dee8542a8f25e93ef4a68c64ef486fe531379f39706b10f6ba9a3737,sha256:135cde2882e8b9b1ebc26e5b45500767bdc477abe7e14d6472c4db6cd10f8aae,sha256:af116edf612bfba4751ca920dcb95c39f775f228c73f83fa3b80053d2c8d8708,sha256:dbd016409e25bf31e857fd12789a2760e51a08ee7c2c7810ad0a6e80906a16a2",
+          "--sqlite-library",
+          "/usr/lib/libsqlite3.dylib"
+        ]
+      },
+      {
+        "realization": "resident",
+        "accepted": true,
+        "taskReferences": 3,
+        "unknownReceives": 3,
+        "bindingRefusals": 30,
+        "afterCommitRefusals": 3,
+        "stdoutDigest": "sha256:0a865c948126e6c5f7d5b174c62d6ff7a5d3dfac83faa32fc27506a450a6636b",
+        "acquisition": {
+          "host": "native",
+          "provided": [
+            "native"
+          ],
+          "registration": "duckdb",
+          "milliseconds": null,
+          "reason": "HostPreferred",
+          "transferBytes": null,
+          "retainedBytes": null,
+          "moneyUnits": null,
+          "receiverRetentionBytes": "256592512",
+          "receiverExecutionBytes": "152520448",
+          "capacityScope": "declared receiver, not physical heap"
+        },
+        "usage": {
+          "planning_work": 1514,
+          "attempts": 5,
+          "holdings": 3,
+          "transferred_bytes": 0,
+          "uncertain_transfer_bytes": 0,
+          "reserved_transfer_bytes": 0,
+          "held_bytes": 0,
+          "reserved_retention_bytes": 0,
+          "reserved_execution_bytes": 0,
+          "peak_retention_bytes": 81185318
+        },
+        "admissionScope": "template read/pinning, normal and unknown receive plus ten refusal checks; not normal one-sidecar overhead",
+        "admissionMicroseconds": [
+          3311.083,
+          8919.584,
+          5251.042
+        ],
+        "command": [
+          "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe",
+          "--application-root",
+          "/private/tmp/g-p2-acceptance-c73c7fc90-20261008/resident",
+          "--database",
+          "/private/tmp/g-p2-profile-c73c7fc90-20261008/source.duckdb",
+          "--duckdb-library",
+          "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/adapters/connectors/duckdb/node/node_modules/@duckdb/node-bindings-darwin-arm64/libduckdb.dylib",
+          "--retained-task-root",
+          "/private/tmp/g-p2-acceptance-c73c7fc90-20261008/resident/retained-task",
+          "--expected-cid",
+          "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+          "--expected-tasks",
+          "3",
+          "--native-ms",
+          "1000",
+          "--attempt-cap",
+          "12",
+          "--stop-after-task",
+          "-",
+          "--local-eligible",
+          "false",
+          "--resident-policy",
+          "true",
+          "--source-read-only",
+          "true",
+          "--phase-observer",
+          "true",
+          "--local-task-ms",
+          "-",
+          "--native-task-ms",
+          "1000,1000,1000",
+          "--source-rows",
+          "1000",
+          "--task-rows",
+          "1000",
+          "--columns",
+          "2",
+          "--value-bytes",
+          "2048",
+          "--wire-bytes",
+          "2048000",
+          "--value-nodes",
+          "48000",
+          "--text-bytes",
+          "2048000",
+          "--work",
+          "8192000",
+          "--entries",
+          "48000",
+          "--batch-bytes",
+          "1048576",
+          "--planning-work",
+          "8292000",
+          "--transfer-cap",
+          "34848768",
+          "--retained-cap",
+          "1073741824",
+          "--execution-cap",
+          "4294967296",
+          "--operational-estimate-root",
+          "/private/tmp/g-p2-acceptance-c73c7fc90-20261008/resident",
+          "--operational-profile-revision",
+          "sha256:65caf077ac37526d59b51f329413b5709e0bfce9504d70a1b361fa0b9867c43d",
+          "--operational-template-pins",
+          "sha256:4cef242ca169d1d0b3d57e0aac2245d7b92a790ec672ba319a0ed0548e75439e,sha256:67daed664db91685d8e3373ce6251c27cdea69480e42b1e0e6da1bcfac559c08,sha256:1e22e455d05ea028d48336e8802894b614cb61d4a2cdac97d5ba1744f3c572d8,sha256:a18edc89cdff54d9f69380a535575718528e41ecdaaf36a75ad9b4ef8e242db0,sha256:fd2837b37f321dbb5713ae6e04420f92f42a001a6b1d34cc506ebe274de792bd,sha256:008c57373dc094fd5842096a200e452674c925691a086c9d8953170115fa8c8c",
+          "--sqlite-library",
+          "/usr/lib/libsqlite3.dylib"
+        ]
+      }
+    ],
+    "comparativeOverhead": "unknown-no-off-comparison",
+    "eta": null,
+    "p90": null,
+    "scope": "functional Native admission, no new performance samples or planner ranking"
+  },
+  "recordingCosts": {
+    "checkpointWritesMs": [
+      5.925957999999923,
+      6.324665999999979,
+      10.49270800000022,
+      10.944082999999864,
+      8.032165999999961,
+      8.530041999999412,
+      12.946625000000495,
+      27.33325000000059
+    ],
+    "totalCheckpointMs": 90.52949800000044,
+    "elapsedThroughFinalCheckpointMs": 6389.437334,
+    "scope": "includes final experiment checkpoint; excludes this cost receipt write"
+  },
+  "archive": {
+    "path": "docs/reviews/evidence/2026-10-08-native-operational-estimates-c73c7fc90.tar.gz",
+    "bytes": 463352,
+    "digest": "sha256:b34ba1c09c40d22818b80b5571c6472cdf720a940f80a1e95f8fa00a0d963f8f",
+    "regularFiles": 136,
+    "allMembersReadBack": true
+  },
+  "trust": "Local exact-source reference and functional admission only; no Actions provenance, dispatch permission, ETA/p90 calibration or off/on overhead comparison."
+}
