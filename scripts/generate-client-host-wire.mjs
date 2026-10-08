@@ -11,7 +11,7 @@ import {nativeClientWire, responseRules, jsResponseRules,
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
 const runStateSource = 'spec/contracts/actql-protocol-schemas.json';
-const names = ['submission_epoch', 'submission_ref', 'submission_outcome', 'submission_lookup',
+const names = ['submission_epoch', 'submission_ref', 'submission_outcome', 'submission_lookup', 'submission_restart',
   'run_ref', 'connection', 'profile', 'admission',
   'lookup_found', 'lookup_not_found', 'lookup_unknown', 'held',
   'checkpoint_summary', 'checkpoint_review', 'resolve_item',
@@ -19,7 +19,7 @@ const names = ['submission_epoch', 'submission_ref', 'submission_outcome', 'subm
   'cancellation_ref', 'cancellation_lookup',
   'request_cancellation', 'resource_listing', 'resource_inspection',
   'resource_peek', 'result_description'];
-const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'SubmissionLookup',
+const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'SubmissionLookup', 'SubmissionRestart',
   'RunRef', 'Connection', 'Profile', 'Admission',
   'LookupFound', 'LookupNotFound', 'LookupUnknown', 'Held',
   'CheckpointSummary', 'CheckpointReview', 'ResolveItem', 'ResolveResult',

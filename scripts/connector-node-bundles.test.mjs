@@ -143,7 +143,7 @@ test('connector host manifests generate the installed connector table and refuse
         exports: {check: 'checkExample', identityParts: 'partsExample', load: 'loadExample'}}}});
     const checked = checkHostBundle(scratch, 'example', write(valid()));
     assert.equal(checked.registration, 'example');
-    assert.match(generateInstallations([checked, salesforce],
+    assert.match(generateInstallations([checked],
       join(scratch, 'adapters/connectors-builtin/installations.generated.mjs'), scratch),
     /import\("\.\.\/connectors\/example\/host\/installed-example-source\.mjs"\)/);
     assert.throws(() => generateInstallations([checked, {...checked, name: 'twin'}],
@@ -163,6 +163,8 @@ test('connector host manifests generate the installed connector table and refuse
     mutate(installation => { installation.responseHeaders = ['Link']; }, 'responseHeaders');
     mutate(installation => { installation.responseHeaders = ['link', 'link']; }, 'responseHeaders');
     mutate(installation => { installation.responseHeaders = ['set-cookie']; }, 'responseHeaders');
+    mutate(installation => { installation.responseHeaders =
+      Array.from({length: 17}, (_, index) => `x-${index}`); }, 'responseHeaders');
     mutate(installation => { installation.effect = {...installation.source}; }, 'effect profileVersion');
     mutate(installation => { installation.effect = {...installation.source,
       profileVersion: 'actql-installed-example-effect/0.1', module: 'adapters/host-node/x.mjs'}; }, 'effect module');
@@ -176,6 +178,22 @@ test('connector host manifests generate the installed connector table and refuse
       assert.match(generateInstallations([withEffect],
         join(scratch, 'adapters/connectors-builtin/installations.generated.mjs'), scratch),
       /effect: Object\.freeze\(\{\n      profileVersion: "actql-installed-example-effect\/0\.1"/);
+      manifest.installation.effect.identityProfile = salesforce.effect.identityProfile;
+      const registered = checkHostBundle(scratch, 'example', write(manifest));
+      assert.deepEqual(registered.effect.identityProfile, salesforce.effect.identityProfile);
+      const invalidProfiles = [null, {},
+        {...salesforce.effect.identityProfile, extra: 'value'},
+        {...salesforce.effect.identityProfile, continuationBinding: 'unregistered'},
+        {...salesforce.effect.identityProfile, unit: 'actql-example-unit/0.2'}];
+      for (const identityProfile of invalidProfiles) {
+        manifest.installation.effect.identityProfile = identityProfile;
+        assert.throws(() => checkHostBundle(scratch, 'example', write(manifest)),
+          /Invalid Host bundle manifest \(effect identityProfile\)/);
+      }
+      assert.throws(() => generateInstallations([withEffect, {...withEffect,
+        source: undefined, name: 'twin'}],
+      join(scratch, 'adapters/connectors-builtin/installations.generated.mjs'), scratch),
+      /Duplicate installed Effect profile version/);
     }
     mutate(installation => { installation.source.profileVersion = 'actql-installed-example-source'; }, 'profileVersion');
     mutate(installation => { installation.source.module = 'adapters/host-node/installed-source.mjs'; }, 'module');

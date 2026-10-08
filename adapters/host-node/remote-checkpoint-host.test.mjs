@@ -122,7 +122,7 @@ async function unusedTableFixture(directory, name = 'unused-table') {
   const catalogCid = contentCid({fixture: name});
   const path = join(directory, `${name}.json`);
   await writeFile(path, JSON.stringify({
-    version: 'actql-installed-table-source/0.1', connectorId: name, connection: name,
+    version: 'actql-installed-local-table-source/0.1', connectorId: name, connection: name,
     python: join(directory, 'uninstalled-python'),
     catalog: {database: join(directory, `${name}.db`), warehouse: join(directory, name),
       catalogCid, limits: {bytes: 1048576, files: 16, operations: 8}},

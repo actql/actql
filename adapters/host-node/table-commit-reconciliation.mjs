@@ -35,7 +35,7 @@ export async function reconcileOriginalTableCommit({control, commonMoon, ledger,
     providerBinding: {catalogIdentityCid: operation.catalog_identity_cid},
     authorizeEvidenceRead, invalidCode: 'InvalidTableCommitEvidenceRead',
     foreignCode: 'ForeignTableDispatchRequest'});
-  const settle = () => settleSavedTableCommit({control, ledger, tablePreview,
+  const settle = () => settleSavedTableCommit({control, ledger, tablePreview, bridge,
     claim: ownedClaim, limits});
   signal?.throwIfAborted();
   const initial = await read();
@@ -78,8 +78,12 @@ export async function reconcileOriginalTableCommit({control, commonMoon, ledger,
   const statusCode = observed.ok ? 200 : 409;
   // Validate the original request, schema/mapping, expected UUID and immutable
   // row count before adding evidence. No current-head success inference.
-  control.tablePreviewCommitOutcome(tablePreview,
-    responseBytes.toString('utf8'), statusCode, limits);
+  if (typeof bridge.projectCommitResponse !== 'function') {
+    fail('MissingTableCommitProjector');
+  }
+  const logicalWire = bridge.projectCommitResponse({control,
+    responseWire: responseBytes.toString('utf8'), statusCode, limits});
+  control.tablePreviewCommitOutcome(tablePreview, logicalWire, statusCode, limits);
   try {
     ledger.recordResponse({dispatching, scope: ownedClaim.scope,
       locator: ownedClaim.locator, key: ownedClaim.key,

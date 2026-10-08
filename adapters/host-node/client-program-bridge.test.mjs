@@ -53,6 +53,7 @@ import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
 import {settleSavedTableCommit} from './table-commit-outcome.mjs';
+import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import {issueAuthorizedEffectSetReceipt} from './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
@@ -63,7 +64,7 @@ import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
   './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {canonicalJson} from '../host-common/publication-contract-control.fixture.mjs';
-import {issueCompletedEffectfulComputationEvidence, prepareCompletedEffectfulPublication, publishCompletedEffectfulRun, recoverCompletedEffectfulComputation, releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from '../host-common/completed-run-publication.mjs';
+import {issueCompletedEffectfulComputationEvidence, prepareCompletedEffectfulPublication, publishCompletedEffectfulRun, recoverCompletedEffectfulComputation, releaseCompletedRunPreparedPayloads, releasePreparedResults, storeCompletedRunResultSet} from '../host-common/completed-run-publication.mjs';
 import {retainCompletedEffectDependencyPayloads} from
   '../host-common/completed-run-publication.mjs';
 import {suspendCompletedEffectfulComputation, retireCompletedEffectfulCapture} from
@@ -5715,7 +5716,9 @@ test('Effect source set shares exact owners and retains failed cleanup',
 // Python for the ordinary Host suite.
 export async function exerciseEffectSourceSet(t, {distinctResults = false,
   writeKind = 'store', empty = false, privateTableInput = false, sparseTableInput = false, onTablePreview, target,
-  mappingRef, minimumApproval} = {}) {
+  mappingRef, minimumApproval, prepareCaptureResults = false, onCompletedTableRun} = {}) {
+        assert.ok(onTablePreview === undefined || onCompletedTableRun === undefined,
+          'Select a captured Preview or an unpinned completed Run, not both');
         const fixture = await effectFixture({writeKind, target, mappingRef,
           minimumApproval, graphProfile: sparseTableInput,
           mappingSource: sparseTableInput ? 'k' : 'id',
@@ -5796,7 +5799,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           1n, 0n, 0n, 0n);
         assert.ok(owned);
         const execution = await runCapturedEffectComputation(owned);
-        const inputs = checked(moon.clientProgramPinEffectSources(owned, privateTableInput ? 3 : 2));
+        let inputs;
         await mkdir(scratch, {recursive: true});
         const directory = await mkdtemp(join(scratch.pathname, 'source-set-'));
         t.after(() => rm(directory, {recursive: true, force: true}));
@@ -5805,7 +5808,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           storeAuthorityCid: cid('7'), capacityBytes: 1024 * 1024,
           maxObjectBytes: 100000, maxObjects: 10,
           maxContractNodes: 10000, maxContractDepth: 64,
-          ...(onTablePreview === undefined ? {} : {
+          ...(onTablePreview === undefined && onCompletedTableRun === undefined ? {} : {
             privateEvidenceKey: Buffer.alloc(32, 4)}),
         };
         let physical = await openLocalPublicationStore(storeConfiguration, control);
@@ -5838,10 +5841,15 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             metadata_delete_by: '2026-09-24T04:00:00.000Z',
             clock_contract_cid: cid('0')}), publicationLimits);
         const issuedArguments = [];
+        let mappingIssuanceCount = 0;
         const issuerName = privateTableInput ?
           'issueSourceFreeLocalEffectTableArtifact' :
           'issueSourceFreeLocalEffectResultArtifact';
         const issuerControl = Object.freeze({...control,
+          localEffectTableStorageMapping(...args) {
+            mappingIssuanceCount++;
+            return control.localEffectTableStorageMapping(...args);
+          },
           [issuerName](...args) {
             if (distinctResults && issuedArguments.length === 1) {
               // Equal Result values do not let the first preparation claim
@@ -5868,8 +5876,34 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           localEvidenceContext: admittedLocalEffectEvidenceContext(control,
             prepared, evidence, definition, invocation, observation),
         };
-        let sources;
+        let sources, capturedResults;
         try {
+          if (onCompletedTableRun !== undefined) {
+            // The installed connection owns Result publication and Effect pins
+            // in that order. Do not lend it pins from this lower-level binding
+            // fixture or increase its live-holding ceiling to hide an overlap.
+            return await onCompletedTableRun({moon, sourceControl: issuerControl,
+              prepared, checkedHost: owned, execution, fixture, options, definition,
+              invocation, evidence, observation, outputLimits, directory,
+              tableLimits: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 16, maxWork: 1000},
+              storeConfiguration, physicalStore: physical,
+              replaceStoreForCleanup(value) { physical = value; }});
+          }
+          if (prepareCaptureResults) {
+            // Match the installed Table connection: publish ordinary Results
+            // before acquiring Effect input pins. Never increase the pin
+            // ceiling or temporarily release an Effect borrow to export rows.
+            const context = options.localEvidenceContext;
+            capturedResults = await storeCompletedRunResultSet({execution,
+              store: physical, control: issuerControl,
+              runDefinition: context.runDefinition, invocation: context.runInvocation,
+              results: execution.resultInventory.map(() => ({retention,
+                evidenceContext: {computationContractCid: cid('2'), inputRelationCids: [],
+                  scopeCid: cid('3'), effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')}})),
+              outputLimits, contractLimits: publicationLimits});
+          }
+          inputs = checked(moon.clientProgramPinEffectSources(owned, privateTableInput ? 3 : 2));
+          options.inputs = inputs;
           await assert.rejects(preparePinnedEffectSourceSet({...options,
             maxGroupingWork: 0}), {message: 'EffectSourceGroupingLimit'});
           assert.equal(writers, 0);
@@ -5910,7 +5944,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             logical_request_scope_cid: effect.logicalRequestScopeCid(scope),
             effect_identity_cid: identity.identity,
             input_artifact_cid: artifact.identity,
-            input_relation_cid: input.logical_result_cid,
+            input_carrier: {kind: 'relation', cid: input.logical_result_cid},
             schema_cid: input.result_schema_cid,
             storage_mapping_cid: storage.identity,
             data_policy_cid: input.effective_data_policy_cid,
@@ -5918,10 +5952,24 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           operation.request_cid = canonicalHashWithoutSelf(operation,
             'request_cid');
           const bind = wire => control.bindTableInput(prepared, inputs, 0,
-            artifact, identity, scope, wire, tableLimits);
+            artifact, identity, scope, wire, storage.wire, tableLimits);
           if (writeKind === 'store') {
             const boundTable = bind(canonicalJson(operation));
             assert.equal(boundTable.wire, canonicalJson(operation));
+            // Shared binding validates content/schema correspondence without
+            // interpreting the selected Connector's physical mapping fields.
+            const opaqueBody = {version: 'fixture-physical-mapping/0.1',
+              schema_cid: input.result_schema_cid, backend_field: 'opaque'};
+            const opaque = {...opaqueBody,
+              mapping_cid: canonicalHashWithoutSelf(opaqueBody, 'mapping_cid')};
+            const opaqueOperation = {...operation, storage_mapping_cid: opaque.mapping_cid};
+            opaqueOperation.request_cid = canonicalHashWithoutSelf(opaqueOperation, 'request_cid');
+            const opaqueBound = control.bindTableInput(prepared, inputs, 0,
+              artifact, identity, scope, canonicalJson(opaqueOperation),
+              canonicalJson(opaque), tableLimits);
+            assert.equal(control.tableInputStorageMappingWire(opaqueBound), canonicalJson(opaque));
+            assert.throws(() => control.admitLocalTableStorageMapping(
+              canonicalJson(opaque), tableLimits), {code: 'MoonBitHostFailure'});
             assert.equal(control.tableInputMatchesSource(boundTable,
               artifact, identity), true);
             const otherIdentity = control.issueSourceFreeLocalEffectIdentity(
@@ -5930,21 +5978,28 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               artifact, otherIdentity), false);
             assert.throws(() => control.tableInputMatchesSource({...boundTable},
               artifact, identity), {name: 'TypeError'});
-            for (const key of ['input_artifact_cid', 'input_relation_cid',
+            for (const key of ['input_artifact_cid', 'input_carrier',
               'schema_cid', 'storage_mapping_cid', 'data_policy_cid',
               'effect_identity_cid', 'logical_request_scope_cid']) {
-              const foreign = {...operation, [key]: cid('f')};
+              const foreign = {...operation, [key]: key === 'input_carrier'
+                ? {kind: 'relation', cid: cid('f')} : cid('f')};
               foreign.request_cid = canonicalHashWithoutSelf(foreign,
                 'request_cid');
               assert.throws(() => bind(canonicalJson(foreign)),
                 {code: 'MoonBitHostFailure'});
             }
+            for (const kind of ['graph', 'vectors', 'events']) {
+              const foreign = {...operation, input_carrier: {kind, cid: input.logical_result_cid}};
+              foreign.request_cid = canonicalHashWithoutSelf(foreign, 'request_cid');
+              assert.throws(() => bind(canonicalJson(foreign)), {code: 'MoonBitHostFailure'},
+                'A sealed reference of another kind cannot replace the captured Relation owner');
+            }
             assert.throws(() => control.bindTableInput(prepared, inputs, 1,
-              artifact, identity, scope, canonicalJson(operation), tableLimits),
+              artifact, identity, scope, canonicalJson(operation), storage.wire, tableLimits),
             {code: 'MoonBitHostFailure'});
             assert.throws(() => control.bindTableInput(prepared, inputs, 0,
               artifact, {...identity}, scope, canonicalJson(operation),
-              tableLimits), {name: 'TypeError'});
+              storage.wire, tableLimits), {name: 'TypeError'});
 
             // A Table is one operation even when its checked Relation is empty.
             // Reuse the ordinary checked Run/Preview and item-key owners; no
@@ -6000,12 +6055,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             const tablePreview = control.bindTablePreview(tableInput,
               captured, 0);
             await onTablePreview?.({moon, control, sourceControl: issuerControl,
+              mappingIssuanceCount: () => mappingIssuanceCount,
               effect, prepared, inputs, artifact, identity, sources, store,
               checkedHost: owned,
               captured, tableInput, tablePreview, template, authored, bindPreview,
               operations, scope, storage, directory, options, definition,
               invocation, fixture, tableLimits, execution, evidence, observation, outputLimits,
-              storeConfiguration, physicalStore: physical,
+              storeConfiguration, physicalStore: physical, capturedResults,
               replaceStoreForCleanup(value) { physical = value; }});
             assert.equal(tablePreview.subjectCid,
               JSON.parse(authored._0).effect_preview_cid);
@@ -6035,9 +6091,15 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             };
             receipt.receipt_cid = canonicalHashWithoutSelf(receipt, 'receipt_cid');
             const responseWire = canonicalJson({ok: true, result: receipt});
-            const outcomeWire = canonicalJson({state: 'applied', result: receipt});
+            const bridge = {projectCommitResponse: ({responseWire, statusCode, limits}) =>
+              control.localTableCommitResponse(responseWire, statusCode, limits)};
+            const project = response => bridge.projectCommitResponse({responseWire: response,
+              statusCode: 200, limits: tableLimits});
+            const outcomeWire = canonicalJson({state: 'applied', result: expectedLogicalTableReceipt(receipt)});
             assert.equal(control.tablePreviewCommitOutcome(tablePreview,
-              responseWire, 200, tableLimits), outcomeWire);
+              project(responseWire), 200, tableLimits), outcomeWire);
+            assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
+              responseWire, 200, tableLimits), {code: 'MoonBitHostFailure'});
             assert.throws(() => control.tablePreviewCommitOutcome({...tablePreview},
               responseWire, 200, tableLimits), {name: 'TypeError'});
             for (const field of ['request_cid', 'effect_identity_cid',
@@ -6046,13 +6108,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
                 receipt.row_count + 1 : cid('9')};
               foreign.receipt_cid = canonicalHashWithoutSelf(foreign, 'receipt_cid');
               assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
-                canonicalJson({ok: true, result: foreign}), 200, tableLimits),
+                project(canonicalJson({ok: true, result: foreign})), 200, tableLimits),
               {code: 'MoonBitHostFailure'});
             }
             for (const body of [{accepted: true}, {ok: true, result: null},
               {ok: false, code: 'conflict'}, {ok: true, result: receipt, extra: true}]) {
               assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
-                canonicalJson(body), 200, tableLimits), {code: 'MoonBitHostFailure'});
+                project(canonicalJson(body)), 200, tableLimits), {code: 'MoonBitHostFailure'});
             }
             const ledgerBinding = control.tablePreviewLedgerBinding(tablePreview);
             assert.equal(ledgerBinding.memberIndex, 0);
@@ -6073,7 +6135,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               maxEntryBytes: 8192});
             let tableLedger = openTableLedger();
             const settle = () => settleSavedTableCommit({control, ledger: tableLedger,
-              tablePreview, claim, limits: tableLimits});
+              tablePreview, claim, bridge, limits: tableLimits});
             try {
               assert.deepEqual(settle(), {status: 'unknown'});
               const saved = await captureClaimedEffectResponse({ledger: tableLedger,
@@ -6084,15 +6146,20 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               assert.equal(saved.claimed, true);
               tableLedger.close();
               tableLedger = openTableLedger();
+              assert.throws(() => settleSavedTableCommit({control, ledger: tableLedger,
+                tablePreview, claim, limits: tableLimits}), {code: 'MissingTableCommitProjector'});
+              assert.equal(tableLedger.readClaimedOutcome(claim), undefined);
+              assert.equal(tableLedger.readClaimedResponse(claim).responseBytes.toString('utf8'), responseWire);
               const terminal = settle();
               assert.equal(terminal.status, 'applied');
               assert.equal(JSON.parse(terminal.receipt.wire).typed_outcome.state, 'applied');
-              assert.deepEqual(JSON.parse(terminal.receipt.wire).typed_outcome.result, receipt);
+              assert.deepEqual(JSON.parse(terminal.receipt.wire).typed_outcome.result, expectedLogicalTableReceipt(receipt));
               assert.equal(settle().receipt.identity, terminal.receipt.identity);
               await captureClaimedEffectResponse({ledger: tableLedger, claim,
                 requestCid: operations[0].request_cid,
                 execute: () => assert.fail('Settled operation was resent')});
               assert.throws(() => settleSavedTableCommit({control, ledger: tableLedger,
+                bridge,
                 tablePreview, claim: {...claim, canonicalRequestCid: cid('9')},
                 limits: tableLimits}), {code: 'ForeignTableDispatchRequest'});
             } finally { tableLedger.close(); }
@@ -6110,7 +6177,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
                   execute: async () => ({observation: {useCid: cid('7'),
                     statusCode: 200, body: Buffer.from(badResponse)}})});
                 assert.throws(() => settleSavedTableCommit({control, ledger: uncertain,
-                  tablePreview, claim, limits: tableLimits}), {code: 'MoonBitHostFailure'});
+                  tablePreview, claim, bridge, limits: tableLimits}), {code: 'MoonBitHostFailure'});
                 assert.equal(uncertain.readClaimedResponse(claim).responseBytes
                   .toString('utf8'), badResponse);
                 assert.equal(uncertain.readClaimedOutcome(claim), undefined);
@@ -6134,11 +6201,12 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               reorderedCapture, 0), {code: 'MoonBitHostFailure'});
             // Resealing a substituted request does not turn its Preview into
             // the approved exact operation. Test target and input substitutions.
-            for (const key of ['table_name', 'input_relation_cid',
+            for (const key of ['table_name', 'input_carrier',
               'storage_mapping_cid', 'catalog_identity_cid']) {
               const foreign = structuredClone(template);
               const request = foreign.effects[0].changes[0].intended_changes.value;
-              request[key] = key === 'table_name' ? 'elsewhere' : cid('9');
+              request[key] = key === 'table_name' ? 'elsewhere'
+                : key === 'input_carrier' ? {kind: 'relation', cid: cid('9')} : cid('9');
               request.request_cid = canonicalHashWithoutSelf(request, 'request_cid');
               foreign.effects[0].changes[0].target_row_identity = request.request_cid;
               const foreignCapture = bindPreview(foreign).captured;
@@ -6184,7 +6252,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
             assert.equal(control.tablePreviewInputAvailable(tablePreview), false);
             assert.equal(control.tablePreviewCommitOutcome(tablePreview,
-              responseWire, 200, tableLimits), outcomeWire);
+              project(responseWire), 200, tableLimits), outcomeWire);
             assert.throws(() => control.bindTablePreview(tableInput, captured, 0),
               {code: 'MoonBitHostFailure'});
           } else {
@@ -6241,12 +6309,19 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
         } catch (error) {
           // Preserve the primary diagnostic if retained input cleanup also fails.
           t.diagnostic(error.stack);
-          if (error.cause !== undefined) t.diagnostic(inspect(error.cause));
+          if (error.cause !== undefined) t.diagnostic(inspect(error.cause, {depth: 10}));
           throw error;
         } finally {
-          moon.clientProgramReleaseEffectInputs(inputs);
+          if (inputs !== undefined) moon.clientProgramReleaseEffectInputs(inputs);
           for (const payload of sources?.payloads ?? []) {
             if (payload.prepared.status().pending) await payload.prepared.release();
+          }
+          if (capturedResults !== undefined) {
+            // Release only process-local prepared handles. The callback's
+            // existing capture owner decides durable retention/retirement.
+            const released = new Error('TableFixtureFinished');
+            try { await releasePreparedResults(capturedResults.results, released, issuerControl); }
+            catch (error) { if (error !== released) throw error; }
           }
           await physical.close();
           await execution.close();

@@ -250,8 +250,11 @@ manifests that generate its installed connector table. The resolved inventory
 in `scripts/local-node-package-inputs.mjs` is shared by runtime compilation,
 asset copying and adapter packaging. A stale generated table is refused.
 
-An installation can list connector-owned JSON declarations in `assets`.
-They must be existing regular files below that connector's source directory;
+An installation can list connector-owned JSON declarations and physical I/O
+assets in `assets`. JSON declarations must be below that connector's source
+directory. Physical Python workers, requirement pins and documentation must be
+below its adapter directory and use the admitted `.py`, `.in`, `.lock` or `.md`
+suffixes. All assets must be existing regular files in their declared owner;
 absolute paths, traversal, aliases to outside files and duplicate entries are
 refused. These files retain their package-relative locations for the installed
 adapter's URL reads. The package contains these declared data files, not the
@@ -261,6 +264,12 @@ module graph builder.
 The generated `packages/local-node/src/connectors` directory is ignored by
 Git. Packing and freshness checks refuse old undeclared files or symbolic links
 there; remove stale generated output before rebuilding after an asset removal.
+Adapter destinations also refuse symbolic links before any copy. A Host
+installation implemented in JS or Python may omit `providerBundle`; it still
+declares its real Source/Effect roles, registration and revision, and does not
+receive a dummy MoonBit provider runtime. Local Table I/O uses this declared
+installation and finite asset inventory, not a handwritten Host entry or worker
+list. Python dependencies remain optional installation dependencies.
 `test-packed-installed-connectors.mjs` creates an empty producer from source,
 uses normal prepack, and checks all registered provider bundles in an external
 consumer, including GitHub Source/Effect startup without provider I/O.
