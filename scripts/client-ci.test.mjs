@@ -58,9 +58,10 @@ test('ordinary packed composition ships JSON and authored text with independent 
     script.indexOf('const twoSourceEffect = process.argv'),
     script.indexOf('const inferEnabled =')) + '\nJSON.stringify(compositionCases)',
   {process: {argv: ['node', 'harness', ...flags]}, optionalEffectCases}));
-  assert.deepEqual(selection([]), ['source', 'infer', 'infer-text', 'infer-graph-node', 'infer-graph-edge', 'read-approval']);
+  assert.deepEqual(selection([]), ['source', 'infer', 'infer-model-approval', 'infer-text', 'infer-graph-node', 'infer-graph-edge', 'read-approval']);
   assert.deepEqual(selection(['--two-source-effect']), ['two-source']);
   assert.deepEqual(selection(['--composed-infer']), ['infer', 'infer-text']);
+  assert.deepEqual(selection(['--model-approval-only']), ['infer-model-approval']);
   assert.deepEqual(selection(['--composed-text']), ['infer-text']);
   assert.deepEqual(selection(['--composed-graph-node']), ['infer-graph-node']);
   assert.deepEqual(selection(['--composed-graph-edge']), ['infer-graph-edge']);
@@ -122,7 +123,7 @@ test('packed Source approval preserves the credential Site account identity', ()
     script.indexOf('const pendingScratch ='));
   const actual = JSON.parse(runInNewContext(setup + '\nJSON.stringify(authorization)', {
     readFileSync: () => JSON.stringify({accountConfiguration}),
-    sourceReadApproval: true, process: {env: {}},
+    sourceReadApproval: true, modelApproval: false, process: {env: {}},
   }));
   assert.equal(actual.accountConfiguration, accountConfiguration,
     'an unused Model rule must not make Host and Site configuration CIDs diverge');
@@ -142,7 +143,7 @@ test('packed Effect target reads keep distinct approval phases and independent p
     targetReadApprovalEnabled: true, compositionCases: [], optionalCases: []});
   assert.equal(select(['--two-source-read-approval']).targetReadApprovalEnabled, false);
   assert.deepEqual(select([]).compositionCases,
-    ['source', 'infer', 'infer-text', 'infer-graph-node', 'infer-graph-edge', 'read-approval']);
+    ['source', 'infer', 'infer-model-approval', 'infer-text', 'infer-graph-node', 'infer-graph-edge', 'read-approval']);
   assert.deepEqual(select([]).optionalCases, ['native-json', 'broad-text']);
   const expected = JSON.parse(readFileSync(new URL(
     './fixtures/effect-target-read-approval.expected.json', import.meta.url), 'utf8'));
@@ -160,6 +161,7 @@ test('each Client group retains its acceptance commands exactly once', () => {
   assert.deepEqual(runs('client-packed'), [
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
+    'node scripts/test-packed-infer-evaluation.mjs',
     'node scripts/test-packed-acquired-infer.mjs',
     'node --test scripts/packed-query-evidence.test.mjs\nnode scripts/test-packed-public-query.mjs',
     'node scripts/test-packed-result-description.mjs',
@@ -224,6 +226,7 @@ test('one producer uploads only manifest and tarballs; consumers select its immu
 test('packed evidence uploads remain always-on after their original command', () => {
   const steps = jobs['client-packed'].steps;
   for (const [id, name] of [['packed-infer', 'packed-single-infer'],
+    ['packed-infer-evaluation', 'packed-infer-evaluation'],
     ['packed-acquired-infer', 'packed-acquired-infer'],
     ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description']]) {
     const command = steps.findIndex(step => step.id === id);
