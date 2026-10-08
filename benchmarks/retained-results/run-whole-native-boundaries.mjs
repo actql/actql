@@ -1,13 +1,15 @@
 // Fixed functional faults, separate from every comparison/evaluation sample.
 import assert from 'node:assert/strict';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
-import {execFileSync} from 'node:child_process';
+import {execFile,execFileSync} from 'node:child_process';
+import {promisify} from 'node:util';
+import {performance} from 'node:perf_hooks';
 import {resolve,join,sep} from 'node:path';
 import {retainedCase} from './fixtures.mjs';
 import {profileDigest} from './local-performance-profile.mjs';
 import {sha256File} from './release-artifacts.mjs';
 import {loadWholeRunProfile,wholeRunTemplate,admitWholeRunTrajectory} from './whole-run-profile.mjs';
-import {prepareNativeDirectProduct,executeNativeDirectProduct,admitNativeDirectProduct} from './native-direct-product.mjs';
+import {prepareNativeDirectProduct,executeNativeDirectProduct,readNativeDirectProductExecution,admitNativeDirectProduct} from './native-direct-product.mjs';
 import {nativeOwnerObservations} from './native-owner-observations.mjs';
 
 const root=process.cwd(),[planArg,profileArg,destinationArg]=process.argv.slice(2);
@@ -64,7 +66,11 @@ for(const boundary of schedule) {
   if(boundary==='cleanup') extra.push('--diagnostic-cleanup-failure','true');
   const selected={...invocation,arguments:[...invocation.arguments,...extra]};
   let execution;
-  try {execution=await executeNativeDirectProduct(selected,{root,timeoutMs:fixture.limits.timeoutMs});}
+  try {
+    const started=performance.now();
+    const streams=await promisify(execFile)(selected.binary,selected.arguments,{cwd:root,timeout:fixture.limits.timeoutMs,maxBuffer:1024*1024});
+    execution={...streams,processCycleMs:performance.now()-started};
+  }
   catch(error) {
     await writeFile(join(directory,'failed-stdout.log'),error.stdout??'',{flag:'wx',mode:0o600});
     await writeFile(join(directory,'failed-stderr.log'),error.stderr??'',{flag:'wx',mode:0o600});
@@ -94,8 +100,9 @@ for(const boundary of schedule) {
       const lines=execution.stdout.split('\n');const index=lines.findIndex(l=>l.startsWith('owner-observation:')&&JSON.parse(l.slice(18)).boundary==='failed-cleanup');
       assert(lines[index+1].startsWith('observer-elapsed-us:'));lines.splice(index,2);normal.stdout=lines.join('\n');
     }
-    const product=admitNativeDirectProduct(fixture,selected,normal);
-    assert.deepEqual(execution.resultSchemaFields,fixture.workload==='fixed-join-count-shrinking-intermediate'?['n','present']:fixture.fields);
+    const parsed=readNativeDirectProductExecution(selected,normal);
+    const product=admitNativeDirectProduct(fixture,selected,parsed);
+    assert.deepEqual(parsed.resultSchemaFields,fixture.workload==='fixed-join-count-shrinking-intermediate'?['n','present']:fixture.fields);
     if(boundary==='binding'||boundary==='cleanup') {
       admitWholeRunTrajectory(execution,product);
       if(boundary==='binding') {
