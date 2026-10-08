@@ -162,6 +162,7 @@ fn emit_frames(
                 match op {
                   Negate => "negate"
                   Floor => "floor"
+                  Sqrt => "sqrt"
                   Not => "not"
                   IsNull => "is_null"
                   NotNull => "not_null"
