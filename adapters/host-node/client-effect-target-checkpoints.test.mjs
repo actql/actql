@@ -34,7 +34,7 @@ async function fixture(t, decisionOptions = {}) {
   const root = await mkdtemp(join(scratch.pathname, 'host-'));
   const opened = new Set();
   let clock = Date.parse('2026-10-04T00:00:00.000Z');
-  const open = async () => {
+  const open = async (overrides = {}) => {
     const checkpoints = await installRemoteCheckpoints({root, namespaceId: 'local',
       authorityScopeCid: cid('3'), ownerPrincipal: 'owner', siteKey: 'local',
       realizationKey: 'source-free-values', environmentCid: cid('4'),
@@ -45,7 +45,8 @@ async function fixture(t, decisionOptions = {}) {
         ...decisionOptions,
         reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
           principalId: 'reviewer', publicKey: pem(reviewer.publicKey)}],
-        reviewReaders: ['reviewer'], hostKey: {keyId: 'host-key', privateKey: pem(host.privateKey)}}});
+        reviewReaders: ['reviewer'], hostKey: {keyId: 'host-key', privateKey: pem(host.privateKey)}},
+      ...overrides});
     opened.add(checkpoints); return checkpoints;
   };
   const close = async checkpoints => { await checkpoints.close(); opened.delete(checkpoints); };
@@ -115,6 +116,243 @@ test('two target approvals survive service restart and answer-response retry on 
   assert.notEqual(left.checkpointCid, right.checkpointCid);
   left.assertCurrent(); right.assertCurrent();
   owner.close();
+});
+
+const effectProfile = (name, digit, outcome = 'delegate') => ({
+  selectors: [{kind: 'update', target: `connector://crm/${name}`,
+    mappingRef: `mapping:${name}`, mappingCid: cid(digit)}],
+  authorization: {accountConfiguration: canonicalJson({
+    version: 'actql-execution-account-config/0.1', account_id: name,
+    entries: [{entry_id: 'read', outcome, principal: {all: true},
+      connection: {any_of: ['crm']}, resource: {all: true},
+      operation: {any_of: ['read']}, exclusions: []}]}),
+  context: {principal: 'owner', contextCid: cid(digit)}},
+});
+const profileOptions = profile => ({effectTargetAuthority: profile.authorization,
+  inventory: [{readTuple: inventory[0].readTuple, physicalBinding: {
+    version: 'fixture-target/0.1', mapping: profile.selectors[0].mappingCid,
+    resource: profile.selectors[0].target}}]});
+const pluralOptions = profiles => ({effectTarget: undefined, effectTargets: profiles});
+
+test('plural target authority routes allow, deny and delegate without probing an unused profile', async t => {
+  const decisions = [];
+  const f = await fixture(t, {decide(view) {
+    decisions.push(view.subject);
+    return {decision: 'permit', subject: view.subject, authority: 'reviewer'};
+  }});
+  const allow = effectProfile('allow-account', 'a', 'allow');
+  const deny = effectProfile('deny-account', 'b', 'deny');
+  const delegate = effectProfile('delegate-account', 'c');
+  const unused = effectProfile('unused-account', 'd');
+  const checkpoints = await f.open(pluralOptions([unused, deny, delegate, allow]));
+  for (const profile of [allow, deny, delegate]) {
+    const owner = await f.owner(checkpoints, undefined, {runId: profile.selectors[0].mappingRef,
+      ...profileOptions(profile)});
+    try {
+      if (profile === deny) {
+        await assert.rejects(owner.prepare(), {code: 'ExecutionAuthorizationDenied'});
+      } else {
+        assert.deepEqual(await owner.prepare(), {status: 'ready'});
+        const facts = checkpointApprovalFacts(await owner.authorize(inventory[0].readTuple));
+        assert.equal(facts.contextCid, profile.authorization.context.contextCid);
+        assert.deepEqual(facts.physicalBindings, profileOptions(profile).inventory
+          .map(item => item.physicalBinding));
+        await assert.rejects(owner.authorize(inventory[1].readTuple),
+          {code: 'EffectTargetBindingChanged'});
+      }
+    } finally { owner.close(); }
+  }
+  assert.deepEqual(decisions.map(subject => subject.account_id), ['delegate-account']);
+  assert.equal(checkpoints.journal.listRunCheckpoints().length, 0);
+});
+
+test('plural target authority refuses missing, unknown and cloned tokens before any decision', async t => {
+  let decisions = 0;
+  const f = await fixture(t, {decide() { decisions++; assert.fail('No authority was selected'); }});
+  const selected = effectProfile('selected', 'a');
+  const other = effectProfile('other', 'b');
+  const checkpoints = await f.open(pluralOptions([selected, other]));
+  for (const authority of [undefined, {}, structuredClone(selected.authorization)]) {
+    await assert.rejects(f.owner(checkpoints, undefined, {
+      ...profileOptions(selected), effectTargetAuthority: authority}),
+    {code: 'InvalidEffectTargetContinuation'});
+  }
+  assert.equal(decisions, 0);
+  assert.equal(checkpoints.journal.listRunCheckpoints().length, 0);
+});
+
+test('plural target approval resumes after inventory reordering with one exact selected account', async t => {
+  const f = await fixture(t);
+  let selected = effectProfile('selected', 'a');
+  let unused = effectProfile('unused', 'b', 'deny');
+  let checkpoints = await f.open(pluralOptions([unused, selected]));
+  const binding = checkpoints.binding.authorizationContextCid;
+  let owner = await f.owner(checkpoints, undefined, profileOptions(selected));
+  const waiting = await owner.prepare();
+  assert.equal(waiting.status, 'waiting_checkpoint');
+  const review = await checkpoints.reviewCheckpoint({principalId: 'reviewer',
+    checkpointCid: waiting.checkpoint.checkpointCid, maxBytes: 256 * 1024});
+  assert.equal(JSON.parse(Buffer.from(review.contentBase64, 'base64')).context_cid,
+    selected.authorization.context.contextCid);
+  owner.close(); await f.close(checkpoints);
+  selected = effectProfile('selected', 'a');
+  unused = effectProfile('unused', 'b', 'deny');
+  checkpoints = await f.open(pluralOptions([selected, unused]));
+  assert.equal(checkpoints.binding.authorizationContextCid, binding);
+  const approved = await f.answer(checkpoints, 'target-run-target-0');
+  owner = await f.owner(checkpoints, await f.claim(checkpoints, approved), profileOptions(selected));
+  assert.deepEqual(await owner.prepare(), {status: 'ready'});
+  const facts = checkpointApprovalFacts(await owner.authorize(inventory[0].readTuple));
+  assert.equal(facts.contextCid, selected.authorization.context.contextCid);
+  assert.equal(facts.checkpointCid, approved.checkpointCid);
+  assert.equal(checkpoints.journal.listRunCheckpoints().length, 1);
+  owner.enterComputation();
+  assert.equal(checkpoints.journal.hasStartedResume(approved.checkpointCid), true);
+  owner.close();
+});
+
+for (const changed of ['account', 'context', 'mapping']) {
+  test(`changed plural target ${changed} invalidates a held resume before entry`, async t => {
+    const f = await fixture(t);
+    const selected = effectProfile('selected', 'a');
+    const unused = effectProfile('unused', 'b', 'allow');
+    let checkpoints = await f.open(pluralOptions([selected, unused]));
+    const owner = await f.owner(checkpoints, undefined, profileOptions(selected));
+    assert.equal((await owner.prepare()).status, 'waiting_checkpoint');
+    owner.close();
+    const approved = await f.answer(checkpoints, 'target-run-target-0');
+    await f.close(checkpoints);
+    const replacement = effectProfile('selected', 'a');
+    if (changed === 'account') replacement.authorization.accountConfiguration =
+      effectProfile('replacement-account', 'a').authorization.accountConfiguration;
+    else if (changed === 'context') replacement.authorization.context.contextCid = cid('c');
+    else replacement.selectors[0].mappingCid = cid('c');
+    checkpoints = await f.open(pluralOptions([unused, replacement]));
+    const claimed = checkpoints.journal.claimResume('target-run', {
+      claimant: 'target-host', leaseMs: 60_000, binding: checkpoints.binding,
+      preserveStarted: true, expectedCheckpointCid: approved.checkpointCid});
+    assert.equal(claimed.action, 'invalidated');
+    assert.equal(claimed.terminalErrorCode, 'ACTQL_E_RESUME_REVALIDATION_FAILED');
+    assert.equal(checkpoints.journal.hasStartedResume(approved.checkpointCid), false);
+  });
+}
+
+test('changed plural physical target binding refuses retained continuation before entry', async t => {
+  const f = await fixture(t);
+  const selected = effectProfile('selected', 'a');
+  const checkpoints = await f.open(pluralOptions([selected, effectProfile('unused', 'b')]));
+  const owner = await f.owner(checkpoints, undefined, profileOptions(selected));
+  await owner.prepare(); owner.close();
+  const approved = await f.answer(checkpoints, 'target-run-target-0');
+  const resume = await f.claim(checkpoints, approved);
+  const changed = profileOptions(selected);
+  changed.inventory[0].physicalBinding.resource = 'replacement';
+  await assert.rejects(f.owner(checkpoints, resume, changed), {code: 'EffectTargetBindingChanged'});
+  assert.equal(checkpoints.journal.hasStartedResume(approved.checkpointCid), false);
+});
+
+test('plural target configuration and context are captured before the first installation await', async t => {
+  const f = await fixture(t);
+  const selected = effectProfile('selected', 'a', 'allow');
+  const original = profileOptions(selected);
+  const installation = f.open(pluralOptions([selected, effectProfile('unused', 'b')]));
+  selected.authorization.accountConfiguration =
+    effectProfile('replacement-account', 'c', 'deny').authorization.accountConfiguration;
+  selected.authorization.context.contextCid = cid('c');
+  selected.selectors[0].mappingCid = cid('d');
+  const checkpoints = await installation;
+  const owner = await f.owner(checkpoints, undefined, original);
+  assert.deepEqual(await owner.prepare(), {status: 'ready'});
+  const facts = checkpointApprovalFacts(await owner.authorize(inventory[0].readTuple));
+  assert.equal(facts.contextCid, cid('a'));
+  owner.close();
+});
+
+test('closing the Checkpoint owner closes every plural current authority and target scope', async t => {
+  let decisions = 0;
+  const f = await fixture(t, {decide() { decisions++; assert.fail('No decision after close'); }});
+  const profiles = [effectProfile('first', 'a'), effectProfile('second', 'b'),
+    effectProfile('third', 'c')];
+  const checkpoints = await f.open(pluralOptions(profiles));
+  const gates = [];
+  for (const profile of profiles) gates.push(await checkpoints.effectTargetAuthorization({
+    runId: 'target-run', runDefinitionCid: cid('6'), unitId: 'effect',
+    inventoryCid: cid('7'), declaredResults: ['answer'],
+    target: {index: 0, readTuple: inventory[0].readTuple,
+      physicalBindings: [profileOptions(profile).inventory[0].physicalBinding]},
+    effectTargetAuthority: profile.authorization, continuation: () => '{}',
+    beforeDefer() { assert.fail('No deferral after close'); }}));
+  await f.close(checkpoints);
+  for (const gate of gates) {
+    await assert.rejects(gate.current(), {code: 'AuthorizationDecisionScopeClosed'});
+    await assert.rejects(gate.authorize(), {code: 'AuthorizationDecisionScopeClosed'});
+    assert.equal(gate.cleanupPending(), false);
+    assert.equal(gate.close(), true);
+  }
+  assert.equal(decisions, 0);
+});
+
+test('plural target installation rejects ambiguous and unbound Mapping ownership', async t => {
+  const f = await fixture(t);
+  const first = effectProfile('first', 'a');
+  const second = effectProfile('second', 'b');
+  for (const profiles of [[null], [{...first, selectors: []}],
+    [first, {...second, authorization: first.authorization}],
+    [first, {...second, selectors: first.selectors}],
+    [first, {...second, selectors: [{...second.selectors[0], mappingCid: cid('a')}]}],
+    [first, {...second, selectors: [{...second.selectors[0], mappingRef: 'mapping:first'}]}]]) {
+    await assert.rejects(f.open(pluralOptions(profiles)), {code: 'InvalidRemoteHostEffectTargets'});
+  }
+  await assert.rejects(f.open({effectTargets: [first, second]}),
+    {code: 'InvalidRemoteHostEffectTargets'});
+});
+
+test('an empty plural target-read inventory admits a Host without granting target access', async t => {
+  const f = await fixture(t);
+  const checkpoints = await f.open(pluralOptions([]));
+  await assert.rejects(f.owner(checkpoints), {code: 'InvalidEffectTargetContinuation'});
+  assert.equal(checkpoints.journal.listRunCheckpoints().length, 0);
+});
+
+test('plural target authority count follows the common Mapping bound rather than Source or Set bounds', async t => {
+  const f = await fixture(t);
+  const profiles = Array.from({length: 257}, (_, index) => {
+    const profile = effectProfile(`profile-${index}`, 'a', 'allow');
+    profile.selectors[0].mappingCid = `sha256:${index.toString(16).padStart(64, '0')}`;
+    return profile;
+  });
+  const checkpoints = await f.open(pluralOptions(profiles.slice(0, 129)));
+  const selected = profiles[128];
+  const owner = await f.owner(checkpoints, undefined, profileOptions(selected));
+  assert.deepEqual(await owner.prepare(), {status: 'ready'});
+  owner.close(); await f.close(checkpoints);
+  await assert.rejects(f.open(pluralOptions(profiles)), {code: 'InvalidRemoteHostEffectTargets'});
+});
+
+test('multiple kinds and effect IDs for one owned Mapping retain one stable authority binding', async t => {
+  const f = await fixture(t);
+  const first = effectProfile('first', 'a');
+  const second = effectProfile('second', 'b');
+  let checkpoints = await f.open(pluralOptions([first, second]));
+  const binding = checkpoints.binding.authorizationContextCid;
+  await f.close(checkpoints);
+  first.selectors.push({...first.selectors[0], kind: 'upsert'},
+    {...first.selectors[0], effectId: 'save'}, {...first.selectors[0], effectId: 'save-again'});
+  checkpoints = await f.open(pluralOptions([second, first]));
+  assert.equal(checkpoints.binding.authorizationContextCid, binding);
+});
+
+test('singular target authorization preserves its original CID preimage', async t => {
+  const f = await fixture(t);
+  const checkpoints = await f.open();
+  const hash = text => `sha256:${createHash('sha256').update(text).digest('hex')}`;
+  const configurationCid = hash(configuration);
+  // Independently ordered legacy envelope; no plural member is present.
+  const preimage = JSON.stringify({account_id: 'target-account',
+    configuration_cid: configurationCid, effect_target_authorization_binding: {
+      configuration_cid: configurationCid, context_cid: cid('5')},
+    principal: 'owner', source_configuration_cid: null});
+  assert.equal(checkpoints.binding.authorizationContextCid, hash(preimage));
 });
 
 test('a rejected target answer never creates a resumable read', async t => {

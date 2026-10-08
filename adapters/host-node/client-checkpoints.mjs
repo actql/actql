@@ -30,6 +30,7 @@ import {modelCheckpointMetadata} from './model-checkpoint-metadata.mjs';
 import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
   './effect-target-read-inventory.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
+import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
@@ -107,6 +108,53 @@ function principals(values, code) {
   return new Set(values);
 }
 
+// The installed adapter's authorization object is an opaque in-process
+// selector. Retained identity uses only the checked Mapping and account
+// bindings; caller-created lookalikes cannot select an authority.
+function captureEffectTargets(effectTargets) {
+  const invalid = () => fail('InvalidRemoteHostEffectTargets');
+  const text = value => typeof value === 'string' && value.length > 0;
+  if (!Array.isArray(effectTargets) ||
+      effectTargets.length > MAX_INSTALLED_EFFECT_PROFILES) invalid();
+  const authorities = new Set();
+  const byRef = new Map();
+  const byCid = new Map();
+  return Array.from(effectTargets, item => {
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) invalid();
+    const {selectors, authorization} = item;
+    if (authorization === null || typeof authorization !== 'object' ||
+        Array.isArray(authorization) || authorities.has(authorization) ||
+        !Array.isArray(selectors) || selectors.length === 0) invalid();
+    authorities.add(authorization);
+    const mappings = new Map();
+    for (const selector of selectors) {
+      if (!text(selector?.kind) || !text(selector.target) ||
+          !text(selector.mappingRef) ||
+          !/^sha256:[0-9a-f]{64}$/u.test(selector.mappingCid ?? '') ||
+          selector.effectId !== undefined && !text(selector.effectId)) invalid();
+      const {mappingRef, mappingCid, target} = selector;
+      const previous = byRef.get(mappingRef) ?? byCid.get(mappingCid);
+      if (previous !== undefined && (previous.authorization !== authorization ||
+          previous.mappingRef !== mappingRef || previous.mappingCid !== mappingCid ||
+          previous.target !== target)) invalid();
+      const mapping = {authorization, mappingRef, mappingCid, target};
+      byRef.set(mappingRef, mapping);
+      byCid.set(mappingCid, mapping);
+      mappings.set(mappingRef, Object.freeze({mappingRef, mappingCid}));
+    }
+    // A profile has at least one uniquely owned Mapping, so the common
+    // CheckEnvironment member bound also bounds this authority inventory.
+    if (byRef.size > MAX_INSTALLED_EFFECT_PROFILES) invalid();
+    const context = authorization.context;
+    return {authority: authorization,
+      mappings: Object.freeze([...mappings.values()]),
+      configuration: Object.freeze({
+        accountConfiguration: authorization.accountConfiguration,
+        context: Object.freeze({...context}),
+      })};
+  });
+}
+
 // Install the Checkpoint connection for one installed Host scope. Returns
 // undefined when the Host installs no Run-acceptance protection (then its
 // in-process Site is unprotected and pure compute is covered, as before).
@@ -117,9 +165,12 @@ function principals(values, code) {
 // provider I/O exists, and a delegated read is held like Run acceptance.
 // `sources` is the plural installation alternative: sourceRef selects only
 // authorization configuration; captured reads remain occurrence/task-bound.
+// `effectTargets` is the plural Effect alternative: each trusted adapter's
+// checked Mapping selectors bind its own opaque target-read authorization.
 export async function installRemoteCheckpoints({root, namespaceId,
   authorityScopeCid, ownerPrincipal, siteKey, realizationKey,
   environmentCid, contractControl, authorization, source, sources, effectTarget,
+  effectTargets,
   modelResumeVerifier,
   now = () => Date.now()}) {
   if (authorization === undefined) return undefined;
@@ -135,6 +186,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
       new Set(sources.map(item => item.sourceRef)).size !== sources.length)) {
     fail('InvalidRemoteHostSources');
   }
+  if (effectTargets !== undefined && effectTarget !== undefined) {
+    fail('InvalidRemoteHostEffectTargets');
+  }
+  // Snapshot every plural account and context before installation awaits.
+  const installedEffectTargets = effectTargets === undefined ? []
+    : captureEffectTargets(effectTargets);
   const {accountConfig, accountConfiguration, reviewers, reviewReaders,
     hostKey, decide, answeringAuthorities, effectRequiredClaims = [],
     checkpointTtlMs = 24 * 60 * 60 * 1000,
@@ -169,6 +226,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
   const decisionBudget = createAuthorizationDecisionBudget({
     maxInFlightDecisions, maxRetainedDecisions});
   const decisionOptions = {decisionBudget, decisionTimeoutMs};
+  let journal;
+  let evidence;
+  try {
   const state = join(root, 'checkpoints');
   let privateKey;
   try { privateKey = await loadPrivateEvidenceKey(state); }
@@ -213,6 +273,13 @@ export async function installRemoteCheckpoints({root, namespaceId,
     await createLocalAuthorizationGate({
       accountConfiguration: effectTarget.accountConfiguration,
       context: effectTarget.context, ...decisionOptions});
+  for (const installed of installedEffectTargets) {
+    installed.gate = await createLocalAuthorizationGate({
+      accountConfiguration: installed.configuration.accountConfiguration,
+      context: installed.configuration.context, ...decisionOptions});
+  }
+  const effectTargetAuthorities = new Map(installedEffectTargets.map(installed =>
+    [installed.authority, installed]));
   function installedSource(occurrence) {
     const installed = sources === undefined ? installedSources[0]
       : installedSources.find(item => item.configuration.sourceRef ===
@@ -245,6 +312,14 @@ export async function installRemoteCheckpoints({root, namespaceId,
         configuration_cid: effectTargetGate.configurationCid ?? null,
         context_cid: effectTargetGate.contextCid,
       }}),
+      ...(effectTargets === undefined ? {} : {effect_target_authorization_bindings:
+        installedEffectTargets.flatMap(({mappings, gate: read}) =>
+          mappings.map(({mappingRef, mappingCid}) => ({mapping_ref: mappingRef,
+            mapping_cid: mappingCid,
+            configuration_cid: read.configurationCid ?? null,
+            context_cid: read.contextCid})))
+          .sort((left, right) => left.mapping_ref < right.mapping_ref ? -1
+            : left.mapping_ref > right.mapping_ref ? 1 : 0)}),
       ...(sources === undefined ? {} : {source_authorization_bindings:
         installedSources.map(({configuration, gate: read}) => ({
           source_ref: configuration.sourceRef,
@@ -291,7 +366,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     } catch { return undefined; }
   }
 
-  const journal = openSqliteCheckpointJournal(join(state, 'journal'), {
+  journal = openSqliteCheckpointJournal(join(state, 'journal'), {
     runtime: await loadCheckpointRuntime(),
     expectedAuthorityScopeCid: authorityScopeCid,
     modelResumeVerifier,
@@ -343,8 +418,6 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // Retention of held private evidence follows the journal: a waiting or
   // resuming request keeps it; an ended preparation or a terminal Run
   // releases it.
-  let evidence;
-  try {
   evidence = openContinuationEvidence({
     stateDirectory: state, ...privateKey, contractControl,
     isTerminalRunOutcome: journal.isTerminalRunOutcome,
@@ -1316,8 +1389,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // pre-computation approvals never reuse a Source or Effect-commit grant.
     async effectTargetAuthorization({runId, runDefinitionCid, unitId,
       inventoryCid, target, declaredResults, continuation, beforeDefer,
-      journalPort = journal}) {
-      if (effectTargetGate === undefined || !IDENTIFIER.test(runId ?? '') ||
+      effectTargetAuthority, journalPort = journal}) {
+      const installed = effectTargets === undefined
+        ? effectTargetAuthority === undefined && effectTargetGate !== undefined
+          ? {configuration: effectTarget, gate: effectTargetGate} : undefined
+        : effectTargetAuthorities.get(effectTargetAuthority);
+      if (installed === undefined || !IDENTIFIER.test(runId ?? '') ||
           !IDENTIFIER.test(unitId ?? '') || typeof runDefinitionCid !== 'string' ||
           typeof inventoryCid !== 'string' || typeof continuation !== 'function' ||
           typeof beforeDefer !== 'function' || !Array.isArray(declaredResults) ||
@@ -1332,8 +1409,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
       // Bind the exact provider data retained and shown for this approval.
       const scopeCid = `sha256:${hex(canonicalValueJson(scope, {dataKeys: true}))}`;
       const read = await createLocalAuthorizationGate({
-        accountConfiguration: effectTarget.accountConfiguration,
-        context: effectTarget.context, ...decisionOptions, decide,
+        accountConfiguration: installed.configuration.accountConfiguration,
+        context: installed.configuration.context, ...decisionOptions, decide,
         answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
         deferral: {journal: journalPort, authorities, binding,
           async describe(view) {
@@ -1344,8 +1421,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
             const wire = await continuation();
             if (typeof wire !== 'string') fail('InvalidEffectTargetContinuation');
             const reviewWire = canonicalValueJson({scope,
-              configuration_cid: effectTargetGate.configurationCid,
-              context_cid: effectTargetGate.contextCid}, {dataKeys: true});
+              configuration_cid: installed.gate.configurationCid,
+              context_cid: installed.gate.contextCid}, {dataKeys: true});
             if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');
             const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
               {name: 'review_projection', wire: reviewWire},
@@ -1367,8 +1444,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
             }};
           },
         }});
-      if (read.configurationCid !== effectTargetGate.configurationCid ||
-          read.contextCid !== effectTargetGate.contextCid) {
+      if (read.configurationCid !== installed.gate.configurationCid ||
+          read.contextCid !== installed.gate.contextCid) {
         read.close();
         fail('EffectTargetCheckpointConfigurationChanged');
       }
@@ -1378,7 +1455,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           {...options, subjectCid: scopeCid}),
         resume: options => read.resume('acquisition', target.readTuple,
           {...options, subjectCid: scopeCid}),
-        current: options => effectTargetGate.authorize('acquisition', target.readTuple,
+        current: options => installed.gate.authorize('acquisition', target.readTuple,
           {...options, subjectCid: scopeCid}),
         close: () => read.close(),
         cleanup: () => read.cleanup(),
@@ -2051,6 +2128,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       admittedReads.clear();
       gate.close();
       effectTargetGate?.close();
+      for (const installed of installedEffectTargets) installed.gate.close();
       resumeGate.close();
       for (const installed of installedSources) {
         installed.gate.close();
@@ -2069,6 +2147,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
   });
   } catch (cause) {
     decisionBudget.close();
+    // Before journal custody exists, preserve the original admission error.
+    if (journal === undefined) throw cause;
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store: evidence});
   }
