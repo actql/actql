@@ -1,0 +1,13 @@
+{
+  "name": "@fixture/external-effect",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {"./installation": "./adapters/connectors/external_effect/host/installation.mjs"},
+  "peerDependencies": {
+    "@actql/local-node": "0.0.0-development",
+    "@actql/sdk": "0.0.0-development"
+  },
+  "files": ["moon.mod", "src", "adapters"],
+  "scripts": {"prepack": "node --check adapters/connectors/external_effect/host/installation.mjs"}
+}

@@ -84,6 +84,42 @@ fn[A] member_construct(result : Result[A, @builder.Issue]) -> A raise Abort {
 }
 
 ///|
+fn member_copy_limits(
+  limits : @builder.Limits,
+  allowance : Int,
+) -> @builder.Limits {
+  {
+    ..limits,
+    source: {
+      ..limits.source,
+      max_nodes: limits.source.max_nodes.min(allowance),
+    },
+    tree: { ..limits.tree, max_nodes: limits.tree.max_nodes.min(allowance), },
+  }
+}
+
+///|
+fn[A] member_copy_construct(
+  result : Result[A, @builder.Issue],
+  self : MemberResolution,
+  at : @wire.Cursor,
+  allowance : Int,
+) -> A raise Abort {
+  match result {
+    Ok(value) => value
+    Err(@builder.NodeLimit) if allowance <
+      self.limits.source.source.max_nodes.min(self.limits.source.tree.max_nodes) =>
+      raise Abort(
+        Expression({
+          issue: @expression.WorkLimit,
+          origin: @builder.origin(self.source, at),
+        }),
+      )
+    Err(issue) => raise Abort(Construction(issue))
+  }
+}
+
+///|
 fn member_lookup(cursor : @wire.Cursor, name : String) -> @wire.Cursor? {
   member_success(@wire.open_object(cursor)).bind(object => {
     @wire.lookup(object, name)
@@ -105,35 +141,18 @@ fn MemberResolution::copy(
   // scheduling guard refuses before building an over-budget child tree.
   let allowance = self.work
   self.work = 0
-  let copy_limits : @builder.Limits = {
-    ..self.limits.source,
-    source: {
-      ..self.limits.source.source,
-      max_nodes: self.limits.source.source.max_nodes.min(allowance),
-    },
-    tree: {
-      ..self.limits.source.tree,
-      max_nodes: self.limits.source.tree.max_nodes.min(allowance),
-    },
-  }
+  let copy_limits = member_copy_limits(self.limits.source, allowance)
   let builder = member_construct(@builder.create(self.document, copy_limits))
-  let root = match
+  let root = member_copy_construct(
     @builder.import_source(builder, self.source, cursor, replace_text=at => {
       self.replacements.get(
         @wire.tree_index(@builder.cursor(self.source), at).unwrap(),
       )
-    }) {
-    Ok(root) => root
-    Err(@builder.NodeLimit) if allowance <
-      self.limits.source.source.max_nodes.min(self.limits.source.tree.max_nodes) =>
-      raise Abort(
-        Expression({
-          issue: @expression.WorkLimit,
-          origin: @builder.origin(self.source, cursor),
-        }),
-      )
-    Err(issue) => raise Abort(Construction(issue))
-  }
+    }),
+    self,
+    cursor,
+    allowance,
+  )
   let result = member_construct(@builder.finish(builder, root))
   // Return only unused lent work; failed imports retain their reservation.
   self.work = allowance - @builder.usage(result).nodes
@@ -394,57 +413,41 @@ fn MemberResolution::prefix_carrier(
   if self.probe_refused {
     return None
   }
+  let at = steps[steps.length() - 1]
+  // Hold the remaining copy allowance before importing a prefix. The common
+  // importer refuses an over-budget subtree before scheduling its children.
   let allowance = self.work
   self.work = 0
-  let at = steps[steps.length() - 1]
-  let copy_limits : @builder.Limits = {
-    ..self.limits.source,
-    source: {
-      ..self.limits.source.source,
-      max_nodes: self.limits.source.source.max_nodes.min(allowance),
-    },
-    tree: {
-      ..self.limits.source.tree,
-      max_nodes: self.limits.source.tree.max_nodes.min(allowance),
-    },
-  }
-  let construct = fn(
-    result : Result[@builder.Node, @builder.Issue],
-  ) -> @builder.Node raise Abort {
-    match result {
-      Ok(node) => node
-      Err(@builder.NodeLimit) if allowance <
-        self.limits.source.source.max_nodes.min(
-          self.limits.source.tree.max_nodes,
-        ) =>
-        raise Abort(
-          Expression({
-            issue: @expression.WorkLimit,
-            origin: @builder.origin(self.source, at),
-          }),
-        )
-      Err(issue) => raise Abort(Construction(issue))
-    }
-  }
-  let builder = member_construct(@builder.create(self.document, copy_limits))
+  let builder = member_construct(
+    @builder.create(
+      self.document,
+      member_copy_limits(self.limits.source, allowance),
+    ),
+  )
   let items = []
   for step in steps {
     items.push(
-      construct(
+      member_copy_construct(
         @builder.import_source(builder, self.source, step, replace_text=at => {
           self.replacements.get(
             @wire.tree_index(@builder.cursor(self.source), at).unwrap(),
           )
         }),
+        self,
+        at,
+        allowance,
       ),
     )
   }
-  let root = construct(
+  let root = member_copy_construct(
     @builder.add(
       builder,
       @builder.Array(items),
       @builder.origin(self.source, at).unwrap(),
     ),
+    self,
+    at,
+    allowance,
   )
   let copy = member_construct(@builder.finish(builder, root))
   self.work = allowance - @builder.usage(copy).nodes

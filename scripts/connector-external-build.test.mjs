@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test from 'node:test';
 import {pathToFileURL} from 'node:url';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkComputeAssembly, generateComputeAssembly} from './connector-compute-bundles.mjs';
-import {checkNodeAssembly} from './connector-node-bundles.mjs';
+import {checkNodeAssembly, generateInstallations, readHostBundles} from './connector-node-bundles.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'external-connector-build-'));
@@ -54,6 +54,28 @@ function fixture(t) {
   return {root, modules, put, configuration, resolved: resolveConnectorBuildInputs(configuration)};
 }
 
+function hostFixture(f, name, role) {
+  const root = f.modules[1].root;
+  const installation = {registration: name, revision: `${name}/0.1`,
+    providerBundle: `connectors/${name}/host_node`, responseHeaders: [],
+    [role]: {profileVersion: `actql-installed-${name}-${role}/0.1`,
+      module: `adapters/connectors/${name}/host/${role}.mjs`,
+      exports: {check: 'check', identityParts: 'identity', load: 'load'}}};
+  f.put(join(root, 'src', installation.providerBundle, 'moon.pkg'),
+    'supported_targets = "js"\npkgtype(kind: "foreign_library")\n');
+  f.put(join(root, installation[role].module),
+    'export function check() {}\nexport function identity() {}\n' +
+    `export function load() { return ${JSON.stringify(`${name}:${role}`)}; }\n`);
+  const directory = `src/connectors/${name}`;
+  const path = join(root, directory, 'host-bundle.json');
+  const write = (value = installation) => f.put(path, JSON.stringify({installation: value}));
+  write();
+  f.configuration.connectors.push({name, module: 'fixture/portable', directory});
+  return {installation, path, write};
+}
+const installedOptions = buildInputs => ({buildInputs, assembly: 'compute', bridge: 'bridge',
+  adapter: 'portable', installations: true});
+
 test('existing generators emit external ownership into a separate Host namespace', async t => {
   const f = fixture(t), root = f.modules[2].root;
   const options = {buildInputs: f.resolved, assembly: 'compute', bridge: 'bridge', adapter: 'portable'};
@@ -98,12 +120,13 @@ test('generated outputs refuse symlinks before writing another file or outside s
   assert.throws(() => readFileSync(join(host, 'src/compute/moon.pkg')), {code: 'ENOENT'});
 });
 
-test('external Read/Effect loading and dynamic runtime discovery are not implied by Compute assembly', t => {
+test('external dynamic runtime discovery remains refused with or without installations', t => {
   const f = fixture(t), root = f.modules[2].root;
-  for (const options of [{installations: true}, {loading: 'selected'}]) {
-    assert.throws(() => checkNodeAssembly(root, true, {buildInputs: f.resolved, ...options}),
-      /UnsupportedExternalNodeBuildProfile/);
+  for (const installations of [false, true]) {
+    assert.throws(() => checkNodeAssembly(root, true,
+      {buildInputs: f.resolved, loading: 'selected', installations}), /UnsupportedExternalNodeBuildProfile/);
   }
+  assert.equal(existsSync(join(root, 'adapters')), false);
 });
 
 test('unsupported handwritten Client bridge metadata is refused without following its link', t => {
@@ -116,4 +139,119 @@ test('unsupported handwritten Client bridge metadata is refused without followin
     {buildInputs: f.resolved, assembly: 'compute', bridge: 'bridge'}),
   /UnsupportedExternalNodeBridgeExtension/);
   assert.equal(readFileSync(sentinel, 'utf8'), 'not a metadata document\n');
+});
+
+test('external Read-only and Effect-only installations load from the checked owner snapshot', async t => {
+  const f = fixture(t), root = f.modules[2].root;
+  f.configuration.connectors = [];
+  const reader = hostFixture(f, 'reader', 'source');
+  const writer = hostFixture(f, 'writer', 'effect');
+  const resolved = resolveConnectorBuildInputs(f.configuration);
+  reader.write({...reader.installation, source: null});
+  writer.write({...writer.installation, revision: 'writer/9.9'});
+  f.put(join(f.modules[1].root, 'src/connectors/unselected/host-bundle.json'), '{ invalid');
+  const options = installedOptions(resolved);
+  assert.equal(checkNodeAssembly(root, true, options), 0);
+  assert.equal(checkNodeAssembly(root, false, options), 0);
+  assert.equal(readHostBundles(root, {buildInputs: resolved}), resolved.hostEntries);
+  const path = join(root, 'adapters/portable/installations.generated.mjs');
+  const generated = readFileSync(path, 'utf8');
+  assert.match(generated, /connector's%20root%23%3F%25\/adapters\/connectors\/reader\/host\/source.mjs/);
+  const {installedConnectors} = await import(pathToFileURL(path));
+  assert.deepEqual(installedConnectors.map(entry => [entry.name, entry.revision]),
+    [['reader', 'reader/0.1'], ['writer', 'writer/0.1']]);
+  assert.equal(installedConnectors[0].effect, undefined);
+  assert.equal(installedConnectors[1].source, undefined);
+  assert.equal((await installedConnectors[0].source.load()).load(), 'reader:source');
+  assert.equal((await installedConnectors[1].effect.load()).load(), 'writer:effect');
+  assert.doesNotMatch(readFileSync(join(root, 'src/compute/compute.generated.mbt'), 'utf8'),
+    /with_reader|with_writer/);
+  assert.equal(resolveConnectorBuildInputs({...f.configuration, connectors: []}).hostEntries.length, 0);
+});
+
+test('installation generation maps packaged module destinations without changing checked ownership', t => {
+  const f = fixture(t), root = f.modules[2].root;
+  hostFixture(f, 'reader', 'source');
+  const resolved = resolveConnectorBuildInputs(f.configuration);
+  const output = join(f.root, 'package/adapters/portable/installations.generated.mjs');
+  const calls = [];
+  const generated = generateInstallations(resolved.hostEntries, output, root, {
+    resolveModule(entry, section, label) {
+      calls.push([entry.namespace, label, section.modulePath]);
+      return join(f.root, 'package', section.module);
+    },
+  });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], ['fixture/portable', 'source',
+    join(f.modules[1].root, 'adapters/connectors/reader/host/source.mjs')]);
+  assert.match(generated, /import\("\.\.\/connectors\/reader\/host\/source.mjs"\)/);
+  for (const module of generated.matchAll(/import\(("[^"\n]+")\)/gu)) {
+    assert.doesNotMatch(JSON.parse(module[1]), /connector's|fixture\/portable/);
+  }
+  assert.equal(resolved.hostEntries[0].root, f.modules[1].root);
+});
+
+test('installation output aliases and colliding assembly paths fail before any write', t => {
+  for (const conflict of ['symlink', 'directory', 'assembly']) {
+    const f = fixture(t), root = f.modules[2].root;
+    hostFixture(f, 'reader', 'source');
+    const resolved = resolveConnectorBuildInputs(f.configuration);
+    const sentinel = join(f.root, 'sentinel.mjs');
+    writeFileSync(sentinel, 'unchanged outside bytes\n');
+    const output = join(root, 'adapters/portable/installations.generated.mjs');
+    if (conflict !== 'assembly') {
+      mkdirSync(dirname(output), {recursive: true});
+      if (conflict === 'symlink') symlinkSync(sentinel, output);
+      else mkdirSync(output);
+    }
+    assert.throws(() => checkNodeAssembly(root, true,
+      {...installedOptions(resolved), ...(conflict === 'assembly' ? {bridge: 'compute'} : {})}),
+    /Aliased or invalid Host output|CollidingConnectorAssemblyOutput/);
+    assert.equal(readFileSync(sentinel, 'utf8'), 'unchanged outside bytes\n');
+    assert.equal(existsSync(join(root, 'src/compute/moon.pkg')), false);
+    assert.equal(existsSync(join(root, 'adapters/portable/strategy.generated.mjs')), false);
+  }
+});
+
+test('invalid Host roles and duplicate profiles refuse before the default Compute generator writes', t => {
+  for (const conflict of ['role', 'profile']) {
+    const f = fixture(t), root = f.modules[1].root;
+    const first = hostFixture(f, 'reader', 'source');
+    const second = hostFixture(f, 'another', 'source');
+    if (conflict === 'role') first.write({...first.installation, effect: null});
+    else second.write({...second.installation, source: {...second.installation.source,
+      profileVersion: first.installation.source.profileVersion}});
+    assert.throws(() => checkNodeAssembly(root, true, {names: ['reader', 'another'],
+      assembly: 'compute', bridge: 'bridge', adapter: 'portable', installations: true,
+      nativeRemoteStandard: false}), /Invalid Host bundle manifest|Duplicate installed/);
+    assert.equal(existsSync(join(root, 'src/compute/moon.pkg')), false);
+    assert.equal(existsSync(join(root, 'adapters/portable/strategy.generated.mjs')), false);
+    assert.equal(existsSync(join(root, 'adapters/portable/installations.generated.mjs')), false);
+  }
+});
+
+test('missing bridge dependency refuses before Compute or installation files are written', t => {
+  const f = fixture(t), root = f.modules[2].root;
+  hostFixture(f, 'reader', 'source');
+  const resolved = resolveConnectorBuildInputs(f.configuration);
+  rmSync(join(f.modules[0].root, 'src/physical_manifest/moon.pkg'));
+  assert.throws(() => checkNodeAssembly(root, true, installedOptions(resolved)), /Missing/);
+  assert.equal(existsSync(join(root, 'src/compute/moon.pkg')), false);
+  assert.equal(existsSync(join(root, 'adapters/portable/installations.generated.mjs')), false);
+});
+
+test('default installation outputs also refuse symlink aliases before Compute writes', t => {
+  const f = fixture(t), root = f.modules[1].root;
+  hostFixture(f, 'reader', 'source');
+  const sentinel = join(f.root, 'sentinel.mjs');
+  writeFileSync(sentinel, 'unchanged outside bytes\n');
+  const output = join(root, 'adapters/portable/installations.generated.mjs');
+  mkdirSync(dirname(output), {recursive: true});
+  symlinkSync(sentinel, output);
+  assert.throws(() => checkNodeAssembly(root, true, {names: ['reader'],
+    assembly: 'compute', bridge: 'bridge', adapter: 'portable', installations: true,
+    nativeRemoteStandard: false}), /Aliased or invalid Host output/);
+  assert.equal(readFileSync(sentinel, 'utf8'), 'unchanged outside bytes\n');
+  assert.equal(existsSync(join(root, 'src/compute/moon.pkg')), false);
+  assert.equal(existsSync(join(root, 'adapters/portable/strategy.generated.mjs')), false);
 });
