@@ -145,7 +145,44 @@ for (const entrance of ['local', 'https']) {
     const pending = f.client.startSource('SELECT 1 AS n', {format: 'sql'});
     const original = getSubmissionInput(pending);
     let outcome, recovery;
-    await assert.rejects(pending, error => {
+    let returnedRun, failure;
+    try {returnedRun = await pending;} catch (error) {failure = error;}
+    const checkpointDatabase = new DatabaseSync(join(f.root,
+      'host/checkpoints/journal/checkpoint-journal.sqlite3'), {readOnly: true});
+    const requestDatabase = new DatabaseSync(join(f.root,
+      'host/requests/client-requests.sqlite3'), {readOnly: true});
+    let records;
+    try {
+      records = {
+        preparations: checkpointDatabase.prepare('SELECT * FROM preparations ORDER BY prepare_attempt_id')
+          .all().map(row => ({...row})),
+        checkpoints: checkpointDatabase.prepare('SELECT * FROM checkpoints ORDER BY checkpoint_cid')
+          .all().map(row => ({...row})),
+        runs: checkpointDatabase.prepare('SELECT * FROM runs ORDER BY run_id')
+          .all().map(row => ({...row})),
+        intents: requestDatabase.prepare('SELECT * FROM client_submitted_intents ORDER BY submission_id')
+          .all().map(row => ({...row})),
+        requests: requestDatabase.prepare('SELECT * FROM client_requests ORDER BY caller_request_id')
+          .all().map(row => ({...row})),
+      };
+    } finally {checkpointDatabase.close(); requestDatabase.close();}
+    const listed = await f.client.checkpoints();
+    await writeFile(join(f.root, 'unsupported-wait-observation.json'), JSON.stringify({
+      entrance, original, outcome: getSubmissionOutcome(failure ?? returnedRun),
+      failureCode: failure?.code, returnedRef: returnedRun?.ref,
+      records, listed, computes: f.computes,
+    }), {mode: 0o600});
+    // Read the actual Checkpoint and request journals before interpreting
+    // presentation. A durable wait can exist even with zero Compute.
+    assert.deepEqual({outcome: getSubmissionOutcome(failure ?? returnedRun)?.kind,
+      preparations: records.preparations.map(row => row.status),
+      checkpoints: records.checkpoints.length, runs: records.runs.length,
+      intents: records.intents.map(row => row.phase), requests: records.requests.length,
+      listed: listed.items.length, computes: f.computes},
+    {outcome: 'preparation_failed', preparations: [], checkpoints: 0, runs: 0,
+      intents: ['preparation_failed'], requests: 0, listed: 0, computes: 0},
+    '[check-mutation:unsupported-preparation-wait]');
+    await assert.rejects(async () => {throw failure;}, error => {
       assert.equal(error.code, 'SubmissionPreparationFailed');
       assert.deepEqual(getSubmissionInput(error), original);
       recovery = f.client.recoverRequest(error);

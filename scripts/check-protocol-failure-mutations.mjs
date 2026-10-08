@@ -12,6 +12,17 @@ const publicTargets = ['local', 'http'].map(entrance => target(
   `${entrance}: check protocol failures retain original input without verdict or retry authority`,
   'protocol-failure-public-rejection'));
 const mutations = [
+  {name: 'an unsupported epoch-bound preparation persists a wait',
+    path: 'adapters/host-node/client-checkpoints.mjs',
+    file: 'adapters/host-node/submission-epoch-public.test.mjs',
+    from: '        deferral: captured.submission === undefined\n' +
+      '          ? deferralFor({prepareAttemptId, request, requestCid,\n' +
+      '            captured, answering}) : undefined});',
+    to: '        deferral: deferralFor({prepareAttemptId, request, requestCid,\n' +
+      '          captured, answering})});',
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: an accepted unsupported pre-Run wait remains a preparation failure after reconnect`,
+      'unsupported-preparation-wait', 'deepStrictEqual'))},
   ...['local', 'https'].map(entrance => ({
     name: `${entrance}: unexposed preparation write misroutes to ordinary admission`,
     path: entrance === 'local' ? 'adapters/host-node/in-process-client.mjs' : 'adapters/host-node/client-http.mjs',
