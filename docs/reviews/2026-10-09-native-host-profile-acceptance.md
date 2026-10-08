@@ -58,3 +58,10 @@ used by the ordinary connection. They are separate from the twelve normal
 Host boundary cases and every performance sample. The stop case explicitly
 stops the existing dispatch, observes no further task admission and retained
 cleanup responsibility, then confirms release; it is not public Run cancellation.
+
+The ordinary connection checks for a current uncommitted policy choice before
+observing its optional profile clock. A stopped/already committed dispatch does
+not keep a consultation alive. A real pending request still observes the durable
+clock and revalidates identity, deadline and admission before commit. The normal
+stop acceptance closes that clock and then drains the stopped Owner, making this
+boundary executable rather than assuming the optional instrumentation stays live.

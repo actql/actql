@@ -40,17 +40,19 @@ fn prepare_native_performance_selection(
   }
   let started = @bench.monotonic_clock_start()
   let configuration = session.configuration
+  // A stopped/already committed Owner has no consultation. Check that
+  // boundary before requiring its optional profile clock to remain open.
+  match @duckdb_standard_host.prepare_dispatch_policy_choice(run.dispatch) {
+    Err(issue) => return Err(Dispatch(issue))
+    Ok(false) => return Ok(())
+    Ok(true) => ()
+  }
   let now = match performance_clock(configuration) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if now < 0L || now > 9223372036854715807L {
     return Err(InvalidConfiguration)
-  }
-  match @duckdb_standard_host.prepare_dispatch_policy_choice(run.dispatch) {
-    Err(issue) => return Err(Dispatch(issue))
-    Ok(false) => return Ok(())
-    Ok(true) => ()
   }
   let request = match
     @duckdb_standard_host.prepare_dispatch_policy_request(
