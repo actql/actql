@@ -113,18 +113,23 @@ Frontend objective.
 
 The clean `48ef9e99dce686562ecacca0b9ee0640cab355e3` normal five-package run
 `run-0nYfZT` reached all **20 Local positive cases** (11 existing and nine new).
-It then failed the new refusal-code assertion; HTTPS and completed refusal
-acceptance were not reached. Preserve the original failed evidence at
-`worktrees/.codex-scratch/public-query-evidence-iid0zb`, including
-`010.stdout.log`, `010.stderr.log` and the failed summary. The successful
-positive lines do not establish a completed campaign.
+It then failed the legacy generic refusal-code check. HTTPS and completed
+refusal acceptance were not reached. Preserve the original failed evidence at
+`worktrees/.codex-scratch/public-query-evidence-iid0zb`. The clean
+`0f1bdbcdac9b28b252657e72fb5f782a9f288e59` repeat (`run-lYIhOg`,
+`worktrees/.codex-scratch/public-query-evidence-b1mEPf`) likewise reached all
+20 Local positives, then stopped at the first legacy refusal, before the new
+refusals. Both are failed campaigns, not complete public acceptance.
 
-The fixture incorrectly expected `ClientProgramInvalidInput`. The exact
-MoonBit lowerer diagnostic is `UnsupportedOrdering`. The existing Check owner
-projects it as `Limit("implementation_limit")` in `client_check.mbt`, and the
-preparation adapter projects that check failure to
-`ClientProgramImplementationLimit`. Correct all four expectations to that
-existing public contract. This correction is based on the owner mapping, not a
-weakened refusal or changed row expectation. Product code, ceilings, Source
-inputs and independent expected results remain unchanged. The next clean-SHA
-normal-pack campaign must verify all refusals and both transports.
+The six legacy refusals relied on a generic code set that omitted
+`ClientProgramImplementationLimit`. The four new refusals initially specified
+`ClientProgramInvalidInput`; neither assertion matched the existing owner
+contract. The exact MoonBit lowerer diagnostic is `UnsupportedOrdering`.
+The existing Check owner projects it as `Limit("implementation_limit")` in
+`client_check.mbt`, and the preparation adapter projects that check failure to
+`ClientProgramImplementationLimit`. Pin that exact contract for all ten refusal
+cases, rather than broadening the generic set or changing product diagnostics.
+This correction is based on the owner mapping and exact lowerer refusal tests,
+not a weakened refusal or changed row expectation. Product code, ceilings,
+Source inputs and independent expected results remain unchanged. The next
+clean-SHA normal-pack campaign must verify every refusal and both transports.

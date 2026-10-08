@@ -29,6 +29,8 @@ test('authored receiver obligations preserve duplicates, NULL, LIMIT and distinc
     [{score: 10}, {score: 20}, {score: 20}, {score: null}, {score: null}]);
   const newRefusals = distinctOrderRefusals.filter(value => value.name.startsWith('order-receiver-'));
   assert.equal(newRefusals.length, 4);
+  assert.equal(distinctOrderRefusals.length, 10);
+  assert.ok(distinctOrderRefusals.every(value => value.expectedCode === 'ClientProgramImplementationLimit'));
   assert.ok(newRefusals.every(value => value.expectedCode === 'ClientProgramImplementationLimit'));
   const newCases = distinctOrderSuccesses.filter(value => value.name.startsWith('order-receiver-'));
   assert.equal(newCases.length, 9);
