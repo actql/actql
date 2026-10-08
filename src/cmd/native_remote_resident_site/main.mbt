@@ -968,6 +968,7 @@ priv struct StoppedReleaseRecovery {
   mut transfer_journal : @transfer_journal.Journal?
   mut physical_cleanup : (() -> Bool)?
   mut physical_cleanup_done : Bool
+  release_failure_hook : StoppedReleaseFailureHook
   mut retained_input : Bool
   mut recorded_source : @publication.RecordedRunPublication?
   mut recorded_consumer : (String, String)?
@@ -1035,6 +1036,10 @@ fn open_release_recovery(
     transfer_journal: None,
     physical_cleanup: None,
     physical_cleanup_done: false,
+    release_failure_hook: {
+      remaining: required_int(matches, "holder-release-failures"),
+      attempts: 0,
+    },
     retained_input: false,
     recorded_source: None,
     recorded_consumer: None,
@@ -1137,6 +1142,21 @@ fn recover_stopped_release(
   match owner.journal.pending_output_intents() {
     Ok(values) if values.is_empty() => ()
     _ => return false
+  }
+  // Apply the existing opt-in release fault to this exact stopped owner too.
+  // The exclusive slot, journal and original material custody stay retained;
+  // no physical cleanup or terminal transition occurs during the injected wait.
+  if stopped_release_failure_attempt(
+      owner.release_failure_hook,
+      owner.physical_cleanup_done || codes[2] == 2,
+    )
+    is Some(attempt) {
+    report("cleanup-pending", [
+      ("step", "release"),
+      ("request_cid", identity),
+      ("attempt", attempt.to_string()),
+    ])
+    return false
   }
   if !settle_stopped_holder_custody(matches, owner, request) {
     return false
