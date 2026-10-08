@@ -1248,7 +1248,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
           unknownName: withoutContext(await client.check(
             'SELECT id FROM accounts', {kind: 'text', scope: 'bound_input', format: 'sql'}))};
         if (entrance === 'http') {
-          const response = await client.post({input: {text: query,
+          const response = await client.post({kind: 'text', scope: 'bound_input', input: {text: query,
             format: 'sql', parameterDeclarations: declarations},
           parameters: requests.violation.parameters});
           assert.equal(response.status, 200);
@@ -2150,7 +2150,7 @@ for (const entrance of ['local', 'http']) {
     const ordinaryCases = await contextClient(t, entrance, absentEnvironment);
     for (const [text, options, verdict, summary, hint] of [
       ['SELECT 1 AS n', {}, 'verified',
-        'The report verifies only its bound checking scope and context.',
+        'The report verifies only its selected checking scope and context.',
         'Use the execution, cancellation and release owners for their respective results.'],
       ['SELECT', {}, 'invalid',
         'The report establishes an input violation in its checking scope.',
@@ -2813,16 +2813,17 @@ for (const entrance of ['local', 'http']) {
         withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
         {aliases: [rightAlias], readOutcome: 'allow', closed: true}),
     ];
-    for (const [text, options, verdict, codes, limits] of [
+    for (const [text, options, verdict, codes, limits, missing] of [
       ['SELECT 1 AS n', {format: 'sql'}, 'verified', [], []],
       ['SELECT id FROM records', {format: 'sql'}, 'undetermined', [], []],
       ['/*😀*/\r\nSELECT missing AS n', {format: 'sql'}, 'invalid', ['query_expression_invalid'], []],
       [query, {format: 'sql', parameterDeclarations: declarations,
         parameters: {minimum: 'twenty'}}, 'invalid', ['supplied_value_type_mismatch'], []],
       [query, {format: 'sql', parameterDeclarations: declarations},
-        'undetermined', [], [{code: 'bound_values_missing'}]],
+        'undetermined', [], [{code: 'bound_values_missing'}], 'minimum'],
       [query, {format: 'sql', parameterDeclarations: {...declarations, another: {type: 'number'}},
-        parameters: {minimum: 'twenty'}}, 'invalid', ['supplied_value_type_mismatch'], []],
+        parameters: {minimum: 'twenty'}}, 'invalid', ['supplied_value_type_mismatch'],
+      [{code: 'bound_values_missing'}], 'another'],
     ]) {
       const expected = await absent.check(text, {kind: 'text', scope: 'bound_input', ...options});
       assert.equal(expected.outcome, 'completed');
@@ -2850,12 +2851,12 @@ for (const entrance of ['local', 'http']) {
               kind: 'structured', pointer: '/minimum'}});
           assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, original);
         }
-        if (limits.length) {
+        if (missing) {
           const declared = getCheckInput(outcome, 'parameter_declarations');
           assert.deepEqual(outcome.report.requirements, [{code: 'parameter_value_required',
-            facts: {parameter: 'minimum', expected_type: 'number', admission: expectedNumberAdmission},
+            facts: {parameter: missing, expected_type: 'number', admission: expectedNumberAdmission},
             location: {document_id: 'parameter_declarations', revision: declared.revision,
-              kind: 'structured', pointer: '/minimum'}}]);
+              kind: 'structured', pointer: `/${missing}`}}]);
         }
       }
     }
