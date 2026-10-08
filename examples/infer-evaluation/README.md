@@ -179,6 +179,16 @@ reports the existing Store's `PublicationObjectCorrupt` refusal and keeps the
 same Run unresolved. No Source acquisition, saved Model call or unsent call
 is executed to reconstruct the missing original.
 
+The response-binding cases obtain authentic attempt and call-slot originals
+from another executed Run with different input. Each changes just one returned
+binding at the read-only reconciliation port, keeping the target Run's actual
+saved response body. Both are refused before response adoption or the next
+unsent call. The original Run remains unresolved with Source=1 and Model=3;
+another process's attach and repeated reconciliation do not resend or retry
+the response lookup. A call slot denotes Program/input semantics and may be
+shared across Runs; the attempt separately binds the original Run. These tests
+do not require distinct call slots merely because Run identities differ.
+
 Run only these public source cases with the existing process timeouts:
 
 ```sh
@@ -188,10 +198,16 @@ node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-name-pat
 Source checks are not evidence of clean fixed-SHA distribution acceptance;
 the packed command below supplies that separate package boundary.
 
-Run the focused source acceptance with the pinned toolchain environment:
+Run the response-binding counterexamples separately with the pinned toolchain:
 
 ```sh
-node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-concurrency=1 adapters/host-node/source-multi-infer-evidence-public.test.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 180 -- --test-name-pattern '^public (local|https) refuses another original' adapters/host-node/source-multi-infer-evidence-public.test.mjs
+```
+
+Run the remaining source acceptance with its existing bounded selection:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-name-pattern '^public (local|https) (?!refuses another original)' --test-concurrency=1 adapters/host-node/source-multi-infer-evidence-public.test.mjs
 ```
 
 For clean fixed-SHA packages, the existing packed acceptance includes both
