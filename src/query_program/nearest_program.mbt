@@ -230,7 +230,8 @@ fn lower_nearest_steps(
   let query_prefix = initial.copy()
   if !query_derived.is_empty() {
     query_prefix.push(("derive", construction.object(query_derived)))
-    steps.push(query_prefix)
+    // Retain the evaluated vector before reusing this scratch projection.
+    steps.push(query_prefix.copy())
     query_prefix.clear()
   }
   query_prefix.push(
