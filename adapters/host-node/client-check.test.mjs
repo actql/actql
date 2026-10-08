@@ -831,7 +831,18 @@ for (const [entrance, open] of Object.entries(entrances)) {
         facts: {parameter: 'options', expected_type, actual_type},
         location: {document_id: 'parameters', revision: original.revision,
           kind: 'structured', pointer}}], '[check-mutation:nested-type]');
-      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
+      // The independent missing declaration is still an outstanding bound
+      // obligation; its Requirement must survive the nested supplied violation.
+      assert.deepEqual(outcome.report.coverage,
+        {limits: [{code: 'bound_values_missing'}], unresolved: protectedSource});
+      const declared = getCheckInput(outcome, 'parameter_declarations');
+      assert.deepEqual(outcome.report.requirements, [{code: 'parameter_value_required',
+        facts: {parameter: 'missing', expected_type: 'string', admission: {
+          kind: 'parameter_declaration', supplier: 'caller',
+          contract: {type: 'string', nullable: false}, constraints: [],
+          contract_schema_cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551'}},
+        location: {document_id: 'parameter_declarations', revision: declared.revision,
+          kind: 'structured', pointer: '/missing'}}], '[check-mutation:nested-missing-requirement]');
       assert.deepEqual(original.value, parameters);
       const reason = outcome.report.reasons[0];
       assert.equal(resolveCheckLocation(outcome, reason.location).input, original);
