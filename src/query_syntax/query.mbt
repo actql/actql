@@ -757,14 +757,23 @@ fn QueryParser::path(self : QueryParser) -> Array[NamePart] raise QueryAbort {
 }
 
 ///|
-fn QueryParser::expression(self : QueryParser) -> Expression raise QueryAbort {
+fn QueryParser::expression(
+  self : QueryParser,
+  stop_before_star? : Bool = false,
+) -> Expression raise QueryAbort {
   let remaining = self.limits.max_work - self.work
   let expression_limits = {
     ..self.limits.expression,
     max_nodes: self.limits.expression.max_nodes - self.expression_nodes,
     max_work: self.limits.expression.max_work.min(remaining),
   }
-  match parse_fragment(self.source, self.index, expression_limits) {
+  match
+    parse_fragment(
+      self.source,
+      self.index,
+      expression_limits,
+      stop_before_star~,
+    ) {
     Ok((expression, next)) => {
       self.spend(expression.work)
       self.expression_nodes += expression.nodes.length()
@@ -779,6 +788,7 @@ fn QueryParser::expression(self : QueryParser) -> Expression raise QueryAbort {
 fn QueryParser::aggregate_expression(
   self : QueryParser,
   prefix : String,
+  stop_before_star? : Bool = false,
 ) -> (Expression, Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let calls : Array[(NamePart, AggregateCall)] = []
   let serial = [self.synthetic_sources]
@@ -834,7 +844,13 @@ fn QueryParser::aggregate_expression(
     }
   }
   match
-    parse_fragment_resolved(self.source, self.index, limits, Some(primary)) {
+    parse_fragment_resolved(
+      self.source,
+      self.index,
+      limits,
+      Some(primary),
+      stop_before_star~,
+    ) {
     Ok((expression, next, embedded_nodes)) => {
       self.spend(expression.work)
       self.expression_nodes += expression.nodes.length() + embedded_nodes
@@ -1135,6 +1151,75 @@ fn QueryParser::optional_output_alias(
 }
 
 ///|
+// A receiver star and an unqualified star share EXCEPT/REPLACE parsing. The
+// expression parser leaves the authored dot-star suffix for this query owner.
+fn QueryParser::star_projection(
+  self : QueryParser,
+  receiver : Expression?,
+  embedded : Array[(NamePart, AggregateCall)],
+  aggregate_expressions : Bool,
+  windows : Array[Projection],
+  window_expressions : Bool,
+) -> Projection raise QueryAbort {
+  ignore(self.advance())
+  let except_columns : Array[NamePart] = []
+  if self.has("EXCEPT") {
+    self.keyword("EXCEPT")
+    let open = self.advance()
+    if open.value != Symbol(40) {
+      raise QueryAbort("Expected EXCEPT opening parenthesis", open.start)
+    }
+    while true {
+      self.node()
+      except_columns.push(self.name())
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+    let close = self.advance()
+    if close.value != Symbol(41) {
+      raise QueryAbort("Expected EXCEPT closing parenthesis", close.start)
+    }
+  }
+  let replacements : Array[StarReplacement] = []
+  if self.has("REPLACE") {
+    self.keyword("REPLACE")
+    self.symbol(40)
+    while true {
+      self.node()
+      let value = self.value_projection(
+        embedded,
+        aggregate_expressions~,
+        windows~,
+        window_expressions~,
+        require_alias=true,
+      )
+      replacements.push({
+        name: value.name.unwrap(),
+        expression: value.expression,
+        aggregate: value.aggregate,
+        analytic: value.analytic,
+      })
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+    self.symbol(41)
+  }
+  {
+    expression: receiver,
+    aggregate: None,
+    analytic: None,
+    name: None,
+    star: Some("*"),
+    except_columns,
+    replacements,
+  }
+}
+
+///|
 fn QueryParser::projections(
   self : QueryParser,
   aggregate_expressions? : Bool = false,
@@ -1149,69 +1234,39 @@ fn QueryParser::projections(
     let start = self.peek().start
     let receiver = self.range_star_receiver()
     let projection = if self.peek().value == Symbol(42) {
-      ignore(self.advance())
-      let except_columns : Array[NamePart] = []
-      if self.has("EXCEPT") {
-        self.keyword("EXCEPT")
-        let open = self.advance()
-        if open.value != Symbol(40) {
-          raise QueryAbort("Expected EXCEPT opening parenthesis", open.start)
-        }
-        while true {
-          self.node()
-          except_columns.push(self.name())
-          if self.peek().value != Symbol(44) {
-            break
-          }
-          ignore(self.advance())
-        }
-        let close = self.advance()
-        if close.value != Symbol(41) {
-          raise QueryAbort("Expected EXCEPT closing parenthesis", close.start)
-        }
-      }
-      let replacements : Array[StarReplacement] = []
-      if self.has("REPLACE") {
-        self.keyword("REPLACE")
-        self.symbol(40)
-        while true {
-          self.node()
-          let value = self.value_projection(
-            embedded,
-            aggregate_expressions~,
-            windows~,
-            window_expressions~,
-            require_alias=true,
-          )
-          replacements.push({
-            name: value.name.unwrap(),
-            expression: value.expression,
-            aggregate: value.aggregate,
-            analytic: value.analytic,
-          })
-          if self.peek().value != Symbol(44) {
-            break
-          }
-          ignore(self.advance())
-        }
-        self.symbol(41)
-      }
-      {
-        expression: receiver,
-        aggregate: None,
-        analytic: None,
-        name: None,
-        star: Some("*"),
-        except_columns,
-        replacements,
-      }
+      self.star_projection(
+        receiver, embedded, aggregate_expressions, windows, window_expressions,
+      )
     } else {
-      self.value_projection(
+      let value = self.value_projection(
         embedded,
         aggregate_expressions~,
         windows~,
         window_expressions~,
+        stop_before_star=true,
       )
+      if self.peek().value == Symbol(46) &&
+        self.source.tokens[self.index + 1].value == Symbol(42) {
+        guard value.expression is Some(expression) &&
+          value.name is None &&
+          value.aggregate is None &&
+          value.analytic is None else {
+          raise QueryAbort(
+            "Star receiver requires a scalar expression",
+            self.peek().start,
+          )
+        }
+        ignore(self.advance())
+        self.star_projection(
+          Some(expression),
+          embedded,
+          aggregate_expressions,
+          windows,
+          window_expressions,
+        )
+      } else {
+        value
+      }
     }
     values.push(projection)
     if ordering is Some(terms) && (self.has("ASC") || self.has("DESC")) {
@@ -1242,6 +1297,7 @@ fn QueryParser::value_projection(
   require_alias? : Bool = false,
   windows? : Array[Projection] = [],
   window_expressions? : Bool = false,
+  stop_before_star? : Bool = false,
 ) -> Projection raise QueryAbort {
   let mut embedded_analytic : AnalyticCall? = None
   let (expression, aggregate) = if window_expressions {
@@ -1249,6 +1305,7 @@ fn QueryParser::value_projection(
     let (expression, extracted, calls) = self.window_expression(
       "aql_select_window_",
       aggregate_prefix=Some("aql_select_aggregate_"),
+      stop_before_star~,
     )
     let mut root = expression.root
     while expression.nodes[root].kind is Parenthesized(child) {
@@ -1280,7 +1337,10 @@ fn QueryParser::value_projection(
     }
   } else if aggregate_expressions {
     let serial = self.synthetic_sources
-    let (expression, calls) = self.aggregate_expression("aql_select_aggregate_")
+    let (expression, calls) = self.aggregate_expression(
+      "aql_select_aggregate_",
+      stop_before_star~,
+    )
     let mut root = expression.root
     while expression.nodes[root].kind is Parenthesized(child) {
       root = child
@@ -1302,7 +1362,7 @@ fn QueryParser::value_projection(
   } else if self.aggregate_head() {
     (None, Some(self.aggregate()))
   } else {
-    (Some(self.expression()), None)
+    (Some(self.expression(stop_before_star~)), None)
   }
   let analytic = if embedded_analytic is Some(_) {
     embedded_analytic

@@ -14,6 +14,7 @@ fn QueryParser::window_expression(
   self : QueryParser,
   prefix : String,
   aggregate_prefix? : String? = None,
+  stop_before_star? : Bool = false,
 ) -> (Expression, Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let windows : Array[Projection] = []
   let calls : Array[(NamePart, AggregateCall)] = []
@@ -104,7 +105,13 @@ fn QueryParser::window_expression(
     }
   }
   match
-    parse_fragment_resolved(self.source, self.index, limits, Some(primary)) {
+    parse_fragment_resolved(
+      self.source,
+      self.index,
+      limits,
+      Some(primary),
+      stop_before_star~,
+    ) {
     Ok((expression, next, embedded_nodes)) => {
       self.spend(expression.work)
       self.expression_nodes += expression.nodes.length() + embedded_nodes

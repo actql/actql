@@ -898,8 +898,37 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('17b95025f2fe4b83389c467ea0b35fb5fcfb571a146ee862ddcc91fea10cb131'),
     preIntegrated.aoa_contract_cid, installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('bfeaee4389acbd2a5f74ff3b909fc1a1255abf4954b2a083ab2d4b8e2cc9ebf8'));
-  assert.equal(current.run.run_definition_cid,
+  // The submitted object-star parent predates ABS. Keep its original AoA,
+  // Unit and Program dependencies rather than rebinding it to the new schema.
+  assert.equal(vector(pin('4943caba75b011ab9aebfc07d4f30ea4a5aefa72c50bc2eab44724cc3e6aaff9'),
+    preIntegrated.aoa_contract_cid, installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('093170ff7e898c3ef58a1fd5d3930222b06aafd64bda70ab62f311d1b9ac56df'));
+  const objectStarGrammar = JSON.parse(readFileSync(
+    'scripts/fixtures/submitted-object-star-grammar.json', 'utf8')).grammar;
+  const {grammar_manifest_cid: objectStarCid, ...objectStarBody} = objectStarGrammar;
+  assert.equal(cid(objectStarBody), objectStarCid);
+  assert.equal(objectStarCid, 'sha256:f403b42dd4a19e8a22629ba7f14f6bb6de754490194277e4f083ae0f08515bb5');
+  assert.equal(vector(objectStarCid, preIntegrated.aoa_contract_cid,
+    installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:aa93f66a057c74f6f2749d69e9cb0cd580f766e89755e77adb4926779e8aa351');
+  // Keep the complete adopted ABS main closure before adding object-star rules.
+  assert.equal(vector('sha256:ad974dd510c1491960ebc6c86b0c426fecf6874895e4a0dc00ce07e714e145dc',
+    cid(aoaContract), valuesDependencyOracle(), barrierCid, valuesProgramOracle()).run.run_definition_cid,
     'sha256:f5f807d4e1879fb67e54f4294afb5525434820e49edae3611d75317a4850c3f2');
+  const {grammar_manifest_cid: computedCid, ...computedBody} = JSON.parse(
+    readFileSync('scripts/fixtures/submitted-computed-star-grammar.json', 'utf8')).grammar;
+  assert.equal(cid(computedBody), computedCid);
+  assert.equal(vector(computedCid, preIntegrated.aoa_contract_cid,
+    installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:258d5e590237fc06d812a6ca075f620e6cd5220a5e21b14b949e376462a58838');
+  const {grammar_manifest_cid: integratedCid, ...integratedBody} = JSON.parse(
+    readFileSync('scripts/fixtures/integrated-object-star-grammar.json', 'utf8')).grammar;
+  assert.equal(cid(integratedBody), integratedCid);
+  assert.equal(vector(integratedCid, cid(aoaContract), valuesDependencyOracle(),
+    barrierCid, valuesProgramOracle()).run.run_definition_cid,
+    'sha256:2706813ed3f0c7f86439323e3486f7be49f1377ec955ff9414bb91ead605b74a');
+  assert.equal(current.run.run_definition_cid,
+    'sha256:6e1a597d8e0473c402cca0fd54e582189c4d1da5064aadab98a647bb6888f645');
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
@@ -927,7 +956,7 @@ test('ABS contract inputs independently determine the current Values Run and con
   assert.equal(cid(requestIntent), "sha256:8291aeda45155c650ced1f803650313d9c5741f97b70672933a57d6fcffdd32b");
   const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
     barrier.barrier_contract_manifest_cid, identity);
-  assert.equal(current.run.run_definition_cid, "sha256:f5f807d4e1879fb67e54f4294afb5525434820e49edae3611d75317a4850c3f2");
+  assert.equal(current.run.run_definition_cid, "sha256:6e1a597d8e0473c402cca0fd54e582189c4d1da5064aadab98a647bb6888f645");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
