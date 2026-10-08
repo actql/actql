@@ -184,6 +184,8 @@ fn lower_script_relation_term(
     parameter_declarations=context.parameter_declarations,
     initial_scope=sources.ranges.get(input.name),
     preserved_scope=preserved,
+    prefix_steps=steps.copy(),
+    prefix_context=Some(context),
   )
   steps.append(body)
   let name = if body.is_empty() && carry_ranges {
