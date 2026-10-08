@@ -1,5 +1,5 @@
 ///|
-/// Rejection-time observation of the original Program. Existing admission,
+/// Nonexecuting observation of the original Program. Existing admission,
 /// binding, Source inventory and checking Owners determine every input fact.
 /// No checked handle, Run or dispatch permit leaves this reporting bridge.
 #export_name("clientProgramCheckProgram")
@@ -12,7 +12,15 @@ pub fn client_program_check_program(
   program_revision : String,
   parameters_revision : String?,
   correlation_ref : String,
+  scope : String,
 ) -> String {
+  let scope = match check_scope(scope) {
+    Some(scope) => scope
+    None => return check_failed_json("check_request_invalid", correlation_ref)
+  }
+  if scope == TemplateOnly && parameters is Some(_) {
+    return check_failed_json("check_request_invalid", correlation_ref)
+  }
   let findings : Array[CheckFinding] = []
   let mut pointer = None
   let stop = check_program_findings(
@@ -22,8 +30,10 @@ pub fn client_program_check_program(
     visible_publication,
     parameters,
     value => pointer = value,
+    scope,
   )
   check_outcome_json(findings, stop, context_ref, correlation_ref, {
+    scope,
     structured_program: true,
     program_pointer: pointer,
     source_revision: program_revision,
@@ -45,6 +55,7 @@ fn check_program_findings(
   visible_publication : String,
   parameters : String?,
   locate : (String?) -> Unit,
+  scope : @program_check.CheckScope,
 ) -> CheckStop {
   let limits = client_program_standard_limits().checking
   let supplied = match client_program_input("json", parameters) {
@@ -114,21 +125,7 @@ fn check_program_findings(
   // Declaration-owned requirements are independent of private resolution.
   // Presence is read from the supplied object, so an explicit null is never
   // turned into an absent binding. This does not validate supplied values.
-  let supplied_object = match supplied {
-    None => None
-    Some(value) => @decode.open_object(value).to_option()
-  }
-  for declaration in @parameter_binding.declarations(declarations) {
-    let present = supplied_object is Some(object) &&
-      @decode.lookup(object, declaration.name) is Some(_)
-    if (supplied is None || supplied_object is Some(_)) &&
-      !present &&
-      !@parameter_binding.has_default(declaration) &&
-      check_declaration_type(declaration) is Some(expected) {
-      findings.push(Limit("bound_values_missing"))
-      findings.push(RequiredValue(declaration, expected))
-    }
-  }
+  check_missing_value_findings(findings, declarations, supplied, scope)
   let mut binding_invalid = false
   match
     @parameter_binding.bind(declarations, supplied, {
@@ -249,9 +246,35 @@ fn check_program_findings(
   if binding_invalid {
     return Report
   }
-  match @program_check.check_parsed(program, environment, supplied, limits) {
-    Checked(_) => Report
-    NeedsInputs(requests) => {
+  let outcome : CheckProjection = match scope {
+    BoundInput =>
+      Bound(@program_check.check_parsed(program, environment, supplied, limits))
+    TemplateOnly =>
+      match
+        @program_check.check_parsed_scoped(
+          program,
+          environment,
+          TemplateOnly,
+          None,
+          limits,
+        ) {
+        TemplateOnly(Verified(checked)) =>
+          return check_template_public_stop(findings, checked)
+        TemplateOnly(Rejected(diagnostic)) => TemplateDiagnostic(diagnostic)
+        TemplateOnly(Unresolved(frontier)) => {
+          let diagnostic = @program_check.template_frontier_diagnostic(frontier).unwrap()
+          if @program_check.diagnostic_category(diagnostic) == MissingInput {
+            check_missing_input_findings(findings, diagnostic, scope)
+            return Report
+          }
+          TemplateDiagnostic(diagnostic)
+        }
+        _ => return Failed("check_internal")
+      }
+  }
+  match outcome {
+    Bound(Checked(_)) => Report
+    Bound(NeedsInputs(requests)) => {
       for index in 0..<@program_check.input_request_count(requests) {
         match @program_check.input_request_at(requests, index).unwrap().kind {
           ParameterValue(_) => () // Already retained from the admitted declarations.
@@ -268,7 +291,7 @@ fn check_program_findings(
       }
       Report
     }
-    Rejected(diagnostic) =>
+    Bound(Rejected(diagnostic)) | TemplateDiagnostic(diagnostic) =>
       check_program_diagnostic(
         findings, diagnostic, document, supplied, parameters, locate,
       )
@@ -330,7 +353,15 @@ fn check_program_diagnostic(
         is Source(Identity(References(Usage(UnusedParameter(declaration))))) &&
         declaration.name.length() <= 256 {
         findings.push(
-          UnusedParameter(declaration.name, Some("/params/" + declaration.name)),
+          UnusedParameter(
+            declaration.name,
+            Some(
+              "/params/" +
+              declaration.name
+              .replace_all(old="~", new="~0")
+              .replace_all(old="/", new="~1"),
+            ),
+          ),
         )
         return Report
       }
@@ -346,7 +377,8 @@ fn check_program_diagnostic(
       findings.push(ProgramLimit("implementation_limit", original_pointer))
     CompileLimit =>
       findings.push(ProgramLimit("analysis_budget_exhausted", original_pointer))
-    MissingInput => findings.push(Limit("bound_values_missing"))
+    MissingInput =>
+      check_missing_input_findings(findings, diagnostic, BoundInput)
     UnclassifiedFailure => findings.push(Limit("check_unclassified"))
     InvalidConfiguration => return Failed("check_context_invalid")
   }

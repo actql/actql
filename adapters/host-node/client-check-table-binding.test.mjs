@@ -14,7 +14,7 @@ const alias = Object.freeze({name: 'records', sourceRef: 'connector://crm/main/r
   schemaContractCid: cid('4'), sourceViewContractCid: cid('5')});
 
 async function check({write = 'dispatch', read = 'dispatch', binding = table,
-  failWrite = false, signal, kind = 'source'} = {}) {
+  failWrite = false, signal, kind = 'text'} = {}) {
   const decisions = [], analyzed = [];
   const authorization = kind => ({async authorize(...args) {
     decisions.push([kind, ...args]);
@@ -24,7 +24,7 @@ async function check({write = 'dispatch', read = 'dispatch', binding = table,
   const respond = args => {
     analyzed.push(args);
     return JSON.stringify({version: 'actql-check-outcome/0.1', outcome: 'failed',
-      correlation_ref: args.at(-1), problem: {code: 'check_internal'},
+      correlation_ref: args.at(-2), problem: {code: 'check_internal'},
       reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid});
   };
   const moon = {
@@ -43,7 +43,7 @@ async function check({write = 'dispatch', read = 'dispatch', binding = table,
     tableWriteAccesses: [{authorization: authorization('write'), connection: 'catalog',
       resource: 'report', capabilityCid: binding.capabilityCid}],
   });
-  await owner({principalId: 'author', kind,
+  await owner({principalId: 'author', kind, scope: 'bound_input',
     input: kind === 'program' ? {version: 'actql/0.1', stages: [], results: {}}
       : {format: 'sql', text: 'CREATE TABLE analytics.report AS SELECT 1 AS id'},
     parameters: null, signal});

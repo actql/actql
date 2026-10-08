@@ -172,7 +172,7 @@ export function installNodeClientProgramPreparation({moon, environment,
       // an independent input violation; it cannot admit or execute this input.
       // Its audience-visible publication hides absent and inaccessible Sources.
       let outcome;
-      try { outcome = await check(request); }
+      try { outcome = await check({...request, kind: 'text', scope: 'bound_input'}); }
       catch (cause) {
         if (request.signal?.aborted) throw cause;
         fail('ClientProgramRejected', error);

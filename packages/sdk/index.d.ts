@@ -65,8 +65,9 @@ export type CheckFailureExplanation = Readonly<{summary: string; hint: string}> 
 export declare function explainCheckFailure(error: unknown,
   options?: CheckExplanationOptions): CheckFailureExplanation | undefined;
 /** Detached input actually submitted by this call; no Host document revision. */
-export type CheckFailureInput = Readonly<{text: string; format: ClientSourceFormat;
-  parameterDeclarations?: unknown; parameters: unknown}>;
+export type CheckFailureInput = Readonly<{scope: 'template_only' | 'bound_input'; parameters?: unknown}> &
+  (Readonly<{kind: 'text'; text: string; format: 'sql' | 'aql-text'; parameterDeclarations?: unknown}> |
+    Readonly<{kind: 'program'; program: Readonly<Record<string, unknown>>}>);
 /** Explicit access only; copied/foreign errors cannot recover the original input. */
 export declare function getCheckFailureInput(error: unknown): CheckFailureInput | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
@@ -108,13 +109,22 @@ export declare function equalCheckRequirementFrontiers(first: CheckOutcome, seco
 export type CheckSupplementationDecision = Readonly<{kind: 'more_checks'}> |
   Readonly<{kind: 'stop'; reason: 'frontier_unavailable' | 'no_known_supplement' |
     'unchanged_frontier' | 'attempt_budget'}>;
+export type CheckScopeOptions = Readonly<{scope: 'template_only'; parameters?: never}> |
+  Readonly<{scope: 'bound_input'; parameters?: Record<string, unknown> | null}>;
+export type CheckTextOptions = CheckScopeOptions & Readonly<{
+  format: 'aql-text' | 'sql'; parameterDeclarations?: Record<string, unknown>; signal?: AbortSignal;
+}>;
+export type TextCheckOptions = CheckTextOptions & Readonly<{kind: 'text'}>;
+export type ProgramCheckOptions = CheckScopeOptions & Readonly<{
+  kind: 'program'; format?: never; parameterDeclarations?: never; signal?: AbortSignal;
+}>;
+export type CheckSupplementationObservation = Readonly<{
+  outcome: CheckOutcome; attempts: number; decision: CheckSupplementationDecision;
+}>;
 export interface CheckSupplementationSession {
   /** Explicit read-only check; no automatic I/O, supplement write or execution. */
-  check(text: string, options: Parameters<Client['check']>[1]): Promise<Readonly<{
-    outcome: CheckOutcome;
-    attempts: number;
-    decision: CheckSupplementationDecision;
-  }>>;
+  check(text: string, options: TextCheckOptions): Promise<CheckSupplementationObservation>;
+  check(program: Record<string, unknown>, options: ProgramCheckOptions): Promise<CheckSupplementationObservation>;
 }
 /** A total attempt cap also applies when the bound context keeps changing. */
 export declare function createCheckSupplementationSession(client: Pick<Client, 'check'>,
@@ -282,7 +292,7 @@ export interface CheckDocumentSession {
   /** Full replacement with a strictly increasing signed 32-bit version, including undo/redo. */
   update(text: string, version: number): void;
   /** Explicit check of the buffer captured at invocation; no execution or automatic retries. */
-  check(options: Parameters<Client['check']>[1]): Promise<CheckDocumentObservation>;
+  check(options: CheckTextOptions): Promise<CheckDocumentObservation>;
   /** Explicitly reviewed one-document edits, committed atomically after rechecking.
    * Fresh original-request checks reject observed context changes on both sides
    * of the candidate check; they do not create an authorization lease.
@@ -533,16 +543,12 @@ export interface Client {
     parameterDeclarations?: Record<string, unknown>;
   }): Promise<Execution>;
   /**
-   * Check authored source without starting anything. Completed, failed and
+   * Check an authored text or Program snapshot without starting anything. Completed, failed and
    * unavailable are all returned outcomes; a verdict is always bound to its
    * scope and context reference.
    */
-  check(text: string, options: {
-    format: 'aql-text' | 'sql';
-    parameterDeclarations?: Record<string, unknown>;
-    parameters?: Record<string, unknown> | null;
-    signal?: AbortSignal;
-  }): Promise<CheckOutcome>;
+  check(text: string, options: TextCheckOptions): Promise<CheckOutcome>;
+  check(program: Record<string, unknown>, options: ProgramCheckOptions): Promise<CheckOutcome>;
   start(program: Record<string, unknown>, options?: SubmissionOptions): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,

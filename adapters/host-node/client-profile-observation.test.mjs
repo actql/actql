@@ -69,7 +69,7 @@ for (const entrance of ['local', 'https']) {
     assert.equal(client.profile.scopeRef, 'principal', '[check-mutation:profile-public-capture]');
     assert.equal(client.profile.limits.maxRows, 10);
     if (entrance === 'local') assert.deepEqual(f.reads, {scopeRef: 1, maxRows: 1});
-    const outcome = await client.check('SELECT', {format: 'sql'});
+    const outcome = await client.check('SELECT', {kind: 'text', scope: 'bound_input', format: 'sql'});
     assert.equal(outcome.outcome, 'completed');
     assert.equal(outcome.report.verdict, 'invalid');
     const input = sdk.getCheckInput(outcome, 'source');

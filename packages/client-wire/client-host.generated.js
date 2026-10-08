@@ -800,7 +800,42 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "checkObservation": {
-            "$ref": "check_outcome"
+            "allOf": [
+              {
+                "$ref": "check_outcome"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "report": {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "bound_input"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "partial_report": {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "bound_input"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
           },
           "problem": {
             "type": "object",
@@ -970,7 +1005,42 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "checkObservation": {
-            "$ref": "check_outcome"
+            "allOf": [
+              {
+                "$ref": "check_outcome"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "report": {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "bound_input"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "partial_report": {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "bound_input"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
           },
           "problem": {
             "type": "object",
@@ -8035,7 +8105,10 @@ const schemas = {
                 "additionalProperties": false,
                 "properties": {
                   "kind": {
-                    "const": "bound_input"
+                    "enum": [
+                      "template_only",
+                      "bound_input"
+                    ]
                   }
                 }
               },
@@ -8063,11 +8136,6 @@ const schemas = {
                       "maxItems": 0,
                       "items": {}
                     },
-                    "requirements": {
-                      "type": "array",
-                      "maxItems": 0,
-                      "items": {}
-                    },
                     "coverage": {
                       "properties": {
                         "limits": {
@@ -8083,6 +8151,56 @@ const schemas = {
                       }
                     }
                   },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "scope": {
+                            "properties": {
+                              "kind": {
+                                "const": "bound_input"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "requirements": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "scope": {
+                            "properties": {
+                              "kind": {
+                                "const": "template_only"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "requirements": {
+                            "items": {
+                              "properties": {
+                                "code": {
+                                  "const": "parameter_value_required"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
                   "not": {
                     "required": [
                       "omissions"
@@ -11757,7 +11875,10 @@ const schemas = {
                 "additionalProperties": false,
                 "properties": {
                   "kind": {
-                    "const": "bound_input"
+                    "enum": [
+                      "template_only",
+                      "bound_input"
+                    ]
                   }
                 }
               },
@@ -11784,11 +11905,6 @@ const schemas = {
                       "maxItems": 0,
                       "items": {}
                     },
-                    "requirements": {
-                      "type": "array",
-                      "maxItems": 0,
-                      "items": {}
-                    },
                     "coverage": {
                       "properties": {
                         "limits": {
@@ -11804,6 +11920,56 @@ const schemas = {
                       }
                     }
                   },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "scope": {
+                            "properties": {
+                              "kind": {
+                                "const": "bound_input"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "requirements": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "scope": {
+                            "properties": {
+                              "kind": {
+                                "const": "template_only"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "requirements": {
+                            "items": {
+                              "properties": {
+                                "code": {
+                                  "const": "parameter_value_required"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
                   "not": {
                     "required": [
                       "omissions"
@@ -12905,7 +13071,9 @@ const operationKeys = {
   ],
   "check": [
     "connection",
+    "kind",
     "input",
+    "scope",
     "parameters"
   ],
   "attach": [
@@ -13005,7 +13173,7 @@ const operationKeys = {
 };
 
 export const checkReasonSchemaCid = "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
-export const checkOutcomeSchemaCid = "sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f";
+export const checkOutcomeSchemaCid = "sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {
