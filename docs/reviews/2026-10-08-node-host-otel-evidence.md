@@ -188,3 +188,19 @@ Integration is separate from this implementation handoff. PR #971 targets
 `connector-installation` exports/files from main and `observation` exports/files
 from this branch. Integration-owner conflict resolution, final Ready coverage
 and user merge remain outside this handoff. No CI success is claimed.
+
+## Public wire acceptance follow-up
+
+The public Local/HTTPS fixtures now decode actual OTLP log records independently
+of the product serializer. They assert that pre-Run checker records have no Run
+or Program identity, that successful Owner observations carry the admitted Run
+identity, and that actual metric data points contain no Exemplars. The same
+decoder serves the adapter-level assertions rather than a second expectation
+implementation. HTTPS waiting cancellation also uses the existing public Model
+process fixture: zero dispatch, Owner-confirmed cancellation and no Result.
+
+The combined three-file diagnostic reached its 120-second bound and is not a
+pass (`run-OJdWoy`). Narrowed selections passed: adapter/public Host 17/17
+(`run-JxqXAU`, `focused-test-KtUX6U`) and HTTPS cancellation 1/1
+(`run-bKk2xJ`, `focused-test-KKOkDQ`). These are dirty-source diagnostics;
+fixed-source verification is recorded separately in PR #971.

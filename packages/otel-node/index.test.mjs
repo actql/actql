@@ -4,6 +4,7 @@ import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {createNodeHostObservability} from './index.mjs';
 import {installHostObservation} from '../local-node/adapters/host-common/observation.mjs';
+import {field, assertNoMetricExemplars} from './test/otlp-fixture.mjs';
 
 const parent = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
 async function collector(t, failure = false) {
@@ -19,60 +20,6 @@ async function collector(t, failure = false) {
   await once(server, 'listening');
   t.after(() => new Promise(resolve => server.close(resolve)));
   return {packets, endpoint: `http://127.0.0.1:${server.address().port}`};
-}
-
-// Independent protobuf envelope reader, not the product's serializer.
-function fields(input) {
-  const result = [];
-  let index = 0;
-  const varint = () => {
-    let value = 0n, shift = 0n;
-    for (let n = 0; n < 10 && index < input.length; n++) {
-      const byte = input[index++];
-      value |= BigInt(byte & 127) << shift;
-      if ((byte & 128) === 0) return value;
-      shift += 7n;
-    }
-    throw new Error('InvalidFixtureProtobuf');
-  };
-  while (index < input.length) {
-    const tag = Number(varint()), number = tag >> 3, wire = tag & 7;
-    let value;
-    if (wire === 0) value = varint();
-    else if (wire === 1 || wire === 5) {
-      const size = wire === 1 ? 8 : 4;
-      value = input.subarray(index, index + size); index += size;
-    } else if (wire === 2) {
-      const size = Number(varint());
-      value = input.subarray(index, index + size); index += size;
-    } else throw new Error('InvalidFixtureProtobuf');
-    assert.ok(index <= input.length);
-    result.push({number, value});
-  }
-  return result;
-}
-const field = (input, number) => fields(input).find(item => item.number === number)?.value;
-
-function assertNoMetricExemplars(packets) {
-  let points = 0;
-  for (const packet of packets.filter(item => item.path === '/v1/metrics')) {
-    for (const resource of fields(packet.body).filter(item => item.number === 1)) {
-      for (const scope of fields(resource.value).filter(item => item.number === 2)) {
-        for (const metric of fields(scope.value).filter(item => item.number === 2)) {
-          // OTLP Gauge/Sum, Histogram and ExponentialHistogram data points.
-          for (const [kind, exemplar] of [[5, 5], [7, 5], [9, 10], [10, 11]]) {
-            const data = field(metric.value, kind);
-            if (data === undefined) continue;
-            for (const point of fields(data).filter(item => item.number === 1)) {
-              points++;
-              assert.equal(field(point.value, exemplar), undefined);
-            }
-          }
-        }
-      }
-    }
-  }
-  assert.ok(points > 0, 'inspect actual exported metric data points');
 }
 
 test('managed SDK exports real protobuf with caller correlation and no content in any signal', async t => {
