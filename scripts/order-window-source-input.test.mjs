@@ -15,6 +15,10 @@ test('ORDER window controls distinguish alias, qualified input and pre-QUALIFY s
   assert.equal(byName.get('order-window-set-combined-duplicates').expected.length, 10);
   assert.deepEqual(byName.get('order-window-typed-empty').columns, byName.get('order-window-sql-hidden-call').columns);
   assert.deepEqual(byName.get('order-window-typed-empty').expected, []);
+  for (const name of ['window-alias-nesting', 'embedded-window-alias-nesting']) {
+    assert.equal(orderWindowRefusals.find(item => item.name === 'order-window-refuse-' + name).expectedCode,
+      'ClientProgramImplementationLimit');
+  }
   const cases = [...orderWindowSuccesses, ...orderWindowRefusals];
   assert.equal(new Set(cases.map(item => item.name)).size, cases.length);
 });

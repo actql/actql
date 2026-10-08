@@ -69,8 +69,12 @@ export const orderWindowSuccesses = [
 export const orderWindowRefusals = [
   {name: 'select-distinct', text: 'SELECT DISTINCT id FROM records ORDER BY ROW_NUMBER() OVER (ORDER BY id)'},
   {name: 'named-window', text: 'SELECT id FROM records WINDOW w AS (ORDER BY id) ORDER BY ROW_NUMBER() OVER w'},
-  {name: 'window-alias-nesting', text: 'SELECT ROW_NUMBER() OVER (ORDER BY id) AS n FROM records ORDER BY LAG(n) OVER (ORDER BY id)'},
-  {name: 'embedded-window-alias-nesting', text: 'SELECT ROW_NUMBER() OVER (ORDER BY id) + 1 AS n FROM records ORDER BY ROW_NUMBER() OVER (PARTITION BY n ORDER BY id)'},
+  // UnsupportedAnalytic is disclosed as an implementation limit by the
+  // existing bound-input check. Do not broaden generic accepted input codes.
+  {name: 'window-alias-nesting', expectedCode: 'ClientProgramImplementationLimit',
+    text: 'SELECT ROW_NUMBER() OVER (ORDER BY id) AS n FROM records ORDER BY LAG(n) OVER (ORDER BY id)'},
+  {name: 'embedded-window-alias-nesting', expectedCode: 'ClientProgramImplementationLimit',
+    text: 'SELECT ROW_NUMBER() OVER (ORDER BY id) + 1 AS n FROM records ORDER BY ROW_NUMBER() OVER (PARTITION BY n ORDER BY id)'},
   {name: 'removed-column', format: 'aql-text', text: 'FROM records |> SELECT id |> ORDER BY ROW_NUMBER() OVER (ORDER BY amount)'},
   {name: 'ranking-arity', expectedCode: 'ClientProgramInvalidInput', text: 'SELECT id FROM records ORDER BY ROW_NUMBER(id) OVER (ORDER BY id)'},
   {name: 'undeclared-parameter', text: 'SELECT id FROM records ORDER BY ROW_NUMBER() OVER (ORDER BY id) + @missing'},

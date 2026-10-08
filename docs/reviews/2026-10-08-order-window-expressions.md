@@ -126,3 +126,15 @@ live Google-service differential have not run. Broader window signatures and
 frames remain separate coverage gaps. The merge target is main; PR #1002 is
 already integrated, so no unmerged parent dependency is retained. No PR merge
 is performed by B.
+
+The first clean five-package attempt at
+`d900e6f3ee486753983aa393176fac5aa0efa0ed` passed all 14 Local normal cases.
+It then stopped when the generic fixture error-code set did not include the
+existing bound-input `ClientProgramImplementationLimit` projection for
+`UnsupportedAnalytic` window-alias nesting. Evidence: `run-UwYjsS` and
+`worktrees/.codex-scratch/public-query-evidence-7T8v4X`. HTTPS was not reached.
+Both nesting cases now explicitly expect that existing public code, as the
+analytic STRING_AGG corpus already does for its UnsupportedAnalytic forms.
+The generic allowed-code set, product code, rows, types, order, limits and
+zero-admission/I/O assertions remain unchanged. This partial attempt is not
+complete public acceptance and is not evidence for the subsequent revision.
