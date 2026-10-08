@@ -44,6 +44,7 @@ const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunS
     unknown_state: 'The Run reply contains a state this SDK cannot interpret.',
     contract_mismatch: 'The Run reply does not match this SDK’s registered state contract.',
     malformed_response: 'The Run reply violates the registered state contract.',
+    stale_observation: 'The Run reply has an older control revision or conflicts with previously observed control facts.',
   };
   runObservationFailures.set(error, freezeInput({
     kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',
@@ -1520,6 +1521,9 @@ async function connectSelected(selected, port) {
       }
     };
 
+    // Compare only this Owner's control component. Its revision is not an
+    // Effect, publication or whole-Run revision, and carries no retry authority.
+    let latestControl;
     const readRunObservation = async (operation, body, signal) => {
       // Failure to obtain an observation admits no Run facts, including when
       // credentials or a closed connection prevent dispatch entirely.
@@ -1544,6 +1548,15 @@ async function connectSelected(selected, port) {
         }
         if (structuralKey(observation) !== observedKey) {
           throw rejectedRunObservation(ref, operation, 'malformed_response');
+        }
+        if (observation.control !== undefined) {
+          const control = observation.control;
+          if (latestControl !== undefined && (control.revision < latestControl.revision ||
+              control.revision === latestControl.revision &&
+              structuralKey(control) !== structuralKey(latestControl))) {
+            throw rejectedRunObservation(ref, operation, 'stale_observation');
+          }
+          latestControl = freezeInput({...control});
         }
         return retainEffectUncertainty(observation, ref);
       } catch (cause) {

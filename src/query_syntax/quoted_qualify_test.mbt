@@ -37,7 +37,7 @@ test "QUALIFY quoted names still require a call and the existing OVER boundary" 
     )
     assert_true(
       parse_query("SELECT x FROM t QUALIFY " + name + "() = 1", query_limits())
-      is Err({ issue: Syntax("QUALIFY window call requires OVER"), .. }),
+      is Err({ issue: Syntax("Window call requires OVER"), .. }),
     )
   }
   assert_true(

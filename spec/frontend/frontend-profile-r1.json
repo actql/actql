@@ -764,12 +764,14 @@
         "|> DROP",
         "|> RENAME",
         "|> AS",
-        "|> ASSERT UNIQUE BY (fields)"
+        "|> ASSERT UNIQUE BY (fields)",
+        "|> DISTINCT"
       ],
       "canonical_lowering": "shared Query AST and ordinary Steps",
       "preconditions": [
         "snapshot field slots",
-        "range-alias preservation"
+        "range-alias preservation",
+        "DISTINCT compares visible value slots and preserves only surviving range columns"
       ],
       "spec_section": "7.2-7.4",
       "execution_evidence_ids": [],
@@ -791,7 +793,8 @@
       "surface_forms": [
         "GROUP BY",
         "HAVING",
-        "|> AGGREGATE"
+        "|> AGGREGATE",
+        "GROUP BY ALL"
       ],
       "canonical_lowering": "group and exact expression demand",
       "preconditions": [
@@ -891,24 +894,36 @@
         "UNION ALL",
         "UNION DISTINCT",
         "INTERSECT DISTINCT",
-        "EXCEPT DISTINCT"
+        "EXCEPT DISTINCT",
+        "BY NAME ON (column_list)",
+        "INNER UNION/INTERSECT/EXCEPT BY NAME [ON (column_list)]",
+        "CORRESPONDING [BY (column_list)]",
+        "STRICT CORRESPONDING [BY (column_list)]"
       ],
-      "canonical_lowering": "position alignment then existing operations",
+      "canonical_lowering": "position, strict or INNER name alignment, explicit evaluated-field output projection, then existing append/intersect/except",
       "preconditions": [
         "compatible explicit types",
-        "strict BY NAME exact field set"
+        "strict BY NAME exact field set",
+        "strict ON list exactly matches each input field set and determines output spelling/order",
+        "INNER retains nonempty common names, or explicit ON names present in every input; all input names remain unique",
+        "SQL INNER chain resolves global common output before set typing; sequential Pipe operators check their current intermediate output",
+        "CORRESPONDING reuses INNER matching; STRICT CORRESPONDING reuses exact BY NAME matching"
       ],
       "spec_section": "7.7",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-4",
       "acceptance_case_ids": [
         "SQL-10",
         "SQL-11",
         "SQL-12"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "set-by-name-list-source-input: independent JSON control, typed rows, NULL, duplicates, ordered columns and pre-admission refusals",
+        "set-inner-by-name-source-input: independent JSON control, unmatched columns, SQL global versus Pipe intermediate types, NULL, multiplicity and pre-admission refusals",
+        "set-corresponding-source-input: independent Program, strict versus common names, typed NULLs, multiplicity, scopes and pre-admission refusals"
+      ]
     },
     {
       "feature_id": "query.analytic",

@@ -13,7 +13,7 @@ import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-loca
 import {canonicalJson} from './local-account-config.mjs';
 
 const {directory, entrance, phase, loss, output, cancelRef: originalRef,
-  submissionRef: originalSubmission} = JSON.parse(process.argv[2]);
+  submissionRef: originalSubmission, boundary = 'publication'} = JSON.parse(process.argv[2]);
 const requestId = 'original-cancel-successful-run';
 const cancelId = 'original-cancel-operation';
 const keys = generateKeyPairSync('ed25519');
@@ -34,9 +34,9 @@ const authorization = {
     console.log('INSTALLED_CANCEL_OWNER', name, detail?.code ?? '', new Date().toISOString());
   },
   async faultInjection(name) {
-    if (phase === 'initial' && name === 'computed') {
-      // The real Store has committed; the original execution owner has not
-      // yet confirmed physical stop and cleanup. Keep these facts separate.
+    if (phase === 'initial' && name === (boundary === 'physical-start' ? 'physical_start_reserved' : 'computed')) {
+      // Hold the real dispatch after its physical start reservation, or
+      // after Store publication, without claiming stop or cleanup success.
       publicationReached();
       await publicationHeld;
     }
@@ -78,15 +78,15 @@ try {
     console.log('INSTALLED_CANCEL_PHASE', 'submitted', new Date().toISOString());
     await publicationReady;
     const publishedBeforeStop = await run.status();
-    assert.equal(publishedBeforeStop.status, 'succeeded');
-    assert.equal(publishedBeforeStop.result_available, true);
+    assert.equal(publishedBeforeStop.status, boundary === 'physical-start' ? 'running' : 'succeeded');
+    assert.equal(publishedBeforeStop.result_available, boundary !== 'physical-start');
     assert.equal(publishedBeforeStop.control.physical_stop, 'unknown');
     const status = publishedBeforeStop;
     console.log('INSTALLED_CANCEL_PHASE', 'terminal', status.status, new Date().toISOString());
-    assert.equal(status.status, 'succeeded');
-    const rows = await run.result('answer').all();
+    assert.equal(status.status, boundary === 'physical-start' ? 'running' : 'succeeded');
+    const rows = boundary === 'physical-start' ? [] : await run.result('answer').all();
     console.log('INSTALLED_CANCEL_PHASE', 'read', rows.length);
-    assert.deepEqual(rows, [{id: 1}, {id: 2}]);
+    assert.deepEqual(rows, boundary === 'physical-start' ? [] : [{id: 1}, {id: 2}]);
     const cancelRef = {...run.ref, cancelId, expectedRevision: status.control.revision};
     await writeFile(join(directory, 'cancel-ref.json'), JSON.stringify(cancelRef),
       {flag: 'wx', mode: 0o600});
@@ -118,29 +118,47 @@ try {
     assert.deepEqual(failure, {code: 'CancellationUnknown', cancelRef});
     assert.equal(faults, 1);
     const afterCancellationBeforeStop = await run.status();
-    assert.deepEqual(afterCancellationBeforeStop.control, publishedBeforeStop.control,
-      'a committed Result wins while its physical owner is still held');
-    assert.equal(afterCancellationBeforeStop.status, 'succeeded');
+    if (boundary === 'physical-start') {
+      assert.equal(afterCancellationBeforeStop.status, 'running');
+      assert.deepEqual(afterCancellationBeforeStop.control, {
+        revision: cancelRef.expectedRevision + (loss === 'after-commit' ? 1 : 0),
+        cancellation_requested: loss === 'after-commit', physical_stop: 'unknown'});
+    } else {
+      assert.deepEqual(afterCancellationBeforeStop.control, publishedBeforeStop.control,
+        'a committed Result wins while its physical owner is still held');
+      assert.equal(afterCancellationBeforeStop.status, 'succeeded');
+    }
     const originalLookup = await run.lookupCancellation(cancelRef);
     assert.deepEqual(originalLookup, loss === 'after-commit'
       ? {kind: 'found', cancellation: {ref: run.ref, cancelRef,
-        kind: 'already_terminal', revision: cancelRef.expectedRevision}}
+        kind: boundary === 'physical-start' ? 'accepted' : 'already_terminal',
+        revision: cancelRef.expectedRevision + (boundary === 'physical-start' ? 1 : 0)}}
       : {kind: 'unknown', cancelRef});
     releasePublication();
     const stopSignal = AbortSignal.timeout(15000);
     let stopped;
-    do {
-      stopped = await run.status();
-      if (stopped.control.physical_stop === 'confirmed') break;
-      await delay(10, undefined, {signal: stopSignal});
-    } while (true);
-    assert.equal(stopped.status, 'succeeded');
-    assert.equal(stopped.control.cancellation_requested, false);
+    try {
+      do {
+        stopped = await run.status();
+        if (stopped.control.physical_stop === 'confirmed') break;
+        await delay(10, undefined, {signal: stopSignal});
+      } while (true);
+    } catch (failure) {
+      // Retain independent journal facts before reporting the failed boundary.
+      // A timeout is neither a stop receipt nor a successful mutation check.
+      await writeFile(output, JSON.stringify({ref: run.ref, submissionRef, cancelRef,
+        status, afterCancellationBeforeStop, lastObserved: stopped, originalLookup,
+        faults, computes, boundary, snapshot: snapshot(), stopUnconfirmed: true}));
+      throw failure;
+    }
+    const cancellationCommitted = boundary === 'physical-start' && loss === 'after-commit';
+    assert.equal(stopped.status, cancellationCommitted ? 'cancelled' : 'succeeded');
+    assert.equal(stopped.control.cancellation_requested, cancellationCommitted);
     assert.deepEqual(await run.lookupCancellation(cancelRef), originalLookup,
       'later physical-stop observation cannot rewrite the original cancel outcome');
     await writeFile(output, JSON.stringify({ref: run.ref, submissionRef, cancelRef, status, rows,
       publishedBeforeStop, afterCancellationBeforeStop, stopped, originalLookup,
-      failure, explanation, faults, computes, snapshot: snapshot()}));
+      failure, explanation, faults, computes, boundary, snapshot: snapshot()}));
   } else {
     const request = await client.lookupSubmission(originalSubmission);
     console.log('INSTALLED_CANCEL_PHASE', 'request-found');

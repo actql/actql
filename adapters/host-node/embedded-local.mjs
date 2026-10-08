@@ -40,7 +40,7 @@ import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {issueInstalledRunControlObservation,
+import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
   '../host-common/run-state-observation.mjs';
 import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
@@ -542,9 +542,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     try {
       // MoonBit fixes the projection equivalence. SQLite only retains this
       // bounded key; it cannot authorize a transition or reinterpret a Run.
-      const ownerFactKey = moon.clientProgramRunObservationKey(state.status,
-        BigInt(retained.revision), state.cleanupPending,
-        retained.physicalCloseConfirmed === true ? true : undefined);
+      const ownerFactKey = issueInstalledRunObservationKey(moon, {
+        outcome: state.status, revision: retained.revision,
+        cleanupPending: state.cleanupPending,
+        physicalCloseConfirmed: retained.physicalCloseConfirmed,
+      });
       if (ownerFactKey === undefined) { observation.noteLoss(); return; }
       observation.emit('run', 'owner_observed', {ref, outcome: state.status,
         revision: retained.revision,
