@@ -5,19 +5,25 @@ import {join} from 'node:path';
 import {sourceCases, sourceRefusals} from './fixtures/infer-source-expectation.mjs';
 
 export async function exercisePackedInferSource({root, directory, run, environment,
-  sourceSha}) {
+  sourceSha, inputFieldsOnly = false}) {
+  // The default CI cohort retains every case. This selector narrows a local
+  // boundary check without substituting another install or execution path.
+  const positiveCases = inputFieldsOnly ? ['minimal', 'folded-input', 'quoted-input'] :
+    Object.keys(sourceCases);
+  const refusalCases = inputFieldsOnly ? ['unknown-input', 'duplicate-input'] :
+    Object.keys(sourceRefusals);
   await writeFile(join(directory, 'infer-source-provenance.json'), JSON.stringify({
     sourceSha,
     commonConnectionSha: 'f9e6dbe36d263ef7baf4799646a1c53ebca47df9',
-    positiveCases: Object.keys(sourceCases), refusalCases: Object.keys(sourceRefusals),
+    positiveCases, refusalCases,
   }, null, 2) + '\n');
   for (const transport of ['local', 'remote']) {
-    for (const caseName of Object.keys(sourceCases)) {
+    for (const caseName of positiveCases) {
       console.log(run(process.execPath,
         ['packed-infer-source.mjs', transport, 'success', caseName],
         root, environment, 120_000).trimEnd());
     }
-    for (const caseName of Object.keys(sourceRefusals)) {
+    for (const caseName of refusalCases) {
       console.log(run(process.execPath,
         ['packed-infer-source.mjs', transport, 'refusal', caseName],
         root, environment, 120_000).trimEnd());
@@ -34,13 +40,12 @@ export async function exercisePackedInferSource({root, directory, run, environme
       return `${transport}:${phase}:${caseName}`;
     });
   const expectedCalls = ['local', 'remote'].flatMap(transport => [
-    ...Object.entries(sourceCases).flatMap(([name, fixture]) =>
-      Array.from({length: fixture.calls}, () => `${transport}:success:${name}`)),
+    ...positiveCases.flatMap(name =>
+      Array.from({length: sourceCases[name].calls}, () => `${transport}:success:${name}`)),
     `${transport}:capture:minimal`,
   ]);
   assert.deepEqual(calls, expectedCalls,
     'empty input, refused source, reread, resend and retained capture must not dispatch');
   console.log(JSON.stringify({sourceSha, acceptance: 'source-infer',
-    transports: ['local', 'remote'], positiveCases: Object.keys(sourceCases),
-    refusalCases: Object.keys(sourceRefusals), calls}));
+    transports: ['local', 'remote'], positiveCases, refusalCases, calls}));
 }
