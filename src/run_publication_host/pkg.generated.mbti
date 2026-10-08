@@ -130,7 +130,7 @@ pub fn check_client_infer_dispatch_current(ClientInferDispatchAdmission) -> Resu
 
 pub fn check_client_infer_egress_current(ClientInferEgressAdmission) -> Result[Unit, ClientInferEgressIssue]
 
-pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
+pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, ClientCompiledRun) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
@@ -152,9 +152,15 @@ pub fn client_compiled_run_admission(ClientCompiledRun) -> @run_publication.RunP
 
 pub fn client_compiled_run_authorization(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_compiled_run_evaluation_policy_body(ClientCompiledRun) -> (String, String, String)?
+
+pub fn client_compiled_run_has_infer(ClientCompiledRun, ClientInferPlanGraph) -> Bool
+
 pub fn client_compiled_run_infer(ClientCompiledRun) -> ClientInferPlanGraph?
 
 pub fn client_compiled_run_infer_observation_policy(ClientCompiledRun) -> String?
+
+pub fn client_compiled_run_infers(ClientCompiledRun) -> Array[ClientInferPlanGraph]
 
 pub fn client_compiled_run_matches(ClientCompiledRun, PreparedClientProgram) -> Bool
 
@@ -332,6 +338,8 @@ pub fn client_infer_occurrence_model_task_cid(ClientInferOccurrence) -> String?
 
 pub fn client_infer_occurrence_preparation(ClientInferOccurrence) -> @lowering_relation.BoundPrepared
 
+pub fn client_infer_occurrence_target_name(ClientInferOccurrence) -> String?
+
 pub fn client_infer_occurrence_terminal(ClientInferOccurrence) -> Bool
 
 pub fn client_infer_plan_boundary(ClientInferPlanGraph) -> (Int, Int, Int, String)
@@ -507,6 +515,8 @@ pub fn client_table_preview_subject_cid(ClientTablePreview) -> String
 pub fn client_task_compilation_compiled_plan(ClientTaskCompilation) -> @run_publication.PublicationContract
 
 pub fn client_task_compilation_infer(ClientTaskCompilation) -> ClientInferPlanGraph?
+
+pub fn client_task_compilation_infers(ClientTaskCompilation) -> Array[ClientInferPlanGraph]
 
 pub fn client_task_compilation_plan(ClientTaskCompilation) -> ClientTaskExecutablePlan
 
@@ -716,6 +726,10 @@ pub fn issue_prepared_client_infer_plan_graph(PreparedClientProgram, Int, @check
 
 pub fn issue_prepared_client_infer_prefix_fragment(PreparedClientProgram, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue]
 
+pub fn issue_prepared_client_multi_infer_compilation(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
+
+pub fn issue_prepared_client_multi_infer_task_plan_graph(PreparedClientProgram, Array[ClientInferPlanGraph], @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue]
+
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
 
 pub fn issue_prepared_client_publication_witnesses(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationWitnesses, ClientPublicationWitnessIssue]
@@ -881,6 +895,8 @@ pub fn prepared_client_captured_task_source_matches(PreparedClientProgram, @exec
 pub fn prepared_client_check_environment_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_composed_infer_occurrence(PreparedClientProgram) -> ClientInferOccurrence?
+
+pub fn prepared_client_composed_infer_occurrences(PreparedClientProgram) -> Array[ClientInferOccurrence]?
 
 pub fn prepared_client_effect_computation_candidate(PreparedClientEffectComputation) -> @program_check.EffectProgramStaticCandidate
 
@@ -1384,6 +1400,7 @@ pub struct ClientInferDispatchAdmission {
   evidence : @run_publication.RunEvidenceValue
   subject_cid : String
   activation_context_cid : String
+  plan : ClientInferPlanGraph
   current : () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientInferDispatchIssue]
 }
 
@@ -1929,6 +1946,7 @@ pub struct ClientTaskCompilation {
   compiled_plan : @run_publication.PublicationContract
   result_names : Array[String]
   infer : ClientInferPlanGraph?
+  infers : Array[ClientInferPlanGraph]
 }
 
 pub(all) enum ClientTaskCompilationIssue {

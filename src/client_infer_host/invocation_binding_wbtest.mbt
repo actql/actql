@@ -1,4 +1,14 @@
 ///|
+fn invocation_fixture_policy_cid() -> String {
+  "sha256:" +
+  @sha.hex(
+    @utf8.encode(
+      "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+    ),
+  )
+}
+
+///|
 fn invocation_fixture_compiled(
   active : Execution,
   alternate_plan? : Bool = false,
@@ -32,6 +42,13 @@ fn invocation_fixture_compiled(
     "sha256:" + "b".repeat(64),
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
+  // Source-free Result retention uses an explicit Host policy original, not
+  // the Model's egress contract. Keep unknown output provenance unchanged.
+  let policy_wire = "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+  let policy_cid = invocation_fixture_policy_cid()
+  let compiled = @publication_host.with_client_infer_result_policy(
+    compiled, policy_cid, policy_wire, 16384, 1024, 20,
+  ).unwrap()
   let definition = @publication_host.issue_client_compiled_run_definition(
     compiled, "infer-scope", "infer-run", "2026-10-02T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
@@ -52,7 +69,7 @@ fn invocation_fixture_observation(
   let artifact = @publication_host.client_infer_call_scope_artifact(
     active.call_scope.unwrap(),
   )
-  let root : Json = Json::string("sha256:" + "a".repeat(64))
+  let root : Json = Json::string(invocation_fixture_policy_cid())
   let fields : Map[String, Json] = {
     "version": Json::string("actql-observation-set/0.1"),
     "invocation_template_cid": Json::string(
@@ -179,7 +196,7 @@ test "Infer invocation binding retains the exact Run output independently" {
     definition,
     verified,
     invocation,
-    "sha256:" + "a".repeat(64),
+    invocation_fixture_policy_cid(),
   ).unwrap()
   let consumer = acquire_output(active).unwrap()
   let completed = invocation_binding_output(binding).unwrap()
@@ -247,7 +264,7 @@ test "Infer invocation binding refuses substituted Run plan and execution owners
       definition,
       unverified,
       invocation,
-      "sha256:" + "a".repeat(64),
+      invocation_fixture_policy_cid(),
     )
     is Err(UnverifiedSlots),
   )
@@ -271,7 +288,7 @@ test "Infer invocation binding refuses substituted Run plan and execution owners
       another_definition,
       verified,
       invocation,
-      "sha256:" + "a".repeat(64),
+      invocation_fixture_policy_cid(),
     )
     is Err(ForeignRun),
   )
@@ -284,7 +301,7 @@ test "Infer invocation binding refuses substituted Run plan and execution owners
       foreign_definition,
       verified,
       invocation,
-      "sha256:" + "a".repeat(64),
+      invocation_fixture_policy_cid(),
     )
     is Err(ForeignRun),
   )
@@ -300,7 +317,7 @@ test "Infer invocation binding refuses substituted Run plan and execution owners
       definition,
       other_verified,
       invocation,
-      "sha256:" + "a".repeat(64),
+      invocation_fixture_policy_cid(),
     )
     is Err(UnverifiedSlots),
   )
@@ -354,7 +371,7 @@ test "Infer invocation binding checks actual input policy and observation refere
         definition,
         verified,
         invocation,
-        "sha256:" + "a".repeat(64),
+        invocation_fixture_policy_cid(),
       )
       is Err(Evidence(@publication.RunEvidenceReferenceMismatch(actual))) else {
       abort("the changed observation must fail with its exact typed cause")
@@ -367,7 +384,7 @@ test "Infer invocation binding checks actual input policy and observation refere
         definition,
         verified,
         original_invocation,
-        "sha256:" + "a".repeat(64),
+        invocation_fixture_policy_cid(),
       )
       is Err(
         Evidence(
@@ -433,7 +450,7 @@ test "an Infer execution cannot acquire a Run retrospectively or switch Runs" {
       late_definition,
       verified,
       invocation,
-      "sha256:" + "a".repeat(64),
+      invocation_fixture_policy_cid(),
     )
     is Err(ForeignRun),
   )
@@ -463,7 +480,7 @@ test "zero-key Infer keeps an explicit empty slot inventory at the Run boundary"
     definition,
     verified,
     invocation,
-    "sha256:" + "a".repeat(64),
+    invocation_fixture_policy_cid(),
   ).unwrap()
   assert_eq(@publication.model_observation_slot_count(observation), Some(0))
   assert_eq(

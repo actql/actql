@@ -74,8 +74,22 @@ pub fn client_infer_occurrence_matches(
 pub fn prepared_client_composed_infer_occurrence(
   owner : PreparedClientProgram,
 ) -> ClientInferOccurrence? {
+  guard prepared_client_composed_infer_occurrences(owner) is Some(occurrences) &&
+    occurrences.length() == 1 else {
+    return None
+  }
+  occurrences.get(0)
+}
+
+///|
+/// Enumerate exact checked occurrences in graph order. Each component retains
+/// one whole Unit; split tasks and two Model boundaries in one Unit still need
+/// their own input-custody connection. This inventory grants no dispatch.
+pub fn prepared_client_composed_infer_occurrences(
+  owner : PreparedClientProgram,
+) -> Array[ClientInferOccurrence]? {
   let graph = owner.graph
-  let mut selected : ClientInferOccurrence? = None
+  let selected : Array[ClientInferOccurrence] = []
   for task in 0..<@strategy.graph_task_count(graph) {
     guard @strategy.graph_task_owner(graph, task) is Some(preparation) &&
       @strategy.graph_task_unit_index(graph, task) is Some(stage) else {
@@ -88,22 +102,35 @@ pub fn prepared_client_composed_infer_occurrence(
       return None
     }
     let first = @strategy.graph_task_selected_step(graph, task).unwrap_or(0)
+    let mut selected_in_task = false
     for step in first..<(last + 1) {
       guard @lower.node_at(@lower.bound_preparation(preparation), step)
         is Some(node) else {
         return None
       }
       if @lower.payload(node) is @lower.Infer(_) {
-        if selected is Some(_) ||
+        if selected_in_task ||
+          selected.length() >= 128 ||
           @strategy.graph_task_selected_step(graph, task) is Some(_) ||
           @strategy.graph_task_prefix_end(graph, task) is Some(_) {
           return None
         }
-        selected = Some({ owner, task, stage, step, preparation, })
+        selected.push({ owner, task, stage, step, preparation, })
+        selected_in_task = true
       }
     }
   }
-  selected
+  Some(selected)
+}
+
+///|
+pub fn client_infer_occurrence_target_name(
+  occurrence : ClientInferOccurrence,
+) -> String? {
+  if !client_infer_occurrence_matches(occurrence, occurrence.owner) {
+    return None
+  }
+  client_infer_owner_target_name(occurrence.preparation, occurrence.step)
 }
 
 ///|
@@ -168,9 +195,9 @@ pub fn client_infer_occurrence_matches_compiled_run(
   compiled : ClientCompiledRun,
 ) -> Bool {
   client_infer_occurrence_matches(occurrence, compiled.owner) &&
-  client_compiled_run_infer(compiled)
-  .map(plan => client_infer_occurrence_matches_plan(occurrence, plan))
-  .unwrap_or(false)
+  client_compiled_run_infers(compiled).any(plan => {
+    client_infer_occurrence_matches_plan(occurrence, plan)
+  })
 }
 
 ///|

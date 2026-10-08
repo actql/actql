@@ -181,7 +181,7 @@ pub fn start_model_output_preparation(ModelExecution, @execution_relation.Comple
 
 pub fn start_restored_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, @run_publication.ModelCaptureBundleRead, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
-pub fn start_restored_model_slot_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, ModelSlotReplayRead, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
+pub fn start_restored_model_slot_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, ModelSlotReplayRead, String, ModelExecutionLimits, compiled_run? : @run_publication_host.ClientCompiledRun?) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn stopped_model_attempt_count(ModelExecution) -> Int?
 
