@@ -237,3 +237,84 @@ export const objectColumnStarRefusals = [
   sourceRows, expectedCode: 'ClientProgramInvalidInput'}));
 computedObjectPropertySuccesses.push(...objectColumnStarSuccesses);
 computedObjectPropertyRefusals.push(...objectColumnStarRefusals);
+
+// A separate authored control evaluates a computed receiver once before field
+// projection. Its Program is not obtained from source compilation.
+const computedStarRows = [{id: 1, nested: {score: 11}, score: 20},
+  {id: 2, nested: null, score: 10}, {id: 2, nested: null, score: 10},
+  {id: 3, nested: {score: 33}, score: 15}, {id: 4, nested: {score: null}, score: 40}];
+const computedStarColumns = [starColumns[0], starColumns[1], column('score')];
+export const computedObjectStarProgram = {version: 'actql/0.1',
+  id: 'fixture.computed_object_star', params: starDeclarations,
+  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {gt: [{field: 'id'}, {literal: 0}]}},
+      {select: ['id'], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['id']}}},
+  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{from: 'records', derive: {payload: parameterCase('p'), other: parameterCase('o')}},
+      {select: ['id', 'payload', 'other']},
+      {derive: {receiver: {coalesce: [{field: 'payload'}, {field: 'other'}]}}},
+      {derive: {nested: {property: {name: 'nested', value: {field: 'receiver'}}},
+        score: {property: {name: 'score', value: {field: 'receiver'}}}}},
+      {select: ['id', 'nested', 'score']},
+      {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
+    results: {rows: {from: 'ordered', fields: ['id', 'nested', 'score']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const computedStarSuccess = (name, tail, extra = {}) => starSuccess(name, tail,
+  {name: 'computed-object-star-' + name, expected: computedStarRows,
+    columns: computedStarColumns, ...extra});
+export const computedObjectStarSuccesses = [
+  computedStarSuccess('independent-json', '', {format: 'json',
+    text: JSON.stringify(computedObjectStarProgram), parameterDeclarations: undefined}),
+  computedStarSuccess('sql-coalesce', 'SELECT id, COALESCE(payload, other).* FROM objects ORDER BY id'),
+  // CASE joins both result branch contracts. Its IS NULL condition does not
+  // grant a non-null type to the nullable payload branch; unlike COALESCE,
+  // this expression has no signature-level non-null refinement.
+  computedStarSuccess('pipe-case', 'FROM objects |> SELECT id, '
+    + '(CASE WHEN payload IS NULL THEN other ELSE payload END).* |> ORDER BY id',
+    {columns: starColumns}),
+  computedStarSuccess('empty', 'SELECT id, COALESCE(payload, other).* FROM objects ORDER BY id',
+    {sourceRows: [], expected: []}),
+  computedStarSuccess('nullable-case', 'SELECT id, (CASE WHEN id = 2 THEN other ELSE payload END).* '
+    + 'FROM objects ORDER BY id', {columns: starColumns,
+    expected: [{id: 1, nested: {score: 11}, score: 20},
+      {id: 2, nested: {score: 22}, score: 30}, {id: 2, nested: {score: 22}, score: 30},
+      {id: 3, nested: null, score: null}, {id: 4, nested: {score: null}, score: 40}]}),
+  computedStarSuccess('current-slot', 'FROM objects AS old |> SET payload = other '
+    + '|> SELECT id, COALESCE(payload, old.payload).* |> ORDER BY id', {
+    expected: [{id: 1, nested: null, score: 5},
+      {id: 2, nested: {score: 22}, score: 30}, {id: 2, nested: {score: 22}, score: 30},
+      {id: 3, nested: {score: 33}, score: 15}, {id: 4, nested: null, score: 25}],
+  }),
+  computedStarSuccess('excluded-replaced', 'SELECT id, COALESCE(payload, other).* EXCEPT (nested) '
+    + 'REPLACE (id + 1 AS score) FROM objects ORDER BY id', {
+    expected: [{id: 1, score: 2}, {id: 2, score: 3}, {id: 2, score: 3},
+      {id: 3, score: 4}, {id: 4, score: 5}], columns: [column('id'), column('score')],
+  }),
+  computedStarSuccess('distinct', 'SELECT DISTINCT COALESCE(payload, other).* EXCEPT (nested) '
+    + 'FROM objects ORDER BY score', {
+    expected: [{score: 10}, {score: 15}, {score: 20}, {score: 40}], columns: [column('score')],
+  }),
+  computedStarSuccess('grouped', 'SELECT COALESCE(payload, other).* EXCEPT (nested), COUNT(*) AS n '
+    + 'FROM objects GROUP BY COALESCE(payload, other).score ORDER BY score', {
+    expected: [{score: 10, n: 2}, {score: 15, n: 1}, {score: 20, n: 1}, {score: 40, n: 1}],
+    columns: [column('score'), column('n')],
+  }),
+  computedStarSuccess('repeated-order', 'SELECT id, COALESCE(payload, other).* FROM objects '
+    + 'ORDER BY COALESCE(payload, other).score, id', {
+    expected: [computedStarRows[1], computedStarRows[2], computedStarRows[3],
+      computedStarRows[0], computedStarRows[4]],
+  }),
+];
+export const computedObjectStarRefusals = [
+  // The existing lowerer reports UnsupportedProjection for a computed scalar
+  // receiver; the audience-visible check discloses an implementation limit.
+  ['scalar', 'SELECT COALESCE(id, id).* FROM objects', 'ClientProgramImplementationLimit'],
+  ['missing-exclusion', 'SELECT COALESCE(payload, other).* EXCEPT (missing) FROM objects'],
+  ['duplicate-replacement', 'SELECT COALESCE(payload, other).* REPLACE (1 AS score, 2 AS SCORE) FROM objects'],
+  ['removed-range', 'FROM objects old |> AS current |> SELECT COALESCE(old.payload, other).*'],
+].map(([name, tail, expectedCode = 'ClientProgramInvalidInput']) => ({name: 'computed-object-star-' + name, text: data + tail,
+  format: 'aql-text', parameterDeclarations: starDeclarations, parameters: starParameters,
+  sourceRows, expectedCode}));
+computedObjectPropertySuccesses.push(...computedObjectStarSuccesses);
+computedObjectPropertyRefusals.push(...computedObjectStarRefusals);

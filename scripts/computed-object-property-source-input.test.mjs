@@ -4,6 +4,7 @@ import test from 'node:test';
 import {computedObjectPropertyProgram, computedObjectPropertySuccesses as successes,
   computedObjectPropertyRefusals as refusals, computedObjectPropertyExecutionFailures as failures,
   objectColumnStarProgram, objectColumnStarSuccesses, objectColumnStarRefusals,
+  computedObjectStarProgram, computedObjectStarSuccesses, computedObjectStarRefusals,
   parenthesizedSourceRangeProgram, parenthesizedSourceRangeSuccesses, parenthesizedSourceRangeRefusals}
   from './fixtures/computed-object-property-source-input.mjs';
 import {publicQueryProfiles} from './fixtures/public-query-profiles.mjs';
@@ -67,9 +68,10 @@ test('independent machine control uses existing typed property and checked param
     'parenthesized-source-range-pipe', 'parenthesized-source-range-quoted',
     'parenthesized-source-range-empty', 'computed-object-property-parenthesized-range-nested',
     'computed-object-property-parenthesized-value-range-collision',
-  ]).concat(objectColumnStarSuccesses.map(item => item.name)));
+  ]).concat(objectColumnStarSuccesses.map(item => item.name))
+    .concat(computedObjectStarSuccesses.map(item => item.name)));
   assert.deepEqual(['refusals', 'executionFailures']
-    .map(kind => groups[0].inputs[kind].length), [12, 1]);
+    .map(kind => groups[0].inputs[kind].length), [16, 1]);
   const lazy = successes.find(item => item.name.endsWith('lazy-case-receiver'));
   assert.deepEqual(Object.keys(lazy.parameterDeclarations).sort(), ['o1', 'p1', 'p2']);
   assert.deepEqual(Object.keys(lazy.parameters).sort(), ['o1', 'p1', 'p2']);
@@ -137,4 +139,38 @@ test('object column stars retain authored nullable values, canonical fields and 
   }});
   for (const item of objectColumnStarSuccesses) assert.equal(item.sourceReadSessionCount, 1);
   for (const item of objectColumnStarRefusals) assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+});
+
+test('computed object stars preserve receiver nullability, duplicate rows and one evaluated receiver', () => {
+  const [control, sql] = computedObjectStarSuccesses;
+  assert.deepEqual(JSON.parse(control.text), computedObjectStarProgram);
+  assert.equal(control.parameterDeclarations, undefined);
+  assert.deepEqual(computedObjectStarProgram.stages[1].steps[2],
+    {derive: {receiver: {coalesce: [{field: 'payload'}, {field: 'other'}]}}});
+  assert.deepEqual(sql.columns.map(item => item.name), ['id', 'nested', 'score']);
+  assert.deepEqual(sql.expected.map(item => item.score), [20, 10, 10, 15, 40]);
+  assert.equal(sql.columns[2].contract.nullable, false);
+  const conditional = computedObjectStarSuccesses.find(item => item.name.endsWith('pipe-case'));
+  assert.equal(conditional.columns[2].contract.nullable, true);
+  assert.deepEqual(conditional.expected, sql.expected);
+  const nullable = computedObjectStarSuccesses.find(item => item.name.endsWith('nullable-case'));
+  assert.equal(nullable.columns[2].contract.nullable, true);
+  assert.deepEqual(nullable.expected[3], {id: 3, nested: null, score: null});
+  const current = computedObjectStarSuccesses.find(item => item.name.endsWith('current-slot'));
+  assert.deepEqual(current.expected.map(item => item.score), [5, 30, 30, 15, 25]);
+  const ordered = computedObjectStarSuccesses.find(item => item.name.endsWith('repeated-order'));
+  assert.deepEqual(ordered.expected.map(item => item.id), [2, 2, 3, 1, 4]);
+  const grouped = computedObjectStarSuccesses.find(item => item.name.endsWith('grouped'));
+  assert.deepEqual(grouped.expected, [{score: 10, n: 2}, {score: 15, n: 1},
+    {score: 20, n: 1}, {score: 40, n: 1}]);
+  assert.deepEqual(computedObjectStarSuccesses.find(item => item.name.endsWith('empty')).expected, []);
+  for (const item of computedObjectStarSuccesses) {
+    assert.equal(successes.filter(candidate => candidate === item).length, 1);
+    assert.equal(item.sourceReadSessionCount, 1);
+  }
+  for (const item of computedObjectStarRefusals) {
+    assert.equal(refusals.filter(candidate => candidate === item).length, 1);
+    assert.equal(item.expectedCode, item.name === 'computed-object-star-scalar'
+      ? 'ClientProgramImplementationLimit' : 'ClientProgramInvalidInput');
+  }
 });

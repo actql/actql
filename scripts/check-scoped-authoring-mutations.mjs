@@ -9,6 +9,16 @@ const file = 'adapters/host-node/client-check-text-boundary.test.mjs';
 const cases = (name, assertions) => ['local', 'http'].map(entrance =>
   ({name: `${entrance}: ${name}`, assertions}));
 const mutations = [
+  {name: 'an old document reply acquires the edited buffer revision', path: 'packages/sdk/index.mjs',
+    from: '      observation.version === current.version && record.input.text === current.text ? record : undefined;',
+    to: '      true ? record : undefined;',
+    targets: cases('document sessions retain original spans across buffer edits and reply reordering',
+      [{id: 'document-public-edit', operator: 'strictEqual'}])},
+  {name: 'an earlier document reply replaces a newer scope observation', path: 'packages/sdk/index.mjs',
+    from: 'return current && record?.input && record.ticket === issued &&',
+    to: 'return current && record?.input &&',
+    targets: cases('document sessions retain original spans across buffer edits and reply reordering',
+      [{id: 'document-public-order', operator: 'strictEqual'}])},
   {name: 'Program location replaces its original node', path: 'packages/sdk/index.mjs',
     from: 'return Object.freeze({...location, input: original});',
     to: "return Object.freeze({...location, pointer: '', input: original});",
