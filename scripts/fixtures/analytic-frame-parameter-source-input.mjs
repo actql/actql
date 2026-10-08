@@ -64,6 +64,10 @@ export const analyticFrameParameterSuccesses = [
   success('literal-control', sql.replaceAll('@before', '1').replaceAll('@after', '2'),
     {parameterDeclarations: undefined, parameters: undefined}),
   success('typed-empty', sql, {sourceRows: [], expected: []}),
+  success('mixed-case-shared-frame', 'SELECT id, FIRST_VALUE(amount) OVER '
+    + '(ORDER BY id ROWS BETWEEN @BEFORE PRECEDING AND @after FOLLOWING) AS first, '
+    + 'LAST_VALUE(amount) OVER (ORDER BY id ROWS BETWEEN @before PRECEDING AND @`AFTER` FOLLOWING) AS last '
+    + 'FROM records WHERE id > 0 ORDER BY id'),
 ];
 const parameterText = 'SELECT FIRST_VALUE(amount) OVER '
   + '(ORDER BY id ROWS BETWEEN @before PRECEDING AND CURRENT ROW) AS first FROM records';
