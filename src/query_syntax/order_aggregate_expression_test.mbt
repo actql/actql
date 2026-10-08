@@ -38,10 +38,19 @@ test "ORDER aggregate expression retains placement and resource boundaries" {
   for
     source in [
       "FROM t |> ORDER BY COUNT(*)", "SELECT x FROM t UNION ALL SELECT x FROM t ORDER BY COUNT(*)",
-      "SELECT x FROM t GROUP BY x ORDER BY COUNT(*) OVER ()",
     ] {
     assert_true(parse_query(source, query_limits()) is Err(_), msg=source)
   }
+  // Adopted ORDER windows are checked after grouping, with their hidden outputs
+  // retained until ORDER rather than being confused with grouped aggregates.
+  let ordered_window = parse_query(
+    "SELECT x FROM t GROUP BY x ORDER BY COUNT(*) OVER ()",
+    query_limits(),
+  ).unwrap()
+  assert_true(operation_at(ordered_window, 0) is Some(Group(_, _, SqlSelect)))
+  assert_true(operation_at(ordered_window, 1) is Some(OrderAnalytic(_, true)))
+  assert_true(operation_at(ordered_window, 2) is Some(Select(_, false)))
+  assert_true(operation_at(ordered_window, 3) is Some(Order(_)))
   let source = "SELECT x FROM t GROUP BY x ORDER BY COUNT(*) + SUM(y + 1)"
   let limits = query_limits()
   assert_true(parse_query(source, { ..limits, max_work: 30, }) is Err(_))

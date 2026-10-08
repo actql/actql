@@ -409,13 +409,17 @@ test "Pipe WHERE before JOIN remains a pre-join predicate" {
   assert_eq(join_part_count(query), 1)
   assert_true(join_part_at(query, 0).unwrap().pre_join_filter is Some(_))
   assert_eq(operation_count(query), 1)
-  assert_true(
-    parse_query(
-      "FROM left_rows AS l |> SET a = 2 |> JOIN right_rows AS r ON l.a = r.c |> SELECT a",
-      query_limits(),
-    )
-    is Err(_),
-  )
+  // A completed SET prefix is an existing left producer, not a JOIN refusal.
+  let rebound = parse_query(
+    "FROM left_rows AS l |> SET a = 2 |> JOIN right_rows AS r ON l.a = r.c |> SELECT a",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(rebound), 1)
+  let input = cte_at(rebound, 0).unwrap().query
+  assert_eq(relation(input), [{ value: "left_rows", quoted: false, }])
+  assert_true(operation_at(input, 0) is Some(Set(_)))
+  assert_eq(join_part_count(rebound), 1)
+  assert_eq(operation_count(rebound), 1)
 }
 
 ///|

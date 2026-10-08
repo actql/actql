@@ -11,6 +11,19 @@ const registries = {
   [protocolPath]: JSON.parse(await readFile(protocolPath, 'utf8')),
 };
 
+test('projected property-count constraints distinguish empty Effect-only inventories', async () => {
+  const {project, structuralValidatorSource} = await import('./generate-client-publication-wire.mjs');
+  const validate = new Function(`${structuralValidatorSource()}return valid;`)();
+  const schema = project({maxProperties: 0});
+  assert.deepEqual(schema, {maxProperties: 0});
+  assert.equal(validate({}, schema), true);
+  assert.equal(validate({hidden: null}, schema), false);
+  assert.equal(validate('unrelated', schema), true, 'Object bounds do not type arbitrary JSON');
+  const lower = project({minProperties: 1});
+  assert.equal(validate({}, lower), false);
+  assert.equal(validate({declared: true}, lower), true);
+});
+
 test('publication wire bindings match their registered schema owners',
   async () => {
     const output = buildClientPublicationWire(registries);

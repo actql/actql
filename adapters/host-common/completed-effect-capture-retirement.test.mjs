@@ -5,7 +5,8 @@ import {retireCompletedEffectfulCapture} from
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
-test('terminal capture retirement keeps its record until deletion succeeds',
+for (const publicResults of [false, true]) {
+test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)`,
   async () => {
     const run = {name: 'run_definition', identity: cid('a'), wire: 'run'};
     const recordCid = cid('b');
@@ -16,8 +17,8 @@ test('terminal capture retirement keeps its record until deletion succeeds',
     const sourceArtifactCid = cid('1');
     const body = {version: 'actql-completed-effectful-capture/0.1',
       store_authority_cid: cid('0'), run_definition: run.wire,
-      invocation: 'invocation', definitions: ['definition'],
-      artifacts: ['artifact'], derivations: [], orderings: [],
+      invocation: 'invocation', definitions: publicResults ? ['definition'] : [],
+      artifacts: publicResults ? ['artifact'] : [], derivations: [], orderings: [],
       retentions: [], durable_bindings: [], result_schemas: [],
       manifest: 'manifest', computation_receipt: 'receipt',
       captured_run: 'captured', preview: 'preview',
@@ -115,3 +116,4 @@ test('terminal capture retirement keeps its record until deletion succeeds',
     assert.equal(captureCustody, false);
     assert.equal(await retireCompletedEffectfulCapture(options), false);
   });
+}

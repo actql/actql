@@ -522,7 +522,11 @@ export interface Client {
   readonly requestedDurability: Durability | null;
   sql(text: string, parameters?: QueryParameters, options?: QueryOptions): ResultPromise;
   aql(text: string, parameters?: QueryParameters, options?: QueryOptions): ResultPromise;
-  /** Low-level source admission without an automatic wait or Result read. */
+  /**
+   * Source admission without an automatic wait or Result read. Supports checked
+   * Effect-only Programs; use the Execution and ordinary Checkpoint APIs, not
+   * Result selection, when no public Results are declared.
+   */
   startSource(text: string, options: SubmissionOptions & {
     format: ClientSourceFormat;
     /** The existing Program params map, admitted by the Host checker. */
@@ -631,6 +635,6 @@ export type RunObservationFailureExplanation = Readonly<{
   next: Readonly<{operation: 'status'; ref: RunReference}>;
 }> & (Readonly<{kind: 'uninterpretable'; problem: 'unknown_state'}> |
   Readonly<{kind: 'unavailable'; problem: 'observation_unavailable'}> |
-  Readonly<{kind: 'protocol_failure'; problem: 'contract_mismatch' | 'malformed_response'}>);
+  Readonly<{kind: 'protocol_failure'; problem: 'contract_mismatch' | 'malformed_response' | 'stale_observation'}>);
 export declare function explainRunObservationFailure(error: unknown,
   options?: OperationExplanationOptions): RunObservationFailureExplanation | undefined;

@@ -164,6 +164,7 @@ fn classify_diagnostic_cause(
     Units(UnsupportedReceipt | UnsupportedStaticPath(_)) =>
       UnsupportedImplementation
     Units(_) => UnclassifiedFailure
+    Template(_, issue) => template_diagnostic_category(issue)
   }
 }
 
