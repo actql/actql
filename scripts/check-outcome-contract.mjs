@@ -41,7 +41,14 @@ function report(verdicts, reasonSchema = checkReasonSchema) {
   return {
     allOf: [
       {if: {properties: {verdict: {const: 'verified'}}},
-        then: {not: {required: ['omissions']}, properties: {reasons: empty, requirements: empty, coverage: emptyCoverage}}},
+        then: {not: {required: ['omissions']}, properties: {reasons: empty, coverage: emptyCoverage},
+          allOf: [
+            {if: {properties: {scope: {properties: {kind: {const: 'bound_input'}}}}},
+              then: {properties: {requirements: empty}}},
+            {if: {properties: {scope: {properties: {kind: {const: 'template_only'}}}}},
+              then: {properties: {requirements: {items: {properties: {
+                code: {const: 'parameter_value_required'}}}}}}},
+          ]}},
       {if: {properties: {verdict: {const: 'invalid'}}},
         then: {properties: {reasons: {type: 'array', items: {}, minItems: 1}}}},
       {if: {properties: {verdict: {const: 'undetermined'}}},
@@ -87,7 +94,7 @@ function report(verdicts, reasonSchema = checkReasonSchema) {
         properties: {...reasonSchema.properties, code: {enum: ['parameter_value_required', 'host_capacity_policy_required', 'numeric_reduction_profile_required']}},
         required: ['code', 'facts']}},
       scope: {type: 'object', additionalProperties: false,
-        required: ['kind'], properties: {kind: {const: 'bound_input'}}},
+        required: ['kind'], properties: {kind: {enum: ['template_only', 'bound_input']}}},
       verdict: {enum: verdicts},
     },
   };
