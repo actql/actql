@@ -45,9 +45,9 @@ export const unnestParameterPathSuccesses = [
 const refusal = (name, text = sql, extra = {}) => ({name: 'unnest-parameter-path-refusal-' + name,
   format: 'sql', text, parameterDeclarations: declarations, parameters, ...extra});
 export const unnestParameterPathRefusals = [
-  refusal('undeclared', sql, {parameterDeclarations: undefined}),
-  refusal('unknown-property', sql.replace('.items)', '.missing)')),
-  refusal('non-array', sql.replace('.nested.items)', '.nested)')),
+  refusal('undeclared', sql, {parameterDeclarations: undefined, expectedCode: 'ClientProgramInvalidInput'}),
+  refusal('unknown-property', sql.replace('.items)', '.missing)'), {expectedCode: 'ClientProgramInvalidInput'}),
+  refusal('non-array', sql.replace('.nested.items)', '.nested)'), {expectedCode: 'ClientProgramInvalidInput'}),
   refusal('bound', sql, {parameters: {payload: {nested: {items: [null, null, null, null]}}}}),
   refusal('field-type', sql, {parameters: {payload: {nested: {items: [{id: 'wrong', label: null}]}}}}),
 ];

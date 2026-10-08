@@ -40,3 +40,17 @@ test('parameter path cases use the normal corpus and its existing Local HTTPS co
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--unnest-parameter-path-only'/u);
   assert.ok(driver.includes("process.argv.includes('--unnest-parameter-path-only')) return;"));
 });
+
+test('proven UNNEST input violations cannot pass as implementation limits', () => {
+  for (const name of ['undeclared', 'unknown-property', 'non-array']) {
+    const item = unnestParameterPathRefusals.find(value => value.name === 'unnest-parameter-path-refusal-' + name);
+    assert.equal(item.expectedCode, 'ClientProgramInvalidInput', name);
+  }
+  assert.deepEqual(unnestParameterPathRefusals.map(value => value.name), [
+    'unnest-parameter-path-refusal-undeclared',
+    'unnest-parameter-path-refusal-unknown-property',
+    'unnest-parameter-path-refusal-non-array',
+    'unnest-parameter-path-refusal-bound',
+    'unnest-parameter-path-refusal-field-type',
+  ]);
+});

@@ -25,20 +25,37 @@ test "parameter property UNNEST star refuses unknown contracts and bounded work"
     parameter_declarations: Some(unnest_parameter_path_declarations()),
   }
   for
-    text in [
-      "SELECT * FROM UNNEST(@payload.nested.missing) element", "SELECT * FROM UNNEST(@payload.nested) element",
-      "SELECT * FROM UNNEST(@missing.nested.items) element",
+    (text, expected) in [
+      (
+        "SELECT * FROM UNNEST(@payload.nested.missing) element",
+        @typing.UnknownField("missing"),
+      ),
+      (
+        "SELECT * FROM UNNEST(@missing.nested.items) element",
+        @typing.UnknownParameter("missing"),
+      ),
     ] {
-    assert_true(
+    match
       compile(
         @query.parse_query(text, syntax_limits()).unwrap(),
         context,
         construction_limits(),
-      )
-      is Err(UnsupportedProjection),
-      msg=text,
-    )
+      ) {
+      Err(ExpressionTyping(issue)) => assert_eq(issue.kind, expected, msg=text)
+      _ => fail("the common typing cause must survive: " + text)
+    }
   }
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT * FROM UNNEST(@payload.nested) element",
+        syntax_limits(),
+      ).unwrap(),
+      context,
+      construction_limits(),
+    )
+    is Err(Expression({ issue: @expression.InvalidArguments, .. })),
+  )
   assert_true(
     compile(
       @query.parse_query(
