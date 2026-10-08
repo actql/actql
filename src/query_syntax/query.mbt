@@ -78,6 +78,7 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum GroupingScope {
   SqlSelect
+  SqlSelectAll
   PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 
@@ -435,6 +436,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
           copy_projections(projections),
           match scope {
             SqlSelect => SqlSelect
+            SqlSelectAll => SqlSelectAll
             PipeAggregate(names, embedded) =>
               PipeAggregate(names.copy(), embedded.copy())
           },
@@ -1768,7 +1770,17 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     }) ||
     !embedded.is_empty()
   if self.has("GROUP") {
-    operations.push(Group(self.group_keys(), group_projections, SqlSelect))
+    if self.source.tokens
+      .get(self.index + 2)
+      .map(token => keyword(token, "ALL"))
+      .unwrap_or(false) {
+      self.keyword("GROUP")
+      self.keyword("BY")
+      self.keyword("ALL")
+      operations.push(Group([], group_projections, SqlSelectAll))
+    } else {
+      operations.push(Group(self.group_keys(), group_projections, SqlSelect))
+    }
   } else if grouped {
     operations.push(Group([], group_projections, SqlSelect))
   }
@@ -2042,8 +2054,9 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       })[0]
     for operation in term.operations {
       match operation {
-        Group(keys, projections, SqlSelect) => {
-          operations.push(Group(keys, projections + hidden, SqlSelect))
+        Group(keys, projections, scope) if scope == SqlSelect ||
+          scope == SqlSelectAll => {
+          operations.push(Group(keys, projections + hidden, scope))
           grouped = true
         }
         Analytic(_) | AnalyticExpressions(_, _) | Select(_, _) if !grouped => {
