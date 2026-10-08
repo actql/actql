@@ -72,6 +72,7 @@ pub fn rank_native_operational_estimate(
   task : Int,
   policy_revision : String,
   clock : @clock.NativeTrustedClock,
+  quantity? : String = "task-processing",
 ) -> Result[@strategy.EmpiricalRanking, NativeStandardPolicyIssue] {
   let before = match clock.observe() {
     Ok(value) => value
@@ -92,7 +93,12 @@ pub fn rank_native_operational_estimate(
   }
   let result = match
     @strategy.rank_operational_candidates(
-      candidates, sidecar, task, policy_revision, before,
+      candidates,
+      sidecar,
+      task,
+      policy_revision,
+      before,
+      quantity~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Wire(issue))

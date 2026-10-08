@@ -66,7 +66,7 @@ function validateLimits(limits) {
   }
 }
 
-function validateEvidence(evidence) {
+function validateEvidence(evidence, effectful) {
   const keys = ['runDefinition', 'invocation', 'definitions', 'artifacts',
     'derivations', 'orderings', 'retentions', 'durableBindings', 'manifest',
     'receipt', 'capturedRun'];
@@ -74,7 +74,8 @@ function validateEvidence(evidence) {
       !['definitions', 'artifacts', 'derivations', 'orderings', 'retentions',
         'durableBindings']
         .every(name => Array.isArray(evidence[name])) ||
-      evidence.definitions.length === 0 || evidence.artifacts.length === 0) {
+      (effectful === undefined &&
+        (evidence.definitions.length === 0 || evidence.artifacts.length === 0))) {
     fail('InvalidRunPublicationEvidence');
   }
   const contracts = [evidence.runDefinition, evidence.invocation,
@@ -437,7 +438,7 @@ async function publishRun(options, effectful) {
     fail('InvalidEffectfulRunPublicationBoundary');
   }
   validateLimits(limits);
-  const contracts = validateEvidence(evidence);
+  const contracts = validateEvidence(evidence, effectful);
   validateRequest(request);
   validateAttempt(attempt);
   const now = validateClock(options.now);

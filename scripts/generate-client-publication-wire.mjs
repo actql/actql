@@ -12,7 +12,7 @@ const sources = [
 const allowed = new Set(['$schema', '$id', '$ref', 'title', 'type',
   'additionalProperties', 'required', 'properties', 'items', 'uniqueItems',
   'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum', 'maximum', 'allOf',
-  'if', 'then', 'not', 'oneOf', 'minItems', 'maxItems', 'minProperties', 'propertyNames']);
+  'if', 'then', 'not', 'oneOf', 'minItems', 'maxItems', 'minProperties', 'maxProperties', 'propertyNames']);
 
 export function project(schema) {
   if (schema === null || typeof schema !== 'object' || Array.isArray(schema)) {
@@ -38,7 +38,7 @@ export function project(schema) {
   }
   for (const key of ['type', 'required',
     'uniqueItems', 'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum',
-    'maximum', 'minItems', 'maxItems', 'minProperties']) {
+    'maximum', 'minItems', 'maxItems', 'minProperties', 'maxProperties']) {
     if (Object.hasOwn(schema, key)) result[key] = schema[key];
   }
   if (Object.hasOwn(schema, 'additionalProperties')) {
@@ -115,11 +115,12 @@ export function structuralValidatorSource() {
 `    (schema.maxItems === undefined || value.length <= schema.maxItems) &&\n` +
 `    value.every(item => valid(item, schema.items)) &&\n` +
 `    (!schema.uniqueItems || new Set(value).size === value.length);\n` +
+`  if (value !== null && typeof value === 'object' && !Array.isArray(value) &&\n` +
+`      ((schema.minProperties !== undefined && Object.keys(value).length < schema.minProperties) ||\n` +
+`       (schema.maxProperties !== undefined && Object.keys(value).length > schema.maxProperties))) return false;\n` +
 `  if (schema.type === 'object' || schema.properties || schema.required) {\n` +
 `    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;\n` +
 `    if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;\n` +
-`    if (schema.minProperties !== undefined &&\n` +
-`        Object.keys(value).length < schema.minProperties) return false;\n` +
 `    if (schema.propertyNames && Object.keys(value).some(key =>\n` +
 `        !valid(key, schema.propertyNames))) return false;\n` +
 `    if (schema.additionalProperties === false &&\n` +

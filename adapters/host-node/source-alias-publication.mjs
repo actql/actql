@@ -26,10 +26,19 @@ export function splitSourceAliasProfile(profile) {
   return {providerProfile, queryAliases: aliases};
 }
 
-export function sourceAliasPublication(moon, environment, aliases = []) {
+export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = []) {
+  if (!Array.isArray(tableWrites) || tableWrites.length > 1024 ||
+      Buffer.byteLength(JSON.stringify(tableWrites)) > 1024 * 1024) {
+    throw new TypeError('InvalidPublicTableWritePublication');
+  }
   const publication = Object.freeze({
     environmentCid: moon.clientProgramCheckingEnvironmentCid(environment),
-    aliases});
+    aliases, ...(tableWrites.length === 0 ? {} : {
+      tableWrites: Object.freeze(tableWrites.map(binding => Object.freeze({
+        ...binding, expectedTable: binding.expectedTable === null ? null :
+          Object.freeze({...binding.expectedTable}),
+      }))),
+    })});
   if (typeof moon.clientProgramSourcePublicationValid !== 'function' ||
       !moon.clientProgramSourcePublicationValid(environment,
         JSON.stringify(publication))) {

@@ -43,6 +43,19 @@ test "conditional Relation presence admits guaranteed projection filter and deri
     None,
     limits(),
   ).unwrap()
+  let dropped = @pipeline_typing.check(
+    cursor("[{\"drop\":[\"id\"]}]"),
+    [("rows", schema)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let retained = @pipeline_typing.output_schema(dropped).unwrap()
+  assert_eq(@schema.field_count(retained), 1)
+  assert_eq(
+    @schema.lookup_reference(retained, "p").unwrap().presence,
+    Conditional,
+  )
   assert_true(
     @schema.all_fields_required(
       @pipeline_typing.output_schema(distinct).unwrap(),

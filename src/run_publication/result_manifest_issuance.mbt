@@ -1,7 +1,6 @@
 ///|
 pub(all) enum ResultManifestIssuanceIssue {
   ManifestIssuanceWrongContract
-  ManifestIssuanceEmptyInventory
   ManifestIssuanceInventoryMismatch
   ManifestIssuanceDuplicateResult(String)
   ManifestIssuanceEncoding
@@ -71,9 +70,6 @@ pub fn issue_result_manifest(
   if run_definition.name != "run_definition" ||
     invocation.name != "run_invocation" {
     return Err(ManifestIssuanceWrongContract)
-  }
-  if definitions.is_empty() || artifacts.is_empty() {
-    return Err(ManifestIssuanceEmptyInventory)
   }
   if definitions.length() != artifacts.length() {
     return Err(ManifestIssuanceInventoryMismatch)
