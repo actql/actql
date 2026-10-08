@@ -595,23 +595,28 @@ pub fn issue_effectful_captured_run(
 }
 
 ///|
-fn prepare_captured_computation_inputs(
+fn prepare_captured_computation_inputs_after_root(
   inputs : CapturedRunIssuanceInputs,
 ) -> Result[EffectContextInputs, CapturedRunIssuanceIssue] {
-  let { run_definition, invocation, definitions, artifacts, manifest, receipt,
-    snapshots, sources, local_sources, advances, authoring, models, preview,
-    plan_values, max_wire_bytes, max_nodes, max_depth, dependency_inventory, } = inputs
-  if authoring.name != "authoring_context" {
-    return Err(CaptureIssuanceWrongContract("authoring_context"))
-  }
-  match
-    validate_run_publication_chain(
-      run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
-      max_nodes, max_depth,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(CaptureIssuanceChain(EvidenceRoot(issue)))
-  }
+  let {
+    invocation,
+    definitions,
+    artifacts,
+    receipt,
+    snapshots,
+    sources,
+    local_sources,
+    advances,
+    authoring,
+    models,
+    preview,
+    plan_values,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    dependency_inventory,
+    ..
+  } = inputs
   if receipt.name != "run_receipt" {
     return Err(CaptureIssuanceWrongContract("run_receipt"))
   }
@@ -762,9 +767,17 @@ fn prepare_captured_computation_inputs(
         CaptureIssuanceInventoryMismatch("effect_dependency_inventory"),
       )
   }
-  Ok({ snapshots: ordered_snapshots, sources: ordered_sources,
-    local_sources: ordered_local_sources, dependencies, advances, authoring,
-    models: ordered_models, preview, plans, })
+  Ok({
+    snapshots: ordered_snapshots,
+    sources: ordered_sources,
+    local_sources: ordered_local_sources,
+    dependencies,
+    advances,
+    authoring,
+    models: ordered_models,
+    preview,
+    plans,
+  })
 }
 
 ///|
@@ -788,17 +801,37 @@ fn issue_captured_computation_run(
   max_depth : Int,
   dependency_inventory? : CapturedEffectDependencyInventory? = None,
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
-  let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
-  let preparation = start_captured_computation_preparation({
-    run_definition, invocation, definitions, artifacts, manifest, receipt,
-    snapshots, sources, local_sources, advances, authoring, models, preview,
-    plan_values, max_wire_bytes, max_nodes, max_depth, dependency_inventory,
-  }, workspace)
+  let workspace = publication_evidence_workspace(max_nodes)
+  let preparation = start_captured_computation_preparation(
+    {
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      receipt,
+      snapshots,
+      sources,
+      local_sources,
+      advances,
+      authoring,
+      models,
+      preview,
+      plan_values,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      dependency_inventory,
+    },
+    workspace,
+  )
   while true {
     match preparation.advance(256) {
       Err(issue) => return Err(issue)
       Ok((true, _)) => return preparation.finish()
       Ok((false, _)) => ()
     }
-  } nobreak { Err(CaptureIssuanceEncoding) }
+  } nobreak {
+    Err(CaptureIssuanceEncoding)
+  }
 }
