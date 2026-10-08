@@ -777,17 +777,9 @@ fn append_pipe_expression(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
 ) -> @builder.Node raise Abort {
-  match
-    @expression.append_with_properties(
-      expression,
-      path => pipe_slot(path, visible, ranges),
-      construction.builder,
-      max_work,
-      resolve_parameter=construction.parameter_resolver(),
-    ) {
-    Ok(node) => node
-    Err(error) => raise Abort(Expression(error))
-  }
+  append_pipe_range_expression(
+    construction, expression, visible, ranges, max_work,
+  )
 }
 
 ///|
