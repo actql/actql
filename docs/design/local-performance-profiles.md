@@ -279,6 +279,9 @@ profile work. `DiagnosticReference` preserves that selection;
 policy response and common admission/commit. Uncontrolled-load reference ranking
 requires an explicit, separate `allow_uncontrolled_load` setting. It does not
 assert load applicability or waive any other compatibility condition.
+Diagnostic references do not require that selection permission: compatible
+descriptive values can be displayed while ordinary offline selection is retained.
+Their load applicability, stable improvement and net benefit remain unknown.
 
 The trusted application supplies its runtime/artifact/capture configuration and
 an immutable local template pin derived from a validated original. The Native

@@ -106,7 +106,8 @@ fn prepare_native_performance_selection(
       } else if observed < header.newest_ms ||
         observed - header.oldest_ms > header.max_age_ms {
         reason = "freshness-insufficient"
-      } else if !configuration.allow_uncontrolled_load {
+      } else if configuration.mode == SelectReference &&
+        !configuration.allow_uncontrolled_load {
         reason = "uncontrolled-load-not-permitted"
       } else if session.trajectory is Some(trajectory) {
         // Never reuse a previous request or a previous position. The current
