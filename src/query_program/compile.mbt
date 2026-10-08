@@ -1782,6 +1782,8 @@ fn compile_steps(
   initial_scope? : JoinChainScope? = None,
   preserved_scope? : Array[JoinChainScope]? = None,
   parameter_declarations? : @parameters.Declarations? = None,
+  prefix_steps? : Array[@builder.Node] = [],
+  prefix_context? : Context? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1893,35 +1895,32 @@ fn compile_steps(
         if offset is Some(name) && same_name(element, name) {
           raise Abort(DuplicateOutput)
         }
-        let element_contract = unnest_source_element(
+        let mut element_contract = unnest_source_element(
           expression,
           parameter_declarations,
           query_limits,
           max_work,
           construction.parameter_resolver(),
         )
-        if selected_projections(query).any(projection => {
-            if projection.star is None {
-              false
-            } else {
-              match projection.expression {
-                None => true
-                Some(receiver) =>
-                  match
-                    @query.expression_node(
-                      receiver,
-                      @query.expression_root(receiver),
-                    ) {
-                    Some({ kind: Reference(path), .. }) =>
-                      !path.is_empty() && same_name(path[0], element)
-                    _ => false
-                  }
-              }
+        let requires_element_scope = selected_projections(query).any(projection => {
+          if projection.star is None {
+            false
+          } else {
+            match projection.expression {
+              None => true
+              Some(receiver) =>
+                match
+                  @query.expression_node(
+                    receiver,
+                    @query.expression_root(receiver),
+                  ) {
+                  Some({ kind: Reference(path), .. }) =>
+                    !path.is_empty() && same_name(path[0], element)
+                  _ => false
+                }
             }
-          }) &&
-          element_contract is None {
-          raise Abort(UnsupportedProjection)
-        }
+          }
+        })
         let physical = if correlated {
           active_fields.copy() + [element.value]
         } else {
@@ -1952,6 +1951,24 @@ fn compile_steps(
         entries.push(("derive", construction.object([(column, derived)])))
         step_entries.push(entries.copy())
         entries.clear()
+        if correlated && requires_element_scope && element_contract is None {
+          let prefix = if prefix_steps.is_empty() &&
+            input.source is GeneratedValues(seed) {
+            [import_query_cursor(construction, seed)]
+          } else {
+            prefix_steps.copy()
+          }
+          prefix.append(
+            step_entries.map(entries => construction.object(entries)),
+          )
+          element_contract = unnest_prefix_element(
+            construction, prefix, column, expression, prefix_context, parameter_declarations,
+            query_limits, max_work,
+          )
+        }
+        if requires_element_scope && element_contract is None {
+          raise Abort(UnsupportedProjection)
+        }
         let arguments : Array[(String, @builder.Node)] = [
           ("column", construction.text(column)),
           ("as", construction.text(element_slot)),
@@ -5061,6 +5078,8 @@ pub fn compile(
         dependencies.filter(other => other.name != input.name),
       retained=Some(retained),
       parameter_declarations=context.parameter_declarations,
+      prefix_steps=seed_steps,
+      prefix_context=Some(context),
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -5685,6 +5704,8 @@ fn compile_cte_stage(
     input.source is Captured(_),
     final_alias,
     parameter_declarations=context.parameter_declarations,
+    prefix_steps=seed,
+    prefix_context=Some(context),
   )
   // A CTE with no remaining computation binds the existing producer after
   // scope validation. compile_steps may emit a synthetic identity projection

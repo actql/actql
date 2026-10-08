@@ -47,6 +47,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/array-literal-source-input.mjs', 'array-literal-source-input.mjs'],
   ['scripts/fixtures/unnest-source-input.mjs', 'unnest-source-input.mjs'],
   ['scripts/fixtures/correlated-unnest-source-input.mjs', 'correlated-unnest-source-input.mjs'],
+  ['scripts/fixtures/correlated-unnest-star-source-input.mjs', 'correlated-unnest-star-source-input.mjs'],
   ['scripts/fixtures/unnest-parameter-path-source-input.mjs', 'unnest-parameter-path-source-input.mjs'],
   ['scripts/fixtures/unnest-checked-array-source-input.mjs', 'unnest-checked-array-source-input.mjs'],
   ['scripts/fixtures/named-window-source-input.mjs', 'named-window-source-input.mjs'],
