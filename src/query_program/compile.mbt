@@ -97,6 +97,8 @@ priv suberror Abort {
 priv struct Construction {
   builder : @builder.Builder
   generated : @origin.Origin
+  // Published contract owner for resolving named INFER INPUT fields only.
+  model_tasks : @environment.ModelTasks?
 }
 
 ///|
@@ -4538,7 +4540,11 @@ pub fn compile(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let dependencies = nearest_dependencies(query, context.inputs)
     let reused_query_source = dependencies.any(other => other.name == input.name)
@@ -4783,7 +4789,11 @@ fn compile_cte_query(
     Ok(value) => value
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let stages : Array[@builder.Node] = []
     let used_stage_names : Array[String] = []
@@ -5743,7 +5753,11 @@ fn compile_set_query(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let (stages, _) = compile_set_stages(
       construction, query, context, limits, "",
@@ -7167,7 +7181,11 @@ fn compile_join_query(
     Ok(value) => value
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let part = @query.join_part_at(query, 0).unwrap()
     // A FULL JOIN requires stable row identity on both sides. Generated
