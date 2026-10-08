@@ -52,3 +52,39 @@ test('conditional recovery counts creation and first-use extra once, never inven
   assert.equal(wholeRunValue({creationMs:100,firstUseMs:30,offlineMs:20,reusedMs:20}).conditionalRecoveryUses,null);
   assert.equal(wholeRunValue({creationMs:100,firstUseMs:30,offlineMs:20,reusedMs:25}).conditionalRecoveryUses,null);
 });
+
+test('normal Host trajectory consumes actual current decisions and rejects unknown or changed positions', async()=>{
+  const {admitWholeRunTrajectory}=await import('./whole-run-profile.mjs');
+  const snapshots=[{body}];
+  const product={ownerCorrespondence:{observations:{candidates:snapshots,choices:[{
+    task:1,position:4,revision:1,source:'ExternalPolicy',
+  }]}}};
+  const decision={mode:'select-reference',selected_position:4,load_applicability:'unknown-uncontrolled',net_benefit:'unknown',
+    request_json:JSON.stringify({candidate_set_cid:candidates.cid,generation:0,revision:1})};
+  const stdout='normal-host-decision:'+JSON.stringify(decision)+'\n';
+  assert.equal(admitWholeRunTrajectory({stdout},product).initialAssignment[0],4);
+  assert.throws(()=>admitWholeRunTrajectory({stdout:'normal-host-decision:'+JSON.stringify({...decision,selected_position:null})},product),/UnknownNormalHostRanking/);
+  assert.throws(()=>admitWholeRunTrajectory({stdout:'normal-host-decision:'+JSON.stringify({...decision,selected_position:12})},product),/NormalDecisionExecutionChanged/);
+});
+
+test('creation cost remains bound to its immutable original and excludes duplicate admission cost', async()=>{
+  const {mkdtemp,writeFile,rm,symlink}=await import('node:fs/promises');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const {loadWholeRunCreationCost}=await import('./whole-run-profile.mjs');
+  const directory=await mkdtemp(join(tmpdir(),'actql-creation-cost-'));
+  const profile={profileRevision:'original',report:{stage:'comparison',creationMs:20}};
+  const receipt={originalDigest:'original',originalAdmissionMs:2,profileCreationMs:22,scope:'campaign plus final admission once'};
+  const path=join(directory,'cost-receipt.json');
+  try {
+    await writeFile(path,JSON.stringify(receipt));
+    assert.equal((await loadWholeRunCreationCost(directory,profile)).profileCreationMs,22);
+    await writeFile(path,JSON.stringify({...receipt,originalDigest:'another-original'}));
+    await assert.rejects(loadWholeRunCreationCost(directory,profile),/WholeRunCreationOriginChanged/);
+    await writeFile(path,JSON.stringify({...receipt,profileCreationMs:24}));
+    await assert.rejects(loadWholeRunCreationCost(directory,profile),/WholeRunCreationOverlap/);
+    await writeFile(join(directory,'target.json'),JSON.stringify(receipt));
+    await rm(path);await symlink('target.json',path);
+    await assert.rejects(loadWholeRunCreationCost(directory,profile));
+  } finally {await rm(directory,{recursive:true,force:true});}
+});

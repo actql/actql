@@ -269,12 +269,72 @@ saving continues. Without a positive saving and adequate observations it is
 unknown. Revision or measurement-condition changes require recollection, whose
 cost cannot be silently transferred from an older revision.
 
-## Diagnostic versus selection permission
+## Explicit ordinary Native Host references
 
-The ordinary Native Host's `DiagnosticReference` mode retains its offline
-selection while displaying compatible descriptive references. It does not
-require permission to use an uncontrolled-load ranking for selection.
-`SelectReference` requires the separate `allow_uncontrolled_load` setting;
-without it, the Host retains offline selection and reports the refusal reason.
-Both modes retain request, profile and disclosure validation. Load applicability,
-stable improvement and net benefit remain unknown.
+The public Native library accepts optional `NativePerformanceConfiguration` and
+an optional `NativePerformanceInput` when opening `NativeStandardStrategyRun`.
+Without either configuration, ordinary offline selection does not perform
+profile work. `DiagnosticReference` preserves that selection;
+`SelectReference` proposes an offered position through the existing closed
+policy response and common admission/commit. Uncontrolled-load reference ranking
+requires an explicit, separate `allow_uncontrolled_load` setting. It does not
+assert load applicability or waive any other compatibility condition.
+Diagnostic references do not require that selection permission: compatible
+descriptive values can be displayed while ordinary offline selection is retained.
+Their load applicability, stable improvement and net benefit remain unknown.
+
+The trusted application supplies its runtime/artifact/capture configuration and
+an immutable local template pin derived from a validated original. The Native
+library does not authenticate an issuer named in profile bytes or independently
+attest the application's executable. It derives the actual Program CID, captured
+row count, logical Relation/schema identity and import/retention limits. The
+input token must match the Source already owned by this dispatch. This first
+connection covers one captured input; multiple captured inputs stay explicitly
+unprofiled instead of treating the first input as the complete data identity. Computing that
+identity is bounded opt-in work over captured rows, not a Source acquisition.
+
+```moonbit
+// The application has already captured Source and installed normal estimates.
+let input = @native.prepare_native_performance_input(
+  dispatch, captured_source, bounded_relation_identity,
+).unwrap()
+let profile = @native.prepare_native_local_performance_profile(
+  trusted_root, "reference.json", trusted_template_sha256_hex,
+  validated_original_revision,
+).unwrap()
+let performance = @native.prepare_native_performance_configuration(
+  @native.SelectReference, trusted_runtime_settings, durable_native_clock,
+  run_identity, trusted_authority, "application-reference-policy/0.1",
+  profile~, allow_uncontrolled_load=true,
+).unwrap()
+let run = @native.open_native_standard_strategy_run(
+  dispatch, import_limits, transfer_bytes, execution_bytes,
+  library=Some(duckdb), retained_profile~, observe_phase?,
+  performance~, performance_input=input,
+).unwrap()
+// Execute/read Result through the existing Run. On failure, retain it until
+// close confirms cleanup; a false result/error is not release confirmation.
+```
+
+The complete caller example in `src/cmd/native_retained_case_probe/normal_host_example.mbt`
+uses a trusted settings file and the actual captured input. It is an example of
+library configuration, not another product command or universal profile generator.
+Unsupported inputs/candidate paths or insufficient profiles remain reasoned
+unknown with the configured offline selection. Invalid/expired request or altered
+pinned evidence is rejected instead. Nothing starts measurement, external
+consultation, another Source read or a replacement request implicitly.
+
+The immutable profile handle caches only bounded original template bytes.
+Every task rechecks current request, generation, revision, deadline and resource
+admission. Residual assignment correspondence tracks current offered task,
+registration and resident realization; old position numbers are not identities.
+It does not turn an initial whole-Run reference into a new residual ETA.
+
+`native_performance_decisions` returns bounded copies of request/snapshot,
+positions, objective, conditions, descriptive references, freshness and costs.
+The optional JSON query can fail independently of execution/release. Read cost
+is enclosed by consultation cost and must not be added to it. Creation cost is
+separate; process restart loads anew, while subsequent requests in the same Run
+reuse the immutable template. Load applicability, stable improvement, net
+benefit, calibrated ETA and p90 remain unknown. Additional captured-input custody
+is retained through pending cleanup and cleared only after confirmed release.

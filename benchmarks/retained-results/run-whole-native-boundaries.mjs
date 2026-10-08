@@ -12,8 +12,8 @@ import {loadWholeRunProfile,wholeRunTemplate,admitWholeRunTrajectory} from './wh
 import {prepareNativeDirectProduct,executeNativeDirectProduct,readNativeDirectProductExecution,admitNativeDirectProduct} from './native-direct-product.mjs';
 import {nativeOwnerObservations} from './native-owner-observations.mjs';
 
-const root=process.cwd(),[planArg,profileArg,destinationArg]=process.argv.slice(2);
-assert.equal(process.argv.length,5);
+const root=process.cwd(),[planArg,profileArg,destinationArg,selectionArg]=process.argv.slice(2);
+assert([5,6].includes(process.argv.length));
 const destination=resolve(destinationArg);assert(destination!==root&&!destination.startsWith(root+sep));
 const git=args=>execFileSync('git',args,{encoding:'utf8'}).trim();
 const revision=git(['rev-parse','HEAD']);assert.equal(git(['status','--porcelain']),'');
@@ -28,8 +28,11 @@ assert.equal(witness.revision,revision);assert.equal(witness.exitCode,0);
 const candidates={canonical_json:JSON.stringify(plan.candidates.body),cid:plan.candidates.cid};
 const assignment=plan.candidates.body[5].find(a=>a[5][1]?.[9]!==null);
 assert(assignment,'ResidentBoundaryRequiresPresentedResidentAssignment');
-const schedule=['all-unknown','partial-unknown','conditions-mismatch','stale','single-candidate',
-  'binding','stop','expiry','cleanup'];
+const registered=['all-unknown','partial-unknown','conditions-mismatch','stale','single-candidate',
+  'binding','stop','expiry','cleanup','normal-diagnostic-no-permission','normal-select-no-permission'];
+const schedule=selectionArg===undefined?registered:selectionArg.split(',');
+assert(schedule.length>0&&new Set(schedule).size===schedule.length);
+assert(schedule.every(name=>registered.includes(name)),'UnknownWholeRunBoundary');
 const receipts=[];
 await mkdir(destination,{mode:0o700});
 const unknown=e=>({...e,status:'unknown',reason:'quantity-unobserved',median_ms:null,minimum_ms:null,maximum_ms:null});
@@ -64,11 +67,23 @@ for(const boundary of schedule) {
     '--empirical-template-pin',profileDigest(bytes)];
   if(boundary==='binding') extra.push('--empirical-validation-probes','true');
   if(boundary==='cleanup') extra.push('--diagnostic-cleanup-failure','true');
-  const selected={...invocation,arguments:[...invocation.arguments,...extra]};
+  const normalReadonly=['normal-diagnostic-no-permission','normal-select-no-permission'].includes(boundary);
+  let selected={...invocation,arguments:[...invocation.arguments,...extra]};
+  if(normalReadonly) {
+    assert(plan.normalHost,'NormalHostBoundaryRequiresTrustedSettings');
+    const settings={...plan.normalHost.settings,
+      mode:boundary==='normal-diagnostic-no-permission'?'diagnostic-reference':'select-reference',
+      allow_uncontrolled_load:false,profile_file:'task-1.json',
+      profile_digest:profileDigest(bytes).slice(7),profile_revision:profile.profileRevision,
+      profile_creation_ms:null};
+    await writeFile(join(directory,'normal-settings.json'),JSON.stringify(settings),{flag:'wx',mode:0o600});
+    selected={...invocation,environment:{ACTQL_NATIVE_HOST_PROFILE_SETTINGS:'normal-settings.json'}};
+  }
   let execution;
   try {
     const started=performance.now();
-    const streams=await promisify(execFile)(selected.binary,selected.arguments,{cwd:root,timeout:fixture.limits.timeoutMs,maxBuffer:1024*1024});
+    const streams=await promisify(execFile)(selected.binary,selected.arguments,{cwd:root,
+      env:{...process.env,...selected.environment},timeout:fixture.limits.timeoutMs,maxBuffer:1024*1024});
     execution={...streams,processCycleMs:performance.now()-started};
   }
   catch(error) {
@@ -103,7 +118,21 @@ for(const boundary of schedule) {
     const parsed=readNativeDirectProductExecution(selected,normal);
     const product=admitNativeDirectProduct(fixture,selected,parsed,{cleanupRetry:boundary==='cleanup'});
     assert.deepEqual(parsed.resultSchemaFields,fixture.workload==='fixed-join-count-shrinking-intermediate'?['n','present']:fixture.fields);
-    if(boundary==='binding'||boundary==='cleanup') {
+    if(normalReadonly) {
+      const decisions=execution.stdout.split('\n').filter(l=>l.startsWith('normal-host-decision:'))
+        .map(l=>JSON.parse(l.slice('normal-host-decision:'.length)));
+      assert.equal(decisions.length,selected.finalTask,'MissingOrdinaryHostDecision');
+      assert(product.ownerCorrespondence.observations.choices.every(c=>['OfflineLatency','BoundedLatency'].includes(c.source)));
+      assert(decisions.every(d=>d.selected_position===null&&d.load_applicability==='unknown-uncontrolled'&&
+        d.stable_improvement==='unknown'&&d.net_benefit==='unknown'),'DiagnosticChangedAuthorityOrSelection');
+      if(boundary==='normal-diagnostic-no-permission') {
+        assert.equal(decisions[0].reason,'run-caller-elapsed-median');
+        assert.equal(decisions[0].references.length,template.entries.length);
+        assert(decisions[0].references.every(r=>r.median_ms!==null),'MissingPermittedDiagnosticReference');
+      } else {
+        assert.equal(decisions[0].reason,'uncontrolled-load-not-permitted');
+      }
+    } else if(boundary==='binding'||boundary==='cleanup') {
       admitWholeRunTrajectory(execution,product);
       if(boundary==='binding') {
         const tasks=fixture.program().stages.length-1;
