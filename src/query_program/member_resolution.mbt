@@ -339,6 +339,72 @@ fn MemberResolution::relation_carrier(
 }
 
 ///|
+// Graph construction needs admitted producer definitions to issue its domain.
+// Check the resolved closed prefix through the existing pipeline owner rather
+// than manufacturing a domain or extracting a property schema by hand.
+fn MemberResolution::closed_prefix_carrier(
+  self : MemberResolution,
+  steps : Array[@wire.Cursor],
+  declarations : @parameters.Declarations?,
+) -> @carrier.Carrier? raise Abort {
+  if self.probe_refused {
+    return None
+  }
+  let builder = member_construct(
+    @builder.create(self.document, self.limits.source),
+  )
+  let items = []
+  for step in steps {
+    items.push(
+      member_construct(
+        @builder.import_source(builder, self.source, step, replace_text=at => {
+          self.replacements.get(
+            @wire.tree_index(@builder.cursor(self.source), at).unwrap(),
+          )
+        }),
+      ),
+    )
+  }
+  let at = steps[steps.length() - 1]
+  let root = member_construct(
+    @builder.add(builder, @builder.Array(items), @builder.origin(self.source, at).unwrap()),
+  )
+  let copy = member_construct(@builder.finish(builder, root))
+  self.spend(at, @builder.usage(copy).nodes)
+  match
+    @pipeline.check_carriers(
+      @builder.cursor(copy),
+      [],
+      declarations,
+      None,
+      {
+        max_steps: self.limits.source.tree.max_nodes,
+        max_work: self.work,
+        max_nodes: self.limits.source.tree.max_nodes,
+        max_tokens: self.limits.source.tree.max_nodes,
+        max_text_bytes: self.limits.source.tree.max_total_string_bytes,
+        max_depth: self.limits.source.tree.max_depth,
+      },
+    ) {
+    Ok(checked) => {
+      self.spend(at, @pipeline.usage(checked).work)
+      @pipeline.output_carrier(checked)
+    }
+    Err({ kind: BudgetExceeded, .. }) =>
+      raise Abort(
+        Expression({
+          issue: @expression.WorkLimit,
+          origin: @builder.origin(self.source, at),
+        }),
+      )
+    Err(_) => {
+      self.defer_refusal()
+      None
+    }
+  }
+}
+
+///|
 fn MemberResolution::operation_carrier(
   self : MemberResolution,
   tag : String,
@@ -716,11 +782,13 @@ fn resolve_query_members(
     } else {
       None
     }
+    let prefix = []
     for step in @wire.elements(member_lookup(stage, "steps").unwrap()).unwrap() {
       if resolution.probe_refused {
         break
       }
       resolution.spend(step, 1)
+      prefix.push(step)
       if member_text(step, "from") is Some(name) {
         current = names.get(name).bind(value => value)
       }
@@ -737,13 +805,22 @@ fn resolve_query_members(
             context.parameter_declarations,
           )
         }
-        output = resolution.operation_carrier(
-          tag,
-          body,
-          current,
-          names,
-          context.parameter_declarations,
-        )
+        if @wire.object_length(inputs) == Some(0) &&
+          (tag == "graph" || (current is Some(value) &&
+          @carrier.kind(value) == @carrier.GraphKind)) {
+          output = resolution.closed_prefix_carrier(
+            prefix,
+            context.parameter_declarations,
+          )
+        } else {
+          output = resolution.operation_carrier(
+            tag,
+            body,
+            current,
+            names,
+            context.parameter_declarations,
+          )
+        }
       }
       current = output
       if member_text(step, "as") is Some(name) {
