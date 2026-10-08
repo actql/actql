@@ -52,7 +52,8 @@ export function openObservationBudget(scope, requestKey,
     typeof saved.scopeKey !== 'string' || typeof saved.requestKey !== 'string' ||
     ['maxRecords', 'maxBytes', 'records', 'bytes'].some(key => !integer(saved[key])) ||
     !Array.isArray(saved.factHashes) || saved.factHashes.length > 2048 ||
-    saved.factHashes.some(value => typeof value !== 'string'))) {
+    Array.prototype.findIndex.call(saved.factHashes,
+      value => typeof value !== 'string') !== -1)) {
     throw new TypeError('InvalidObservationBudgetSnapshot');
   }
   const value = checked(owner.clientValuesHostObservationBudget(
