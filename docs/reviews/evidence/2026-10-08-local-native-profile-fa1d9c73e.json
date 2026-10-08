@@ -1,0 +1,2159 @@
+{
+  "version": "actql-local-native-profile-experiment/0.1",
+  "revision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+  "compiledSourceRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+  "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "osRelease": "25.2.0",
+    "cpuModels": [
+      "Apple M4"
+    ],
+    "logicalCpus": 10,
+    "node": "v22.23.2",
+    "libraryDigest": "sha256:b9027d18ef3e8d960568f77e946a83ca68009cb22d71cf7f94de842afdd094d8",
+    "toolchain": {
+      "version": "0.10.12+1634b282e",
+      "moon": "0.1.20260904 (94521db 2026-09-04)",
+      "moonc": "v0.10.12+1634b282e (2026-09-07)",
+      "archives": {
+        "darwin-arm64": {
+          "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+          "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+        },
+        "linux-x64": {
+          "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+          "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+        }
+      },
+      "core": {
+        "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+        "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+      }
+    },
+    "experimentConcurrency": 1,
+    "providerThreads": "unknown",
+    "competingLoad": "uncontrolled"
+  },
+  "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+  "schedule": [
+    {
+      "round": 0,
+      "mode": "off",
+      "realization": "fresh",
+      "index": 0
+    },
+    {
+      "round": 0,
+      "mode": "off",
+      "realization": "resident",
+      "index": 1
+    },
+    {
+      "round": 0,
+      "mode": "metadata-only",
+      "realization": "fresh",
+      "index": 2
+    },
+    {
+      "round": 0,
+      "mode": "metadata-only",
+      "realization": "resident",
+      "index": 3
+    },
+    {
+      "round": 0,
+      "mode": "evidence-enabled",
+      "realization": "fresh",
+      "index": 4
+    },
+    {
+      "round": 0,
+      "mode": "evidence-enabled",
+      "realization": "resident",
+      "index": 5
+    },
+    {
+      "round": 1,
+      "mode": "evidence-enabled",
+      "realization": "resident",
+      "index": 6
+    },
+    {
+      "round": 1,
+      "mode": "evidence-enabled",
+      "realization": "fresh",
+      "index": 7
+    },
+    {
+      "round": 1,
+      "mode": "metadata-only",
+      "realization": "resident",
+      "index": 8
+    },
+    {
+      "round": 1,
+      "mode": "metadata-only",
+      "realization": "fresh",
+      "index": 9
+    },
+    {
+      "round": 1,
+      "mode": "off",
+      "realization": "resident",
+      "index": 10
+    },
+    {
+      "round": 1,
+      "mode": "off",
+      "realization": "fresh",
+      "index": 11
+    },
+    {
+      "round": 2,
+      "mode": "metadata-only",
+      "realization": "fresh",
+      "index": 12
+    },
+    {
+      "round": 2,
+      "mode": "metadata-only",
+      "realization": "resident",
+      "index": 13
+    },
+    {
+      "round": 2,
+      "mode": "evidence-enabled",
+      "realization": "fresh",
+      "index": 14
+    },
+    {
+      "round": 2,
+      "mode": "evidence-enabled",
+      "realization": "resident",
+      "index": 15
+    },
+    {
+      "round": 2,
+      "mode": "off",
+      "realization": "fresh",
+      "index": 16
+    },
+    {
+      "round": 2,
+      "mode": "off",
+      "realization": "resident",
+      "index": 17
+    }
+  ],
+  "concurrency": 1,
+  "caseId": "retained-large-output-downstream-reuse/text-1024/1000",
+  "limits": {
+    "sourceRows": 1000,
+    "intermediateRows": 1000,
+    "sourceCells": 2000,
+    "maxColumns": 2,
+    "maxValueBytes": 2048,
+    "cumulativeValueNodes": 48000,
+    "cumulativeValueTextBytes": 2048000,
+    "cumulativeGuardWork": 8192000,
+    "representationBytes": 2048000,
+    "rowFrameBytes": 16384,
+    "batchBytes": 1048576,
+    "executionMemoryBytes": 4294967296,
+    "timeoutMs": 120000,
+    "cleanupTimeoutMs": 60000
+  },
+  "dataStatistics": {
+    "source": "independent synthetic fixture, not inferred runtime statistics",
+    "rows": 1000,
+    "expectedOutput": {
+      "rows": 1000,
+      "bytes": 1047891,
+      "rowsCid": "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce"
+    },
+    "ndv": null,
+    "selectivity": null
+  },
+  "localEligibility": {
+    "eligible": false,
+    "reason": "cumulative_output_text_limit",
+    "minimumTextBytes": 2066000,
+    "ceilingTextBytes": 2048000,
+    "scope": "two mandatory materialized outputs in each Local reuse task"
+  },
+  "controls": {
+    "fresh": {
+      "residentPolicy": false,
+      "nativeRates": [
+        "1000",
+        "1000",
+        "1000"
+      ]
+    },
+    "resident": {
+      "residentPolicy": true,
+      "nativeRates": [
+        "1000",
+        "1000",
+        "1000"
+      ]
+    }
+  },
+  "sourcePreparationMs": 278.58437499999997,
+  "freshnessPolicy": {
+    "maxAgeMs": 86400000,
+    "minimumSamples": 3,
+    "scope": "explicit local analysis window, not a scientifically calibrated expiry"
+  },
+  "measurementScopes": {
+    "processCycleMs": "parent preparation through child exit; excludes subsequent local capture/admission",
+    "coldMs": "same process cycle minus child cleanup; existing coldMs boundary",
+    "warmMs": "same-Run sequential task intervals, not a warm subsequent Run",
+    "observedEndToEndMs": "parent preparation, child, Owner admission, local capture and recording; not customer application/Run latency",
+    "commonSourcePreparation": "separate cost before all executions",
+    "aggregate": "separate parent basic aggregation cost; not an operator interval",
+    "overlapping": true,
+    "osCache": "uncontrolled"
+  },
+  "profiles": [
+    {
+      "version": "actql-local-performance-profile/0.1",
+      "key": "sha256:e7bd5f2724db205b7ae61cf7992beca545e1a6e864c7f2119bcc9cf6c6a295ae",
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "off",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "status": "descriptive-only",
+      "reasons": [],
+      "statuses": {
+        "succeeded": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "interrupted": 0,
+        "unobserved": 0
+      },
+      "attempted": 3,
+      "compatibleCompleteSuccesses": 3,
+      "metrics": {
+        "processCycleMs": {
+          "count": 3,
+          "median": 717.0740420000002,
+          "min": 604.6190829999999,
+          "max": 1133.2450419999986,
+          "status": "descriptive-only"
+        },
+        "coldMs": {
+          "count": 3,
+          "median": 715.7660420000002,
+          "min": 603.7800829999999,
+          "max": 1132.2520419999987,
+          "status": "descriptive-only"
+        },
+        "warmMs": {
+          "count": 3,
+          "median": 388.882,
+          "min": 344.051,
+          "max": 793.574,
+          "status": "descriptive-only"
+        },
+        "cleanupMs": {
+          "count": 3,
+          "median": 0.993,
+          "min": 0.839,
+          "max": 1.308,
+          "status": "descriptive-only"
+        },
+        "executionMs": {
+          "count": 3,
+          "median": 666.87,
+          "min": 568.009,
+          "max": 1087.425,
+          "status": "descriptive-only"
+        },
+        "captureMs": {
+          "count": 3,
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "status": "descriptive-only"
+        },
+        "recordingMs": {
+          "count": 3,
+          "median": 1.1880000000001019,
+          "min": 1.127375000000029,
+          "max": 1.2044170000008307,
+          "status": "descriptive-only"
+        },
+        "observedEndToEndMs": {
+          "count": 3,
+          "median": 742.7432499999995,
+          "min": 636.6405000000001,
+          "max": 1161.283875000001,
+          "status": "descriptive-only"
+        }
+      },
+      "observationIds": [
+        "trial-0",
+        "trial-11",
+        "trial-16"
+      ],
+      "latestObservationAt": 1791423502725,
+      "earliestObservationAt": 1791423481695,
+      "freshnessPolicy": {
+        "maxAgeMs": 86400000,
+        "minimumSamples": 3
+      },
+      "calibration": "not-calibrated",
+      "precision": "not-established",
+      "populationFailureRate": null,
+      "plannerEstimate": null
+    },
+    {
+      "version": "actql-local-performance-profile/0.1",
+      "key": "sha256:ea7ffa13cbd1a6ceef60aeb847bfc2e3d3ce8f3bf8f41d55d0f48440cd14c0ab",
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "off",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "status": "descriptive-only",
+      "reasons": [],
+      "statuses": {
+        "succeeded": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "interrupted": 0,
+        "unobserved": 0
+      },
+      "attempted": 3,
+      "compatibleCompleteSuccesses": 3,
+      "metrics": {
+        "processCycleMs": {
+          "count": 3,
+          "median": 605.3703330000008,
+          "min": 482.93537500000093,
+          "max": 1069.5786249999999,
+          "status": "descriptive-only"
+        },
+        "coldMs": {
+          "count": 3,
+          "median": 600.7953330000007,
+          "min": 474.7993750000009,
+          "max": 1026.4556249999998,
+          "status": "descriptive-only"
+        },
+        "warmMs": {
+          "count": 3,
+          "median": 287.772,
+          "min": 203.18800000000002,
+          "max": 326.74399999999997,
+          "status": "descriptive-only"
+        },
+        "cleanupMs": {
+          "count": 3,
+          "median": 8.136,
+          "min": 4.575,
+          "max": 43.123,
+          "status": "descriptive-only"
+        },
+        "executionMs": {
+          "count": 3,
+          "median": 570.397,
+          "min": 443.977,
+          "max": 1000.169,
+          "status": "descriptive-only"
+        },
+        "captureMs": {
+          "count": 3,
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "status": "descriptive-only"
+        },
+        "recordingMs": {
+          "count": 3,
+          "median": 1.645291000000725,
+          "min": 1.2310419999994338,
+          "max": 22.516625000000204,
+          "status": "descriptive-only"
+        },
+        "observedEndToEndMs": {
+          "count": 3,
+          "median": 640.0143750000007,
+          "min": 508.4837080000034,
+          "max": 1156.685291,
+          "status": "descriptive-only"
+        }
+      },
+      "observationIds": [
+        "trial-1",
+        "trial-10",
+        "trial-17"
+      ],
+      "latestObservationAt": 1791423503484,
+      "earliestObservationAt": 1791423482341,
+      "freshnessPolicy": {
+        "maxAgeMs": 86400000,
+        "minimumSamples": 3
+      },
+      "calibration": "not-calibrated",
+      "precision": "not-established",
+      "populationFailureRate": null,
+      "plannerEstimate": null
+    },
+    {
+      "version": "actql-local-performance-profile/0.1",
+      "key": "sha256:4078126464fbfac610473870fa49b675c5e7d34229c64b310582642eebc31424",
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "status": "descriptive-only",
+      "reasons": [],
+      "statuses": {
+        "succeeded": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "interrupted": 0,
+        "unobserved": 0
+      },
+      "attempted": 3,
+      "compatibleCompleteSuccesses": 3,
+      "metrics": {
+        "processCycleMs": {
+          "count": 3,
+          "median": 1053.966625000001,
+          "min": 814.0737079999999,
+          "max": 1876.2039579999996,
+          "status": "descriptive-only"
+        },
+        "coldMs": {
+          "count": 3,
+          "median": 1052.5366250000009,
+          "min": 813.0217079999999,
+          "max": 1874.2289579999997,
+          "status": "descriptive-only"
+        },
+        "warmMs": {
+          "count": 3,
+          "median": 636.523,
+          "min": 461.64,
+          "max": 1145.404,
+          "status": "descriptive-only"
+        },
+        "cleanupMs": {
+          "count": 3,
+          "median": 1.43,
+          "min": 1.052,
+          "max": 1.975,
+          "status": "descriptive-only"
+        },
+        "executionMs": {
+          "count": 3,
+          "median": 1022.723,
+          "min": 782.001,
+          "max": 1599.514,
+          "status": "descriptive-only"
+        },
+        "captureMs": {
+          "count": 3,
+          "median": 1.8955409999980475,
+          "min": 1.3000000000010914,
+          "max": 3.9845830000003843,
+          "status": "descriptive-only"
+        },
+        "recordingMs": {
+          "count": 3,
+          "median": 2.1388330000008864,
+          "min": 1.1092079999998532,
+          "max": 10.517832999999882,
+          "status": "descriptive-only"
+        },
+        "observedEndToEndMs": {
+          "count": 3,
+          "median": 1083.268167000002,
+          "min": 841.911333,
+          "max": 1962.5465419999996,
+          "status": "descriptive-only"
+        }
+      },
+      "observationIds": [
+        "trial-2",
+        "trial-9",
+        "trial-12"
+      ],
+      "latestObservationAt": 1791423498288,
+      "earliestObservationAt": 1791423483543,
+      "freshnessPolicy": {
+        "maxAgeMs": 86400000,
+        "minimumSamples": 3
+      },
+      "calibration": "not-calibrated",
+      "precision": "not-established",
+      "populationFailureRate": null,
+      "plannerEstimate": null
+    },
+    {
+      "version": "actql-local-performance-profile/0.1",
+      "key": "sha256:1feb0c03ea6833d7abd397a1a537ade66357577ecd2e2eff520844560c229ea7",
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "status": "descriptive-only",
+      "reasons": [],
+      "statuses": {
+        "succeeded": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "interrupted": 0,
+        "unobserved": 0
+      },
+      "attempted": 3,
+      "compatibleCompleteSuccesses": 3,
+      "metrics": {
+        "processCycleMs": {
+          "count": 3,
+          "median": 894.4196250000023,
+          "min": 558.5699170000007,
+          "max": 2609.050459,
+          "status": "descriptive-only"
+        },
+        "coldMs": {
+          "count": 3,
+          "median": 889.3056250000022,
+          "min": 552.6239170000007,
+          "max": 2602.137459,
+          "status": "descriptive-only"
+        },
+        "warmMs": {
+          "count": 3,
+          "median": 431.87800000000004,
+          "min": 217.49200000000002,
+          "max": 1253.3799999999999,
+          "status": "descriptive-only"
+        },
+        "cleanupMs": {
+          "count": 3,
+          "median": 5.946,
+          "min": 5.114,
+          "max": 6.913,
+          "status": "descriptive-only"
+        },
+        "executionMs": {
+          "count": 3,
+          "median": 851.504,
+          "min": 523.798,
+          "max": 2344.402,
+          "status": "descriptive-only"
+        },
+        "captureMs": {
+          "count": 3,
+          "median": 1.7504170000029262,
+          "min": 1.3548750000009022,
+          "max": 15.105666999999812,
+          "status": "descriptive-only"
+        },
+        "recordingMs": {
+          "count": 3,
+          "median": 1.2698749999999563,
+          "min": 1.2561659999992116,
+          "max": 9.774583000000348,
+          "status": "descriptive-only"
+        },
+        "observedEndToEndMs": {
+          "count": 3,
+          "median": 924.096625000002,
+          "min": 587.1612920000007,
+          "max": 2671.4927500000003,
+          "status": "descriptive-only"
+        }
+      },
+      "observationIds": [
+        "trial-3",
+        "trial-8",
+        "trial-13"
+      ],
+      "latestObservationAt": 1791423499389,
+      "earliestObservationAt": 1791423485579,
+      "freshnessPolicy": {
+        "maxAgeMs": 86400000,
+        "minimumSamples": 3
+      },
+      "calibration": "not-calibrated",
+      "precision": "not-established",
+      "populationFailureRate": null,
+      "plannerEstimate": null
+    },
+    {
+      "version": "actql-local-performance-profile/0.1",
+      "key": "sha256:9bc3828485f54c502f8bdec8e06ee1708b8e44730c65cfddf4eab5bdfd036175",
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "evidence-enabled",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "status": "descriptive-only",
+      "reasons": [],
+      "statuses": {
+        "succeeded": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "interrupted": 0,
+        "unobserved": 0
+      },
+      "attempted": 3,
+      "compatibleCompleteSuccesses": 3,
+      "metrics": {
+        "processCycleMs": {
+          "count": 3,
+          "median": 1519.1004160000011,
+          "min": 885.3025410000009,
+          "max": 3158.2749170000006,
+          "status": "descriptive-only"
+        },
+        "coldMs": {
+          "count": 3,
+          "median": 1517.967416000001,
+          "min": 884.003541000001,
+          "max": 3156.4369170000004,
+          "status": "descriptive-only"
+        },
+        "warmMs": {
+          "count": 3,
+          "median": 877.0250000000001,
+          "min": 607.328,
+          "max": 1703.527,
+          "status": "descriptive-only"
+        },
+        "cleanupMs": {
+          "count": 3,
+          "median": 1.299,
+          "min": 1.133,
+          "max": 1.838,
+          "status": "descriptive-only"
+        },
+        "executionMs": {
+          "count": 3,
+          "median": 1453.427,
+          "min": 859.667,
+          "max": 3078.791,
+          "status": "descriptive-only"
+        },
+        "captureMs": {
+          "count": 3,
+          "median": 3.4340420000007725,
+          "min": 2.5608330000031856,
+          "max": 12.397417000000132,
+          "status": "descriptive-only"
+        },
+        "recordingMs": {
+          "count": 3,
+          "median": 1.2020830000001297,
+          "min": 0.732625000000553,
+          "max": 44.25566699999945,
+          "status": "descriptive-only"
+        },
+        "observedEndToEndMs": {
+          "count": 3,
+          "median": 1547.0052080000023,
+          "min": 915.6309999999994,
+          "max": 3253.510292000001,
+          "status": "descriptive-only"
+        }
+      },
+      "observationIds": [
+        "trial-4",
+        "trial-7",
+        "trial-14"
+      ],
+      "latestObservationAt": 1791423500333,
+      "earliestObservationAt": 1791423488260,
+      "freshnessPolicy": {
+        "maxAgeMs": 86400000,
+        "minimumSamples": 3
+      },
+      "calibration": "not-calibrated",
+      "precision": "not-established",
+      "populationFailureRate": null,
+      "plannerEstimate": null
+    },
+    {
+      "version": "actql-local-performance-profile/0.1",
+      "key": "sha256:939b726d965caa3d3c4af2389d644d944501347d72e38394db47336371948cb5",
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "evidence-enabled",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "status": "descriptive-only",
+      "reasons": [],
+      "statuses": {
+        "succeeded": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "interrupted": 0,
+        "unobserved": 0
+      },
+      "attempted": 3,
+      "compatibleCompleteSuccesses": 3,
+      "metrics": {
+        "processCycleMs": {
+          "count": 3,
+          "median": 748.9840839999997,
+          "min": 554.1044170000005,
+          "max": 1775.6075,
+          "status": "descriptive-only"
+        },
+        "coldMs": {
+          "count": 3,
+          "median": 730.2180839999997,
+          "min": 548.6534170000004,
+          "max": 1770.3635000000002,
+          "status": "descriptive-only"
+        },
+        "warmMs": {
+          "count": 3,
+          "median": 210.309,
+          "min": 198.52700000000002,
+          "max": 841.8740000000001,
+          "status": "descriptive-only"
+        },
+        "cleanupMs": {
+          "count": 3,
+          "median": 5.451,
+          "min": 5.244,
+          "max": 18.766,
+          "status": "descriptive-only"
+        },
+        "executionMs": {
+          "count": 3,
+          "median": 696.451,
+          "min": 516.247,
+          "max": 1690.733,
+          "status": "descriptive-only"
+        },
+        "captureMs": {
+          "count": 3,
+          "median": 5.154124999999112,
+          "min": 4.424957999999606,
+          "max": 8.118374999998196,
+          "status": "descriptive-only"
+        },
+        "recordingMs": {
+          "count": 3,
+          "median": 2.0697500000005675,
+          "min": 1.4630419999994047,
+          "max": 3.1167499999974098,
+          "status": "descriptive-only"
+        },
+        "observedEndToEndMs": {
+          "count": 3,
+          "median": 790.3577089999999,
+          "min": 591.187750000001,
+          "max": 1808.9080410000006,
+          "status": "descriptive-only"
+        }
+      },
+      "observationIds": [
+        "trial-5",
+        "trial-6",
+        "trial-15"
+      ],
+      "latestObservationAt": 1791423501898,
+      "earliestObservationAt": 1791423491616,
+      "freshnessPolicy": {
+        "maxAgeMs": 86400000,
+        "minimumSamples": 3
+      },
+      "calibration": "not-calibrated",
+      "precision": "not-established",
+      "populationFailureRate": null,
+      "plannerEstimate": null
+    }
+  ],
+  "overhead": [
+    {
+      "realization": "fresh",
+      "mode": "metadata-only",
+      "pairs": [
+        {
+          "round": 0,
+          "processCycleMs": 1271.5848749999996,
+          "observedEndToEndMs": 1325.9060419999996
+        },
+        {
+          "round": 1,
+          "processCycleMs": -319.17133399999875,
+          "observedEndToEndMs": -319.372542000001
+        },
+        {
+          "round": 2,
+          "processCycleMs": 336.89258300000074,
+          "observedEndToEndMs": 340.52491700000246
+        }
+      ],
+      "processCycleDelta": {
+        "count": 3,
+        "median": 336.89258300000074,
+        "min": -319.17133399999875,
+        "max": 1271.5848749999996
+      },
+      "endToEndDelta": {
+        "count": 3,
+        "median": 340.52491700000246,
+        "min": -319.372542000001,
+        "max": 1325.9060419999996
+      },
+      "status": "descriptive-only",
+      "scope": "matched local modes; order/environment variation not causally separated; no overhead upper bound"
+    },
+    {
+      "realization": "fresh",
+      "mode": "evidence-enabled",
+      "pairs": [
+        {
+          "round": 0,
+          "processCycleMs": 2553.6558340000006,
+          "observedEndToEndMs": 2616.869792000001
+        },
+        {
+          "round": 1,
+          "processCycleMs": -247.94250099999772,
+          "observedEndToEndMs": -245.6528750000016
+        },
+        {
+          "round": 2,
+          "processCycleMs": 802.0263740000009,
+          "observedEndToEndMs": 804.2619580000028
+        }
+      ],
+      "processCycleDelta": {
+        "count": 3,
+        "median": 802.0263740000009,
+        "min": -247.94250099999772,
+        "max": 2553.6558340000006
+      },
+      "endToEndDelta": {
+        "count": 3,
+        "median": 804.2619580000028,
+        "min": -245.6528750000016,
+        "max": 2616.869792000001
+      },
+      "status": "descriptive-only",
+      "scope": "matched local modes; order/environment variation not causally separated; no overhead upper bound"
+    },
+    {
+      "realization": "resident",
+      "mode": "metadata-only",
+      "pairs": [
+        {
+          "round": 0,
+          "processCycleMs": 1539.4718340000002,
+          "observedEndToEndMs": 1514.8074590000003
+        },
+        {
+          "round": 1,
+          "processCycleMs": -46.80041600000004,
+          "observedEndToEndMs": -52.85308299999997
+        },
+        {
+          "round": 2,
+          "processCycleMs": 411.48425000000134,
+          "observedEndToEndMs": 415.61291699999856
+        }
+      ],
+      "processCycleDelta": {
+        "count": 3,
+        "median": 411.48425000000134,
+        "min": -46.80041600000004,
+        "max": 1539.4718340000002
+      },
+      "endToEndDelta": {
+        "count": 3,
+        "median": 415.61291699999856,
+        "min": -52.85308299999997,
+        "max": 1514.8074590000003
+      },
+      "status": "descriptive-only",
+      "scope": "matched local modes; order/environment variation not causally separated; no overhead upper bound"
+    },
+    {
+      "realization": "resident",
+      "mode": "evidence-enabled",
+      "pairs": [
+        {
+          "round": 0,
+          "processCycleMs": 706.0288750000002,
+          "observedEndToEndMs": 652.2227500000006
+        },
+        {
+          "round": 1,
+          "processCycleMs": -51.26591600000029,
+          "observedEndToEndMs": -48.826624999999694
+        },
+        {
+          "round": 2,
+          "processCycleMs": 266.0487089999988,
+          "observedEndToEndMs": 281.8740009999965
+        }
+      ],
+      "processCycleDelta": {
+        "count": 3,
+        "median": 266.0487089999988,
+        "min": -51.26591600000029,
+        "max": 706.0288750000002
+      },
+      "endToEndDelta": {
+        "count": 3,
+        "median": 281.8740009999965,
+        "min": -48.826624999999694,
+        "max": 652.2227500000006
+      },
+      "status": "descriptive-only",
+      "scope": "matched local modes; order/environment variation not causally separated; no overhead upper bound"
+    }
+  ],
+  "aggregationMs": 1.9531669999996666,
+  "modeInvariance": [
+    {
+      "realization": "fresh",
+      "count": 9,
+      "unchanged": true,
+      "scope": "exact result holdings, measured work, physical attempt deltas and final ledger usage; no public cancellation claim"
+    },
+    {
+      "realization": "resident",
+      "count": 9,
+      "unchanged": true,
+      "scope": "exact result holdings, measured work, physical attempt deltas and final ledger usage; no public cancellation claim"
+    }
+  ],
+  "provenanceReadback": {
+    "sourceUnchanged": true,
+    "binaryUnchanged": true,
+    "libraryUnchanged": true,
+    "sourceRevisionUnchanged": true
+  },
+  "accepted": true,
+  "experimentElapsedMs": 23229.103124999998,
+  "observations": [
+    {
+      "id": "trial-0",
+      "round": 0,
+      "observedAt": 1791423481695,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "off",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 604.6190829999999,
+        "coldMs": 603.7800829999999,
+        "warmMs": 344.051,
+        "cleanupMs": 0.839,
+        "executionMs": 568.009,
+        "captureMs": 0,
+        "recordingMs": 1.1880000000001019,
+        "observedEndToEndMs": 636.6405000000001
+      },
+      "capture": {
+        "status": "omitted",
+        "bytes": 0,
+        "elapsedMs": 0,
+        "files": []
+      },
+      "originalRecordDigest": "sha256:899b1acbe13c985db89278d1057d856ecd735492c1941fc4766d99f19e92e822",
+      "unknown": []
+    },
+    {
+      "id": "trial-1",
+      "round": 0,
+      "observedAt": 1791423482341,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "off",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 1069.5786249999999,
+        "coldMs": 1026.4556249999998,
+        "warmMs": 326.74399999999997,
+        "cleanupMs": 43.123,
+        "executionMs": 1000.169,
+        "captureMs": 0,
+        "recordingMs": 22.516625000000204,
+        "observedEndToEndMs": 1156.685291
+      },
+      "capture": {
+        "status": "omitted",
+        "bytes": 0,
+        "elapsedMs": 0,
+        "files": []
+      },
+      "originalRecordDigest": "sha256:ec282d7df6e20b27d7f934b588e74267f29ec663dc11665c501c5e9ea2e720a0",
+      "unknown": []
+    },
+    {
+      "id": "trial-2",
+      "round": 0,
+      "observedAt": 1791423483543,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 1876.2039579999996,
+        "coldMs": 1874.2289579999997,
+        "warmMs": 1145.404,
+        "cleanupMs": 1.975,
+        "executionMs": 1599.514,
+        "captureMs": 3.9845830000003843,
+        "recordingMs": 10.517832999999882,
+        "observedEndToEndMs": 1962.5465419999996
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 11260,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 11260,
+            "digest": "sha256:ef3a722e221b2052c50a053028ee9fb2d2b095b498a2063a541fa3238805aa68"
+          }
+        ],
+        "elapsedMs": 3.9845830000003843,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:e6419158d21cb0097dfb2bb0fd32fd95d0cc0eab48ba47cb103bdc117835f3f5",
+      "unknown": []
+    },
+    {
+      "id": "trial-3",
+      "round": 0,
+      "observedAt": 1791423485579,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 2609.050459,
+        "coldMs": 2602.137459,
+        "warmMs": 1253.3799999999999,
+        "cleanupMs": 6.913,
+        "executionMs": 2344.402,
+        "captureMs": 15.105666999999812,
+        "recordingMs": 9.774583000000348,
+        "observedEndToEndMs": 2671.4927500000003
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 26764,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 26764,
+            "digest": "sha256:d6cfa477bc432d9814d67b008800f79dc42f16566f28075de78a2d5079f9352f"
+          }
+        ],
+        "elapsedMs": 15.105666999999812,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:dfd007d67725b8ddc25f2b5ceb35a818abfc5004e9ed7459bee203fa528638e0",
+      "unknown": []
+    },
+    {
+      "id": "trial-4",
+      "round": 0,
+      "observedAt": 1791423488260,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "evidence-enabled",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 3158.2749170000006,
+        "coldMs": 3156.4369170000004,
+        "warmMs": 1703.527,
+        "cleanupMs": 1.838,
+        "executionMs": 3078.791,
+        "captureMs": 12.397417000000132,
+        "recordingMs": 44.25566699999945,
+        "observedEndToEndMs": 3253.510292000001
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 33648,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 11260,
+            "digest": "sha256:8935a7e4fca8a779d4ffcb579ed2e0205bb2779b1e6420d161d962c5e4ed8530"
+          },
+          {
+            "path": "stdout.log",
+            "bytes": 22388,
+            "digest": "sha256:f264d515f7ec3ac959b7b813b37411b096a67c488b88b106a5853412c346c3c3"
+          },
+          {
+            "path": "stderr.log",
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "elapsedMs": 12.397417000000132,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:df38ec6074b688b548de1c963571a678983535103497d08e545708b74755c6be",
+      "unknown": []
+    },
+    {
+      "id": "trial-5",
+      "round": 0,
+      "observedAt": 1791423491616,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "evidence-enabled",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 1775.6075,
+        "coldMs": 1770.3635000000002,
+        "warmMs": 841.8740000000001,
+        "cleanupMs": 5.244,
+        "executionMs": 1690.733,
+        "captureMs": 4.424957999999606,
+        "recordingMs": 2.0697500000005675,
+        "observedEndToEndMs": 1808.9080410000006
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 67303,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 26764,
+            "digest": "sha256:2d94243247ce7d254df32d31f0513b997060936a907682bf31dd6a9dd2f31508"
+          },
+          {
+            "path": "stdout.log",
+            "bytes": 40539,
+            "digest": "sha256:0b1e25fc67503f72ce1201dbd0dc5d1dfe00bb3a46d4f4e89a76190c6aa44143"
+          },
+          {
+            "path": "stderr.log",
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "elapsedMs": 4.424957999999606,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:81b0b511d1f71d4faaf8d4df4395645870d27559e67834766fc03082704bbb66",
+      "unknown": []
+    },
+    {
+      "id": "trial-6",
+      "round": 1,
+      "observedAt": 1791423493451,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "evidence-enabled",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 554.1044170000005,
+        "coldMs": 548.6534170000004,
+        "warmMs": 198.52700000000002,
+        "cleanupMs": 5.451,
+        "executionMs": 516.247,
+        "captureMs": 5.154124999999112,
+        "recordingMs": 1.4630419999994047,
+        "observedEndToEndMs": 591.187750000001
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 67266,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 26764,
+            "digest": "sha256:9c6d61de331c7624070ecc82bde6560a11c3353c52fea109fd163e40955af81e"
+          },
+          {
+            "path": "stdout.log",
+            "bytes": 40502,
+            "digest": "sha256:9dcf7f1dc6bdaf9fc2e3a0f8153701a2a45d39872515a042905e2c6b257444b9"
+          },
+          {
+            "path": "stderr.log",
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "elapsedMs": 5.154124999999112,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:06e6fb1908d1374906cb66d70510acbc6f296970330fa535d4608f7250d84413",
+      "unknown": []
+    },
+    {
+      "id": "trial-7",
+      "round": 1,
+      "observedAt": 1791423494054,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "evidence-enabled",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 885.3025410000009,
+        "coldMs": 884.003541000001,
+        "warmMs": 607.328,
+        "cleanupMs": 1.299,
+        "executionMs": 859.667,
+        "captureMs": 3.4340420000007725,
+        "recordingMs": 1.2020830000001297,
+        "observedEndToEndMs": 915.6309999999994
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 33622,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 11260,
+            "digest": "sha256:012869f0f07b5e1f84d68ba5170661bfdb6381ca7bdc488972dbd71edb93d848"
+          },
+          {
+            "path": "stdout.log",
+            "bytes": 22362,
+            "digest": "sha256:4bd377f5b5680e5f092dab18c7c70b8d62e60ee25927f178366d989e65c3dd9a"
+          },
+          {
+            "path": "stderr.log",
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "elapsedMs": 3.4340420000007725,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:b624fc7b59efe9a4d1f2c0de9e151c10e185510d63e3bd8e7a1429a7dc12625a",
+      "unknown": []
+    },
+    {
+      "id": "trial-8",
+      "round": 1,
+      "observedAt": 1791423494981,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 558.5699170000007,
+        "coldMs": 552.6239170000007,
+        "warmMs": 217.49200000000002,
+        "cleanupMs": 5.946,
+        "executionMs": 523.798,
+        "captureMs": 1.3548750000009022,
+        "recordingMs": 1.2698749999999563,
+        "observedEndToEndMs": 587.1612920000007
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 26764,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 26764,
+            "digest": "sha256:4eac1646cdeaa1730d3b14ef1bdaffcfd8d0bf6451afd9a353025444f3ec3392"
+          }
+        ],
+        "elapsedMs": 1.3548750000009022,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:84cf7c9e8eaeb38118808ec6c19d8dc16e3238e837359637a65087735739b4ed",
+      "unknown": []
+    },
+    {
+      "id": "trial-9",
+      "round": 1,
+      "observedAt": 1791423495584,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 814.0737079999999,
+        "coldMs": 813.0217079999999,
+        "warmMs": 461.64,
+        "cleanupMs": 1.052,
+        "executionMs": 782.001,
+        "captureMs": 1.3000000000010914,
+        "recordingMs": 1.1092079999998532,
+        "observedEndToEndMs": 841.911333
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 11260,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 11260,
+            "digest": "sha256:17883914ee758af268da52aa9e61fd5c548a49b259de7ef85d320c1a8e24bf43"
+          }
+        ],
+        "elapsedMs": 1.3000000000010914,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:bb2f3a9697453570738168d31a636d4b1ebfb0ee6b1f4d1bb389874918bd96eb",
+      "unknown": []
+    },
+    {
+      "id": "trial-10",
+      "round": 1,
+      "observedAt": 1791423496445,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "off",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 605.3703330000008,
+        "coldMs": 600.7953330000007,
+        "warmMs": 287.772,
+        "cleanupMs": 4.575,
+        "executionMs": 570.397,
+        "captureMs": 0,
+        "recordingMs": 1.645291000000725,
+        "observedEndToEndMs": 640.0143750000007
+      },
+      "capture": {
+        "status": "omitted",
+        "bytes": 0,
+        "elapsedMs": 0,
+        "files": []
+      },
+      "originalRecordDigest": "sha256:17c20f32b0cfaf7e1c1702b1b3cd779495e350a61ecba3ee4c5f6884c5105684",
+      "unknown": []
+    },
+    {
+      "id": "trial-11",
+      "round": 1,
+      "observedAt": 1791423497114,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "off",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 1133.2450419999986,
+        "coldMs": 1132.2520419999987,
+        "warmMs": 793.574,
+        "cleanupMs": 0.993,
+        "executionMs": 1087.425,
+        "captureMs": 0,
+        "recordingMs": 1.2044170000008307,
+        "observedEndToEndMs": 1161.283875000001
+      },
+      "capture": {
+        "status": "omitted",
+        "bytes": 0,
+        "elapsedMs": 0,
+        "files": []
+      },
+      "originalRecordDigest": "sha256:c2ba605e69161e1863cfffcd1fdfc1661192956e1b418bf68726e76357c8b315",
+      "unknown": []
+    },
+    {
+      "id": "trial-12",
+      "round": 2,
+      "observedAt": 1791423498288,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 1053.966625000001,
+        "coldMs": 1052.5366250000009,
+        "warmMs": 636.523,
+        "cleanupMs": 1.43,
+        "executionMs": 1022.723,
+        "captureMs": 1.8955409999980475,
+        "recordingMs": 2.1388330000008864,
+        "observedEndToEndMs": 1083.268167000002
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 11261,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 11261,
+            "digest": "sha256:3db95a39794e3a1ffd587eb083cae7f7b167c5a54ab2fa800908c4e2e59ca403"
+          }
+        ],
+        "elapsedMs": 1.8955409999980475,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:f70badd68dd820677597cdf9c891974316d89c3d0a2fd5144f6274806840eb0f",
+      "unknown": []
+    },
+    {
+      "id": "trial-13",
+      "round": 2,
+      "observedAt": 1791423499389,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "metadata-only",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 894.4196250000023,
+        "coldMs": 889.3056250000022,
+        "warmMs": 431.87800000000004,
+        "cleanupMs": 5.114,
+        "executionMs": 851.504,
+        "captureMs": 1.7504170000029262,
+        "recordingMs": 1.2561659999992116,
+        "observedEndToEndMs": 924.096625000002
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 26765,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 26765,
+            "digest": "sha256:097b511e14ed5af650176ed89f2c937246fdca188211365d5f2566d1e519451d"
+          }
+        ],
+        "elapsedMs": 1.7504170000029262,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:3c7bef93eb64e9d0bbca83a41ada8d8e7a4363288b590a29b47edc656acadb32",
+      "unknown": []
+    },
+    {
+      "id": "trial-14",
+      "round": 2,
+      "observedAt": 1791423500333,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "evidence-enabled",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 1519.1004160000011,
+        "coldMs": 1517.967416000001,
+        "warmMs": 877.0250000000001,
+        "cleanupMs": 1.133,
+        "executionMs": 1453.427,
+        "captureMs": 2.5608330000031856,
+        "recordingMs": 0.732625000000553,
+        "observedEndToEndMs": 1547.0052080000023
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 33635,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 11261,
+            "digest": "sha256:d7ee0a468d576f725906226c25c9600b4f5fab5fb64d24300d61f4cc51170087"
+          },
+          {
+            "path": "stdout.log",
+            "bytes": 22374,
+            "digest": "sha256:c4a9fc67d2bbc532a01f0cb61ad6bfaf44bf15806482d66710d1971b8ebd7147"
+          },
+          {
+            "path": "stderr.log",
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "elapsedMs": 2.5608330000031856,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:fa10b0f972f1cd9712502b7cc66d844b53836b1e1716ddf92442db55171cc40c",
+      "unknown": []
+    },
+    {
+      "id": "trial-15",
+      "round": 2,
+      "observedAt": 1791423501898,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "evidence-enabled",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 748.9840839999997,
+        "coldMs": 730.2180839999997,
+        "warmMs": 210.309,
+        "cleanupMs": 18.766,
+        "executionMs": 696.451,
+        "captureMs": 8.118374999998196,
+        "recordingMs": 3.1167499999974098,
+        "observedEndToEndMs": 790.3577089999999
+      },
+      "capture": {
+        "status": "complete",
+        "bytes": 67269,
+        "files": [
+          {
+            "path": "capture-metadata.json",
+            "bytes": 26765,
+            "digest": "sha256:d0d4edac8e09107ee433d260809d27bb37957c97e20c77b16f1c2df2e42a6010"
+          },
+          {
+            "path": "stdout.log",
+            "bytes": 40504,
+            "digest": "sha256:b895661abb7d36d45fbd6a8a6073893d652e4332d5bda4ded62dd81e87c65d48"
+          },
+          {
+            "path": "stderr.log",
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "elapsedMs": 8.118374999998196,
+        "scope": "synthetic fixture execution metadata; evidence mode additionally preserves actual admitted stdout/stderr; no row payload capture"
+      },
+      "originalRecordDigest": "sha256:e0a9ae511554d333bbd9e9f8d265c10aa2181ae19ad03039a5db9116811b0872",
+      "unknown": []
+    },
+    {
+      "id": "trial-16",
+      "round": 2,
+      "observedAt": 1791423502725,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "fresh",
+        "captureMode": "off",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:fb4f3bf1911101efb294b827a4f986d4dd25b5fe7f4e17fd80047670de924bfb",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 717.0740420000002,
+        "coldMs": 715.7660420000002,
+        "warmMs": 388.882,
+        "cleanupMs": 1.308,
+        "executionMs": 666.87,
+        "captureMs": 0,
+        "recordingMs": 1.127375000000029,
+        "observedEndToEndMs": 742.7432499999995
+      },
+      "capture": {
+        "status": "omitted",
+        "bytes": 0,
+        "elapsedMs": 0,
+        "files": []
+      },
+      "originalRecordDigest": "sha256:4ef86c3a6131441dcfce98aa3ef1f910f6d5a8fd9926bf0527f937a963830474",
+      "unknown": []
+    },
+    {
+      "id": "trial-17",
+      "round": 2,
+      "observedAt": 1791423503484,
+      "outcome": "succeeded",
+      "ownerAccepted": true,
+      "conditions": {
+        "host": "native",
+        "realization": "resident",
+        "captureMode": "off",
+        "runtimeRevision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "binaryDigest": "sha256:e5eb40c2f4d9a2e4b247fdb699503f92a2090cef04df668010507730a1df6a04",
+        "inputDigest": "sha256:4f1fbe848b9a9b48eefeafa67e078cd2ca9668a301f0f288b230e097903e52ce",
+        "programDigest": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+        "inputRows": 1000,
+        "schemaLayout": "text-1024",
+        "limitsDigest": "sha256:250c6c61e60f0e390e6e706040d0a874a4e692862d26e9d685ee3de50f02b8fa",
+        "instrumentationRevision": "sha256:46f7435c1e833fcdecc99b19ac35e48fd30c7e475b0a4c1e4f01c81359c41e26",
+        "measurementScopeRevision": "sha256:233b9692c95163c14bf9a55fd779c817761e8f35db76692868bf18c851f8144b",
+        "environmentDigest": "sha256:ef676b0fc741a22f37890de93e7c638985d5bf71c5c74746ed16920b48337c3c",
+        "controlDigest": "sha256:ed0405d3f00cdf447f2738f3c1ef2b30fac281f32f5da17fef1efa16262910de",
+        "concurrency": 1,
+        "processState": "new-process-and-environment",
+        "osCache": "uncontrolled",
+        "authorizedScope": "local-synthetic-fixture-only; no export/sharing"
+      },
+      "metrics": {
+        "processCycleMs": 482.93537500000093,
+        "coldMs": 474.7993750000009,
+        "warmMs": 203.18800000000002,
+        "cleanupMs": 8.136,
+        "executionMs": 443.977,
+        "captureMs": 0,
+        "recordingMs": 1.2310419999994338,
+        "observedEndToEndMs": 508.4837080000034
+      },
+      "capture": {
+        "status": "omitted",
+        "bytes": 0,
+        "elapsedMs": 0,
+        "files": []
+      },
+      "originalRecordDigest": "sha256:d0f78971246f9aacc7edf13d00aa19610de9955f10e3d955251d59f3e5b4b9c3",
+      "unknown": []
+    }
+  ],
+  "recordingCosts": {
+    "checkpointWritesMs": [
+      5.653083000000038,
+      6.828333000000157,
+      43.25595800000019,
+      39.674167000000125,
+      8.96074999999928,
+      97.89262500000041,
+      24.07958300000064,
+      11.558584000000337,
+      10.311333999999988,
+      14.004666999999245,
+      18.182832999998936,
+      26.96387499999946,
+      11.847125000000233,
+      16.41662499999802,
+      17.538000000000466,
+      16.38220899999942,
+      34.580792000000656,
+      15.328249999998661,
+      18.14458300000115,
+      15.104125000001659
+    ],
+    "totalCheckpointMs": 452.70750099999907,
+    "elapsedThroughFinalCheckpointMs": 23244.387583,
+    "scope": "includes final experiment checkpoint; excludes this cost receipt write"
+  },
+  "offlineReadbackAndAggregationMs": 271.962125,
+  "archive": {
+    "path": "docs/reviews/evidence/2026-10-08-local-native-profile-fa1d9c73e.tar.gz",
+    "bytes": 654659,
+    "digest": "sha256:376d478f7bf438f0e38cb94217463c34074c56ed02ed6c173f9f1e2b6d62f106",
+    "regularFiles": 250,
+    "memberReadback": "all byte-for-byte equal to originals",
+    "uncompressedBytes": 4703984
+  },
+  "verification": {
+    "focused-test-Az4AnO": {
+      "version": "actql-command-evidence/0.1",
+      "invocationId": "focused-test-Az4AnO",
+      "revision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+      "source": {
+        "revision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "dirty": false
+      },
+      "github": {
+        "runId": null,
+        "runAttempt": null,
+        "eventSha": null,
+        "job": null
+      },
+      "startedAt": "2026-10-08T01:29:52.077Z",
+      "endedAt": "2026-10-08T01:29:53.707Z",
+      "status": "passed",
+      "complete": true,
+      "commands": [
+        {
+          "id": "001",
+          "command": "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+          "args": [
+            "--test",
+            "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/scripts/test-execution-reporter.mjs",
+            "benchmarks/retained-results/local-performance-profile.test.mjs",
+            "benchmarks/retained-results/native-owner-observations.test.mjs",
+            "benchmarks/retained-results/native-resident-estimate-profile.test.mjs"
+          ],
+          "cwd": {
+            "path": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+            "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+            "device": "16777233",
+            "inode": "313719455"
+          },
+          "source": {
+            "revision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+            "dirty": false
+          },
+          "startedAt": "2026-10-08T01:29:52.195Z",
+          "endedAt": "2026-10-08T01:29:53.697Z",
+          "elapsedMs": 1499.9974590000002,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "complete": true,
+          "verificationStatus": 0,
+          "outputComplete": true,
+          "outputLimitBytes": 67108864,
+          "counts": {
+            "tests": 49,
+            "passed": 49,
+            "failed": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        }
+      ],
+      "tarballs": [],
+      "artifactsRemoved": false,
+      "evidenceErrors": []
+    },
+    "focused-test-NVOiUq": {
+      "version": "actql-command-evidence/0.1",
+      "invocationId": "focused-test-NVOiUq",
+      "revision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+      "source": {
+        "revision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+        "dirty": false
+      },
+      "github": {
+        "runId": null,
+        "runAttempt": null,
+        "eventSha": null,
+        "job": null
+      },
+      "startedAt": "2026-10-08T01:37:58.495Z",
+      "endedAt": "2026-10-08T01:38:00.869Z",
+      "status": "passed",
+      "complete": true,
+      "commands": [
+        {
+          "id": "001",
+          "command": "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+          "args": [
+            "--test",
+            "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile/scripts/test-execution-reporter.mjs",
+            "--test-concurrency=1",
+            "benchmarks/retained-results/native-owner-acceptance.mjs"
+          ],
+          "cwd": {
+            "path": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+            "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+            "device": "16777233",
+            "inode": "313719455"
+          },
+          "source": {
+            "revision": "fa1d9c73ea435d272bdbcb2af5eb9de199e2610e",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-local-native-performance-profile",
+            "dirty": false
+          },
+          "startedAt": "2026-10-08T01:37:58.559Z",
+          "endedAt": "2026-10-08T01:38:00.864Z",
+          "elapsedMs": 2302.766666,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "complete": true,
+          "verificationStatus": 0,
+          "outputComplete": true,
+          "outputLimitBytes": 67108864,
+          "counts": {
+            "tests": 1,
+            "passed": 1,
+            "failed": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        }
+      ],
+      "tarballs": [],
+      "artifactsRemoved": false,
+      "evidenceErrors": []
+    }
+  },
+  "trust": "Local diagnostic observations only; not Actions originals, empirical policy authority, universal performance or calibrated precision."
+}
