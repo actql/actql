@@ -29,7 +29,7 @@ fn script_traversal_argument(
     BooleanValue(value) => construction.add(Bool(value))
     NullValue => construction.add(Null)
     ParameterValue(name) =>
-      construction.object([("$param", construction.text(name))])
+      construction.object([("$param", construction.parameter_text(name))])
     ObjectValue(fields) =>
       construction.object(
         fields.map(field => {

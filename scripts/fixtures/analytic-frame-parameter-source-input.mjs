@@ -64,6 +64,10 @@ export const analyticFrameParameterSuccesses = [
   success('literal-control', sql.replaceAll('@before', '1').replaceAll('@after', '2'),
     {parameterDeclarations: undefined, parameters: undefined}),
   success('typed-empty', sql, {sourceRows: [], expected: []}),
+  success('mixed-case-shared-frame', 'SELECT id, FIRST_VALUE(amount) OVER '
+    + '(ORDER BY id ROWS BETWEEN @BEFORE PRECEDING AND @after FOLLOWING) AS first, '
+    + 'LAST_VALUE(amount) OVER (ORDER BY id ROWS BETWEEN @before PRECEDING AND @`AFTER` FOLLOWING) AS last '
+    + 'FROM records WHERE id > 0 ORDER BY id'),
 ];
 const parameterText = 'SELECT FIRST_VALUE(amount) OVER '
   + '(ORDER BY id ROWS BETWEEN @before PRECEDING AND CURRENT ROW) AS first FROM records';
@@ -75,15 +79,15 @@ export const analyticFrameParameterRefusals = [
     parameterDeclarations: {before: value === null ? nullableNumber : number},
     parameters: {before: value}})),
   {name: 'reversed-following', text: sql.replace('@before PRECEDING', '@before FOLLOWING'),
-    expectedCode: 'ClientProgramRejected',
+    expectedCode: 'ClientProgramInvalidInput',
     parameterDeclarations: declarations, parameters: {before: 2, after: 1}},
   {name: 'reversed-preceding', text: sql.replace('@after FOLLOWING', '@after PRECEDING'),
-    expectedCode: 'ClientProgramRejected',
+    expectedCode: 'ClientProgramInvalidInput',
     parameterDeclarations: declarations, parameters: {before: 1, after: 2}},
   ...['following', 'preceding'].map(direction => ({
     name: 'independent-json-reversed-' + direction,
     format: 'json',
-    expectedCode: 'ClientProgramRejected',
+    expectedCode: 'ClientProgramInvalidInput',
     // Copy the independently authored review control verbatim into the packed
     // installation. Its Program already owns its declarations.
     text: readFileSync(new URL(

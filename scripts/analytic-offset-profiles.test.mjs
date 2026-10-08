@@ -10,6 +10,7 @@ import {aggregatePropertySuccesses, aggregatePropertyRefusals}
 import {joinPropertySuccesses, joinPropertyRefusals}
   from './fixtures/join-property-source-input.mjs';
 import {publicQueryProfiles} from './fixtures/public-query-profiles.mjs';
+import {analyticFrameParameterRefusals} from './fixtures/analytic-frame-parameter-source-input.mjs';
 
 const capacity = bytes => ({max_analytic_frame_memberships: 10000,
   max_analytic_input_wire_bytes: bytes, max_analytic_output_wire_bytes: bytes,
@@ -24,6 +25,24 @@ const combined = {
   successes: [...standard.successes, ...analyticOffsetSuccesses],
   refusals: [...standard.refusals, ...analyticOffsetRefusals],
 };
+
+test('reversed frame controls require the common invalid-input projection in both input formats', () => {
+  // InvalidFrame is an authored-input failure under the common checker
+  // contract, independent of the source parser or a runtime's observed code.
+  const names = ['reversed-following', 'reversed-preceding',
+    'independent-json-reversed-following', 'independent-json-reversed-preceding'];
+  for (const suffix of names) {
+    const item = analyticFrameParameterRefusals.find(item =>
+      item.name === 'analytic-frame-parameter-refuse-' + suffix);
+    assert.ok(item, suffix);
+    assert.equal(item.expectedCode, 'ClientProgramInvalidInput', suffix);
+    assert.deepEqual(item.parameters, suffix.endsWith('following')
+      ? {before: 2, after: 1} : {before: 1, after: 2});
+    const selected = publicQueryProfiles({refusals: analyticFrameParameterRefusals})
+      .flatMap(profile => profile.inputs.refusals);
+    assert.equal(selected.filter(candidate => candidate === item).length, 1);
+  }
+});
 
 test('OFFSET and existing analytic aggregate JOIN cases retain separate installed ceilings', () => {
   const before = structuredClone(combined);

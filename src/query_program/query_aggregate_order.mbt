@@ -57,6 +57,7 @@ fn aggregate_order_fields(
         resolve,
         construction.builder,
         max_work,
+        resolve_parameter=construction.parameter_resolver(),
       ) {
       Ok(value) => value
       Err(error) => raise Abort(Expression(error))
