@@ -63,4 +63,5 @@ Successful temporary installations were reclaimed by the existing harness.
 The subsequent evidence-record commit changes only this document, not compiled
 source, fixture, consumer or package input. Its HEAD is not a new packed source. Full Core,
 Wasm/Native, proofs, performance and required CI are not established here.
-#1053 remains an unmerged dependency until its current public status changes.
+#1053 was merged as `669aaef35c981027ad8f8932b8e198ae7525cb8f`.
+The reviewed branch now normally adopts main and targets main directly.
