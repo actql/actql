@@ -76,3 +76,22 @@ test('interleaved facts remain suppressed after serialized custody restoration',
       saved: {...legacy, lastFact: 'task.1.3.running'}}),
     /InvalidObservationBudgetSnapshot/u);
 });
+
+test('sparse fact history refuses before crossing the portable owner boundary', () => {
+  const admitted = scope(), request = cid('b');
+  const budget = openObservationBudget(admitted, request,
+    {maxRecords: 2, maxBytes: 8, freshRequest: true});
+  assert.equal(chargeObservation(budget, admitted, request, 4, 'task.0.7.settled'), true);
+  assert.equal(chargeObservation(budget, admitted, request, 4, 'task.1.3.running'), true);
+  const saved = observationBudgetSnapshot(budget);
+  const firstHole = [...saved.factHashes], lastHole = [...saved.factHashes];
+  delete firstHole[0];
+  delete lastHole[1];
+  for (const factHashes of [Array(2), firstHole, lastHole]) {
+    assert.throws(() => openObservationBudget(admitted, request,
+      {maxRecords: 2, maxBytes: 8, freshRequest: false,
+        saved: {...saved, factHashes}}),
+    {name: 'TypeError', message: 'InvalidObservationBudgetSnapshot'});
+  }
+  assert.deepEqual(observationBudgetSnapshot(budget), saved);
+});
