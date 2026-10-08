@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
-import {appendFileSync, existsSync, readFileSync, writeFileSync} from 'node:fs';
+import {appendFileSync, closeSync, existsSync, fsyncSync, openSync, readFileSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {tmpdir, userInfo} from 'node:os';
@@ -75,6 +75,12 @@ try {
   const sourcePath = join(root, 'source-calls.jsonl');
   const readLines = path => existsSync(path) ? readFileSync(path, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : [];
   const observed = [], calls = readLines(callPath);
+  const persistProviderResponse = response => {
+    const path = join(root, 'provider-responses.jsonl');
+    const descriptor = openSync(path, 'a', 0o600);
+    try {writeFileSync(descriptor, JSON.stringify(response) + '\n'); fsyncSync(descriptor);}
+    finally {closeSync(descriptor);}
+  };
   let settlements = 0;
   const destination = 'local:source-multi-infer-evaluator';
   const sink = await createCaptureSink({directory: join(root, 'evidence'), destination,
@@ -123,6 +129,23 @@ try {
     registerModelProviders: moon => [{providerId: 'models/packed',
       bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-risk-model'}),
       invoke() {assert.fail('unprepared Model dispatch');},
+      reconcileResponse({request, inputFrame, entry, callWire, attemptWire, providerBindingCid}) {
+        assert.equal(entry.attemptIndex, 1, 'the installed provider has no retry path');
+        const input = JSON.parse(inputFrame);
+        assert.equal(input.model_call_slot_cid, entry.slotCid);
+        const replies = readLines(join(root, 'provider-responses.jsonl'));
+        const matches = replies.filter(reply => reply.input.model_call_slot_cid === entry.slotCid);
+        assert(matches.length <= 1, 'one original response per owner-issued slot');
+        appendFileSync(join(root, 'provider-lookups.jsonl'), JSON.stringify({pid: process.pid,
+          entry, attemptWire, callWire, providerBindingCid, found: matches.length === 1}) + '\n');
+        if (matches.length === 0) return undefined;
+        const original = matches[0];
+        assert.deepEqual(original.input, input);
+        return {attemptWire, callWire, providerBindingCid,
+          response: moon.clientProgramModelResponse(request, original.valueWire,
+            original.providerModel, original.providerRequestId, BigInt(original.inputTokens),
+            BigInt(original.outputTokens), original.observedAt)};
+      },
       validatePrompt(taskCid, selector, wire) {
         return installed.tasks.some(task => task.contract_cid === taskCid) && selector === 'packed-risk-model' &&
           JSON.parse(wire).format === 'packed-risk/0.1';
@@ -149,8 +172,22 @@ try {
             appendFileSync(callPath, JSON.stringify(calls.at(-1)) + '\n');
             const urgent = first && scenarioName !== 'unicode' &&
               (instructions === instructionsA ? text === 'urgent' : text.toLowerCase() === 'urgent');
-            return moon.clientProgramModelResponse(request, canonical({risk: urgent ? 'high' : 'low', reason: text}),
-              'packed-risk-model', `source-evidence-${calls.length}`, 1n, 2n, new Date().toISOString());
+            const response = {input, valueWire: canonical({risk: urgent ? 'high' : 'low', reason: text}),
+              providerModel: 'packed-risk-model', providerRequestId: `source-evidence-${calls.length}`,
+              inputTokens: '1', outputTokens: '2', observedAt: new Date().toISOString()};
+            persistProviderResponse(response);
+            if (phase === 'stop-provider-saved' && !first) {
+              // This is the actual retained physical invocation, reached only
+              // after the common owner committed send-start. The provider has
+              // fsynced its reply; no ModelResponse has reached the Host yet.
+              assert.equal(calls.length, 3);
+              writeFileSync(join(root, 'stop.json'), JSON.stringify({pid: process.pid,
+                boundary: 'provider_response_durable', response,
+                calls, sourceCalls: readLines(sourcePath).length}));
+              process.exit(77);
+            }
+            return moon.clientProgramModelResponse(request, response.valueWire,
+              response.providerModel, response.providerRequestId, 1n, 2n, response.observedAt);
           }))}), () => true);
       },
     }],
@@ -165,7 +202,7 @@ try {
     client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'synthetic-evidence', durability: 'durable'});
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
   let run;
-  if (phase === 'resume' || phase === 'approve-second') {
+  if (['resume', 'approve-second', 'resume-provider-saved'].includes(phase)) {
     const submissionRef = JSON.parse(await readFile(join(root, 'submission-ref.json'), 'utf8'));
     const found = await client.lookupSubmission(submissionRef);
     assert.equal(found.kind, 'ready', inspect(found));
@@ -206,7 +243,11 @@ try {
     await new Promise(resolve => setTimeout(resolve, 20));
     terminal = await run.wait();
   }
-  if (terminal.status !== 'succeeded') console.error(inspect({terminal, observed, calls}, {depth: 8}));
+  if (terminal.status !== 'succeeded') {
+    await writeFile(join(root, 'failed-recovery.json'), JSON.stringify({pid: process.pid,
+      phase, ref: run.ref, terminal, observed, calls, sourceCalls: readLines(sourcePath).length}));
+    console.error(inspect({terminal, observed, calls}, {depth: 8}));
+  }
   assert.equal(terminal.status, 'succeeded');
   const result = run.result('answer');
   const description = await result.describe();

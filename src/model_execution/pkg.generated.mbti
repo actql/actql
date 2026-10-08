@@ -23,6 +23,8 @@ pub fn admit_model_provider(ModelProvider, @check_environment.ModelExecutionCont
 
 pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.ModelExecutionContract) -> ModelProvider?
 
+pub fn adopt_reconciled_model_response(ModelResponseReconciliation, ModelResponse) -> Result[Unit, ModelExecutionIssue]
+
 pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, String, Int64), ModelExecutionIssue]
 
 pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
@@ -124,6 +126,8 @@ pub fn model_physical_observation_facts(ModelPhysicalObservation) -> (Int, Strin
 pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure], evidence? : ModelPhysicalRequestEvidence) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
+
+pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ModelResponseReconciliation, ModelExecutionIssue]
 
 pub fn prepared_model_call_at(ModelPreparedCallSet, Int) -> @run_publication.RunEvidenceValue?
 
@@ -414,6 +418,14 @@ pub(all) struct ModelResponse {
   input_tokens : Int64
   output_tokens : Int64
   observed_at : String
+}
+
+pub struct ModelResponseReconciliation {
+  prepared : ModelPreparedCallSet
+  slot : Int
+  attempt : @run_publication.RunEvidenceValue
+  authority : @run_publication.RunEvidenceValue
+  mut adopted : Bool
 }
 
 pub(all) struct ModelSlotCapture {

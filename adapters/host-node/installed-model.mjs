@@ -113,7 +113,8 @@ export function installModelProviders(moon, register) {
     if (entry === null || typeof entry !== 'object' || Array.isArray(entry) ||
         Object.keys(entry).some(key => !['invoke', 'providerId', 'validatePrompt',
           'physicalPreflight', 'quantityCapacity', 'observeEgress',
-          'bindingOriginals'].includes(key)) ||
+          'bindingOriginals', 'reconcileResponse'].includes(key)) ||
+        entry.reconcileResponse !== undefined && typeof entry.reconcileResponse !== 'function' ||
         typeof entry.providerId !== 'string' ||
         typeof entry.invoke !== 'function' ||
         typeof entry.validatePrompt !== 'function' ||
@@ -148,6 +149,7 @@ export function installModelProviders(moon, register) {
     result.set(entry.providerId, Object.freeze({provider,
       bindingOriginals: retainProviderBindingOriginals(entry.bindingOriginals),
       physicalPreflight: entry.physicalPreflight,
+      reconcileResponse: entry.reconcileResponse,
       quantityCapacity,
       observeEgress: typeof entry.observeEgress !== 'function' ? undefined : () => {
         try { return entry.observeEgress(); }

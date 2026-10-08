@@ -209,7 +209,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       child.capture.configureModelJournal({observe: child.continuation.observe, entry: child.continuation.entry});
       // Restore saved/unknown slots through Core before considering new send
       // permission. The Local component pauses again for any unsent work.
-      if (child.record !== undefined) return {action: 'resume'};
+      if (child.record !== undefined && !child.continuation.hasResponseReconciliation) return {action: 'resume'};
     }
     const decision = await child.continuation.authorize();
     if (decision.status === 'dispatch') return {action: 'resume'};

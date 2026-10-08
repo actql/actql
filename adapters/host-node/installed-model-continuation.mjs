@@ -354,6 +354,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       });
       if (!installed) observation.noteLoss();
     }
+    const unreconciled = new Map();
     let view = existing === undefined ? undefined : cp.journal.readModelCalls(existing.inventory);
     if (view !== undefined) {
       for (const slot of view.slots) {
@@ -368,6 +369,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         owner.entries.set(slot.ordinal, entry);
         const historical = cp.journal.readModelAttemptOriginals(entry);
         if (slot.state === 'EnteredUnknown') {
+          if (selected.reconcileResponse !== undefined) unreconciled.set(slot.ordinal, {entry, historical});
           operation.restoreUnknown(preparedCallSet, slot.ordinal,
             checked(moon.strategyRunEvidenceAdmit('model_call_attempt', historical.attemptWire, 16384, 1024, 20)),
             checked(moon.strategyRunEvidenceAdmit('model_dispatch_authority', historical.authorityWire, 16384, 1024, 20)));
@@ -429,6 +431,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       attachImmediate: view?.checkpointCid === null,
       ...(journalPort === undefined ? {} : {journalPort})};
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
+      hasResponseReconciliation: unreconciled.size > 0,
       entry: slot => owner.entries.get(slot), observe,
       async authorize() {
         if (!owner.available) fail('ModelContinuationClosed');
@@ -480,6 +483,34 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                 return false;
               } finally { owner.pending = undefined; }
             }});
+        for (const [slot, {entry, historical}] of unreconciled) {
+          if (!owner.available || !owner.currentProvider()) fail('ModelProviderBindingChanged');
+          signal?.throwIfAborted();
+          const responseCustody = operation.prepareResponseReconciliation(preparedCallSet, slot,
+            checked(moon.strategyRunEvidenceAdmit('model_call_attempt', historical.attemptWire, 16384, 1024, 20)),
+            checked(moon.strategyRunEvidenceAdmit('model_dispatch_authority', historical.authorityWire, 16384, 1024, 20)));
+          const request = moon.clientProgramInferPreparedRequest(preparedCallSet, slot);
+          if (request === undefined) fail('ModelReconciliationRequestUnavailable');
+          const reply = await selected.reconcileResponse(Object.freeze({request,
+            inputFrame: moon.clientProgramModelRequestInputFrameBounded(request, 65536),
+            entry: Object.freeze(entryIdentity(entry)), callWire: originals.slotWires[slot],
+            attemptWire: historical.attemptWire, authorityWire: historical.authorityWire,
+            providerBindingCid: inventory.providerBindingCid, signal}));
+          // Retrieval has no send callback. Recheck its original owner and
+          // current binding across the await before adopting any returned value.
+          if (!owner.available || !owner.currentProvider()) fail('ModelProviderBindingChanged');
+          signal?.throwIfAborted();
+          if (reply !== undefined) {
+            if (reply === null || Object.keys(reply).sort().join(',') !==
+                'attemptWire,callWire,providerBindingCid,response' ||
+                reply.attemptWire !== historical.attemptWire ||
+                reply.callWire !== originals.slotWires[slot] ||
+                reply.providerBindingCid !== inventory.providerBindingCid ||
+                reply.response === undefined) fail('ModelReconciliationIdentityMismatch');
+            operation.adoptReconciledResponse(responseCustody, reply.response);
+          }
+          unreconciled.delete(slot);
+        }
         return {status: 'dispatch'};
       },
       // Closing revokes use immediately; a late physical callback remains

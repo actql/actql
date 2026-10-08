@@ -310,6 +310,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle)),
     restoreUnknown: (preparedCallSet, slot, attempt, authority) => checked(
       moon.clientProgramRestoreInferPreparedUnknown(preparedCallSet, slot, attempt, authority)),
+    prepareResponseReconciliation: (preparedCallSet, slot, attempt, authority) => checked(
+      moon.clientProgramPrepareInferResponseReconciliation(preparedCallSet, slot, attempt, authority)),
+    adoptReconciledResponse: (token, response) => checked(
+      moon.clientProgramAdoptReconciledInferResponse(token, response)),
     settlementSlot: settlement => moon.clientProgramInferCallSettlementSlot(settlement),
     acknowledgeSettlement: settlement => {
       if (!moon.clientProgramAcknowledgeInferCallSettlement(settlement)) {

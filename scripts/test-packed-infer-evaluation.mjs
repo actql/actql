@@ -84,7 +84,7 @@ async ({root, directory, run, recordTarball}) => {
   args[1] = '--test-reporter=' + pathToFileURL(join(root, 'scripts/test-execution-reporter.mjs')).href;
   const stdout = run(process.execPath, args, {cwd: root, env: runtimeEnv, timeout: 600000});
   const checked = assertTestExecution('node', process.execPath, args, {status: 0, stdout});
-  assert.equal(checked.counts.passed, 12, 'Single, Source-backed and interrupted original-Run INFER cases must execute through the declared public boundaries');
+  assert.equal(checked.counts.passed, 14, 'Single, Source-backed and interrupted original-Run INFER cases must execute through the declared public boundaries');
   console.log(stdout.trimEnd());
   const receipts = [];
   for (const transport of ['local', 'https']) for (const mode of ['disabled', 'sampling-zero']) {
@@ -112,7 +112,7 @@ async ({root, directory, run, recordTarball}) => {
     assert(comparison.runs.every(run => run.revision === before.revision && run.sourceCalls === 1 &&
       run.calls.length === 4 && run.otlpRequests === 0 && run.terminal.status === 'succeeded'));
     sourceReceipts.push({transport, restored, comparison});
-    for (const boundary of ['first-saved', 'second-approval']) {
+    for (const boundary of ['first-saved', 'second-approval', 'provider-saved']) {
       const recovery = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-${boundary}.json`), 'utf8'));
       assert.equal(recovery.revision, before.revision);
       assert.equal(recovery.complete, true);

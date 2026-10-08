@@ -94,6 +94,63 @@ async function recordInterruptedAcceptance({transport, boundary, root, firstPid,
 }
 
 for (const transport of ['local', 'https']) {
+  test(`public ${transport} recovers a provider-saved original response without resending its call`, {timeout: 180000}, async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-provider-recovery-'));
+    let complete = false;
+    t.after(async () => {
+      if (complete && !runtime?.preserveArtifacts && process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') await rm(root, {recursive: true, force: true});
+      else t.diagnostic(`Retained provider-saved original response: ${root}`);
+    });
+    const firstPid = await executeHost(root, transport, 'unicode', 'disabled', 'stop-provider-saved', 77);
+    const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+    assert.equal(stopped.pid, firstPid);
+    assert.equal(stopped.boundary, 'provider_response_durable');
+    assert.equal(stopped.sourceCalls, 1);
+    assert.equal(stopped.calls.length, 3);
+    const replies = (await readFile(join(root, 'provider-responses.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.equal(replies.length, 3);
+    assert.deepEqual(replies[2], stopped.response);
+    assert.equal(replies[2].input.model_call_slot_cid, stopped.calls[2].slotCid);
+    assert.equal(replies[2].input.semantic_request_cid, stopped.calls[2].semanticRequestCid);
+    const originalRef = JSON.parse(await readFile(join(root, 'run-ref.json'), 'utf8'));
+    const restoredPid = await executeHost(root, transport, 'unicode', 'disabled', 'resume-provider-saved');
+    assert.notEqual(firstPid, restoredPid);
+    const saved = JSON.parse(await readFile(join(root, 'recovery.json'), 'utf8'));
+    assert.deepEqual(saved.ref, originalRef);
+    assert.equal(saved.terminal.status, 'succeeded');
+    assert.equal(saved.sourceCalls, 1);
+    assert.equal(saved.calls.length, 4);
+    assert.deepEqual(saved.calls.slice(0, 3), stopped.calls);
+    assert.equal(saved.calls.filter(call => call.slotCid === stopped.calls[2].slotCid).length, 1);
+    const sink = await createCaptureSink({directory: join(root, 'evidence'),
+      destination: 'local:source-multi-infer-evaluator', maxBytes: 131072,
+      maxPendingBytes: 1048576, retentionMs: 300000, authorize: () => true});
+    const lookups = (await readFile(join(root, 'provider-lookups.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.equal(lookups.length, 1);
+    assert.equal(lookups[0].pid, restoredPid);
+    assert.equal(lookups[0].found, true);
+    assert.equal(lookups[0].entry.slotCid, stopped.calls[2].slotCid);
+    const receipt = await sink.lookup(saved.subject, 'second_assessment');
+    const recovered = receipt.manifest.items.find(item => item.modelCallSlotCid === stopped.calls[2].slotCid);
+    assert(recovered);
+    assert.equal(recovered.attemptCid, lookups[0].entry.attemptCid);
+    await sink.withEvaluatorEvidence({subject: saved.subject, attemptCid: recovered.attemptCid,
+      references: recovered.references}, resolvedEvidence => {
+      const values = checkResolvedEvidence({subject: saved.subject,
+        evidence: {...receipt.manifest, ...recovered}}, resolvedEvidence);
+      const capture = JSON.parse(values.validation.captureBundleWire).captures.find(
+        item => item.model_call_slot_cid === stopped.calls[2].slotCid);
+      assert.deepEqual(capture.structured_response, JSON.parse(stopped.response.valueWire));
+      assert.equal(capture.evidence.provider_request_id, stopped.response.providerRequestId);
+      assert.equal(capture.evidence.provider_reported_model_id, stopped.response.providerModel);
+      assert.equal(capture.evidence.observed_at, stopped.response.observedAt);
+    });
+    const evaluated = await evaluateOriginalInventory(sink, saved);
+    await recordInterruptedAcceptance({transport, boundary: 'provider-saved', root,
+      firstPid, restoredPid, saved, evaluated});
+    complete = true;
+  });
+
   test(`public ${transport} restores original approval materials for the second Source-backed INFER`, {timeout: 180000}, async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-approval-'));
     let complete = false;

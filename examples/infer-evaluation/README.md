@@ -130,14 +130,24 @@ input, and never renders a historical request through the current provider.
 After publication the same independent evaluator checks all four original
 target/item/attempt associations and exact Unicode/newline strings.
 
-These two cases do not establish provider-only response reconciliation,
-response-less unknown continuation, or all cleanup-restart refusal cases. Those
-remain separate requirements of the full interrupted-Run recovery unit.
+The provider-saved response case exits inside the actual physical callback
+after the fixture provider fsyncs its reply and before returning it to the Host.
+The registered read-only `reconcileResponse` port retrieves that original under
+the current Model permission and provider binding. The common Model owner
+checks the exact original attempt and authority, reserves finite read custody,
+and reuses its bounded response validation and durable settlement path. It
+does not invoke the provider again. The response's provider request ID,
+timestamp and original attempt survive into Evidence. The fixture provider's
+call slot has exactly one attempt; this is not a provider retry protocol.
+
+These cases do not establish response-less unknown Evidence, or all
+cleanup-restart refusal cases. Those remain separate requirements of the full
+interrupted-Run recovery unit.
 
 Run only these public source cases with the existing process timeouts:
 
 ```sh
-node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-name-pattern '^public (local|https) (resumes the original|restores original approval)' adapters/host-node/source-multi-infer-evidence-public.test.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-name-pattern '^public (local|https) (resumes the original|restores original approval|recovers a provider-saved)' adapters/host-node/source-multi-infer-evidence-public.test.mjs
 ```
 
 Source checks are not evidence of clean fixed-SHA distribution acceptance;

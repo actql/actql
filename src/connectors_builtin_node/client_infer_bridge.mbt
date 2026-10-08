@@ -2420,6 +2420,28 @@ pub fn client_program_infer_has_unknown_calls(
 }
 
 ///|
+#export_name("clientProgramPrepareInferResponseReconciliation")
+pub fn client_program_prepare_infer_response_reconciliation(
+  prepared : @model.ModelPreparedCallSet,
+  slot : Int,
+  attempt : @publication.RunEvidenceValue,
+  authority : @publication.RunEvidenceValue,
+) -> Result[@model.ModelResponseReconciliation, @model.ModelExecutionIssue] {
+  @model.prepare_model_response_reconciliation(
+    prepared, slot, attempt, authority,
+  )
+}
+
+///|
+#export_name("clientProgramAdoptReconciledInferResponse")
+pub fn client_program_adopt_reconciled_infer_response(
+  token : @model.ModelResponseReconciliation,
+  response : @model.ModelResponse,
+) -> Result[Unit, @model.ModelExecutionIssue] {
+  @model.adopt_reconciled_model_response(token, response)
+}
+
+///|
 #export_name("clientProgramInferStoppedAttemptSlot")
 pub fn client_program_infer_stopped_attempt_slot(
   active : @infer_host.Execution,

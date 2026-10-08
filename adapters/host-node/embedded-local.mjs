@@ -895,6 +895,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
           physicalPreflight: physical.physicalPreflight,
+          reconcileResponse: physical.reconcileResponse,
           quantityCapacity: physical.quantityCapacity});
         if (retain) inferSelections.set(preparedProgram, selection);
         return selection;
