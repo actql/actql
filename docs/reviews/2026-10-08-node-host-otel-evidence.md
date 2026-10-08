@@ -6,7 +6,7 @@ Base: `db1bcddd793ad9a1e2e1d9fe452a984dc35254ac`.
 Initial verified implementation: `4b7cdbd83d92266afc73ff225e4d370c723cb2bc`.
 Sampling verification: `8ae7f09b21555c2bc5266d0eb6723942fb23e1ab`.
 Current production implementation: `52aac792323eeab3d6cf4670e2615ab2e123fb71`.
-Subsequent evidence-only documentation does not extend that execution claim.
+Subsequent test and documentation changes do not change production inputs.
 
 This is the initial single-scope Node Host O1/O2 unit, not all-Host
 observability, O3 evaluation, Cloud ingestion or empirical CBO. The optional
@@ -24,7 +24,8 @@ and [configuration and registration example](../../packages/otel-node/README.md)
 | Boundary | Executed fixture and independent assertion |
 | --- | --- |
 | Public Local / HTTPS | `packages/otel-node/public-host.test.mjs`: caller trace reaches final protobuf; Named Result equals two explicitly authored rows |
-| Pre-Run failure | Invalid SQL returns the checker verdict; request journal has zero Runs; projection has no invented Run/Program identity |
+| Pre-Run failure | Invalid SQL and an invalid typed parameter return the checker verdict; request journal has zero Runs; projection has no invented Run/Program identity |
+| Actual Source / Model intervals | Real DuckDB acquisition followed by one Model invoke reaches the independent Named Result; separate CLIENT spans have positive elapsed time and the admitted Run identity |
 | Waiting / restart | `packages/otel-node/recovery.test.mjs`: persisted approval wait sends zero Model calls; a new process approves and reads the expected Result with one call |
 | Repeated recovery | A further process reads the same Result without another Model call; saved context becomes a link to the new trace, not a resumed lifetime span |
 | Cancellation | Public Local cancellation while waiting returns the Owner-confirmed cancelled state; zero Model dispatch and no Named Result |
@@ -37,7 +38,8 @@ and [configuration and registration example](../../packages/otel-node/README.md)
 | Owner lifecycle | Existing strategy and request-journal regressions retain activation, cancellation, cleanup retry, independent outputs and durable request semantics |
 
 Task durations reuse the existing driver's timing. Model entry/observation
-receipts are instant facts, not a claim of measured physical Model latency.
+receipts are discrete facts; the separate physical invoke interval measures
+actual elapsed time, not approval, capture or replay time.
 No new terminal-state inference or authority is implemented by OTel.
 
 ## Local commands and retained receipts
@@ -197,6 +199,7 @@ the production implementation or compiled runtime inputs.
 | Public HTTPS Effect approval/restart/lost reply | 1/1 | `run-CCl8Su`, `focused-test-4ry93t` |
 | Selected public TypeScript declarations / generated adapter freshness | Passed | `run-CCl8Su` |
 | Preserved original timeout Run: same identity, expected Result, one total call | 1/1 | `run-c3eu4s`, `focused-test-vPkNZI` |
+| Real DuckDB Source acquisition / Model CLIENT intervals and independent Result | 1/1 | `run-XDzvyM`, `focused-test-RyMubQ` |
 
 Receipts named `run-*` are under `_build/local-checks/attempts`; detailed
 `focused-test-*` receipts are under `_build/focused-evidence`. The original-Run
@@ -238,10 +241,27 @@ The current source-bound public runtime payload digests are:
 
 Unlike the initial historical unit above, this follow-up changes common
 MoonBit and generated public interfaces. There is no new semantic contract,
-pin, authority, replay decision or accounting rule. Source acquisition clock
-hooks are compiled, but this selection does not claim a dedicated real-Source
-latency acceptance or a pristine packed package campaign. Final submitted SHA
+pin, authority, replay decision or accounting rule. The additional Source
+acceptance uses the existing real DuckDB adapter and public Model fixture. It
+checks one acquisition session, one Model call, independently authored rows,
+distinct CLIENT spans, positive elapsed nanoseconds and content absence in the
+final protobuf. It is not a pristine packed package campaign. Final submitted SHA
 and exact CI status belong in the PR; local success is not CI success.
+
+The first Source diagnostic (`run-nl331P`, `focused-test-ILCYch`) reached the
+correct Result but failed its timestamp assertion: it compared protobuf
+fixed-width little-endian byte arrays rather than decoded integers. The test
+now reads the independent wire fields with `readBigUInt64LE`. The failed payload
+had positive Source and Model durations; production code and budgets were not
+changed. The original failure evidence remains preserved.
+
+The successful selection was:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  --test-name-pattern='real Source acquisition' \
+  packages/otel-node/recovery.test.mjs
+```
 
 The existing 169-case Owner evidence is reused, not reattributed to a new run:
 `git diff 4b7cdbd83d92266afc73ff225e4d370c723cb2bc..8ae7f09b21555c2bc5266d0eb6723942fb23e1ab`
