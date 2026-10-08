@@ -18,6 +18,7 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
+  "actql/actql/program_references",
   "actql/actql/relation_evidence",
   "actql/actql/relation_nest",
   "actql/actql/relation_typing",
@@ -96,6 +97,8 @@ pub fn check_effect_program_run_preview_footprints(EffectProgramRunPreview, Int,
 
 pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits) -> CheckOutcome
 
+pub fn check_parsed_scoped(@stage_syntax.Program, CheckEnvironment, CheckScope, @decode_core.Cursor?, CheckLimits) -> ScopedCheckOutcome
+
 pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits) -> CheckOutcome
 
 pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogReferences
@@ -133,6 +136,8 @@ pub fn checking_environment_profile_selection(CheckEnvironment) -> CheckProfileS
 pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
 
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
+
+pub fn complete_template_check(TemplateDeclarationPreparation) -> Result[TemplateCheckedProgram, TemplateConstructionIssue]
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
@@ -380,6 +385,8 @@ pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) ->
 
 pub fn prepare_source_catalog(CheckEnvironment, SourceCatalogLimits) -> Result[PreparedSourceCatalog, EnvironmentFailure]
 
+pub fn prepare_template_declarations(@stage_syntax.Program, CheckEnvironment, CheckLimits) -> Result[TemplateDeclarationPreparation, LocalConstructionFailure]
+
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 
 pub fn proof_claim(ReidentifiedStep) -> @capacity_witness.ProgramProofClaim
@@ -550,6 +557,48 @@ pub fn source_execution_subject(SourceExecution) -> SourceExecutionSubject
 
 pub fn source_identity(CheckedProgram) -> @pipeline_check_context.ProgramSourceIdentity
 
+pub fn template_checked_capacity(TemplateCheckedProgram) -> @check_environment.Capacity
+
+pub fn template_checked_contracts(TemplateCheckedProgram) -> @pipeline_check_context.AuthoringCoreContracts
+
+pub fn template_checked_declarations(TemplateCheckedProgram) -> TemplateDeclarationPreparation
+
+pub fn template_checked_definition(TemplateCheckedProgram) -> @program_references.ProgramDefinition
+
+pub fn template_checked_environment(TemplateCheckedProgram) -> CheckEnvironment
+
+pub fn template_checked_input_at(TemplateCheckedProgram, Int) -> InputRequest?
+
+pub fn template_checked_input_count(TemplateCheckedProgram) -> Int
+
+pub fn template_checked_program(TemplateCheckedProgram) -> @stage_syntax.Program
+
+pub fn template_checked_usage(TemplateCheckedProgram) -> (Int, Int, Int)
+
+pub fn template_declarations_catalog(TemplateDeclarationPreparation) -> @check_environment.SourceRequestContracts
+
+pub fn template_declarations_catalog_references(TemplateDeclarationPreparation) -> @check_environment.CatalogReferences
+
+pub fn template_declarations_environment(TemplateDeclarationPreparation) -> CheckEnvironment
+
+pub fn template_declarations_preparation_usage(TemplateDeclarationPreparation) -> (Int, Int, Int)
+
+pub fn template_declarations_program(TemplateDeclarationPreparation) -> @stage_syntax.Program
+
+pub fn template_declarations_source(TemplateDeclarationPreparation) -> @pipeline_check_context.SourceViewDeclarationPreparation
+
+pub fn template_declarations_usage(TemplateDeclarationPreparation) -> @program_references.DeclarationUsage
+
+pub fn template_declarations_wiring(TemplateDeclarationPreparation) -> @stage_results.ResultWiring
+
+pub fn template_frontier_declarations(TemplateCheckFrontier) -> TemplateDeclarationPreparation?
+
+pub fn template_frontier_diagnostic(TemplateCheckFrontier) -> CheckDiagnostic?
+
+pub fn template_frontier_environment(TemplateCheckFrontier) -> CheckEnvironment
+
+pub fn template_frontier_program(TemplateCheckFrontier) -> @stage_syntax.Program
+
 pub fn traversal_limit_claim(TraversalLimit, @capacity_program_step.TraversalScope) -> @capacity_witness.LimitClaim
 
 pub fn traversal_limit_proof_at(TraversalLimit, Int) -> ReidentifiedStep?
@@ -714,6 +763,7 @@ pub suberror LocalConstructionFailure {
   Source(SourceFailure)
   Closure(ConstructionFailure)
   Units(UnitBuildFailure)
+  Template(TemplateDeclarationPreparation, TemplateConstructionIssue)
 }
 
 pub suberror SourceFailure {
@@ -801,6 +851,15 @@ pub(all) struct CheckProfileSelection {
   calendar_profile_cid : String?
   text_rank_profile_cid : String?
 }
+
+pub(all) enum CheckRequestIssue {
+  BindingsInTemplateScope
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CheckScope {
+  TemplateOnly
+  BoundInput
+} derive(Eq, @debug.Debug)
 
 type CheckedLocalDependencyBody
 
@@ -1205,6 +1264,12 @@ type ReidentifiedGraphInput
 
 type ReidentifiedStep
 
+pub enum ScopedCheckOutcome {
+  InvalidRequest(CheckRequestIssue)
+  BoundInput(CheckOutcome)
+  TemplateOnly(TemplateCheckOutcome)
+}
+
 pub(all) enum SearchInputSide {
   Left
   Right
@@ -1291,6 +1356,32 @@ pub struct SourceResponsePolicy {
   minimum : String?
   classification : @check_environment.DataClassification
 }
+
+type TemplateCheckFrontier
+
+pub enum TemplateCheckOutcome {
+  Verified(TemplateCheckedProgram)
+  Rejected(CheckDiagnostic)
+  Unresolved(TemplateCheckFrontier)
+}
+
+type TemplateCheckedProgram
+
+pub enum TemplateConstructionIssue {
+  BudgetExceeded
+  Capacity(@check_environment.CapacityIssue)
+  Semantics(@program_references.ProgramSemanticsIssue)
+  Definition(@encode_core.EncodeFailure)
+  Orders(Int, @pipeline_check_context.Issue)
+  Profiles(Int, @pipeline_check_context.PipelineOperationProfilesIssue)
+  Values(Int, Int, @pipeline_check_context.ValuesPublicationIssue)
+  Pipeline(Int, @pipeline_check_context.PipelineAuthoringIssue)
+  Context(Int, @pipeline_check_context.PipelineAuthoringContextIssue)
+  Publication(Int, @pipeline_check_context.AuthoringPublicationIssue)
+  Contracts(@pipeline_check_context.AuthoringCoreContractIssue)
+}
+
+type TemplateDeclarationPreparation
 
 type TraversalLimit
 

@@ -106,6 +106,44 @@ pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work
 
 pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.Checked, Array[BoundParameters], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int) -> Result[StageContexts, StageIssue]
 
+pub fn authoring_core_contract_body_at(AuthoringCoreContracts, Int) -> CoreContractBody?
+
+pub fn authoring_core_contract_body_count(AuthoringCoreContracts) -> Int
+
+pub fn authoring_core_contract_publication_at(AuthoringCoreContracts, Int) -> AuthoringPublicationChecks?
+
+pub fn authoring_core_contract_root_at(AuthoringCoreContracts, Int) -> CoreContractRoot?
+
+pub fn authoring_core_contract_root_count(AuthoringCoreContracts) -> Int
+
+pub fn authoring_core_contract_semantics(AuthoringCoreContracts) -> @program_references.ProgramSemantics
+
+pub fn authoring_core_contract_source(AuthoringCoreContracts) -> SourceViewDeclarationPreparation
+
+pub fn authoring_core_contract_usage(AuthoringCoreContracts) -> (Int, Int)
+
+pub fn authoring_publication_at(AuthoringPublicationChecks, Int) -> AuthoringPublicationSelection?
+
+pub fn authoring_publication_byte_host(AuthoringPublicationSelection) -> @capacity_policy.Ceiling
+
+pub fn authoring_publication_candidate_at(AuthoringPublicationSelection, Int) -> @capacity_graph_preflight.TargetMembership?
+
+pub fn authoring_publication_candidate_count(AuthoringPublicationSelection) -> Int
+
+pub fn authoring_publication_count(AuthoringPublicationChecks) -> Int
+
+pub fn authoring_publication_maximum_rows(AuthoringPublicationSelection) -> Int64
+
+pub fn authoring_publication_owner(AuthoringPublicationChecks) -> PipelineAuthoringContext
+
+pub fn authoring_publication_port(AuthoringPublicationSelection) -> @relation_results.ResultPort
+
+pub fn authoring_publication_ports(AuthoringPublicationChecks) -> @relation_results.ResultPorts
+
+pub fn authoring_publication_row_host(AuthoringPublicationSelection) -> @capacity_policy.Ceiling
+
+pub fn authoring_publication_work(AuthoringPublicationChecks) -> Int
+
 pub fn authoring_values_capacity(AuthoringValuesPublicationCheck) -> @check_environment.Capacity
 
 pub fn authoring_values_metadata_usage(AuthoringValuesPublicationCheck) -> (Int, Int)
@@ -125,6 +163,8 @@ pub fn authoring_values_work(AuthoringValuesPublicationCheck) -> Int
 pub fn bind_capacity_inputs(@stage_syntax.Program, Array[StageCapacityInput], Int) -> Result[ProgramCapacityInputs, CapacityInputsIssue]
 
 pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
+
+pub fn bind_prepared_pipeline_orders(PipelineOrderPreparation, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
 
 pub fn bind_program_source_contracts(ProgramSourceIdentity, SourceContractRequirements, Int) -> Result[ProgramSourceContracts, SourceContractIssue]
 
@@ -213,6 +253,8 @@ pub fn close_program_source_modes(ProgramIncomingLinks, Int, Int) -> Result[Prog
 pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) -> Result[StageRequirementClosure, StageRequirementIssue]
 
 pub fn collect_asof_search_bounds(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[AsOfSearchBounds, AsOfSearchLimitIssue]
+
+pub fn collect_authoring_core_contracts(SourceViewDeclarationPreparation, @program_references.ProgramSemantics, Array[AuthoringPublicationChecks], CoreContractLimits) -> Result[AuthoringCoreContracts, AuthoringCoreContractIssue]
 
 pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?, numeric_slots? : ProgramNumericSlots?, analytic_numeric_slots? : ProgramAnalyticNumericSlots?, pivot_numeric_slots? : ProgramPivotNumericSlots?) -> Result[CoreContractInventory, CoreContractIssue]
 
@@ -696,6 +738,14 @@ pub fn pattern_usage(PatternChecks) -> PatternUsage
 
 pub fn pipeline_authoring_capacity(PipelineAuthoringClosure) -> @check_environment.Capacity
 
+pub fn pipeline_authoring_context_orders(PipelineAuthoringContext) -> PipelineOrderPreparation
+
+pub fn pipeline_authoring_context_pipeline(PipelineAuthoringContext) -> PipelineContext
+
+pub fn pipeline_authoring_context_source(PipelineAuthoringContext) -> PipelineAuthoringClosure
+
+pub fn pipeline_authoring_context_usage(PipelineAuthoringContext) -> (Int, Int, Int)
+
 pub fn pipeline_authoring_expressions(PipelineAuthoringClosure) -> @pipeline_typing.ExpressionSlots
 
 pub fn pipeline_authoring_profiles(PipelineAuthoringClosure) -> PipelineOperationProfileChecks
@@ -750,6 +800,8 @@ pub fn preparation_sources(ProgramPreparation) -> SourceProducerContext
 
 pub fn preparation_usage(ProgramPreparation) -> PreparationBudget
 
+pub fn prepare_authoring_publications(PipelineAuthoringContext, @relation_results.ResultPorts, Int, Int) -> Result[AuthoringPublicationChecks, AuthoringPublicationIssue]
+
 pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidationLimits) -> Result[ExpressionValidationContext, ExpressionValidationIssue]
 
 pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
@@ -763,6 +815,10 @@ pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Ar
 pub fn prepare_local_stage_contexts_from_inputs(@stage_results.PreparedLocalSource, ProgramCapacityInputs, @capacity_policy.Policy, CapacityStageLimits, derived_capacity_limits? : @capacity_witness.Limits?, sourceviews? : @sourceview_resolution.PipelineInputs?) -> Result[StageContexts, CapacityStageIssue]
 
 pub fn prepare_nest_value_envelope(NestItemLimit, Int, Int) -> Result[NestValueEnvelope, NestValueIssue]
+
+pub fn prepare_pipeline_authoring_context(PipelineAuthoringClosure, PipelineOrderPreparation, CapacityStageLimits, @capacity_witness.Limits) -> Result[PipelineAuthoringContext, PipelineAuthoringContextIssue]
+
+pub fn prepare_pipeline_orders(@relation_results.CheckedOrders, max_work~ : Int, max_text_bytes~ : Int) -> Result[PipelineOrderPreparation, Issue]
 
 pub fn prepare_program_analytic_numeric_slots(ProgramOperationRequirements, @numeric_reduction.Profile, Int, Int) -> Result[ProgramAnalyticNumericSlots, NumericSlotsIssue]
 
@@ -790,9 +846,21 @@ pub fn prepare_source_state_requirement(ProgramSourceIdentity, Int, Int, @local_
 
 pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, calendar? : @check_environment.SelectedCalendarProfile?, capacity_inputs? : ProgramCapacityInputs?, model_tasks? : @check_environment.ModelTasks?, derived_capacity_limits? : @capacity_witness.Limits?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
 
+pub fn prepare_sourceview_declarations(@stage_parameters.Source, @check_environment.SourceRequestContracts, SourceViewDeclarationLimits, calendar? : @check_environment.SelectedCalendarProfile?, model_tasks? : @check_environment.ModelTasks?) -> Result[SourceViewDeclarationPreparation, SourceViewDeclarationIssue]
+
 pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
 
 pub fn prepare_values_row_bound(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.Limits) -> Result[ValuesRowBound, ValuesRowLimitIssue]
+
+pub fn prepared_expression_requirement_at(PipelineOrderPreparation, Int) -> ExpressionRequirement?
+
+pub fn prepared_expression_requirement_count(PipelineOrderPreparation) -> Int
+
+pub fn prepared_pipeline_order_usage(PipelineOrderPreparation) -> (Int, Int)
+
+pub fn prepared_pipeline_orders(PipelineOrderPreparation) -> @relation_results.CheckedOrders
+
+pub fn prepared_pipeline_results(PipelineOrderPreparation) -> @relation_results.CheckedResults
 
 pub fn program_identity_capacity_metadata_usage(ProgramSourceIdentity) -> (Int, Int)
 
@@ -1052,6 +1120,16 @@ pub fn source_rows_stage(SourceRowContexts, Int) -> @sourceview_resolution.Keyed
 
 pub fn source_rows_work(SourceRowContexts) -> Int
 
+pub fn sourceview_declaration_catalog(SourceViewDeclarationPreparation) -> @check_environment.SourceRequestContracts
+
+pub fn sourceview_declaration_topology_usage(SourceViewDeclarationPreparation) -> @stage_results.LocalProgramUsage
+
+pub fn sourceview_declaration_usage(SourceViewDeclarationPreparation) -> @program_references.DeclarationUsage
+
+pub fn sourceview_declaration_wiring(SourceViewDeclarationPreparation) -> @stage_results.ResultWiring
+
+pub fn sourceview_declaration_work(SourceViewDeclarationPreparation) -> Int
+
 pub fn stage_context_at(StageContexts, Int) -> BoundParameters?
 
 pub fn stage_identity_definition(StageSourceIdentity) -> @program_references.StageDefinition
@@ -1308,6 +1386,33 @@ pub struct AssertionConsumptionLink {
   site : OperationRequirementSite
   results : @relation_results.CheckedResults
 }
+
+pub enum AuthoringCoreContractIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignSemantics
+  StageInventory
+  ForeignPublication(Int)
+  UnsupportedIncoming(Int)
+  UnsupportedLocalInputs(Int)
+  UnsupportedTableInputs(Int)
+  Collection(CoreContractIssue)
+}
+
+type AuthoringCoreContracts
+
+type AuthoringPublicationChecks
+
+pub enum AuthoringPublicationIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOrders
+  MissingHostCeiling(String)
+  RowTarget(Int, @capacity_program_step.TargetRowsIssue)
+  RowMembership(Int, @capacity_graph_preflight.TargetMembershipIssue)
+}
+
+type AuthoringPublicationSelection
 
 pub struct AuthoringRuntimeRequirement {
   step : Int
@@ -2595,6 +2700,18 @@ pub(all) struct PatternUsage {
 
 type PipelineAuthoringClosure
 
+type PipelineAuthoringContext
+
+pub enum PipelineAuthoringContextIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOrders
+  UnsupportedInputs
+  Values(ValuesCapacityIssue)
+  Capacity(@capacity_graph_preflight.PreparationIssue)
+  Context(Issue)
+}
+
 pub enum PipelineAuthoringIssue {
   InvalidLimits
   BudgetExceeded
@@ -2614,6 +2731,8 @@ pub(all) enum PipelineOperationProfilesIssue {
   BudgetExceeded
   UnsupportedProfile(Int, @pipeline_typing.OperationProfile)
 } derive(Eq, @debug.Debug)
+
+type PipelineOrderPreparation
 
 pub struct PivotExecutionCheck {
   site : OperationRequirementSite
@@ -3271,6 +3390,29 @@ pub enum SourceViewContextIssue {
   Binding(@stage_results.LocalSourceIssue)
   Context(LocalContextIssue)
 }
+
+pub enum SourceViewDeclarationIssue {
+  InvalidLimits
+  BudgetExceeded
+  Registration(SourceRegistrationIssue)
+  Program(SourceViewContextIssue)
+  Requests(PrepareSourcesIssue)
+  Identity(SourcePreparationIssue)
+}
+
+pub(all) struct SourceViewDeclarationLimits {
+  max_work : Int
+  max_bindings : Int
+  max_slots : Int
+  max_order_keys : Int
+  inputs : @stage_local_inputs.Limits
+  topology : @stage_results.LocalProgramLimits
+  body : @stage_source.Limits
+  uses : @pipeline_parameters.Limits
+  references : @program_references.Limits
+}
+
+type SourceViewDeclarationPreparation
 
 pub enum SourceViewProgramIssue {
   InvalidLimits
