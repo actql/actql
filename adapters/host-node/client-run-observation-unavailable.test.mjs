@@ -25,7 +25,8 @@ for (const entrance of ['local', 'https']) {
       runObservationReply: answer => lost ? undefined : answer,
     });
     try {
-      const run = await host.client.start(openingProgram, {requestId: 'original-observed-run'});
+      const submissionRef = host.client.newSubmission({nonce: 'original-observed-run'});
+      const run = await host.client.start(openingProgram, {submissionRef});
       const original = await run.status();
       assert.equal(original.status, 'succeeded');
       assert.equal(original.result_available, true);
