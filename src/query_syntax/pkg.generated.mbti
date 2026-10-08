@@ -488,6 +488,11 @@ pub(all) struct StarReplacement {
   analytic : AnalyticCall?
 }
 
+pub struct StringLiteralOrigin {
+  raw : Bool
+  backslash : Bool
+} derive(Eq, @debug.Debug)
+
 pub(all) struct TableEffectClause {
   name : NamePart?
   target : Array[NamePart]
@@ -499,6 +504,7 @@ pub struct Token {
   start : Int
   end : Int
   annotation_compatible : Bool
+  string_origin : StringLiteralOrigin?
 } derive(Eq, @debug.Debug)
 
 type Tokens

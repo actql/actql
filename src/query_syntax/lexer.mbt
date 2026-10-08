@@ -17,6 +17,15 @@ pub struct Token {
   start : Int
   end : Int
   annotation_compatible : Bool
+  string_origin : StringLiteralOrigin?
+} derive(Eq, Debug)
+
+///|
+/// Source spelling facts for one STRING chunk, before SQL escape decoding.
+/// These are not value semantics and do not apply to parameter/JSON data.
+pub struct StringLiteralOrigin {
+  raw : Bool
+  backslash : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -149,7 +158,7 @@ fn Scanner::quoted(
   self : Scanner,
   delimiter : Int,
   raw? : Bool = false,
-) -> (String, Bool) raise {
+) -> (String, Bool, Bool) raise {
   let start = self.byte_offset
   let triple = delimiter != 0x60 &&
     self.peek(ahead=1) == Some(delimiter) &&
@@ -161,6 +170,7 @@ fn Scanner::quoted(
   }
   let output = StringBuilder()
   let mut annotation_compatible = !raw && !triple
+  let mut backslash = false
   while true {
     let n = match self.peek() {
       Some(n) => n
@@ -183,7 +193,7 @@ fn Scanner::quoted(
       if delimiter == 0x60 && result.is_empty() {
         raise LexicalAbort(EmptyIdentifier, start)
       }
-      return (result, annotation_compatible)
+      return (result, annotation_compatible, backslash)
     }
     if delimiter != 0x60 && !triple && (n == 0x0a || n == 0x0d) {
       raise LexicalAbort(UnexpectedToken, self.byte_offset)
@@ -194,6 +204,7 @@ fn Scanner::quoted(
       annotation_compatible = false
     }
     let scalar = if n == 0x5c {
+      backslash = true
       ignore(self.advance())
       let at = self.byte_offset
       let escaped = self.advance()
@@ -350,26 +361,30 @@ fn Scanner::next(self : Scanner) -> Token raise {
   self.budget.charge(Tokens, 1, self.byte_offset)
   let start = self.byte_offset
   let mut annotation_compatible = false
+  let mut string_origin = None
   let value = match self.peek() {
     None => End
     Some(0x27) => {
-      let (text, _) = self.quoted(0x27)
+      let (text, _, backslash) = self.quoted(0x27)
+      string_origin = Some({ raw: false, backslash, })
       Text(text)
     }
     Some(0x22) => {
-      let (text, compatible) = self.quoted(0x22)
+      let (text, compatible, backslash) = self.quoted(0x22)
       annotation_compatible = compatible
+      string_origin = Some({ raw: false, backslash, })
       Text(text)
     }
     Some(0x60) => {
-      let (text, _) = self.quoted(0x60)
+      let (text, _, _) = self.quoted(0x60)
       QuotedName(text)
     }
     Some(0x72 | 0x52) if self.peek(ahead=1) == Some(0x27) ||
       self.peek(ahead=1) == Some(0x22) => {
       ignore(self.advance())
       let delimiter = self.peek().unwrap()
-      let (text, _) = self.quoted(delimiter, raw=true)
+      let (text, _, backslash) = self.quoted(delimiter, raw=true)
+      string_origin = Some({ raw: true, backslash, })
       Text(text)
     }
     Some(n) if identifier_start(n) => Word(self.name())
@@ -381,7 +396,7 @@ fn Scanner::next(self : Scanner) -> Token raise {
       if self.peek() is Some(n) && identifier_start(n) {
         Parameter(self.name())
       } else if self.peek() == Some(0x60) {
-        let (text, _) = self.quoted(0x60)
+        let (text, _, _) = self.quoted(0x60)
         Parameter(text)
       } else {
         raise LexicalAbort(InvalidParameter, start)
@@ -429,5 +444,5 @@ fn Scanner::next(self : Scanner) -> Token raise {
     ) => Symbol(self.advance())
     _ => raise LexicalAbort(UnexpectedToken, start)
   }
-  { value, start, end: self.byte_offset, annotation_compatible, }
+  { value, start, end: self.byte_offset, annotation_compatible, string_origin, }
 }
