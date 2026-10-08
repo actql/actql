@@ -52,5 +52,33 @@ test('proven UNNEST input violations cannot pass as implementation limits', () =
     'unnest-parameter-path-refusal-non-array',
     'unnest-parameter-path-refusal-bound',
     'unnest-parameter-path-refusal-field-type',
+    'unnest-parameter-path-refusal-member-case-collision',
   ]);
+});
+
+
+test('member spelling is syntax binding while declared names and JSON data stay exact', () => {
+  const cases = new Map(unnestParameterPathSuccesses.map(item => [item.name, item]));
+  const baseline = cases.get('unnest-parameter-path-sql');
+  for (const name of ['case-insensitive-members', 'quoted-case-insensitive-members']) {
+    const item = cases.get('unnest-parameter-path-' + name);
+    assert.ok(item.text.includes('NESTED'));
+    assert.deepEqual(item.parameterDeclarations, baseline.parameterDeclarations);
+    assert.deepEqual(item.parameters, baseline.parameters);
+    assert.deepEqual(item.expected, baseline.expected);
+    assert.deepEqual(item.columns, baseline.columns);
+  }
+  const text = cases.get('unnest-parameter-path-mixed-declaration-members');
+  const json = JSON.parse(cases.get('unnest-parameter-path-mixed-declaration-json-control').text);
+  assert.deepEqual(Object.keys(json.params.payload.fields), ['Nested']);
+  assert.deepEqual(Object.keys(json.params.payload.fields.Nested.fields), ['Items']);
+  assert.deepEqual(json.stages[0].steps[1].derive.array, {property: {name: 'Items',
+    value: {property: {name: 'Nested', value: {$param: 'payload'}}}}});
+  assert.deepEqual(text.parameters, {payload: {Nested: {Items: [
+    {id: 2, label: 'kept'}, null, {id: 2, label: null},
+  ]}}});
+  assert.equal(text.text, baseline.text);
+  const collision = unnestParameterPathRefusals.find(item => item.name.endsWith('member-case-collision'));
+  assert.deepEqual(Object.keys(collision.parameterDeclarations.payload.fields), ['nested', 'NESTED']);
+  assert.equal(collision.expectedCode, 'ClientProgramInvalidInput');
 });
