@@ -295,6 +295,12 @@ pub fn native_performance_conditions(
     ) {
     return Err(InvalidConfiguration)
   }
+  if @strategy.graph_captured_prefix(@strategy.captured_dag_graph(dag)) != 1 {
+    // This input token covers one capture only, not all data in a multi-Source
+    // Program. Keep execution feasible, but never manufacture a full profile.
+    session.unavailable_reason = Some("multiple-captured-inputs-unprofiled")
+    return Ok(None)
+  }
   guard @strategy.captured_execution_root_statistics(dag) is Some(stats) else {
     return Err(InvalidConfiguration)
   }

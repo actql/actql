@@ -285,7 +285,9 @@ an immutable local template pin derived from a validated original. The Native
 library does not authenticate an issuer named in profile bytes or independently
 attest the application's executable. It derives the actual Program CID, captured
 row count, logical Relation/schema identity and import/retention limits. The
-input token must match the Source already owned by this dispatch. Computing that
+input token must match the Source already owned by this dispatch. This first
+connection covers one captured input; multiple captured inputs stay explicitly
+unprofiled instead of treating the first input as the complete data identity. Computing that
 identity is bounded opt-in work over captured rows, not a Source acquisition.
 
 ```moonbit

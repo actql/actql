@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
 import {cpus,release,loadavg} from 'node:os';
 import {retainedCase} from './fixtures.mjs';
-import {profileDigest} from './local-performance-profile.mjs';
+import {localProcessFailureOutcome,profileDigest} from './local-performance-profile.mjs';
 import {sha256File} from './release-artifacts.mjs';
 import {prepareNativeDirectProduct,executeNativeDirectProduct,admitNativeDirectProduct} from './native-direct-product.mjs';
 import {wholeRunScope,wholeRunLimits,loadWholeRunProfile,loadWholeRunCreationCost,wholeRunTemplate,admitWholeRunTrajectory} from './whole-run-profile.mjs';
@@ -161,7 +161,7 @@ for(const [index,step] of schedule.entries()) {
     if(step.arm==='forced') assert.equal(item.owner.observations.choices[0].position,step.position);
     item.outcome='succeeded';item.ownerAccepted=true;
   } catch(error) {
-    item.outcome=error.signal?'interrupted':'failed';item.ownerAccepted=false;
+    item.outcome=localProcessFailureOutcome(error);item.ownerAccepted=false;
     item.failure={code:typeof error.code==='number'||typeof error.code==='string'?error.code:null,signal:error.signal??null,
       assertion:error.code==='ERR_ASSERTION'?error.message:null,cleanup:'unknown'};
     execution={stdout:execution?.stdout??error.stdout??'',stderr:execution?.stderr??error.stderr??''};

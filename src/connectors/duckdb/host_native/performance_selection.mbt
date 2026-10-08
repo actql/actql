@@ -95,7 +95,9 @@ fn prepare_native_performance_selection(
         Err(issue) => return Err(issue)
       }
       if conditions is None {
-        reason = "input-identity-unavailable"
+        reason = session.unavailable_reason.unwrap_or(
+          "input-identity-unavailable",
+        )
       } else if conditions.unwrap() != header.conditions {
         reason = "conditions-mismatch"
       } else if run.observe_phase is None ||

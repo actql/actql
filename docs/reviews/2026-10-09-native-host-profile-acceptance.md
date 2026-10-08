@@ -65,3 +65,11 @@ not keep a consultation alive. A real pending request still observes the durable
 clock and revalidates identity, deadline and admission before commit. The normal
 stop acceptance closes that clock and then drains the stopped Owner, making this
 boundary executable rather than assuming the optional instrumentation stays live.
+
+The initial single-capture identity cannot describe a second captured input.
+The Host reads its actual graph's captured-prefix count and makes multi-capture
+conditions unknown without loosening Source-token validation or request admission.
+This scope gate is compiler-checked; actual multi-Source performance profiling
+and physical acceptance are outside this two-workload unit. Measurement failures
+also use the existing local-process outcome classifier: SIGABRT is failure, not
+a successful sample or a user cancellation/interruption.
