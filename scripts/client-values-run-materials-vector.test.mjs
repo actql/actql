@@ -840,11 +840,11 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('daf9145193294b0c6f5f98df5b9f8a8b4066d3f85543be47122131bffd0de273'));
   // Preserve the CORRESPONDING author vector at its immutable pre-Table closure.
   assert.equal(vector(pin('4e22dcbfa0254dced78456e62a6e6a002602d510f6acf3116f3d52e41806524f'),
-    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('20e54d94d54d3803aba993288e2ce2210dad0c0b18203a3a7cc2e1947c3e6624'));
   // Keep the independently fixed integrated INNER parent before this grammar.
   assert.equal(vector(pin('9b263643848b163c45ca846775d1fa20e91023b694638794959335d284d4c3ff'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('ac0a16e48c0578b1ae4e5c63405220579592cc2fa220461f1f066f05b27b84b8'));
   assert.equal(current.run.run_definition_cid,
     pin('73b3565c96d7cee01a72fcbb0a7ab76f876dd0745661df556a01f449660a9abe'));
