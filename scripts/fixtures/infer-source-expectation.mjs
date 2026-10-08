@@ -49,6 +49,12 @@ export const sourceCases = {
   },
   minimal: {source, rows: expectedRows, columns: expectedColumns, calls: 1,
     inputWire: '"urgent"'},
+  'folded-input': {source: `${prefix} |> INFER \`model-task:packed-risk.v1\` ` +
+      'ITEM KEY (id) INPUT (TEXT = text) AS assessment',
+    rows: expectedRows, columns: expectedColumns, calls: 1, inputWire: '"urgent"'},
+  'quoted-input': {source: `${prefix} |> INFER \`model-task:packed-risk.v1\` ` +
+      'ITEM KEY (id) INPUT (`TeXt` = text) AS assessment',
+    rows: expectedRows, columns: expectedColumns, calls: 1, inputWire: '"urgent"'},
   keep: {source: `${prefix} ${infer} KEEP (id, text AS note) AS assessment`,
     rows: keptRows, columns: keptColumns, calls: 1, inputWire: '"urgent"'},
   'keep-filter': {
@@ -102,6 +108,10 @@ export const sourceCases = {
 };
 
 export const sourceRefusals = {
+  'unknown-input': `${prefix} |> INFER \`model-task:packed-risk.v1\` ` +
+    'ITEM KEY (id) INPUT (absent = text) AS assessment',
+  'duplicate-input': `${prefix} |> INFER \`model-task:packed-risk.v1\` ` +
+    'ITEM KEY (id) INPUT (text = text, TEXT = text) AS assessment',
   'unknown-member': `${source} |> SELECT assessment.VALUE.missing AS risk`,
   'folded-unproven-key': `${prefix} |> INFER \`model-task:packed-risk.v1\` ITEM KEY (text) INPUT (text = text) AS assessment |> SELECT assessment.VALUE.RISK AS risk`,
   'dropped-input': `${prefix} ${infer} AS assessment |> SELECT text`,

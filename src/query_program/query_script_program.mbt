@@ -249,7 +249,11 @@ pub fn compile_query_script(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let steps : Array[@builder.Node] = []
     let sources : ScriptSources = {

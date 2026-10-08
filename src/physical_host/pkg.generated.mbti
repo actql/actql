@@ -116,6 +116,10 @@ pub fn[T] take_dispatch_work(DispatchChannel[T], DispatchDriver, DispatchTicket,
 
 pub fn[C, E, T] take_installed_task(DispatchHost[C, E], PreparedTaskDispatch, DispatchChannel[T]) -> Result[T, DispatchIssue]
 
+pub fn[E] validate_adaptive_policy_request(AdaptiveDispatch[E], @physical_strategy.PolicyRequest, Int64) -> Result[Unit, AdaptiveEstimateIssue[E]]
+
+pub fn[C, E] validate_compute_host_policy_request(ComputeHost[C, E], @physical_strategy.PolicyRequest, Int64) -> Result[Unit, AdaptiveEstimateIssue[E]]
+
 // Errors
 
 // Types and methods

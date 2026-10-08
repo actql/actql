@@ -38,6 +38,11 @@ export async function nearestPublicInputFixtures(directory) {
         FROM qs AS q |> ${nearest.replace('NEAREST candidates', 'NEAREST cs')}
         KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank`,
       results: result(rows, columns)},
+    {name: 'nearest-source-query-vector-expression', format: 'aql-text',
+      text: `FROM queries AS q |> ${nearest.replace('VECTOR q.embedding',
+        'VECTOR IF(TRUE, q.embedding, q.embedding)')}
+        KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank`,
+      results: result(rows, columns)},
     {name: 'nearest-source-omitted-keep', format: 'aql-text',
       text: `FROM queries AS q |> ${nearest} AS neighbor |> ORDER BY neighbor.rank`,
       results: result(rows.map(({neighbor}) => ({neighbor})), [columns[2]])},
