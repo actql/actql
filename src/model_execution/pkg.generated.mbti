@@ -23,6 +23,8 @@ pub fn admit_model_provider(ModelProvider, @check_environment.ModelExecutionCont
 
 pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.ModelExecutionContract) -> ModelProvider?
 
+pub fn adopt_reconciled_model_response(ModelResponseReconciliation, ModelResponse) -> Result[Unit, ModelExecutionIssue]
+
 pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, String, Int64), ModelExecutionIssue]
 
 pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
@@ -125,6 +127,8 @@ pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.Quan
 
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
+pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ModelResponseReconciliation, ModelExecutionIssue]
+
 pub fn prepared_model_call_at(ModelPreparedCallSet, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn prepared_model_call_count(ModelPreparedCallSet) -> Int?
@@ -138,6 +142,10 @@ pub fn prepared_model_input(ModelPreparedCallSet) -> @execution_relation.Complet
 pub fn prepared_model_input_artifact(ModelPreparedCallSet) -> @run_publication.RunEvidenceValue?
 
 pub fn prepared_model_matches(ModelPreparedCallSet, ModelExecution) -> Bool
+
+pub fn prepared_model_physical_request(ModelPreparedCallSet, Int) -> (ModelRequest, ModelPhysicalRequestEvidence)?
+
+pub fn prepared_model_request(ModelPreparedCallSet, Int) -> ModelRequest?
 
 pub fn prepared_model_scope(ModelPreparedCallSet) -> @run_publication.BoundModelInvocationScope?
 
@@ -410,6 +418,14 @@ pub(all) struct ModelResponse {
   input_tokens : Int64
   output_tokens : Int64
   observed_at : String
+}
+
+pub struct ModelResponseReconciliation {
+  prepared : ModelPreparedCallSet
+  slot : Int
+  attempt : @run_publication.RunEvidenceValue
+  authority : @run_publication.RunEvidenceValue
+  mut adopted : Bool
 }
 
 pub(all) struct ModelSlotCapture {

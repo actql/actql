@@ -99,6 +99,42 @@ test "two independent INFER Units retain distinct logical occurrences for the sa
 }
 
 ///|
+test "historical independent INFER scopes resolve the same checked Source by its graph edge" {
+  let base = admit_client_check_environment(
+    client_composed_acquired_effect_environment,
+    "sha256:cd4aeacdc39164df2cf7e7cb74faf349a157677a5927d9e84379d0d8df2d91e7",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"saved-shared-source","stages":[{"id":"source","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","amount"]}}},{"id":"first","inputs":{"items":{"result":{"stage":"source","result":"rows"}}},"steps":[{"derive":{"text":{"literal":"first"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"first_assessment"}],"results":{"rows":{"from":"first_assessment","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"items":{"result":{"stage":"source","result":"rows"}}},"steps":[{"derive":{"text":{"literal":"second"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"second_assessment"}],"results":{"rows":{"from":"second_assessment","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
+  let prepared = prepare_effect_free_client_program(
+    document,
+    Json,
+    client_composed_effect_test_environment(base),
+    None,
+    client_standard_program_preparation_limits(),
+  ).unwrap()
+  let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 2)
+  assert_eq(@strategy.graph_captured_prefix(prepared.graph), 1)
+  let expected = @planning.query_acquisition_source_evidence_facts(
+    prepare_client_query_acquisition(prepared, 0, 0).unwrap(),
+  ).unwrap()
+  for occurrence in occurrences {
+    let resolved = infer_scope_expected_sources(occurrence).unwrap()
+    assert_eq(resolved.length(), 1)
+    assert_eq(resolved[0].0, "items")
+    assert_eq(resolved[0].1.source_ref, expected.source_ref)
+    assert_eq(resolved[0].1.source_contract_cid, expected.source_contract_cid)
+    assert_eq(
+      resolved[0].1.source_data_policy_cid,
+      expected.source_data_policy_cid,
+    )
+  }
+}
+
+///|
 test "common graph retains both independent Model barriers and rejects incomplete or substituted inventories" {
   let prepared = client_two_independent_infer_test_program()
   let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()

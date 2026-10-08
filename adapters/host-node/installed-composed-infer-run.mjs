@@ -10,24 +10,28 @@ import {inferTaskPublicationPlan} from './local-values-plan.mjs';
 import {preparePrivatePublicationHolding} from '../host-common/private-publication-holding.mjs';
 import {publishCompletedEffectFreeRun} from '../host-common/completed-run-publication.mjs';
 import {projectInferEvidence} from './infer-evaluation-evidence.mjs';
+import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 
 export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
   store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork,
-  submission, modelController, inferEvidence, namespaceId, authorityScopeCid,
+  submission, existingModel, modelClaim, assertCurrent = () => {},
+  modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, namespaceId, authorityScopeCid,
   storeAuthorityCid, now, faultInjection, registry, values, fragment, ordered, computeConfigurations}) {
-  // Evidence restoration reads the user sink, never this fresh-send assembly.
-  // A historical physical start must use its durable Model restoration owner.
-  if (replay || modelController === undefined || acquiredInfer?.captured === undefined) {
+  if (modelController === undefined) {
     throw new Error('InstalledComposedInferInputUnavailable');
   }
   const runId = JSON.parse(plan.runDefinition.wire).run_id;
-  if (modelController.discover(runId).length !== 0) {
-    throw new Error('InstalledComposedInferOriginalInventoryRequiresRestore');
+  const records = modelController.discover(runId);
+  if (replay && records.length === 0 || existingModel !== undefined &&
+      !records.some(record => record.inventory.scopeCid === existingModel.inventory.scopeCid)) {
+    throw new Error('InstalledComposedInferOriginalInventoryMissing');
   }
-  const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} = acquiredInfer;
-  const sourceEvidence = [acquiredInfer.sourceEvidence];
+  if (records.length === 0 && acquiredInfer?.captured === undefined) {
+    throw new Error('InstalledComposedInferInputUnavailable');
+  }
   const children = selected.components.map(selection => ({selection}));
-  let execution, pendingSetup, issuance, publication, holding;
+  let execution, pendingSetup, issuance, publication, holding, sourceContinuation, restoredSource;
   let issuanceComplete = false, closeAttempted = false, released = false;
   async function cleanup() {
     if (released) return true;
@@ -62,11 +66,12 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     }
     let pending = false;
     for (const child of children) {
-      if (child.capture !== undefined && !child.captureReleased) {
+      const physical = child.capture?.custody ?? child.operation;
+      if (physical !== undefined && !child.captureReleased) {
         const retry = child.captureCloseAttempted === true;
         child.captureCloseAttempted = true;
-        const result = await (retry ? child.capture.custody.cleanup() : child.capture.custody.close());
-        child.captureReleased = result !== false && !child.capture.custody.cleanupPending();
+        const result = await (retry ? physical.cleanup() : physical.close());
+        child.captureReleased = result !== false && !physical.cleanupPending();
         pending ||= !child.captureReleased;
       }
       if (child.continuation !== undefined && !child.continuationReleased) {
@@ -75,6 +80,11 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
         const result = await (retry ? child.continuation.cleanup() : child.continuation.close());
         child.continuationReleased = result !== false && !child.continuation.cleanupPending();
         pending ||= !child.continuationReleased;
+      }
+      if (child.continuation === undefined && child.token !== undefined &&
+          (child.operation === undefined || child.captureReleased)) {
+        modelController.release(child.token);
+        child.token = undefined;
       }
     }
     if (pending) return false;
@@ -87,19 +97,78 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       }
       if (await execution.cleanup() === false || execution.cleanupPending()) return false;
     }
+    if (restoredSource !== undefined) {await restoredSource.close(); restoredSource = undefined;}
+    if (sourceContinuation !== undefined) {await sourceContinuation.close(); sourceContinuation = undefined;}
     released = true;
     return true;
   }
   retainExecution(Object.freeze({close: cleanup, cleanup, cleanupPending: () => !released}));
   const declaredResults = Array.from({length: moon.clientProgramResultCount(preparedProgram)},
     (_, index) => moon.clientProgramResultName(preparedProgram, index));
+  const matched = new Set();
   for (const child of children) {
-    const sources = checked(moon.clientProgramAdmitComposedInferSources(child.selection.occurrence,
+    const task = moon.clientProgramInferPlanBoundary(child.selection.graph)._0;
+    const candidates = records.filter(record => record.inventory.taskIndex === task);
+    if (candidates.length > 1) throw new Error('ModelResumeScopeAmbiguous');
+    if (candidates.length === 0) continue;
+    child.record = candidates[0];
+    matched.add(child.record.inventory.scopeCid);
+    child.token = await modelController.prime(child.record);
+    assertCurrent();
+    child.restoredInput = {token: child.token, snapshot: child.token.snapshot,
+      sendMask: modelController.state(child.record.inventory).slots.map(slot => slot.state === 'Unsent'),
+      savedScope: modelController.savedScope(plan, preparedProgram, child.selection, child.token)};
+  }
+  if (matched.size !== records.length) throw new Error('ModelResumeForeignInventory');
+  let input = acquiredInfer;
+  const historical = children.find(child => child.token !== undefined);
+  if (checkpoints !== undefined && prepareAcquisition !== undefined) {
+    const occurrence = {stage: 0, input: 0, task: 0};
+    const preparedSource = input?.preparedSource ?? await prepareAcquisition(preparedProgram);
+    assertCurrent();
+    const saved = historical?.token.snapshot.sourceContinuation;
+    if (historical !== undefined && saved === undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
+    for (const child of children) {
+      if (child.token !== undefined && canonicalJson(child.token.snapshot.sourceContinuation) !== canonicalJson(saved)) {
+        throw new Error('ModelSourceClosureMismatch');
+      }
+    }
+    sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
+      acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+      submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
+      currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}},
+      ...(saved === undefined ? {} : {restore: {
+        view: {kind: 'model_invocation', prepareAttemptId: null, runId,
+          runDefinitionCid: plan.runDefinition.identity}, continuation: saved}})});
+    // Preparation is an authorization check, never an upstream acquisition.
+    // The selected adapter's access owner revalidates retained consumption.
+    const access = input?.sourceAccess ?? sourceAccessFor(preparedSource);
+    sourceContinuation.accessFor(access, occurrence);
+    const source = {occurrence, preparedSource};
+    await sourceContinuation.prepared([source]);
+    if (historical === undefined) {
+      await sourceContinuation.captured(source, input.captured, input.sourceEvidenceWire,
+        input.captureStartedAt, input.captureCompletedAt);
+    } else {
+      const retained = await sourceContinuation.beforeRead(source);
+      assertCurrent();
+      if (retained.retained === undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
+      const restored = sourceContinuation.restore(source, retained.retained, undefined);
+      restoredSource = restored.captured;
+      input = {...restored, ...sourceContinuation.times(),
+        sourceEvidence: control.admitRunEvidence('source_evidence', restored.sourceEvidenceWire,
+          {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
+    }
+  } else if (historical !== undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
+  const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} = input;
+  const sourceEvidence = [input.sourceEvidence];
+  for (const child of children) {
+    const sources = child.restoredInput === undefined ? checked(moon.clientProgramAdmitComposedInferSources(child.selection.occurrence,
       [captured.capture.source()], [captured.identity], [captured.requirement],
       [moon.strategyRunEvidenceJson(captured.logicalInput)], [sourceEvidenceWire], authorityScopeCid,
-      captureStartedAt, captureCompletedAt));
+      captureStartedAt, captureCompletedAt)) : undefined;
     child.component = openNodeComposedInferProvider({moon, selected: child.selection, sources,
-      control, plan, principalId, now, signal, durableCalls: true,
+      control, plan, principalId, now, signal, durableCalls: true, restoredInput: child.restoredInput,
       retainOperation(operation) {
         child.operation = operation;
         child.capture = openNodeInferCaptureCustody({moon, control, operation, plan, store,
@@ -129,14 +198,26 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       const preparedCallSet = child.operation.preparedCallSet();
       if (preparedCallSet === undefined) throw new Error('ModelPausePreparedOwnerMissing');
       child.continuation = await modelController.open({operation: child.operation, preparedCallSet,
-        plan, selected: child.selection, principalId, declaredResults, submission, signal});
+        plan, selected: child.selection, principalId, declaredResults, submission, signal,
+        retainEvidenceCopy(copy) {
+          if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained');
+          child.copy = copy;
+        },
+        existing: child.record, inputToken: child.token,
+        ...(child.record?.inventory.scopeCid === existingModel?.inventory.scopeCid ? {claim: modelClaim} : {}),
+        ...(sourceContinuation === undefined ? {} : {sourceContinuation: await sourceContinuation.retainAll()})});
       child.capture.configureModelJournal({observe: child.continuation.observe, entry: child.continuation.entry});
+      // Restore saved/unknown slots through Core before considering new send
+      // permission. The Local component pauses again for any unsent work.
+      if (child.record !== undefined && !child.continuation.hasResponseReconciliation) return {action: 'resume'};
     }
     const decision = await child.continuation.authorize();
     if (decision.status === 'dispatch') return {action: 'resume'};
     if (decision.status !== 'waiting_checkpoint') throw new Error('InvalidModelPauseDecision');
-    return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint,
-      cleanupPending: true, cleanupHandle: {status: () => ({pending: !released}), retry: cleanup}};
+    // Local retains its task's physical cleanup handle. Feeding the parent
+    // driver's cleanup back into that handle creates recursive reclamation.
+    // The installed Run retains the separate capture/continuation custody.
+    return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint};
   });
   beginPhysicalWork();
   execution = await runCapturedStrategy(setup, {...computeConfigurations, local}, signal);
@@ -148,7 +229,17 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     for (const child of children) {
       if (child.operation?.physicalStopped()) await child.capture.persistStoppedAttempts();
     }
-    if (modelController.unresolved(runId)) return Object.freeze({status: 'needs_reconciliation'});
+    if (modelController.unresolved(runId)) {
+      // A partial Run has no complete ObservationSet or Named Result. Reuse
+      // authenticated individual Store originals without inventing either.
+      for (const child of children) {
+        await projectInferEvidence({configuration: inferEvidence, moon, control, preparedProgram, plan,
+          selected: child.selection, operation: child.operation, captureOwner: child.capture,
+          continuation: child.continuation, authorityScopeCid, partial: true,
+          retainCopy(copy) {if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained'); child.copy = copy;}});
+      }
+      return Object.freeze({status: 'needs_reconciliation'});
+    }
     throw children.find(child => child.component.failure() !== undefined)?.component.failure() ??
       execution.failure ?? new Error('InstalledComposedInferComputationFailed');
   }
@@ -177,6 +268,6 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     await projectInferEvidence({configuration: inferEvidence, moon, control, preparedProgram, plan,
       selected: child.selection, operation: child.operation, captureOwner: child.capture,
       continuation: child.continuation, authorityScopeCid,
-      retainCopy(copy) {if (child.copy !== undefined) throw new Error('InferEvidenceCopyAlreadyRetained'); child.copy = copy;}});
+      retainCopy(copy) {if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained'); child.copy = copy;}});
   }
 }
