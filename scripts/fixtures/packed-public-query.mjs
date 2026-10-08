@@ -47,6 +47,8 @@ import {analyticPartitionPropertySuccesses, analyticPartitionPropertyRefusals}
   from './analytic-partition-property-source-input.mjs';
 import {aggregatePropertyOrderSuccesses, aggregatePropertyOrderRefusals, aggregatePropertyOrderExecutionFailures}
   from './aggregate-property-order-source-input.mjs';
+import {aggregateSignedOrderSuccesses, aggregateSignedOrderRefusals}
+  from './aggregate-signed-order-source-input.mjs';
 import {orderAggregateExpressionSuccesses, orderAggregateExpressionRefusals, orderAggregateExpressionExecutionFailures}
   from './order-aggregate-expression-source-input.mjs';
 import {selectAggregateExpressionSuccesses, selectAggregateExpressionRefusals, selectAggregateExpressionExecutionFailures}
@@ -337,7 +339,8 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   : analyticPropertyOnly ? {successes: analyticPropertySuccesses, refusals: analyticPropertyRefusals}
   : subgraphOnly ? {successes: subgraphSourceSuccesses, refusals: subgraphSourceRefusals, executionFailures: subgraphSourceExecutionFailures}
   : graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSuccesses, refusals: graphDiagnosticSourceRefusals, executionFailures: graphDiagnosticSourceExecutionFailures}
-  : aggregatePropertyOrderOnly ? {successes: aggregatePropertyOrderSuccesses, refusals: aggregatePropertyOrderRefusals, executionFailures: aggregatePropertyOrderExecutionFailures}
+  : aggregatePropertyOrderOnly ? {successes: [...aggregatePropertyOrderSuccesses, ...aggregateSignedOrderSuccesses],
+    refusals: [...aggregatePropertyOrderRefusals, ...aggregateSignedOrderRefusals], executionFailures: aggregatePropertyOrderExecutionFailures}
   : orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
   : sourceGraphMemberOnly ? {successes: sourceGraphMemberSuccesses, refusals: sourceGraphMemberRefusals}
   : graphProjectionPropertyOnly ? {successes: graphProjectionPropertySuccesses, refusals: graphProjectionPropertyRefusals}
@@ -389,6 +392,8 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...graphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...graphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.refusals.push(...aggregateSignedOrderRefusals);
+  scopeInputs.successes.push(...aggregateSignedOrderSuccesses);
   scopeInputs.refusals.push(...analyticDistinctFrameRefusals);
   scopeInputs.successes.push(...analyticDistinctFrameSuccesses);
   scopeInputs.refusals.push(...countifDistinctRefusals);
