@@ -15,7 +15,7 @@ const mutations = [
     targets: cases('scoped Program locations distinguish missing nodes, null and original Unicode keys',
       [{id: 'scoped-program-parent', operator: 'strictEqual'}])},
   {name: 'report omissions retain template verification', path: 'src/connectors_builtin_node/client_check.mbt',
-    from: 'let reported_verdict = if template_report_limited { "undetermined" } else { verdict }',
+    from: 'let reported_verdict = if template_report_limited {\n    "undetermined"\n  } else {\n    verdict\n  }',
     to: 'let reported_verdict = verdict',
     targets: cases('scoped reporting truncation cannot publish template verification',
       [{id: 'scoped-report-truncation', operator: 'strictEqual'}])},

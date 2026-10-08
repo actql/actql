@@ -79,7 +79,8 @@ pub fn client_program_check_source(
   }
   let findings : Array[CheckFinding] = []
   let stop = check_source_findings(
-    findings, document, format, environment, visible_publication, declarations, parameters, scope,
+    findings, document, format, environment, visible_publication, declarations, parameters,
+    scope,
   )
   check_outcome_json(findings, stop, context_ref, correlation_ref, {
     scope,
@@ -271,11 +272,10 @@ fn check_source_findings(
         max_depth: 64,
         max_text_bytes: 65536,
       }) {
-      Ok(NeedsBindings(_)) => {
+      Ok(NeedsBindings(_)) =>
         if scope == BoundInput {
           findings.push(Limit("bound_values_missing"))
         }
-      }
       Ok(Ready(bound)) => explanation_bindings = Some(bound)
       Err(issue) =>
         match check_binding_fault(issue) {
@@ -447,19 +447,30 @@ fn check_source_findings(
   // generated JSON. Authored provenance stays owned by the submitted input.
   let outcome : CheckProjection = match scope {
     BoundInput =>
-      Bound(@program_check.check_parsed(
-        program, environment, supplied, client_program_standard_limits().checking,
-      ))
+      Bound(
+        @program_check.check_parsed(
+          program,
+          environment,
+          supplied,
+          client_program_standard_limits().checking,
+        ),
+      )
     TemplateOnly =>
-      match @program_check.check_parsed_scoped(
-        program, environment, TemplateOnly, None,
-        client_program_standard_limits().checking,
-      ) {
+      match
+        @program_check.check_parsed_scoped(
+          program,
+          environment,
+          TemplateOnly,
+          None,
+          client_program_standard_limits().checking,
+        ) {
         TemplateOnly(Verified(checked)) =>
           return check_template_public_stop(findings, checked)
         TemplateOnly(Rejected(diagnostic)) => TemplateDiagnostic(diagnostic)
         TemplateOnly(Unresolved(frontier)) =>
-          TemplateDiagnostic(@program_check.template_frontier_diagnostic(frontier).unwrap())
+          TemplateDiagnostic(
+            @program_check.template_frontier_diagnostic(frontier).unwrap(),
+          )
         _ => return Failed("check_internal")
       }
   }
@@ -509,7 +520,8 @@ fn check_source_findings(
               ),
             )
           }
-        MissingInput => check_missing_input_findings(findings, diagnostic, scope)
+        MissingInput =>
+          check_missing_input_findings(findings, diagnostic, scope)
         UnsupportedImplementation =>
           findings.push(Limit("implementation_limit"))
         CompileLimit => findings.push(Limit("analysis_budget_exhausted"))
@@ -543,7 +555,13 @@ fn check_missing_input_findings(
     findings.push(Limit("checking_context_missing"))
   } else {
     findings.push(
-      Limit(if scope == BoundInput { "bound_values_missing" } else { "checking_material_missing" }),
+      Limit(
+        if scope == BoundInput {
+          "bound_values_missing"
+        } else {
+          "checking_material_missing"
+        },
+      ),
     )
   }
 }
@@ -1033,11 +1051,21 @@ fn write_check_report(
   documents : CheckDocuments,
   requirement_limit : Int,
 ) -> Unit raise @encode.EncodeFailure {
-  let required_count = findings.iter().filter(finding =>
-    finding is (RequiredValue(_, _) | CapacityPolicyRequired | NumericProfileRequired)).count()
+  let required_count = findings
+    .iter()
+    .filter(finding => {
+      finding
+      is (RequiredValue(_, _) | CapacityPolicyRequired | NumericProfileRequired)
+    })
+    .count()
   let template_report_limited = documents.scope == TemplateOnly &&
-    verdict == "verified" && required_count > requirement_limit
-  let reported_verdict = if template_report_limited { "undetermined" } else { verdict }
+    verdict == "verified" &&
+    required_count > requirement_limit
+  let reported_verdict = if template_report_limited {
+    "undetermined"
+  } else {
+    verdict
+  }
   let violations = check_codes(findings, finding => {
     match finding {
       Violation(code) => Some(code)
@@ -1590,7 +1618,7 @@ fn write_check_report(
           },
           revision,
           (if documents.structured_program { "/params/" } else { "/" }) +
-            name.replace_all(old="~", new="~0").replace_all(old="/", new="~1"),
+          name.replace_all(old="~", new="~0").replace_all(old="/", new="~1"),
         )
       }
       @encode.end_object(writer)
@@ -1600,7 +1628,14 @@ fn write_check_report(
   @encode.key(writer, "scope")
   @encode.begin_object(writer)
   @encode.key(writer, "kind")
-  @encode.string_value(writer, if documents.scope == TemplateOnly { "template_only" } else { "bound_input" })
+  @encode.string_value(
+    writer,
+    if documents.scope == TemplateOnly {
+      "template_only"
+    } else {
+      "bound_input"
+    },
+  )
   @encode.end_object(writer)
   @encode.key(writer, "verdict")
   @encode.string_value(writer, reported_verdict)
@@ -1643,7 +1678,7 @@ fn check_outcome_attempt(
   try {
     if stop is TemplateVerified(checked) &&
       @program_check.template_checked_input_count(checked) !=
-        findings.iter().filter(finding => finding is RequiredValue(_, _)).count() {
+      findings.iter().filter(finding => finding is RequiredValue(_, _)).count() {
       return None
     }
     let writer = @encode.writer(65536, 4096, 16)
@@ -1657,7 +1692,11 @@ fn check_outcome_attempt(
           writer,
           findings,
           context_ref,
-          if stop is TemplateVerified(_) { "verified" } else { check_verdict(findings) },
+          if stop is TemplateVerified(_) {
+            "verified"
+          } else {
+            check_verdict(findings)
+          },
           documents,
           requirement_limit,
         )
