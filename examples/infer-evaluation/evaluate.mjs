@@ -1,8 +1,10 @@
 // A user-owned experiment adapter, not an execution or recovery owner.
 // Each trial submits one whole Program through the supplied ordinary Client.
 import {createHash, randomUUID} from 'node:crypto';
-import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checkEvidenceReference, evidenceParts} from './evidence-reference.mjs';
+
+const canonicalJson = value => sdkCanonicalJson(value, {dataKeys: true});
 
 const digest = value => `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
 const fail = code => {throw Object.assign(new Error(code), {code});};

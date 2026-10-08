@@ -4,8 +4,10 @@ import {mkdir, open, link, lstat, opendir, unlink} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
-import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checkEvidenceReference, contentCid, evidenceParts, referenceCid} from './evidence-reference.mjs';
+
+const canonicalJson = value => sdkCanonicalJson(value, {dataKeys: true});
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const incomplete = reason => Object.freeze({status: 'incomplete', reason});

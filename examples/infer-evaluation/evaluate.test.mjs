@@ -166,3 +166,15 @@ test('original exact Unicode and newlines survive case and instruction identity'
     assert.equal(candidate.instructions, value);
   }
 });
+
+test('data member identity and submitted case snapshots preserve exact nested keys', async () => {
+  assert.notEqual(cid({'e\u0301': 1}), cid({'é': 1}));
+  assert.notEqual(cid({'line\r': 1}), cid({'line\n': 1}));
+  const f = fixture({selectionCases: [{id: 'selection-keys', expected: 'high', input: {
+    id: 's1', text: 'URGENT', metadata: {'e\u0301': {'line\r': 'CR\r', 'line\n': 'LF\n'}, 'é': 'CRLF\r\n'},
+  }}], limits: {...limits, retainedBytes: 30000, finalRetainedBytes: 10000}});
+  const result = await compareInstructions(f.config);
+  assert.equal(result.status, 'scored');
+  assert.deepEqual(f.calls[0].case.input, {id: 's1', text: 'URGENT',
+    metadata: {'e\u0301': {'line\r': 'CR\r', 'line\n': 'LF\n'}, 'é': 'CRLF\r\n'}});
+});

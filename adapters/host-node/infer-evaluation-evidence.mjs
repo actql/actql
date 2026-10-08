@@ -1,7 +1,10 @@
 // Optional projection of existing, Store-confirmed INFER originals. This
 // adapter never dispatches, restores, authorizes a call or changes Run state.
 import {createHash} from 'node:crypto';
-import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
+
+// Evidence contains opaque data keys, not configuration member names.
+const canonicalJson = value => sdkCanonicalJson(value, {dataKeys: true});
 
 const cid = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
 const missing = reason => Object.freeze({status: 'incomplete', reason});

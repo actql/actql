@@ -1,7 +1,9 @@
 // Example envelope, not an ArtifactRef or an execution-completion receipt.
 // Retrieval adapters retain each original reference's own authority contract.
 import {createHash} from 'node:crypto';
-import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
+
+const canonicalJson = value => sdkCanonicalJson(value, {dataKeys: true});
 
 export const evidenceParts = Object.freeze(['typedInput', 'typedOutput',
   'renderedInput', 'contextManifest', 'validation']);

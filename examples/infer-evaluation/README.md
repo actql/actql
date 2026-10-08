@@ -14,6 +14,10 @@ discriminates `model_capture`, `result_delivery`, and an actual existing
 Other kinds require their existing authorized Result/delivery or Store resolver;
 they are never disguised as captures. Unknown provenance is preserved.
 
+Opaque data values and their member names use the existing SDK canonical
+JSON option `dataKeys: true`. Composed/decomposed Unicode and CR/LF/CRLF keys
+and nested strings remain distinct. Configuration identity rules are unchanged.
+
 The Host projects one source-free, explicitly named, successfully captured INFER
 with one item. It copies existing typed schema/input, the exact physical-port
 rendering and known context, validated response and original common capture

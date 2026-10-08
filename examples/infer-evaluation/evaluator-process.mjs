@@ -2,8 +2,10 @@
 // provider credential or automatic execution retry is supplied to the child.
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checkResolvedEvidence} from './evidence-reference.mjs';
+
+const canonicalJson = value => sdkCanonicalJson(value, {dataKeys: true});
 
 const fail = code => Object.assign(new Error(code), {code});
 const evaluator = fileURLToPath(new URL('./evaluator-worker.mjs', import.meta.url));

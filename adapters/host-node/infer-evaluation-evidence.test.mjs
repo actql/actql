@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {configureInferEvidence, projectInferEvidence} from './infer-evaluation-evidence.mjs';
 
-function fixture({authorize = () => true, capture = async () => ({status: 'complete', references: {}}), releaseFails = false, maxBytes = 4096} = {}) {
+function fixture({authorize = () => true, capture = async () => ({status: 'complete', references: {}}), releaseFails = false, maxBytes = 4096,
+  structuredResponse = {risk: 'high'}} = {}) {
   const trace = [], retained = [], manifests = [];
-  const record = {model_call_slot_cid: 'slot', semantic_request_cid: 'request', structured_response: {risk: 'high'},
+  const record = {model_call_slot_cid: 'slot', semantic_request_cid: 'request', structured_response: structuredResponse,
     evidence: {model_call_slot_cid: 'slot', model_task_contract_cid: 'task', validated_structured_output_cid: 'output'}};
   const config = configureInferEvidence({target: 'named', destination: 'local:evaluator', maxBytes, authorize,
     sink: {capture: async input => {trace.push('copy handed to sink'); return capture(input);}, record: async input => manifests.push(input)}});
@@ -26,6 +27,18 @@ test('optional projection reserves before serialization and returns copy capacit
   assert.deepEqual(f.trace, ['reserved', 'serialize', 'copy handed to sink', 'release']);
   assert.equal(f.manifests[0].manifest.status, 'complete');
   assert.equal(f.retained[0].cleanupPending(), false);
+});
+
+test('typed output preserves distinct decomposed/composed and CR/LF data member names', async () => {
+  const original = {'e\u0301': {'line\r': 'CR\r', 'line\n': 'LF\n'}, 'é': 'CRLF\r\n'};
+  let copied;
+  const f = fixture({structuredResponse: original, capture: async ({wires}) => {
+    copied = JSON.parse(wires.typedOutput).value;
+    return {status: 'complete', references: {}};
+  }});
+  await projectInferEvidence(f.facts);
+  assert.equal(f.manifests[0].manifest.status, 'complete');
+  assert.deepEqual(copied, {'e\u0301': {'line\r': 'CR\r', 'line\n': 'LF\n'}, 'é': 'CRLF\r\n'});
 });
 
 test('optional sink failure reports missing Evidence and releases its bounded copy', async () => {

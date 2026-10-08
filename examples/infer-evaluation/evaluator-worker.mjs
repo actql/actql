@@ -1,8 +1,9 @@
 // A deterministic external rubric proves the Evidence connection, not real
 // model quality improvement. Labels arrive here, never in provider inputs.
 import {createHash} from 'node:crypto';
-import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checkResolvedEvidence, checkModelCaptureCorrespondence} from './evidence-reference.mjs';
+const canonicalJson = value => sdkCanonicalJson(value, {dataKeys: true});
 const cid = value => `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
 const fail = code => {throw Object.assign(new Error(code), {code});};
 let size = 0;
