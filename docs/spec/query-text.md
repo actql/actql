@@ -160,6 +160,18 @@ or line-ending normalization is implicit. The STRING overload is connected;
 BYTES and explicit collation remain separate coverage gaps. The scalar function
 is independent of the SELECT star REPLACE clause described above.
 
+For `ARRAY_AGG` and `STRING_AGG` with DISTINCT and aggregate-local ORDER BY,
+each ordering expression must denote the aggregate argument in the same input
+scope. This follows the selected [GoogleSQL aggregate-call rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate-function-calls).
+Qualification, grouping parentheses, quotation and equivalent static property
+access preserve the resolved receiver. A current Pipe column and an older range
+snapshot are different values after SET. The Frontend does not drop DISTINCT,
+replace the requested order or add another argument to admit a mismatched key.
+Non-DISTINCT collection calls retain their independently authored ordering.
+Broader computed aggregate order expressions remain an unconnected profile;
+they are not made invalid by this rule. Machine Program aggregate contracts
+retain their existing meaning.
+
 In the implemented inline `OVER` profile, `PARTITION BY` accepts ordinary
 row-dependent expressions, including comparisons, CASE and supported scalar
 calls. The ordinary expression parser retains each key's source origin and

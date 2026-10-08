@@ -878,8 +878,16 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('b6830c1efdd87ed4ba755a3416c8430f583f5cafc88e2411d62f7aebf0e96d68'),
     cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('94b776cf38c8c8468d1b2a2c51b53dea2950a0799f37e83497ecc348bbedae88'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the original DISTINCT aggregate ORDER vector with its fixed dependency generation.
+  assert.equal(vector(pin('9ac12fc761a195c9ad3943da462c356b87f125ddcf42b961dd0f6b41c9e557a1'),
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('cc2b7721096b7a8c6601dd68b8737809d053e5a3f0cd50955a7fa3a8569e8aeb'));
+  // Preserve the independently reviewed adopted main grammar and Run preimage.
+  assert.equal(vector(pin('dd0cf33c4527b25af461f42a4f4bd057dcdfa4b50ae017bb92155690b5a5ac73'),
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('3f22e96d512f36bde8dde361640530ce5a749fb68dc15396faa32cf60bd2a89b'));
+  assert.equal(current.run.run_definition_cid,
+    pin('093170ff7e898c3ef58a1fd5d3930222b06aafd64bda70ab62f311d1b9ac56df'));
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
