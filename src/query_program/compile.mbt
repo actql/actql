@@ -1222,10 +1222,12 @@ fn lower_aggregate_resolved(
   ]
   match call.argument {
     Some(argument) => {
-      let root = @query.expression_node(
-        argument,
-        @query.expression_root(argument),
-      ).unwrap()
+      let mut root_index = @query.expression_root(argument)
+      while @query.expression_node(argument, root_index).unwrap().kind
+            is Parenthesized(child) {
+        root_index = child
+      }
+      let root = @query.expression_node(argument, root_index).unwrap()
       let field = if conditional_count {
         None
       } else {
@@ -2515,21 +2517,24 @@ fn compile_steps(
               call.distinct &&
               call.order_by.length() == 1 =>
               match call.argument {
-                Some(argument) if same_expression(
+                Some(argument) if aggregate_order_matches_argument(
                     argument,
                     call.order_by[0].expression,
+                    path => resolve_column(path, query, input, active_fields),
                   ) => {
-                  let root = @query.expression_node(
-                    argument,
-                    @query.expression_root(argument),
-                  ).unwrap()
+                  let mut root_index = @query.expression_root(argument)
+                  while @query.expression_node(argument, root_index).unwrap().kind
+                        is Parenthesized(child) {
+                    root_index = child
+                  }
+                  let root = @query.expression_node(argument, root_index).unwrap()
                   match root.kind {
-                    Reference(path) => {
-                      let field = match
-                        resolve_column(path, query, input, active_fields) {
-                        Some(field) => field
-                        None => raise Abort(UnknownColumn)
-                      }
+                    // This key is established only for a complete input column.
+                    // Static members retain ordinary property/order checking.
+                    Reference(path) if resolve_column(
+                        path, query, input, active_fields,
+                      )
+                      is Some(field) => {
                       let selected = entries.copy()
                       entries.clear()
                       selected.push(
