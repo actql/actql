@@ -1,0 +1,3523 @@
+{
+  "origin": {
+    "revision": "06baf2324007b7b98105cc20aefef430efe29386",
+    "binaryDigest": "sha256:da0e0b5105c9ab29dd9339ddc6f598add5c7345c1c43e56a3723b626ae08f3b4",
+    "scope": "actual local Native fixture; failed task-file release followed by confirmed Owner retry"
+  },
+  "events": [
+    {
+      "phase": "task",
+      "task": 1,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 99392,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "environment",
+      "task": 1,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 99398,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "environment",
+      "task": 1,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 106610,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "import",
+      "task": 1,
+      "producer": 0,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 106624,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "import",
+      "task": 1,
+      "producer": 0,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 116428,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "compute",
+      "task": 1,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 116429,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "compute",
+      "task": 1,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 149967,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task",
+      "task": 1,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 149986,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task",
+      "task": 2,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 153181,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "compute",
+      "task": 2,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 153190,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "compute",
+      "task": 2,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 185007,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task",
+      "task": 2,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 185026,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task",
+      "task": 3,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 187137,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "compute",
+      "task": 3,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 187143,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "compute",
+      "task": 3,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 218901,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task",
+      "task": 3,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 218930,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "environment-close",
+      "task": 0,
+      "producer": 0,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 275937,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "environment-close",
+      "task": 0,
+      "producer": 0,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 276560,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 3,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 276561,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 3,
+      "producer": null,
+      "boundary": "end",
+      "success": false,
+      "elapsedMicroseconds": 276571,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 2,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 276571,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 2,
+      "producer": null,
+      "boundary": "end",
+      "success": false,
+      "elapsedMicroseconds": 276575,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 1,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 276575,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 1,
+      "producer": null,
+      "boundary": "end",
+      "success": false,
+      "elapsedMicroseconds": 276578,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "environment-release",
+      "task": 0,
+      "producer": 0,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 276579,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "environment-release",
+      "task": 0,
+      "producer": 0,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 276583,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 3,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 276624,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 3,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 276813,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 2,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 276813,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 2,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 276958,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 1,
+      "producer": null,
+      "boundary": "begin",
+      "success": null,
+      "elapsedMicroseconds": 276959,
+      "observerMicroseconds": 0
+    },
+    {
+      "phase": "task-release",
+      "task": 1,
+      "producer": null,
+      "boundary": "end",
+      "success": true,
+      "elapsedMicroseconds": 277090,
+      "observerMicroseconds": 0
+    }
+  ],
+  "ownerCorrespondence": {
+    "scope": "successful tasks and explicit Run close",
+    "attempts": [
+      {
+        "task": 1,
+        "compute": 1,
+        "environments": 1,
+        "imports": 1,
+        "canonicalRowsBytes": 1047891,
+        "retainedChargeBytes": 26728403,
+        "selectedRetentionBoundBytes": "27728512",
+        "physicalAttempts": 3
+      },
+      {
+        "task": 2,
+        "compute": 1,
+        "environments": 0,
+        "imports": 0,
+        "canonicalRowsBytes": 1047891,
+        "retainedChargeBytes": 26728403,
+        "selectedRetentionBoundBytes": "27728512",
+        "physicalAttempts": 1
+      },
+      {
+        "task": 3,
+        "compute": 1,
+        "environments": 0,
+        "imports": 0,
+        "canonicalRowsBytes": 1047891,
+        "retainedChargeBytes": 26728403,
+        "selectedRetentionBoundBytes": "27728512",
+        "physicalAttempts": 1
+      }
+    ],
+    "observations": {
+      "owners": [
+        {
+          "boundary": "before-task",
+          "task": 1,
+          "planningWork": 414,
+          "attempts": 0,
+          "holdings": 0,
+          "heldBytes": 0,
+          "reservedExecutionBytes": 0,
+          "reservedRetentionBytes": 0,
+          "reservedTransferBytes": 0,
+          "uncertainTransferBytes": 0,
+          "environments": 0,
+          "imports": 0,
+          "borrowedInputs": 0,
+          "importedRows": 0,
+          "unconfirmedEnvironments": 0,
+          "importScratchBytes": 0,
+          "taskDemandBytes": 0,
+          "temporaryViews": 0,
+          "tables": 0
+        },
+        {
+          "boundary": "after-task",
+          "task": 1,
+          "planningWork": 1013,
+          "attempts": 3,
+          "holdings": 1,
+          "heldBytes": 26728403,
+          "reservedExecutionBytes": 2147483648,
+          "reservedRetentionBytes": 0,
+          "reservedTransferBytes": 0,
+          "uncertainTransferBytes": 0,
+          "environments": 1,
+          "imports": 1,
+          "borrowedInputs": 0,
+          "importedRows": 1000,
+          "unconfirmedEnvironments": 0,
+          "importScratchBytes": 1774688,
+          "taskDemandBytes": 2273458720,
+          "temporaryViews": 0,
+          "tables": 2
+        },
+        {
+          "boundary": "before-task",
+          "task": 2,
+          "planningWork": 1013,
+          "attempts": 3,
+          "holdings": 1,
+          "heldBytes": 26728403,
+          "reservedExecutionBytes": 2147483648,
+          "reservedRetentionBytes": 0,
+          "reservedTransferBytes": 0,
+          "uncertainTransferBytes": 0,
+          "environments": 1,
+          "imports": 1,
+          "borrowedInputs": 0,
+          "importedRows": 1000,
+          "unconfirmedEnvironments": 0,
+          "importScratchBytes": 1774688,
+          "taskDemandBytes": 2273458720,
+          "temporaryViews": 0,
+          "tables": 2
+        },
+        {
+          "boundary": "after-task",
+          "task": 2,
+          "planningWork": 1331,
+          "attempts": 4,
+          "holdings": 2,
+          "heldBytes": 53456806,
+          "reservedExecutionBytes": 2147483648,
+          "reservedRetentionBytes": 0,
+          "reservedTransferBytes": 0,
+          "uncertainTransferBytes": 0,
+          "environments": 1,
+          "imports": 1,
+          "borrowedInputs": 1,
+          "importedRows": 1000,
+          "unconfirmedEnvironments": 0,
+          "importScratchBytes": 1774688,
+          "taskDemandBytes": 2273458720,
+          "temporaryViews": 0,
+          "tables": 2
+        },
+        {
+          "boundary": "before-task",
+          "task": 3,
+          "planningWork": 1331,
+          "attempts": 4,
+          "holdings": 2,
+          "heldBytes": 53456806,
+          "reservedExecutionBytes": 2147483648,
+          "reservedRetentionBytes": 0,
+          "reservedTransferBytes": 0,
+          "uncertainTransferBytes": 0,
+          "environments": 1,
+          "imports": 1,
+          "borrowedInputs": 1,
+          "importedRows": 1000,
+          "unconfirmedEnvironments": 0,
+          "importScratchBytes": 1774688,
+          "taskDemandBytes": 2273458720,
+          "temporaryViews": 0,
+          "tables": 2
+        },
+        {
+          "boundary": "after-task",
+          "task": 3,
+          "planningWork": 1514,
+          "attempts": 5,
+          "holdings": 3,
+          "heldBytes": 80185209,
+          "reservedExecutionBytes": 2147483648,
+          "reservedRetentionBytes": 0,
+          "reservedTransferBytes": 0,
+          "uncertainTransferBytes": 0,
+          "environments": 1,
+          "imports": 1,
+          "borrowedInputs": 2,
+          "importedRows": 1000,
+          "unconfirmedEnvironments": 0,
+          "importScratchBytes": 1774688,
+          "taskDemandBytes": 2273458720,
+          "temporaryViews": 0,
+          "tables": 1
+        },
+        {
+          "boundary": "before-close",
+          "task": 3,
+          "planningWork": 1514,
+          "attempts": 5,
+          "holdings": 3,
+          "heldBytes": 80185209,
+          "reservedExecutionBytes": 2147483648,
+          "reservedRetentionBytes": 0,
+          "reservedTransferBytes": 0,
+          "uncertainTransferBytes": 0,
+          "environments": 1,
+          "imports": 1,
+          "borrowedInputs": 2,
+          "importedRows": 1000,
+          "unconfirmedEnvironments": 0,
+          "importScratchBytes": 1774688,
+          "taskDemandBytes": 2273458720,
+          "temporaryViews": 0,
+          "tables": 1
+        },
+        {
+          "boundary": "after-close",
+          "task": 3,
+          "planningWork": 1514,
+          "attempts": 5,
+          "holdings": 3,
+          "heldBytes": 0,
+          "reservedExecutionBytes": 0,
+          "reservedRetentionBytes": 0,
+          "reservedTransferBytes": 0,
+          "uncertainTransferBytes": 0,
+          "environments": 1,
+          "imports": 1,
+          "borrowedInputs": 2,
+          "importedRows": 1000,
+          "unconfirmedEnvironments": 0,
+          "importScratchBytes": 1774688,
+          "taskDemandBytes": 2273458720,
+          "temporaryViews": 0,
+          "tables": 0
+        },
+        {
+          "boundary": "duplicate-close",
+          "task": 3,
+          "planningWork": 1514,
+          "attempts": 5,
+          "holdings": 3,
+          "heldBytes": 0,
+          "reservedExecutionBytes": 0,
+          "reservedRetentionBytes": 0,
+          "reservedTransferBytes": 0,
+          "uncertainTransferBytes": 0,
+          "environments": 1,
+          "imports": 1,
+          "borrowedInputs": 2,
+          "importedRows": 1000,
+          "unconfirmedEnvironments": 0,
+          "importScratchBytes": 1774688,
+          "taskDemandBytes": 2273458720,
+          "temporaryViews": 0,
+          "tables": 0
+        }
+      ],
+      "candidates": [
+        {
+          "task": 1,
+          "body": [
+            "actql-policy-candidates/0.1",
+            "sha256:8d47231f8089b2fabfd1806e53f555394af3dd83393edb2f9accc32cc1f0ffe2",
+            0,
+            1,
+            true,
+            [
+              [
+                0,
+                "3003",
+                "21528576",
+                "83185536",
+                "4294967296",
+                [
+                  null,
+                  [
+                    1,
+                    "duckdb",
+                    "1001",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "0",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1000"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    null
+                  ],
+                  [
+                    2,
+                    "duckdb",
+                    "1001",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "0",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1000"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    null
+                  ],
+                  [
+                    3,
+                    "duckdb",
+                    "1001",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "0",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1000"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    null
+                  ]
+                ]
+              ],
+              [
+                7,
+                "9",
+                "28704768",
+                "83185536",
+                "4294967296",
+                [
+                  null,
+                  [
+                    1,
+                    "duckdb",
+                    "2",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "5336576",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    [
+                      "2147483648",
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      [
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    2,
+                    "duckdb",
+                    "2",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "5336576",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    [
+                      "2147483648",
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      [
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    3,
+                    "duckdb",
+                    "2",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "5336576",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    [
+                      "2147483648",
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      [
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "task": 2,
+          "body": [
+            "actql-policy-candidates/0.1",
+            "sha256:8d47231f8089b2fabfd1806e53f555394af3dd83393edb2f9accc32cc1f0ffe2",
+            3,
+            2,
+            true,
+            [
+              [
+                3,
+                "5",
+                "14352384",
+                "55457024",
+                "2147483648",
+                [
+                  null,
+                  [
+                    1,
+                    "duckdb",
+                    "2",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "5336576",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    [
+                      "2147483648",
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      [
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    2,
+                    "duckdb",
+                    "2",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "5336576",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    [
+                      "2147483648",
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      [
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    3,
+                    "duckdb",
+                    "2",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "5336576",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    [
+                      "2147483648",
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      [
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        },
+        {
+          "task": 3,
+          "body": [
+            "actql-policy-candidates/0.1",
+            "sha256:8d47231f8089b2fabfd1806e53f555394af3dd83393edb2f9accc32cc1f0ffe2",
+            5,
+            3,
+            true,
+            [
+              [
+                1,
+                "3",
+                "7176192",
+                "27728512",
+                "2147483648",
+                [
+                  null,
+                  [
+                    1,
+                    "duckdb",
+                    "2",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "5336576",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    [
+                      "2147483648",
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      [
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    2,
+                    "duckdb",
+                    "2",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "5336576",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    [
+                      "2147483648",
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      [
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    3,
+                    "duckdb",
+                    "2",
+                    9,
+                    "7176192",
+                    "27728512",
+                    "4294967296",
+                    "5336576",
+                    [
+                      [
+                        [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "1"
+                      ],
+                      [
+                        [
+                          8
+                        ],
+                        "1"
+                      ]
+                    ],
+                    [
+                      "2147483648",
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "required_slots": 1,
+                        "lines": [
+                          {
+                            "slots": [
+                              0
+                            ],
+                            "milliseconds": "1"
+                          }
+                        ]
+                      },
+                      [
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ],
+                        [
+                          {
+                            "required_slots": 1,
+                            "lines": [
+                              {
+                                "slots": [
+                                  0
+                                ],
+                                "milliseconds": "1"
+                              }
+                            ]
+                          },
+                          "7176192",
+                          "34971200",
+                          "5336576"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "task": 1,
+          "position": 7,
+          "source": "ExternalPolicy",
+          "policy": {
+            "policy_id": "local-empirical-policy",
+            "revision": "local-run-caller-elapsed-median/0.1",
+            "request_id": "benchmark-task-1",
+            "explanation": "experiment-forced-position; objective=run-caller-elapsed; profile=unmeasured"
+          },
+          "revision": 1,
+          "registration": "duckdb",
+          "name": "duckdb",
+          "resident": true
+        },
+        {
+          "task": 2,
+          "position": 3,
+          "source": "ExternalPolicy",
+          "policy": {
+            "policy_id": "local-empirical-policy",
+            "revision": "local-run-caller-elapsed-median/0.1",
+            "request_id": "benchmark-task-2",
+            "explanation": "current-snapshot-residual-assignment; objective=run-caller-elapsed; profile=unmeasured"
+          },
+          "revision": 2,
+          "registration": "duckdb",
+          "name": "duckdb",
+          "resident": true
+        },
+        {
+          "task": 3,
+          "position": 1,
+          "source": "ExternalPolicy",
+          "policy": {
+            "policy_id": "local-empirical-policy",
+            "revision": "local-run-caller-elapsed-median/0.1",
+            "request_id": "benchmark-task-3",
+            "explanation": "current-snapshot-residual-assignment; objective=run-caller-elapsed; profile=unmeasured"
+          },
+          "revision": 3,
+          "registration": "duckdb",
+          "name": "duckdb",
+          "resident": true
+        }
+      ],
+      "explanations": [
+        {
+          "task": 1,
+          "body": {
+            "excluded_realizations": [],
+            "kind": "host-private-strategy-explanation/0.1",
+            "program_success": false,
+            "ledger": {
+              "planning_work": "1001",
+              "attempts": "0",
+              "holdings": "0",
+              "transferred_bytes": "0",
+              "uncertain_transfer_bytes": "0",
+              "reserved_transfer_bytes": "0",
+              "held_bytes": "0",
+              "reserved_retention_bytes": "0",
+              "reserved_execution_bytes": "0",
+              "peak_retention_bytes": "0"
+            },
+            "available_root_statistics": {
+              "rows": "1000",
+              "canonical_wire_bytes": "1047891"
+            },
+            "selection_state": "selected",
+            "selection": {
+              "dispatch_authorized": true,
+              "revision": 1,
+              "reason": "external_policy",
+              "policy": {
+                "policy_id": "local-empirical-policy",
+                "revision": "local-run-caller-elapsed-median/0.1",
+                "request_id": "benchmark-task-1",
+                "explanation": "experiment-forced-position; objective=run-caller-elapsed; profile=unmeasured"
+              },
+              "remaining_at_selection": {
+                "position": 7,
+                "estimated_milliseconds": "9",
+                "transfer_bytes": "28704768",
+                "retained_bytes": "83185536",
+                "execution_bytes": "4294967296",
+                "rejection": null
+              },
+              "ledger_at_selection": {
+                "planning_work": "638",
+                "attempts": "0",
+                "holdings": "0",
+                "transferred_bytes": "0",
+                "uncertain_transfer_bytes": "0",
+                "reserved_transfer_bytes": "0",
+                "held_bytes": "0",
+                "reserved_retention_bytes": "0",
+                "reserved_execution_bytes": "0",
+                "peak_retention_bytes": "0"
+              },
+              "tasks": [
+                {
+                  "task": 1,
+                  "completed": false,
+                  "capability": "duckdb",
+                  "estimated_milliseconds": "2",
+                  "resident_profile": {
+                    "database_bytes": "2147483648",
+                    "preparation_milliseconds": "1",
+                    "preparation_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "cleanup_milliseconds": "1",
+                    "cleanup_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "import_envelopes_by_producer": [
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      }
+                    ]
+                  },
+                  "required_work_slots": 9,
+                  "work_estimates": [
+                    {
+                      "slots": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "milliseconds": "1"
+                    },
+                    {
+                      "slots": [
+                        8
+                      ],
+                      "milliseconds": "1"
+                    }
+                  ],
+                  "capacity": {
+                    "transfer_bytes": "7176192",
+                    "retained_bytes": "27728512",
+                    "execution_bytes": "4294967296"
+                  }
+                },
+                {
+                  "task": 2,
+                  "completed": false,
+                  "capability": "duckdb",
+                  "estimated_milliseconds": "2",
+                  "resident_profile": {
+                    "database_bytes": "2147483648",
+                    "preparation_milliseconds": "1",
+                    "preparation_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "cleanup_milliseconds": "1",
+                    "cleanup_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "import_envelopes_by_producer": [
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      }
+                    ]
+                  },
+                  "required_work_slots": 9,
+                  "work_estimates": [
+                    {
+                      "slots": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "milliseconds": "1"
+                    },
+                    {
+                      "slots": [
+                        8
+                      ],
+                      "milliseconds": "1"
+                    }
+                  ],
+                  "capacity": {
+                    "transfer_bytes": "7176192",
+                    "retained_bytes": "27728512",
+                    "execution_bytes": "4294967296"
+                  }
+                },
+                {
+                  "task": 3,
+                  "completed": false,
+                  "capability": "duckdb",
+                  "estimated_milliseconds": "2",
+                  "resident_profile": {
+                    "database_bytes": "2147483648",
+                    "preparation_milliseconds": "1",
+                    "preparation_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "cleanup_milliseconds": "1",
+                    "cleanup_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "import_envelopes_by_producer": [
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      }
+                    ]
+                  },
+                  "required_work_slots": 9,
+                  "work_estimates": [
+                    {
+                      "slots": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "milliseconds": "1"
+                    },
+                    {
+                      "slots": [
+                        8
+                      ],
+                      "milliseconds": "1"
+                    }
+                  ],
+                  "capacity": {
+                    "transfer_bytes": "7176192",
+                    "retained_bytes": "27728512",
+                    "execution_bytes": "4294967296"
+                  }
+                }
+              ]
+            },
+            "assessed_strategies": [
+              {
+                "position": 0,
+                "estimated_milliseconds": "3003",
+                "transfer_bytes": "21528576",
+                "retained_bytes": "83185536",
+                "execution_bytes": "4294967296",
+                "rejection": null
+              },
+              {
+                "position": 1,
+                "estimated_milliseconds": "2007",
+                "transfer_bytes": "28704768",
+                "retained_bytes": "83185536",
+                "execution_bytes": "6442450944",
+                "rejection": "execution_limit"
+              },
+              {
+                "position": 2,
+                "estimated_milliseconds": "2007",
+                "transfer_bytes": "28704768",
+                "retained_bytes": "83185536",
+                "execution_bytes": "6442450944",
+                "rejection": "execution_limit"
+              },
+              {
+                "position": 3,
+                "estimated_milliseconds": "1009",
+                "transfer_bytes": "35880960",
+                "retained_bytes": "83185536",
+                "execution_bytes": "6442450944",
+                "rejection": "transfer_limit"
+              },
+              {
+                "position": 4,
+                "estimated_milliseconds": "2007",
+                "transfer_bytes": "28704768",
+                "retained_bytes": "83185536",
+                "execution_bytes": "6442450944",
+                "rejection": "execution_limit"
+              },
+              {
+                "position": 5,
+                "estimated_milliseconds": "1008",
+                "transfer_bytes": "28704768",
+                "retained_bytes": "83185536",
+                "execution_bytes": "6442450944",
+                "rejection": "execution_limit"
+              },
+              {
+                "position": 6,
+                "estimated_milliseconds": "1008",
+                "transfer_bytes": "28704768",
+                "retained_bytes": "83185536",
+                "execution_bytes": "6442450944",
+                "rejection": "execution_limit"
+              },
+              {
+                "position": 7,
+                "estimated_milliseconds": "9",
+                "transfer_bytes": "28704768",
+                "retained_bytes": "83185536",
+                "execution_bytes": "4294967296",
+                "rejection": null
+              }
+            ],
+            "assessment_complete": true,
+            "assessment_revision": 1
+          }
+        },
+        {
+          "task": 2,
+          "body": {
+            "excluded_realizations": [],
+            "kind": "host-private-strategy-explanation/0.1",
+            "program_success": false,
+            "ledger": {
+              "planning_work": "1322",
+              "attempts": "3",
+              "holdings": "1",
+              "transferred_bytes": "0",
+              "uncertain_transfer_bytes": "0",
+              "reserved_transfer_bytes": "0",
+              "held_bytes": "26728403",
+              "reserved_retention_bytes": "0",
+              "reserved_execution_bytes": "2147483648",
+              "peak_retention_bytes": "27728512"
+            },
+            "available_root_statistics": {
+              "rows": "1000",
+              "canonical_wire_bytes": "1047891"
+            },
+            "selection_state": "selected",
+            "selection": {
+              "dispatch_authorized": true,
+              "revision": 2,
+              "reason": "external_policy",
+              "policy": {
+                "policy_id": "local-empirical-policy",
+                "revision": "local-run-caller-elapsed-median/0.1",
+                "request_id": "benchmark-task-2",
+                "explanation": "current-snapshot-residual-assignment; objective=run-caller-elapsed; profile=unmeasured"
+              },
+              "remaining_at_selection": {
+                "position": 3,
+                "estimated_milliseconds": "5",
+                "transfer_bytes": "14352384",
+                "retained_bytes": "55457024",
+                "execution_bytes": "2147483648",
+                "rejection": null
+              },
+              "ledger_at_selection": {
+                "planning_work": "1195",
+                "attempts": "3",
+                "holdings": "1",
+                "transferred_bytes": "0",
+                "uncertain_transfer_bytes": "0",
+                "reserved_transfer_bytes": "0",
+                "held_bytes": "26728403",
+                "reserved_retention_bytes": "0",
+                "reserved_execution_bytes": "2147483648",
+                "peak_retention_bytes": "27728512"
+              },
+              "tasks": [
+                {
+                  "task": 1,
+                  "completed": true,
+                  "capability": "duckdb",
+                  "estimated_milliseconds": "2",
+                  "resident_profile": {
+                    "database_bytes": "2147483648",
+                    "preparation_milliseconds": "1",
+                    "preparation_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "cleanup_milliseconds": "1",
+                    "cleanup_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "import_envelopes_by_producer": [
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      }
+                    ]
+                  },
+                  "required_work_slots": 9,
+                  "work_estimates": [
+                    {
+                      "slots": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "milliseconds": "1"
+                    },
+                    {
+                      "slots": [
+                        8
+                      ],
+                      "milliseconds": "1"
+                    }
+                  ],
+                  "capacity": {
+                    "transfer_bytes": "7176192",
+                    "retained_bytes": "27728512",
+                    "execution_bytes": "4294967296"
+                  }
+                },
+                {
+                  "task": 2,
+                  "completed": false,
+                  "capability": "duckdb",
+                  "estimated_milliseconds": "2",
+                  "resident_profile": {
+                    "database_bytes": "2147483648",
+                    "preparation_milliseconds": "1",
+                    "preparation_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "cleanup_milliseconds": "1",
+                    "cleanup_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "import_envelopes_by_producer": [
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      }
+                    ]
+                  },
+                  "required_work_slots": 9,
+                  "work_estimates": [
+                    {
+                      "slots": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "milliseconds": "1"
+                    },
+                    {
+                      "slots": [
+                        8
+                      ],
+                      "milliseconds": "1"
+                    }
+                  ],
+                  "capacity": {
+                    "transfer_bytes": "7176192",
+                    "retained_bytes": "27728512",
+                    "execution_bytes": "4294967296"
+                  }
+                },
+                {
+                  "task": 3,
+                  "completed": false,
+                  "capability": "duckdb",
+                  "estimated_milliseconds": "2",
+                  "resident_profile": {
+                    "database_bytes": "2147483648",
+                    "preparation_milliseconds": "1",
+                    "preparation_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "cleanup_milliseconds": "1",
+                    "cleanup_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "import_envelopes_by_producer": [
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      }
+                    ]
+                  },
+                  "required_work_slots": 9,
+                  "work_estimates": [
+                    {
+                      "slots": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "milliseconds": "1"
+                    },
+                    {
+                      "slots": [
+                        8
+                      ],
+                      "milliseconds": "1"
+                    }
+                  ],
+                  "capacity": {
+                    "transfer_bytes": "7176192",
+                    "retained_bytes": "27728512",
+                    "execution_bytes": "4294967296"
+                  }
+                }
+              ]
+            },
+            "assessed_strategies": [
+              {
+                "position": 0,
+                "estimated_milliseconds": "2003",
+                "transfer_bytes": "14352384",
+                "retained_bytes": "55457024",
+                "execution_bytes": "4294967296",
+                "rejection": "execution_limit"
+              },
+              {
+                "position": 1,
+                "estimated_milliseconds": "1004",
+                "transfer_bytes": "14352384",
+                "retained_bytes": "55457024",
+                "execution_bytes": "4294967296",
+                "rejection": "execution_limit"
+              },
+              {
+                "position": 2,
+                "estimated_milliseconds": "1004",
+                "transfer_bytes": "14352384",
+                "retained_bytes": "55457024",
+                "execution_bytes": "4294967296",
+                "rejection": "execution_limit"
+              },
+              {
+                "position": 3,
+                "estimated_milliseconds": "5",
+                "transfer_bytes": "14352384",
+                "retained_bytes": "55457024",
+                "execution_bytes": "2147483648",
+                "rejection": null
+              }
+            ],
+            "assessment_complete": true,
+            "assessment_revision": 2
+          }
+        },
+        {
+          "task": 3,
+          "body": {
+            "excluded_realizations": [],
+            "kind": "host-private-strategy-explanation/0.1",
+            "program_success": false,
+            "ledger": {
+              "planning_work": "1505",
+              "attempts": "4",
+              "holdings": "2",
+              "transferred_bytes": "0",
+              "uncertain_transfer_bytes": "0",
+              "reserved_transfer_bytes": "0",
+              "held_bytes": "53456806",
+              "reserved_retention_bytes": "0",
+              "reserved_execution_bytes": "2147483648",
+              "peak_retention_bytes": "54456915"
+            },
+            "available_root_statistics": {
+              "rows": "1000",
+              "canonical_wire_bytes": "1047891"
+            },
+            "selection_state": "selected",
+            "selection": {
+              "dispatch_authorized": true,
+              "revision": 3,
+              "reason": "external_policy",
+              "policy": {
+                "policy_id": "local-empirical-policy",
+                "revision": "local-run-caller-elapsed-median/0.1",
+                "request_id": "benchmark-task-3",
+                "explanation": "current-snapshot-residual-assignment; objective=run-caller-elapsed; profile=unmeasured"
+              },
+              "remaining_at_selection": {
+                "position": 1,
+                "estimated_milliseconds": "3",
+                "transfer_bytes": "7176192",
+                "retained_bytes": "27728512",
+                "execution_bytes": "2147483648",
+                "rejection": null
+              },
+              "ledger_at_selection": {
+                "planning_work": "1471",
+                "attempts": "4",
+                "holdings": "2",
+                "transferred_bytes": "0",
+                "uncertain_transfer_bytes": "0",
+                "reserved_transfer_bytes": "0",
+                "held_bytes": "53456806",
+                "reserved_retention_bytes": "0",
+                "reserved_execution_bytes": "2147483648",
+                "peak_retention_bytes": "54456915"
+              },
+              "tasks": [
+                {
+                  "task": 1,
+                  "completed": true,
+                  "capability": "duckdb",
+                  "estimated_milliseconds": "2",
+                  "resident_profile": {
+                    "database_bytes": "2147483648",
+                    "preparation_milliseconds": "1",
+                    "preparation_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "cleanup_milliseconds": "1",
+                    "cleanup_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "import_envelopes_by_producer": [
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      }
+                    ]
+                  },
+                  "required_work_slots": 9,
+                  "work_estimates": [
+                    {
+                      "slots": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "milliseconds": "1"
+                    },
+                    {
+                      "slots": [
+                        8
+                      ],
+                      "milliseconds": "1"
+                    }
+                  ],
+                  "capacity": {
+                    "transfer_bytes": "7176192",
+                    "retained_bytes": "27728512",
+                    "execution_bytes": "4294967296"
+                  }
+                },
+                {
+                  "task": 2,
+                  "completed": true,
+                  "capability": "duckdb",
+                  "estimated_milliseconds": "2",
+                  "resident_profile": {
+                    "database_bytes": "2147483648",
+                    "preparation_milliseconds": "1",
+                    "preparation_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "cleanup_milliseconds": "1",
+                    "cleanup_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "import_envelopes_by_producer": [
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      }
+                    ]
+                  },
+                  "required_work_slots": 9,
+                  "work_estimates": [
+                    {
+                      "slots": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "milliseconds": "1"
+                    },
+                    {
+                      "slots": [
+                        8
+                      ],
+                      "milliseconds": "1"
+                    }
+                  ],
+                  "capacity": {
+                    "transfer_bytes": "7176192",
+                    "retained_bytes": "27728512",
+                    "execution_bytes": "4294967296"
+                  }
+                },
+                {
+                  "task": 3,
+                  "completed": false,
+                  "capability": "duckdb",
+                  "estimated_milliseconds": "2",
+                  "resident_profile": {
+                    "database_bytes": "2147483648",
+                    "preparation_milliseconds": "1",
+                    "preparation_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "cleanup_milliseconds": "1",
+                    "cleanup_work": {
+                      "required_slots": 1,
+                      "lines": [
+                        {
+                          "slots": [
+                            0
+                          ],
+                          "milliseconds": "1"
+                        }
+                      ]
+                    },
+                    "import_envelopes_by_producer": [
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      },
+                      {
+                        "milliseconds": "1",
+                        "work": {
+                          "required_slots": 1,
+                          "lines": [
+                            {
+                              "slots": [
+                                0
+                              ],
+                              "milliseconds": "1"
+                            }
+                          ]
+                        },
+                        "transfer_bytes": "7176192",
+                        "scratch_bytes": "34971200",
+                        "table_bytes": "5336576"
+                      }
+                    ]
+                  },
+                  "required_work_slots": 9,
+                  "work_estimates": [
+                    {
+                      "slots": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "milliseconds": "1"
+                    },
+                    {
+                      "slots": [
+                        8
+                      ],
+                      "milliseconds": "1"
+                    }
+                  ],
+                  "capacity": {
+                    "transfer_bytes": "7176192",
+                    "retained_bytes": "27728512",
+                    "execution_bytes": "4294967296"
+                  }
+                }
+              ]
+            },
+            "assessed_strategies": [
+              {
+                "position": 0,
+                "estimated_milliseconds": "1002",
+                "transfer_bytes": "7176192",
+                "retained_bytes": "27728512",
+                "execution_bytes": "4294967296",
+                "rejection": "execution_limit"
+              },
+              {
+                "position": 1,
+                "estimated_milliseconds": "3",
+                "transfer_bytes": "7176192",
+                "retained_bytes": "27728512",
+                "execution_bytes": "2147483648",
+                "rejection": null
+              }
+            ],
+            "assessment_complete": true,
+            "assessment_revision": 3
+          }
+        }
+      ],
+      "phases": [
+        {
+          "boundary": "application",
+          "elapsedMicroseconds": 246
+        },
+        {
+          "boundary": "library",
+          "elapsedMicroseconds": 11510
+        },
+        {
+          "boundary": "database",
+          "elapsedMicroseconds": 18292
+        },
+        {
+          "boundary": "acquisition-start",
+          "elapsedMicroseconds": 28170
+        },
+        {
+          "boundary": "acquisition-execute",
+          "elapsedMicroseconds": 28217
+        },
+        {
+          "boundary": "acquisition-output",
+          "elapsedMicroseconds": 88082
+        },
+        {
+          "boundary": "source",
+          "elapsedMicroseconds": 90008
+        },
+        {
+          "boundary": "capture",
+          "elapsedMicroseconds": 90043
+        },
+        {
+          "boundary": "dispatch",
+          "elapsedMicroseconds": 91528
+        },
+        {
+          "boundary": "strategy-open",
+          "elapsedMicroseconds": 91717
+        },
+        {
+          "boundary": "strategy-execute",
+          "elapsedMicroseconds": 91722
+        },
+        {
+          "boundary": "output-cid",
+          "elapsedMicroseconds": 222187
+        },
+        {
+          "boundary": "execution-end",
+          "elapsedMicroseconds": 275246
+        },
+        {
+          "boundary": "cleanup-end",
+          "elapsedMicroseconds": 277270
+        }
+      ],
+      "observerMicroseconds": [
+        15,
+        260,
+        197,
+        219,
+        195,
+        278,
+        623,
+        4,
+        2
+      ],
+      "acquisitionChoices": [
+        {
+          "host": "native",
+          "provided": [
+            "native"
+          ],
+          "registration": "duckdb",
+          "milliseconds": null,
+          "reason": "HostPreferred",
+          "transferBytes": null,
+          "retainedBytes": null,
+          "moneyUnits": null,
+          "receiverRetentionBytes": "256592512",
+          "receiverExecutionBytes": "152520448",
+          "capacityScope": "declared receiver, not physical heap"
+        }
+      ],
+      "plannerObserverTime": [
+        {
+          "task": 1,
+          "value": 1709
+        },
+        {
+          "task": 2,
+          "value": 841
+        },
+        {
+          "task": 3,
+          "value": 992
+        }
+      ],
+      "plannerObserverWork": [
+        {
+          "task": 1,
+          "value": 2
+        },
+        {
+          "task": 2,
+          "value": 1
+        },
+        {
+          "task": 3,
+          "value": 1
+        }
+      ]
+    },
+    "phaseIntervals": [
+      {
+        "boundary": "application",
+        "elapsedMicroseconds": 246,
+        "precedingIntervalMicroseconds": 246
+      },
+      {
+        "boundary": "library",
+        "elapsedMicroseconds": 11510,
+        "precedingIntervalMicroseconds": 11264
+      },
+      {
+        "boundary": "database",
+        "elapsedMicroseconds": 18292,
+        "precedingIntervalMicroseconds": 6782
+      },
+      {
+        "boundary": "acquisition-start",
+        "elapsedMicroseconds": 28170,
+        "precedingIntervalMicroseconds": 9878
+      },
+      {
+        "boundary": "acquisition-execute",
+        "elapsedMicroseconds": 28217,
+        "precedingIntervalMicroseconds": 47
+      },
+      {
+        "boundary": "acquisition-output",
+        "elapsedMicroseconds": 88082,
+        "precedingIntervalMicroseconds": 59865
+      },
+      {
+        "boundary": "source",
+        "elapsedMicroseconds": 90008,
+        "precedingIntervalMicroseconds": 1926
+      },
+      {
+        "boundary": "capture",
+        "elapsedMicroseconds": 90043,
+        "precedingIntervalMicroseconds": 35
+      },
+      {
+        "boundary": "dispatch",
+        "elapsedMicroseconds": 91528,
+        "precedingIntervalMicroseconds": 1485
+      },
+      {
+        "boundary": "strategy-open",
+        "elapsedMicroseconds": 91717,
+        "precedingIntervalMicroseconds": 189
+      },
+      {
+        "boundary": "strategy-execute",
+        "elapsedMicroseconds": 91722,
+        "precedingIntervalMicroseconds": 5
+      },
+      {
+        "boundary": "output-cid",
+        "elapsedMicroseconds": 222187,
+        "precedingIntervalMicroseconds": 130465
+      },
+      {
+        "boundary": "execution-end",
+        "elapsedMicroseconds": 275246,
+        "precedingIntervalMicroseconds": 53059
+      },
+      {
+        "boundary": "cleanup-end",
+        "elapsedMicroseconds": 277270,
+        "precedingIntervalMicroseconds": 2024
+      }
+    ],
+    "observerMicroseconds": 1793,
+    "plannerObserverMicroseconds": 3542,
+    "plannerObserverWork": 4,
+    "accounting": "cumulative owner counters, sealed holding bytes, live reservations",
+    "timing": "enclosing elapsed boundaries; nested task/observer intervals are not additive"
+  },
+  "taskIntervals": [
+    {
+      "task": 1,
+      "elapsedMicroseconds": 52654,
+      "elapsedMilliseconds": 52.654
+    },
+    {
+      "task": 2,
+      "elapsedMicroseconds": 32801,
+      "elapsedMilliseconds": 32.801
+    },
+    {
+      "task": 3,
+      "elapsedMicroseconds": 33005,
+      "elapsedMilliseconds": 33.005
+    }
+  ],
+  "cleanupMicroseconds": 2023
+}

@@ -97,9 +97,6 @@ fn PublicationRootPreparation::step(
         self.phase = ArtifactKinds(index + 1)
       }
     References => {
-      if inputs.definitions.is_empty() || inputs.artifacts.is_empty() {
-        return Err(EvidenceRoot(ChainEmptyInventory))
-      }
       if contract_string(inputs.run_definition, "invocation_template_cid") !=
         contract_string(inputs.invocation, "invocation_template_cid") {
         return Err(EvidenceRoot(ChainInvocationTemplateMismatch))

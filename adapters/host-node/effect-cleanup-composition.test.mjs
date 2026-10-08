@@ -7,6 +7,30 @@ import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
+test('Effect-only completed inventory retains the existing release owner without public payloads', async () => {
+  const {storeCompletedRunResultSet, releaseCompletedRunPreparedPayloads} =
+    await import('../host-common/completed-run-publication.mjs');
+  let exports = 0, retirements = 0;
+  const execution = {status: 'host-tasks-completed', resultInventory: [],
+    publicationInventory: {occurrences: []},
+    storePublicationResult() { exports++; assert.fail('No hidden public Relation'); }};
+  const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+  const {runtimeCore} = await import('../host-common/runtime-core.mjs');
+  const control = runtimeCore(moon).publicationControl;
+  const runDefinition = {name: 'run_definition', identity: cid('1'), wire: '{}'};
+  const storedResults = await storeCompletedRunResultSet({execution, store: {
+    async retireEffectCaptureCustody(definition) {
+      assert.equal(definition.identity, runDefinition.identity); retirements++;
+    }}, control,
+    runDefinition, invocation: {name: 'run_invocation', identity: cid('2'), wire: '{}'},
+    results: [], contractLimits: {}, outputLimits: {}});
+  assert.deepEqual(storedResults, {results: [], definitions: [], artifacts: []});
+  assert.equal(await releaseCompletedRunPreparedPayloads(storedResults, control), true);
+  assert.equal(await releaseCompletedRunPreparedPayloads(storedResults, control), false);
+  assert.equal(exports, 0);
+  assert.equal(retirements, 1);
+});
+
 async function readOwner(gates) {
   return effectTargetReadContinuation({
     checkpoints: {async inspectEffectTargetApprovals() { return []; },

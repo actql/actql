@@ -431,7 +431,7 @@ runtime. They lower to the common finite Run Graph contract. Every Program,
 including a single-stage Program, uses the explicit `stages` array.
 
 A Program has one nonempty finite `stages` array. Each stage has a unique
-nonempty `id`, `inputs`, `steps`, nonempty `results`, optional `from`, `effects`
+nonempty `id`, `inputs`, `steps`, a `results` map, optional `from`, `effects`
 and `meta`. Root `params` and `bindings` are declared once. Dataflow, Result and
 Effect names are stage-local. The root `results` map contains only exports
 `{from: {stage: StageId, result: ResultName}}`; it performs no computation or
@@ -771,15 +771,18 @@ The existence guarantee MUST participate in schema identity and retained schema
 storage. Row content identity MUST distinguish omitted keys from explicit NULL,
 without including physical presence bitmap/layout choices.
 
-<!-- requirement-block: value-contracts.relation-reference-presence value-contracts.relation-conditional-reference-rejection value-contracts.relation-filter-preservation value-contracts.relation-filter-complete-input-admission value-contracts.relation-unsupported-consumers -->
+<!-- requirement-block: value-contracts.relation-reference-presence value-contracts.relation-conditional-reference-rejection value-contracts.relation-drop-preservation-and-admission value-contracts.relation-filter-preservation value-contracts.relation-filter-complete-input-admission value-contracts.relation-unsupported-consumers -->
 In the initial presence profile, ordinary references and public Result columns
 MUST be schema-guaranteed present. Conditional references MUST fail during
 checking; sample values, an empty Relation and `IS NOT NULL` do not prove
 presence. Projection of guaranteed columns and filter/derive expressions that
 reference only guaranteed columns, Required-key sort, proven-order take and
 keyed DISTINCT over guaranteed columns, complete-row DISTINCT and GROUP over
-guaranteed references are
-supported. Filter MUST preserve the exact
+guaranteed references are supported. Structural DROP MAY remove columns from a
+conditional schema without reading retained values; it MUST preserve the
+retained columns' contracts, presence, order and row correspondence, and admit
+and charge the complete input, including removed columns. It does not make
+retained Conditional fields ordinary references. Filter MUST preserve the exact
 input schema, ordered surviving rows and each cell's presence; it MUST admit and
 charge all input rows before evaluating the predicate, including rejected rows.
 All syntactic references require presence, including unevaluated branches.
@@ -7626,8 +7629,26 @@ This subsection defines stage-local `ResultDefinition` values. Program-root
 Results instead use the explicit Stage Result export grammar in [Stages](#stages).
 They inherit this closed Result contract and cannot reselect its fields.
 
-<!-- requirement-block: results-and-delivery.every-actql-program-must-declare-a-non-empty-map-of-closed -->
-Every ActQL Program MUST declare a non-empty map of closed named `results`.
+<!-- requirement-block: results-and-delivery.declared-results-map results-and-delivery.no-results-or-effects-rejected -->
+Every ActQL Program MUST declare a map of closed named `results`. An empty
+Program-root `results` map is permitted only when the Program contains at least
+one Effect validated by the common Checker, including its input, target,
+Mapping and Capability requirements. A stage with no local Results likewise
+requires an Effect. A Program with neither public Results nor Effects MUST be
+rejected. SQL spelling, Connector names and self-declared flags do not establish
+this exception.
+
+<!-- requirement-block: results-and-delivery.effect-only-owner-contracts results-and-delivery.unresolved-effect-not-success results-and-delivery.unknown-operation-not-resent -->
+Checked Effects are execution-plan roots, including when there are no public
+Results. Execution, approval, recovery and release MUST retain their ordinary
+owner contracts; no hidden public Relation is generated. Unapproved, unknown
+commit and unresolved Effect states MUST NOT be treated as successful
+completion. Recovery reconciles the original operation and its saved receipt;
+it MUST NOT automatically resend an unknown operation. Private Table capture
+preserves absence separately from NULL without relaxing the normal Named
+Result all-Required contract. Releasing or cancelling the origin Run does not
+delete a committed persistent Table.
+
 Each member is a logical publication boundary and may be consumed by an Effect
 or retrieved independently after the Run has materialized it:
 
@@ -9975,7 +9996,7 @@ through the pinned expression contract.
 
 <!-- stage-contract-pins:start -->
 ```text
-../../spec/contracts/actql-stage-contracts.json#/source sha256:c9dadd5fbfc5c147b9d4322d70c5373c46bcf4f9aa39da1a3f1c0fd2fa09b4c8
+../../spec/contracts/actql-stage-contracts.json#/source sha256:a55a1f56a5f19d0d118a6ff6d161f34c6d239d54f473ff84a95592a7c03e31eb
 ../../spec/contracts/actql-stage-contracts.json#/schemas/derive_binding sha256:d74bb697d91a2daf2c51e0d6c492f4bb35fdea5e542d606318683b1c9c5f06f9
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_dependencies sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_contracts sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621

@@ -216,7 +216,6 @@
         },
         "result_availability": {
           "type": "object",
-          "minProperties": 1,
           "propertyNames": {
             "minLength": 1
           },
@@ -518,6 +517,37 @@
                 "properties": {
                   "kind": {
                     "const": "none"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "result_availability"
+            ],
+            "properties": {
+              "result_availability": {
+                "maxProperties": 0
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "result_available": {
+                "const": false
+              },
+              "next_action": {
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "none",
+                      "resolve_checkpoint",
+                      "reconcile",
+                      "reconcile_run"
+                    ]
                   }
                 }
               }

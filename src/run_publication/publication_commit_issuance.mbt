@@ -1,7 +1,6 @@
 ///|
 pub(all) enum PublicationCommitIssuanceIssue {
   CommitIssuanceWrongContract
-  CommitIssuanceEmptyInventory
   CommitIssuanceInventoryMismatch
   CommitIssuanceDuplicateResult(String)
   CommitIssuanceReferenceMismatch(String)
@@ -19,9 +18,6 @@ priv struct PublicationInventoryEntry {
 fn publication_inventory_entries(
   definitions : Array[PublicationContract],
 ) -> Result[Array[PublicationInventoryEntry], PublicationCommitIssuanceIssue] {
-  if definitions.is_empty() {
-    return Err(CommitIssuanceEmptyInventory)
-  }
   let entries : Array[PublicationInventoryEntry] = []
   let names : Array[String] = []
   for definition in definitions {
@@ -202,7 +198,6 @@ pub fn publication_preflight_valid(
     invocation.name != "run_invocation" ||
     request.name != "publication_request" ||
     attempt.name != "publication_attempt" ||
-    definitions.is_empty() ||
     definitions.length() != retentions.length() ||
     definitions.length() != computation_contract_cids.length() ||
     definitions.length() != input_relation_cids.length() ||
@@ -346,9 +341,6 @@ pub fn issue_public_index_entry(
   guard contract_string(request, "namespace_id") is Some(namespace_id) &&
     contract_string(request, "authority_scope_cid") is Some(authority_scope_cid) else {
     return Err(CommitIssuanceReferenceMismatch("request.authority"))
-  }
-  if durable_bindings.is_empty() {
-    return Err(CommitIssuanceEmptyInventory)
   }
   let binding_cids : Array[String] = []
   for binding in durable_bindings {
