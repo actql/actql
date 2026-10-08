@@ -225,6 +225,23 @@ pub fn[E] adaptive_policy_candidates(
 }
 
 ///|
+pub fn[E] validate_adaptive_policy_request(
+  policy : AdaptiveDispatch[E],
+  request : @strategy.PolicyRequest,
+  now_ms : Int64,
+) -> Result[Unit, AdaptiveEstimateIssue[E]] {
+  if policy.failure is Some(issue) {
+    return Err(issue)
+  }
+  guard policy.pending_choice is Some(choices) else {
+    return Err(InvalidConfiguration)
+  }
+  @strategy.validate_strategy_policy_request(choices, request, now_ms).map_err(issue => {
+    Search(issue)
+  })
+}
+
+///|
 /// Exact search counts for the currently pending choice. These counts describe
 /// planner metadata, not process memory or an allocator peak.
 pub fn[E] adaptive_policy_search_diagnostics(
