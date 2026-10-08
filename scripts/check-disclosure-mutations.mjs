@@ -277,6 +277,11 @@ const mutations = [
     'QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(ExpressionViolation("unknown_reference", None))'],
 
+  ['independent reporting failure silently substitutes a smaller context',
+    '  check_failed_json("check_report_unbounded", correlation_ref)',
+    '  check_outcome_attempt(\n' +
+    '    findings, stop, "ctx:0000000000000000000000000000000000000000000000000000000000000000", correlation_ref, documents, 0,\n' +
+    '  ).unwrap()'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -370,6 +375,8 @@ const targets = [
   ['bare column explanations preserve protected Source equivalence and independent violations',
     [deep('bare-name-protected'), deep('bare-name-disclosure'), deep('bare-name-public-violation')]],
 
+  ['independent reporting failure preserves protected Source equivalence',
+    [strict('mixed-reporting-outcome'), deep('mixed-reporting-boundary')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
