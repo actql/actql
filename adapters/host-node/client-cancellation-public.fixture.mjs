@@ -6,6 +6,7 @@ import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
+import {setTimeout as delay} from 'node:timers/promises';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {connect, explainCancellation, formatCancellation} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
@@ -17,6 +18,9 @@ const requestId = 'original-cancel-successful-run';
 const cancelId = 'original-cancel-operation';
 const keys = generateKeyPairSync('ed25519');
 let computes = 0;
+let publicationReached, releasePublication;
+const publicationReady = new Promise(resolve => { publicationReached = resolve; });
+const publicationHeld = new Promise(resolve => { releasePublication = resolve; });
 const authorization = {
   accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
     account_id: 'cancel-operation-fixture', entries: [{entry_id: 'write', outcome: 'allow',
@@ -29,6 +33,14 @@ const authorization = {
     if (name === 'computed') computes++;
     console.log('INSTALLED_CANCEL_OWNER', name, detail?.code ?? '', new Date().toISOString());
   },
+  async faultInjection(name) {
+    if (phase === 'initial' && name === 'computed') {
+      // The real Store has committed; the original execution owner has not
+      // yet confirmed physical stop and cleanup. Keep these facts separate.
+      publicationReached();
+      await publicationHeld;
+    }
+  },
 };
 const installation = {directory: join(directory, 'host'), authorization};
 const originalCAs = getCACertificates('default');
@@ -40,7 +52,8 @@ const snapshot = () => ({
     outcome_cid FROM client_cancellation_operations ORDER BY cancel_id`).all().map(row => ({...row})),
   issued: database.prepare('SELECT issued_count FROM client_cancellation_custody').get().issued_count,
   requests: database.prepare(`SELECT caller_request_id, run_definition_cid,
-    revision, cancellation_requested, physical_close_confirmed FROM client_requests`).all().map(row => ({...row})),
+    revision, cancellation_requested, physical_close_confirmed,
+    observed_terminal_outcome FROM client_requests`).all().map(row => ({...row})),
 });
 try {
   console.log('INSTALLED_CANCEL_PHASE', 'opening', phase, new Date().toISOString());
@@ -59,15 +72,24 @@ try {
   if (phase === 'initial') {
     const program = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
     const submissionRef = client.newSubmission({nonce: requestId});
+    await writeFile(join(directory, 'submission-ref.json'), JSON.stringify(submissionRef),
+      {flag: 'wx', mode: 0o600});
     const run = await client.start(program, {submissionRef});
     console.log('INSTALLED_CANCEL_PHASE', 'submitted', new Date().toISOString());
-    const status = await run.wait({signal: AbortSignal.timeout(15000)});
+    await publicationReady;
+    const publishedBeforeStop = await run.status();
+    assert.equal(publishedBeforeStop.status, 'succeeded');
+    assert.equal(publishedBeforeStop.result_available, true);
+    assert.equal(publishedBeforeStop.control.physical_stop, 'unknown');
+    const status = publishedBeforeStop;
     console.log('INSTALLED_CANCEL_PHASE', 'terminal', status.status, new Date().toISOString());
     assert.equal(status.status, 'succeeded');
     const rows = await run.result('answer').all();
     console.log('INSTALLED_CANCEL_PHASE', 'read', rows.length);
     assert.deepEqual(rows, [{id: 1}, {id: 2}]);
     const cancelRef = {...run.ref, cancelId, expectedRevision: status.control.revision};
+    await writeFile(join(directory, 'cancel-ref.json'), JSON.stringify(cancelRef),
+      {flag: 'wx', mode: 0o600});
     // Select this operation's final transaction, not a numbered COMMIT from
     // another journal. Pending identity custody is committed before this point.
     DatabaseSync.prototype.exec = function(sql) {
@@ -95,7 +117,29 @@ try {
     console.log('INSTALLED_CANCEL_PHASE', 'cancel-returned', failure?.code);
     assert.deepEqual(failure, {code: 'CancellationUnknown', cancelRef});
     assert.equal(faults, 1);
+    const afterCancellationBeforeStop = await run.status();
+    assert.deepEqual(afterCancellationBeforeStop.control, publishedBeforeStop.control,
+      'a committed Result wins while its physical owner is still held');
+    assert.equal(afterCancellationBeforeStop.status, 'succeeded');
+    const originalLookup = await run.lookupCancellation(cancelRef);
+    assert.deepEqual(originalLookup, loss === 'after-commit'
+      ? {kind: 'found', cancellation: {ref: run.ref, cancelRef,
+        kind: 'already_terminal', revision: cancelRef.expectedRevision}}
+      : {kind: 'unknown', cancelRef});
+    releasePublication();
+    const stopSignal = AbortSignal.timeout(15000);
+    let stopped;
+    do {
+      stopped = await run.status();
+      if (stopped.control.physical_stop === 'confirmed') break;
+      await delay(10, undefined, {signal: stopSignal});
+    } while (true);
+    assert.equal(stopped.status, 'succeeded');
+    assert.equal(stopped.control.cancellation_requested, false);
+    assert.deepEqual(await run.lookupCancellation(cancelRef), originalLookup,
+      'later physical-stop observation cannot rewrite the original cancel outcome');
     await writeFile(output, JSON.stringify({ref: run.ref, submissionRef, cancelRef, status, rows,
+      publishedBeforeStop, afterCancellationBeforeStop, stopped, originalLookup,
       failure, explanation, faults, computes, snapshot: snapshot()}));
   } else {
     const request = await client.lookupSubmission(originalSubmission);
@@ -120,6 +164,7 @@ try {
       status, computes, snapshot: snapshot()}));
   }
 } finally {
+  releasePublication();
   DatabaseSync.prototype.exec = originalExec;
   database?.close();
   await client?.close();

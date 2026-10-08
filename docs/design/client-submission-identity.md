@@ -112,6 +112,23 @@ a missing original is publicly unresolvable, never proof that nothing executed.
 The journal stores intent rows and their issuance counter atomically. Storage
 admission is bounded independently of checker or execution capacity.
 
+An explicit trusted-Host retention operation can retire an expired terminal
+pre-Run refusal or preparation-failure receipt at its exact revision. It
+authenticates the original epoch and current scope, uses the persisted monotonic
+expiry watermark, and removes the row atomically with an advance of the existing
+journal's retirement counter. Issuance remains monotonic: issued intents equal
+retained rows plus formally retired rows. Unrecorded row loss still fences writes;
+adopting the retirement feature records zero retirements and cannot repair lost
+history. No admission automatically evicts records to make capacity.
+
+Preparing, held and Run-connected receipts are retained by this operation. It
+does not delete a Run, Effect responsibility, response, Result or cleanup receipt.
+Retirement is not cancellation, rollback or proof that no work occurred. Lookup
+of the expired original becomes unresolvable, while its expired identity cannot
+admit new work after restart or clock rollback. The explicit authorized
+risk-acknowledgement and old-to-new submission link still require their public
+connection; this retention operation alone does not implement that exit.
+
 Both ingress transports validate the original submission reference and intent
 CID. The Local ingress owns nested JSON before awaiting caller authentication.
 A submit exception can follow a successful Run COMMIT, so the adapter looks up
