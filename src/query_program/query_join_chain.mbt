@@ -471,7 +471,11 @@ fn compile_join_chain_query(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let selected = [selected_input(query, context, limits)]
     for index in 0..<@query.join_part_count(query) {

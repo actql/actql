@@ -912,6 +912,34 @@ pub fn strategy_policy_candidates(
 }
 
 ///|
+/// Read-only admission boundary for optional observations. This neither
+/// commits a choice nor creates dispatch or retry authority.
+pub fn validate_strategy_policy_request(
+  choices : StrategyChoiceSet,
+  request : PolicyRequest,
+  now_ms : Int64,
+) -> Result[Unit, SearchIssue] {
+  let run = choices.run
+  if choices.pending_policy_request != Some(request) ||
+    choices.pending_policy_candidates is None ||
+    choices.committed ||
+    run.stopped ||
+    run.running is Some(_) ||
+    resident_provision_pending(run) ||
+    now_ms < 0L ||
+    now_ms > request.deadline_ms ||
+    run.generation != choices.generation ||
+    run.revisions != choices.revision ||
+    run.searched_generation != Some(choices.generation) ||
+    run.searched_resources != Some(choices.resources) ||
+    strategy_search_resources(run) != choices.resources ||
+    run.strategy is Some(_) {
+    return Err(StaleChoice)
+  }
+  Ok(())
+}
+
+///|
 /// Reject a stale, cross-Run, expired or altered response before common
 /// feasibility and dispatch checks. Authentication belongs to the Host adapter.
 pub fn commit_strategy_policy_decision(

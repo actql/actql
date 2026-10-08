@@ -28,6 +28,8 @@ pub fn abort_captured_managed_transfer(CapturedDAG, ManagedTransfer, Bool) -> Re
 
 pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 
+pub fn admit_operational_estimate_sidecar_json(String, PolicyRequest, PolicyCandidateSet, String, String, Int64) -> Result[OperationalEstimateSidecar, SearchIssue]
+
 pub fn admit_placement_policy_response_json(String, PolicyRequest, String) -> Result[PolicyResponse, SearchIssue]
 
 pub fn advance_task_numeric_reduction(CapturedDAG, TaskNumericExecution) -> Result[@numeric_reduction.Outcome?, @numeric_reduction.ReductionIssue]?
@@ -828,6 +830,8 @@ pub fn task_numeric_observation_step(TaskNumericObservation) -> Int
 
 pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
 
+pub fn validate_strategy_policy_request(StrategyChoiceSet, PolicyRequest, Int64) -> Result[Unit, SearchIssue]
+
 // Errors
 
 // Types and methods
@@ -1117,6 +1121,27 @@ pub(all) enum NumericObservationFamily {
   WindowGroup
   Pivot
   Analytic
+} derive(Eq, @debug.Debug)
+
+pub(all) struct OperationalEstimateSidecar {
+  request : PolicyRequest
+  profile_revision : String
+  oldest_ms : Int64
+  newest_ms : Int64
+  max_age_ms : Int64
+  capture_ms : Double?
+  references : Array[OperationalTimeReference]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct OperationalTimeReference {
+  position : Int
+  task : Int
+  quantity : String
+  median_ms : Double?
+  minimum_ms : Double?
+  maximum_ms : Double?
+  sample_count : Int
+  unknown_reason : String?
 } derive(Eq, @debug.Debug)
 
 pub(all) struct PhysicalEnvelope {

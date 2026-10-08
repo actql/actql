@@ -157,6 +157,22 @@ test "adaptive policy waits for an explicit feasible placement" {
   let request = @host_driver.prepare_adaptive_policy_request(
     policy, "plan-17", "run-17", "authority-1", 100L, 0L,
   ).unwrap()
+  let ledger = @strategy.captured_dag_ledger(run)
+  let before_reference = @resources.ledger_usage(ledger)
+  @host_driver.validate_adaptive_policy_request(policy, request, 1L).unwrap()
+  assert_true(
+    @host_driver.validate_adaptive_policy_request(
+      policy,
+      { ..request, request_id: "other", },
+      1L,
+    )
+    is Err(_),
+  )
+  assert_true(
+    @host_driver.validate_adaptive_policy_request(policy, request, 101L)
+    is Err(_),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before_reference)
   let candidates = @host_driver.adaptive_policy_candidates(policy).unwrap()
   assert_eq(candidates.cid, request.candidate_set_cid)
   let wire = "{\"authority\":\"authority-1\",\"candidate_set_cid\":\"" +
@@ -172,6 +188,9 @@ test "adaptive policy waits for an explicit feasible placement" {
   @host_driver.commit_adaptive_policy_response_json(
     policy, request, wire, "cloud-placement", 1L,
   ).unwrap()
+  assert_true(
+    @host_driver.validate_adaptive_policy_request(policy, request, 1L) is Err(_),
+  )
   let revision = @strategy.captured_dag_strategy(run).unwrap()
   assert_eq(@strategy.strategy_assessment(revision).position, 7)
   assert_eq(
