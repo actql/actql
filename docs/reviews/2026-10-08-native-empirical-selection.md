@@ -7,8 +7,10 @@ preparation/import and final release. Positions 0/7 select complete assignments,
 including subsequent tasks. Later tasks use current common offline selection.
 No whole-assignment optimum, whole-Run fastest, ETA, p90 or calibration is claimed.
 
-The initial dependency is P2 #978. Adopted main is
-`861715d844b1835615bccf57f80affcc856e4696`, merged normally onto the P2 branch.
+The initial dependency was P2 #978. It is now merged; main
+`2a77b066ad2ab56278fe657ad07487e7b84688f7` was subsequently merged normally
+onto this branch without conflict. The initial adoption was
+`861715d844b1835615bccf57f80affcc856e4696`.
 The P3 branch will remain Draft; CI is paused and no Actions original is required
 for this local acceptance unit. The deferred CI-reuse work remains independent.
 
@@ -94,7 +96,86 @@ observations; no slow result or unsuccessful slot is selectively replenished.
 
 ## Execution evidence
 
-Pending exact-source release acceptance. Limited diagnostic results do not
-establish the twelve Native slots or the final comparison. Actual commands,
-source/binary correspondence, receipts and unresolved coverage will be appended
-without retagging an executed source revision.
+Native execution/measurement source:
+`b51af198e7d15b977998c38a3815f657ba7a7b57`. Actual release binary:
+`sha256:73dc6c1ce415305f7dfe84bc936c053e6fd03822a44da663001eaf6db2c34b1d`.
+The real preceding release build succeeded under `run-Bkf3Kb` using the pinned
+MoonBit toolchain:
+
+```sh
+moon build --target native --release src/cmd/native_retained_case_probe --deny-warn
+node benchmarks/retained-results/run-local-native-profile.mjs <comparison> --empirical-comparison
+node benchmarks/retained-results/run-local-native-profile.mjs <evaluation> --empirical-evaluation <comparison>
+node benchmarks/retained-results/run-native-empirical-boundaries.mjs <comparison> <boundaries>
+```
+
+`run-pmjFLt` recorded all six comparison, six evaluation and two separate
+functional boundaries as successful. Every positive execution completed all
+three tasks, independent Result/schema, actual policy/physical-attempt
+correspondence, work/capacity/retention assertions and formal/duplicate cleanup.
+The stop boundary preserves the exact full Ledger until confirmed close; the
+expiry boundary observes the real trusted deadline and dispatches zero Compute.
+
+The last step of that guard failed because its independent consumer compared the
+Native present-option diagnostic `[7]` to the scalar `7`. The guard remains
+`failed`; its receipt is not rewritten. The corrected independent consumer at
+`4cf4a3eae6fe3caa336dbfecbc086345c68929f7` passed under `run-V0VKQX` against
+those immutable originals. Only `empirical-comparison.mjs` changed between these
+SHAs: Native sources, binary, recording/instrumentation and measurement inputs
+are unchanged. No execution was replenished or repeated for this reader fix.
+The source/measurement SHA remains the executed SHA, not the consumer or later
+evidence-publication revision.
+
+Comparison reference medians (three samples each) were 201.740 ms at position 0
+and 131.567 ms at position 7. The real policy therefore proposed position 7.
+The independent evaluation used position 7 in all empirical slots and position 0
+in all explicit offline-fallback slots. All-unknown, partial-unknown and stale
+profiles produced the expected reasons, without dropping a presented candidate.
+Invalid binding, already committed request and old responses after state updates
+were rejected through the actual Native/common admission path.
+
+| Evaluation interval/cost, median ms | Empirical (n=3) | Explicit offline fallback (n=3) |
+| --- | ---: | ---: |
+| First-task processing | 110.291 | 223.638 |
+| Process cycle | 1112.997 | 1434.865 |
+| Existing cold interval | 1098.631 | 1432.943 |
+| Same-Run task intervals | 430.536 | 713.475 |
+| Formal cleanup | 8.542 | 1.820 |
+| Observation recording | 3.570 | 9.740 |
+| Raw stream recording/digest | 7.788 | 7.959 |
+| Metadata capture | 2.741 | 6.162 |
+| Template preparation | 3.736 | 5.349 |
+| Native consultation | 7.438 | 16.584 |
+| Observed end-to-end interval | 1181.977 | 1493.732 |
+
+The held-out first-task median difference is 113.347 ms. Observed ranges are
+96.479–184.394 ms (empirical) and 214.164–261.691 ms (fallback), not prediction
+intervals. Original profile readback/aggregation before evaluation cost
+413.219 ms; final independent two-profile validation/readback/aggregation cost
+1168.556 ms. These are exposed analysis costs, not hidden operator work.
+Intervals overlap and must not be added. Three samples and uncontrolled OS
+cache/load do not establish causal confidence, population performance or a
+normal-default improvement. Off-mode incremental overhead, ETA and p90 remain
+unknown. The declared controls intentionally prefer position 0 offline.
+
+[Structured evidence](evidence/2026-10-08-native-empirical-selection-b51af198e.json)
+and [original archive](evidence/2026-10-08-native-empirical-selection-b51af198e.tar.gz)
+retain commands, actual build witnesses, all original records/raw/capture bytes,
+Source DB, templates, successful and failed guard receipts and prior source
+campaigns. Archive SHA-256:
+`2432d5b46c0e10a34e9ed53fe134d9f06f22275dc652a032058a725722e2ac40`;
+2,298,564 bytes, 550 regular members including the manifest, with byte-for-byte
+readback validation. Archival helper scripts describe their collected state;
+they are not substituted for historical execution receipts.
+
+Earlier scoped diagnostics: JS 7/7 at `dd4a804fd0f979d8949bccb823d414a40b9a10fa`;
+Node 49/49 plus Native compiler check with source files subsequently committed
+at `bbba06a9818e00f192b7f96e023ce761ac1f44ce`; the stop-fixture compiler check
+with source files subsequently committed at
+`743dbf53107033064e396954f8aef80d24bf3892`. These are not retagged as final-SHA
+full-suite checks. The final actual Native 12 + 2 campaign is the acceptance above.
+
+Hosted CI is deliberately paused. Full Core, Wasm, packed acceptance and the full
+performance matrix were not executed. Public Run cancellation, Host auto-selection,
+calibrated prediction, whole-Run optimization and Actions-original CI reuse remain
+outside this P3 handoff. Review/integration and merge belong to the user.
