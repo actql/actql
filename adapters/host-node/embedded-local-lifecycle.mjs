@@ -13,6 +13,10 @@ export function installedHostShutdown(host) {
     source: () => host.sourceProfile?.close(),
     effect: () => host.installedEffect?.close(),
     store: () => host.store.close(),
+    ...(host.diagnostic === undefined ? {} :
+      {diagnostic: () => host.diagnostic.close()}),
+    ...(host.observation === undefined ? {} :
+      {observation: () => host.observation.close()}),
   });
 }
 
@@ -84,7 +88,8 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         try {
           await opened.shutdown.close();
           if (!opened.finalized) {
-            host.diagnostic.close();
+            // The existing shutdown owner also retains observation close.
+            // Retire this generation only after every child has settled.
             forget(root, opened);
             opened.finalized = true;
           }

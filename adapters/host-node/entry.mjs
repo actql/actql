@@ -30,6 +30,7 @@ async function runCapturedStrategyTarget(
   publication,
   loadRuntime,
   install,
+  taskObservation,
 ) {
   signal?.throwIfAborted();
   const observeCompletion = completionObserver(observer);
@@ -81,6 +82,7 @@ async function runCapturedStrategyTarget(
       }),
     authorization,
     taskStartObserver(observer),
+    taskObservation,
   );
 }
 
@@ -111,6 +113,7 @@ async function runPublishedCapturedStrategyTarget(
   loadRuntime,
   install,
   retainExecution,
+  taskObservation,
 ) {
   if (retainExecution !== undefined && typeof retainExecution !== 'function') {
     throw new TypeError('InvalidExecutionOwnerReceiver');
@@ -129,6 +132,7 @@ async function runPublishedCapturedStrategyTarget(
     publication,
     loadRuntime,
     install,
+    taskObservation,
   );
   try {
     // Transfer cleanup responsibility before publication can fail. The
@@ -190,9 +194,9 @@ export function createNodeHostEntry(loadRuntime, install) {
     ) => runCapturedEffectComputationTarget(owner, options, signal,
       observer, load, install),
     runPublishedCapturedStrategy: (
-      setup, publication, options = {}, signal, observer, retainExecution,
+     setup, publication, options = {}, signal, observer, retainExecution, taskObservation,
     ) => runPublishedCapturedStrategyTarget(setup, publication, options,
-      signal, observer, load, install, retainExecution),
+      signal, observer, load, install, retainExecution, taskObservation),
     completeCapturedEffectRun: async options => {
       const moon = await load();
       if (options?.apply?.moon !== moon) {
