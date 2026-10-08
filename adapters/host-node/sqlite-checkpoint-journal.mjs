@@ -90,8 +90,8 @@ function bindingJson(binding) {
 }
 
 function declaredJson(results) {
-  if (!Array.isArray(results) || results.length === 0 ||
-      !results.every(text)) {
+  if (!Array.isArray(results) || !results.every(text) ||
+      new Set(results).size !== results.length) {
     fail('InvalidDeclaredResults');
   }
   return JSON.stringify(results);

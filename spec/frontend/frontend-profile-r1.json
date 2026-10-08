@@ -791,7 +791,8 @@
       "surface_forms": [
         "GROUP BY",
         "HAVING",
-        "|> AGGREGATE"
+        "|> AGGREGATE",
+        "GROUP BY ALL"
       ],
       "canonical_lowering": "group and exact expression demand",
       "preconditions": [

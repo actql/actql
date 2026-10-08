@@ -601,6 +601,8 @@ pub fn client_program_effect_table_managed_input_finish(ClientEffectManagedInput
 
 pub fn client_program_effect_table_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
 
+pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, @run_publication_host.ClientEffectMemberDescriptorIssue]
+
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_export_infer_prepared_input(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, String) -> Result[@client_local_host.ClientInferRetainedInputExport, @client_local_host.ClientInferRetainedInputIssue]
@@ -1027,7 +1029,7 @@ pub fn client_program_open_multi_captured_local_retained_host(@run_publication_h
 
 pub fn client_program_open_source_free_infer_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, String?, String?, @local.ManagedProvider) -> ClientLocalEffectHost?
 
-pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, Int64, Int64, Int64, Int64) -> ClientLocalEffectHost?
+pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, Int64, Int64, Int64, Int64, String?, String?) -> ClientLocalEffectHost?
 
 pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 

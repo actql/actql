@@ -198,7 +198,7 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
   // rebuilds the Run, moves it. The Program definition CID has the same
   // shape and is not it.
   assert_eq(
-    issued_cid, "sha256:eed9783fdb6055043260a0e5399d4f544d6f45f4454a1b5f78fec5f44d4ef065",
+    issued_cid, "sha256:ac0a16e48c0578b1ae4e5c63405220579592cc2fa220461f1f066f05b27b84b8",
   )
   assert_eq(
     prepared_client_identity(issuer_prepared).program_definition_cid,

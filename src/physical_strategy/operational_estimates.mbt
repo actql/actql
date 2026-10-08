@@ -216,6 +216,7 @@ pub fn admit_operational_estimate_sidecar_json(
       if seen.contains(key) ||
         ![
           "task-processing", "task-release", "resident-preparation", "resident-import",
+          "run-caller-elapsed",
         ].contains(quantity) {
         raise PolicyWireStop
       }

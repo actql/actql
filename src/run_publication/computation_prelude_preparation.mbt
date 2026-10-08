@@ -252,6 +252,11 @@ fn ComputationPreludePreparation::step(
   let receipt = inputs.receipt.value
   match self.phase {
     Begin => {
+      // Empty public inventory is valid only for a checked Effectful chain.
+      // The shared root still validates the exact empty Manifest and bindings.
+      if inputs.definitions.is_empty() && inputs.preview is None {
+        return Err(EvidenceRoot(ChainEmptyInventory))
+      }
       if self.max_workspace < self.live + 12 {
         return Err(EvidenceEncoding)
       }
@@ -326,9 +331,9 @@ fn ComputationPreludePreparation::step(
         Some(inputs.manifest.identity) {
         return Err(EvidenceReferenceMismatch("result_manifest_cid"))
       }
-      self.program = contract_string(
-        inputs.definitions[0],
-        "program_definition_cid",
+      self.program = computation_prelude_program_identity(
+        inputs.definitions,
+        inputs.preview,
       )
       if evidence_string(receipt, "program_definition_cid") != self.program {
         return Err(EvidenceReferenceMismatch("program_definition_cid"))
@@ -445,6 +450,19 @@ fn ComputationPreludePreparation::step(
     Done => ()
   }
   Ok(())
+}
+
+///|
+/// Empty public inventory obtains identity from the already admitted Preview,
+/// never from a caller-authored Receipt or a fabricated Result definition.
+fn computation_prelude_program_identity(
+  definitions : Array[PublicationContract],
+  preview : EffectPreviewIdentity?,
+) -> String? {
+  match definitions.get(0) {
+    Some(definition) => contract_string(definition, "program_definition_cid")
+    None => preview.map(value => value.program_definition_cid)
+  }
 }
 
 ///|

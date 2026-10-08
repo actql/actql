@@ -225,6 +225,7 @@ pub fn compile_query_script(
   script : @query.QueryScript,
   context : Context,
   limits : Limits,
+  table_writes? : Array[TableWriteBinding] = [],
 ) -> Result[@program.Program, Issue] {
   if context.program_id.is_empty() ||
     context.stage_id.is_empty() ||
@@ -455,28 +456,73 @@ pub fn compile_query_script(
         (retained.length() != 1 || !retained[0].carrier_complete) {
         raise Abort(UnsupportedEffect)
       }
+      let table_effect = @query.terminal_table_effect(current)
       let stage_entries = [
         ("id", construction.text(stage_context.stage_id)),
         ("inputs", construction.object(stage_sources.declarations)),
         ("steps", construction.array(stage_steps)),
         (
           "results",
-          retained_stage_results(
-            construction,
-            stage_context.stage_result,
-            construction.object([
-              ("from", construction.text(result.name)),
-              (
-                "fields",
-                construction.array(
-                  result.visible_fields.map(field => construction.text(field)),
+          if table_effect is Some(_) && retained.is_empty() {
+            construction.object([])
+          } else {
+            retained_stage_results(
+              construction,
+              stage_context.stage_result,
+              construction.object([
+                ("from", construction.text(result.name)),
+                (
+                  "fields",
+                  construction.array(
+                    result.visible_fields.map(field => construction.text(field)),
+                  ),
                 ),
-              ),
-            ]),
-            retained,
-          ),
+              ]),
+              retained,
+            )
+          },
         ),
       ]
+      if table_effect is Some(clause) {
+        let selected = match
+          resolve_table_write_binding(
+            table_writes,
+            clause.target,
+            clause.allow_replace,
+            limits.max_expression_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => raise Abort(TableWriteBinding(issue))
+        }
+        let input_name = "aql_table_input"
+        stage_entries.push(
+          (
+            "table_inputs",
+            construction.object([
+              (
+                input_name,
+                construction.object([
+                  ("from", construction.text(result.name)),
+                  (
+                    "fields",
+                    construction.array(
+                      result.visible_fields.map(field => {
+                        construction.text(field)
+                      }),
+                    ),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        )
+        stage_entries.push(
+          (
+            "effects",
+            lower_table_effect(construction, clause, selected, input_name),
+          ),
+        )
+      }
       if @query.terminal_effect(current) is Some(effect) {
         stage_entries.push(
           (
@@ -497,6 +543,9 @@ pub fn compile_query_script(
             (stage_context.result_name, stage_context.stage_result),
           ],
         ) {
+        if table_effect is Some(_) && retained.is_empty() {
+          continue
+        }
         if exports.any(entry => ascii_upper(entry.0) == ascii_upper(name)) {
           raise Abort(DuplicateOutput)
         }

@@ -85,7 +85,11 @@ export function checkInstalledTableEffectProfile(profile) {
   if (!text(value.environmentWire) || value.targets.length > 16) fail('InvalidInstalledTableProfile');
   checkInstalledTableEffectLimits(value.limits);
   for (const target of value.targets) {
-    if (!keys(target, ['effectId', 'resource', 'targetRef', 'mappingRef', 'mappingCid',
+    const {queryName, ...fixedTarget} = target;
+    if (queryName !== undefined && (!text(queryName) || queryName.length > 1024)) {
+      fail('InvalidInstalledTableTarget');
+    }
+    if (!keys(fixedTarget, ['effectId', 'resource', 'targetRef', 'mappingRef', 'mappingCid',
       'action', 'catalogCid', 'namespace', 'tableName', 'expectedTable', 'permissions', 'footprint']) ||
         !['effectId', 'resource', 'targetRef', 'mappingRef', 'tableName'].every(key => text(target[key])) ||
         !cid(target.mappingCid) || target.catalogCid !== value.catalog.catalogCid ||
