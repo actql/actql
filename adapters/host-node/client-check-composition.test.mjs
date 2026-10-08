@@ -35,6 +35,7 @@ function fixture(states = [], publication = aliases) {
           requirements: [], scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [],
           coverage: {limits: [], unresolved: []}}});
     },
+    clientProgramCheckProgram: () => assert.fail('Text fixture must not check a structured Program'),
   };
   const sourceAccesses = states.map(state => ({
     sourceRef: (publication[state.index] ?? aliases[state.index]).sourceRef,
@@ -191,12 +192,12 @@ test('composition: exact Unicode source and received-input fallback have fixed r
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:938a1a8da5e81d706a5e0ca7d739e2ff984b5a538b732e108d4980160c53b095',
-      'ctx:e78e895a0685a0f592507eee89a4b12dbba119bef94f16d7dfae6e2f79fc2fd7',
+      'ctx:e253dec29f7608a4d55b39a44e6604b971ca798b51b456ced639635a1301a1ac',
+      'ctx:793e011aa5396fa63f71ccdad893ad6d1ec9e9185979ecea2cd570101e1a6999',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:0417c3267a084173cbc80273904918262c2332952ed999cd3e96e1a00d6eb4d6',
-        'ctx:3d1b81895e7352f0c3719597ef9f3e769b4a31c3db5ad9af208d1372346c8574',
+        'ctx:be19f688e387012ab6d19df30a39911ee94ba1b9c6f0f8b033d6f9404bff94a4',
+        'ctx:940f9d88e8e4a16e9c4dd3bb8bd3e0a05783e473b0a38f425a41641e5d51997d',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {
@@ -211,3 +212,29 @@ test('composition: exact Unicode source and received-input fallback have fixed r
       }
     }
   });
+
+// This records the bridge binding only; real Program verdicts are public tests.
+test('composition: Program contexts bind original Unicode keys and supplied null', async () => {
+  const f = fixture();
+  f.moon.clientProgramCheckProgram = (body, _environment, _visible, parameters,
+    context_ref, revision, suppliedRevision) => JSON.stringify({
+    version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+    outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
+      context_ref, scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [], requirements: [],
+      inputs: [{document_id: 'program', kind: 'structured', revision, byte_length: Buffer.byteLength(body)},
+        ...(parameters === undefined ? [] : [{document_id: 'parameters', kind: 'structured',
+          revision: suppliedRevision, byte_length: Buffer.byteLength(parameters)}])],
+      coverage: {limits: [], unresolved: []}}});
+  const request = (input, parameters = null) => ({kind: 'program', principalId: 'owner', input, parameters});
+  const composed = await f.check(request({'é': null}));
+  const original = await f.check(request({'e\u0301': null}));
+  assert.notEqual(original.report.context_ref, composed.report.context_ref);
+  assert.notEqual(original.report.inputs[0].revision, composed.report.inputs[0].revision);
+  const first = await f.check(request({}, {'é': null}));
+  const second = await f.check(request({}, {'e\u0301': null}));
+  assert.notEqual(first.report.context_ref, second.report.context_ref);
+  assert.notEqual(first.report.inputs[1].revision, second.report.inputs[1].revision);
+  assert.notEqual((await f.check(request({}))).report.context_ref,
+    (await f.check(request({}, {x: null}))).report.context_ref);
+  assert.deepEqual(await f.check(request({'e\u0301': null})), original);
+});

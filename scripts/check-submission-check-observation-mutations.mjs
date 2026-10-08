@@ -10,7 +10,7 @@ const tests = 'packages/sdk/submission-check-observations.test.mjs';
 const mutations = [
   {name: 'reference-only lookup acquires original input observation',
     path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
-    from: "const observesInput = value.kind === 'aql' && value.intentCid === outcome.intentCid;",
+    from: "const observesInput = ['aql', 'program'].includes(value.kind) && value.intentCid === outcome.intentCid;",
     to: 'const observesInput = true;',
     targets: [target('reference-only lookup returns original acceptance without diagnostic enrichment',
       'submission-check-lookup-contract', 'fail')]},
@@ -29,7 +29,7 @@ const mutations = [
       `missing submission requirements bind pre-await declarations without changing ${phase}`,
       'submission-missing-requirement', 'deepStrictEqual'))},
   {name: 'submission check accepts input metadata without original byte binding', path: sdk, file: tests,
-    from: '!bindCheckObservation(checkObservation, {input: body.input, parameters: body.parameters})',
+    from: '!bindCheckObservation(checkObservation, {kind: body.kind, input: body.input, parameters: body.parameters})',
     to: 'false',
     targets: ['wrong original byte length', 'split UTF-8 scalar'].map(fault => target(
       `submission check refuses ${fault} without acquiring report custody`, 'submission-check-binding'))},
@@ -68,6 +68,27 @@ const mutations = [
         'submission-implementation-observation'),
     ])},
 ];
+mutations.push(
+  {name: 'Program pointer loses its original node', path: sdk,
+    file: 'packages/sdk/structured-program-check-observations.test.mjs',
+    from: 'return Object.freeze({...location, input: original});',
+    to: "return Object.freeze({...location, pointer: '', input: original});",
+    targets: phases.map(phase => target(
+      `structured Program original snapshot and Unicode pointer survive ${phase}`, 'program-pointer'))},
+  {name: 'Program definite violation becomes missing input', path: sdk,
+    file: 'adapters/host-node/client-submission-input.test.mjs',
+    from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
+    to: "if (checkObservation.report?.verdict === 'invalid') checkObservation.report.verdict = 'undetermined'; submissionCheckObservations.set(error, freezeInput(checkObservation));",
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: structured Program supplied violations coexist with missing declarations`, 'program-mixed-verdict'))},
+  {name: 'Program protected Source cause escapes through the original Problem',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission-input.test.mjs',
+    from: "if (intent.kind === 'program' && observed?.coverage.unresolved.length > 0) disclosable = false;",
+    to: 'void observed;',
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: structured Program protected Sources retain only independent public obligations`,
+      'program-protected-problem', 'deepStrictEqual'))},
+);
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
   throw new Error('Usage: check-submission-check-observation-mutations.mjs [--match name-substring]');
