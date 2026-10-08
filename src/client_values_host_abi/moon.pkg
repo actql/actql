@@ -16,5 +16,6 @@ import {
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/query_planning" @planning,
   "actql/actql/encode_core" @encode,
+  "actql/actql/host_observation" @observation,
   "moonbitlang/core/encoding/utf8",
 }
