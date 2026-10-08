@@ -10,6 +10,7 @@ import { readCatalog } from '../ci-evidence/actions.mjs';
 import { checkExecutionRecipes } from '../ci-evidence/execution-recipes.mjs';
 import { bridgeSnapshot, checkBridgeRoute, bridgeClaim, validateBridgeEvidence } from '../events-bridge/evidence.mjs';
 import { observationUnits } from '../ci-evidence/receipts.mjs';
+import {observeBridgeCases} from '../events-bridge/observations.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
@@ -49,6 +50,7 @@ function run(id, command, args, target = 'model', packagePath = null, action = n
     passed: true, count, milliseconds, sourceDigest: source.digest,
     artifacts: packagePath ? artifacts(root, target, packagePath) : {},
     ...(id === 'events-model' ? {bridgeSourceDigest: bridgeSource.digest} : {}),
+    ...(id.startsWith('events-connection-') ? {cases: observeBridgeCases(output, result.status)} : {}),
   };
   recordExistingAction({id: id === 'lean' ? 'model' : id,
     command: [command === moon ? 'moon' : command === process.execPath ? 'node' : command, ...args],

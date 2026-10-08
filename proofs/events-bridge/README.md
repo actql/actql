@@ -135,3 +135,27 @@ not a claimed mutation detection in MoonBit product code. The normal Core target
 discovers the new real fixture. This is an additive fresh admission boundary.
 A model proof or a
 selected local JS pass is not a three-target integration result.
+
+## Actual per-case scope witness
+
+A single successful parameterized test count does not establish its four-case
+scope. The existing fixture now emits one observed completion record per case,
+after its intermediate identity/clock/payload, checked schema, final ordered
+values and retained-result release assertions. The independent observation
+registry requires exactly empty numeric input, all-NULL payload, duplicate
+payload with unsorted clocks, and authored Timestamp/original Text cases, in
+that order, with their actual output row counts and clock kinds.
+
+The existing Session producer records these observed cases and the Bridge
+claim validator requires them. The immutable receipt producer and authenticated
+archive reader both interpret the same original log bytes. Missing, duplicated,
+reordered, malformed or widened observations reject even if one MoonBit test
+passed and receipt/ZIP/API digests agree. Old count-only receipts are not adapted.
+The observer's bytes are included in the existing shared input closure because
+receipt consumers evaluate that module; changing it invalidates those inputs.
+
+No expected rows, types, text, ordering or ownership assertions are inferred
+from the completion marker. Their authored assertions remain the actual
+correspondence boundary. The marker verifies case execution scope and cannot
+upgrade finite tests into a universal implementation proof. The action catalog,
+Lean law inventory, physical/provider obligations and reuse policy are unchanged.
