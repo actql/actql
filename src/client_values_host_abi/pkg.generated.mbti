@@ -177,9 +177,9 @@ pub fn client_values_host_manifest_read_grant_valid_at(@run_publication.Publicat
 
 pub fn client_values_host_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise ClientValuesHostDeliveryIssue
 
-pub fn client_values_host_observation_budget(@host_observation.ObservationScope, String, Int, Int, Bool, String?, String, Int, Int, Int, Int, String?) -> Result[@host_observation.ObservationBudget, @host_observation.ObservationIssue]
+pub fn client_values_host_observation_budget(@host_observation.ObservationScope, String, Int, Int, Bool, String?, String, Int, Int, Int, Int, Array[String]) -> Result[@host_observation.ObservationBudget, @host_observation.ObservationIssue]
 
-pub fn client_values_host_observation_budget_snapshot(@host_observation.ObservationBudget) -> (String, String, Int, Int, Int, Int, String?)
+pub fn client_values_host_observation_budget_snapshot(@host_observation.ObservationBudget) -> (String, String, Int, Int, Int, Int, Array[String])
 
 pub fn client_values_host_observation_scope(String, String, String, String, Bool) -> @host_observation.ObservationScope?
 
