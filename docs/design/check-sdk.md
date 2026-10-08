@@ -1387,6 +1387,24 @@ a different admitted Program cannot replace the original owners. This limited
 declaration-use witness does not close expression, operation, authority, resource
 or publication obligations and cannot certify a template by itself.
 
+Prebinding pipeline profile admission retains the exact checked pipeline and
+every demanded operation profile. Values resource admission then uses the same
+whole-`/rows` wire measurement, Program count proof, Host row candidate,
+recursive type-depth/cell-byte admission and canonical limit constructors as
+bound construction. Its occurrence is anchored to the exact pipeline/profile
+and admitted capacity owners, without creating empty or invented bound values.
+An unbound parameter cell remains typed unresolved. A known literal row, depth
+or nested-byte excess is rejected before a future enforcement check is retained.
+
+The connected pipeline continuation requires those completed static Values
+resource selections from the same capacity owner; a raw
+`ResolvePublicationResources` cannot be relabeled as a runtime-only Requirement.
+Duplicate or foreign selections are rejected, including same-shaped pipeline
+and environment admissions. Preparation traversal, payload and complete-artifact
+metadata retain their separate budgets. This pipeline evidence still does not
+close whole-Program incoming, publication, authority or other static obligations
+and cannot by itself produce a verified template report.
+
 ### Passive operation diagnostic formats
 
 Submission presentation follows admitted `SubmissionOutcome` and

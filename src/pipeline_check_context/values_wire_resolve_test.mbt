@@ -9,7 +9,9 @@ test "values wire resolution derives fixed identities without supplied proofs" {
     max_candidates: 1,
   }
   let result = resolve_values_wire_limit(cells, 0, payload, metadata).unwrap()
-  assert_true(physical_equal(result.bound.cells, cells))
+  assert_true(
+    physical_equal(values_wire_bound_cells(result.bound).unwrap(), cells),
+  )
   assert_eq(
     (result.bound.bytes, result.bound.nodes, result.bound.depth),
     (25, 7, 2),

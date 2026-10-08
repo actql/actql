@@ -22,6 +22,14 @@ pub struct ValuesRowLimit {
 }
 
 ///|
+fn values_rows_fit_selected_limit(rows : ValuesRowLimit) -> Bool {
+  @wire.value(
+    @wire.program_proof_witness(@step_bounds.checked_proof(rows.rows)),
+  ) <=
+  @derivation.minimum_value(@wire.limit_minimum(rows.limit))
+}
+
+///|
 pub fn resolve_values_row_limit(
   wire : ValuesWireLimit,
   limits : @wire.LimitLimits,
@@ -45,8 +53,9 @@ fn resolve_values_row_limit_metered(
   if limits.max_candidates < 2 {
     return Err(BudgetExceeded)
   }
-  let site = wire.bound.site
-  guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
+  let pipeline = values_resource_pipeline(wire.bound.owner)
+  let step_index = values_resource_step(wire.bound.owner)
+  guard @pipeline.step_at(pipeline, step_index) is Some(step) else {
     return Err(InvalidOwner)
   }
   guard step.operation is @pipeline.Values(_) else { return Err(InvalidOwner) }
@@ -54,7 +63,7 @@ fn resolve_values_row_limit_metered(
     is Some(ceiling) else {
     return Err(MissingCeiling)
   }
-  let subject = "checked-step:" + site.step.to_string()
+  let subject = "checked-step:" + step_index.to_string()
   let metadata : @wire.Limits = {
     max_bytes: limits.max_bytes,
     max_nodes: limits.max_nodes,
@@ -73,20 +82,15 @@ fn resolve_values_row_limit_metered(
   }
   let rows = match retained {
     Some(bound) => {
-      if !physical_equal(@step_bounds.checked_pipeline(bound), site.pipeline) ||
-        @step_bounds.checked_step(bound) != site.step {
+      if !physical_equal(@step_bounds.checked_pipeline(bound), pipeline) ||
+        @step_bounds.checked_step(bound) != step_index {
         return Err(InvalidOwner)
       }
       bound
     }
     None =>
       match
-        prepare_values_row_bound_metered(
-          site.pipeline,
-          site.step,
-          limits,
-          meter,
-        ) {
+        prepare_values_row_bound_metered(pipeline, step_index, limits, meter) {
         Ok(v) => v
         Err(e) => return Err(e)
       }
