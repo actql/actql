@@ -110,8 +110,8 @@ must verify Named Result rows and describe columns, full nullability, canonical
 field/SELECT order, internal-column absence, one Source acquisition, attach and
 unchanged request replay, and refusal before admission/provider I/O.
 
-Initial clean five-package execution is recorded below; corrected-source
-Local/HTTPS completion remains unverified.
+Initial failed campaigns and corrected clean five-package execution are recorded
+below. The corrected Local/HTTPS cohort completes at `e28f1755dec14dfa2ddee5f7855665e9775dfc18`.
 The parent's source/package success does not prove computed-star execution.
 Required submitted-HEAD CI, Wasm/native, broad packed campaigns and ordered
 STRUCT support remain unverified. Draft is required; no merge is performed.
@@ -169,3 +169,56 @@ The corrected exact-code fixture file passes 7/7 through
 `node scripts/local-checks.mjs test node -- scripts/computed-object-property-source-input.test.mjs`,
 attempt `run-0jREiQ` / `focused-test-8oRfrQ`. This does not substitute for the
 remaining public campaign.
+
+## Completed corrected-source public cohort
+
+Normal five-package production, independent tarball rehash and the unchanged
+selected public consumer pass at clean source
+`e28f1755dec14dfa2ddee5f7855665e9775dfc18`. Commands:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-computed-object-star-e28f1755d-pack
+node scripts/test-packed-public-query.mjs --computed-object-property-only
+```
+
+The existing bounded wrapper uses pinned Node 22.22.0 and MoonBit
+0.10.12+1634b282e, the shared heavy slot, a 1200-second budget and five-second
+TERM grace. Attempt `run-rD1sjO` passes with exit zero, complete output and
+released locks. Receipt `public-query-evidence-tyW3Q2` records ten complete
+commands, each with the same clean source SHA and raw/verification exit zero;
+there are no evidence errors. Successful temporary installations are removed.
+
+Embedded Local and real HTTPS each complete **37 positives, 16 preparation
+refusals and one expected execution failure**. All original cases remain.
+Eleven exact-code refusals are individually logged per boundary; the five
+original unlogged refusals are established by the unchanged common assertion
+loop and completed consumer. The scalar-star refusal requires the established
+implementation-limit code; the other new refusals require invalid input.
+All refusals preserve zero admission and Source I/O assertions.
+
+Named Result rows and full `describe().columns` contracts match independent
+values, nullability, field/SELECT order, empty input, duplicates and current
+versus original range values. Private receiver/sort columns are absent. Positives
+acquire the Source once; attach and unchanged same-request replay do not acquire,
+execute or admit a second Run. The CASE type correction preserves the existing
+branch-join law, while the COALESCE control retains its non-null refinement.
+
+| Package | Independently verified SHA-256 |
+| --- | --- |
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `5e28c1fabbf8acbb5a00ea2d77a8ce8e3b5aefc04ed849d767b25ac477e29acf` |
+| run-host-core | `11347952d713e286f65ac1518623b8e2a22d614abc1eb59c42023e1723e2e039` |
+| local-node | `c0b27635f04cbcf09ae53196086e7dcefd8136a21c4e2f24745bf254c139ef9d` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+Exact wrapper source and stdout are retained in
+`/private/tmp/actql-b-computed-object-star-e28f1755d-packed-20261009.mjs` and
+its adjacent `.stdout.log`; independent artifact/log inventory is
+`/private/tmp/actql-b-computed-object-star-e28f1755d-acceptance-audit-20261009.json`.
+The review-record update after this campaign is documentation only, not a newly
+packed source identity. Prior failed receipts are retained as failed attempts.
+
+Required submitted-HEAD CI, Wasm/native, broad packed coverage and ordered or
+anonymous STRUCT remain unverified. #1060 remains an unmerged parent dependency;
+this is a completed local public cohort, not a merge approval. Draft is retained,
+and neither a manual CI retry nor a merge is performed.
