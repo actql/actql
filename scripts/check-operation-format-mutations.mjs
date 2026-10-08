@@ -13,9 +13,9 @@ const mutations = [
     path: 'adapters/host-node/client-request-journal.mjs',
     file: 'adapters/host-node/submission-epoch-public.test.mjs',
     from: 'const validity = control.clientSubmissionEpochValidity(handle, clock.observed_at);',
-    to: "const validity = purpose === 'admit' ? 'admissible' : control.clientSubmissionEpochValidity(handle, clock.observed_at);",
-    // The retained-entry temporal check independently prevents an expired
-    // insertion. This one logical fault bypasses both temporal safeguards;
+    to: "const validity = intentRetired.get().retired_count > 0 ? 'admissible' : control.clientSubmissionEpochValidity(handle, clock.observed_at);",
+    // A prior lookup also fences expiry. Activate only after actual Owner
+    // retirement, then bypass validity and retained-entry time checks;
     // authentication, scope, intent, custody and transaction checks remain.
     also: [{from: 'row.accepted_at >= epoch.expiresAt || !Number.isSafeInteger(row.revision)',
       to: '!Number.isSafeInteger(row.revision)'}],
