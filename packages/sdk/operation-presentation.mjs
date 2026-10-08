@@ -6,6 +6,7 @@ const summaries = Object.freeze({
   'observation.unknown_state': 'このSDKではRun応答の状態を解釈できません。',
   'observation.contract_mismatch': 'Run応答がこのSDKの登録済み状態契約と一致しません。',
   'observation.malformed_response': 'Run応答が登録済み状態契約に違反しています。',
+  'observation.stale_observation': 'Run応答のcontrol revisionが古いか、同じrevisionで観測済みのcontrol事実と矛盾しています。',
   'submission.acceptance_unknown': '送信の受理を確認できません。処理は既に始まっている可能性があります。',
   'submission.not_accepted': 'Hostは受理前の拒否を耐久記録しました。このidentityは消費済みで、Run参照は返されていません。',
   'submission.preparation_failed': 'Hostは提出を受理した後、準備に失敗しました。Run参照は返されておらず、受理前の拒否ではありません。',
@@ -45,7 +46,7 @@ const readHint = 'この読み取り参照を保持してください。先頭�
 
 export function getOperationPresentationInfo(options) {
   const {locale} = getCheckPresentationInfo(options);
-  return Object.freeze({locale, translationRevision: `2026-10-08.operations.${locale}.10`});
+  return Object.freeze({locale, translationRevision: `2026-10-09.operations.${locale}.11`});
 }
 
 export function localizeOperation(explanation, domain, options) {

@@ -264,7 +264,7 @@ function fixtures() {
     id: 'Program source grammar resource',
     value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
     // Independent canonical JSON oracle over the revised source schema.
-    cid: 'sha256:41049cdd51609ba2d81f5a83d494892117fcd52de1e00beed270f60436a0b537',
+    cid: 'sha256:93b059bd20431956a8aaf3dd3a8861b5d29616d54717b7fa9d67c662c275ccc6',
   });
   const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
   for (const item of read('portability/corpus/incoming-gates.json').cases) {

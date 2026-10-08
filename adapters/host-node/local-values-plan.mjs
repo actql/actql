@@ -167,14 +167,14 @@ export function sourceFreeEffectPublicationPlan(options) {
   const run = JSON.parse(runDefinition.wire);
   const resultCount = moon.clientProgramEffectCompilationResultNames(
     compilation).length;
-  const plan = localPublicationPlan({control, admission, runDefinition,
+  const {plan, retention} = buildLocalPublicationPlan({control, admission, runDefinition,
     invocation, observation, compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
     resultCount, retainUntil: run.valid_until,
     moon, effectCompilation: compilation, preparedEffect: prepared});
-  return Object.freeze({...plan, invocationOwner: sourceFree._1,
+  return Object.freeze({...plan, effectInputRetention: retention, invocationOwner: sourceFree._1,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       runInvocation: invocation, observation})});
 }
@@ -211,7 +211,7 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
       resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
       retainUntil: run.valid_until,
       moon, effectCompilation: compilation, preparedEffect: prepared});
-    return Object.freeze({...issued, plan: Object.freeze({...plan,
+    return Object.freeze({...issued, plan: Object.freeze({...plan, effectInputRetention: retention,
       invocationOwner, localEvidenceContext: Object.freeze({admission,
         runDefinition, retentionDependencies: Object.freeze([...retentionDependencies,
           Object.freeze({kind: 'result_retention_policy',
@@ -286,7 +286,7 @@ export function acquiredEffectPublicationPlan({acquired, captured,
       cid: moon.clientProgramCapturedSourceSchemaCid(captured.identity),
       wire: inputBodies._1}),
   ]);
-  return Object.freeze({...plan, invocationOwner,
+  return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       acquiredEvidence, retentionDependencies, acquisitionDependencies,
       sourceLocalInvocation: acquiredEvidence.invocation,
@@ -354,7 +354,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
         wire: bodies._1}));
     return evidence;
   });
-  return Object.freeze({...plan, invocationOwner,
+  return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       acquiredEvidence: acquiredEvidenceByUnit[0],
       acquiredEvidenceByUnit: Object.freeze(acquiredEvidenceByUnit),

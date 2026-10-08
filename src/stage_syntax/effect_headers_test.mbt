@@ -15,6 +15,45 @@ fn effect_header_error(program : Program) -> EffectHeaderIssueKind raise {
 }
 
 ///|
+fn table_header_fixture(metadata : String) -> Program raise {
+  effect_program(
+    "    create: {store: {target: crm, mapping: mapping:crm.store.v1, from: {result: rows}, table_write: " +
+    metadata +
+    "}}",
+  )
+}
+
+///|
+test "Table write headers retain fixed intent action and physical binding" {
+  let metadata = "{intent: create_or_replace, action: create, expected_table: null, mapping_cid: 'sha256:" +
+    "a".repeat(64) +
+    "', capability_cid: 'sha256:" +
+    "b".repeat(64) +
+    "', installation_binding_cid: 'sha256:" +
+    "c".repeat(64) +
+    "'}"
+  let program = table_header_fixture(metadata)
+  let headers = collect_effect_headers(program, 1, 100).unwrap()
+  let header = effect_header_at(headers, 0).unwrap()
+  assert_true(effect_header_table_write(header) is Some(_))
+  assert_eq(effect_header_contract_ref(header), "mapping:crm.store.v1")
+  let work = effect_headers_work(headers)
+  assert_true(work >= 6)
+  assert_true(collect_effect_headers(program, 1, work) is Ok(_))
+  assert_true(collect_effect_headers(program, 1, work - 1) is Err(_))
+  for
+    invalid in [
+      metadata.replace(old="action: create", new="action: replace"),
+      metadata.replace(old="expected_table: null", new="expected_table: {}"),
+      metadata.replace(old="intent: create_or_replace", new="intent: upsert"),
+      metadata.replace(old="capability_cid:", new="unknown:"),
+      metadata.replace(old="sha256:" + "b".repeat(64), new="sha256:invalid"),
+    ] {
+    assert_eq(effect_header_error(table_header_fixture(invalid)), InvalidBody)
+  }
+}
+
+///|
 test "Effect headers preserve every source occurrence and local policy" {
   let declarations =
     #|    create: {create: {target: crm, mapping: mapping:crm.create.v1, payload: {}, max_items: {$param: cap}}}

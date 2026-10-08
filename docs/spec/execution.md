@@ -1383,7 +1383,10 @@ all-Results aggregate, and one state-consistent next action. Each availability
 entry distinguishes `available`, `unavailable`, and `unknown`, records the
 observation time and bounded reason, and may cite a cause. A failed Store query
 is `unknown`, not evidence that data is absent. `result_available` is true only
-when every declared Result is confirmed available. A confirmed available
+when at least one Result is declared and every declared Result is confirmed
+available. An Effect-only Run has an empty availability map and
+`result_available: false`; its approval, reconciliation and terminal outcome
+remain separate from Result availability. A confirmed available
 subset remains individually retrievable when the aggregate is false.
 
 <!-- requirement-block: run-states.run-state-lookup-must-not-reveal-publication-existence-to-an-unauthorized-caller -->
