@@ -274,7 +274,8 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = minMaxDistinctOnly ? {successes: minMaxDistinctSuccesses, refusals: minMaxDistinctRefusals}
+const scopeInputs = countifDistinctOnly ? {successes: countifDistinctSuccesses, refusals: countifDistinctRefusals}
+  : minMaxDistinctOnly ? {successes: minMaxDistinctSuccesses, refusals: minMaxDistinctRefusals}
   : inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArraySuccesses, refusals: inUnnestLiteralArrayRefusals}
   : arrayLiteralOnly ? {successes: arrayLiteralSuccesses, refusals: arrayLiteralRefusals}
   : graphQuantifierFormsOnly ? {successes: graphQuantifierFormsSuccesses, refusals: graphQuantifierFormsRefusals}
