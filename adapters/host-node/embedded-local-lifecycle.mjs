@@ -13,8 +13,10 @@ export function installedHostShutdown(host) {
     source: () => host.sourceProfile?.close(),
     effect: () => host.installedEffect?.close(),
     store: () => host.store.close(),
-    diagnostic: () => host.diagnostic.close(),
-    observation: () => host.observation?.close(),
+    ...(host.diagnostic === undefined ? {} :
+      {diagnostic: () => host.diagnostic.close()}),
+    ...(host.observation === undefined ? {} :
+      {observation: () => host.observation.close()}),
   });
 }
 

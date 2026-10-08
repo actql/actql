@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn, execFileSync} from 'node:child_process';
-import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {tmpdir} from 'node:os';
@@ -55,10 +55,14 @@ for (const [transport, sampled] of [['local', true], ['https', true], ['local', 
 test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart retains capture and consumption`, async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-otel-recovery-'));
   const packets = [];
+  const collected = [];
+  let succeeded = false;
   const server = createServer(async (request, response) => {
     const chunks = [];
     for await (const chunk of request) chunks.push(chunk);
-    packets.push({path: request.url, body: Buffer.concat(chunks)});
+    const packet = {path: request.url, body: Buffer.concat(chunks)};
+    packets.push(packet);
+    collected.push(packet);
     response.end();
   }).listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -106,9 +110,16 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
     if (!sampled) assert.equal([...waitingPackets, ...packets]
       .some(packet => packet.path === '/v1/traces'), false,
     'capture and replay never require sampled telemetry');
+    succeeded = true;
   } finally {
     await new Promise(resolve => server.close(resolve));
-    await rm(root, {recursive: true, force: true});
+    if (succeeded) await rm(root, {recursive: true, force: true});
+    else {
+      await writeFile(join(root, 'failed-telemetry.json'), JSON.stringify(
+        collected.map(packet => ({path: packet.path,
+          body: packet.body.toString('base64')}))));
+      console.error(`Retained failed observation acceptance: ${root}`);
+    }
   }
 });
 }
