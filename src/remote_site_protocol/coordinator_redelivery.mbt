@@ -66,6 +66,44 @@ pub fn coordinator_redelivery_eligible(
 }
 
 ///|
+/// Continue initial delivery after reconstruction, before the transport has
+/// durably marked its outcome unknown. This is not a not-seen observation or
+/// permission to replay an uncertain send. The adapter must persist unknown
+/// before offering bytes, use its conditional write to exclude concurrent
+/// continuations, and recheck current context after that persistence await.
+/// A transport which can send while the intent remains durable cannot infer
+/// absence of delivery from this record and must supply false for the barrier.
+pub fn coordinator_initial_delivery_eligible(
+  record : CoordinatorDispatchIntentRecord,
+  request : DispatchRequest,
+  expected_authority : String,
+  expected_site : String,
+  expected_generation : Int,
+  authorization_current : Bool,
+  cancellation_requested : Bool,
+  outcome_persisted_before_every_send : Bool,
+) -> Result[Bool, DispatchIssue] {
+  let current = match
+    coordinator_delivery_context_current(
+      request, expected_authority, expected_site, expected_generation, authorization_current,
+      cancellation_requested,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !coordinator_dispatch_intent_matches_request(record, request) {
+    return Err(DispatchIdentityMismatch)
+  }
+  Ok(
+    current &&
+    outcome_persisted_before_every_send &&
+    record.progress == CoordinatorIntentDurable &&
+    record.site_revision == -1 &&
+    record.revision == 0,
+  )
+}
+
+///|
 /// Trusted Host context checked on initial delivery as well as redelivery.
 pub fn coordinator_delivery_context_current(
   request : DispatchRequest,
