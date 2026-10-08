@@ -1,0 +1,626 @@
+[
+  {
+    "name": "between",
+    "text": "SELECT 2 BETWEEN 1 AND 3 AS value",
+    "independentProgram": {
+      "version": "actql/0.1",
+      "id": "fixture.query_pair",
+      "stages": [
+        {
+          "id": "main",
+          "inputs": {},
+          "steps": [
+            {
+              "as": "aql_source_free",
+              "values": {
+                "schema": {
+                  "aql_source_free_unit": {
+                    "type": "boolean",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "aql_source_free_unit": true
+                  }
+                ]
+              }
+            },
+            {
+              "from": "aql_source_free",
+              "derive": {
+                "aql_query_expr_0": {
+                  "between": [
+                    {
+                      "literal": 2
+                    },
+                    {
+                      "literal": 1
+                    },
+                    {
+                      "literal": 3
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "select": [
+                {
+                  "value": "aql_query_expr_0"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "value"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    },
+    "expectedRows": [
+      {
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "not-between",
+    "text": "SELECT 2 NOT BETWEEN 1 AND 3 AS value",
+    "independentProgram": {
+      "version": "actql/0.1",
+      "id": "fixture.query_pair",
+      "stages": [
+        {
+          "id": "main",
+          "inputs": {},
+          "steps": [
+            {
+              "as": "aql_source_free",
+              "values": {
+                "schema": {
+                  "aql_source_free_unit": {
+                    "type": "boolean",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "aql_source_free_unit": true
+                  }
+                ]
+              }
+            },
+            {
+              "from": "aql_source_free",
+              "derive": {
+                "aql_query_expr_0": {
+                  "not": {
+                    "between": [
+                      {
+                        "literal": 2
+                      },
+                      {
+                        "literal": 1
+                      },
+                      {
+                        "literal": 3
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "select": [
+                {
+                  "value": "aql_query_expr_0"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "value"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    },
+    "expectedRows": [
+      {
+        "value": false
+      }
+    ]
+  },
+  {
+    "name": "between-false-null",
+    "text": "SELECT 3 BETWEEN 4 AND NULL AS value",
+    "independentProgram": {
+      "version": "actql/0.1",
+      "id": "fixture.query_pair",
+      "stages": [
+        {
+          "id": "main",
+          "inputs": {},
+          "steps": [
+            {
+              "as": "aql_source_free",
+              "values": {
+                "schema": {
+                  "aql_source_free_unit": {
+                    "type": "boolean",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "aql_source_free_unit": true
+                  }
+                ]
+              }
+            },
+            {
+              "from": "aql_source_free",
+              "derive": {
+                "aql_query_expr_0": {
+                  "between": [
+                    {
+                      "literal": 3
+                    },
+                    {
+                      "literal": 4
+                    },
+                    {
+                      "literal": null
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "select": [
+                {
+                  "value": "aql_query_expr_0"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "value"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    },
+    "expectedRows": [
+      {
+        "value": false
+      }
+    ]
+  },
+  {
+    "name": "not-between-false-null",
+    "text": "SELECT 3 NOT BETWEEN 4 AND NULL AS value",
+    "independentProgram": {
+      "version": "actql/0.1",
+      "id": "fixture.query_pair",
+      "stages": [
+        {
+          "id": "main",
+          "inputs": {},
+          "steps": [
+            {
+              "as": "aql_source_free",
+              "values": {
+                "schema": {
+                  "aql_source_free_unit": {
+                    "type": "boolean",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "aql_source_free_unit": true
+                  }
+                ]
+              }
+            },
+            {
+              "from": "aql_source_free",
+              "derive": {
+                "aql_query_expr_0": {
+                  "not": {
+                    "between": [
+                      {
+                        "literal": 3
+                      },
+                      {
+                        "literal": 4
+                      },
+                      {
+                        "literal": null
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "select": [
+                {
+                  "value": "aql_query_expr_0"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "value"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    },
+    "expectedRows": [
+      {
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "like",
+    "text": "SELECT 'abc' LIKE 'a%' AS value",
+    "independentProgram": {
+      "version": "actql/0.1",
+      "id": "fixture.query_pair",
+      "stages": [
+        {
+          "id": "main",
+          "inputs": {},
+          "steps": [
+            {
+              "as": "aql_source_free",
+              "values": {
+                "schema": {
+                  "aql_source_free_unit": {
+                    "type": "boolean",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "aql_source_free_unit": true
+                  }
+                ]
+              }
+            },
+            {
+              "from": "aql_source_free",
+              "derive": {
+                "aql_query_expr_0": {
+                  "like": [
+                    {
+                      "literal": "abc"
+                    },
+                    {
+                      "literal": "a%"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "select": [
+                {
+                  "value": "aql_query_expr_0"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "value"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    },
+    "expectedRows": [
+      {
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "not-like",
+    "text": "SELECT 'abc' NOT LIKE 'a%' AS value",
+    "independentProgram": {
+      "version": "actql/0.1",
+      "id": "fixture.query_pair",
+      "stages": [
+        {
+          "id": "main",
+          "inputs": {},
+          "steps": [
+            {
+              "as": "aql_source_free",
+              "values": {
+                "schema": {
+                  "aql_source_free_unit": {
+                    "type": "boolean",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "aql_source_free_unit": true
+                  }
+                ]
+              }
+            },
+            {
+              "from": "aql_source_free",
+              "derive": {
+                "aql_query_expr_0": {
+                  "not": {
+                    "like": [
+                      {
+                        "literal": "abc"
+                      },
+                      {
+                        "literal": "a%"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "select": [
+                {
+                  "value": "aql_query_expr_0"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "value"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    },
+    "expectedRows": [
+      {
+        "value": false
+      }
+    ]
+  },
+  {
+    "name": "like-null-left",
+    "text": "SELECT NULL LIKE 'a%' AS value",
+    "independentProgram": {
+      "version": "actql/0.1",
+      "id": "fixture.query_pair",
+      "stages": [
+        {
+          "id": "main",
+          "inputs": {},
+          "steps": [
+            {
+              "as": "aql_source_free",
+              "values": {
+                "schema": {
+                  "aql_source_free_unit": {
+                    "type": "boolean",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "aql_source_free_unit": true
+                  }
+                ]
+              }
+            },
+            {
+              "from": "aql_source_free",
+              "derive": {
+                "aql_query_expr_0": {
+                  "like": [
+                    {
+                      "literal": null
+                    },
+                    {
+                      "literal": "a%"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "select": [
+                {
+                  "value": "aql_query_expr_0"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "value"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    },
+    "expectedOutcome": {
+      "kind": "demanded-expression-error",
+      "publishedRows": false
+    }
+  },
+  {
+    "name": "like-null-right",
+    "text": "SELECT 'abc' LIKE NULL AS value",
+    "independentProgram": {
+      "version": "actql/0.1",
+      "id": "fixture.query_pair",
+      "stages": [
+        {
+          "id": "main",
+          "inputs": {},
+          "steps": [
+            {
+              "as": "aql_source_free",
+              "values": {
+                "schema": {
+                  "aql_source_free_unit": {
+                    "type": "boolean",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "aql_source_free_unit": true
+                  }
+                ]
+              }
+            },
+            {
+              "from": "aql_source_free",
+              "derive": {
+                "aql_query_expr_0": {
+                  "like": [
+                    {
+                      "literal": "abc"
+                    },
+                    {
+                      "literal": null
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "select": [
+                {
+                  "value": "aql_query_expr_0"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "value"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    },
+    "expectedOutcome": {
+      "kind": "demanded-expression-error",
+      "publishedRows": false
+    }
+  }
+]
