@@ -44,6 +44,6 @@ test('receiver obligations retain the existing normal and selected packed routes
   const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
   assert.ok(app.includes('scopeInputs.successes.push(...distinctOrderSuccesses)'));
   assert.ok(app.includes('scopeInputs.refusals.push(...distinctOrderRefusals)'));
-  assert.ok(app.includes('distinctOrderOnly ? {successes: distinctOrderSuccesses, refusals: distinctOrderRefusals}'));
+  assert.ok(app.includes('distinctOrderOnly ? {successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses], refusals: [...distinctOrderRefusals, ...distinctOrderMemberRefusals]}'));
   assert.ok(driver.includes("['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs']"));
 });
