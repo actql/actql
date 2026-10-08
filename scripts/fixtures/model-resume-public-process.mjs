@@ -229,6 +229,22 @@ const installation = {directory: path('host'), modelInstallation, authorization,
         }))}), () => true),
   }];
   }};
+// Optional observation acceptance reuses this real public lifecycle. It does
+// not replace the Model/Checkpoint fixtures or manufacture any Owner facts.
+let telemetry, telemetryContext;
+if (options.observation !== undefined) {
+  const {createNodeHostObservability} = await import(runtime.observation);
+  telemetry = createNodeHostObservability({endpoint: options.observation.endpoint,
+    logs: {endpoint: `${options.observation.endpoint}/v1/logs`}});
+  installation.observation = telemetry.connection;
+  const {context, trace, ROOT_CONTEXT} = await import(runtime.contextApi);
+  const {AsyncLocalStorageContextManager} = await import(runtime.contextManager);
+  const manager = new AsyncLocalStorageContextManager().enable();
+  assert.equal(context.setGlobalContextManager(manager), true);
+  // This is application-owned ingress context, not an authorization claim.
+  telemetryContext = {context, manager, parent: trace.setSpanContext(ROOT_CONTEXT,
+    options.observation.parent)};
+}
 async function assertSeparateReviewDisclosure(summary) {
   if (transport !== 'https') return;
   const metadata = await connect({mode: 'remote', durability: 'durable',
@@ -298,7 +314,8 @@ async function cancelWithCommitReplyLoss() {
   assert.deepEqual(second, first);
   return {cancelRef, first, second, unknownCode: 'CancellationUnknown'};
 }
-try {
+const execute = async () => { try {
+  const open = async () => {
   if (transport === 'https') {
     setDefaultCACertificates([...getCACertificates('default'), readFileSync(path('host.crt'), 'utf8')]);
     host = await openInstalledRemoteHttpHost({...installation,
@@ -307,8 +324,12 @@ try {
     server = createServer({key: readFileSync(path('host.key')), cert: readFileSync(path('host.crt'))}, host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     client = await connect({mode: 'remote', durability: 'durable',
-      endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-owner'});
+      endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-owner',
+      ...(telemetry === undefined ? {} : {traceContext: () => options.observation.parent})});
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
+  };
+  if (telemetryContext === undefined) await open();
+  else await telemetryContext.context.with(telemetryContext.parent, open);
   try {
     const lookupOnly = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss';
     if (!existsSync(path('submission-ref.json'))) {
@@ -496,5 +517,13 @@ try {
     await new Promise(resolve => server.close(resolve));
   }
   await host?.close();
+  if (telemetry !== undefined) {
+    save(`${phase}-telemetry.json`, telemetry.status());
+    await telemetry.close();
+    telemetryContext.context.disable();
+    telemetryContext.manager.disable();
+  }
   sourceObservation?.restore();
-}
+} };
+if (telemetryContext === undefined) await execute();
+else await telemetryContext.context.with(telemetryContext.parent, execute);
