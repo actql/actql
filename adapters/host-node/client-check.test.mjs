@@ -3640,6 +3640,8 @@ for (const entrance of ['local', 'http']) {
     const cases = [
       ["SELECT SQRT('private-expression-text') AS n", 'number'],
       ['SELECT SQRT(TRUE) AS n', 'number'],
+      ["SELECT ABS('private-expression-text') AS n", 'number'],
+      ['SELECT ABS(TRUE) AS n', 'number'],
       ['SELECT LOWER(1) AS n', 'string'],
       ['SELECT NOT 1 AS n', 'boolean'],
       ['SELECT IF(1, 2, 3) AS n', 'boolean'],
@@ -3660,7 +3662,7 @@ for (const entrance of ['local', 'http']) {
         hint: `Use an expression with ${expected} type for the rejected argument.`},
       '[check-mutation:expression-type-explanation]');
     }
-    for (const text of ['SELECT SQRT(1) AS n', "SELECT LOWER('X') AS n",
+    for (const text of ['SELECT ABS(-1) AS n', 'SELECT SQRT(1) AS n', "SELECT LOWER('X') AS n",
       'SELECT NOT FALSE AS n', 'SELECT IF(TRUE, 2, 3) AS n']) {
       const result = await client.check(text, {format: 'sql'});
       assert.equal(result.report.verdict, 'verified');
@@ -3672,7 +3674,7 @@ for (const entrance of ['local', 'http']) {
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: unsupported expression functions remain limits beside type diagnostics`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
-    for (const text of ['SELECT ABS(TRUE) AS n', 'SELECT ABS(1) AS n']) {
+    for (const text of ['SELECT FUTURE_SCALAR(TRUE) AS n', 'SELECT FUTURE_SCALAR(1) AS n']) {
       const result = await client.check(text, {format: 'sql'});
       assert.equal(result.report.verdict, 'undetermined');
       assert.deepEqual(result.report.reasons, []);

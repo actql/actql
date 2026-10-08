@@ -1816,7 +1816,7 @@ recursively parsed as expressions. The Core scalar grammar contains:
 
 - arithmetic `add`, `subtract`, `multiply`, `divide`, and `modulo`;
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
-- `len`, `contains`, `concat`, `safe_div`, `sqrt`, and `floor`;
+- `len`, `contains`, `concat`, `safe_div`, `sqrt`, `abs`, and `floor`;
 - the authoring-only string `template` form;
 - `lower`, `upper`, `trim`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
@@ -1880,6 +1880,7 @@ The conversion/boundary truth table is normative:
 | `to_timestamp(string)` | canonical millisecond UTC `Z` spelling only; offsets fail |
 | `modulo(a,b)` | truncating remainder with dividend sign; zero divisor fails |
 | `sqrt(x)` | negative fails |
+| `abs(x)` | exact finite binary64 magnitude, including subnormals and maximum finite values; canonical positive zero; null propagates |
 | `len(null)` | null |
 | `concat(...values)` | string operands; skip nulls, concatenate in order; all null yields the empty string |
 | `concat_strict(...values)`, text `a \|\| b` | string operands; null if any operand is null; otherwise concatenate in order |
@@ -1945,6 +1946,7 @@ atomic, not null, except where the named function explicitly specifies it.
 | `concat`, `concat_strict`, `replace` | S operands → S | [Scalar expressions](#scalar-expressions) string rules | RelA |
 | `contains` | S, S → boolean | Exact matching | RelA |
 | `sqrt`, `floor`, `safe_div` | N operands → N | Negative square root fails; safe division by zero returns null | RelA |
+| `abs` | N → N | One child evaluated once on demand; operand nullability is preserved; no decimal overload, implicit conversion or non-finite value | RelA |
 | `to_number`, `to_boolean`, `to_timestamp` | S or the exact target type → indicated type | [Explicit casts](#casts) closed conversion table; same-type identity | RelA |
 | `to_string` | string, number, decimal, boolean, timestamp, or date → S | Canonical spelling; json/object/array/vector and both reference types are rejected | RelA |
 | `date_trunc`, `date_add`, `date_diff` | Date/timestamp and fixed unit/number operands | Same temporal domain; [Scalar expressions](#scalar-expressions) units and result rules | RelA |
@@ -2059,7 +2061,7 @@ an optional final argument, not expression syntax.
 <!-- requirement-block: expression-text.signatures-mapping-constraints-len-x-sqrt-x -->
 | Signatures | Mapping / constraints |
 | --- | --- |
-| `len(x)`, `sqrt(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)` | corresponding unary scalar function |
+| `len(x)`, `sqrt(x)`, `abs(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)` | corresponding unary scalar function |
 | `to_number(x)`, `to_string(x)`, `to_boolean(x)`, `to_timestamp(x)` | explicit conversion |
 | `contains(value, part)`, `safe_div(left, right)`, `replace(value, search, replacement)` | corresponding scalar function |
 | `concat(x, ...)`, `concat_strict(x, ...)`, `coalesce(x, ...)`, `if(condition, then_value, else_value)` | corresponding scalar function or conditional tree |
@@ -9955,7 +9957,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85
+../../spec/contracts/actql-aoa.json# sha256:57f0690b7861a2b4ba45c0d1ec76a0f99389886cacdd78fdd6ff44f777efeaaa
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -9964,13 +9966,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:312652bb513b214f7006df0cf1d4e28155c86ad631f24a54689b037362d0c2f1
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:040d42d5ef4d01dce7a46e7cbc05817e1d4261dfe220a8e86d3885a7e4908d4e
+../../spec/contracts/actql-expressions.json# sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:cd1f3718042b6da202b5c0f4fe507efb9050f907cc1a1b0c1bc773cd6a04e1eb
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:1ad188ca11e5490876722ad99152d28922c48f1c1e8177f1a8a305b225e4eaf7
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:f4e1af7d2c2b80ea7f446c26ee96774b14d6cae192628b8477f48b2ff4c7b763
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:736ddd89183ed162dd755e68858e1c4f7347c6d6ee03fec46c843f072c5e19d1
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:1333afc6c7356231eab40ede1e99933a70b55f8dac48b32488fc236ddb7c3176
+../../spec/contracts/actql-expressions.json#/laws sha256:e3c6261d1eab15b85ee0c094adebbe9d2900046a534b9171303726325bc0eeb0
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:22d6810c6ef8de4ef16fc9f8e49a3f5b43a15e0637c6817c7ccb930c04afd33c
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:5f9d073b265d4c1b3018825d8bcec128449e8e93994ca0a0248c5c812b837a66
 ```
 
 <!-- stage-contract-pins:start -->

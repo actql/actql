@@ -56,6 +56,7 @@ fn expression_role(
     | "is_unknown"
     | "len"
     | "sqrt"
+    | "abs"
     | "floor"
     | "lower"
     | "upper"

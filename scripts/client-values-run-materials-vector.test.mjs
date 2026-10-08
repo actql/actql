@@ -244,7 +244,81 @@ function vector(grammar, aoa, dependencies=priorDependencies, barrierCid=barrier
   return {template, executable, compiled, run};
 }
 
-test('baseline preimages and changed normative pins independently determine the Run CID', () => {
+function checkPreAbsValuesPreimages(preAbs) {
+  const dependencies = preAbs.values_dependencies;
+  const identity = preAbs.values_identity;
+  // Hash every stored body and reconstruct the complete Unit preimage from
+  // this fixed fixture's normative roles. No current contract or runtime is read.
+  const localCid = cid(dependencies.local);
+  assert.equal(localCid,
+    pin('e3ade8272a250ffbc2ce32000015eb197442341ae03f8d2ccf46707076367c17'));
+  assert.equal(identity.semantics.program_template.stages[0].stage_semantics_cid,
+    localCid);
+  assert.equal(identity.semantics.expression_contract_cid,
+    dependencies.local.expression_contract_cid);
+  assert.equal(identity.semantics.expression_contract_cid,
+    preAbs.grammar.expression_contract_cid);
+  assert.equal(cid(identity.semantics), identity.semanticsCid);
+  assert.equal(identity.semanticsCid,
+    pin('a0c4c52c89c99f580394bf1991b31e543f9789fc6fd0b99cbea2bffb947abc70'));
+  assert.deepEqual(identity.definition, {
+    version: 'actql-program-definition/0.1', id: 'client-values',
+    program_semantics_cid: identity.semanticsCid,
+  });
+  assert.equal(cid(identity.definition), identity.programCid);
+  assert.equal(identity.programCid,
+    pin('666d7674d445fbd6c81cdd499cd8691cf12840b77f90bcff02d7e06af9abfeac'));
+  assert.deepEqual(dependencies.contracts, [...dependencies.contracts].sort());
+  assert.equal(new Set(dependencies.contracts).size, dependencies.contracts.length);
+  const closure = {version: 'actql-local-contracts/0.1',
+    contracts: dependencies.contracts};
+  const unit = {version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: localCid,
+    used_parameter_declarations_cid: cid(dependencies.local.parameters),
+    local_contract_closure_cid: cid(closure),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}};
+  assert.equal(cid(unit), dependencies.unit);
+  assert.equal(dependencies.unit,
+    pin('54f5a2da3c5f2439a13630dec8a8098ef550d9befcca8ac298ac22aac3cecd8f'));
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${dependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), dependencies.proof);
+  assert.equal(cid({version: 'actql-result-plan/0.1',
+    order: {strategy: 'inherited', terms: []},
+    projection: [{input: 'id', output: 'id', value_contract_cid:
+      pin('8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d')}],
+    result_name: 'answer', unit_definition_cid: dependencies.unit,
+    unit_result_name: 'rows', unit_result_ordinal: 0,
+    typed_output_port: {carrier: 'relation', name: 'rows', row_contract_cid:
+      pin('999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c')},
+  }), dependencies.resultPlan);
+}
+
+test('pre-ABS fixture validation rejects changed stored bodies and dependency claims', () => {
+  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-abs-values-identities.json', 'utf8'));
+  for (const [name, mutate] of [
+    ['semantics body', value => { value.values_identity.semantics.program_template.stages[0].id = 'other'; }],
+    ['semantics CID', value => { value.values_identity.semanticsCid = pin('0'.repeat(64)); }],
+    ['definition body', value => { value.values_identity.definition.id = 'other'; }],
+    ['definition link', value => { value.values_identity.definition.program_semantics_cid = pin('0'.repeat(64)); }],
+    ['Program CID', value => { value.values_identity.programCid = pin('0'.repeat(64)); }],
+    ['local body', value => { value.values_dependencies.local.local_body.steps[0].values.rows[0].id = 3; }],
+    ['removed contract', value => { value.values_dependencies.contracts.pop(); }],
+    ['changed contract', value => { value.values_dependencies.contracts[0] = pin('0'.repeat(64)); }],
+    ['contract order', value => { value.values_dependencies.contracts.reverse(); }],
+    ['Unit CID', value => { value.values_dependencies.unit = pin('0'.repeat(64)); }],
+    ['proof CID', value => { value.values_dependencies.proof = pin('0'.repeat(64)); }],
+    ['Result Plan CID', value => { value.values_dependencies.resultPlan = pin('0'.repeat(64)); }],
+  ]) {
+    const changed = structuredClone(frozen);
+    mutate(changed);
+    assert.throws(() => checkPreAbsValuesPreimages(changed),
+      {name: 'AssertionError'}, name);
+  }
+});
+
+test('baseline and pre-ABS Run preimages retain their original contract closures', () => {
   const baseline = vector(pin('15a180c744c81eea1368e7e31813bb2b3712b9496ba48748973cb94135184914'),
     pin('4b6f51d57ca1d3cb16e28e04eeef20bebee34d4d3b89271de84b982a8ac74005'));
   assert.equal(baseline.template.bound_invocation_template_cid,
@@ -254,8 +328,9 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(baseline.run.run_definition_cid,
     pin('e80cf974a2d99757867e3d087e88f48245aab36df049d0dd6959d264ec6be7b5'));
   // Pins are checked in normative contracts, not read from generated runtime.
-  const grammar = JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json', 'utf8'));
-  const aoaContract = JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8'));
+  const preAbs = JSON.parse(readFileSync('scripts/fixtures/pre-abs-values-identities.json', 'utf8'));
+  checkPreAbsValuesPreimages(preAbs);
+  const grammar = preAbs.grammar;
   const {grammar_manifest_cid: grammarCid, ...grammarPreimage} = grammar;
   assert.equal(cid(grammarPreimage), grammarCid);
   assert.equal(priorDependencies.unit,
@@ -267,22 +342,22 @@ test('baseline preimages and changed normative pins independently determine the 
   // Freeze all preceding vectors at their pre-membership normative closure.
   const dependencies = valuesDependencyOracle({beforeMembership: true, preTypedJson: true});
   const preMembershipAoA = pin('5f1c2b3b1fc7fb76383ab1ac7cada0c1734bb5d8e21d37b42b6172938c09e951');
-  const currentDependencies = valuesDependencyOracle();
+  const preAbsDependencies = preAbs.values_dependencies;
   const barrierManifest = JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
   const {barrier_contract_manifest_cid: barrierCid, ...barrierPreimage} = barrierManifest;
   assert.equal(cid(barrierPreimage), barrierCid);
-  const currentIdentity = valuesProgramOracle();
+  const preAbsIdentity = preAbs.values_identity;
   assert.equal(valuesProgramOracle({beforeMembership:true,preTypedJson:true}).programCid, programCid);
   assert.equal(valuesProgramOracle({beforeMembership:true,preTypedJson:true}).semanticsCid, semanticsCid);
-  assert.equal(currentIdentity.programCid, pin('666d7674d445fbd6c81cdd499cd8691cf12840b77f90bcff02d7e06af9abfeac'));
-  assert.equal(currentIdentity.semanticsCid, pin('a0c4c52c89c99f580394bf1991b31e543f9789fc6fd0b99cbea2bffb947abc70'));
+  assert.equal(preAbsIdentity.programCid, pin('666d7674d445fbd6c81cdd499cd8691cf12840b77f90bcff02d7e06af9abfeac'));
+  assert.equal(preAbsIdentity.semanticsCid, pin('a0c4c52c89c99f580394bf1991b31e543f9789fc6fd0b99cbea2bffb947abc70'));
 
   const requestIntent = {version: 'actql-logical-request-intent/0.1',
     caller_input_intent_cid: pin('b'.repeat(64)), parameter_values_cid: parameterValues,
-    program_definition_cid: currentIdentity.programCid};
+    program_definition_cid: preAbsIdentity.programCid};
   assert.equal(cid(requestIntent), pin('72ee31475f76b775c75b3911e0d7cc03b05a3eeba0dec0448d2f745a5ca51cfb'));
-  const current = vector(grammarCid, cid(aoaContract), currentDependencies, barrierCid,
-    currentIdentity);
+  const preAbsRun = vector(grammarCid, preAbs.aoa_contract_cid, preAbsDependencies, barrierCid,
+    preAbsIdentity);
   const graphRowsDependencies = {
     unit:pin('9a0e59c162b656a2196ee404011eb7a4ec763c8b402dfda359b2cc6dd5aa0e96'),
     proof:pin('efcf93f32e510db6482caa901dd99a17bbbba43ce64d3be922901a318bcb479b'),
@@ -626,13 +701,13 @@ test('baseline preimages and changed normative pins independently determine the 
     resultPlan: pin('2d37e465bf372e6115235bd843172cd85367704c4ba728a7ad1ce57523c81738'),
   };
   assert.equal(vector(pin('cbf544dd2f03bbf120cb4181a861e3ee5bad66c73680414f563c13ecba2254a6'),
-    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', previousCellDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', previousCellDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('36560241fceee9447094100569f3c391e28ac5a0dcce70ef3cd1d446f8bc7ace'));
   assert.equal(vector(pin('a5d5cf748d303dd303d92b2dede9e60d23ee5fc8439173fd916a2d8d1c702fb6'),
-    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', previousCellDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', previousCellDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('2273330bbd1b44ddc60f67167b8ba9c6a37dd28460c1b303a0c3b87a941ef63b'));
   assert.equal(vector(pin('d53377fb0065ffa0e12bcbd92664d50c03c6ef317e148d632c593cce65d4b922'),
-    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', previousCellDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', previousCellDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('8d0f3153f18ba0d64478dd83dbed1d9141ddf57b5d2176465b3b28c6dbcafdc9'));
   const beforeGraphDependencies = {
   "unit": "sha256:86b9e82b02cce7df5c0a861c7e48f3689ceb65db7e9946ef62e876bf161c16a3",
@@ -640,14 +715,14 @@ test('baseline preimages and changed normative pins independently determine the 
   "resultPlan": "sha256:8ae7b346cc776132bf1dfc3354e30eaee3bc555cbef2358e6b59d21cc745940d"
 };
   assert.equal(vector('sha256:f97f4aab9869f21b5d8c75e13bed93c69fa671602020167f68eb196bc65e1ead',
-    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     'sha256:0f55021c0394bc5cd6b6fa37fa3f30ebad510678911822e8c7b3da6fd557e659');
   // Keep the ordinary typed-JSON/main integration predecessor intact.
   assert.equal(vector('sha256:75eff2143c075f817ae4bc93022b34f3b6a84a48092cb8ec4726a42b791c5c52',
-    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     'sha256:80cca8baf237d7c1d546d91d221ade151cb78961ffc467dacad95ef2f7b15b91');
   assert.equal(vector('sha256:e8cb271a8e74c8900258d53c9443bbc6bb78694b313a282a1f2807b3ca5137d5',
-    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     'sha256:e9e1315ed7d55af5076ef8b6507364f7727cf6556d6ee5ad19f3694f4e7813b2');
   // Keep the pre-closure Program schema's complete Values/Run preimage.
   // Current schema requirements change the Unit dependency closure even when
@@ -659,7 +734,7 @@ test('baseline preimages and changed normative pins independently determine the 
   };
   assert.equal(vector(pin('3fe450061e6884fc773ecda7492de02dd27a15219a6832e8e490a096e29b1c9a'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    beforeSchemaClosure, barrierCid, currentIdentity).run.run_definition_cid,
+    beforeSchemaClosure, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('53df3a5cf53905e1f34890c6a078ad1a59efb035b6d44c602006f44be2290e8b'));
   // Freeze the closure before saved Relation schema declarations changed the
   // Check Environment body. Historical Runs must not inherit current inputs.
@@ -675,131 +750,150 @@ test('baseline preimages and changed normative pins independently determine the 
     proof: pin('0a5ee06cede8dbd3fbefeb008249b49b39d07c694a50c433cd201cb9be9adad2'),
     resultPlan: pin('d6b68f1a47ee1c233db5d072fe8210d89bf942b97236a37dae7acd491882994e'),
   };
-  assert.equal(currentDependencies.unit,
+  assert.equal(preAbsDependencies.unit,
     pin('54f5a2da3c5f2439a13630dec8a8098ef550d9befcca8ac298ac22aac3cecd8f'));
-  assert.equal(currentDependencies.proof,
+  assert.equal(preAbsDependencies.proof,
     pin('b9b589e8f084c3ba2b8abaf6d888f037d76e56c2ceb23a0120ffe8c027912e8e'));
-  assert.equal(currentDependencies.resultPlan,
+  assert.equal(preAbsDependencies.resultPlan,
     pin('6286d2d4d7603a61da71d464c0043b98647e94b1997ae9b1dc94bda51fa34a3a'));
   // Preserve the schema-closure predecessor before qualified-star text routing.
   assert.equal(vector(pin('1b837dfa56c76782890525a6a4d39239a5675d719223c7de0c70231f89efd7d7'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    beforeSavedSchemaDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('38827de4f4b56e91af5bdaa6bf3597602ebe53f2ed6947553bc329b08a7e260e'));
   // Freeze the qualified-star predecessor before adding REPLACE grammar.
   assert.equal(vector(pin('efa41daa81570153a600aa1459bf498135d4ac67b1df4555651d6ff879229062'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    beforeSavedSchemaDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('7b2ee1d01a0ffe34498c4fc5b5e9d37a4835f139f81125c21728282d7c90b8a2'));
   assert.equal(vector(pin('1995b1527e69dfc30daff86098b01d0fcef393d703c58e4fbf4f6fa980bf890c'),
-    cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, beforeSavedSchemaDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('e8ccbde9474f668615917422ae4c63081144a1a82ab4ae0f14d2d647aa872f56'));
   assert.equal(vector(pin('a395e9d881fd75019ff99db18016a4cf72f19f14f52856b8f313462e0489c09a'),
-    cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, beforeSavedSchemaDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('31dc7d61b6fe40c4662a836eecc194ef96aa50548b8327a49b4d95dd0d32f896'));
   // Preserve the fixed-hop predecessor before adding any-direction edge syntax.
   assert.equal(vector(pin('675ce07e2792ad6736f526ffb894e987463ff1eee7f94dfd8e391bcfbfc3dd20'),
-    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, beforeTableDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('35c252c2f80d29f142d35879ca8fb1f828e218266faf062494db1f21f4ace648'));
   // Retain the any-direction full-edge Run preimage under its grammar pin.
   assert.equal(vector(pin('3766a009afd7d8e22904ace1507becb871c62c5fb0dd969f7ee0886c17892c55'),
-    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, beforeTableDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('f17353ea4d0b6c8c65a30a3069582c42b396dfebf24bbbe7231423c59e4f5e9f'));
   // Retain the abbreviated-edge predecessor without rebinding its saved Run.
   assert.equal(vector(pin('e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3'),
-    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, beforeTableDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('21982c4ae013552cb120f9e32e35c672b6c23092e8fa47323d4fabbe5ca00033'));
   // Preserve the constructor-only ARRAY profile before closing reference and
   // aggregate type bypasses. Rehash the complete independent Run preimage.
   assert.equal(vector(pin('eb7c8d7239e90b612a3bca095d29d74a828e47187609a893ff4d7406ac6512a6'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    beforeSavedSchemaDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('c46844e63f6f33150c8312b057491f00a6ab775d62ae36bba779c929cdcbae2d'));
   assert.equal(vector(pin('4ce6abb00008cc0752dda4797487ef815287e30d21bc6e1ae5fca3941f7005a9'),
-    cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, beforeSavedSchemaDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('26501230bde03bc47e0e4e772e4971b048de85af47b9626771a1904375eddd92'));
   // Keep the finite-quantifier predecessor under its original source closure.
   assert.equal(vector(pin('883c032ce81e5a9f4a192a1d3c5af36bfa48a3d108945f832d9e1c4e7c13b135'),
-    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, beforeTableDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('ea1d3abc7d1e52de2b35574a26c62cfe8fea84beed67a4e1c6c0afba5d30ffa2'));
   // Preserve main's abbreviated-edge vector with the current Table closure.
   assert.equal(vector(pin('e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('d16ec26dbce7f1c96129d0810e11e437583e31560e3ad7b3e5bf681b0599107a'));
   // Keep both independently authored parent closures after integration.
   assert.equal(vector(pin('3fe077253a1f7ec230316eb1d6cca21d464c5292ea63f95f19ca53052b03ee9f'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('d7a36674c603fb1d3a1b9216e9284222315552dc40d8660b942c308af4c24f48'));
   assert.equal(vector(pin('883c032ce81e5a9f4a192a1d3c5af36bfa48a3d108945f832d9e1c4e7c13b135'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('ebd0959e213d515f8fe993989cc39976660e5a45918ea6fa8951a5a41e08cc4c'));
   // Keep the independently pinned literal-membership parent; it did not
   // include the adopted finite Graph spelling grammar.
   assert.equal(vector(pin('2fca45d69a94d9d91a6903f72007bccb09bf2c945cfca7187d61808222eac60f'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('1e580903177ae141bc703bead4e9164bd200f4d60e7cde63d89dd04ea5be3bf6'));
   // Preserve the combined ARRAY/finite Graph parent before this integration.
   assert.equal(vector(pin('422c4edd4dd34bbf715e3d464a07f8654e51af7bf5bba74c93a13aa6de999968'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('082b73d16ed8513f88c55ce75cd1d1a78043ec08c57c02a757a3eba5e0e4dd54'));
   // Retain the independently authored correlated-expansion parent.
   assert.equal(vector(pin('669a907108617a89e253dcf5d5f5ef88fe14ec46fe84df18bb6e4d22638347f5'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('4ca80c7d99dd7834c8fc281ce2aff63833e52711eb52702c2cc628c361a01af4'));
   // Keep current main's complete parent before combining correlation syntax.
   assert.equal(vector(pin('383eb60f32169402f128cb1e0187b8445ebb33931e75ab035e20d1e434b52ad4'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('8eb2bb63ec3c66f0457ad25820daa0e49bce63c368536b640b2e38b6d79e7bc3'));
   // Keep both complete adopted grammar parents as independent preimages.
   assert.equal(vector(pin('39ed3dd3cca9b11c128c369308bdbd340ee69a5b82c43bc5408b9b66b8e6f0ac'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('d48070d700e2e74ce504796caefec6fc0255d8b998f8f570e02723580949f5b3'));
   assert.equal(vector(pin('38b2c821bd3b65aeeac218ef8300f9bc25a8dba90956fdfda1313651fdebef15'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('9bd9abd436fd9564578f921adcb16ba105274cdaaad118717d08b13d30183a2d'));
   // Preserve the adopted checked-ARRAY parent independently of this integration.
   assert.equal(vector(pin('865d1183ed31a4fe8b1be4e685563b932b6bc65580ed7968f8883ddc82003722'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('561ebef800dd3c16dbd971fe4c709ebf78678133926ec110d6a60714ae04e9ba'));
   // Keep main's complete grammar/Run preimage before the grouping-only surface.
   assert.equal(vector(pin('e14a88db3f98d88cb24edefca31ecd1c0d63f81e152a61d464756a83c5850329'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('3ed63e2c45d68425784a904b0378099fe284027a35e2c3e78d016bdc854f6903'));
   // Grouping-only parent remains an immutable full normative preimage.
   assert.equal(vector(pin('bb311179f5afee3d6e03181b66113f045cbd6190ce4174b32d40ac9a67459a8d'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('af4b746a75926ddcf8a506348a9df55147a10bf9c0b64e4f950d0ec6d513e9d5'));
   // Preserve the grouping-output-alias parent as an independent full preimage.
   assert.equal(vector(pin('4ac55d221c3878197277681acc425497bc6705a864745d4ae004bbcc17915444'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('732a5690b7573d96b3c54114780ee1255ddeab06d15514f65ec24236c1107251'));
   // Preserve the shorthand-ordering Run with its original grammar closure.
   assert.equal(vector(pin('fc3d401cf6db3bf3349114cc019111bbc32a112317d1e397b9573776d9ee7d6b'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('7b7be234b94ec1a22ed33e054e503320c171d39d58c4ed9cf6246e0988f5a460'));
   // Retain the Pipe scalar-aggregate original grammar closure.
   assert.equal(vector(pin('2a433f295994301675ad42d4acc1859474b8e0e31b3583482f057602164c8951'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('13bb9883431cd034e3e9056e249f5c25c01604506736da187bd0d506171d0a07'));
   // Preserve the complete pre-short-ROWS grammar and independently derived Run.
   assert.equal(vector(pin('582ecd6f94df7584160874befda4fa5f2a7d028f347599fc11e9685c10ba36e8'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('e5068efe3ea2216fc07cd3373f3ca0ba9af030ea9b7514aa33e75067d209e869'));
   // Both normal-merge parents retain their complete grammar-bound Run.
   assert.equal(vector(pin('de630432fb2b6f3700294801070100e3340fc6ad295c2671fe9c0b3222f16169'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('54454a972b8c176f336e748bff947d614133fc09e4e7ee9138492c7a0f2e748c'));
   assert.equal(vector(pin('ba59c48eb915694484664a7daf7f839e492c36eae44137993f39130793c59672'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    preAbs.aoa_contract_cid, preAbsDependencies, barrierCid, preAbsIdentity).run.run_definition_cid,
     pin('afb2b3cedb82f86b5296376ac0dd10cee8991082c1f05971768059bb52d77e2b'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(preAbsRun.run.run_definition_cid,
     pin('64f4e1246e3493acf214c0010568f156f7fefc026fb3c0bb07bf59c5d9dcea2f'));
 
-  const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
-  assert.ok(outputSource.includes(current.run.run_definition_cid));
-  const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
+});
 
+
+test('ABS contract inputs independently determine the current Values Run and consuming fixtures', () => {
+  const grammar = JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json', 'utf8'));
+  const aoa = JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8'));
+  const barrier = JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
+  const dependencies = valuesDependencyOracle();
+  const identity = valuesProgramOracle();
+  assert.equal(dependencies.unit, "sha256:6026e7dde65bf0ecb2a95eb67b622d429536c06127ebfda918828d6758343e6f");
+  assert.equal(dependencies.proof, "sha256:46a0a21bc4e34c9aff45bb213ed66925048aa441af737c80984de9fc1be985f4");
+  assert.equal(dependencies.resultPlan, "sha256:865d2e0e83c59b713e1e59ef589ddb9f622d07d2324e0ae071a4bb5c4610011a");
+  assert.equal(identity.programCid, "sha256:5b60d2728eeab010cd8cb2ce2efe9f1df250e16bea9826703c2157a6c4a7de34");
+  assert.equal(identity.semanticsCid, "sha256:3fcd69e5d4f243505da508a12dfca09b5bb9e0104fcc8f0027d88a052fc317bf");
+  const requestIntent = {version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: pin('b'.repeat(64)), parameter_values_cid: parameterValues,
+    program_definition_cid: identity.programCid};
+  assert.equal(cid(requestIntent), "sha256:8291aeda45155c650ced1f803650313d9c5741f97b70672933a57d6fcffdd32b");
+  const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
+    barrier.barrier_contract_manifest_cid, identity);
+  assert.equal(current.run.run_definition_cid, "sha256:ba3a4a4c7d3a5cdb37d678ea03a7f1cb0d75fb4706fc4af96329f1860f1d0f66");
+  const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
+  assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
-  assert.ok(resultSource.includes(currentDependencies.unit));
-  assert.ok(resultSource.includes(currentDependencies.resultPlan), 'MoonBit fixed Result Plan must follow independent preimage');
+  assert.ok(resultSource.includes(dependencies.unit));
+  assert.ok(resultSource.includes(dependencies.resultPlan));
 });
