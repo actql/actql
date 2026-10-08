@@ -81,7 +81,7 @@ export async function loadWholeRunProfile(directory,expectedDigest) {
     const raw=await boundedRead(join(directory,'trial-'+index,'observation.json'),wholeRunLimits.memberBytes);
     assert.equal(profileDigest(raw),item.originalDigest,'WholeRunOriginalChanged');
     assert(!originalDigests.has(item.originalDigest),'RepeatedWholeRunOriginal');originalDigests.add(item.originalDigest);
-    const projected=structuredClone(item);delete projected.originalDigest;delete projected.callerElapsedMs;delete projected.recordingMs;
+    const projected=structuredClone(item);delete projected.originalDigest;delete projected.callerElapsedMs;delete projected.recordingMs;delete projected.checkpointMs;
     assert.deepEqual(JSON.parse(raw),projected,'WholeRunOriginalProjectionChanged');
     assert(['succeeded','failed','interrupted','unobserved'].includes(item.outcome));
     assert(finite(item.callerElapsedMs)&&finite(item.recordingMs));
@@ -92,6 +92,7 @@ export async function loadWholeRunProfile(directory,expectedDigest) {
     assert.equal(profileDigest(stdout),item.stdoutDigest);assert.equal(profileDigest(stderr),item.stderrDigest);
     const execution=readNativeDirectProductExecution(item.invocation,{stdout:stdout.toString(),stderr:stderr.toString(),processCycleMs:item.processCycleMs});
     const product=admitNativeDirectProduct(fixture,item.invocation,execution);
+    assert.deepEqual(execution.resultSchemaFields,fixture.workload==='fixed-join-count-shrinking-intermediate'?['n','present']:fixture.fields,'WholeRunResultSchemaChanged');
     assert.deepEqual(product.ownerCorrespondence,item.owner);
     if(item.step.arm!=='offline'&&!item.fallback) assert.deepEqual(admitWholeRunTrajectory(execution,product),item.trajectory);
     assert.deepEqual(product.record.usage,item.finalUsage);

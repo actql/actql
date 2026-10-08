@@ -65,7 +65,7 @@ export async function prepareNativeDirectProduct({root, fixture, database,
     await writeFile(join(directory, name), content);
   }
   const retainedTaskRoot = join(directory, 'retained-task');
-  await mkdir(retainedTaskRoot);
+  await mkdir(retainedTaskRoot, {mode: 0o700});
   const library = join(root, 'adapters/connectors/duckdb/node/node_modules/@duckdb',
     `node-bindings-${process.platform}-${process.arch}`,
     process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so');
@@ -140,7 +140,9 @@ export function readNativeDirectProductExecution(invocation, {stdout, stderr, pr
     });
   assert.deepEqual(taskIntervals.map(value => value.task),
     Array.from({length: invocation.finalTask}, (_, index) => index + 1));
-  return Object.freeze({record, taskIntervals, stdout,
+  const schemaLine=stdout.split('\n').find(line=>line.startsWith('result-schema-fields:'));
+  const resultSchemaFields=schemaLine?JSON.parse(schemaLine.slice('result-schema-fields:'.length)):null;
+  return Object.freeze({record, taskIntervals, stdout, resultSchemaFields,
     preparation: nativePreparationObservations(stdout, invocation.sourceReadOnly),
     ownerObservations: nativeOwnerObservations(stdout),
     selections: stdout.split('\n').filter(line => line.startsWith('selection:')),

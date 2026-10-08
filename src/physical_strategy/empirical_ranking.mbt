@@ -11,8 +11,8 @@ pub(all) struct EmpiricalRanking {
 } derive(Eq, Debug)
 
 ///|
-/// Minimize the descriptive median of this task's processing interval only.
-/// Positions are complete assignments; this is not a whole-assignment optimum.
+/// Minimize the descriptive median of the explicitly requested measured quantity.
+/// Positions are presented complete assignments, not a global search optimum.
 /// Every presented position must have a usable reference. Ties use position.
 pub fn rank_operational_candidates(
   candidates : PolicyCandidateSet,

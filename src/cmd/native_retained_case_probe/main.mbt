@@ -1,4 +1,8 @@
 ///|
+#borrow(path)
+extern "C" fn diagnostic_cleanup_access(path : Bytes, allow : Bool) -> Bool = "actql_probe_cleanup_access"
+
+///|
 /// Native registered-case product path. The wrapper supplies the checked
 /// application files and compares this result with its independent oracle.
 
@@ -133,6 +137,7 @@ priv struct EmpiricalProbe {
   offline_fallback : Bool
   clock : @clock.NativeTrustedClock
   whole_run : Bool
+  validation_probes : Bool
   mut trajectory : Array[Json]?
 }
 
@@ -250,7 +255,7 @@ fn commit_empirical_probe(
     profile_revision,
   }
   let wire = @strategy.placement_policy_response_json(response).unwrap()
-  if !probe.whole_run {
+  if !probe.whole_run || probe.validation_probes {
     // Invalid binding is rejected by the real closed decoder before any commit.
     let changed = @strategy.placement_policy_response_json({
       ..response,
@@ -266,6 +271,7 @@ fn commit_empirical_probe(
       )
       is Err(_),
     )
+    println("empirical-modified-request-refused:" + task.to_string())
   }
   if probe.whole_run && task == 1 {
     probe.trajectory = Some(whole_run_selected_trajectory(dispatch, chosen))
@@ -601,7 +607,8 @@ fn execute_timed_native_strategy_run(
           return Ok(())
         }
         match (empirical, retired_response) {
-          (Some(probe), Some(body)) if !probe.whole_run => {
+          (Some(probe), Some(body)) if !probe.whole_run ||
+            probe.validation_probes => {
             operational_require(
               @host.commit_native_local_policy_response(
                 dispatch,
@@ -982,6 +989,8 @@ fn main {
     @argparse.OptionArg("operational-template-pins", default_values=["-"]),
     @argparse.OptionArg("sqlite-library", default_values=["-"]),
     @argparse.OptionArg("empirical-mode", default_values=["-"]),
+    @argparse.OptionArg("diagnostic-cleanup-failure", default_values=["false"]),
+    @argparse.OptionArg("empirical-validation-probes", default_values=["false"]),
     @argparse.OptionArg("empirical-objective", default_values=[
       "task-processing",
     ]),
@@ -1028,6 +1037,12 @@ fn main {
     ["task-processing", "run-caller-elapsed"].contains(
       required(matches, "empirical-objective"),
     ),
+  )
+  operational_require(
+    ["true", "false"].contains(required(matches, "diagnostic-cleanup-failure")),
+  )
+  operational_require(
+    ["true", "false"].contains(required(matches, "empirical-validation-probes")),
   )
   let empirical_mode = required(matches, "empirical-mode")
   operational_require(
@@ -1446,6 +1461,8 @@ fn main {
       clock,
       whole_run: required(matches, "empirical-objective") ==
       "run-caller-elapsed",
+      validation_probes: required(matches, "empirical-validation-probes") ==
+      "true",
       trajectory: None,
     })
   }
@@ -1585,6 +1602,19 @@ fn main {
     },
     batch_bytes,
   ).unwrap()
+  let result_reference = @example.application_task_reference(app, task) catch {
+    _ => abort("checked final task reference unavailable")
+  }
+  operational_require(
+    @example.application_task_output_matches(result_reference, output),
+  )
+  let schema_fields : Array[String] = []
+  for column in 0..<@execution.completed_column_count(output) {
+    schema_fields.push(
+      @execution.completed_column_name(output, column).unwrap(),
+    )
+  }
+  println("result-schema-fields:" + schema_fields.to_json().stringify())
   let cid = @execution.row_wire_cid(
     @execution.identify_completed_rows(output, {
       max_columns: columns,
@@ -1618,7 +1648,34 @@ fn main {
   }
   phase_boundary("execution-end", execution_start)
   let cleanup_start = @bench.monotonic_clock_start()
+  if required(matches, "diagnostic-cleanup-failure") == "true" {
+    operational_require(retained_task_root == root + "/retained-task")
+    let before = @resources.ledger_usage(ledger)
+    operational_require(
+      diagnostic_cleanup_access(@utf8.encode(retained_task_root), false),
+    )
+    let pending = @host.close_native_standard_strategy_run(run)
+    // Restore the caller-owned directory before inspecting the failure, even
+    // when the diagnostic discovers an unexpected cleanup result.
+    operational_require(
+      diagnostic_cleanup_access(@utf8.encode(retained_task_root), true),
+    )
+    operational_require(pending is Err(_) || pending is Ok(false))
+    let held = @resources.ledger_usage(ledger)
+    operational_require(
+      held.held_bytes > 0L && held.attempts == before.attempts,
+    )
+    operational_require(held.holdings == before.holdings)
+    operational_require(
+      @host.execute_next_native_standard_strategy_task(run) is Err(Closed),
+    )
+    println("whole-run-cleanup-pending:" + held.held_bytes.to_string())
+    emit_owner_observation("failed-cleanup", task, run, ledger)
+  }
   close_observed_run(run, ledger, task)
+  if required(matches, "diagnostic-cleanup-failure") == "true" {
+    println("whole-run-cleanup-retry-confirmed")
+  }
   @host.close_native_acquisition_runtime(acquisition)
   @strategy.stop_captured_dag(captured)
   let usage = @resources.ledger_usage(ledger)

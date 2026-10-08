@@ -36,7 +36,8 @@ assert.equal(inputDigest,plan.inputDigest);
 const instrumentationFiles=['run-whole-native-profile.mjs','whole-run-profile.mjs','native-direct-product.mjs','native-owner-observations.mjs','native-physical-phases.mjs'];
 const instrumentationRevision=profileDigest(await Promise.all(instrumentationFiles.map(async p=>[p,'sha256:'+await sha256File(join(root,'benchmarks/retained-results',p))])));
 const environment={platform:process.platform,arch:process.arch,osRelease:release(),cpuModels:[...new Set(cpus().map(c=>c.model))],
-  logicalCpus:cpus().length,node:process.version,competingLoad:'uncontrolled',osCache:'uncontrolled'};
+  logicalCpus:cpus().length,node:process.version,competingLoad:'uncontrolled',osCache:'uncontrolled',
+  libraryDigest:'sha256:'+await sha256File(plan.library),toolchain:JSON.parse(await readFile(join(root,'toolchain.json'),'utf8'))};
 const nativeConditions={host:'native',realization:'resident',captureMode:'metadata-only',runtimeRevision:revision,binaryDigest,inputDigest,
   programDigest:profileDigest(fixture.program()),inputRows:fixture.rows,schemaLayout:fixture.layout,limitsDigest:profileDigest(fixture.limits),
   instrumentationRevision,measurementScopeRevision:profileDigest(wholeRunScope),environmentDigest:profileDigest(environment),
@@ -64,7 +65,7 @@ for(const [index,step] of schedule.entries()) {
   const trial=join(destination,'trial-'+index);
   const item={index,step,conditions,observedAt:Date.now(),outcome:'unobserved',ownerAccepted:false,
     profileReadbackMs:0,templateMs:0,profileOriginal:null};
-  const started=performance.now();let execution;
+  const started=performance.now();item.memoryBefore=process.memoryUsage();let execution;
   try {
     await mkdir(trial,{mode:0o700});
     if(step.arm==='first-use') {
@@ -104,6 +105,7 @@ for(const [index,step] of schedule.entries()) {
     item.processCycleMs=performance.now()-processStart;
     const product=admitNativeDirectProduct(fixture,invocation,execution);
     assert.deepEqual(product.ownerCorrespondence.observations.candidates[0].body,plan.candidates.body,'WholeRunInitialSnapshotDrift');
+    assert.deepEqual(execution.resultSchemaFields,fixture.workload==='fixed-join-count-shrinking-intermediate'?['n','present']:fixture.fields,'IndependentResultSchemaFieldsMismatch');
     item.invocation=invocation;item.owner=product.ownerCorrespondence;item.finalUsage=product.record.usage;
     item.operator={preparation:product.preparation,physicalPhases:product.physicalPhases,
       taskIntervals:product.taskIntervals,holdings:product.taskHoldings,usage:product.taskUsages,
@@ -123,13 +125,16 @@ for(const [index,step] of schedule.entries()) {
   await writeFile(join(trial,'stdout.log'),stdout,{flag:'wx',mode:0o600});
   await writeFile(join(trial,'stderr.log'),stderr,{flag:'wx',mode:0o600});
   item.stdoutDigest=profileDigest(stdout);item.stderrDigest=profileDigest(stderr);
+  item.memoryAfter=process.memoryUsage();
   const recordingStarted=performance.now(),bytes=encode(item)+'\n';
   assert(Buffer.byteLength(bytes)<=wholeRunLimits.memberBytes);
   await writeFile(join(trial,'observation.json'),bytes,{flag:'wx',mode:0o600});
   assert.equal(await readFile(join(trial,'observation.json'),'utf8'),bytes);
   item.originalDigest=profileDigest(bytes);item.recordingMs=performance.now()-recordingStarted;
   item.callerElapsedMs=performance.now()-started;
-  report.observations.push(item);await checkpoint();
+  report.observations.push(item);const checkpointStart=performance.now();await checkpoint();
+  item.checkpointMs=performance.now()-checkpointStart;
+  item.callerElapsedMs=performance.now()-started;
   console.log(JSON.stringify({case:fixture.id,index,arm:step.arm,outcome:item.outcome,elapsedMs:item.callerElapsedMs}));
   if(!item.ownerAccepted) break; // Preserve unresolved responsibility; no replacement or new admission.
 }

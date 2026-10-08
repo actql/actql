@@ -29,3 +29,7 @@ import {
   "moonbitlang/core/bench",
   "moonbitlang/core/json",
 }
+
+options(
+  "native-stub": [ "cleanup_access_stub.c" ],
+)
