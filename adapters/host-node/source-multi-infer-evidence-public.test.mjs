@@ -94,6 +94,62 @@ async function recordInterruptedAcceptance({transport, boundary, root, firstPid,
 }
 
 for (const transport of ['local', 'https']) {
+  test(`public ${transport} refuses another original Run's attempt and call during response reconciliation`, {timeout: 180000}, async t => {
+    const foreignRoot = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-foreign-response-'));
+    t.after(() => t.diagnostic(`Retained authentic foreign response reference: ${foreignRoot}`));
+    // A call slot identifies Program/input semantics and can legitimately be
+    // shared by different Runs. Use another real input to obtain a distinct
+    // call slot as well as a distinct original Run-bound attempt.
+    const foreignFirstPid = await executeHost(foreignRoot, transport, 'A', 'disabled', 'stop-provider-saved', 77);
+    const foreignRestoredPid = await executeHost(foreignRoot, transport, 'A', 'disabled', 'resume-provider-saved');
+    const foreign = JSON.parse((await readFile(join(foreignRoot, 'provider-lookups.jsonl'), 'utf8')).trim());
+    assert.equal(foreign.found, true);
+    const foreignRef = JSON.parse(await readFile(join(foreignRoot, 'run-ref.json'), 'utf8'));
+    const refusals = [];
+    for (const field of ['attempt', 'call']) {
+      const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-response-binding-'));
+      t.after(() => t.diagnostic(`Retained ${field} response binding refusal: ${root}`));
+      const firstPid = await executeHost(root, transport, 'unicode', 'disabled', 'stop-provider-saved', 77);
+      const originalRef = JSON.parse(await readFile(join(root, 'run-ref.json'), 'utf8'));
+      assert.notDeepEqual(originalRef, foreignRef);
+      const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+      assert.equal(stopped.boundary, 'provider_response_durable');
+      assert.equal(stopped.calls.length, 3);
+      await writeFile(join(root, 'foreign-response-reference.json'), JSON.stringify(foreign));
+      const phase = `resume-foreign-${field}`;
+      const restoredPid = await executeHost(root, transport, 'unicode', 'disabled', phase);
+      const saved = JSON.parse(await readFile(join(root, `${phase}.json`), 'utf8'));
+      assert.deepEqual(saved.ref, originalRef);
+      assert.equal(saved.terminal.status, 'needs_reconciliation');
+      assert.equal(saved.terminal.result_available, false);
+      assert.deepEqual(saved.calls, stopped.calls);
+      assert.equal(saved.sourceCalls, 1);
+      const reply = JSON.parse(await readFile(join(root, `${phase}-reply.json`), 'utf8'));
+      assert.equal(reply.field, `${field}Wire`);
+      assert.equal(reply.returned[reply.field], foreign[reply.field]);
+      assert.notEqual(reply.original[reply.field], reply.returned[reply.field]);
+      for (const name of ['attemptWire', 'callWire', 'providerBindingCid'].filter(name => name !== reply.field)) {
+        assert.equal(reply.returned[name], reply.original[name]);
+      }
+      // A later attach observes the same unresolved Run; it grants neither a
+      // new response lookup nor permission to retry the unknown provider call.
+      const againPid = await executeHost(root, transport, 'unicode', 'disabled', phase);
+      const repeated = JSON.parse(await readFile(join(root, `${phase}.json`), 'utf8'));
+      assert.deepEqual(repeated.ref, originalRef);
+      assert.deepEqual(repeated.calls, stopped.calls);
+      assert.equal(repeated.sourceCalls, 1);
+      const lookups = (await readFile(join(root, 'provider-lookups.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+      assert.equal(lookups.length, 1);
+      assert.equal(lookups[0].pid, restoredPid);
+      assert.equal(new Set([foreignFirstPid, foreignRestoredPid, firstPid, restoredPid, againPid]).size, 5);
+      refusals.push({field: reply.field, root, firstPid, restoredPid, againPid, ref: originalRef,
+        status: repeated.terminal.status, sourceCalls: 1, providerCalls: 3, lookupCount: 1});
+    }
+    if (runtime !== undefined) await writeFile(join(runtime.evidenceDirectory, `source-recovery-${transport}-foreign-response.json`),
+      JSON.stringify({revision: runtime.revision, transport, boundary: 'foreign-response', foreignRoot,
+        foreignFirstPid, foreignRestoredPid, foreignRef, refusals, complete: true}, null, 2) + '\n');
+  });
+
   test(`public ${transport} refuses modified original Model input custody after Host process exit`, {timeout: 180000}, async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-corrupt-'));
     t.after(() => t.diagnostic(`Retained modified-custody refusal: ${root}`));

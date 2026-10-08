@@ -154,10 +154,22 @@ try {
         if (matches.length === 0) return undefined;
         const original = matches[0];
         assert.deepEqual(original.input, input);
-        return {attemptWire, callWire, providerBindingCid,
+        const reply = {attemptWire, callWire, providerBindingCid,
           response: moon.clientProgramModelResponse(request, original.valueWire,
             original.providerModel, original.providerRequestId, BigInt(original.inputTokens),
             BigInt(original.outputTokens), original.observedAt)};
+        if (['resume-foreign-attempt', 'resume-foreign-call'].includes(phase)) {
+          // These are authentic materials observed in another executed Run.
+          // Change one binding only; retain this Run's actual response body.
+          const foreign = JSON.parse(readFileSync(join(root, 'foreign-response-reference.json'), 'utf8'));
+          const field = phase === 'resume-foreign-attempt' ? 'attemptWire' : 'callWire';
+          assert.notEqual(foreign[field], reply[field]);
+          reply[field] = foreign[field];
+          writeFileSync(join(root, `${phase}-reply.json`), JSON.stringify({field,
+            original: {attemptWire, callWire, providerBindingCid},
+            returned: {attemptWire: reply.attemptWire, callWire: reply.callWire, providerBindingCid}}));
+        }
+        return reply;
       },
       validatePrompt(taskCid, selector, wire) {
         return installed.tasks.some(task => task.contract_cid === taskCid) && selector === 'packed-risk-model' &&
@@ -225,7 +237,8 @@ try {
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
   let run;
   if (['resume', 'approve-second', 'resume-provider-saved', 'resume-unknown', 'resume-denied',
-    'resume-cleanup-pending', 'resume-cleanup-retry', 'resume-corrupt'].includes(phase)) {
+    'resume-cleanup-pending', 'resume-cleanup-retry', 'resume-corrupt',
+    'resume-foreign-attempt', 'resume-foreign-call'].includes(phase)) {
     const submissionRef = JSON.parse(await readFile(join(root, 'submission-ref.json'), 'utf8'));
     const found = await client.lookupSubmission(submissionRef);
     assert.equal(found.kind, 'ready', inspect(found));
@@ -266,7 +279,20 @@ try {
     await new Promise(resolve => setTimeout(resolve, 20));
     terminal = await run.wait();
   }
-  if (phase === 'resume-corrupt') {
+  if (['resume-foreign-attempt', 'resume-foreign-call'].includes(phase)) {
+    assert.equal(terminal.status, 'needs_reconciliation');
+    assert.equal(terminal.result_available, false);
+    const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+    assert.deepEqual(calls, stopped.calls);
+    assert.equal(calls.length, 3, 'a foreign reply cannot admit a response or start the next call');
+    assert.equal(readLines(sourcePath).length, 1);
+    const reconciliations = [await run.reconcile(), await run.reconcile()];
+    assert(reconciliations.every(state => state.status === 'needs_reconciliation' &&
+      state.result_available === false && state.run_id === terminal.run_id));
+    assert.equal(calls.length, 3);
+    await writeFile(join(root, `${phase}.json`), JSON.stringify({pid: process.pid,
+      ref: run.ref, terminal, reconciliations, calls, observed, sourceCalls: readLines(sourcePath).length}));
+  } else if (phase === 'resume-corrupt') {
     assert.equal(terminal.status, 'needs_reconciliation');
     assert.equal(terminal.result_available, false);
     assert(observed.some(event => event.name === 'model_recovery_failed' &&
