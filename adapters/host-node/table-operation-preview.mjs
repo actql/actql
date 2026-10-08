@@ -16,9 +16,11 @@ const positive = value => Number.isSafeInteger(value) && value > 0;
 // and the captured Preview. An installation must separately validate its
 // capability and current authorization before using these results for apply.
 export function authorTableOperationPreview({moon, control, prepared, inputs,
-  checkedHost, requestScope, context, members, limits}) {
+  checkedHost, requestScope, context, members, bridge, limits}) {
   const {material, preview, key} = limits ?? {};
   if (!Array.isArray(members) || members.length === 0 ||
+      typeof bridge?.issueStorageMapping !== 'function' ||
+      typeof bridge?.admitStorageMapping !== 'function' ||
       ![limits?.maxMembers, limits?.maxFields, limits?.planWork,
         material?.maxWireBytes, material?.maxNodes, material?.maxDepth,
         material?.maxWork, preview?.maxWireBytes, preview?.maxNodes,
@@ -55,7 +57,12 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
     const artifact = member.payload.localResultArtifact;
     const identity = control.issueSourceFreeLocalEffectIdentity(prepared, inputs,
       index, artifact, material);
-    const mapping = control.localEffectTableStorageMapping(artifact, material);
+    const issuedMapping = bridge.issueStorageMapping({control, artifact, limits: material});
+    const mapping = bridge.admitStorageMapping({control,
+      mappingWire: issuedMapping?.wire, limits: material});
+    if (mapping?.wire !== issuedMapping?.wire || mapping.identity !== issuedMapping?.identity) {
+      fail('ForeignTableStorageMapping');
+    }
     const source = JSON.parse(artifact.wire);
     const operation = {
       version: 'actql-table-operation/0.1', action: target.action,
@@ -63,13 +70,13 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
       table_name: target.tableName, expected_table: target.expectedTable,
       logical_request_scope_cid: moon.strategyEffectLogicalRequestScopeCid(requestScope),
       effect_identity_cid: identity.identity, input_artifact_cid: artifact.identity,
-      input_relation_cid: source.logical_result_cid, schema_cid: source.result_schema_cid,
+      input_carrier: {kind: 'relation', cid: source.logical_result_cid}, schema_cid: source.result_schema_cid,
       storage_mapping_cid: mapping.identity,
       data_policy_cid: source.effective_data_policy_cid,
     };
     const operationWire = wire({...operation, request_cid: hash(operation)});
     const tableInput = control.bindTableInput(prepared, inputs, index, artifact,
-      identity, requestScope, operationWire, material);
+      identity, requestScope, operationWire, mapping.wire, material);
     const admittedOperation = JSON.parse(tableInput.wire);
     identities.push(identity);
     tableInputs.push(tableInput);

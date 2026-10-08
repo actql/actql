@@ -53,8 +53,16 @@ test('independent machine control uses existing typed property and checked param
   const groups = publicQueryProfiles({successes, refusals, executionFailures: failures});
   assert.equal(groups.length, 1);
   assert.equal(groups[0].name, 'standard');
-  assert.deepEqual(['successes', 'refusals', 'executionFailures']
-    .map(kind => groups[0].inputs[kind].length), [9, 5, 1]);
+  // Authored case inventory: the member-case regressions must reach the same
+  // installed profile as the original computed-receiver cases.
+  assert.deepEqual(groups[0].inputs.successes.map(item => item.name), [
+    'independent-json', 'sql-coalesce', 'pipe-case-and-parameter',
+    'order-receiver-alias', 'member-case-order-alias', 'order-qualified-control',
+    'member-case-qualified-reuse', 'current-and-snapshot', 'join-receiver-inputs',
+    'empty-typed', 'lazy-case-receiver',
+  ].map(name => 'computed-object-property-' + name));
+  assert.deepEqual(['refusals', 'executionFailures']
+    .map(kind => groups[0].inputs[kind].length), [5, 1]);
   const lazy = successes.find(item => item.name.endsWith('lazy-case-receiver'));
   assert.deepEqual(Object.keys(lazy.parameterDeclarations).sort(), ['o1', 'p1', 'p2']);
   assert.deepEqual(Object.keys(lazy.parameters).sort(), ['o1', 'p1', 'p2']);

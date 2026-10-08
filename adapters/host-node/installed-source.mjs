@@ -36,17 +36,17 @@ import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {readSourceProfileJson} from './source-profile-json.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
-import {tableInstallation} from './installed-table-installation.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
   capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
-import {installedConnectorFor, installedConnectorTable,
+import {installedConnectorFor, installedConnectorForTable, installedConnectorTable,
   loadInstalledConnectorModule, providerBundleUrl,
   verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
@@ -68,13 +68,16 @@ const duckdbInstallation = Object.freeze({
     }),
   }),
 });
-const installations = installedConnectorTable([duckdbInstallation, tableInstallation,
+const installations = installedConnectorTable([duckdbInstallation,
   ...installedConnectors]);
 
 // Select the installed connector of a Host profile and load its
-// installation module. An unknown version is refused before any I/O.
-async function selectInstallation(profile) {
-  const entry = installedConnectorFor(installations, profile);
+// installation module. An explicit table is complete, including built-ins;
+// an unknown version is refused before any installation I/O.
+async function selectInstallation(profile, connectorTable) {
+  const entry = connectorTable === undefined
+    ? installedConnectorFor(installations, profile)
+    : installedConnectorForTable(connectorTable, 'source', profile);
   return {entry, module: await loadInstalledConnectorModule(entry)};
 }
 
@@ -95,7 +98,7 @@ async function providerRuntime(entry, runtimeUrl) {
 // A connected embedded Host keeps one installed source for its lifetime.
 // Compare its full published generation and Site binding on later connects,
 // without reading a credential value or probing the provider.
-export async function installedSourceIdentity(path) {
+export async function installedSourceIdentity(path, {connectorTable} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
@@ -104,8 +107,8 @@ export async function installedSourceIdentity(path) {
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   // Omission and an explicitly empty alias publication have the same meaning.
   if (queryAliases.length === 0) delete profile.queryAliases;
-  const {module} = await selectInstallation(profile);
-  const parts = await module.identityParts(profile, providerProfile, read);
+  const {entry, module} = await selectInstallation(profile, connectorTable);
+  const parts = await module.identityParts(profile, providerProfile, read, entry);
   if (!Array.isArray(parts) || parts.length === 0) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }
@@ -182,9 +185,9 @@ async function readProfile(path) {
 // one (a Salesforce source publishes its targeted declaration). A Host start
 // never runs it; it uses the same state root and principal the Host will.
 export async function publishInstalledSourceProfile(path, {root, principalId,
-  moon, runtimeUrl, resolveSecret, signal}) {
+  moon, runtimeUrl, resolveSecret, signal, connectorTable}) {
   const profile = await readProfile(path);
-  const {entry, module} = await selectInstallation(profile);
+  const {entry, module} = await selectInstallation(profile, connectorTable);
   if (module.publish === undefined) {
     throw Object.assign(new TypeError('InstalledSourcePublicationUnsupported'),
       {code: 'InstalledSourcePublicationUnsupported'});
@@ -198,11 +201,11 @@ export async function publishInstalledSourceProfile(path, {root, principalId,
 // or an invalid profile is refused before any provider or Site I/O. Only the
 // selected connector's module and provider bundle are loaded.
 export async function loadInstalledSource(path, {root, principalId, moon,
-  runtimeUrl, baseEnvironmentWire, resolveSecret}) {
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable}) {
   if (path === undefined) return undefined;
   const profile = await readProfile(path);
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
-  const {entry, module} = await selectInstallation(profile);
+  const {entry, module} = await selectInstallation(profile, connectorTable);
   const checked = module.check(providerProfile);
   const adapter = await module.load(checked, {root, principalId, moon,
     baseEnvironmentWire, resolveSecret, installation: entry,
@@ -271,9 +274,7 @@ export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {
   fallback = process.env.ACTQL_LOCAL_SOURCE_PROFILE) {
   if (sourceProfilePaths !== undefined) {
     if (sourceProfilePath !== undefined || fallback !== undefined ||
-        !Array.isArray(sourceProfilePaths) || sourceProfilePaths.length !== 2 ||
-        sourceProfilePaths.some(path => typeof path !== 'string' || !isAbsolute(path)) ||
-        new Set(sourceProfilePaths).size !== sourceProfilePaths.length) {
+        !validPluralSourcePaths(sourceProfilePaths)) {
       throw new TypeError('InvalidInstalledSourceProfiles');
     }
     return Object.freeze([...sourceProfilePaths]);
@@ -282,8 +283,18 @@ export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {
   return path === undefined ? Object.freeze([]) : Object.freeze([path]);
 }
 
+function validPluralSourcePaths(paths) {
+  return Array.isArray(paths) && paths.length >= 2 &&
+    paths.length <= MAX_INSTALLED_SOURCE_AUTHORITIES &&
+    Array.from(paths).every(path => typeof path === 'string' && isAbsolute(path)) &&
+    new Set(paths).size === paths.length;
+}
+
 export async function loadInstalledSources(paths, options) {
   if (paths.length < 2) return loadInstalledSource(paths[0], options);
+  if (!validPluralSourcePaths(paths)) {
+    throw new TypeError('InvalidInstalledSourceProfiles');
+  }
   const sources = [];
   const closed = new Set();
   const close = async () => {
@@ -296,27 +307,48 @@ export async function loadInstalledSources(paths, options) {
     if (failures.length) throw new AggregateError(failures, 'InstalledSourceCleanupPending');
   };
   try {
-    const refs = [];
+    const refs = new Set();
     for (const path of paths) {
       const source = await loadInstalledSource(path, options);
       sources.push(source);
       // Each independently installed source must have an exact checked
-      // occurrence and an owned capacity before either read may start.
-      refs.push(...installedSourceReadBindings(source));
+      // occurrence and an owned capacity before any read may start.
+      for (const ref of installedSourceReadBindings(source)) {
+        if (refs.has(ref)) throw new TypeError('InstalledSourceBindingAmbiguous');
+        refs.add(ref);
+      }
+      if (refs.size > MAX_INSTALLED_SOURCE_AUTHORITIES) {
+        throw new TypeError('InvalidInstalledSourceReadAccesses');
+      }
     }
-    verifyInstalledConnectorBindings(sources[0], sources[1]);
-    const environmentWire = composeInstalledCheckEnvironment(options.moon,
-      options.baseEnvironmentWire, sources[0].environmentWire, sources[1].environmentWire);
-    if (new Set(refs).size !== refs.length) {
-      throw new TypeError('InstalledSourceBindingAmbiguous');
+    let environmentWire;
+    const bindings = new Map();
+    for (const source of sources) {
+      const combined = composeInstalledCheckEnvironment(options.moon,
+        options.baseEnvironmentWire, environmentWire, source.environmentWire);
+      verifyInstalledConnectorBindings(environmentWire === undefined ? undefined
+        : {environmentWire, connectorBindings: [...bindings.values()]}, source);
+      environmentWire = combined;
+      // Validate a member's own duplicates before coalescing matching physical
+      // bindings across members. Preserve the original declaration order.
+      for (const binding of source.connectorBindings ?? []) {
+        if (!bindings.has(binding.connectorId)) {
+          bindings.set(binding.connectorId, binding);
+        }
+      }
+    }
+    const {queryAliases} = splitSourceAliasProfile({queryAliases:
+      sources.flatMap(source => source.queryAliases ?? [])});
+    if (new Set(queryAliases.map(alias => alias.name)).size !== queryAliases.length) {
+      throw new TypeError('InvalidPublicSourcePublication');
     }
     return Object.freeze({
       realizationKey: sources.every(source =>
         source.realizationKey === 'duckdb-acquired')
         ? 'duckdb-acquired' : 'installed-multi-acquired', environmentWire,
       sources: Object.freeze(sources),
-      connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
-      queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases ?? [])),
+      connectorBindings: Object.freeze([...bindings.values()]),
+      queryAliases,
       admitsSource: ref => sources.some(source => source.admitsSource(ref)),
       close,
     });

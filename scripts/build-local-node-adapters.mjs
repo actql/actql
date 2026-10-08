@@ -1,7 +1,7 @@
 import {lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {buildSync} from 'esbuild';
+import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
@@ -34,22 +34,22 @@ if (dataParent && !dataParent.isDirectory()) {
 }
 checkConnectorData();
 const entries = inputs.adapterEntries;
-const graph = buildSync({entryPoints: entries, bundle: true,
-  packages: 'external', platform: 'node', format: 'esm', target: 'node22',
-  metafile: true, write: false, absWorkingDir: root,
-  outdir: join(root, '_build/local-node-adapter-graph')});
-const sourcePaths = Object.keys(graph.metafile.inputs)
-  .filter(path => path.startsWith('adapters/')).sort();
-if (sourcePaths.length < entries.length ||
-    entries.some(path => !sourcePaths.includes(path))) {
-  throw new Error('IncompleteLocalNodeAdapterGraph');
+const sourcePaths = adapterModuleGraph(root, entries);
+// URL-referenced physical I/O is not an esbuild JS import. Its finite asset
+// inventory comes from the same checked Connector manifests as installation.
+sourcePaths.push(...inputs.dataFiles.filter(path => path.startsWith('adapters/')));
+// A declared worker must not turn an old generated link into a write outside
+// the package. Check all destinations before copying any adapter or asset.
+for (const path of sourcePaths) {
+  const parts = path.split('/');
+  for (let index = 1; index <= parts.length; index++) {
+    const child = parts.slice(0, index).join('/');
+    const info = stat(child);
+    if (info !== undefined && (index === parts.length ? !info.isFile() : !info.isDirectory())) {
+      throw new Error(`StaleLocalNodeAdapter:${child}`);
+    }
+  }
 }
-// URL-referenced optional Table I/O is not an esbuild JS import. Preserve its
-// reviewed finite worker dependency set and pinned installation requirements,
-// not tests, fixtures, virtualenvs or generated Catalog files.
-sourcePaths.push(...['catalog.py', 'custody.py', 'physical.py', 'process_worker.py',
-  'requirements.in', 'requirements.lock', 'README.md']
-  .map(name => `adapters/table-iceberg/${name}`));
 const expected = new Set();
 for (const path of sourcePaths) {
   const output = join(destination, path);

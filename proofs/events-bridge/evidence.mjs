@@ -4,6 +4,7 @@ import {readFileSync, lstatSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {graph, validate, premises as sessionPremises} from '../bounded-session/evidence.mjs';
+import {bridgeCases} from './observations.mjs';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 export const bridgeScope = Object.freeze({operation: 'rows-events-rows', variant: 'ordered-typed-round-trip',
@@ -95,6 +96,7 @@ export function validateBridgeEvidence(report, current, proofSource, target) {
       assert.equal(run.bridgeSourceDigest, proofSource.digest, 'Unrelated Bridge theorem source');
     }
     else {
+      assert.deepEqual(run.cases, bridgeCases, 'Missing independently observed Bridge cases');
       assert(Object.keys(run.artifacts ?? {}).length > 0, 'Missing real Bridge artifact');
       for (const [path, digest] of Object.entries(run.artifacts)) {
         assert(path.startsWith(`_build/${target}/debug/test/query_integration/`), 'Wrong Bridge artifact target/package');

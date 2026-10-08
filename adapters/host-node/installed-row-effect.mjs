@@ -70,6 +70,7 @@ import {issueCompletedEffectfulComputationEvidence,
   '../host-common/completed-run-publication.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
+import {isInstalledConnectorTableEntry} from './installed-connectors.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from
   '../../packages/sdk/host-port.mjs';
@@ -179,10 +180,11 @@ function checkDriver(driver) {
 
 // The identity profile of an installation: the one its connector registered
 // in the installed connector table, or the common default. Only an entry of
-// the generated table is accepted, never a constructed one.
+// the generated table or a snapshot admitted by the table owner is accepted.
 function profileOf(installation) {
   if (installation === undefined) return defaultProfile;
-  if (!installedConnectors.includes(installation) ||
+  if ((!installedConnectors.includes(installation) &&
+      !isInstalledConnectorTableEntry(installation)) ||
       installation.effect === undefined) {
     fail('InvalidInstalledRowEffectInstallation');
   }
@@ -207,6 +209,18 @@ export function installedRowEffectUnit(moon, compilation) {
   const {stage, stageIndex} = units[0];
   return Object.freeze({programId: program.id, stageId: stage.id, stageIndex,
     effectIds: Object.freeze(Object.keys(stage.effects))});
+}
+
+// Host installation selection consumes the already checked member descriptor.
+// It does not prepare provider requests or widen the existing plan-work bound.
+export function installedRowEffectDescriptors(moon, prepared, compilation) {
+  const unit = installedRowEffectUnit(moon, compilation);
+  return Object.freeze(unit.effectIds.map(effectId => {
+    const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
+      prepared, unit.stageIndex, effectId, defaultLimits.planWork));
+    return Object.freeze({effectId: descriptor._1, kind: descriptor._2,
+      target: descriptor._3, mappingRef: descriptor._4, mappingCid: descriptor._5});
+  }));
 }
 
 // The installed Effect over `mappings` (each `{resource, mappingRef,
@@ -1342,6 +1356,11 @@ export async function createInstalledRowEffect({moon, mappings,
     mappings: Object.freeze(installed.map(mapping => Object.freeze({
       resource: mapping.resource, target: mapping.target,
       mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}))),
+    effectSelectors: Object.freeze(installed.flatMap(mapping =>
+      [...new Set(owned.kinds)].filter(kind =>
+        mapping.rules.some(rule => rule.effect_kind === kind)).map(kind =>
+        Object.freeze({kind, target: mapping.target,
+          mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid})))),
     prepareCaptured, prepareRecovered,
     close: () => site.close(),
   });

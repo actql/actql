@@ -21,8 +21,9 @@ export function capturedTableRecoveryRecord({control, tableInput, tablePreview})
 }
 
 export async function prepareRecoveredTableInput({recovered, store, control,
-  memberIndex, requestScope, contractLimits, tableLimits, signal}) {
+  memberIndex, requestScope, contractLimits, tableLimits, bridge, signal}) {
   signal?.throwIfAborted();
+  if (typeof bridge?.admitStorageMapping !== 'function') fail('MissingTableMappingValidator');
   const publicationOptions = {execution: null,
     store, control, storedResults: recovered.storedResults,
     computation: recovered.computation, preview: recovered.preview};
@@ -39,9 +40,12 @@ export async function prepareRecoveredTableInput({recovered, store, control,
       typeof saved.schema_wire !== 'string') {
     fail('InvalidTableRecoveryMaterial');
   }
+  const mapping = bridge.admitStorageMapping({control,
+    mappingWire: saved.mapping_wire, limits: tableLimits});
+  if (mapping?.wire !== saved.mapping_wire) fail('ForeignTableRecoveryMapping');
   const tablePreview = control.bindRecoveredTablePreview(inventory.preview, memberIndex,
     inventory.chain.invocation, source.source, inventory.chain.capturedRun,
-    requestScope, saved.mapping_wire, store.storeAuthorityCid, contractLimits, tableLimits);
+    requestScope, mapping.wire, store.storeAuthorityCid, contractLimits, tableLimits);
   if (tablePreview.operationWire !== saved.operation_wire ||
       records[0].observationCid !== JSON.parse(tablePreview.operationWire).request_cid) {
     fail('ForeignTableRecoveryOperation');

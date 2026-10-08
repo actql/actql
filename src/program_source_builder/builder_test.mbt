@@ -288,3 +288,75 @@ test "key and value origins retain generated roles and exact owner binding" {
     is None,
   )
 }
+
+///|
+test "mapped source copy preserves authored keys values and replacement locations" {
+  let document = @origin.document("member value", 32).unwrap()
+  let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
+  let authored = @origin.range(document, 0, 6).unwrap()
+  let input = @program_source_builder.create(document, limits()).unwrap()
+  let name = @program_source_builder.add(input, String("SCORE"), authored).unwrap()
+  let data = @program_source_builder.add(
+    input,
+    String("e\u0301\r\n\\n"),
+    generated,
+  ).unwrap()
+  let root = @program_source_builder.add(
+    input,
+    Object([
+      { key: "name", origin: authored, value: name, },
+      { key: "value", origin: generated, value: data, },
+    ]),
+    generated,
+  ).unwrap()
+  let source = @program_source_builder.finish(input, root).unwrap()
+  let cursor = @program_source_builder.cursor(source)
+  let original_name = @wire.lookup(@wire.open_object(cursor).unwrap(), "name").unwrap()
+  let copy = @program_source_builder.create(document, limits()).unwrap()
+  let imported = @program_source_builder.import_source(copy, source, cursor, replace_text=at => {
+    if @wire.tree_index(cursor, at) == @wire.tree_index(cursor, original_name) {
+      Some("score")
+    } else {
+      None
+    }
+  }).unwrap()
+  let copied = @program_source_builder.finish(copy, imported).unwrap()
+  let object = @wire.open_object(@program_source_builder.cursor(copied)).unwrap()
+  let name = @wire.lookup(object, "name").unwrap()
+  let data = @wire.lookup(object, "value").unwrap()
+  assert_eq(@wire.text(name).unwrap(), "score")
+  assert_eq(@wire.text(data).unwrap(), "e\u0301\r\n\\n")
+  assert_eq(
+    @origin.span(@program_source_builder.origin(copied, name).unwrap()),
+    @origin.span(authored),
+  )
+  assert_eq(
+    @origin.kind(@program_source_builder.origin(copied, name).unwrap()),
+    Authored,
+  )
+  assert_eq(
+    @origin.kind(@program_source_builder.key_origin(copied, name).unwrap()),
+    Authored,
+  )
+  assert_eq(
+    @origin.kind(@program_source_builder.origin(copied, data).unwrap()),
+    Generated,
+  )
+  let foreign = @wire.admit(
+    @source.parse_json("\"SCORE\"", limits().source).unwrap(),
+    limits().tree,
+  ).unwrap()
+  let other = @program_source_builder.create(document, limits()).unwrap()
+  assert_true(
+    @program_source_builder.import_source(other, source, foreign)
+    is Err(ForeignNode),
+  )
+  let bounded = @program_source_builder.create(document, {
+    ..limits(),
+    max_output_bytes: 4,
+  }).unwrap()
+  assert_true(
+    @program_source_builder.import_source(bounded, source, cursor)
+    is Err(OutputLimit),
+  )
+}

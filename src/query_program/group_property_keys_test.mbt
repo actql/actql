@@ -107,6 +107,19 @@ test "GROUP property keys reuse resolved input meanings across SELECT spellings"
 }
 
 ///|
+test "GROUP property keys fold member spelling against the independent slot control" {
+  let expected = semantic(independent_group_property_program())
+  for
+    source in [
+      "SELECT objects.payload.SCORE AS score, COUNT(*) AS n FROM objects GROUP BY payload.score",
+      "SELECT payload.score AS score, COUNT(*) AS n FROM objects GROUP BY objects.payload.SCORE",
+      "SELECT `objects`.`payload`.`ScOrE` AS score, COUNT(*) AS n FROM objects GROUP BY payload.score",
+    ] {
+    assert_eq(semantic(checked_group_property(source)), expected)
+  }
+}
+
+///|
 test "GROUP property keys retain qualified references inside computed keys" {
   let program = checked_group_property(
     "SELECT objects.payload.score + 1 AS next, COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING next > 10 ORDER BY next",

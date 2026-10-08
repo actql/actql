@@ -5,6 +5,28 @@
 compiler and runtime, and the built-in Local Host adapters.
 Connected Remote mode imports only the lightweight SDK path.
 
+Trusted Host bootstrap code can create a complete, process-local installation
+table with `createInstalledConnectorTable(entries)` from `@actql/local-node`.
+Pass its opaque handle as `installation.connectorTable` to an embedded Client,
+or as `connectorTable` to the HTTP Host and `publishSource`/`publishEffect`.
+Use the same handle for publication and Host startup. Entries retain the existing
+Source/Effect profile schema, registration, revision, provider bundle and lazy
+module-loader declarations. Construction snapshots these declarations without
+loading modules, resolving secrets or contacting providers.
+
+An explicit table has no implicit built-in fallback; an empty table supports
+source-free Values. Duplicate profile versions within one role are rejected.
+Different tables may select different implementations of the same profile
+schema. Clients sharing an open embedded root must supply the identical table
+handle; another handle refuses with `InstalledHostConfigurationMismatch`.
+Separate roots can use different tables. Omitting the option preserves the
+generated default installation and lazy optional DuckDB behavior.
+
+This table snapshots loader references and metadata, not executable file or
+closure contents. It does not issue durable Connector Set identity, retain old
+artifact bytes, or activate a Workspace revision. Those require the artifact
+and Set lifecycle owners; serializing or copying a handle cannot recreate it.
+
 Each embedded Client holds a private lease on the compatible installed Host.
 `await client.close()` seals that Client, disposes its readers, then releases
 the lease. Other Clients retain their own leases. The final close stops new
@@ -40,11 +62,40 @@ is reconciled and never automatically recomputed. The default profile has no
 external connector registrations yet, so Programs requiring acquired input
 return `ClientProgramNeedsInputs`. An explicit DuckDB or Salesforce source profile selected
 with `ACTQL_LOCAL_SOURCE_PROFILE` enables the acquired-input path, including
-read approval and restart. This does not imply arbitrary multi-source support.
+read approval and restart. Multiple published Sources can instead be selected
+with `installation.sourceProfilePaths` (or `sourceProfilePaths` on the HTTP
+Host). This plural option accepts 2–128 absolute, distinct profile paths and
+cannot be combined with the singular option or environment fallback. The
+combined inventory remains bounded to 128 read bindings, 64 per member,
+1024 exact query aliases and the existing 16 MiB environment limit. Every
+member's declaration and physical binding is checked; installing a member
+does not read it or resolve its credentials. Each Run retains the existing
+maximum of two checked acquisition occurrences, selected by SourceRef.
 See the [current implementation status](../../docs/reviews/current-product-status.md)
 for merged capabilities and work that is still in a PR. Salesforce requires
 explicit declaration publication through the packaged `publishSource` export;
 Host startup restores the publication without provider I/O.
+
+Multiple independently published Effects use `installation.effectProfilePaths`
+(or `effectProfilePaths` on the HTTP Host). Publish each profile with the
+existing `publishEffect` operation first. The plural option takes two or more
+distinct absolute paths and cannot be combined with the singular option,
+`ACTQL_LOCAL_EFFECT_PROFILE`, or the HTTP Host's injected Effect installation. Every
+installation must own at least one unique admitted Mapping. The Host rejects
+more than 256 profiles before loading because its shared checker permits only
+256 Environment members in total; the same checker's 64 KiB, 4096-node and
+depth-64 limits still apply to the combined Environment. Profile files have a
+separate 8 MiB read bound. Run execution retains its existing member, row and
+work limits.
+
+Checked Effect kinds, targets and exact Mapping references/CIDs select one
+installation for the complete Set before Compute. Missing, ambiguous or
+mixed-installation Sets fail preparation. Unused installations perform no
+target reads, secret resolution or dispatch. Target-read accounts remain
+separate, and restart selects the original authenticated capture's Mappings
+before the existing adapter validates its capability and physical bindings.
+The original Run, Checkpoint, Preview and ledger owners still govern unknown
+outcomes and cleanup.
 
 An installed Effect uses `publishEffect({effectProfilePath, directory,
 resolveEffectSecret})` to publish its declaration, execution Mappings and
@@ -59,7 +110,11 @@ Source and Effect profiles can be selected together after both publications
 are installed in the same Host root; shared connector bindings must match and
 read/commit authorization remains separate. The bounded acquired
 Read→Compute→Effect profile also supports approval and restart, with an
-immediate read decision and one installed Source. See the
+immediate read decision for a checked Source selected from the inventory.
+The existing two-Source Effect profile still requires two distinct DuckDB
+owners; an unused member neither becomes an acquisition nor changes that
+selected pair's continuation support. Host admission and each selected
+Source's own read authorization remain separate. See the
 [installation and recovery evidence](../../docs/reviews/current-product-status.md#source-and-effect-installation).
 
 Preparation, compilation, and Run evidence issuance retain the same checked

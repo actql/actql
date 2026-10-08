@@ -378,6 +378,8 @@ pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int
 
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
 
+pub fn prepare_source_catalog(CheckEnvironment, SourceCatalogLimits) -> Result[PreparedSourceCatalog, EnvironmentFailure]
+
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 
 pub fn proof_claim(ReidentifiedStep) -> @capacity_witness.ProgramProofClaim
@@ -515,6 +517,12 @@ pub fn sequence_limit_claim(SequenceLimit, @capacity_sequence_limit.Scope) -> @c
 pub fn sequence_limit_selection(SequenceLimit) -> @pipeline_check_context.SequenceLimitsCheck
 
 pub fn sequence_limit_source(SequenceLimit) -> UnitOperationSource
+
+pub fn source_catalog_contracts(PreparedSourceCatalog) -> @check_environment.SourceRequestContracts
+
+pub fn source_catalog_owner(PreparedSourceCatalog) -> CheckEnvironment
+
+pub fn source_catalog_usage(PreparedSourceCatalog) -> SourceCatalogUsage
 
 pub fn source_egress_axis_at(SourceExecution, Int) -> SourceEgressAxis?
 
@@ -1048,6 +1056,12 @@ type PivotNumericSlot
 
 type PivotNumericSlots
 
+pub struct PreparedSourceCatalog {
+  environment : CheckEnvironment
+  catalog : @check_environment.SourceRequestContracts
+  usage : SourceCatalogUsage
+}
+
 type PublicationExecution
 
 pub enum PublicationFailure {
@@ -1197,6 +1211,19 @@ pub(all) enum SearchInputSide {
 } derive(Eq, @debug.Debug)
 
 type SequenceLimit
+
+pub(all) struct SourceCatalogLimits {
+  max_work : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SourceCatalogUsage {
+  work : Int
+  bytes : Int
+  nodes : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum SourceEgressAxis {
   Sensitivity
