@@ -431,8 +431,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         if (route.observeCapturePreparation &&
             property === 'strategyCapturedRunAdvance') {
           return preparation => {
+            const before = target.strategyCapturedRunFixturePhase(preparation);
             const result = target[property](preparation,
-              route.cancelCapturePhase === 'snapshot-inventory' ? 1 : 32);
+              route.cancelCapturePhase === 'snapshot-inventory' &&
+                before === 'snapshot-inventory' ? 1 : 32);
             const complete = checked(result);
             const phase = target.strategyCapturedRunFixturePhase(preparation);
             route.capturePolls = (route.capturePolls ?? 0) + 1;
