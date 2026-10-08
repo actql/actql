@@ -536,6 +536,9 @@ fn execute_timed_native_strategy_run(
         let planning_before = @resources.ledger_usage(ledger).planning_work
         // The existing bounded consultation owns the immutable projection.
         // Its planning charge is part of this instrumented experiment.
+        let normal = @env.get_env_var("ACTQL_NATIVE_HOST_PROFILE_SETTINGS")
+          is Some(_) &&
+          empirical is None
         let now = match operational {
           Some((_, _, _, clock)) => clock.observe().unwrap()
           None =>
@@ -544,27 +547,44 @@ fn execute_timed_native_strategy_run(
               None => 0L
             }
         }
-        let request = match
-          @standard_host.prepare_dispatch_policy_request(
-            dispatch,
-            "benchmark-task-" + next_task.to_string(),
-            @strategy.graph_program_definition_cid(
-              @strategy.captured_dag_graph(captured),
-            ),
-            "native-benchmark-offline",
-            if empirical is Some(probe) && probe.mode == "expiry" {
-              now + 1L
-            } else if operational is None && empirical is None {
-              1L
-            } else {
-              now + 60000L
+        let request = if normal && empirical is None {
+          None
+        } else {
+          Some(
+            match
+              @standard_host.prepare_dispatch_policy_request(
+                dispatch,
+                "benchmark-task-" + next_task.to_string(),
+                @strategy.graph_program_definition_cid(
+                  @strategy.captured_dag_graph(captured),
+                ),
+                "native-benchmark-offline",
+                if empirical is Some(probe) && probe.mode == "expiry" {
+                  now + 1L
+                } else if operational is None && empirical is None {
+                  1L
+                } else {
+                  now + 60000L
+                },
+                now,
+              ) {
+              Err(issue) => return Err(@host.Dispatch(issue))
+              Ok(value) => value
             },
-            now,
-          ) {
-          Err(issue) => return Err(@host.Dispatch(issue))
-          Ok(value) => value
+          )
         }
-        let candidates = @standard_host.dispatch_policy_candidates(dispatch).unwrap()
+        // The normal Host mints and commits its own request. The immutable
+        // projection becomes visible only after that consultation; do not read
+        // the common pending projection before a request has been minted.
+        let candidates = if normal {
+          match @host.prepare_native_standard_strategy_performance_choice(run) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          @host.native_performance_candidate_snapshot(run).unwrap()
+        } else {
+          @standard_host.dispatch_policy_candidates(dispatch).unwrap()
+        }
         println(
           "compute-candidates:" +
           next_task.to_string() +
@@ -574,7 +594,7 @@ fn execute_timed_native_strategy_run(
         if empirical is Some(probe) && probe.mode == "expiry" {
           let mut observed = probe.clock.observe().unwrap()
           for _ in 0..<16 {
-            if observed > request.deadline_ms {
+            if observed > request.unwrap().deadline_ms {
               break
             }
             // Observe the original request after a real bounded wait, rather
@@ -582,10 +602,10 @@ fn execute_timed_native_strategy_run(
             diagnostic_expiry_wait()
             observed = probe.clock.observe().unwrap()
           }
-          operational_require(observed > request.deadline_ms)
+          operational_require(observed > request.unwrap().deadline_ms)
           let before_refusal = @resources.ledger_usage(ledger)
           let response : @strategy.PolicyResponse = {
-            request,
+            request: request.unwrap(),
             position: 0,
             policy_id: "local-empirical-policy",
             policy_revision: "expiry-diagnostic",
@@ -595,7 +615,7 @@ fn execute_timed_native_strategy_run(
           operational_require(
             @host.commit_native_local_policy_response(
               dispatch,
-              request,
+              request.unwrap(),
               body,
               "local-empirical-policy",
               probe.clock,
@@ -605,7 +625,7 @@ fn execute_timed_native_strategy_run(
           operational_require(@resources.ledger_usage(ledger) == before_refusal)
           println(
             "empirical-expired-request:{\"deadline_ms\":\"" +
-            request.deadline_ms.to_string() +
+            request.unwrap().deadline_ms.to_string() +
             "\",\"observed_ms\":\"" +
             observed.to_string() +
             "\"}",
@@ -618,7 +638,7 @@ fn execute_timed_native_strategy_run(
             operational_require(
               @host.commit_native_local_policy_response(
                 dispatch,
-                request,
+                request.unwrap(),
                 body,
                 "local-empirical-policy",
                 probe.clock,
@@ -633,7 +653,13 @@ fn execute_timed_native_strategy_run(
           Some((root, profile_revision, pins, clock)) => {
             let before_estimate = @resources.ledger_usage(ledger)
             let body = inspect_operational_estimate(
-              dispatch, request, next_task, root, profile_revision, pins, clock,
+              dispatch,
+              request.unwrap(),
+              next_task,
+              root,
+              profile_revision,
+              pins,
+              clock,
             )
             operational_require(
               @resources.ledger_usage(ledger) == before_estimate,
@@ -645,24 +671,34 @@ fn execute_timed_native_strategy_run(
         match empirical {
           Some(probe) => {
             let body = commit_empirical_probe(
-              probe, dispatch, request, next_task, ledger,
+              probe,
+              dispatch,
+              request.unwrap(),
+              next_task,
+              ledger,
             )
             if next_task == 1 {
               retired_response = body
             }
           }
           None =>
-            match
-              @standard_host.commit_dispatch_offline_policy_choice(dispatch) {
-              Err(issue) => return Err(@host.Dispatch(issue))
-              Ok(_) => ()
+            if !normal {
+              match
+                @standard_host.commit_dispatch_offline_policy_choice(dispatch) {
+                Err(issue) => return Err(@host.Dispatch(issue))
+                Ok(_) => ()
+              }
             }
         }
         match (operational, admitted_body) {
           (Some((_, profile_revision, _, clock)), Some(body)) => {
             operational_require(
               @host.admit_native_operational_estimate(
-                dispatch, request, body, "configured-local-profile-producer", profile_revision,
+                dispatch,
+                request.unwrap(),
+                body,
+                "configured-local-profile-producer",
+                profile_revision,
                 clock,
               )
               is Err(_),
@@ -1390,6 +1426,12 @@ fn main {
     _ => abort("native strategy dispatch rejected")
   }
   phase_boundary("strategy-open", execution_start)
+  let normal = normal_host_example(
+    root, dispatch, source, source_rows, columns, value_nodes, text_bytes, wire_bytes,
+    work, batch_bytes,
+  )
+  let performance = normal.map(example => example.configuration)
+  let performance_input = normal.map(example => example.input)
   let run = @host.open_native_standard_strategy_run(
     dispatch,
     {
@@ -1421,9 +1463,22 @@ fn main {
       max_chunk_rows: Int::min(task_rows, 512),
     },
     observe_phase?,
+    performance?,
+    performance_input?,
   ).unwrap()
+  if normal is Some(_) {
+    match @host.native_performance_conditions(run).unwrap() {
+      Some(conditions) =>
+        println(
+          "normal-host-conditions:" +
+          @strategy.operational_estimate_conditions_json(conditions).unwrap(),
+        )
+      None => println("normal-host-conditions:null")
+    }
+  }
   phase_boundary("strategy-execute", execution_start)
   let estimate_root = required(matches, "operational-estimate-root")
+  operational_require(normal is None || estimate_root == "-")
   let operational = if estimate_root == "-" {
     None
   } else {
@@ -1478,6 +1533,11 @@ fn main {
   let execution = execute_timed_native_strategy_run(
     run, dispatch, captured, ledger, stop_after_task, operational, empirical,
   )
+  emit_normal_host_decisions(run)
+  match normal {
+    Some(example) => operational_require(example.clock.close())
+    None => ()
+  }
   match empirical {
     Some(probe) => operational_require(probe.clock.close())
     None => ()
@@ -1549,6 +1609,21 @@ fn main {
         native_strategy_issue_name(issue),
       )
     Err(@host.Local(_)) => abort("native strategy Local task rejected")
+    Err(@host.Performance(issue)) => {
+      let stage = match issue {
+        @host.InvalidConfiguration => "configuration"
+        @host.DisclosureDenied => "disclosure"
+        @host.EnvelopeTooLarge => "envelope"
+        @host.AlreadyCommitted => "committed"
+        @host.InvalidResponse => "response"
+        @host.HttpStatus(_) => "http-status"
+        @host.Dispatch(_) => "dispatch"
+        @host.Clock(_) => "clock"
+        @host.Transport(_) => "transport"
+        @host.Wire(_) => "wire"
+      }
+      abort("native performance consultation rejected: " + stage)
+    }
   }
   if empirical_mode == "expiry" {
     close_observed_run(run, ledger, 0)
@@ -1559,7 +1634,7 @@ fn main {
     return
   }
   if stop_after_task is Some(task) {
-    if empirical is Some(_) {
+    if empirical is Some(_) || normal is Some(_) {
       let held = @resources.ledger_usage(ledger)
       @standard_host.stop_strategy_dispatch(dispatch)
       // The existing Owner drains a stopped dispatch with no next task.
@@ -1573,7 +1648,14 @@ fn main {
       )
       operational_require(@resources.ledger_usage(ledger) == held)
       operational_require(held.held_bytes > 0L)
-      println("empirical-stop-retains-responsibility:" + task.to_string())
+      println(
+        (if normal is Some(_) {
+          "normal-host-stop-retains-responsibility:"
+        } else {
+          "empirical-stop-retains-responsibility:"
+        }) +
+        task.to_string(),
+      )
     }
     close_observed_run(run, ledger, task)
     @host.close_native_acquisition_runtime(acquisition)

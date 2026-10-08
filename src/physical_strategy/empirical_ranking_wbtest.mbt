@@ -14,6 +14,7 @@ fn empirical_test_candidates(single? : Bool = false) -> PolicyCandidateSet {
 fn empirical_test_sidecar() -> OperationalEstimateSidecar {
   {
     request: operational_test_request(),
+    conditions: operational_test_admit(operational_test_body(), 1100L).unwrap().conditions,
     profile_revision: "profile",
     oldest_ms: 1000L,
     newest_ms: 1000L,

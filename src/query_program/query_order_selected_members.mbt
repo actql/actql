@@ -26,14 +26,8 @@ fn append_distinct_order_member_expression(
     }
   }
   append_grouped_expression_resolved(
-    construction,
-    expression,
-    paths,
-    resolve_input,
-    resolve_order_input,
-    resolve,
-    active_fields,
-    max_work,
+    construction, expression, paths, resolve_input, resolve_order_input, resolve,
+    active_fields, max_work,
   ) catch {
     Abort(issue) => {
       if issue is Expression({ issue: @expression.UnknownReference, .. }) {
