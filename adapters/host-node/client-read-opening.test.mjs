@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync} from 'node:child_process';
-import {readFile, readdir} from 'node:fs/promises';
+import {readFile, readdir, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
@@ -49,16 +49,30 @@ for (const entrance of ['local', 'https']) {
         const reader = result.rows();
         attemptId = reader.attemptId;
         const returned = [];
-        await assert.rejects(async () => {for await (const row of reader) returned.push(row);},
-          error => error.attemptId === attemptId && error.rowsYielded === 0);
+        let openingFailure;
+        try {for await (const row of reader) returned.push(row);}
+        catch (cause) {openingFailure = cause;}
         traceReadRecovery('lost-read:finished', {entrance, loss: phase});
         await host.settled();
+        const retained = await attempts(directory);
+        const expectedAttempts = phase === 'after-commit' ? 2 : 1;
+        // Read persisted attempts independently before interpreting the SDK
+        // failure. A lost admission reply cannot authorize a new read identity.
+        await writeFile(join(directory, 'opening-custody-observation.json'),
+          JSON.stringify({entrance, phase, expectedAttempts,
+            retainedAttempts: retained.map(entry => JSON.parse(entry.wire)),
+            counts: fixture.counts, returnedRows: returned.length,
+            openingFailure: openingFailure?.code}), {mode: 0o600});
+        assert.equal(retained.length, expectedAttempts, '[check-mutation:read-opening-no-retry]');
+        assert.deepEqual(fixture.counts, {admissions: 2, readers: 1, computes: 1, definitions: 1},
+          '[check-mutation:read-opening-no-retry]');
+        assert.equal(openingFailure?.attemptId, attemptId);
+        assert.equal(openingFailure.rowsYielded, 0);
         assert.deepEqual(returned, []);
         assert.equal(reader.state(), 'open_unknown');
         assert.equal(reader.rowsYielded(), 0);
         await assert.rejects(Array.fromAsync(reader), {code: 'ReadAttemptAlreadyStarted'});
-        const retained = await attempts(directory);
-        assert.equal(retained.length, phase === 'after-commit' ? 2 : 1);
+
         const original = retained.map(entry => JSON.parse(entry.wire)).filter(value => value.attempt_id === attemptId);
         assert.equal(original.length, phase === 'after-commit' ? 1 : 0);
         observed = await result.deliveryAttempt(attemptId);
