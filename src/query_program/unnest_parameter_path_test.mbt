@@ -106,6 +106,8 @@ test "parameter property UNNEST star matches an independent nullable Program" {
       "SELECT element.*, position FROM UNNEST(@payload.nested.items) element WITH OFFSET position ORDER BY position",
       "SELECT element.*, position FROM UNNEST(@PAYLOAD.nested.items) element WITH OFFSET position ORDER BY position",
       "SELECT element.*, position FROM UNNEST(@`PAYLOAD`.nested.items) element WITH OFFSET position ORDER BY position",
+      "SELECT element.*, position FROM UNNEST(@payload.NESTED.ItEmS) element WITH OFFSET position ORDER BY position",
+      "SELECT element.*, position FROM UNNEST(@payload.`NESTED`.`ITEMS`) element WITH OFFSET position ORDER BY position",
       "SELECT * FROM UNNEST(((@payload).nested).`items`) element WITH OFFSET position ORDER BY position",
       "FROM UNNEST(@payload.nested.items) element WITH OFFSET position |> SELECT element.*, position |> ORDER BY position",
     ] {
@@ -116,4 +118,38 @@ test "parameter property UNNEST star matches an independent nullable Program" {
     ).unwrap()
     assert_eq(semantic(actual), semantic(expected), msg=text)
   }
+}
+
+///|
+test "UNNEST property binding refuses case-fold collisions without inventing a field" {
+  let declarations = @parameters.read_declarations(
+    Some(
+      unnest_value_cursor(
+        (
+          #|{"payload":{"type":"object","nullable":true,"fields":{"nested":{"type":"object","nullable":true,"fields":{"items":{"type":"array","nullable":true,"max_items":3,"items":{"type":"number","nullable":false}}}},"NESTED":{"type":"object","nullable":true,"fields":{"items":{"type":"array","nullable":true,"max_items":3,"items":{"type":"number","nullable":false}}}}}}}
+        ),
+      ),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT element FROM UNNEST(@payload.nested.items) element",
+        syntax_limits(),
+      ).unwrap(),
+      {
+        ..fixture_context(),
+        inputs: [],
+        parameter_declarations: Some(declarations),
+      },
+      construction_limits(),
+    )
+    is Err(AmbiguousColumn),
+  )
 }

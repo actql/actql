@@ -1847,6 +1847,7 @@ pub(all) enum UnaryOperator {
   IsUnknown
   Length
   Floor
+  Sqrt
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

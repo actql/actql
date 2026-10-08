@@ -86,6 +86,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+  ['scripts/fixtures/sqrt-source-input.mjs', 'sqrt-source-input.mjs'],
   ['scripts/fixtures/ceiling-source-input.mjs', 'ceiling-source-input.mjs'],
   ['scripts/fixtures/unary-plus-source-input.mjs', 'unary-plus-source-input.mjs'],
   ['scripts/fixtures/ifnull-source-input.mjs', 'ifnull-source-input.mjs'],
@@ -197,6 +198,9 @@ if (process.argv.includes('--typed-json-literal-only')) {
 }
 if (process.argv.includes('--having-object-property-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_OBJECT_PROPERTY_ONLY = '1';
+}
+if (process.argv.includes('--sqrt-only')) {
+  runtimeEnvironment.ACTQL_TEST_SQRT_ONLY = '1';
 }
 if (process.argv.includes('--ceiling-only')) {
   runtimeEnvironment.ACTQL_TEST_CEILING_ONLY = '1';
@@ -521,7 +525,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-string-agg-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-string-agg-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -586,6 +590,7 @@ if (process.argv.includes('--correlated-unnest-only')) return;
 if (process.argv.includes('--unnest-source-only')) return;
 if (process.argv.includes('--unnest-checked-array-only')) return;
 if (process.argv.includes('--unnest-parameter-path-only')) return;
+if (process.argv.includes('--sqrt-only')) return;
 if (process.argv.includes('--ceiling-only')) return;
 if (process.argv.includes('--unary-plus-only')) return;
 if (process.argv.includes('--qualified-star-only')) return;
