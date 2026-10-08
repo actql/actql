@@ -113,6 +113,7 @@ pub(all) enum QueryOperation {
   // ORDER windows either consume SELECT aliases or the current projected rows.
   OrderAnalytic(Array[Projection], Bool)
   Select(Array[Projection], Bool)
+  Distinct
   Order(Array[SortTerm])
   Limit(QueryInteger, QueryInteger)
 }
@@ -171,6 +172,8 @@ pub(all) struct SetPart {
   kind : String
   duplicates : String
   by_name : Bool
+  inner_by_name : Bool
+  sql_chain : Bool
   by_name_columns : Array[NamePart]?
   right : Query
 }
@@ -472,6 +475,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
         ),
       )
     Select(xs, distinct) => Some(Select(copy_projections(xs), distinct))
+    Distinct => Some(Distinct)
     Order(xs) => Some(Order(xs.copy()))
     Limit(count, offset) => Some(Limit(count, offset))
   }
@@ -661,14 +665,16 @@ fn QueryParser::name(self : QueryParser) -> NamePart raise QueryAbort {
 ///|
 fn QueryParser::set_column_list(
   self : QueryParser,
+  keyword? : String = "ON",
 ) -> Array[NamePart]? raise QueryAbort {
-  if !self.has("ON") {
+  if !self.has(keyword) {
     return None
   }
-  self.keyword("ON")
+  self.keyword(keyword)
+  let modifier = if keyword == "BY" { "CORRESPONDING BY" } else { "BY NAME ON" }
   if self.advance().value != Symbol(40) {
     raise QueryAbort(
-      "Expected BY NAME ON opening parenthesis",
+      "Expected " + modifier + " opening parenthesis",
       self.peek().start,
     )
   }
@@ -683,11 +689,45 @@ fn QueryParser::set_column_list(
   }
   if self.advance().value != Symbol(41) {
     raise QueryAbort(
-      "Expected BY NAME ON closing parenthesis",
+      "Expected " + modifier + " closing parenthesis",
       self.peek().start,
     )
   }
   Some(columns)
+}
+
+///|
+fn QueryParser::set_name_matching(
+  self : QueryParser,
+  inner_prefix : Bool,
+) -> (Bool, Bool, Array[NamePart]?) raise QueryAbort {
+  if self.has("STRICT") {
+    if inner_prefix {
+      raise QueryAbort(
+        "INNER set cannot use STRICT CORRESPONDING",
+        self.peek().start,
+      )
+    }
+    self.keyword("STRICT")
+    self.keyword("CORRESPONDING")
+    return (true, false, self.set_column_list(keyword="BY"))
+  }
+  if self.has("CORRESPONDING") {
+    self.keyword("CORRESPONDING")
+    return (true, true, self.set_column_list(keyword="BY"))
+  }
+  if self.has("BY") {
+    self.keyword("BY")
+    self.keyword("NAME")
+    return (true, inner_prefix, self.set_column_list())
+  }
+  if inner_prefix {
+    raise QueryAbort(
+      "INNER set requires BY NAME or CORRESPONDING",
+      self.peek().start,
+    )
+  }
+  (false, false, None)
 }
 
 ///|
@@ -1035,7 +1075,20 @@ fn QueryParser::join_part(
 
 ///|
 fn QueryParser::starts_join(self : QueryParser) -> Bool {
-  pipe_join_head(self.peek())
+  pipe_join_head(self.peek()) && !self.starts_inner_set()
+}
+
+///|
+fn set_operator_token(token : Token) -> Bool {
+  keyword(token, "UNION") ||
+  keyword(token, "INTERSECT") ||
+  keyword(token, "EXCEPT")
+}
+
+///|
+fn QueryParser::starts_inner_set(self : QueryParser) -> Bool {
+  self.has("INNER") &&
+  set_operator_token(token_at(self.source, self.index + 1).unwrap())
 }
 
 ///|
@@ -1465,9 +1518,6 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
   }
   if argument is None && function_name != "COUNT" {
     raise QueryAbort("Aggregate argument required", token.start)
-  }
-  if distinct && ["COUNTIF", "MIN", "MAX"].contains(function_name) {
-    raise QueryAbort("DISTINCT is not valid for this aggregate", token.start)
   }
   { function_name, argument, filter, distinct, order_by, delimiter, }
 }
@@ -2015,9 +2065,18 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   let mut term = self.sql_operand()
   let ctes = term.ctes.copy()
   let sets : Array[SetPart] = []
-  let mut set_spelling : (String, String, Bool, Array[NamePart]?)? = None
-  while self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
+  let mut set_spelling : (String, String, Bool, Bool, Array[NamePart]?)? = None
+  while self.has("UNION") ||
+        self.has("INTERSECT") ||
+        self.has("EXCEPT") ||
+        self.has("INNER") {
     self.node()
+    let inner_by_name = if self.has("INNER") {
+      self.keyword("INNER")
+      true
+    } else {
+      false
+    }
     let kind = if self.has("UNION") {
       self.keyword("UNION")
       "union"
@@ -2038,23 +2097,16 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       self.keyword("DISTINCT")
       "distinct"
     }
-    let by_name = if self.has("BY") {
-      self.keyword("BY")
-      self.keyword("NAME")
-      true
-    } else {
-      false
-    }
-    let mut by_name_columns = if by_name {
-      self.set_column_list()
-    } else {
-      None
-    }
+    let (by_name, inner_by_name, columns) = self.set_name_matching(
+      inner_by_name,
+    )
+    let mut by_name_columns = columns
     match set_spelling {
-      Some((old_kind, old_duplicates, old_by_name, old_columns)) => {
+      Some((old_kind, old_duplicates, old_by_name, old_inner, old_columns)) => {
         if old_kind != kind ||
           old_duplicates != duplicates ||
           old_by_name != by_name ||
+          old_inner != inner_by_name ||
           !same_set_column_list(old_columns, by_name_columns) {
           raise QueryAbort(
             "Mixed set operators require parentheses",
@@ -2064,7 +2116,10 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
         // One SQL set chain uses its first modifier's display spelling.
         by_name_columns = old_columns
       }
-      None => set_spelling = Some((kind, duplicates, by_name, by_name_columns))
+      None =>
+        set_spelling = Some(
+          (kind, duplicates, by_name, inner_by_name, by_name_columns),
+        )
     }
     let right = self.sql_operand()
     for cte in right.ctes {
@@ -2074,6 +2129,8 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       kind,
       duplicates,
       by_name,
+      inner_by_name,
+      sql_chain: true,
       by_name_columns,
       right: { ..right, ctes: [], },
     })
@@ -2262,6 +2319,8 @@ fn QueryParser::pipe_tail(
       return self.pipe_tail(self.bind_query(producer), cte_body~)
     }
     if pipe_join_head(next) &&
+      !(keyword(next, "INNER") &&
+      set_operator_token(token_at(self.source, self.index + 2).unwrap())) &&
       !operations.is_empty() &&
       !(operations.length() == 1 && operations[0] is Where(_)) {
       let producer : Query = {
@@ -2330,12 +2389,21 @@ fn QueryParser::pipe_tail(
             self.peek().start,
           )
       }
-    } else if self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
+    } else if self.has("UNION") ||
+      self.has("INTERSECT") ||
+      self.has("EXCEPT") ||
+      self.starts_inner_set() {
       if !final_operations.is_empty() {
         raise QueryAbort(
           "Set input cannot follow final ordering",
           self.peek().start,
         )
+      }
+      let inner_by_name = if self.has("INNER") {
+        self.keyword("INNER")
+        true
+      } else {
+        false
       }
       let kind = if self.has("UNION") {
         self.keyword("UNION")
@@ -2357,14 +2425,9 @@ fn QueryParser::pipe_tail(
         self.keyword("DISTINCT")
         "distinct"
       }
-      let by_name = if self.has("BY") {
-        self.keyword("BY")
-        self.keyword("NAME")
-        true
-      } else {
-        false
-      }
-      let by_name_columns = if by_name { self.set_column_list() } else { None }
+      let (by_name, inner_by_name, by_name_columns) = self.set_name_matching(
+        inner_by_name,
+      )
       if self.advance().value != Symbol(40) {
         raise QueryAbort(
           "Pipe set input must be parenthesized",
@@ -2395,6 +2458,8 @@ fn QueryParser::pipe_tail(
         kind,
         duplicates,
         by_name,
+        inner_by_name,
+        sql_chain: false,
         by_name_columns,
         right: { ..right, ctes: [], },
       })
@@ -2555,6 +2620,9 @@ fn QueryParser::pipe_tail(
         }
         operations.push(Order(terms))
       }
+    } else if self.has("DISTINCT") {
+      self.keyword("DISTINCT")
+      operations.push(Distinct)
     } else if self.has("SELECT") {
       self.keyword("SELECT")
       let distinct = self.has("DISTINCT")
