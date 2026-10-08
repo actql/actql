@@ -119,6 +119,12 @@ export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) 
   const {stdout, stderr} = await promisify(execFile)(invocation.binary,
     invocation.arguments, {cwd: root, timeout: timeoutMs, maxBuffer: 1024 * 1024});
   const processCycleMs = performance.now() - started;
+  return readNativeDirectProductExecution(invocation, {stdout, stderr, processCycleMs});
+}
+
+// Independent consumers reconstruct the same admitted observations from the
+// immutable raw stream. This entry point never executes a binary or a Source.
+export function readNativeDirectProductExecution(invocation, {stdout, stderr, processCycleMs}) {
   const record = JSON.parse(stdout.trim().split('\n').at(-1));
   assert.equal(record.rows_cid, invocation.expected.rowsCid,
     'NativeProductResultMismatch');

@@ -132,6 +132,8 @@ priv struct EmpiricalProbe {
   template_pin : String
   offline_fallback : Bool
   clock : @clock.NativeTrustedClock
+  whole_run : Bool
+  mut trajectory : Array[Json]?
 }
 
 ///|
@@ -142,17 +144,27 @@ fn commit_empirical_probe(
   task : Int,
   ledger : @resources.Ledger,
 ) -> String? {
-  if task != 1 || probe.mode == "offline" {
+  if (!probe.whole_run && task != 1) ||
+    probe.mode == "offline" ||
+    (probe.whole_run && task > 1 && probe.trajectory is None) {
     @standard_host.commit_dispatch_offline_policy_choice(dispatch).unwrap()
     println("empirical-fallback:" + task.to_string() + ":preconfigured-offline")
     return None
   }
   let started = @bench.monotonic_clock_start()
-  let policy_revision = "local-task-processing-median/0.1"
+  let policy_revision = if probe.whole_run {
+    "local-run-caller-elapsed-median/0.1"
+  } else {
+    "local-task-processing-median/0.1"
+  }
   let mut position = probe.position
   let mut reason = "experiment-forced-position"
   let mut profile_revision = "unmeasured"
-  if probe.mode == "empirical" {
+  if probe.whole_run && task > 1 && probe.trajectory is Some(trajectory) {
+    position = whole_run_residual_position(dispatch, trajectory, task)
+    operational_require(position is Some(_))
+    reason = "current-snapshot-residual-assignment"
+  } else if probe.mode == "empirical" {
     let template = @files.read_bounded_text_file(
       probe.root,
       "task-1.json",
@@ -177,9 +189,14 @@ fn commit_empirical_probe(
     let ranking = @host.rank_native_operational_estimate(
       dispatch,
       sidecar,
-      1,
+      task,
       policy_revision,
       probe.clock,
+      quantity=if probe.whole_run {
+        "run-caller-elapsed"
+      } else {
+        "task-processing"
+      },
     ).unwrap()
     position = ranking.selected_position
     reason = ranking.reason
@@ -192,7 +209,13 @@ fn commit_empirical_probe(
       profile_revision +
       "\",\"policy_revision\":\"" +
       policy_revision +
-      "\",\"objective\":\"task-processing-median\",\"positions\":" +
+      "\",\"objective\":\"" +
+      (if probe.whole_run {
+        "run-caller-elapsed-median"
+      } else {
+        "task-processing-median"
+      }) +
+      "\",\"positions\":" +
       ranking.positions.to_json().stringify() +
       ",\"selected_position\":" +
       ranking.selected_position.to_json().stringify() +
@@ -217,24 +240,39 @@ fn commit_empirical_probe(
     policy_id: "local-empirical-policy",
     policy_revision,
     explanation: reason +
-    "; objective=first-task-processing; profile=" +
+    "; objective=" +
+    (if probe.whole_run {
+      "run-caller-elapsed"
+    } else {
+      "first-task-processing"
+    }) +
+    "; profile=" +
     profile_revision,
   }
   let wire = @strategy.placement_policy_response_json(response).unwrap()
-  // Invalid binding is rejected by the real closed decoder before any commit.
-  let changed = @strategy.placement_policy_response_json({
-    ..response,
-    request: { ..request, request_id: "different-request", },
-  }).unwrap()
-  operational_require(
-    @host.commit_native_local_policy_response(
-      dispatch,
-      request,
-      changed,
-      "local-empirical-policy",
-      probe.clock,
+  if !probe.whole_run {
+    // Invalid binding is rejected by the real closed decoder before any commit.
+    let changed = @strategy.placement_policy_response_json({
+      ..response,
+      request: { ..request, request_id: "different-request", },
+    }).unwrap()
+    operational_require(
+      @host.commit_native_local_policy_response(
+        dispatch,
+        request,
+        changed,
+        "local-empirical-policy",
+        probe.clock,
+      )
+      is Err(_),
     )
-    is Err(_),
+  }
+  if probe.whole_run && task == 1 {
+    probe.trajectory = Some(whole_run_selected_trajectory(dispatch, chosen))
+  }
+  println(
+    "empirical-current-request:" +
+    @strategy.placement_policy_request_json(request).unwrap(),
   )
   @host.commit_native_local_policy_response(
     dispatch,
@@ -563,7 +601,7 @@ fn execute_timed_native_strategy_run(
           return Ok(())
         }
         match (empirical, retired_response) {
-          (Some(probe), Some(body)) => {
+          (Some(probe), Some(body)) if !probe.whole_run => {
             operational_require(
               @host.commit_native_local_policy_response(
                 dispatch,
@@ -944,6 +982,9 @@ fn main {
     @argparse.OptionArg("operational-template-pins", default_values=["-"]),
     @argparse.OptionArg("sqlite-library", default_values=["-"]),
     @argparse.OptionArg("empirical-mode", default_values=["-"]),
+    @argparse.OptionArg("empirical-objective", default_values=[
+      "task-processing",
+    ]),
     @argparse.OptionArg("empirical-position", default_values=["-"]),
     @argparse.OptionArg("empirical-profile-root", default_values=["-"]),
     @argparse.OptionArg("empirical-profile-revision", default_values=["-"]),
@@ -983,6 +1024,11 @@ fn main {
     @argparse.OptionArg("execution-cap", required=true),
   ])
   let matches = command.parse() catch { error => abort(error.to_string()) }
+  operational_require(
+    ["task-processing", "run-caller-elapsed"].contains(
+      required(matches, "empirical-objective"),
+    ),
+  )
   let empirical_mode = required(matches, "empirical-mode")
   operational_require(
     ["-", "forced", "empirical", "offline", "expiry"].contains(empirical_mode),
@@ -1398,6 +1444,9 @@ fn main {
       template_pin: required(matches, "empirical-template-pin"),
       offline_fallback: required(matches, "empirical-fallback") == "offline",
       clock,
+      whole_run: required(matches, "empirical-objective") ==
+      "run-caller-elapsed",
+      trajectory: None,
     })
   }
   let execution = execute_timed_native_strategy_run(
