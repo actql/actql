@@ -443,73 +443,6 @@ pub fn admit_pending_source_state_advance(
 }
 
 ///|
-fn captured_snapshot_inventory(
-  definitions : Array[PublicationContract],
-  artifacts : Array[PublicationContract],
-  snapshots : Array[CapturedResultSnapshot],
-) -> Result[Array[CapturedResultSnapshot], CapturedRunIssuanceIssue] {
-  if definitions.length() != artifacts.length() ||
-    definitions.length() != snapshots.length() {
-    return Err(CaptureIssuanceInventoryMismatch("results"))
-  }
-  let output = snapshots.copy()
-  output.sort_by((left, right) => {
-    @canonical.compare_utf16(left.name, right.name)
-  })
-  for index = 0; index < output.length(); index = index + 1 {
-    if index > 0 && output[index - 1].name == output[index].name {
-      return Err(CaptureIssuanceInventoryMismatch(output[index].name))
-    }
-    let snapshot = output[index]
-    let has_definition = definitions.any(value => {
-      value.identity == snapshot.definition.identity
-    })
-    let has_artifact = artifacts.any(value => {
-      value.identity == snapshot.artifact.identity
-    })
-    if !has_definition || !has_artifact {
-      return Err(CaptureIssuanceInventoryMismatch(snapshot.name))
-    }
-  }
-  Ok(output)
-}
-
-///|
-fn captured_model_evidence(
-  receipt : PublicationContract,
-  models : Array[RunEvidenceValue],
-) -> Result[Array[RunEvidenceValue], CapturedRunIssuanceIssue] {
-  let output = models.copy()
-  output.sort_by((left, right) => {
-    @canonical.compare_utf16(left.identity, right.identity)
-  })
-  for index = 0; index < output.length(); index = index + 1 {
-    if output[index].name != "model_invocation_evidence" ||
-      (index > 0 && output[index - 1].identity == output[index].identity) {
-      return Err(CaptureIssuanceInventoryMismatch("model_evidence"))
-    }
-  }
-  guard @json.object_field(receipt.value, "external_observation_evidence")
-    is Some(@json.Array(frozen)) else {
-    return Err(CaptureIssuanceReferenceMismatch("external_observations"))
-  }
-  let expected : Array[String] = []
-  for item in @json.array_values(frozen) {
-    if evidence_string(item, "kind") == Some("model_invocation") {
-      guard evidence_string(item, "evidence_cid") is Some(cid) else {
-        return Err(CaptureIssuanceReferenceMismatch("external_observations"))
-      }
-      expected.push(cid)
-    }
-  }
-  expected.sort_by(@canonical.compare_utf16)
-  if expected != output.map(value => value.identity) {
-    return Err(CaptureIssuanceReferenceMismatch("model_evidence"))
-  }
-  Ok(output)
-}
-
-///|
 /// Issue a private Effect-free Captured Run from exact Result snapshots and
 /// admitted evidence. The issuer never accepts a preassembled Effect context.
 pub fn issue_effect_free_captured_run(
@@ -595,54 +528,24 @@ pub fn issue_effectful_captured_run(
 }
 
 ///|
-fn prepare_captured_computation_inputs_after_root(
+fn prepare_captured_effect_sources(
   inputs : CapturedRunIssuanceInputs,
-) -> Result[EffectContextInputs, CapturedRunIssuanceIssue] {
+) -> Result[
+  (
+    Array[CapturedEffectSourceArtifact],
+    Array[CapturedLocalEffectSourceEvidence],
+  ),
+  CapturedRunIssuanceIssue,
+] {
   let {
-    invocation,
-    definitions,
-    artifacts,
-    receipt,
-    snapshots,
     sources,
     local_sources,
-    advances,
-    authoring,
-    models,
     preview,
-    plan_values,
     max_wire_bytes,
     max_nodes,
     max_depth,
-    dependency_inventory,
     ..
   } = inputs
-  if receipt.name != "run_receipt" {
-    return Err(CaptureIssuanceWrongContract("run_receipt"))
-  }
-  guard contract_string(invocation, "observation_set_cid")
-    is Some(observation_set_cid) else {
-    return Err(CaptureIssuanceReferenceMismatch("observation_set_cid"))
-  }
-  for advance in advances {
-    if optional_string(@json.object_field(advance.value, "observation_set_cid")) !=
-      Some(observation_set_cid) {
-      return Err(CaptureIssuanceReferenceMismatch("source_state_advance"))
-    }
-  }
-  guard evidence_string(receipt.value, "program_definition_cid")
-    is Some(program_definition_cid) else {
-    return Err(CaptureIssuanceReferenceMismatch("program_definition_cid"))
-  }
-  if evidence_string(authoring.value, "program_definition_cid") !=
-    Some(program_definition_cid) {
-    return Err(CaptureIssuanceReferenceMismatch("authoring_context"))
-  }
-  let ordered_snapshots = match
-    captured_snapshot_inventory(definitions, artifacts, snapshots) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
   let ordered_sources = sources.copy()
   ordered_sources.sort_by((left, right) => {
     @canonical.compare_utf16(left.effect_id, right.effect_id)
@@ -710,10 +613,28 @@ fn prepare_captured_computation_inputs_after_root(
       }
     }
   }
-  let ordered_models = match captured_model_evidence(receipt, models) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
+  Ok((ordered_sources, ordered_local_sources))
+}
+
+///|
+fn prepare_captured_context_inputs(
+  inputs : CapturedRunIssuanceInputs,
+  ordered_snapshots : Array[CapturedResultSnapshot],
+  ordered_sources : Array[CapturedEffectSourceArtifact],
+  ordered_local_sources : Array[CapturedLocalEffectSourceEvidence],
+  ordered_models : Array[RunEvidenceValue],
+) -> Result[EffectContextInputs, CapturedRunIssuanceIssue] {
+  let {
+    advances,
+    authoring,
+    preview,
+    plan_values,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    dependency_inventory,
+    ..
+  } = inputs
   let plans : Array[(String, @json.CanonicalValue)] = []
   for (name, wire) in plan_values {
     guard preview is Some(identity) && identity.member_effect_ids.contains(name) else {
