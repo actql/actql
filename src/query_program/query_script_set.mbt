@@ -18,7 +18,7 @@ fn lower_script_set_relation(
   let left = lower_script_relation_term(
     construction, query, known, context, sources, limits, steps, reserved, first,
   )
-  let fields = left.visible_fields
+  let mut fields = left.visible_fields
   let mut current = left.name
   for index in 0..<@query.set_part_count(query) {
     let part = @query.set_part_at(query, index).unwrap()
@@ -35,6 +35,26 @@ fn lower_script_set_relation(
       reserved,
       term,
     )
+    let output_fields = set_output_fields(fields, part)
+    let (left_matched, left_alignment_needed) = set_alignment_fields(
+      output_fields, fields, true,
+    )
+    if left_alignment_needed {
+      let aligned = pipe_physical_name(reserved, "aql_data_set_left_")
+      reserved.push(aligned)
+      steps.push(
+        construction.object([
+          ("from", construction.text(current)),
+          (
+            "select",
+            set_select_fields(construction, output_fields, left_matched),
+          ),
+          ("as", construction.text(aligned)),
+        ]),
+      )
+      current = aligned
+    }
+    fields = output_fields
     let (matched, alignment_needed) = set_alignment_fields(
       fields,
       right.visible_fields,
