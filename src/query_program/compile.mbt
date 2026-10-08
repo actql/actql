@@ -366,9 +366,21 @@ fn same_expression(
   left : @query.Expression,
   right : @query.Expression,
   references? : (Array[@query.NamePart], Array[@query.NamePart]) -> Bool = same_path,
+  nodes? : (@query.Expression, Int, @query.Expression, Int) -> Bool? = (
+    _,
+    _,
+    _,
+    _,
+  ) => None,
 ) -> Bool {
   let pending = [(@query.expression_root(left), @query.expression_root(right))]
   while pending.pop() is Some((a_index, b_index)) {
+    if nodes(left, a_index, right, b_index) is Some(equal) {
+      if !equal {
+        return false
+      }
+      continue
+    }
     let a = @query.expression_node(left, a_index).unwrap().kind
     let b = @query.expression_node(right, b_index).unwrap().kind
     match (a, b) {
@@ -2697,9 +2709,9 @@ fn compile_steps(
           for projection in projections {
             if projection.expression is Some(expression) {
               for (key, slot) in keys {
-                if same_expression(key, expression, references=(left, right) => {
-                    same_group_reference(left, right, resolve)
-                  }) {
+                if same_group_expression_in_scopes(
+                    key, expression, resolve, resolve,
+                  ) {
                   grouped_keys.push((expression, slot))
                   break
                 }
@@ -2930,9 +2942,9 @@ fn compile_steps(
             // Evaluate each needed alias once in the original input snapshot.
             let mut slot : String? = None
             for (key, name) in grouped_keys {
-              if same_expression(key, expression, references=(a, b) => {
-                  same_group_reference(a, b, input_resolve)
-                }) {
+              if same_group_expression_in_scopes(
+                  key, expression, input_resolve, input_resolve,
+                ) {
                 slot = Some(name)
                 break
               }
@@ -3378,17 +3390,8 @@ fn compile_steps(
             resolve_input(path)
           }
           append_grouped_expression_resolved(
-            construction,
-            predicate,
-            grouped_keys,
-            (left, right) => {
-              same_group_reference_in_scopes(
-                left, right, resolve_input, resolve_having_input,
-              )
-            },
-            resolve_having,
-            physical,
-            max_work,
+            construction, predicate, grouped_keys, resolve_input, resolve_having_input,
+            resolve_having, physical, max_work,
           )
         } else {
           match

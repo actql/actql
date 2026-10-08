@@ -118,6 +118,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/computed-object-property-source-input.mjs', 'computed-object-property-source-input.mjs'],
   ['scripts/fixtures/group-property-source-input.mjs', 'group-property-source-input.mjs'],
   ['scripts/fixtures/group-by-all-source-input.mjs', 'group-by-all-source-input.mjs'],
+  ['scripts/fixtures/group-property-receiver-source-input.mjs', 'group-property-receiver-source-input.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/graph-source-input.mjs', 'graph-source-input.mjs'],
   ['scripts/fixtures/graph-row-source-input.mjs', 'graph-row-source-input.mjs'],
