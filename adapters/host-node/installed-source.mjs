@@ -47,7 +47,7 @@ import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
   './captured-duckdb-source.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
-import {installedConnectorFor, installedConnectorTable,
+import {installedConnectorFor, installedConnectorForTable, installedConnectorTable,
   loadInstalledConnectorModule, providerBundleUrl,
   verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
@@ -73,9 +73,12 @@ const installations = installedConnectorTable([duckdbInstallation, tableInstalla
   ...installedConnectors]);
 
 // Select the installed connector of a Host profile and load its
-// installation module. An unknown version is refused before any I/O.
-async function selectInstallation(profile) {
-  const entry = installedConnectorFor(installations, profile);
+// installation module. An explicit table is complete, including built-ins;
+// an unknown version is refused before any installation I/O.
+async function selectInstallation(profile, connectorTable) {
+  const entry = connectorTable === undefined
+    ? installedConnectorFor(installations, profile)
+    : installedConnectorForTable(connectorTable, 'source', profile);
   return {entry, module: await loadInstalledConnectorModule(entry)};
 }
 
@@ -96,7 +99,7 @@ async function providerRuntime(entry, runtimeUrl) {
 // A connected embedded Host keeps one installed source for its lifetime.
 // Compare its full published generation and Site binding on later connects,
 // without reading a credential value or probing the provider.
-export async function installedSourceIdentity(path) {
+export async function installedSourceIdentity(path, {connectorTable} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
@@ -105,7 +108,7 @@ export async function installedSourceIdentity(path) {
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   // Omission and an explicitly empty alias publication have the same meaning.
   if (queryAliases.length === 0) delete profile.queryAliases;
-  const {module} = await selectInstallation(profile);
+  const {module} = await selectInstallation(profile, connectorTable);
   const parts = await module.identityParts(profile, providerProfile, read);
   if (!Array.isArray(parts) || parts.length === 0) {
     throw new TypeError('InvalidInstalledSourceProfile');
@@ -183,9 +186,9 @@ async function readProfile(path) {
 // one (a Salesforce source publishes its targeted declaration). A Host start
 // never runs it; it uses the same state root and principal the Host will.
 export async function publishInstalledSourceProfile(path, {root, principalId,
-  moon, runtimeUrl, resolveSecret, signal}) {
+  moon, runtimeUrl, resolveSecret, signal, connectorTable}) {
   const profile = await readProfile(path);
-  const {entry, module} = await selectInstallation(profile);
+  const {entry, module} = await selectInstallation(profile, connectorTable);
   if (module.publish === undefined) {
     throw Object.assign(new TypeError('InstalledSourcePublicationUnsupported'),
       {code: 'InstalledSourcePublicationUnsupported'});
@@ -199,11 +202,11 @@ export async function publishInstalledSourceProfile(path, {root, principalId,
 // or an invalid profile is refused before any provider or Site I/O. Only the
 // selected connector's module and provider bundle are loaded.
 export async function loadInstalledSource(path, {root, principalId, moon,
-  runtimeUrl, baseEnvironmentWire, resolveSecret}) {
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable}) {
   if (path === undefined) return undefined;
   const profile = await readProfile(path);
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
-  const {entry, module} = await selectInstallation(profile);
+  const {entry, module} = await selectInstallation(profile, connectorTable);
   const checked = module.check(providerProfile);
   const adapter = await module.load(checked, {root, principalId, moon,
     baseEnvironmentWire, resolveSecret, installation: entry,

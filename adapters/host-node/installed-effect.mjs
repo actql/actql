@@ -23,7 +23,7 @@ export {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
 import {tableInstallation} from './installed-table-installation.mjs';
-import {installedConnectorFor, installedEffectTable,
+import {installedConnectorFor, installedConnectorForTable, installedEffectTable,
   loadInstalledEffectModule, providerBundleUrl,
   verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
@@ -79,10 +79,13 @@ async function readProfile(path) {
 }
 
 // Select the installed connector of an Effect profile. An unknown version
-// is refused before any Site or provider I/O.
-async function selectInstallation(profile) {
-  const entry = installedConnectorFor(installations, profile,
-    'InvalidInstalledEffectProfile');
+// is refused before any Site or provider I/O; an explicit table never falls
+// back to the standard installation.
+async function selectInstallation(profile, connectorTable) {
+  const entry = connectorTable === undefined
+    ? installedConnectorFor(installations, profile, 'InvalidInstalledEffectProfile')
+    : installedConnectorForTable(connectorTable, 'effect', profile,
+      'InvalidInstalledEffectProfile');
   return {entry, module: await loadInstalledEffectModule(entry)};
 }
 
@@ -101,9 +104,9 @@ async function providerRuntime(entry, runtimeUrl) {
 // Only installation references and published, immutable declarations enter
 // this identity. The referenced Site profile contains credential references,
 // never an access token; no profile contents are returned to the caller.
-export async function installedEffectIdentity(path) {
+export async function installedEffectIdentity(path, {connectorTable} = {}) {
   const profile = await readProfile(path);
-  const {module} = await selectInstallation(profile);
+  const {module} = await selectInstallation(profile, connectorTable);
   module.check(profile);
   const parts = await module.identityParts(profile, readProfileJson);
   if (!Array.isArray(parts) || parts.length === 0) {
@@ -123,9 +126,9 @@ export async function installedEffectIdentity(path) {
 // declaration, execution Mappings and Check Environment. A Host start never
 // runs it; it uses the same state root and principal the Host will.
 export async function publishInstalledEffectProfile(path, {root, principalId,
-  moon, runtimeUrl, baseEnvironmentWire, resolveSecret, signal}) {
+  moon, runtimeUrl, baseEnvironmentWire, resolveSecret, signal, connectorTable}) {
   const profile = await readProfile(path);
-  const {entry, module} = await selectInstallation(profile);
+  const {entry, module} = await selectInstallation(profile, connectorTable);
   if (module.publish === undefined) {
     refuse('InstalledEffectPublicationUnsupported');
   }
@@ -139,9 +142,9 @@ export async function publishInstalledEffectProfile(path, {root, principalId,
 // published generation is restored without provider I/O. Its Effect Ledger
 // lives under the Host's state root.
 async function loadEffect(path, {root, principalId, moon,
-  runtimeUrl, baseEnvironmentWire, resolveSecret}, own) {
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable}, own) {
   const profile = await readProfile(path);
-  const {entry, module} = await selectInstallation(profile);
+  const {entry, module} = await selectInstallation(profile, connectorTable);
   const installed = await module.load(module.check(profile), {root,
     principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
     ledgerRoot: join(root, 'state', 'effects', 'ledger'),
