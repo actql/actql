@@ -15,6 +15,7 @@ import {
   "actql/actql/expression_syntax" @expression,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/check_environment" @environment,
 }
 
 import {

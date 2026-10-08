@@ -79,12 +79,18 @@ pub fn bind_query_context(
   program_id? : String = "adhoc.query",
   parameter_declarations? : @parameters.Declarations? = None,
   input_schemas? : Array[(String, @schema.Schema)] = [],
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> Result[@query.Context, AliasIssue] {
   if aliases.length() > 1024 {
     return Err(TooManyAliases)
   }
   if program_id.is_empty() {
     return Err(InvalidProgramId)
+  }
+  if model_tasks is Some(tasks) &&
+    @environment.cid(@environment.model_tasks_environment(tasks)) !=
+    environment_cid {
+    return Err(EnvironmentMismatch)
   }
   let inputs : Array[@query.Input] = []
   let mut captured = false
@@ -134,6 +140,7 @@ pub fn bind_query_context(
     stage_id: "main",
     stage_result: "rows",
     input_schemas,
+    model_tasks,
     result_name: "answer",
     captured_stage: if captured {
       Some("capture")

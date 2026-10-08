@@ -89,10 +89,7 @@ test "Graph prefix uses common output and charges copying plus successful pipeli
     },
   ).unwrap()
   let output = resolution
-    .closed_prefix_carrier(
-      @wire.elements(@builder.cursor(source)).unwrap(),
-      None,
-    )
+    .prefix_carrier(@wire.elements(@builder.cursor(source)).unwrap(), None)
     .unwrap()
   let rows = member_rows(output).unwrap()
   let payload = @schema.lookup_reference(rows, "payload").unwrap().contract
@@ -120,7 +117,7 @@ test "Graph prefix lends its remaining work before copying any over-budget tree"
   for allowance in [0, nodes - 1] {
     let short = probe_budget_state(source, document, work=allowance)
     let rejected = try {
-      ignore(short.closed_prefix_carrier(steps, None))
+      ignore(short.prefix_carrier(steps, None))
       false
     } catch {
       Abort(Expression({ issue: @expression.WorkLimit, .. })) => true
@@ -137,11 +134,11 @@ test "refused Graph prefix retains its remaining allowance and stops continuatio
   let (source, document) = probe_graph_prefix_source(bad_key=true)
   let resolution = probe_budget_state(source, document)
   let steps = @wire.elements(@builder.cursor(source)).unwrap()
-  assert_true(resolution.closed_prefix_carrier(steps, None) is None)
+  assert_true(resolution.prefix_carrier(steps, None) is None)
   assert_true(resolution.probe_refused)
   assert_eq(resolution.work, 0)
   assert_eq(resolution.output_work, 0)
-  assert_true(resolution.closed_prefix_carrier([steps[0]], None) is None)
+  assert_true(resolution.prefix_carrier([steps[0]], None) is None)
   assert_eq(resolution.work, 0)
 }
 
