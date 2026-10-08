@@ -28,7 +28,7 @@ pub(all) struct ObservationBudgetSnapshot {
   max_bytes : Int
   records : Int
   bytes : Int
-  last_fact : String?
+  fact_hashes : Array[String]
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ObservationCharge {
