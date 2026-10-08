@@ -13,12 +13,13 @@ import {prepareNativeDirectProduct, executeNativeDirectProduct, admitNativeDirec
 import {nativeCostObservation} from './native-cost-observation.mjs';
 import {sha256File} from './release-artifacts.mjs';
 import {captureLocalExecution, captureLimitBytes} from './local-profile-capture.mjs';
-import {nativeProfileSchedule, profileDigest, validateLocalObservation,
+import {nativeProfileSchedule, nativeOperationalSchedule, profileDigest, validateLocalObservation,
   aggregateLocalProfiles, describeObservationOverhead} from './local-performance-profile.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const destination = resolve(process.argv[2] ?? '');
-assert(process.argv.length === 3 && destination !== root &&
+const operational = process.argv[3] === '--operational-six';
+assert((process.argv.length === 3 || process.argv.length === 4 && operational) && destination !== root &&
   !destination.startsWith(root + sep), 'ExpectedExternalOwnedProfileDirectory');
 assert.notEqual(process.env.ACTQL_NATIVE_PROBE_PROFILE, 'debug', 'ProfileRequiresReleaseProbe');
 const exec = promisify(execFile), experimentStart = performance.now();
@@ -56,16 +57,17 @@ const sourcePreparationMs = performance.now() - sourceStart;
 const inputDigest = 'sha256:' + await sha256File(database);
 const controls = {fresh: {residentPolicy: false, nativeRates: ['1000', '1000', '1000']},
   resident: {residentPolicy: true, nativeRates: ['1000', '1000', '1000']}};
-const observations = [], schedule = nativeProfileSchedule();
+const observations = [], schedule = operational ? nativeOperationalSchedule() : nativeProfileSchedule();
 const report = {version: 'actql-local-native-profile-experiment/0.1', revision,
   compiledSourceRevision: revision, buildWitness, binaryDigest, environment, instrumentationRevision,
-  schedule, concurrency: 1, caseId: fixture.id, limits: fixture.limits,
+  schedule, scheduleKind: operational ? 'operational-six' : 'capture-mode-eighteen',
+  concurrency: 1, caseId: fixture.id, limits: fixture.limits,
   dataStatistics: {source: 'independent synthetic fixture, not inferred runtime statistics',
     rows: fixture.rows, expectedOutput: fixture.identity(), ndv: null, selectivity: null},
   localEligibility: eligibility, controls, sourcePreparationMs,
   freshnessPolicy: {maxAgeMs: 86400000, minimumSamples: 3,
     scope: 'explicit local analysis window, not a scientifically calibrated expiry'},
-  observationLimit: 18, perCaptureLimitBytes: captureLimitBytes, checkpointWritesMs: [],
+  observationLimit: schedule.length, perCaptureLimitBytes: captureLimitBytes, checkpointWritesMs: [],
   measurementScopes: {processCycleMs: 'parent preparation through child exit; excludes subsequent local capture/admission',
     coldMs: 'same process cycle minus child cleanup; existing coldMs boundary',
     warmMs: 'same-Run sequential task intervals, not a warm subsequent Run',
@@ -122,7 +124,8 @@ for (const step of schedule) {
       physicalExecutionSite: 'this Native process; no placement-selection claim',
       holdings: metadata.holdings, taskUsages: metadata.taskUsages, finalUsage: metadata.cleanup};
     item.operatorMeasurements = step.mode === 'off' ? {status: 'unknown', reason: 'physical-phase-observer-off'}
-      : {status: 'observed', ...nativeCostObservation({status: 'verified-diagnostic', host: 'native',
+      : {status: 'observed', physicalPhases: product.physicalPhases,
+        ...nativeCostObservation({status: 'verified-diagnostic', host: 'native',
         selectionInput: {phaseObserver: true}, physicalPhaseEvents: execution.physicalPhaseEvents,
         ownerCorrespondence: owner, taskIntervals: product.taskIntervals,
         result: {cleanup_us: product.record.cleanup_us}, physicalPhases: product.physicalPhases})};
@@ -171,7 +174,7 @@ report.modeInvariance = ['fresh', 'resident'].map(realization => {
   const members = observations.filter(item => item.conditions.realization === realization);
   const invariant = item => ({holdings: item.mapping?.holdings, taskUsages: item.mapping?.taskUsages,
     attempts: item.mapping?.attempts, finalUsage: item.mapping?.finalUsage});
-  const baseline = members.find(item => item.conditions.captureMode === 'off');
+  const baseline = operational ? members[0] : members.find(item => item.conditions.captureMode === 'off');
   const baselineDigest = baseline?.ownerAccepted ? profileDigest(invariant(baseline)) : null;
   return {realization, count: members.length, unchanged: baselineDigest !== null &&
     members.every(item => item.ownerAccepted && profileDigest(invariant(item)) === baselineDigest),
@@ -181,8 +184,8 @@ report.provenanceReadback = {sourceUnchanged: inputDigest === 'sha256:' + await 
   binaryUnchanged: binaryDigest === 'sha256:' + await sha256File(binary),
   libraryUnchanged: libraryDigest === 'sha256:' + await sha256File(library),
   sourceRevisionUnchanged: revision === await git(['rev-parse', 'HEAD']) && await git(['status', '--porcelain']) === ''};
-report.accepted = observations.length === 18 && observations.every(item => item.ownerAccepted && !item.unknown.length) &&
-  report.profiles.length === 6 && report.profiles.every(profile => profile.status === 'descriptive-only') &&
+report.accepted = observations.length === schedule.length && observations.every(item => item.ownerAccepted && !item.unknown.length) &&
+  report.profiles.length === (operational ? 2 : 6) && report.profiles.every(profile => profile.status === 'descriptive-only') &&
   report.modeInvariance.every(item => item.unchanged) &&
   Object.values(report.provenanceReadback).every(Boolean);
 report.experimentElapsedMs = performance.now() - experimentStart;
