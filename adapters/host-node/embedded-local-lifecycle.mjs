@@ -84,9 +84,15 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         try {
           await opened.shutdown.close();
           if (!opened.finalized) {
-            host.diagnostic.close();
-            forget(root, opened);
-            opened.finalized = true;
+            // All leases share optional observation finalization as well as
+            // physical shutdown. Awaiting export must not duplicate close.
+            opened.finalization ??= Promise.resolve().then(async () => {
+              host.diagnostic.close();
+              if (host.observation !== undefined) await host.observation.close();
+              forget(root, opened);
+              opened.finalized = true;
+            });
+            await opened.finalization;
           }
           finished = true;
         } catch (cause) {

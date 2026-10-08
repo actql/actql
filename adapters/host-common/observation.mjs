@@ -1,0 +1,301 @@
+// Optional observations are projections, never execution or cleanup authority.
+// Only small copied metadata enters this queue; user delivery runs on a later
+// event-loop turn, outside the operation which confirmed the fact.
+import {AsyncLocalStorage} from 'node:async_hooks';
+import {randomUUID, createHash} from 'node:crypto';
+
+export const observationVersion = 'actql-observation/0.1';
+export const observationLimits = Object.freeze({
+  recordBytes: 4096, queueRecords: 256, queueBytes: 1048576,
+  requestRecords: 128, runRecords: 2048, runBytes: 1048576,
+  segmentRecords: 512, activeSegments: 64, shutdownMs: 1000,
+  journalRuns: 1024,
+});
+const connections = new WeakMap();
+const projections = new WeakSet();
+const contexts = new AsyncLocalStorage();
+const cid = value => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
+const outcomes = new Set(['running', 'resuming', 'succeeded', 'failed', 'cancelled',
+  'waiting_checkpoint', 'needs_reconciliation', 'unknown', 'pending',
+  'confirmed', 'accepted', 'already_terminal', 'committed', 'rejected']);
+const operations = new Set(['run', 'check', 'planning', 'source', 'compute',
+  'infer', 'effect', 'approval', 'checkpoint', 'recovery', 'publication', 'cleanup']);
+const events = Object.freeze({
+  definition_admitted: ['run', 'definition_admitted'],
+  dispatch_reserved: ['run', 'dispatch_reserved'],
+  physical_start_reserved: ['run', 'physical_start_reserved'],
+  acquisition_started: ['source', 'attempt_started'],
+  acquisition_completed: ['source', 'attempt_completed'],
+  acquisition_cleanup_started: ['cleanup', 'cleanup_started'],
+  acquisition_cleanup_completed: ['cleanup', 'cleanup_completed'],
+  computed: ['publication', 'result_committed'],
+  dispatch_cleanup_completed: ['cleanup', 'cleanup_completed'],
+  dispatch_failed: ['run', 'dispatch_failed'],
+  infer_waiting_checkpoint: ['approval', 'waiting_checkpoint'],
+  infer_needs_reconciliation: ['infer', 'needs_reconciliation'],
+  resume_claimed: ['recovery', 'resume_claimed'],
+  recovery_failed: ['recovery', 'recovery_failed'],
+  resume_failed: ['recovery', 'resume_failed'],
+  model_resume_failed: ['recovery', 'model_resume_failed'],
+  model_call_entered: ['infer', 'attempt_started'],
+  model_call_observed: ['infer', 'attempt_observed'],
+  model_call_replayed: ['recovery', 'attempt_replayed'],
+  checkpoint_resolved: ['approval', 'checkpoint_resolved'],
+});
+const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
+  'owner_observed', 'cancellation_requested', 'task_started', 'task_completed',
+  ...Object.values(events).map(value => value[1])]);
+
+export function validObservationContext(value) {
+  return value !== null && typeof value === 'object' &&
+    typeof value.traceId === 'string' && /^[a-f0-9]{32}$/u.test(value.traceId) && !/^0+$/u.test(value.traceId) &&
+    typeof value.spanId === 'string' && /^[a-f0-9]{16}$/u.test(value.spanId) && !/^0+$/u.test(value.spanId) &&
+    Number.isInteger(value.traceFlags) && value.traceFlags >= 0 && value.traceFlags <= 255;
+}
+export function snapshotObservationContext(value) {
+  try {
+    if (value === null || typeof value !== 'object') return undefined;
+    const {traceId, spanId, traceFlags} = value;
+    const copied = {traceId, spanId, traceFlags};
+    if (!validObservationContext(copied)) return undefined;
+    // Snapshot getters once. Neither baggage nor tracestate is durable input.
+    return Object.freeze({traceId, spanId, traceFlags: traceFlags & 1});
+  } catch { return undefined; }
+}
+export function observationTraceParent(headers) {
+  const value = headers?.traceparent;
+  if (typeof value !== 'string' || value.length !== 55) return undefined;
+  const match = /^00-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})$/u.exec(value);
+  return match && snapshotObservationContext({traceId: match[1], spanId: match[2],
+    traceFlags: Number.parseInt(match[3], 16)}) || undefined;
+}
+
+export function createHostObservationConnection(options = {}) {
+  if (options === null || typeof options !== 'object' || Array.isArray(options) ||
+      Object.keys(options).some(key => !['deliver', 'currentContext', 'scope',
+        'revision', 'limits', 'include', 'exclude', 'correlation'].includes(key))) {
+    throw new TypeError('InvalidHostObservationConfiguration');
+  }
+  const {deliver, currentContext,
+  scope = 'local', revision = 'metadata/0.1', limits = {},
+    include = [...operations], exclude = [], correlation = true} = options;
+  if (typeof deliver !== 'function' || currentContext !== undefined &&
+      typeof currentContext !== 'function' ||
+      typeof scope !== 'string' || !/^[a-zA-Z0-9._-]{1,64}$/u.test(scope) ||
+      typeof revision !== 'string' || !/^[a-zA-Z0-9._/-]{1,64}$/u.test(revision) ||
+      typeof correlation !== 'boolean' || !Array.isArray(include) ||
+      !Array.isArray(exclude) || include.length > operations.size ||
+      exclude.length > operations.size || new Set(include).size !== include.length ||
+      new Set(exclude).size !== exclude.length ||
+      [...include, ...exclude].some(x => !operations.has(x)) ||
+      limits === null || typeof limits !== 'object' || Array.isArray(limits) ||
+      Object.keys(limits).some(x => !Object.hasOwn(observationLimits, x))) {
+    throw new TypeError('InvalidHostObservationConfiguration');
+  }
+  const selected = Object.freeze({...observationLimits, ...limits});
+  for (const [key, value] of Object.entries(selected)) {
+    if (!Number.isSafeInteger(value) || value < 1 || value > observationLimits[key]) {
+      throw new TypeError('InvalidHostObservationLimit');
+    }
+  }
+  const allowed = new Set(include.filter(x => !exclude.includes(x)));
+  const boundRevision = createHash('sha256').update(JSON.stringify({scope, revision,
+    limits: selected, operations: [...allowed].sort(), correlation})).digest('hex');
+  const config = {deliver, currentContext, scope, revision: boundRevision, selected,
+    allowed, correlation};
+  const token = Object.freeze({status: () => config.status?.(),
+    configuration: () => Object.freeze({scope, revision: boundRevision,
+      limits: selected, operations: Object.freeze([...allowed]), correlation})});
+  connections.set(token, config);
+  return token;
+}
+
+export const isHostObservationProjection = value => projections.has(value);
+
+export function installHostObservation(connection, {journal, runId} = {}) {
+  if (connection === undefined) return undefined;
+  const config = connections.get(connection);
+  if (config === undefined) throw new TypeError('ForeignHostObservationConnection');
+  const previous = config.status?.();
+  if (previous && (!previous.closed || previous.active !== 0 || previous.activeSegments !== 0)) {
+    throw new TypeError('HostObservationConnectionInUse');
+  }
+  let storage, storageUnavailable = false;
+  try { if (config.allowed.size !== 0) storage = journal?.observationStorage(); }
+  catch { storageUnavailable = true; }
+  const closeStorage = () => {
+    if (storage !== undefined) storage.close?.();
+    else if (config.allowed.size !== 0) journal?.closeObservationStorage?.();
+  };
+  const queue = [], pending = new Set();
+  let queuedBytes = 0, closed = false, pumping = false, sequence = 0, activeSegments = 0;
+  const counts = {dropped: 0, deliveryFailed: 0, budgetUnavailable: 0,
+    queueOverflow: 0, limited: 0};
+  const diagnostics = Object.create(null);
+  const drop = reason => {
+    counts.dropped++;
+    if (Object.hasOwn(counts, reason)) counts[reason]++;
+    diagnostics[reason] = (diagnostics[reason] ?? 0) + 1;
+  };
+  const pump = () => {
+    if (closed || pumping || queue.length === 0) return;
+    pumping = true;
+    setImmediate(() => {
+      pumping = false;
+      if (closed) return;
+      const item = queue.shift();
+      if (!item) return;
+      queuedBytes -= item.bytes;
+      // There is at most one delivery in flight. A nonterminating embedded
+      // callback keeps this slot; a timeout cannot prove physical settlement.
+      let promise;
+      try { promise = Promise.resolve(config.deliver(item.record)); }
+      catch { promise = Promise.reject(new Error('ObservationDeliveryFailed')); }
+      pending.add(promise);
+      promise.catch(() => { drop('deliveryFailed'); }).finally(() => {
+        pending.delete(promise); pump();
+      });
+    });
+  };
+  const emit = (operation, event, facts = {}, options = {}) => {
+    try {
+      if (closed || !config.allowed.has(operation)) return;
+      if (!recordEvents.has(event)) { drop('limited'); return; }
+      const context = contexts.getStore();
+      const ref = facts.ref ?? context?.ref;
+      if (context && cid(facts.ref?.runDefinitionCid)) context.ref = facts.ref;
+      const attributes = { 'actql.operation': operation,
+        'actql.event': event, 'actql.observation.version': observationVersion };
+      if (outcomes.has(facts.outcome)) attributes['actql.outcome'] = facts.outcome;
+      if (['verified', 'invalid', 'undetermined'].includes(facts.checkVerdict)) {
+        attributes['actql.check.verdict'] = facts.checkVerdict;
+      }
+      if (Number.isSafeInteger(facts.task) && facts.task >= 0) attributes['actql.task.ordinal'] = facts.task;
+      if (Number.isSafeInteger(facts.attempt) && facts.attempt >= 0) attributes['actql.attempt.ordinal'] = facts.attempt;
+      if (Number.isSafeInteger(facts.slot) && facts.slot >= 0) attributes['actql.model.slot.ordinal'] = facts.slot;
+      if (Number.isSafeInteger(facts.revision) && facts.revision >= 0) attributes['actql.owner.revision'] = facts.revision;
+      if (typeof facts.cleanupPending === 'boolean') attributes['actql.cleanup.pending'] = facts.cleanupPending;
+      if (outcomes.has(facts.physicalStop)) attributes['actql.physical_stop'] = facts.physicalStop;
+      const record = {version: observationVersion, operation, event,
+        sequence: sequence++, observedAt: Date.now(),
+        monotonicAt: performance.now(), attributes,
+        ...(options.segment === undefined ? {} : {segment: options.segment}),
+        ...(!Number.isFinite(options.durationMs) || options.durationMs < 0
+          ? {} : {durationMs: options.durationMs}),
+        ...(!config.correlation || context?.trace === undefined ? {} : {parent: context.trace}),
+      };
+      if (config.correlation && cid(ref?.runDefinitionCid)) {
+        attributes['actql.run.definition_cid'] = ref.runDefinitionCid;
+        const id = runId?.(ref);
+        if (typeof id === 'string' && id.length <= 128) attributes['actql.run.id'] = id;
+      }
+      if (config.correlation && cid(facts.attemptCid)) attributes['actql.model.attempt_cid'] = facts.attemptCid;
+      if (options.segment !== undefined && context?.http !== undefined) {
+        const method = context.http.method;
+        if (['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(method)) {
+          attributes['http.request.method'] = method;
+        } else attributes['http.request.method'] = '_OTHER';
+        attributes['http.route'] = '/actql/client/0.1/{operation}';
+        const code = context.http.response?.statusCode;
+        if (event === 'segment_ended' && Number.isInteger(code) && code >= 100 && code <= 599) {
+          attributes['http.response.status_code'] = code;
+          if (code >= 500) attributes['error.type'] = String(code);
+        }
+      }
+      // Reserve space for both restored correlation contexts before reading
+      // optional journal metadata. Neither contains arbitrary attribute data.
+      const bytes = Buffer.byteLength(JSON.stringify(record)) + 384;
+      if (bytes > config.selected.recordBytes) { drop('limited'); return; }
+      if (context && ++context.records > Math.min(config.selected.requestRecords,
+        config.selected.segmentRecords)) { drop('limited'); return; }
+      if (cid(ref?.runDefinitionCid)) {
+        if (storageUnavailable || storage === undefined) { drop('budgetUnavailable'); return; }
+        const budget = storage.consume({ref, scope: config.scope,
+          revision: config.revision, bytes, maxRecords: config.selected.runRecords,
+          maxBytes: config.selected.runBytes});
+        if (budget === undefined) { drop('budgetUnavailable'); return; }
+        if (!budget.accepted) { drop('limited'); return; }
+        // A saved caller context is a link, not a resumed lifetime span.
+        if (config.correlation && budget.context !== undefined &&
+            (record.parent?.spanId !== budget.context.spanId ||
+             record.parent?.traceId !== budget.context.traceId)) record.link = budget.context;
+      }
+      if (queue.length >= config.selected.queueRecords ||
+          queuedBytes + bytes > config.selected.queueBytes) { drop('queueOverflow'); return; }
+      Object.freeze(attributes);
+      queue.push({record: Object.freeze(record), bytes});
+      queuedBytes += bytes;
+      if (pending.size === 0) pump();
+    } catch { drop('budgetUnavailable'); }
+  };
+  const accepted = (result, requestId) => {
+    try {
+      if (config.allowed.size === 0 || result?.ref === undefined) return;
+      const context = contexts.getStore();
+      if (context) context.ref = result.ref;
+      if (result.inserted && storage !== undefined) {
+        storage.initialize({ref: result.ref, requestId,
+          scope: config.scope, revision: config.revision,
+          maxRuns: config.selected.journalRuns,
+          context: config.correlation ? context?.trace : undefined});
+      }
+    } catch { drop('budgetUnavailable'); }
+  };
+  const run = async (operation, trace, work, {http} = {}) => {
+    if (closed || config.allowed.size === 0) return work();
+    let parent = trace;
+    if (config.correlation && parent === undefined) {
+      try { parent = config.currentContext?.(); } catch { /* Optional context. */ }
+    }
+    if (activeSegments >= config.selected.activeSegments) {
+      drop('limited'); return work();
+    }
+    activeSegments++;
+    try { return await contexts.run({trace: config.correlation ? snapshotObservationContext(parent) : undefined,
+      records: 0, http}, async () => {
+      const category = operation === 'check' || operation === 'prepareSubmit' ? 'check' : 'run';
+      const segment = randomUUID(), started = performance.now();
+      emit(category, 'segment_started', {}, {segment});
+      try {
+        const result = await work();
+        emit(category, 'segment_ended', {outcome: http?.response?.statusCode >= 400
+          ? 'failed' : 'succeeded'},
+          {segment, durationMs: performance.now() - started});
+        return result;
+      } catch (cause) {
+        emit(category, 'segment_ended', {outcome: 'failed'},
+          {segment, durationMs: performance.now() - started});
+        throw cause;
+      }
+    }); } finally { activeSegments--; }
+  };
+  const projection = Object.freeze({run, accepted, emit,
+    noteLoss: () => drop('budgetUnavailable'),
+    diagnostic(name, detail) {
+      const mapping = events[name];
+      if (mapping) emit(mapping[0], mapping[1], {ref: detail?.ref,
+        task: detail?.task, attempt: detail?.attempt, slot: detail?.slot,
+        attemptCid: detail?.attemptCid, outcome: detail?.outcome});
+    },
+    status: () => Object.freeze({...counts, queued: queue.length,
+      queuedBytes, active: pending.size, activeSegments, closed,
+      loss: Object.freeze({...diagnostics})}),
+    async close() {
+      if (closed) {
+        try { closeStorage(); } catch { drop('budgetUnavailable'); }
+        return;
+      }
+      const deadline = Date.now() + config.selected.shutdownMs;
+      while ((pending.size !== 0 || queue.length !== 0) && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+      closed = true;
+      for (const _ of queue) drop('shutdown');
+      queue.length = 0; queuedBytes = 0;
+      try { closeStorage(); } catch { drop('budgetUnavailable'); }
+    },
+  });
+  projections.add(projection);
+  config.status = projection.status;
+  return projection;
+}

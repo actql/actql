@@ -9,6 +9,8 @@ import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
+import {openClientObservationStorage} from './client-observation-journal.mjs';
+import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
@@ -1154,7 +1156,44 @@ export function openClientRequestJournal(directory, {
     })});
   };
 
+  let observationStorage;
+  let observationDatabase;
+  let observationStorageAttempted = false;
+  let observationProjection;
+  const closeObservationStorage = () => {
+    if (observationStorage !== undefined) observationStorage.close();
+    else if (observationDatabase !== undefined) {
+      observationDatabase.close();
+      observationDatabase = undefined;
+    }
+  };
   const journal = Object.freeze({
+    closeObservationStorage,
+    observationStorage() {
+      ensureOpen();
+      if (observationStorageAttempted) {
+        if (observationStorage === undefined) throw new Error('ObservationBudgetUnavailable');
+        return observationStorage;
+      }
+      observationStorageAttempted = true;
+      // Separate connection/transaction custody prevents an observation's
+      // unknown COMMIT from poisoning the semantic journal connection.
+      observationDatabase = new DatabaseSync(path);
+      observationDatabase.exec('PRAGMA busy_timeout = 0');
+      const storage = openClientObservationStorage(observationDatabase,
+        createSqliteTransaction(observationDatabase, 'ClientObservation'));
+      let ended = false;
+      observationStorage = Object.freeze({...storage, close() {
+        if (!ended) { observationDatabase.close(); ended = true; }
+      }});
+      return observationStorage;
+    },
+    installObservationProjection(projection) {
+      if (!isHostObservationProjection(projection) || observationProjection !== undefined) {
+        throw new TypeError('ForeignHostObservationProjection');
+      }
+      observationProjection = projection;
+    },
     // Intent custody is separate from Run-definition custody. A preparing
     // receipt contains no invented execution CID and performs no dispatch.
     recordSubmittedIntent(submissionRef, intent, {authorityScopeCid,
@@ -1324,6 +1363,12 @@ export function openClientRequestJournal(directory, {
         runDefinitionCid: definition.identity,
         runDefinitionWire: definition.wire,
         resultNames, runAdmissionEvidence, revision, lookupExpiresAt, submission}, requestControl);
+      // This optional projection runs after the semantic transaction. Only
+      // its branded bounded queue is reachable here, never user delivery.
+      observationProjection?.accepted(accepted,
+        requestControl.clientRequestCallerId(identity));
+      observationProjection?.emit('run', 'definition_admitted',
+        {ref: accepted.ref, revision: accepted.revision});
       return Object.freeze({
         inserted: accepted.inserted,
         ref: accepted.ref,
@@ -1795,9 +1840,14 @@ export function openClientRequestJournal(directory, {
     },
     close() {
       closed = true;
-      if (databaseClosed) return;
-      database.close();
-      databaseClosed = true;
+      if (!databaseClosed) {
+        database.close();
+        databaseClosed = true;
+      }
+      // Observation cleanup is optional and never changes Run cleanup facts.
+      // Its projection retains the handle and may retry after this close.
+      try { closeObservationStorage(); }
+      catch { /* The observation projection owns this separate connection. */ }
     },
   });
   return journal;

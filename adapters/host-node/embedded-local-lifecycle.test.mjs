@@ -16,7 +16,7 @@ const deferred = () => {
   const promise = new Promise(done => { resolve = done; });
   return {promise, resolve};
 };
-function fixture({perform, sourceClose, drain, open} = {}) {
+function fixture({perform, sourceClose, drain, open, observationClose} = {}) {
   const calls = [];
   let opens = 0;
   const registry = createEmbeddedHostRegistry((left, right) => left === right);
@@ -40,6 +40,7 @@ function fixture({perform, sourceClose, drain, open} = {}) {
         installedEffect: {close() {calls.push('effect');}},
         store: {close() {calls.push('store');}},
         diagnostic: {close() {calls.push('diagnostic');}},
+        ...(observationClose === undefined ? {} : {observation: {close: observationClose}}),
       };
     }, options);
   return {acquire, calls, opens: () => opens};
@@ -94,6 +95,19 @@ test('simultaneously closing both Clients finalizes only their original Host gen
   assert.deepEqual((await c.attach(ref)).ref, ref);
   await c.close();
   assert.equal(f.calls.filter(call => call === 'store').length, 2);
+});
+
+test('concurrent final leases share the same asynchronous observation close', async () => {
+  const entered = deferred(), release = deferred();
+  let closes = 0;
+  const f = fixture({async observationClose() { closes++; entered.resolve(); await release.promise; }});
+  const [a, b] = await Promise.all([f.acquire(), f.acquire()]);
+  const closed = Promise.all([a.close(), b.close()]);
+  await entered.promise;
+  assert.equal(closes, 1);
+  assert.equal(f.calls.filter(call => call === 'diagnostic').length, 1);
+  release.resolve(); await closed;
+  assert.equal(closes, 1);
 });
 
 test('failed shutdown retains its generation and retries only the failed owner', async () => {

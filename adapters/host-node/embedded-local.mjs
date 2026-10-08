@@ -59,6 +59,7 @@ import {createDiagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
+import {installHostObservation, observationTraceParent} from '../host-common/observation.mjs';
 import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {retainInstalledHostInitializationFailure} from
@@ -149,6 +150,7 @@ async function embeddedInstallationIdentity(root, installation) {
     resolveSourceSecret: installation?.resolveSourceSecret,
     resolveEffectSecret: installation?.resolveEffectSecret,
     registerModelProviders: installation?.registerModelProviders,
+    observation: installation?.observation,
     decide: authorization?.decide, observe: authorization?.observe,
     faultInjection: authorization?.faultInjection})});
 }
@@ -182,7 +184,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, hostCapacityPolicy,
-  retainedRelationOutput = false, valuesMaxRows}) {
+  retainedRelationOutput = false, valuesMaxRows, observation: observationConnection}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   validateValuesMaxRows(valuesMaxRows);
   if (workspaceId !== undefined && !validClientConnection({mode, owner: mode,
@@ -345,9 +347,14 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   let modelController;
   let dispatchOwner;
   let diagnostic;
+  let observation;
   let localSnapshotConfiguration;
   try {
-    diagnostic = createDiagnosticObserver(authorization?.observe);
+    const delivery = createDiagnosticObserver(authorization?.observe);
+    diagnostic = Object.assign((event, detail) => {
+      observation?.diagnostic(event, detail);
+      delivery(event, detail);
+    }, {close: delivery.close, status: delivery.status});
     registry = await readFile(join(packageRoot,
       'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
     const aoa = JSON.parse(await readFile(join(packageRoot,
@@ -375,6 +382,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       submissionEpochTtlMs: authorization?.faultInjection?.submissionEpochTtlMs,
       submissionEpochNow: authorization?.faultInjection?.submissionEpochNow,
     });
+    observation = installHostObservation(observationConnection, {journal,
+      runId: ref => {
+        const retained = journal.lookupRunDefinition(ref, moon, control);
+        return retained === undefined ? undefined :
+          control.runDefinitionRunId(retained.runDefinition);
+      }});
+    if (observation !== undefined) journal.installObservationProjection(observation);
     if ((effectInstallation !== undefined || modelInstallation !== undefined) &&
         effectInstallation?.privateEvidenceKey === undefined) {
       const keyDirectory = join(root, 'checkpoints');
@@ -466,7 +480,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
-    return checkSource({principalId: actual, input, parameters, signal});
+    const result = await checkSource({principalId: actual, input, parameters, signal});
+    // The verdict belongs to the common checker. No diagnostic text, source
+    // location, authored name, source bytes or hypothetical Run is projected.
+    observation?.emit('check', 'check_completed', {checkVerdict: result.report?.verdict,
+      outcome: result.report?.verdict === 'invalid' || result.outcome === 'failed'
+        ? 'failed' : result.report?.verdict === 'verified' ? 'succeeded' : 'unknown'});
+    return result;
   };
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
@@ -475,7 +495,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
-        store, storeAuthorityCid, authorityScopeCid, now, observe: diagnostic,
+        store, storeAuthorityCid, authorityScopeCid, namespaceId, now, observe: diagnostic,
         getCheckpoints: () => checkpoints});
     }
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
@@ -501,6 +521,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         : {sources: (sourceProfile?.sources ?? [sourceProfile]).flatMap(source =>
           installedSourceReadAccesses(source).map(access => ({
             sourceRef: access.sourceRef, ...source.readAuthorization})))})});
+  const projectRunObservation = (ref, state, retained) => {
+    observation?.emit('run', 'owner_observed', {ref, outcome: state.status,
+      revision: retained.revision,
+      physicalStop: retained.physicalCloseConfirmed === true ? 'confirmed' : undefined,
+      cleanupPending: state.cleanupPending});
+  };
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.namespaceId !== namespaceId ||
         ref.authorityScopeCid !== authorityScopeCid) {
@@ -583,6 +609,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         preDispatchFailureConfirmed: retained.preDispatchFailureConfirmed,
         physicalCloseConfirmed: retained.physicalCloseConfirmed,
       });
+      // Only this revision-stable common Owner projection supplies status.
+      projectRunObservation(ref, state, retained);
       return {...state, control: observation};
     }
     throw new Error('RunStateObservationUnstable');
@@ -628,6 +656,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       currentAuthorization: true, publicationCommitted,
     }, moon, control);
     await continueAcceptedCancellation(ref, accepted);
+    observation?.emit('run', 'cancellation_requested', {ref,
+      revision: accepted.revision, outcome: accepted.outcome});
     return accepted;
   };
   const cancel = async ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
@@ -665,6 +695,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     }
     const accepted = recorded.cancellation;
     if (recorded.recorded) await continueAcceptedCancellation(ref, accepted);
+    observation?.emit('run', 'cancellation_requested', {ref,
+      revision: accepted.revision, outcome: accepted.outcome});
     return accepted;
   };
   const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
@@ -1050,7 +1082,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,
     faultInjection: authorization?.faultInjection,
     fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-    runInfer, retainedRelationOutput,
+    runInfer, retainedRelationOutput, observation,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal) => {
@@ -1752,8 +1784,18 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     checkpointReview: ({principalId: actual, checkpointCid, maxBytes,
       signal}) => checkpoints.reviewCheckpoint({principalId: actual,
       checkpointCid, maxBytes, signal}),
-    resolve: ({principalId: actual, items}) =>
-      checkpoints.resolve({principalId: actual, items}),
+    async resolve({principalId: actual, items}) {
+      const result = await checkpoints.resolve({principalId: actual, items});
+      try { if (observation !== undefined) for (const item of result.results) {
+        if (item.status !== 'committed') continue;
+        const view = checkpoints.journal.inspect(item.checkpointCid);
+        if (view?.runDefinitionCid === undefined) continue;
+        observation?.emit('approval', 'checkpoint_resolved', {ref: {
+          namespaceId, authorityScopeCid, runDefinitionCid: view.runDefinitionCid},
+          outcome: 'committed'});
+      } } catch { observation?.noteLoss(); }
+      return result;
+    },
   };
   const checkpointOperation = new Set(['checkpoints', 'checkpoint-review',
     'resolve']);
@@ -2452,15 +2494,21 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       effects: effectRun === undefined ? undefined :
         {sweep: sweepEffectRuns}});
   }
-  const port = createNodeInProcessClientHost({
+  const ingress = createNodeInProcessClientHost({
     authenticate: () => principalId,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
+  const port = observation === undefined ? ingress : Object.freeze({
+    perform: (operation, request, signal) => observation.run(operation,
+      undefined, () => ingress.perform(operation, request, signal)),
+  });
   return {port, store, journal, hostOperations, checkpoints, diagnostic,
+    observation,
     dispatchOwner, inspectAcquisition, sourceProfile, installedEffect,
     retireTerminalEffects};
   } catch (cause) {
     diagnostic?.close();
+    await observation?.close();
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store, checkpoints, dispatchOwner,
@@ -2489,7 +2537,7 @@ export async function openInstalledRemoteHttpHost({directory,
   loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
-  resultDataPolicy, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows}) {
+  resultDataPolicy, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows, observation}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
@@ -2502,7 +2550,7 @@ export async function openInstalledRemoteHttpHost({directory,
     beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy,
-    retainedRelationOutput, hostCapacityPolicy, valuesMaxRows});
+    retainedRelationOutput, hostCapacityPolicy, valuesMaxRows, observation});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
   });
@@ -2520,12 +2568,16 @@ export async function openInstalledRemoteHttpHost({directory,
         response.end(JSON.stringify({code: 'ClientHostClosing'}));
         return Promise.resolve();
       }
-      const handled = Promise.resolve(handle(request, response));
+      const handled = Promise.resolve(host.observation === undefined
+        ? handle(request, response) : host.observation.run('http',
+          observationTraceParent(request.headers), () => handle(request, response),
+          {http: {method: request.method, response}}));
       handling.add(handled);
       handled.finally(() => handling.delete(handled)).catch(() => {});
       return handled;
     },
     inspectAcquisition: host.inspectAcquisition,
+    observationStatus: () => host.observation?.status(),
     // Stop accepting requests and wait for those being handled, stop
     // starting resumes, let running dispatches finish and record their
     // ends, settle retention, then release the journals and the Store
@@ -2539,6 +2591,7 @@ export async function openInstalledRemoteHttpHost({directory,
       // Failed shutdown still owns retryable physical cleanup. Keep its
       // bounded observation alive until those owners confirm final release.
       host.diagnostic.close();
+      await host.observation?.close();
       return Object.freeze({...result,
         diagnosticDeliveryPending: host.diagnostic.status().active !== 0});
     },
@@ -2615,5 +2668,6 @@ export async function connectEmbeddedLocal(options) {
         resultDataPolicy: installation?.resultDataPolicy,
         hostCapacityPolicy: installation?.hostCapacityPolicy,
         retainedRelationOutput: installation?.retainedRelationOutput,
+        observation: installation?.observation,
         valuesMaxRows: installation?.valuesMaxRows}), clientOptions);
 }

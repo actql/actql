@@ -33,7 +33,7 @@ const originalDigest = originals => bytesCid(Buffer.from(canonicalJson(select(or
 const roles = ['model_call_attempt', 'model_attempt_accounting', 'model_attempt_outcome',
   'model_dispatch_authority', 'model_slot_capture', 'model_capture_bundle'];
 
-export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid,
+export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,
   authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic}) {
   const runtime = await loadCheckpointRuntime();
   const custody = new Map();
@@ -216,9 +216,15 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     } catch (error) { release(token); throw error; }
   }
   async function observe(entry) {
-    return entry.provenance === 'immediate'
+    const result = await (entry.provenance === 'immediate'
       ? checkpoints().journal.observeImmediateModelCall(entry)
-      : checkpoints().journal.observeResumedCall(entry);
+      : checkpoints().journal.observeResumedCall(entry));
+    diagnostic('model_call_observed', {ref: {namespaceId, authorityScopeCid,
+      runDefinitionCid: entry.runDefinitionCid}, task: entry.taskIndex,
+      attempt: entry.attemptIndex, attemptCid: entry.attemptCid, slot: entry.ordinal,
+      outcome: {SavedSuccess: 'succeeded', SavedFailure: 'failed',
+        EnteredUnknown: 'unknown', Unsent: 'pending'}[result?.state]});
+    return result;
   }
   async function openOwned({operation, preparedCallSet, plan, selected, principalId,
     declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort, sourceContinuation}, ownership) {
@@ -415,6 +421,10 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                   : cp.journal.enterResumedCall(claim, {...reference, checkpointCid: existing.checkpointCid,
                       resolutionCid: decision.admission.resolutionCid});
                 owner.entries.set(original.slot, receipt);
+                diagnostic('model_call_entered', {ref: {namespaceId, authorityScopeCid,
+                  runDefinitionCid: receipt.runDefinitionCid}, task: receipt.taskIndex,
+                  slot: receipt.ordinal, attempt: receipt.attemptIndex,
+                  attemptCid: receipt.attemptCid, outcome: 'running'});
                 return true;
               } catch (error) {
                 owner.entryFailure = error;
