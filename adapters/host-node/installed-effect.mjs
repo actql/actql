@@ -30,7 +30,13 @@ import {installedConnectorFor, installedEffectTable,
 const installations = installedEffectTable([tableInstallation, ...installedConnectors]);
 
 const refuse = (code, cause) => {
-  throw Object.assign(new TypeError(code, {cause}), {code});
+  const failure = Object.assign(new TypeError(code, {cause}), {code});
+  if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) {
+    Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
+      cleanupPending: cause.cleanupPending, cleanupErrors: cause.cleanupErrors,
+      primaryFailure: cause.primaryFailure ?? cause});
+  }
+  throw failure;
 };
 
 // Bound profile and identity-part reads before buffering, including files that
@@ -38,6 +44,12 @@ const refuse = (code, cause) => {
 async function readProfileJson(path) {
   const maxBytes = 8 * 1024 * 1024;
   const file = await open(path, 'r');
+  let released = false;
+  const release = async () => {
+    if (released) return;
+    await file.close();
+    released = true;
+  };
   let failure;
   try {
     const chunks = [];
@@ -60,10 +72,12 @@ async function readProfileJson(path) {
     }
   } catch (cause) { failure = cause; throw cause; }
   finally {
-    try { await file.close(); }
+    try { await release(); }
     catch (cause) {
-      if (failure === undefined) throw cause;
-      throw new AggregateError([failure, cause], failure.message, {cause: failure});
+      // No installation has returned yet. Preserve the same file's release
+      // responsibility through the existing initialization cleanup owner.
+      throw await retainInstalledHostInitializationFailure(failure ?? cause,
+        {installedEffect: {close: release}});
     }
   }
 }
