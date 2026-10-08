@@ -63,9 +63,37 @@ fn effect_source_contract_matches_result_facts(
   result : PublicationContract,
   result_name : String,
 ) -> Bool {
+  effect_source_contract_matches_relation_facts(
+    physical,
+    result,
+    Result(result_name),
+  )
+}
+
+///|
+/// Match semantic export facts only in the private Table input namespace.
+/// A matching name or content in the ordinary Result namespace is insufficient.
+pub fn captured_effect_source_matches_table_input_facts(
+  source : CapturedEffectSourceArtifact,
+  artifact : PublicationContract,
+  table_input : String,
+) -> Bool {
+  effect_source_contract_matches_relation_facts(
+    source.artifact,
+    artifact,
+    TableInput(table_input),
+  )
+}
+
+///|
+fn effect_source_contract_matches_relation_facts(
+  physical : PublicationContract,
+  result : PublicationContract,
+  source : EffectPreviewRelationSource,
+) -> Bool {
   if physical.name != "effect_source_artifact" ||
     result.name != "result_artifact" ||
-    contract_string(physical, "source_result") != Some(result_name) ||
+    effect_source_artifact_relation_source(physical) != Some(source) ||
     contract_string(physical, "actual_completeness") != Some("complete") ||
     contract_string(result, "actual_completeness") != Some("complete") {
     return false
@@ -101,32 +129,6 @@ pub(all) enum CapturedRunIssuanceIssue {
   CaptureIssuanceContract(PublicationContractIssue)
   CaptureIssuanceChain(RunEvidenceChainIssue)
 } derive(Eq, Debug)
-
-///|
-fn canonical_string_array(
-  values : Array[String],
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> @json.CanonicalValue? {
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return None
-  }
-  try {
-    @encode.begin_array(writer)
-    for value in values {
-      @encode.string_value(writer, value)
-    }
-    @encode.end_array(writer)
-  } catch {
-    _ => return None
-  }
-  let wire = @encode.finish(writer) catch { _ => return None }
-  match parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
-    Ok(value) => Some(value)
-    Err(_) => None
-  }
-}
 
 ///|
 fn captured_relation_cid(
@@ -240,55 +242,24 @@ pub fn admit_captured_result_snapshot(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue] {
-  if definition.name != "result_definition" ||
-    artifact.name != "result_artifact" {
-    return Err(CaptureIssuanceWrongContract("result"))
-  }
-  guard contract_string(definition, "result_name") is Some(name) else {
-    return Err(CaptureIssuanceInvalidFields("result_name"))
-  }
-  if contract_string(artifact, "result_definition_cid") !=
-    Some(definition.identity) {
-    return Err(CaptureIssuanceReferenceMismatch("result_definition_cid"))
-  }
-  let rows = match
-    parse_contract_wire(
-      rows_wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-      data_keys=true,
+  // Explicit synchronous callers drain the same owner; environments poll it.
+  let preparation = match
+    start_captured_result_snapshot(
+      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
+      2147483647,
     ) {
-    Ok(value) => value
-    Err(_) => return Err(CaptureIssuanceInvalidRows(name))
+    Ok(preparation) => preparation
+    Err(issue) => return Err(issue)
   }
-  guard rows is @json.Array(frozen) else {
-    return Err(CaptureIssuanceInvalidRows(name))
+  while true {
+    match preparation.advance(64) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => return preparation.finish()
+      Ok((false, _)) => ()
+    }
+  } nobreak {
+    Err(CaptureIssuanceEncoding)
   }
-  let row_values = @json.array_values(frozen)
-  let canonical = @json.stringify_value(
-    rows, max_wire_bytes, max_nodes, max_depth,
-  ) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  if canonical != rows_wire {
-    return Err(CaptureIssuanceInvalidRows(name))
-  }
-  if !captured_fields_valid(row_values, fields) {
-    return Err(CaptureIssuanceInvalidFields(name))
-  }
-  if contract_count(artifact, "actual_row_count") !=
-    Some(row_values.length().to_int64()) {
-    return Err(CaptureIssuanceReferenceMismatch("actual_row_count"))
-  }
-  guard captured_relation_cid(rows, max_wire_bytes, max_nodes, max_depth)
-    is Some(logical_cid) else {
-    return Err(CaptureIssuanceEncoding)
-  }
-  if contract_string(artifact, "logical_result_cid") != Some(logical_cid) {
-    return Err(CaptureIssuanceReferenceMismatch("logical_result_cid"))
-  }
-  Ok({ name, definition, artifact, rows, fields: fields.copy(), })
 }
 
 ///|
@@ -340,6 +311,39 @@ pub fn admit_captured_effect_source_from_result(
 }
 
 ///|
+/// The private semantic Artifact is admitted under its checked producer and
+/// owner by the Host. This binding preserves the typed Preview source and all
+/// export facts; it is not proof of durable capture or current Store custody.
+pub fn admit_captured_effect_source_from_table_input(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  artifact : PublicationContract,
+  table_artifact : PublicationContract,
+  store_authority_cid : String,
+) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
+  guard effect_preview_member_source_table_input(preview, member_index)
+    is Some(name) &&
+    effect_source_contract_matches_relation_facts(
+      artifact,
+      table_artifact,
+      TableInput(name),
+    ) else {
+    return Err(
+      CaptureIssuanceReferenceMismatch("effect_source_table_input_artifact"),
+    )
+  }
+  admit_captured_effect_source_binding(
+    preview,
+    member_index,
+    invocation,
+    artifact,
+    table_artifact.identity,
+    store_authority_cid,
+  )
+}
+
+///|
 fn admit_captured_effect_source_binding(
   preview : EffectPreviewIdentity,
   member_index : Int,
@@ -350,8 +354,7 @@ fn admit_captured_effect_source_binding(
 ) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
   guard effect_preview_member_effect_id(preview, member_index)
     is Some(effect_id) &&
-    effect_preview_member_source_result(preview, member_index)
-    is Some(source_result) &&
+    effect_preview_member_relation_source(preview, member_index) is Some(source) &&
     effect_preview_member_source_binding_cid(preview, member_index)
     is Some(source_binding_cid) &&
     effect_preview_member_result_artifact_cid(preview, member_index)
@@ -363,7 +366,7 @@ fn admit_captured_effect_source_binding(
     preview_artifact_cid != artifact_cid ||
     contract_string(artifact, "store_authority_cid") !=
     Some(store_authority_cid) ||
-    contract_string(artifact, "source_result") != Some(source_result) ||
+    effect_source_artifact_relation_source(artifact) != Some(source) ||
     contract_string(artifact, "source_binding_cid") != Some(source_binding_cid) ||
     contract_string(artifact, "invocation_cid") != Some(invocation.identity) {
     return Err(CaptureIssuanceReferenceMismatch("effect_source_artifact"))
@@ -507,173 +510,6 @@ fn captured_model_evidence(
 }
 
 ///|
-fn seal_effect_context(
-  snapshots : Array[CapturedResultSnapshot],
-  sources : Array[CapturedEffectSourceArtifact],
-  local_sources : Array[CapturedLocalEffectSourceEvidence],
-  dependencies : CapturedEffectDependencyInventory,
-  advances : Array[PendingSourceStateAdvance],
-  authoring : RunEvidenceValue,
-  models : Array[RunEvidenceValue],
-  preview : EffectPreviewIdentity?,
-  plans : Array[(String, @json.CanonicalValue)],
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> Result[@json.CanonicalValue, CapturedRunIssuanceIssue] {
-  let effect_ids = match preview {
-    Some(identity) => identity.member_effect_ids.copy()
-    None => []
-  }
-  effect_ids.sort_by(@canonical.compare_utf16)
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "authoring_context")
-    @json.emit_value(authoring.value, writer)
-    @encode.key(writer, "effect_dependency_inventory")
-    let inventory = parse_contract_wire(
-      dependencies.wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ).unwrap()
-    @json.emit_value(inventory, writer)
-    @encode.key(writer, "effect_plan_logical_cids")
-    @encode.begin_object(writer)
-    if preview is Some(identity) {
-      for name in effect_ids {
-        let mut index = -1
-        for position in 0..<identity.member_effect_ids.length() {
-          if identity.member_effect_ids[position] == name {
-            index = position
-            break
-          }
-        }
-        if index >= 0 && identity.member_effect_plan_cids[index] is Some(cid) {
-          @encode.key(writer, name)
-          @encode.string_value(writer, cid)
-        }
-      }
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effect_plans")
-    @encode.begin_object(writer)
-    for (name, plan) in plans {
-      @encode.key(writer, name)
-      @json.emit_value(plan, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effects")
-    @encode.begin_object(writer)
-    for name in effect_ids {
-      @encode.key(writer, name)
-      @encode.begin_object(writer)
-      @encode.end_object(writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effect_source_artifacts")
-    @encode.begin_object(writer)
-    for source in sources {
-      @encode.key(writer, source.effect_id)
-      @json.emit_value(source.artifact.value, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effect_source_holding_cids")
-    @encode.begin_object(writer)
-    for source in sources {
-      @encode.key(writer, source.effect_id)
-      @encode.string_value(writer, source.holding_cid)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effect_source_local_inventory")
-    @encode.begin_object(writer)
-    for source in local_sources {
-      @encode.key(writer, source.effect_id)
-      @json.emit_value(source.value, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "model_invocation_evidence")
-    @encode.begin_array(writer)
-    for model in models {
-      @json.emit_value(model.value, writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "model_invocation_evidence_cids")
-    @encode.begin_array(writer)
-    for model in models {
-      @encode.string_value(writer, model.identity)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "pending_source_state_advances")
-    @encode.begin_array(writer)
-    for advance in advances {
-      @json.emit_value(advance.value, writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "result_artifacts")
-    @encode.begin_object(writer)
-    for snapshot in snapshots {
-      @encode.key(writer, snapshot.name)
-      @json.emit_value(snapshot.artifact.value, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "result_fields")
-    @encode.begin_object(writer)
-    for snapshot in snapshots {
-      @encode.key(writer, snapshot.name)
-      guard canonical_string_array(
-          snapshot.fields,
-          max_wire_bytes,
-          max_nodes,
-          max_depth,
-        )
-        is Some(fields) else {
-        return Err(CaptureIssuanceEncoding)
-      }
-      @json.emit_value(fields, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "result_values")
-    @encode.begin_object(writer)
-    for snapshot in snapshots {
-      @encode.key(writer, snapshot.name)
-      @json.emit_value(snapshot.rows, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-run-effect-context/0.1")
-    @encode.end_object(writer)
-  } catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  let body_wire = @encode.finish(writer) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  let body = match
-    parse_contract_wire(
-      body_wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-      data_keys=true,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(CaptureIssuanceEncoding)
-  }
-  let identity = @json.cid_value(body, max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  guard @json.object_with_string_field(body, "effect_context_cid", identity)
-    is Some(complete) else {
-    return Err(CaptureIssuanceEncoding)
-  }
-  Ok(complete)
-}
-
-///|
 /// Issue a private Effect-free Captured Run from exact Result snapshots and
 /// admitted evidence. The issuer never accepts a preassembled Effect context.
 pub fn issue_effect_free_captured_run(
@@ -759,37 +595,28 @@ pub fn issue_effectful_captured_run(
 }
 
 ///|
-fn issue_captured_computation_run(
-  run_definition : PublicationContract,
-  invocation : PublicationContract,
-  definitions : Array[PublicationContract],
-  artifacts : Array[PublicationContract],
-  manifest : PublicationContract,
-  receipt : PublicationContract,
-  snapshots : Array[CapturedResultSnapshot],
-  sources : Array[CapturedEffectSourceArtifact],
-  local_sources : Array[CapturedLocalEffectSourceEvidence],
-  advances : Array[PendingSourceStateAdvance],
-  authoring : RunEvidenceValue,
-  models : Array[RunEvidenceValue],
-  preview : EffectPreviewIdentity?,
-  plan_values : Array[(String, String)],
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-  dependency_inventory? : CapturedEffectDependencyInventory? = None,
-) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
-  if authoring.name != "authoring_context" {
-    return Err(CaptureIssuanceWrongContract("authoring_context"))
-  }
-  match
-    validate_run_publication_chain(
-      run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
-      max_nodes, max_depth,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(CaptureIssuanceChain(EvidenceRoot(issue)))
-  }
+fn prepare_captured_computation_inputs_after_root(
+  inputs : CapturedRunIssuanceInputs,
+) -> Result[EffectContextInputs, CapturedRunIssuanceIssue] {
+  let {
+    invocation,
+    definitions,
+    artifacts,
+    receipt,
+    snapshots,
+    sources,
+    local_sources,
+    advances,
+    authoring,
+    models,
+    preview,
+    plan_values,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    dependency_inventory,
+    ..
+  } = inputs
   if receipt.name != "run_receipt" {
     return Err(CaptureIssuanceWrongContract("run_receipt"))
   }
@@ -853,7 +680,7 @@ fn issue_captured_computation_run(
       }
     Some(identity) => {
       for index in 0..<identity.member_effect_ids.length() {
-        if effect_preview_member_source_result(identity, index) is Some(_) {
+        if effect_preview_member_relation_source(identity, index) is Some(_) {
           expected_source_count += 1
           let matches = ordered_sources.filter(source => {
             source.effect_id == identity.member_effect_ids[index]
@@ -940,59 +767,71 @@ fn issue_captured_computation_run(
         CaptureIssuanceInventoryMismatch("effect_dependency_inventory"),
       )
   }
-  let effect_context = match
-    seal_effect_context(
-      ordered_snapshots, ordered_sources, ordered_local_sources, dependencies, advances,
-      authoring, ordered_models, preview, plans, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "effect_context")
-    @json.emit_value(effect_context, writer)
-    @encode.key(writer, "encryption_required")
-    @encode.bool_value(writer, true)
-    @encode.key(writer, "receipt")
-    @json.emit_value(receipt.value, writer)
-    @encode.key(writer, "retention_class")
-    @encode.string_value(writer, "run-evidence")
-    @encode.key(writer, "sensitivity")
-    @encode.string_value(writer, "private")
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-captured-run/0.1")
-    @encode.end_object(writer)
-  } catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  let body = @encode.finish(writer) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  let captured = match
-    seal_publication_contract(
-      "captured_run", body, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(CaptureIssuanceContract(issue))
-  }
-  let validation = match preview {
-    None =>
-      validate_effect_free_run_evidence_chain(
-        run_definition, invocation, definitions, artifacts, manifest, receipt, captured,
-        max_wire_bytes, max_nodes, max_depth,
-      )
-    Some(identity) =>
-      validate_effectful_computation_evidence_chain(
-        run_definition, invocation, definitions, artifacts, manifest, receipt, captured,
-        identity, max_wire_bytes, max_nodes, max_depth,
-      )
-  }
-  match validation {
-    Ok(_) => Ok(captured)
-    Err(issue) => Err(CaptureIssuanceChain(issue))
+  Ok({
+    snapshots: ordered_snapshots,
+    sources: ordered_sources,
+    local_sources: ordered_local_sources,
+    dependencies,
+    advances,
+    authoring,
+    models: ordered_models,
+    preview,
+    plans,
+  })
+}
+
+///|
+fn issue_captured_computation_run(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  snapshots : Array[CapturedResultSnapshot],
+  sources : Array[CapturedEffectSourceArtifact],
+  local_sources : Array[CapturedLocalEffectSourceEvidence],
+  advances : Array[PendingSourceStateAdvance],
+  authoring : RunEvidenceValue,
+  models : Array[RunEvidenceValue],
+  preview : EffectPreviewIdentity?,
+  plan_values : Array[(String, String)],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  dependency_inventory? : CapturedEffectDependencyInventory? = None,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  let workspace = publication_evidence_workspace(max_nodes)
+  let preparation = start_captured_computation_preparation(
+    {
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      receipt,
+      snapshots,
+      sources,
+      local_sources,
+      advances,
+      authoring,
+      models,
+      preview,
+      plan_values,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      dependency_inventory,
+    },
+    workspace,
+  )
+  while true {
+    match preparation.advance(256) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => return preparation.finish()
+      Ok((false, _)) => ()
+    }
+  } nobreak {
+    Err(CaptureIssuanceEncoding)
   }
 }

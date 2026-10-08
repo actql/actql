@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test from 'node:test';
@@ -7,7 +7,7 @@ import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {readHostBundles} from './connector-node-bundles.mjs';
 
 function fixture(t) {
-  const root = mkdtempSync(join(tmpdir(), 'actql-connector-inputs-'));
+  const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-connector-inputs-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const put = (path, contents) => {
     mkdirSync(dirname(path), {recursive: true});

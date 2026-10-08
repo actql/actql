@@ -1840,6 +1840,44 @@ function publicationControl(moon) {
     }
     return limits;
   };
+  const finishCapturedPreparation = async (preparation, signal) => {
+    let finished = false;
+    try {
+      while (true) {
+        signal?.throwIfAborted();
+        if (checked(moon.strategyCapturedRunAdvance(preparation, 256))) break;
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      signal?.throwIfAborted();
+      const captured = inspect(checked(
+        moon.strategyCapturedRunFinish(preparation)));
+      finished = true;
+      return captured;
+    } finally {
+      if (!finished) moon.strategyCapturedRunCancel(preparation);
+    }
+  };
+  const finishPublicationValidation = async (
+    preparation, advance, finish, cancel, signal,
+  ) => {
+    try {
+      while (true) {
+        signal?.throwIfAborted();
+        const progress = advance(preparation, 256);
+        if (progress === -1) return false;
+        if (progress === 1) {
+          signal?.throwIfAborted();
+          return finish(preparation);
+        }
+        if (progress !== 0) {
+          throw new TypeError('Invalid publication validation progress');
+        }
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    } finally {
+      cancel(preparation);
+    }
+  };
   control = Object.freeze({
     seal(name, bodyWire, limits) {
       return inspect(checked(moon.strategyPublicationSeal(
@@ -2527,6 +2565,33 @@ function publicationControl(moon) {
         limits.maxNodes, limits.maxDepth,
       )));
     },
+    issueEffectTableSourceArtifactFromExport(input, receipt, invocation,
+      retention, sourceBindingCid, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'private Table source Artifact');
+      if (typeof moon.clientProgramIssueEffectTableSourceArtifact !== 'function' ||
+          typeof sourceBindingCid !== 'string' || typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid private Table source export');
+      }
+      return inspect(checked(moon.clientProgramIssueEffectTableSourceArtifact(
+        input, receipt, token(invocation), token(retention), sourceBindingCid,
+        storeAuthorityCid, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
+    },
+    admitCapturedEffectSourceFromTableInput(preview, memberIndex, invocation,
+      artifact, input, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'captured private Table source');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      const ownedInput = localEffectArtifactTokens.get(input);
+      if (ownedPreview === undefined || ownedInput === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Invalid captured private Table source owner');
+      }
+      const relation = checked(moon.strategyPublicationAdmit('result_artifact',
+        moon.clientProgramLocalEffectResultArtifactJson(ownedInput),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return inspectEffectSource(checked(moon.strategyAdmitCapturedEffectSourceFromTableInput(
+        ownedPreview, memberIndex, token(invocation), token(artifact), relation,
+        storeAuthorityCid)));
+    },
     admitCapturedEffectSourceFromResult(preview, memberIndex, invocation,
       artifact, result, storeAuthorityCid, limits) {
       issuanceLimits(limits, 'captured Table source');
@@ -2561,6 +2626,27 @@ function publicationControl(moon) {
           evidenceToken(context.observation),
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       return inspectLocalEffectArtifact(issued);
+    },
+    issueSourceFreeExportedLocalEffectResultArtifact(owner, inputs, exported,
+      definition, invocation, receipt, retention, context, limits) {
+      issuanceLimits(limits, 'source-free local Manifest Result');
+      return inspectLocalEffectArtifact(checked(
+        moon.clientProgramIssueSourceFreeExportedLocalEffectResultArtifact(
+          owner, inputs, exported, invocation, definition, receipt,
+          token(retention), ...localEffectContext(context),
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
+    },
+    issueSourceFreeLocalEffectTableArtifact(owner, inputs, memberIndex,
+      importing, definition, localInvocation, receipt, retention, context, limits) {
+      issuanceLimits(limits, 'private Table semantic Artifact');
+      if (!Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Invalid private Table member');
+      }
+      return inspectLocalEffectArtifact(checked(
+        moon.clientProgramIssueSourceFreeLocalEffectTableArtifact(
+          owner, inputs, memberIndex, importing, definition, localInvocation,
+          receipt, token(retention), ...localEffectContext(context),
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
     },
     issueLocalEffectResultManifest(owner, invocation, artifacts, limits) {
       issuanceLimits(limits, 'local Effect Result Manifest');
@@ -2640,23 +2726,33 @@ function publicationControl(moon) {
       const issued = checked(moon.clientProgramLocalEffectTableStorageMapping(
         owned, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       return Object.freeze({
-        identity: moon.clientProgramTableStorageMappingCid(issued),
-        wire: moon.clientProgramTableStorageMappingJson(issued),
+        identity: moon.clientProgramLocalTableStorageMappingCid(issued),
+        wire: moon.clientProgramLocalTableStorageMappingJson(issued),
+      });
+    },
+    admitLocalTableStorageMapping(wire, limits) {
+      issuanceLimits(limits, 'Local Table storage mapping');
+      if (typeof wire !== 'string') throw new TypeError('Invalid Local Table mapping');
+      const admitted = checked(moon.clientProgramAdmitLocalTableStorageMapping(
+        wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({
+        identity: moon.clientProgramLocalTableStorageMappingCid(admitted),
+        wire: moon.clientProgramLocalTableStorageMappingJson(admitted),
       });
     },
     bindTableInput(owner, inputs, memberIndex, artifact, identity, scope,
-      operationWire, limits) {
+      operationWire, mappingWire, limits) {
       issuanceLimits(limits, 'Table input');
       const ownedArtifact = localEffectArtifactTokens.get(artifact);
       const ownedIdentity = localEffectIdentityTokens.get(identity);
       if (ownedArtifact === undefined || ownedIdentity === undefined ||
           !Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
-          typeof operationWire !== 'string') {
+          typeof operationWire !== 'string' || typeof mappingWire !== 'string') {
         throw new TypeError('Invalid Table input owner');
       }
       const issued = checked(moon.clientProgramBindTableInput(
         owner, inputs, memberIndex, ownedArtifact, ownedIdentity, scope,
-        operationWire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+        operationWire, mappingWire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       // Content/owner binding only. Nothing stages or dispatches a Table write.
       const value = Object.freeze({
         wire: moon.clientProgramTableInputOperationJson(issued),
@@ -2742,6 +2838,14 @@ function publicationControl(moon) {
       if (owned === undefined) throw new TypeError('Foreign Table Preview');
       return moon.clientProgramTablePreviewInputAvailable(owned);
     },
+    localTableCommitResponse(responseWire, statusCode, limits) {
+      issuanceLimits(limits, 'Local Table physical response');
+      if (typeof responseWire !== 'string' || !Number.isSafeInteger(statusCode)) {
+        throw new TypeError('Invalid Local Table physical response');
+      }
+      return checked(moon.clientProgramLocalTableCommitResponse(responseWire,
+        statusCode, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
     tablePreviewCommitOutcome(preview, responseWire, statusCode, limits) {
       issuanceLimits(limits, 'Table commit outcome');
       const owned = tablePreviewTokens.get(preview);
@@ -2811,6 +2915,11 @@ function publicationControl(moon) {
       return checked(moon.clientProgramEffectSourceArtifactPreviewBinding(
         token(artifact), invocationCid, sourceResult, storeAuthorityCid));
     },
+    effectTableSourceArtifactPreviewBinding(artifact, invocationCid, sourceTableInput,
+      storeAuthorityCid) {
+      return checked(moon.clientProgramEffectTableSourceArtifactPreviewBinding(
+        token(artifact), invocationCid, sourceTableInput, storeAuthorityCid));
+    },
     capturedEffectSourceHoldingCid(source) {
       return moon.strategyCapturedEffectSourceHoldingCid(
         effectSourceToken(source));
@@ -2823,16 +2932,27 @@ function publicationControl(moon) {
       return moon.strategyCapturedEffectSourceStoreAuthorityCid(
         effectSourceToken(source));
     },
-    admitCompletedResultSnapshot(exportHandle, limits) {
+    async admitCompletedResultSnapshot(exportHandle, limits, signal) {
       issuanceLimits(limits, 'completed Result snapshot');
-      return inspectSnapshot(checked(
-        moon.strategyHostOutputExportAdmitCapturedResultSnapshot(
-          exportHandle,
-          limits.maxWireBytes,
-          limits.maxNodes,
-          limits.maxDepth,
-        ),
-      ));
+      signal?.throwIfAborted();
+      const preparation = checked(moon.strategyHostOutputSnapshotBegin(
+        exportHandle, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      let finished = false;
+      try {
+        while (true) {
+          signal?.throwIfAborted();
+          if (checked(moon.strategyHostOutputSnapshotAdvance(
+            preparation, 256))) break;
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        signal?.throwIfAborted();
+        const snapshot = inspectSnapshot(checked(
+          moon.strategyHostOutputSnapshotFinish(preparation)));
+        finished = true;
+        return snapshot;
+      } finally {
+        if (!finished) moon.strategyHostOutputSnapshotCancel(preparation);
+      }
     },
     admitPendingSourceStateAdvance(completeWire, observation, limits) {
       issuanceLimits(limits, 'pending source-state advance');
@@ -2849,7 +2969,7 @@ function publicationControl(moon) {
         ),
       ));
     },
-    issueEffectFreeCapturedRun(chain, evidence, limits) {
+    async issueEffectFreeCapturedRun(chain, evidence, limits, signal) {
       issuanceLimits(limits, 'Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
@@ -2860,7 +2980,8 @@ function publicationControl(moon) {
           !Array.isArray(evidence.modelEvidence)) {
         throw new TypeError('Invalid Captured Run request');
       }
-      return inspect(checked(moon.strategyIssueEffectFreeCapturedRun(
+      signal?.throwIfAborted();
+      const preparation = moon.strategyBeginEffectFreeCapturedRun(
         token(chain.runDefinition),
         token(chain.invocation),
         chain.definitions.map(token),
@@ -2874,7 +2995,9 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
+      );
+      return finishCapturedPreparation(preparation, signal);
     },
     admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
       issuanceLimits(limits, 'Effect computation Preview');
@@ -3005,6 +3128,25 @@ function publicationControl(moon) {
         sources.map(value => value.memberIndex),
         sources.map(value => token(value.artifact)), results);
     },
+    capturedEffectSourceInventoryFromArtifactsValid(preview, sources, limits) {
+      issuanceLimits(limits, 'captured Relation source inventory');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(sources)) {
+        throw new TypeError('Invalid captured Relation source inventory');
+      }
+      const relations = sources.map(value => {
+        const owned = localEffectArtifactTokens.get(value.result);
+        if (owned === undefined || !Number.isSafeInteger(value.memberIndex)) {
+          throw new TypeError('Foreign captured Relation source Artifact');
+        }
+        return checked(moon.strategyPublicationAdmit('result_artifact',
+          moon.clientProgramLocalEffectResultArtifactJson(owned),
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      });
+      return moon.strategyCapturedEffectSourceInventoryFromArtifactsValid(ownedPreview,
+        sources.map(value => value.memberIndex),
+        sources.map(value => token(value.artifact)), relations);
+    },
     localEffectResultPayloadBinding(artifact, runDefinition) {
       const owned = localEffectArtifactTokens.get(artifact);
       if (owned === undefined) {
@@ -3048,7 +3190,7 @@ function publicationControl(moon) {
       }
       return Object.freeze(owned);
     },
-    issueEffectfulCapturedRun(chain, evidence, preview, plans, limits) {
+    async issueEffectfulCapturedRun(chain, evidence, preview, plans, limits, signal) {
       issuanceLimits(limits, 'Effectful Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
@@ -3070,7 +3212,8 @@ function publicationControl(moon) {
       if (ownedPreview === undefined) {
         throw new TypeError('Foreign Effect computation Preview');
       }
-      return inspect(checked(moon.strategyIssueEffectfulCapturedRun(
+      signal?.throwIfAborted();
+      const preparation = checked(moon.strategyBeginEffectfulCapturedRun(
         token(chain.runDefinition), token(chain.invocation),
         chain.definitions.map(token), chain.artifacts.map(token),
         token(chain.manifest), token(chain.receipt),
@@ -3083,7 +3226,9 @@ function publicationControl(moon) {
         plans.map(value => value.name), plans.map(value => value.wire),
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
         evidence.dependencyInventoryWire,
-      )));
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
+      ));
+      return finishCapturedPreparation(preparation, signal);
     },
     prepareLocalEffectDependencyInventory(artifacts, bodies, limits) {
       issuanceLimits(limits, 'Effect dependency inventory');
@@ -3530,9 +3675,11 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
-    effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
-      manifest, receipt, capturedRun, limits) {
-      return moon.strategyEffectFreeRunEvidenceChainValid(
+    async effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
+      manifest, receipt, capturedRun, limits, signal) {
+      issuanceLimits(limits, 'Effect-free chain validation');
+      signal?.throwIfAborted();
+      const preparation = moon.strategyBeginEffectFreeChainCheck(
         token(runDefinition),
         token(invocation),
         definitions.map(token),
@@ -3543,12 +3690,18 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       );
+      return finishPublicationValidation(preparation,
+        moon.strategyEffectFreeChainCheckAdvance,
+        moon.strategyEffectFreeChainCheckFinish,
+        moon.strategyEffectFreeChainCheckCancel, signal);
     },
-    effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
+    async effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
       derivations, orderings, retentions, durableBindings, manifest, receipt,
       capturedRun, request, attempt, indexEntry, limits) {
-      return moon.strategyEffectFreePublicationCommitValid(
+      issuanceLimits(limits, 'Effect-free commit validation');
+      const preparation = moon.strategyBeginEffectFreeCommitCheck(
         token(runDefinition),
         token(invocation),
         definitions.map(token),
@@ -3566,7 +3719,13 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       );
+      // A committed outcome is authoritative even after request cancellation.
+      return finishPublicationValidation(preparation,
+        moon.strategyEffectFreeCommitCheckAdvance,
+        moon.strategyEffectFreeCommitCheckFinish,
+        moon.strategyEffectFreeCommitCheckCancel);
     },
     effectfulCommitValid(chain, preview, receipts, request, attempt,
       indexEntry, limits) {
@@ -4069,12 +4228,7 @@ function outputExportControl(moon, publications) {
         throw new TypeError('Invalid Result output export request');
       }
       signal?.throwIfAborted();
-      const converted = convertedOutput != null;
-      const transforming = selection !== undefined;
-      const begin = transforming ? moon.strategyHostResultTransformationBegin : converted
-        ? moon.strategyHostResultOutputExportBeginConverted
-        : moon.strategyHostResultOutputExportBegin;
-      const value = checked(begin(
+      const value = checked(moon.strategyHostResultTransformationBegin(
         host,
         result,
         limits.maxResultFields,
@@ -4099,10 +4253,10 @@ function outputExportControl(moon, publications) {
         limits.maxSchemaNodes,
         limits.maxSchemaDepth,
         limits.maxBatchBytes,
-        ...(transforming ? [convertedOutput, selection] :
-          converted ? [convertedOutput] : []),
+        convertedOutput,
+        selection,
       ));
-      return transforming ? finishTransformation(value, signal) : value;
+      return finishTransformation(value, signal);
     },
     beginManagedResultImport(host, result, output, material, limits) {
       if (!Number.isSafeInteger(result) || result < 0 || output == null ||
@@ -4151,9 +4305,12 @@ function outputExportControl(moon, publications) {
         limits.maxValueTextBytes,
       ));
     },
-    finishManagedResultImport: value => checked(
-      moon.strategyHostManagedResultImportFinish(value),
-    ),
+    finishManagedResultImport(value, signal) {
+      signal?.throwIfAborted();
+      const preparation = checked(
+        moon.strategyHostManagedResultTransformationBegin(value, undefined));
+      return finishTransformation(preparation, signal);
+    },
     async transformManagedResultImport(value, selection, signal) {
       signal?.throwIfAborted();
       const preparation = checked(

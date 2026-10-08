@@ -76,6 +76,38 @@ explicit authorized risk-acknowledgement transition and its retained link.
 Changing the epoch silently is not that transition. It does not permit automatic
 resending of unknown Effects or bypass their existing reconciliation owner.
 
+The Node public `restart-intent` operation carries the ordinary submitted intent,
+an explicitly retained fresh submission reference, and `unresolvedHistory`:
+`{submissionRef: originalRef, acknowledgement: 'possible_prior_execution_and_effects'}`.
+The SDK exposes this through the matching submission option; an acknowledgement
+without a caller-retained fresh reference is refused before send. Ordinary
+submission, reconnect and lookup never choose this operation automatically.
+The intent CID retains its existing preimage: the decision is a separate binding.
+
+The existing journal authenticates both references in the currently authorized
+scope and checks the original's expired, unresolvable history before preparation
+and again at atomic receipt acceptance. The fresh receipt and decision link are
+saved in one transaction. The audit link also records the Host-authenticated
+actor, never a caller-selected actor. A matching fresh identity cannot change
+its intent, original reference, acknowledgement or actor. Deliberately distinct
+fresh identities each require their own explicit decision. Increasing epoch
+expiry bounds prevent cycles in these links.
+
+Authorized lookup of the fresh reference projects the retained original reference
+and acknowledgement with its outcome, including after journal reopening. It
+does not resolve the original outcome. The public projection does not expose the
+audit actor. Missing link custody fences admission and cannot be repaired as an
+ordinary submission. Link storage is independently bounded and is not retired
+when a pre-Run receipt is retired.
+
+This connection admits new work only when original intent custody was formally
+retired, or the expired original has no retained intent and the journal's issuance
+custody remains intact. An existing original Run requires its existing
+reconciliation owner; the risk acknowledgement cannot discharge Model, Effect,
+publication or cleanup responsibility. Lost issuance custody also refuses new
+work. Neither refusal nor successful new work establishes that the original did
+not execute.
+
 ## Submitted intent and outcome projection
 
 `actql-submitted-intent/0.1` identifies the original JSON submission before a
@@ -111,6 +143,23 @@ after asynchronous preparation or lookup. Missing intent custody fences writes;
 a missing original is publicly unresolvable, never proof that nothing executed.
 The journal stores intent rows and their issuance counter atomically. Storage
 admission is bounded independently of checker or execution capacity.
+
+An explicit trusted-Host retention operation can retire an expired terminal
+pre-Run refusal or preparation-failure receipt at its exact revision. It
+authenticates the original epoch and current scope, uses the persisted monotonic
+expiry watermark, and removes the row atomically with an advance of the existing
+journal's retirement counter. Issuance remains monotonic: issued intents equal
+retained rows plus formally retired rows. Unrecorded row loss still fences writes;
+adopting the retirement feature records zero retirements and cannot repair lost
+history. No admission automatically evicts records to make capacity.
+
+Preparing, held and Run-connected receipts are retained by this operation. It
+does not delete a Run, Effect responsibility, response, Result or cleanup receipt.
+Retirement is not cancellation, rollback or proof that no work occurred. Lookup
+of the expired original becomes unresolvable, while its expired identity cannot
+admit new work after restart or clock rollback. The explicit authorized
+risk-acknowledgement and old-to-new submission link use the separate public
+restart operation; this retention operation alone does not implement that exit.
 
 Both ingress transports validate the original submission reference and intent
 CID. The Local ingress owns nested JSON before awaiting caller authentication.

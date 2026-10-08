@@ -46,6 +46,106 @@ export function managedBeforePausePolls(source) {
     '      | Waiting(progress~, work~)\n      | Settling(_, progress~, work~)\n');
 }
 
+// These are exact historical source comparisons, never runtime fallbacks.
+// The lower cleanup Bool reports a transition; the managed Bool reports completion.
+// Values/UNNEST extend private-scratch eligibility without changing the factory,
+// parent state or capture roles. Their accepted output lifetime remains separate.
+export function selectedBeforeReviewedLifecycle(source) {
+  const execution = reviewedFunction(source, 'selected_binding_rows_execution');
+  const currentCleanup = `          Ok(_) => {
+            reclaimed.val = !@execution.bounded_binding_rows_cleanup_pending(
+              active,
+            )
+            Ok(reclaimed.val)
+          }`;
+  const previousCleanup = `          Ok(true) => {
+            reclaimed.val = true
+            Ok(true)
+          }
+          Ok(false) => Ok(false)`;
+  const priorExecution = replaceOnce(execution, currentCleanup, previousCleanup);
+  let prior = replaceOnce(source, execution, priorExecution);
+  const currentHelper = `fn relation_chain_reclaims_completed_scratch(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  for index in 0..<@execution.generated_sequence_step_count(sequence) {
+    match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.JoinStep(_)) => ()
+      // These built-ins detach their accepted completion before cleanup.
+      // Cleanup releases only private scratch; downstream ports keep the
+      // original output generation, including duplicate expansion rows.
+      Some(@lower.ValuesStep(_)) => ()
+      Some(@lower.RowStep(kernel)) =>
+        if !selected_binding_rows_supported(kernel) &&
+          !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&
+          !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) &&
+          !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {
+          return false
+        }
+      _ => return false
+    }
+  }
+  true
+}
+`;
+  const previousHelper = `fn relation_chain_reclaims_completed_scratch(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  for index in 0..<@execution.generated_sequence_step_count(sequence) {
+    match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.JoinStep(_)) => ()
+      Some(@lower.RowStep(kernel)) =>
+        if !selected_binding_rows_supported(kernel) &&
+          !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&
+          !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) {
+          return false
+        }
+      _ => return false
+    }
+  }
+  true
+}
+`;
+  assert.equal(reviewedFunction(source, 'relation_chain_reclaims_completed_scratch'), currentHelper,
+    'Changed detached-completion scratch eligibility');
+  prior = replaceOnce(prior, currentHelper, previousHelper);
+  assert.equal(hash(prior), constructionSourceReview.lifecycleReview.previousSelectedDigest,
+    'Lifecycle changes exceeded the reviewed cleanup and detached-completion bodies');
+  return prior;
+}
+
+// These source comparisons cover only the existing cleanup-completion adapters.
+// Result.map callbacks in set/Nest execute during cleanup, outside the eleven
+// candidate constructors. No temporary execution/cleanup allocation is charged
+// to the conditional construction component by this correspondence.
+export function providerBeforeReviewedCleanup(source, name) {
+  const direct = ['cross_join', 'append', 'global_count', 'group', 'row_window',
+    'unpivot', 'unnest', 'values'];
+  const kernel = name.replace(/_provider$/u, '');
+  if (direct.includes(kernel)) {
+    const current = `              Ok(_) => {
+                reclaimed.val = !@execution.bounded_${kernel}_cleanup_pending(
+                  active,
+                )
+                Ok(reclaimed.val)
+              }`;
+    const previous = `              Ok(true) => {
+                reclaimed.val = true
+                Ok(true)
+              }
+              Ok(false) => Ok(false)`;
+    return replaceOnce(source, current, previous);
+  }
+  assert(['set', 'nest'].includes(kernel), 'Unreviewed cleanup provider');
+  const current = `            @execution.cleanup_bounded_${kernel}(active)
+            .map(_ => !@execution.bounded_${kernel}_cleanup_pending(active))
+            .map_err(issue => bounded_${kernel}_issue(issue, step))`;
+  const previous = `            @execution.cleanup_bounded_${kernel}(active).map_err(issue => {
+              bounded_${kernel}_issue(issue, step)
+            })`;
+  return replaceOnce(source, current, previous);
+}
+
 export function checkConstructionSourceReview(profile, read) {
   const review = constructionSourceReview;
   assert.equal(review.version, 'actql-provider-construction-source-review/0.1');
@@ -57,7 +157,12 @@ export function checkConstructionSourceReview(profile, read) {
   const managed = read(managedPath).toString();
   const generated = read(generatedPath).toString();
   assert.equal(hash(selected), review.selectedDigest, 'Unreviewed provider constructor selected_relation_provider');
-  assert.equal(hash(replaceOnce(selected,
+  for (const provider of profile.providers.slice(1)) {
+    const prior = providerBeforeReviewedCleanup(read(provider.path).toString(), provider.name);
+    assert.equal(hash(prior), review.lifecycleReview.previousProviderDigests[provider.path],
+      `Provider lifecycle changed outside reviewed cleanup completion: ${provider.name}`);
+  }
+  assert.equal(hash(replaceOnce(selectedBeforeReviewedLifecycle(selected),
     '  if @lower.kernel_json_pick(kernel) is Some(_) ||\n    @lower.kernel_bindings(kernel) is Some(_) ||\n    @lower.kernel_unique_keys(kernel) is Some(_) ||\n    @lower.kernel_is_projection(kernel) {\n    return true\n  }\n')),
     '4f02d43052c899c9105574f72dd17cda04caa3695390d93ef73e972bf4cb8227',
     'Borrowed JSON path changed more than the reviewed support guard');

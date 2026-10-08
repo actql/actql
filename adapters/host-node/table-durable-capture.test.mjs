@@ -9,6 +9,7 @@ import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {preparePinnedEffectSourceHoldings} from './effect-input-export.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {completedTableCaptureOptions} from './fixtures/table-completed-capture.mjs';
+import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   suspendCompletedEffectfulComputation,
   retireCompletedEffectfulCapture} from '../host-common/completed-run-publication.mjs';
@@ -27,7 +28,7 @@ function receiptFixture(operation, rowCount) {
   const receipt = {...body, receipt_cid: `sha256:${createHash('sha256')
     .update(canonicalJson(body, {dataKeys: true})).digest('hex')}`};
   return {response: canonicalJson({ok: true, result: receipt}, {dataKeys: true}),
-    outcome: canonicalJson({state: 'applied', result: receipt}, {dataKeys: true})};
+    outcome: canonicalJson({state: 'applied', result: expectedLogicalTableReceipt(receipt)}, {dataKeys: true})};
 }
 const childRecovery = `
 import fs from 'node:fs';
@@ -39,6 +40,8 @@ import {recoverCompletedEffectfulComputation, prepareCompletedEffectfulPublicati
   suspendCompletedEffectfulComputation} from './adapters/host-common/completed-run-publication.mjs';
 import {prepareRecoveredTableInput, readRecoveredTableInput}
   from './adapters/host-node/table-capture-recovery.mjs';
+import {admitIcebergStorageMapping}
+  from './adapters/connectors/local/host/iceberg-process.mjs';
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 const control = runtimeCore(moon).publicationControl;
 const physicalStore = await openLocalPublicationStore({...input.store,
@@ -65,14 +68,22 @@ const inventory = prepareCompletedEffectfulPublication({execution: null, store, 
 const effect = runtimeCore(moon).effectApplicationControl;
 const scope = effect.logicalRequestScope('sha256:' + 'e'.repeat(64), 'table-bind', 128);
 const options = {recovered, store, control, memberIndex: 0, requestScope: scope,
-  contractLimits: input.limits, tableLimits: input.tableLimits};
+  contractLimits: input.limits, tableLimits: input.tableLimits,
+  bridge: {admitStorageMapping: admitIcebergStorageMapping}};
+await assert.rejects(prepareRecoveredTableInput({...options, bridge: undefined}),
+  {code: 'MissingTableMappingValidator'});
+await assert.rejects(prepareRecoveredTableInput({...options,
+  bridge: {admitStorageMapping: values => ({wire: values.mappingWire + ' '})}}),
+  {code: 'ForeignTableRecoveryMapping'});
 const table = await prepareRecoveredTableInput(options);
 const tableRows = await readRecoveredTableInput({prepared: table, maxBytes: 100000});
 const tableBinding = control.tablePreviewLedgerBinding(table.tablePreview);
 assert.equal(control.tablePreviewCommitOutcome(table.tablePreview,
-  input.receipt.response, 200, input.tableLimits), input.receipt.outcome);
+  control.localTableCommitResponse(input.receipt.response, 200, input.tableLimits),
+  200, input.tableLimits), input.receipt.outcome);
 assert.throws(() => control.tablePreviewCommitOutcome(table.tablePreview,
-  input.foreignRowCount.response, 200, input.tableLimits), {code: 'MoonBitHostFailure'});
+  control.localTableCommitResponse(input.foreignRowCount.response, 200, input.tableLimits),
+  200, input.tableLimits), {code: 'MoonBitHostFailure'});
 assert.throws(() => control.tablePreviewCommitOutcome(table.tablePreview,
   input.receipt.response, 500, input.tableLimits), {code: 'MoonBitHostFailure'});
 assert.equal(control.recoveredTablePreviewMatchesSource(table.tablePreview,
@@ -89,7 +100,7 @@ await assert.rejects(prepareRecoveredTableInput({...options,
   requestScope: effect.logicalRequestScope('sha256:' + 'e'.repeat(64), 'another-request', 128)}),
   {code: 'MoonBitHostFailure'});
 const original = recovered.connectorRecovery[0];
-assert.equal(table.schemaWire, '{"id":{"nullable":false,"type":"number"}}');
+assert.equal(table.schemaWire, input.expectedSchemaWire);
 for (const schema_wire of ['{}', table.schemaWire + ' ']) {
   await assert.rejects(prepareRecoveredTableInput({...options, recovered: {...recovered,
     connectorRecovery: [{...original, wire: JSON.stringify({...JSON.parse(original.wire), schema_wire})}]}}),
@@ -147,14 +158,22 @@ await assert.rejects(readRecoveredTableInput({prepared: table, maxBytes: 100000}
 // Receipt projection remains immutable after release; it is not availability
 // or permission to resend this operation.
 assert.equal(control.tablePreviewCommitOutcome(table.tablePreview,
-  input.receipt.response, 200, input.tableLimits), input.receipt.outcome);
+  control.localTableCommitResponse(input.receipt.response, 200, input.tableLimits),
+  200, input.tableLimits), input.receipt.outcome);
 await store.close();
 process.stdout.write(JSON.stringify(result));
 `;
 
-for (const empty of [false, true]) {
-  test(`Table durable capture restores ${empty ? 'empty' : 'nonempty'} semantic Preview in a new process`,
-    async t => exerciseEffectSourceSet(t, {empty, onTablePreview: async f => {
+for (const [empty, privateTableInput, sparseTableInput] of [[false,false], [true,false], [false,true], [true,true], [false,true,true], [true,true,true]]) {
+  test(`Table durable capture restores ${empty ? 'empty' : 'nonempty'} ${sparseTableInput ? 'sparse private input' : privateTableInput ? 'private input' : 'Result'} semantic Preview in a new process`,
+    async t => exerciseEffectSourceSet(t, {empty, privateTableInput, sparseTableInput,
+      prepareCaptureResults: true, onTablePreview: async f => {
+      const rowCount = empty ? 0 : sparseTableInput ? 3 : 2;
+      const expectedRows = empty ? [] : sparseTableInput ?
+        [{k: 1, p: 7}, {k: 2, p: null}, {k: 3}] : [{id: 1}, {id: 2}];
+      const expectedSchemaWire = sparseTableInput ?
+        '{"k":{"nullable":false,"type":"number"},"p":{"contract":{"nullable":true,"type":"number"},"presence":"conditional"}}' :
+        '{"id":{"nullable":false,"type":"number"}}';
       const control = f.sourceControl;
       const limits = f.options.contractLimits;
       const context = f.options.localEvidenceContext;
@@ -201,8 +220,9 @@ for (const empty of [false, true]) {
             maxBuffer: 1024 * 1024, input: JSON.stringify({
               store: {...f.storeConfiguration, privateEvidenceKey: undefined},
               runWire: context.runDefinition.wire, limits, tableLimits: f.tableLimits,
-              receipt: receiptFixture(f.operations[0], empty ? 0 : 2),
-              foreignRowCount: receiptFixture(f.operations[0], empty ? 1 : 3)})});
+              expectedSchemaWire,
+              receipt: receiptFixture(f.operations[0], rowCount),
+              foreignRowCount: receiptFixture(f.operations[0], rowCount + 1)})});
         assert.equal(child.status, 0, child.stderr);
         assert.equal(child.error, undefined);
         const recovered = JSON.parse(child.stdout);
@@ -212,16 +232,16 @@ for (const empty of [false, true]) {
         assert.deepEqual(recovered.holdings.map(({holdingCid}) => holdingCid),
           retained.holdings.map(holding => holding.holdingCid));
         assert.deepEqual(recovered.holdings.map(({rows}) => rows),
-          [empty ? [] : [{id: 1}, {id: 2}], empty ? [] : [{id: 1}, {id: 2}]]);
+          [expectedRows, expectedRows]);
         assert.deepEqual(recovered.holdings.map(({manifestCid}) => manifestCid),
           retained.holdings.map(holding => holding.artifact.identity));
         assert.deepEqual(recovered.table, {operationWire: f.tableInput.wire,
-          mappingWire: f.storage.wire, schemaWire: '{"id":{"nullable":false,"type":"number"}}',
+          mappingWire: f.storage.wire, schemaWire: expectedSchemaWire,
           subjectCid: f.tablePreview.subjectCid,
           memberIndex: 0,
           rowPreviewCid: control.tablePreviewLedgerBinding(f.tablePreview).rowPreviewCid,
-          rows: empty ? [] : [{id: 1}, {id: 2}]});
-        assert.equal(f.execution.completed.length, 1);
+          rows: expectedRows});
+        if (!sparseTableInput) assert.equal(f.execution.completed.length, 1);
         retirementStore = await openLocalPublicationStore(f.storeConfiguration, control);
         f.replaceStoreForCleanup(retirementStore);
         storeClosed = false;

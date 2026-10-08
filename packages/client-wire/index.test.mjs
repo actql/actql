@@ -20,7 +20,7 @@ const ref = Object.freeze({namespaceId: 'namespace-a',
 
 test('public wire accepts the exact connected request shapes', () => {
   // Run, request, submission-intent, check, Checkpoint and Resource operations.
-  assert.equal(clientHostOperations.length, 22);
+  assert.equal(clientHostOperations.length, 23);
   assert.equal(validClientConnection(connection), true);
   assert.equal(validRunRef(ref), true);
   assert.equal(validClientBody('connect', {connection}), true);
@@ -35,6 +35,19 @@ test('public wire accepts the exact connected request shapes', () => {
     intentCid: 'sha256:5ad281d9145e26cfb0bf5b7b0fa37c11cb2b065687350ae53a36f714bca0fe44',
     kind: 'program', input: {}, parameters: null};
   assert.equal(validClientBody('submit-intent', submitted), true);
+  const fresh = {...submissionRef, epoch: {...submissionRef.epoch,
+    epochNonce: 'e'.repeat(64), notBefore: 1800000001000, expiresAt: 1800000002000}, nonce: 'fresh'};
+  const restarted = {...submitted, submissionRef: fresh, unresolvedHistory: {
+    submissionRef, acknowledgement: 'possible_prior_execution_and_effects'}};
+  assert.equal(validClientBody('restart-intent', restarted), true);
+  assert.equal(validClientBody('submit-intent', restarted), false);
+  for (const unresolvedHistory of [undefined, {...restarted.unresolvedHistory, acknowledgement: 'retry'},
+    {...restarted.unresolvedHistory, actorId: 'caller-selected'},
+    {...restarted.unresolvedHistory, submissionRef: fresh},
+    {...restarted.unresolvedHistory, submissionRef: {...submissionRef,
+      epoch: {...submissionRef.epoch, authorityScopeCid: 'sha256:' + '0'.repeat(64)}}}]) {
+    assert.equal(validClientBody('restart-intent', {...restarted, unresolvedHistory}), false);
+  }
   assert.equal(validClientBody('lookup-submission', {connection, submissionRef}), true);
   for (const changed of [{requestId: 'unbound'}, {intentCid: 'invalid'},
     {submissionRef: {...submissionRef, epoch: {...submissionRef.epoch, expiresAt: 1800000000000}}},
@@ -112,7 +125,7 @@ test('source format selection is explicit and bounded', () => {
 test('submit preparation errors follow the public Host contract', () => {
   for (const code of ['ClientProgramInvalidInput',
     'ClientParametersInvalid', 'ClientParametersTooLarge',
-    'ClientProgramUnsupported', 'ClientProgramNeedsInputs',
+    'ClientProgramUnsupported', 'ClientProgramAnalysisLimit', 'ClientProgramImplementationLimit', 'ClientProgramNeedsInputs',
     'ClientProgramRejected']) {
     assert.equal(validSubmitPreparationError({code}), true);
   }

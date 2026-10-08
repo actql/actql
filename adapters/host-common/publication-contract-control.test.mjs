@@ -1235,7 +1235,7 @@ test('portable control validates Receipt and Captured Run references',
     ['value'],
     limits,
   );
-  const captured = control.issueEffectFreeCapturedRun({
+  const captured = await control.issueEffectFreeCapturedRun({
     runDefinition: run,
     invocation: invoked,
     definitions: [definition],
@@ -1327,7 +1327,7 @@ test('portable control validates Receipt and Captured Run references',
     effectSources: [control.admitCapturedEffectSourceArtifact(
       preview, 0, invoked, sourceArtifact, cid('a'))],
     pendingSourceStateAdvances: [], authoringContext, modelEvidence: []};
-  assert.throws(() => control.issueEffectfulCapturedRun(
+  await assert.rejects(() => control.issueEffectfulCapturedRun(
     computationChain, computationEvidence, preview,
     [{name: 'WriteOne', wire: '{}'}], limits),
   {name: 'TypeError', message: 'Invalid Effectful Captured Run request'});
@@ -1553,7 +1553,7 @@ test('portable control validates Receipt and Captured Run references',
   assert.throws(() => control.effectfulCommitValid(effectfulEvidence, {},
     effectfulReceipts, request, attempt, effectfulIndex, limits),
   {name: 'TypeError', message: 'Foreign Effect computation Preview'});
-  assert.equal(control.effectFreeChainValid(
+  assert.equal(await control.effectFreeChainValid(
     run,
     invoked,
     [definition],
@@ -1563,7 +1563,7 @@ test('portable control validates Receipt and Captured Run references',
     captured,
     limits,
   ), true);
-  assert.equal(control.effectFreeCommitValid(
+  assert.equal(await control.effectFreeCommitValid(
     run,
     invoked,
     [definition],
@@ -1589,7 +1589,7 @@ test('portable control validates Receipt and Captured Run references',
     }),
     limits,
   );
-  assert.equal(control.effectFreeChainValid(
+  assert.equal(await control.effectFreeChainValid(
     run,
     invoked,
     [foreignDefinition],
@@ -1611,7 +1611,7 @@ test('portable control validates Receipt and Captured Run references',
   const wrongReceiptCapture = control.seal(
     'captured_run', JSON.stringify(wrongReceiptCaptureValue), limits,
   );
-  assert.equal(control.effectFreeChainValid(
+  assert.equal(await control.effectFreeChainValid(
     run,
     invoked,
     [definition],
@@ -1630,7 +1630,7 @@ test('portable control validates Receipt and Captured Run references',
   const wrongInventoryCapture = control.seal(
     'captured_run', JSON.stringify(wrongInventoryValue), limits,
   );
-  assert.equal(control.effectFreeChainValid(
+  assert.equal(await control.effectFreeChainValid(
     run,
     invoked,
     [definition],
@@ -1645,7 +1645,7 @@ test('portable control validates Receipt and Captured Run references',
     public_index_entry_cid: undefined,
     result_manifest_cid: cid('0'),
   }), limits);
-  assert.equal(control.effectFreeCommitValid(
+  assert.equal(await control.effectFreeCommitValid(
     run,
     invoked,
     [definition],
@@ -2106,6 +2106,15 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(retried.committed, false);
   assert.equal(retried.idempotent, true);
   assert.equal(retried.index.identity, committed.index.identity);
+  const alreadyCancelled = new AbortController();
+  alreadyCancelled.abort(new Error('cancelled after durable publication'));
+  const cancelledReplay = await publishEffectFreeRun({
+    ...publicationOptions, signal: alreadyCancelled.signal,
+  });
+  assert.equal(cancelledReplay.state, 'succeeded');
+  assert.equal(cancelledReplay.idempotent, true);
+  assert.equal(cancelledReplay.index.identity, committed.index.identity);
+  assert.equal(exportedResults, 1);
 
   const completedUnknownDirectory = await mkdtemp(join(
     tmpdir(), 'actql-completed-publication-unknown-',
@@ -3661,6 +3670,12 @@ test('portable control validates Receipt and Captured Run references',
   let commitArrivals = 0;
   let releaseCommits;
   const commitsReady = new Promise(resolve => { releaseCommits = resolve; });
+  let finalizationArrivals = 0;
+  let releaseFinalizations;
+  const finalizationsReady = new Promise(resolve => { releaseFinalizations = resolve; });
+  let releaseFirstFinalization;
+  const firstFinalization = new Promise(resolve => { releaseFirstFinalization = resolve; });
+  let staleFinalizationCode;
   const raceStore = Object.freeze({
     ...raceBase,
     async commitIndex(...arguments_) {
@@ -3668,6 +3683,23 @@ test('portable control validates Receipt and Captured Run references',
       if (commitArrivals === 2) releaseCommits();
       await commitsReady;
       return raceBase.commitIndex(...arguments_);
+    },
+    async appendRecord(wire, options) {
+      if (JSON.parse(wire).state !== 'succeeded') {
+        return raceBase.appendRecord(wire, options);
+      }
+      // Both callers issue their next record before either physical append.
+      // The second then observes the first durable append, not a link race.
+      const arrival = ++finalizationArrivals;
+      if (arrival === 2) releaseFinalizations();
+      await finalizationsReady;
+      if (arrival === 1) {
+        try { return await raceBase.appendRecord(wire, options); }
+        finally { releaseFirstFinalization(); }
+      }
+      await firstFinalization;
+      try { return await raceBase.appendRecord(wire, options); }
+      catch (error) { staleFinalizationCode = error.code; throw error; }
     },
   });
   const raceAttempts = ['race-a', 'race-b'].map(attemptId => ({
@@ -3680,6 +3712,8 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(raced.filter(value => value.idempotent).length, 1);
   assert.equal(raced[0].index.identity, raced[1].index.identity);
   assert.equal(raced[0].attempt.identity, raced[1].attempt.identity);
+  assert.equal(finalizationArrivals, 2);
+  assert.equal(staleFinalizationCode, 'InvalidPublicationRecordTransition');
   const raceContracts = raceAttempts.map(attempt =>
     control.issuePublicationAttempt(request, run, attempt, limits));
   const raceStates = await Promise.all(raceContracts.map(attempt =>
@@ -3711,6 +3745,64 @@ test('portable control validates Receipt and Captured Run references',
     ),
     error => error?.code === 'PublicationContractMissing',
   );
+
+  const refusedDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-publication-finalization-refusal-',
+  ));
+  t.after(() => rm(refusedDirectory, {recursive: true, force: true}));
+  const refusedBase = await openLocalPublicationStore({
+    directory: refusedDirectory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  }, control);
+  t.after(async () => { await refusedBase.close(); });
+  await refusedBase.putSemantic(resultSchemaWire, resultSchemaCid);
+  await refusedBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
+  const refusal = Object.assign(new Error('finalization not physically appended'), {
+    code: 'InvalidPublicationRecordTransition',
+  });
+  const foreignFinished = await raceBase.latestRecordContract(raced[0].attempt.identity);
+  let refuseWithForeignRecord = false;
+  let finalizationRefused = false;
+  const refusedStore = Object.freeze({
+    ...refusedBase,
+    async latestRecordContract(attemptCid) {
+      if (refuseWithForeignRecord && finalizationRefused) return foreignFinished;
+      return refusedBase.latestRecordContract(attemptCid);
+    },
+    async appendRecord(wire, options) {
+      if (JSON.parse(wire).state === 'succeeded') {
+        finalizationRefused = true;
+        throw refusal;
+      }
+      return refusedBase.appendRecord(wire, options);
+    },
+  });
+  const refusedOptions = {...publicationOptions,
+    attempt: {...publicationOptions.attempt, attemptId: 'refused-finalization'}};
+  await assert.rejects(publishEffectFreeRun({...refusedOptions, store: refusedStore}),
+    error => error === refusal);
+  // A terminal success for another committed index cannot discharge this
+  // failure. Removing the exact-index check makes this negative case succeed.
+  refuseWithForeignRecord = true;
+  finalizationRefused = false;
+  await assert.rejects(publishEffectFreeRun({...refusedOptions, store: refusedStore}),
+    error => error === refusal);
+  const refusedAttempt = control.issuePublicationAttempt(request, run,
+    refusedOptions.attempt, limits);
+  assert.equal((await refusedBase.latestRecord(refusedAttempt.identity)).state,
+    'committing');
+  // A real pending finalization is not mistaken for durable success. Replay
+  // reconciles the existing committed index through the unchanged Store owner.
+  const recoveredRefusal = await publishEffectFreeRun({...refusedOptions,
+    store: refusedBase});
+  assert.equal(recoveredRefusal.state, 'succeeded');
+  assert.equal(recoveredRefusal.idempotent, true);
+  assert.equal(recoveredRefusal.attempt.identity, refusedAttempt.identity);
 
   const unknownDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-unknown-',

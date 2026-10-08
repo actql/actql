@@ -9,6 +9,95 @@ const unit = 'packages/sdk/operation-formats.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const facts = 'operation formats retain typed facts, original lookup references and unknown outcomes without I/O';
 const mutations = [
+  {name: 'Source implementation refusal exposes unchecked private metadata',
+    path: 'adapters/host-node/client-program-preparation.mjs', file: 'adapters/host-node/client-check.test.mjs',
+    from: "source_unsupported: 'ClientProgramRejected'", to: "source_unsupported: 'ClientProgramUnsupported'",
+    also: [{from: "      'source_unsupported', 'check_invalid_input', 'check_unsupported', 'check_compile_limit'].includes(category)",
+      to: "      'check_invalid_input', 'check_unsupported', 'check_compile_limit'].includes(category)"}],
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: Source-dependent unsupported refusal hides absent and denied Sources`,
+      'submission-implementation-private', 'deepStrictEqual'))},
+  {name: 'Source implementation fact is erased from public preparation',
+    path: 'adapters/host-node/client-program-preparation.mjs', file: 'adapters/host-node/client-check.test.mjs',
+    from: "fail('ClientProgramImplementationLimit', error);", to: "fail('ClientProgramRejected', error);",
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: original submission projects implementation limits only from public checking`,
+      'submission-implementation-public', 'deepStrictEqual'))},
+  {name: 'Source implementation lookup borrows an analysis budget fact',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
+    from: "? 'analysis_budget_exhausted' : 'implementation_limit'", to: "? 'analysis_budget_exhausted' : limit.code",
+    targets: ['partial', 'completed'].map(kind => target(
+      `retained Source implementation limit rechecks ${kind} original disclosure`,
+      'submission-implementation-disclosure', 'deepStrictEqual'))},
+  {name: 'Source implementation explanation loses its safe guidance',
+    path: 'packages/sdk/index.mjs', file: 'packages/sdk/submission-explanations.test.mjs',
+    from: "if (explanation.problem?.code === 'ClientProgramImplementationLimit' &&\n      explanation.problem.classification === 'implementation_limit')", to: 'if (false)',
+    targets: ['not_accepted', 'preparation_failed'].map(phase => target(
+      `submission implementation limit explains ${phase} without choosing the phase from its code`,
+      'submission-implementation-guidance', 'deepStrictEqual'))},
+  {name: 'submission analysis budget loses implementation-limit classification',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-check.test.mjs',
+    from: "ClientProgramAnalysisLimit: 'implementation_limit'",
+    to: "ClientProgramAnalysisLimit: 'operation_failed'",
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: original submission retains a disclosed analysis budget without input blame`,
+      'submission-budget-public', 'deepStrictEqual'))},
+  {name: 'submission analysis budget ignores current public disclosure',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
+    from: "observed?.scope.kind === 'bound_input' && observed.coverage.limits.some(\n          limit => limit.code === (outcome.problem.code === 'ClientProgramAnalysisLimit'\n            ? 'analysis_budget_exhausted' : 'implementation_limit'))",
+    to: 'true',
+    targets: [target('retained Source analysis budget rechecks original intent and current disclosure without preparation',
+      'submission-budget-disclosure', 'deepStrictEqual')]},
+  {name: 'submission analysis budget loses safe SDK guidance',
+    path: 'packages/sdk/index.mjs', file: 'packages/sdk/submission-explanations.test.mjs',
+    from: "if (explanation.problem?.code === 'ClientProgramAnalysisLimit' &&\n      explanation.problem.classification === 'implementation_limit')",
+    to: 'if (false)',
+    targets: ['not_accepted', 'preparation_failed'].map(phase => target(
+      `submission analysis budget explains ${phase} without choosing the phase from its code`,
+      'submission-budget-guidance', 'deepStrictEqual'))},
+  {name: 'submission disclosure reuses a previously visible Source problem',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
+    from: '    if (disclosable) return outcome;', to: '    if (true) return outcome;',
+    targets: [target('retained Source input problems recheck original intent and current disclosure without preparation',
+      'submission-disclosure', 'deepStrictEqual')]},
+  {name: 'submission disclosure suppresses invalid input beside an unresolved Source',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-check.test.mjs',
+    from: "observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid'",
+    to: "observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid' && observed.coverage.unresolved.length === 0",
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: original submission explanations hide private resolution and preserve independent input violations`,
+      'submission-private-input', 'deepStrictEqual'))},
+  {name: 'submission disclosure treats an undetermined report as invalid input',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
+    from: "observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid'",
+    to: "observed?.scope.kind === 'bound_input' && ['invalid', 'undetermined'].includes(observed.verdict)",
+    targets: [target('submission disclosure does not derive invalid input from undetermined reporting',
+      'submission-reporting', 'deepStrictEqual')]},
+  {name: 'submission explanation converts accepted preparation failure into nonacceptance',
+    path: 'packages/sdk/index.mjs', file: 'adapters/host-node/submission-epoch-public.test.mjs',
+    from: "const observation = outcome.kind === 'unresolvable' ? 'history_unresolvable' : outcome.kind;",
+    to: "const observation = outcome.kind === 'preparation_failed' ? 'not_accepted' : outcome.kind === 'unresolvable' ? 'history_unresolvable' : outcome.kind;",
+    targets: ['local', 'https'].flatMap(entrance => [
+      'an accepted unsupported pre-Run wait remains a preparation failure after reconnect',
+      'durable input rejection explains nonacceptance and survives original lookup',
+    ].map(name => target(`${entrance}: ${name}`, 'submission-public-phase', 'deepStrictEqual')))},
+  {name: 'submission explanation drops admitted lookup facts',
+    path: 'packages/sdk/index.mjs', file: 'packages/sdk/submission-explanations.test.mjs',
+    from: 'return retainSubmissionExplanation(freezeInput(answer), answer, context);',
+    to: 'return freezeInput(answer);',
+    targets: ['not_accepted', 'preparation_failed', 'preparing', 'ready', 'unresolvable'].map(kind => target(
+      `submission lookup explanation retains admitted ${kind} and the original epoch`, 'submission-lookup', 'deepStrictEqual'))},
+  {name: 'submission explanation replaces a rejected lookup original with a fresh nonce',
+    path: 'packages/sdk/index.mjs', file: 'packages/sdk/submission-explanations.test.mjs',
+    from: 'hint: submissionObservationHint, next: submissionTarget(context)}));',
+    to: "hint: submissionObservationHint, next: {...submissionTarget(context), submissionRef: {...context.submissionRef, nonce: 'fresh-submission'}}}));",
+    targets: ['unknown branch', 'wrong nonce', 'malformed problem', 'changed clone'].map(fault => target(
+      `submission lookup refuses ${fault} without acquiring outcome facts`, 'submission-rejected-reference', 'deepStrictEqual'))},
+  {name: 'submission explanation presents local nondispatch as Owner rejection',
+    path: 'packages/sdk/index.mjs', file: 'packages/sdk/submission-explanations.test.mjs',
+    from: "if (input) submissionExplanations.set(result, freezeInput({observation: 'not_sent',",
+    to: "if (input) submissionExplanations.set(result, freezeInput({observation: 'not_accepted',",
+    targets: [target('known unsent submission explains dispatch only and has no Owner outcome', 'submission-unsent')]},
   {name: 'short query drops its existing Run observation explanation', path: 'packages/sdk/index.mjs',
     file: 'adapters/host-node/client-short-query-observation-failure.test.mjs',
     from: '    if (failure) runObservationFailures.set(error, failure);',
@@ -83,11 +172,16 @@ const run = item => {
 const results = [];
 for (const item of selected) {
   const original = readFileSync(item.path, 'utf8');
-  if (original.split(item.from).length !== (item.occurrences ?? 1) + 1) throw new Error(`Mutation anchor not unique: ${item.name}`);
+  const replacements = [{from: item.from, to: item.to, occurrences: item.occurrences}, ...(item.also ?? [])];
+  for (const replacement of replacements) {
+    if (original.split(replacement.from).length !== (replacement.occurrences ?? 1) + 1) throw new Error(`Mutation anchor not unique: ${item.name}`);
+  }
   if (!run(item)) throw new Error(`Baseline failed: ${item.name}`);
   let rejected;
   try {
-    writeFileSync(item.path, original.replaceAll(item.from, item.to));
+    const mutated = replacements.reduce((source, replacement) =>
+      source.replaceAll(replacement.from, replacement.to), original);
+    writeFileSync(item.path, mutated);
     rejected = !run(item);
   } finally {
     writeFileSync(item.path, original);

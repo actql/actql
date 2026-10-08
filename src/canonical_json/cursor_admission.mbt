@@ -36,6 +36,8 @@ struct CursorAdmission {
   mut value : CanonicalValue?
   mut terminal : Bool
   data_keys : Bool
+  mut text : @scalar.Utf8Admission?
+  mut measured_text : Int?
 }
 
 ///|
@@ -71,6 +73,8 @@ pub fn start_cursor_admission(
     value: None,
     terminal: false,
     data_keys,
+    text: None,
+    measured_text: None,
   })
 }
 
@@ -80,6 +84,18 @@ fn cursor_admission_text(
   text : String,
   identifier~ : Bool,
 ) -> String raise CanonicalFailure {
+  if admission.measured_text is Some(bytes) {
+    admission.measured_text = None
+    admission.raw_text_bytes += bytes
+    if !identifier {
+      if text.length() > admission.budget.units {
+        raise InputLimit
+      }
+      admission.budget.units -= text.length()
+      return text
+    }
+    return normalize(text, admission.budget, identifier~)
+  }
   let normalized = normalize(text, admission.budget, identifier~)
   match
     @scalar.admit_utf8_length(
@@ -97,6 +113,20 @@ fn CursorAdmission::step(
   admission : CursorAdmission,
 ) -> Unit raise CanonicalFailure {
   let budget = admission.budget
+  if admission.text is Some(text) {
+    match text.advance() {
+      @scalar.Utf8AdmissionContinue => ()
+      @scalar.Utf8AdmissionComplete(bytes) => {
+        admission.measured_text = Some(bytes.to_int())
+        admission.text = None
+      }
+      @scalar.Utf8AdmissionFailed(@scalar.MalformedUtf16(offset)) =>
+        raise InvalidUnicode(offset)
+      @scalar.Utf8AdmissionFailed(_) => raise InputLimit
+      @scalar.Utf8AdmissionTerminal => raise InputLimit
+    }
+    return
+  }
   guard admission.pending.pop() is Some(frame) else { raise InputLimit }
   match frame {
     CursorRead(cursor, depth) => {
@@ -124,8 +154,22 @@ fn CursorAdmission::step(
         admission.value = Some(
           match @decode.view(cursor) {
             @decode.BoolValue(value) => Bool(value)
-            @decode.TextValue(text) =>
+            @decode.TextValue(text) => {
+              if text.length() > 64 && admission.measured_text is None {
+                guard @scalar.start_utf8_admission(
+                    text,
+                    (admission.max_raw_text_bytes - admission.raw_text_bytes).to_int64(),
+                  )
+                  is Ok(pending) else {
+                  raise InputLimit
+                }
+                admission.text = Some(pending)
+                budget.nodes += 1
+                admission.pending.push(frame)
+                return
+              }
               String(cursor_admission_text(admission, text, identifier=false))
+            }
             @decode.NumberValue(number) => {
               if number.is_nan() ||
                 number.is_inf() ||
@@ -158,6 +202,18 @@ fn CursorAdmission::step(
       if @decode.field_at(cursor, index) is Some((raw_name, _)) {
         if budget.nodes == 0 {
           raise InputLimit
+        }
+        if raw_name.length() > 64 && admission.measured_text is None {
+          guard @scalar.start_utf8_admission(
+              raw_name,
+              (admission.max_raw_text_bytes - admission.raw_text_bytes).to_int64(),
+            )
+            is Ok(pending) else {
+            raise InputLimit
+          }
+          admission.text = Some(pending)
+          admission.pending.push(frame)
+          return
         }
         let name = cursor_admission_text(
           admission,
@@ -251,6 +307,11 @@ pub fn advance_cursor_admission(
 
 ///|
 pub fn cancel_cursor_admission(admission : CursorAdmission) -> Unit {
+  if admission.text is Some(text) {
+    text.cancel()
+  }
+  admission.text = None
+  admission.measured_text = None
   for frame in admission.pending {
     match frame {
       CursorArrayNext(_, output, _, _) | CursorArrayAppend(output) =>

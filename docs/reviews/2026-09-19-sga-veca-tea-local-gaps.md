@@ -6788,3 +6788,322 @@ owners to bounded common receipt polling before retained content is sealed.
 See [scope and evidence](2026-10-08-duckdb-bounded-physical-receipts.md).
 This is separate from row-file Local export completion, managed View verification
 and physical chunk admission; those are not counted as closed by this change.
+
+### Bounded View summary and receipt completion (2026-10-08)
+
+Managed View completion now resumes common column admission, ordered index
+diagnosis and receipt issuance through the existing owner. The selected DuckDB
+strategy path polls this owner before retention; competing finish, cancellation,
+input revocation and mutable fact custody are covered independently. Logical
+measurement and typed first-failure precedence are unchanged. See the
+[View completion record](2026-10-08-local-bounded-view-finish.md).
+Occurrence selection/copy preparation and trusted availability/verifier callback
+duration remain separate boundaries, as do row-file completion and physical chunk
+admission. This does not establish packed/public Run cancellation or whole-Local
+completion.
+
+### Managed selection traversal follow-up (2026-10-08)
+
+Occurrence map copying/validation, permutation uniqueness, column aggregates
+and copied measurement cells now resume through the common selection owner.
+The selected DuckDB managed strategy polls this owner before View completion
+and Store retention. Independent work/cell boundaries, cursor cancellation and
+the actual filter/select strategy caller are connected in the
+[selection preparation record](2026-10-08-local-bounded-view-selection.md).
+The packed payload remains one bounded-capacity allocation; its latency,
+View-plan preparation and trusted callbacks are not made bounded by this change.
+Pure-select native candidate support and whole-Local completion are not claimed.
+
+### Within-row retained export follow-up (2026-10-08)
+
+Completed row-file export now resumes name/value measurement and canonical
+emission through existing cursors. The Local Node Store adapter polls within
+one row, yielding for Host cancellation before a complete row reaches the Store.
+The ordinary Values/filter/select producer and its two consumer Named Results
+use real retained/publication Stores with independent expectations. Cancellation
+during row measurement retains its original cause, confirms stop, prevents
+publication and drains existing cleanup without additional Compute.
+See the [row export record](2026-10-08-local-bounded-row-file-export.md) for
+independent work/workspace limits, the additional fixed capacity envelope and
+fixed-source JS/Node evidence. Export preparation, publication metadata copies,
+blocking Native consumers and trusted callback latency are still separate
+boundaries; this is not packed/all-target or whole-Local completion.
+
+### Bounded export metadata follow-up (2026-10-08)
+
+Bare Local row-file preparation now resumes canonical column-name ordering,
+including long Text charging/comparison and insertion shifts, then initializes
+private names and summaries one column at a time before physical Store
+acquisition. Publication receipt completion transfers six private summaries
+once; public readers remain independent copies. Existing logical work, content
+CIDs and ordering are unchanged. The modeled fixed preparation envelope adds
+512 bytes per output; the policy ceiling is unchanged.
+
+At `ea2a1cb22ed027c07abad545fcc6b6ac0c359c4b`, common-owner and Table-input
+caller JS tests passed 42/42 and both consumed checkout runtimes built. Node
+19/19 passed at `37268a22ad81015c5c35bd7b2d19cf76dede586f`, whose only further
+runtime-boundary change corrects the generated tuple reader and related JS
+fixtures. The actual Host cancellation happens during metadata preparation:
+zero Store leases, stop confirmed, no publication and final resource release
+without redispatch. Failed earlier binding evidence and exact runtime-source
+reuse are recorded in the
+[metadata preparation record](2026-10-08-local-bounded-export-metadata.md).
+
+Publication schema hashing/Result-view preparation, snapshot getters, blocking
+Native consumers, physical chunk admission and trusted callback latency remain
+separate boundaries. This is not packed/all-target or whole-Local completion.
+
+### Bounded Named Result preparation follow-up (2026-10-08)
+
+The common Result-view owner now resumes typed projection/source-name lookup,
+Text charging/comparison and stable merge emission, then polls the existing
+export metadata owner under the same preparation quantum. Private maps and
+pending Result borrows are transferred or retired once; revocation and reentry
+checks remain at the ownership boundaries. Logical work, stable ordering and
+wire/CID contracts are unchanged.
+
+Independent exact/one-short mapping, order and row-map workspace cases pass
+alongside cancellation inside both Text charging and comparison. The actual
+retained Host reads all three Named Results in independent expected order;
+cancellation during Result comparison preserves the exact abort cause, prevents
+publication and releases existing reservations without additional Compute.
+See the [Result preparation record](2026-10-08-local-bounded-result-preparation.md)
+for source-specific JS 38/38, Host 10/10 and integration Host 2/2 evidence.
+
+Schema identity emission remains synchronous. Direct convenience publication
+callers can still drain preparation; snapshot copies, physical chunk admission,
+blocking Native consumers and trusted callbacks remain separate boundaries.
+A narrower projected producer Result still fails checked inter-task contract
+matching before Compute and is not claimed as supported by this unit.
+This is not packed/all-target or whole-Local completion.
+
+### Checked schema traversal follow-up (2026-10-08)
+
+The existing checked contract emitter now visits object children one at a time
+and uses the shared ordered-key/Text writer cursors. Relation schema identity
+polls hash emission, wire emission and private field-name collection; retained
+Result metadata polls that owner before issuing a stream. Canonical schema
+CIDs, conditional presence and aggregate byte/node/depth limits remain unchanged.
+
+Independent frame and writer boundaries, hash/wire cancellation, and actual
+Host cancellation during recursive schema traversal are recorded in the
+[schema preparation evidence](2026-10-08-local-bounded-schema-preparation.md):
+clean-source JS 32/32 and focused Host 4/4 with matching runtime inputs.
+This depends on #904 until the Result preparation parent is adopted by main.
+
+Blocking convenience publication callers, snapshot copies, physical chunk
+admission and runtime allocation/contiguous-string latency remain separate
+boundaries. The existing asynchronous Result transformation route is covered;
+all retained Local paths and all-target/packed completion are not claimed.
+
+### Captured publication preparation follow-up (2026-10-08)
+
+The JS Named Result adapter now polls the existing preparation owner even when
+the optional extra Client selection is absent. The captured graph still fixes
+the exact occurrence, projection, order and definition; Source/cell pins and
+managed bridge generation checks are retained. Cancellation reaches the same
+pending preparation, and custody transfers or retires once without fallback.
+
+The [publication preparation evidence](2026-10-08-local-bounded-publication-preparation.md)
+records clean-source common JS 24/24, controls 15/15 and actual Host 6/6.
+The Host cases include unselected success and positive-progress cancellation
+through real retained/publication Stores, exact Named Result rows/order for
+two consumers, non-publication and final release without another Compute.
+This depends on #907 and its #904 parent until their adoption by main.
+
+Explicit blocking Native/direct-output callers, replay metadata, snapshot and
+field-list copies/validation, physical chunk admission and runtime allocation
+remain separate boundaries. This is not all-target/packed or whole-Local
+completion; no product capacity or semantic limit was weakened.
+
+### Exact captured snapshot binding follow-up (2026-10-08)
+
+The snapshot getter now rejects a foreign finished export receipt before
+allocating its writer or traversing rows. Equal content, or another export of
+the same completed generation, cannot substitute the exact export identity.
+Existing liveness checks and receipt/source custody remain unchanged.
+
+The [snapshot binding record](2026-10-08-local-result-snapshot-binding.md)
+records two failing pre-change common-API counterexamples, clean-source JS
+20/20, and one actual retained Host case reading the producer and two consumer
+Named Results with independently expected payloads/order and final release.
+The work adopts main `465a501b6ccf1a7b57943d11d5d3614e3a53e511`; #904 is now
+integrated, while #907 and #911 remain dependencies.
+
+Snapshot re-encoding and subsequent canonical admission/field validation are
+still synchronous. This binding fix is not evidence that either traversal has
+become interruptible, and does not close the whole retained Local goal.
+
+### Resumed snapshot admission follow-up (2026-10-08)
+
+The JS retained publication path now awaits the exact export's snapshot
+preparation through both row emission and canonical admission. Existing
+key/Text emitters, the JSON grammar, raw UTF-8 measurement, indexed canonical
+admission and deferred sorting are polled; receipt and parent pin ownership
+remain with the existing export until transfer or cleanup. Wire, logical CID,
+authored fields and ordering semantics are unchanged.
+
+The [snapshot admission record](2026-10-08-local-bounded-snapshot-admission.md)
+distinguishes precommit 624/624 affected-package evidence from clean-source
+14/14 common callers, 19/19 Node controls/Store and 3/3 actual Host cases at
+`4df42cbe1d6ae72e21e0a364503d8a0bfa96aeaf`. Real Store acceptance requires
+the producer and both consumer names, independently expected Unicode/NULL
+rows and exact order. Cancellation is delivered after positive canonical
+Text progress, before publication, and existing cleanup returns reservations
+without redispatching Compute. This depends on #913, #911 and #907.
+
+Those prerequisites are now merged. PR #921 normally adopts main
+`4256490e50dec0eb261c35c156210a62539aabc6` without conflicts and targets
+main. The clean integrated source
+`c91c4425737430ad0c43a4c62aa827bd4f6efc56` passes common JS 14/14 and the
+two real-Store snapshot success/cancellation cases 2/2 with matching rebuilt
+runtimes. Earlier checks retain their own source provenance in the record;
+integration does not relabel them as fresh hosted or packed evidence.
+
+Field-name normalization/key hashing, generic long numeric lexemes,
+contiguous-string/allocation latency, physical chunk admission, aggregate
+Captured Run serialization and explicit blocking Native/direct consumers
+remain separate boundaries. This is not all-target/packed or whole-Local
+completion; previous synchronous descriptions above remain historical records.
+
+### Resumed aggregate capture issuance (2026-10-08)
+
+The JS retained publication connection now polls the existing Captured Run
+issuer through context construction, envelope emission, sealing and final
+context/Result-row evidence checks. Immutable canonical rows are checked by
+the existing snapshot owner without another whole-array copy. Definition,
+Artifact, row count, authored fields and logical CID checks remain required.
+Both Effect-free and Effectful capture await the same owner; cancellation
+retires only private preparation while existing publication owners retain
+Store cleanup responsibility. It does not redispatch Compute.
+
+The [capture issuance record](2026-10-08-local-bounded-capture-issuance.md)
+separates 247/247 affected common JS checks from 7/7 selected Node checks,
+including three actual retained Store Host cases. All three independently
+named Results are read with fixed Unicode/NULL rows and exact order. Abort
+is delivered during final context hashing or Result-row checking after all
+Compute tasks finish, and existing cleanup returns reservations without
+additional dispatch. Main `c54e157b5caa1ad981eb9393f64fd0815fb5a434`, including
+merged #921, is normally adopted; source-specific receipts are retained.
+
+Metadata/dependency validators, unique-array schema comparison, field-name
+normalization, contiguous allocation latency and later synchronous
+publication chain/commit validation remain distinct boundaries. This is
+aggregate issuance acceptance, not whole publication, all-target, packed or
+whole-Local completion. Historical synchronous descriptions above are not
+claims about the newly connected issuance path.
+
+### Resumed Effect-free publication validation (2026-10-08)
+
+The retained JS publication path now also polls the same computation
+evidence checker before fresh publication and within full commit validation.
+Result dependencies, durable bindings and final commit references remain
+required. Fresh checks observe cancellation before contract persistence or
+attempt creation; existing committed outcomes are validated first even for
+already-aborted requests. Store commit custody remains with its existing
+owner, and no blocking bridge fallback is used by the connected Host path.
+
+The [publication validation record](2026-10-08-local-bounded-publication-validation.md)
+binds 250/250 affected common JS checks and 8/8 selected Node cases to
+`5f963c44bf51753928942faf71239aca7697725b`. Six actual retained Store cases
+cover existing capture issuance and new publication validation. Three Named
+Results have independently fixed content/order. Cancellation during context
+or row checking prevents publication with no contract writes or attempt
+creation; final cleanup has no additional Compute dispatch.
+
+The development prerequisite #931 has now merged; the next PR targets main
+and preserves the tested source provenance. Metadata leaf validators and
+Effectful commit checks still have synchronous boundaries. This record does
+not establish full metadata
+boundedness, all-target or packed/HTTPS acceptance, hosted CI success, or
+whole-Local completion. Earlier synchronous entries remain historical rather
+than current descriptions of the newly connected payload-validation path.
+
+### Resumed Result dependency validation (2026-10-08)
+
+The retained Effect-free commit owner now also polls Result dependency
+lookups, duplicate/use inventories and Artifact provenance. Private use
+flags are initialized and reserved incrementally, and immutable arrays are
+read without whole-inventory copies. Exact evidence bindings, typed refusal
+order, shared retention rules and Store custody remain unchanged.
+
+The [Result dependency record](2026-10-08-local-bounded-result-evidence.md)
+separates integrated-source common JS 256/256 from clean-source Node 8/8,
+including six actual retained Host cases. The success case requires multiple
+polls during Result dependency resolution, then reads all three independently
+named Results with fixed content/order. Independent control totals and
+exact/one-short workspace reservations cover the new continuation; partial
+cancellation retires private state without retiring the admitted inputs.
+
+PR #934 is merged, and this unit normally adopts main
+`2d38f1ccf8134ebb96446ef9cb1e53767a704200` without conflicts. Durable
+binding inventories, request/index inventories, long names and computation
+metadata preludes still have synchronous boundaries. Effectful commit,
+Native/direct, packed and all-target acceptance are not closed by these
+checks. This is not whole publication or whole-Local completion.
+
+### Resumed binding and commit inventories (2026-10-08)
+
+The retained Effect-free commit preparation now polls durable binding and
+index membership, request inventory names and namespace equality. Exact
+references and typed refusal precedence remain required; immutable inventories
+are not copied or sorted. Long names use the existing UTF-16 fragment
+comparator, and the inventory child frame is reserved before construction.
+Cancellation retires private cursors without releasing caller-owned evidence
+or Store custody. Durable commit-first reconciliation remains unchanged.
+
+The [commit inventory record](2026-10-08-local-bounded-commit-inventories.md)
+binds common JS 263/263 and selected Node 8/8 to clean source
+`549cf972ef68a1d703f99628377699f8fded64e9`. Six actual retained Host cases
+use matching rebuilt runtimes. Success requires multiple binding/namespace
+polls for a long Unicode namespace and reads all three independently named
+Results with fixed content and exact order. Existing fresh cancellation,
+committed replay, cleanup and no-redispatch assertions remain connected.
+Independent control formulas, exact/one-short frames, partial cursor
+cancellation and typed corruption probes cover the private continuations.
+
+PR #936 has merged. Draft #941 normally adopts main
+`0efa031c2b81b9aaf9e753a39154f5ce816d8e1d` without conflicts and targets
+main with no unmerged prerequisite. Production implementation and selected
+acceptance inputs remain identical to the tested source; integration evidence
+does not relabel earlier executions. Computation metadata preludes,
+scalar schema checks, issuance-side inventories, field-name normalization and
+physical allocation latency remain distinct boundaries. Blocking wrappers
+share the same algorithm but do not establish asynchronous issuance or
+Effectful driver connection. This is not all-target, packed/HTTPS, hosted CI,
+whole publication or whole-Local completion. Earlier synchronous descriptions
+remain historical records, not claims about these newly connected scans.
+
+### Resumed root and computation evidence preludes (2026-10-08)
+
+The retained Effect-free owners now poll root inventories and exact embedded
+manifest, Artifact and Receipt comparisons before context validation. Capture
+issuance also polls that root check before preparing the context. All paths
+reuse the existing canonical emitter and exact UTF-16 fragments; value
+equality is not replaced with CID equality. Private buffer and child capacity
+is reserved, and cancellation retires private state without dropping Store
+custody or borrowed evidence.
+
+The [evidence prelude record](2026-10-08-local-bounded-evidence-prelude.md)
+binds common JS 271/271 and rebuilt runtime inputs to
+`1af92adb7ef8f48c5b834f16bb43ce7cd490e8e0`, and selected Node 10/10 to
+`036cf1464d80ba6dcd7cc4de26b3b2affa716590`. The latter changes only Host
+fixture synchronization; compiled inputs are identical. Actual Host success
+reads the producer and both consumer Named Results with fixed content and
+exact order. Fresh cancellation now also occurs during root preparation and
+embedded Receipt comparison. Independent stream/root work and frame boundaries
+are separate from Compute logical-work guarantees.
+
+Additional yields exposed a durable finalization race. The adapter accepts a
+stale transition only after the common owner confirms terminal success for the
+exact same committed index. An unfinished refusal and a foreign terminal
+record remain errors; actual Store replay reconciles the committed outcome.
+The Store's transition validation and durable commit-first rule remain intact.
+
+PR #941 is merged; this unit adopts main
+`3ecde2bc0968212bfb98a0387586ceb2188be90c` and has no unmerged parent.
+Capture inventory/preflight, evidence suffixes, scalar schema checks,
+normalization and allocation latency remain distinct synchronous boundaries.
+Blocking convenience callers share the algorithm but remain blocking.
+Effectful asynchronous commit, Native/direct, all-target and packed/HTTPS
+acceptance are not established here. This is not whole-Local completion.

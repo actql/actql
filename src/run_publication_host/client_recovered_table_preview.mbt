@@ -4,7 +4,7 @@
 /// availability and authorize continuation; there is no reconstructed Compute.
 struct RecoveredClientTablePreview {
   operation : @effect.TableOperation
-  mapping : @effect.TableStorageMapping
+  mapping : @effect.StorageMappingReference
   preview : @publication.EffectPreviewIdentity
   source : @publication.CapturedEffectSourceArtifact
   member_index : Int
@@ -19,7 +19,7 @@ pub fn bind_recovered_client_table_preview(
   source : @publication.CapturedEffectSourceArtifact,
   captured : @publication.PublicationContract,
   scope : @request_scope.LogicalRequestScope,
-  mapping_wire : String,
+  mapping : @effect.StorageMappingReference,
   store_authority_cid : String,
   max_bytes : Int,
   max_nodes : Int,
@@ -48,20 +48,23 @@ pub fn bind_recovered_client_table_preview(
     Ok(_) => ()
     Err(issue) => return Err(Preview(issue))
   }
-  let result = match
-    @publication.captured_effect_source_result_from_capture(
-      preview, member_index, invocation, source, captured, store_authority_cid, max_bytes,
-      max_nodes, max_depth,
-    ) {
+  let projected = match
+    @publication.effect_preview_member_relation_source(preview, member_index) {
+    Some(@publication.Result(_)) =>
+      @publication.captured_effect_source_result_from_capture(
+        preview, member_index, invocation, source, captured, store_authority_cid,
+        max_bytes, max_nodes, max_depth,
+      )
+    Some(@publication.TableInput(_)) =>
+      @publication.captured_effect_source_table_input_from_capture(
+        preview, member_index, invocation, source, captured, store_authority_cid,
+        max_bytes, max_nodes, max_depth,
+      )
+    None => return Err(ForeignInput)
+  }
+  let result = match projected {
     Ok(value) => value
     Err(_) => return Err(ForeignInput)
-  }
-  let mapping = match
-    @effect.admit_table_storage_mapping(
-      mapping_wire, table_max_bytes, table_max_nodes, table_max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Mapping(issue))
   }
   let parsed = match
     @source.parse_json(@publication.publication_contract_json(result), {
@@ -92,12 +95,13 @@ pub fn bind_recovered_client_table_preview(
     is Some(effect_cid) else {
     return Err(ForeignInput)
   }
-  if schema != @effect.table_storage_mapping_schema_cid(mapping) ||
+  if schema != @effect.storage_mapping_reference_schema_cid(mapping) ||
     !@effect.table_operation_matches_input(
       operation,
       scope,
       effect_cid,
       @publication.publication_contract_identity(result),
+      @carrier.RelationKind,
       relation,
       mapping,
       policy,
@@ -124,7 +128,7 @@ pub fn recovered_client_table_preview_operation(
 ///|
 pub fn recovered_client_table_preview_mapping(
   value : RecoveredClientTablePreview,
-) -> @effect.TableStorageMapping {
+) -> @effect.StorageMappingReference {
   value.mapping
 }
 
@@ -139,7 +143,7 @@ pub fn check_recovered_client_table_schema_wire(
   max_depth : Int,
 ) -> Result[Unit, ClientTableInputIssue] {
   @publication.validate_result_schema_wire(
-    @effect.table_storage_mapping_schema_cid(value.mapping),
+    @effect.storage_mapping_reference_schema_cid(value.mapping),
     wire,
     max_bytes,
     max_nodes,

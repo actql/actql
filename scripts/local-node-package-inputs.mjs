@@ -77,7 +77,7 @@ export function localNodePackageInputs(root, {buildInputs} = {}) {
     throw new Error('StaleLocalNodeInstallationTable');
   }
   const runtimePackages = unique([...hostRuntimes,
-    ...installations.map(entry => entry.providerBundle)]);
+    ...installations.map(entry => entry.providerBundle).filter(Boolean)]);
   return Object.freeze({
     runtimePackages,
     runtimeFiles: Object.freeze(runtimePackages.map(path =>
@@ -85,7 +85,8 @@ export function localNodePackageInputs(root, {buildInputs} = {}) {
     adapterEntries: unique([...hostAdapters, ...installations.flatMap(entry =>
       [entry.source, entry.effect].filter(Boolean).map(role => role.module))]),
     dataFiles: unique([...hostContracts, ...installations.flatMap(entry => entry.assets)]),
-    providerBundles: Object.freeze(installations.map(entry => Object.freeze({
+    providerBundles: Object.freeze(installations.filter(entry => entry.providerBundle !== undefined)
+      .map(entry => Object.freeze({
       name: entry.name, package: entry.providerBundle,
       file: `${entry.providerBundle}/${basename(entry.providerBundle)}.js`,
     }))),
@@ -116,7 +117,7 @@ function externalInputs(root, buildInputs) {
     const packageName = `${core.namespace}/${name}`;
     addRuntime(name, core, packageName, buildInputs.resolvePackage(packageName));
   }
-  for (const entry of installations) {
+  for (const entry of installations.filter(entry => entry.providerBundle !== undefined)) {
     addRuntime(entry.providerBundle, entry, entry.providerPackage, entry.providerPackagePath);
   }
   const coreFile = path => ({source: buildInputs.resolveFile(core.namespace, path),
@@ -148,13 +149,15 @@ function externalInputs(root, buildInputs) {
     runtimeFiles: Object.freeze(runtimeInputs.map(entry => entry.file)),
     adapterEntries: Object.freeze(adapterInputs.map(entry => entry.destination)),
     dataFiles: Object.freeze(dataInputs.map(entry => entry.destination)),
-    providerBundles: Object.freeze(installations.map(entry => Object.freeze({
+    providerBundles: Object.freeze(installations.filter(entry => entry.providerBundle !== undefined)
+      .map(entry => Object.freeze({
       name: entry.name, package: entry.providerBundle,
       file: `${entry.providerBundle}/${basename(entry.providerBundle)}.js`,
     }))),
     destinationForAdapter,
     installationTable: Object.freeze({source: table, destination: tablePath,
       render: destination => generateInstallations(installations, join(destination, tablePath), root,
-        {resolveModule: (_entry, section) => join(destination, section.module)})}),
+        {resolveModule: (_entry, section) => join(destination, section.module),
+          resolveImplementationFile: (_entry, path) => join(destination, path)})}),
   });
 }

@@ -46,7 +46,7 @@ async function fixture(t, options = {}) {
   // profile. macOS /var and /private/var aliases must not confuse observation.
   const scratch = await realpath(acceptance.scratch ?? tmpdir());
   const root = await mkdtemp(join(scratch, 'actql-public-model-resume-'));
-  if (acceptance.preserveArtifacts === true) t.diagnostic(`Model recovery artifacts: ${root}`);
+  if (acceptance.preserveArtifacts === true || process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') t.diagnostic(`Model recovery artifacts: ${root}`);
   else t.after(() => rm(root, {recursive: true, force: true}));
   if (options.transport === 'https') execFileSync('openssl', [
     'req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key',
@@ -438,6 +438,51 @@ for (const transport of ['local', 'https']) {
   });
 
   for (const commitLoss of ['before', 'after']) {
+    test(`public Model ${transport}: ${commitLoss} COMMIT reply loss separates original cancellation from physical stop`, async t => {
+      const f = await fixture(t, {transport, commitLoss});
+      const stopped = f.phase('cancel-before-stop-commit-loss');
+      const beforeStop = f.read('cancel-before-stop-observation.json');
+      const cancelRef = f.read('cancel-ref.json');
+      const expected = commitLoss === 'before' ? {kind: 'unknown', cancelRef}
+        : {kind: 'found', cancellation: {ref: stopped.ref, cancelRef,
+          kind: 'accepted', revision: cancelRef.expectedRevision + 1}};
+      assert.equal(beforeStop.state.status, 'waiting_checkpoint');
+      assert.equal(beforeStop.state.control.cancellation_requested, commitLoss === 'after');
+      assert.equal(beforeStop.state.control.physical_stop, 'unknown');
+      assert.equal(beforeStop.recovery.unknownCode, 'CancellationUnknown');
+      assert.deepEqual(beforeStop.recovery.cancelRef, cancelRef);
+      assert.deepEqual(beforeStop.recovery.first, expected);
+      assert.deepEqual(beforeStop.recovery.second, expected);
+      assert.deepEqual(stopped.cancellationRecovery.first, expected);
+      const snapshot = cancellationCustody(f);
+      assert.equal(snapshot.issued, 1);
+      assert.equal(snapshot.operations.length, 1);
+      assert.equal(snapshot.requested, commitLoss === 'after' ? 1 : 0);
+      if (commitLoss === 'after') {
+        assert.equal(stopped.status, 'cancelled');
+        assert.equal(stopped.control.physical_stop, 'confirmed');
+        assert.ok(stopped.control.revision > expected.cancellation.revision,
+          'physical stop advances the Run without rewriting the original operation');
+        assert.deepEqual(JSON.parse(snapshot.operations[0].outcome_wire), expected.cancellation);
+      } else {
+        assert.equal(stopped.control.cancellation_requested, false);
+        assert.equal(snapshot.operations[0].outcome_wire, null);
+      }
+      const journal = f.journal();
+      assert.equal(journal.fences.length, 1);
+      assert.deepEqual(slotStates(journal), ['Unsent']);
+      assertSends(f, []);
+      // The first child (Host and execution owner) has exited. This child only
+      // attaches and looks up the original operation; it never resends cancel.
+      const restored = f.phase('lookup-cancel-commit-loss');
+      assertSameRun(stopped, restored);
+      assert.deepEqual(restored.cancellationRecovery.first, expected);
+      assert.deepEqual(restored.cancellationRecovery.second, expected);
+      assert.deepEqual(cancellationCustody(f), snapshot);
+      assert.deepEqual(f.journal(), journal, 'exact lookup cannot advance the Model owner');
+      assertSends(f, []);
+    });
+
     test(`public Model ${transport}: original cancellation survives ${commitLoss} final COMMIT reply loss`, async t => {
       const f = await fixture(t, {transport, commitLoss});
       const waiting = f.phase('wait');

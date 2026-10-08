@@ -44,6 +44,7 @@ struct PublicationOutputExport {
   replay_values : @execution.ValueLimits
   replay_wire : @execution.RowWireLimits
   max_batch_bytes : Int
+  max_snapshot_workspace : Int
   definition : @publication.PublicationContract?
   declared_fields : Array[String]?
   mut receipt : @execution.CompletedRelationExportReceipt?
@@ -81,6 +82,7 @@ pub fn prepare_publication_output_export(
     replay_values: limits.values,
     replay_wire: limits.payload_wire,
     max_batch_bytes: limits.max_batch_bytes,
+    max_snapshot_workspace: limits.max_result_workspace_entries,
     definition: None,
     declared_fields: None,
     receipt: None,
@@ -119,6 +121,7 @@ pub fn prepare_acquired_task_publication_export(
     replay_values: limits.values,
     replay_wire: limits.payload_wire,
     max_batch_bytes: limits.max_batch_bytes,
+    max_snapshot_workspace: limits.max_result_workspace_entries,
     definition: None,
     declared_fields: None,
     receipt: None,
@@ -160,6 +163,7 @@ pub fn prepare_result_publication_export(
     replay_values: limits.values,
     replay_wire: limits.payload_wire,
     max_batch_bytes: limits.max_batch_bytes,
+    max_snapshot_workspace: limits.max_result_workspace_entries,
     definition: Some(definition),
     declared_fields: Some(
       @results.fields(
@@ -279,6 +283,7 @@ pub fn prepare_captured_result_publication_export(
       replay_values: limits.values,
       replay_wire: limits.payload_wire,
       max_batch_bytes: limits.max_batch_bytes,
+      max_snapshot_workspace: limits.max_result_workspace_entries,
       definition: Some(definition),
       declared_fields: Some(
         @results.fields(
@@ -704,23 +709,20 @@ pub fn PublicationOutputExport::admit_captured_snapshot(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@publication.CapturedResultSnapshot, PublicationOutputExportIssue] {
-  guard self.receipt is Some(receipt) else { return Err(InvalidState) }
-  guard self.definition is Some(definition) else { return Err(InvalidState) }
-  guard self.artifact is Some(artifact) else { return Err(InvalidState) }
-  let (rows_wire, fields) = match
-    @execution.completed_relation_export_snapshot(
-      self.stream,
-      receipt,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Output(issue))
+  let preparation = match
+    self.start_captured_snapshot(max_wire_bytes, max_nodes, max_depth) {
+    Ok(preparation) => preparation
+    Err(issue) => return Err(issue)
   }
-  @publication.admit_captured_result_snapshot(
-    definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
-  ).map_err(issue => Capture(issue))
+  while true {
+    match preparation.advance(64) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => return preparation.finish()
+      Ok((false, _)) => ()
+    }
+  } nobreak {
+    Err(InvalidState)
+  }
 }
 
 ///|

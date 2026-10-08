@@ -16,7 +16,7 @@ test "statistical calls are recognized as grouped and framed aggregates" {
       "FROM orders |> AGGREGATE " + name + "(amount) AS v",
       query_limits(),
     ).unwrap()
-    assert_true(operation_at(pipe, 0) is Some(Group(_, _, PipeAggregate)))
+    assert_true(operation_at(pipe, 0) is Some(Group(_, _, PipeAggregate(_, _))))
     let window = parse_query(
       "SELECT " +
       name +

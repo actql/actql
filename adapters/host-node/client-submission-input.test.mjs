@@ -132,7 +132,7 @@ async function fixture(t, entrance, loss) {
   const submission = installNodeClientSubmission({journal, moon,
     authorizedScope: () => authorized ? scope : undefined,
     prepareSubmit: configuration.prepareSubmit, submit: configuration.submit,
-    lookupRequest: configuration.lookupRequest});
+    lookupRequest: configuration.lookupRequest, checkSubmissionInput: check});
   Object.assign(configuration, {submitIntent: submission.submitIntent,
     lookupSubmission: submission.lookupSubmission});
   let pendingLoss = loss;
@@ -277,7 +277,10 @@ for (const entrance of ['local', 'https']) {
           result.requestId = 'edited-request';
           assert.deepEqual(sdk.explainSubmission(result), expectedExplanation);
         }
-        const found = await f.client.lookupSubmission(snapshot.submissionRef);
+        const recovery = f.client.recoverRequest(result);
+        assert.deepEqual(recovery.target.submissionRef, options.submissionRef);
+        assert.deepEqual(f.operations, callsBeforeLocale);
+        const found = await recovery.lookup();
         assert.equal(found.kind, committed ? 'ready' : 'unresolvable',
           '[check-mutation:request-public-observation]');
         assert.deepEqual(found.submissionRef, snapshot.submissionRef);
@@ -315,7 +318,7 @@ for (const entrance of ['local', 'https']) {
           : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}),
         error => {
           assert.equal(error.code, 'SubmissionNotAccepted');
-          assert.equal(sdk.getSubmissionOutcome(error).problem.code, 'ClientProgramRejected',
+          assert.equal(sdk.getSubmissionOutcome(error).problem.code, 'ClientProgramInvalidInput',
             '[check-mutation:bound-count-category]');
           return true;
         });
@@ -368,7 +371,7 @@ for (const entrance of ['local', 'https']) {
             : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}),
           error => {
             assert.equal(error.code, 'SubmissionNotAccepted');
-            assert.equal(sdk.getSubmissionOutcome(error).problem.code, 'ClientProgramRejected',
+            assert.equal(sdk.getSubmissionOutcome(error).problem.code, 'ClientProgramInvalidInput',
               '[check-mutation:temporal-input-category]');
             return true;
           });
@@ -384,7 +387,7 @@ for (const entrance of ['local', 'https']) {
         await assert.rejects(kind === 'program'
           ? f.client.start(program, {...options, submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-null`}), parameters: {n: null}})
           : f.client.startSource(JSON.stringify(program), {...options, submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-null`}), parameters: {n: null}, format: 'json'}),
-        notAccepted('ClientProgramRejected'));
+        notAccepted('ClientProgramInvalidInput'));
       }
       assert.deepEqual(f.counts(), {submits: 0, issues: 0});
       assert.deepEqual(f.stored(), []);

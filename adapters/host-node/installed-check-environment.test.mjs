@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
+// All-member installation admission and custody use the same composer.
+import './installed-source-inventory.test.mjs';
+import './installed-effect-inventory.test.mjs';
+import './installed-connector-table-loading.test.mjs';
+import './installed-connector-table-profile.test.mjs';
+import './installed-connector-table-public.test.mjs';
 import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
@@ -81,6 +87,55 @@ test('matching Catalogs cannot hide a different Site or principal', () => {
   assert.throws(() => verifyInstalledConnectorBindings(
     binding('same'), {environmentWire}),
   {code: 'InstalledCheckEnvironmentConflict'});
+});
+
+test('binding validation checks every supplied member before cross-member coalescence', () => {
+  const environmentWire = installed('source');
+  const valid = {connectorId: 'source', bindingCid: contentCid({site: 'source'})};
+  for (const connectorBindings of [null, {}, [valid, valid], [undefined],
+    [{...valid, connectorId: 'undeclared'}], [{...valid, bindingCid: 'invalid'}]]) {
+    for (const other of [undefined, {environmentWire: installed('distinct')}]) {
+      assert.throws(() => verifyInstalledConnectorBindings({environmentWire, connectorBindings}, other),
+        {code: 'InstalledCheckEnvironmentConflict'});
+    }
+  }
+  assert.doesNotThrow(() => verifyInstalledConnectorBindings({environmentWire},
+    {environmentWire: installed('distinct')}));
+  assert.doesNotThrow(() => verifyInstalledConnectorBindings(undefined, undefined));
+});
+
+test('environment wire byte cap applies before admission and after composed encoding', () => {
+  const limit = 16 * 1024 * 1024;
+  let admissions = 0;
+  // Isolate the Host wire-size boundary from MoonBit contract validation.
+  // These padding documents are synthetic; real admission is covered above.
+  const admission = {clientProgramCheckEnvironment() { admissions++; return {}; }};
+  const padded = (label, length) => {
+    const {evidence_bundle_cid: ignored, ...body} = JSON.parse(baseWire);
+    void ignored;
+    body.model_task_contracts = [{label, padding: 'x'.repeat(length)}];
+    return canonicalJson({...body, evidence_bundle_cid: contentCid(body)});
+  };
+  const overhead = Buffer.byteLength(padded('boundary', 0));
+  const exact = padded('boundary', limit - overhead);
+  assert.equal(Buffer.byteLength(exact), limit);
+  assert.equal(composeInstalledCheckEnvironment(admission, baseWire, exact, undefined), exact);
+  const before = admissions;
+  assert.throws(() => composeInstalledCheckEnvironment(admission, baseWire,
+    padded('boundary', limit - overhead + 1), undefined), error => {
+    assert.equal(error.cause, 'EnvironmentSize');
+    return true;
+  });
+  assert.equal(admissions, before + 1, 'only the base is admitted before the size refusal');
+  let combined = composeInstalledCheckEnvironment(admission, baseWire,
+    padded('first', 6 * 1024 * 1024), padded('second', 6 * 1024 * 1024));
+  assert.throws(() => {
+    combined = composeInstalledCheckEnvironment(admission, baseWire,
+      combined, padded('third', 6 * 1024 * 1024));
+  }, error => {
+    assert.equal(error.cause, 'EnvironmentSize');
+    return true;
+  });
 });
 
 

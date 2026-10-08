@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {parse as yaml} from 'yaml';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {readCatalog} from './actions.mjs';
-import {hash, actionInputs, compareInputs, sharedFiles, mutationSnapshotExtras} from './inputs.mjs';
+import {hash, actionInputs, compareInputs, sharedFiles, mutationSnapshotExtras, pipelineInventoryBoundary} from './inputs.mjs';
 import {canonicalReceipt, sealReceipt, mutationIds} from './receipts.mjs';
 import {checkApplications} from './applications.mjs';
 import {checkPlan} from './check.mjs';
@@ -34,6 +34,12 @@ test('final certificate binds the actual Lean input, output, catalog and origina
   assert.throws(() => checkCertificate({...request, required: [{...required[0], target: 'native'}]}));
 });
 
+const bridgeObservation = [
+  'ACTQL_EVENTS_BRIDGE:{"case":"empty-number","clock":"number","rows":0}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"nullable-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"duplicate-payload-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"timestamp-original-text","clock":"timestamp","rows":1}',
+].join('\n') + '\n';
 function familyFixture({mixed = false, changed = false, originEvent = 'workflow_dispatch', originBranch = 'main'} = {}) {
   // Controlled receipt/source fixture, not an assertion that these commands
   // ran on a physical Host. The plan checker itself executes the pinned Lean.
@@ -41,6 +47,7 @@ function familyFixture({mixed = false, changed = false, originEvent = 'workflow_
   const context = {candidateRevision: 'a'.repeat(40), runHeadRevision: 'a'.repeat(40),
     repository: 'actql/actql', repositoryId: 1, workflowId: 2, runId: 30, runAttempt: 1, ancestors: ['b'.repeat(40)]};
   const source = new Map([...sharedFiles, ...mutationSnapshotExtras].map(path => [path, path]));
+  source.set(pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8'));
   source.set('proofs/ci-evidence/bounded-session-actions.json', encode(catalog));
   for (const directory of ['proofs/bounded-session', 'proofs/events-bridge'])
     for (const file of ['check.mjs', 'Session.lean', 'Composition.lean', 'CompositionClaims.lean',
@@ -59,10 +66,11 @@ function familyFixture({mixed = false, changed = false, originEvent = 'workflow_
     workflowPath: '.github/workflows/ci.yml', runId: 3, runAttempt: 1, jobId: 4,
     testedRevision: 'b'.repeat(40), runHeadRevision: 'b'.repeat(40), branch: originBranch, event: originEvent};
   function original(action, fresh) {
-    const output = action.kind === 'formal-model'
+    let output = action.kind === 'formal-model'
       ? `Checked ${action.minimumUnits} theorems, expected claim types and axiom dependencies\n`
       : action.id === 'mutations-js' ? mutationIds.map(id => `${id}: detected by replacement tests`).join('\n')
         : `Total tests: ${action.minimumUnits}, passed: ${action.minimumUnits}, failed: 0.\n`;
+    if (action.id.startsWith('events-connection-')) output = bridgeObservation + output;
     const owner = fresh ? {...origin, testedRevision: context.candidateRevision,
       runHeadRevision: context.runHeadRevision, runId: context.runId, runAttempt: context.runAttempt,
       event: 'pull_request', branch: 'controlled-candidate'} : origin;

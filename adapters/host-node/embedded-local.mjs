@@ -18,6 +18,7 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
@@ -41,9 +42,13 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation,
   issueInstalledUnpublishedRunState} from
   '../host-common/run-state-observation.mjs';
-import {installedEffectIdentity, loadInstalledEffect,
+import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
   publishInstalledEffectProfile} from
   './installed-effect.mjs';
+import {installedEffectFor} from './installed-effect-inventory.mjs';
+import {installedRowEffectDescriptors} from './installed-row-effect.mjs';
+import {assertInstalledConnectorTable} from './installed-connectors.mjs';
+import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey} from
   './local-continuation-evidence.mjs';
@@ -100,14 +105,21 @@ const publicKeyCid = value => bytesCid(createPublicKey(value).export({
   type: 'spki', format: 'der'}));
 
 async function embeddedInstallationIdentity(root, installation) {
+  const connectorTable = installation?.connectorTable;
+  if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   const sourcePaths = installedSourcePaths(installation);
-  const effectPath = installation?.effectProfilePath ??
-    process.env.ACTQL_LOCAL_EFFECT_PROFILE;
-  const identities = await Promise.all(sourcePaths.map(installedSourceIdentity));
+  const effectPaths = installedEffectPaths(installation);
+  const identities = await Promise.all(sourcePaths.map(path =>
+    installedSourceIdentity(path, {connectorTable})));
   const source = identities.length === 0 ? null : identities.length === 1
     ? identities[0] : {version: 'actql-installed-source-inventory/0.1', identities};
-  const effect = effectPath === undefined ? null :
-    await installedEffectIdentity(effectPath);
+  const effectIdentities = [];
+  for (const path of effectPaths) {
+    effectIdentities.push(await installedEffectIdentity(path, {connectorTable}));
+  }
+  const effect = effectIdentities.length === 0 ? null : effectIdentities.length === 1
+    ? effectIdentities[0] : {version: 'actql-installed-effect-inventory/0.1',
+      identities: effectIdentities};
   const authorization = installation?.authorization;
   const accountIdentity = authorization?.accountConfiguration !== undefined
     ? bytesCid(canonicalJson(JSON.parse(
@@ -139,7 +151,7 @@ async function embeddedInstallationIdentity(root, installation) {
       keyId: reviewer.keyId, reviewerId: reviewer.reviewerId,
       principalId: reviewer.principalId,
       publicKeyCid: publicKeyCid(reviewer.publicKey)})) ?? null}));
-  return Object.freeze({identity, callbacks: Object.freeze({
+  return Object.freeze({identity, connectorTable, callbacks: Object.freeze({
     resolveSourceSecret: installation?.resolveSourceSecret,
     resolveEffectSecret: installation?.resolveEffectSecret,
     registerModelProviders: installation?.registerModelProviders,
@@ -148,7 +160,7 @@ async function embeddedInstallationIdentity(root, installation) {
 }
 
 function sameEmbeddedInstallation(left, right) {
-  return left.identity === right.identity &&
+  return left.identity === right.identity && left.connectorTable === right.connectorTable &&
     Object.keys(left.callbacks).every(key =>
       left.callbacks[key] === right.callbacks[key]);
 }
@@ -173,11 +185,12 @@ function validateValuesMaxRows(value) {
 }
 
 async function openInstalledHost({root, mode = 'local', beforeDispatch, workspaceId,
-  authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
-  effectProfilePath, resolveEffectSecret, effectInstallation,
+  authorization, connectorTable, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
+  effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, hostCapacityPolicy,
   retainedRelationOutput = false, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
+  if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   validateValuesMaxRows(valuesMaxRows);
   if (workspaceId !== undefined && !validClientConnection({mode, owner: mode,
     consentRefs: [], runners: [], workspaceId})) {
@@ -187,13 +200,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
   const selectedSourcePaths = installedSourcePaths({sourceProfilePath, sourceProfilePaths});
-  const selectedEffectPath = effectProfilePath ??
-    process.env.ACTQL_LOCAL_EFFECT_PROFILE;
+  const selectedEffectPaths = installedEffectPaths({effectProfilePath, effectProfilePaths});
   if (valuesMaxRows !== undefined &&
-      (effectInstallation !== undefined || selectedEffectPath !== undefined)) {
+      (effectInstallation !== undefined || selectedEffectPaths.length > 0)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
   }
-  if (effectInstallation !== undefined && selectedEffectPath !== undefined) {
+  if (effectInstallation !== undefined && selectedEffectPaths.length > 0) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
   await admitHostRootFormat(root);
@@ -204,6 +216,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const modelProviders = installModelProviders(moon, registerModelProviders);
   const inferSelections = new WeakMap();
   const effectSubmissions = new WeakMap();
+  const effectSelections = new WeakMap();
   const principalId = userInfo().username;
   const baseEnvironmentWire = selectInstalledHostEnvironment(moon, (await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy);
@@ -212,18 +225,48 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   let sourceProfile;
   let installedEffect;
   let environmentWire, effectiveHostCapacityPolicyCid;
+  function selectedInstalledEffect({prepared, compilation}) {
+    if (installedEffect?.effects === undefined) return installedEffect;
+    let selected = effectSelections.get(prepared);
+    if (selected === undefined) {
+      selected = installedEffectFor(installedEffect,
+        installedRowEffectDescriptors(moon, prepared, compilation));
+      effectSelections.set(prepared, selected);
+    }
+    return selected;
+  }
+  function recoveredInstalledEffect(facts) {
+    if (installedEffect?.effects === undefined) return installedEffect;
+    // The capture owner has already authenticated and admitted this Preview.
+    // Select its original Mapping inventory; never infer a new Program or Run.
+    const preview = facts.recovered.computation.preview;
+    const body = JSON.parse(facts.control.effectComputationPreviewWire(preview));
+    const descriptors = body.effects.map(member => ({effectId: member.effect_id,
+      kind: member.effect_kind, target: member.target, mappingRef: member.mapping,
+      mappingCid: member.resolved_mapping_contract_cid}));
+    try { return installedEffectFor(installedEffect, descriptors); }
+    catch (cause) {
+      // This observes only installation metadata before any new provider work.
+      // The existing resume owner still preserves attempted unknown outcomes.
+      throw refusedEffectPreparation(clientOperationError('InstalledEffectInstallationChanged', cause));
+    }
+  }
   try {
     sourceProfile = await loadInstalledSources(selectedSourcePaths,
       {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
-        resolveSecret: resolveSourceSecret});
-    installedEffect = selectedEffectPath === undefined ? undefined :
-      await loadInstalledEffect(selectedEffectPath, {root, principalId, moon,
-        runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret});
+        resolveSecret: resolveSourceSecret, connectorTable});
+    installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
+        runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable});
     if (installedEffect !== undefined) {
       if (authorization === undefined) {
         throw new TypeError('InstalledEffectAuthorizationRequired');
       }
-      effectInstallation = createInstalledEffectSite(installedEffect);
+      effectInstallation = createInstalledEffectSite(installedEffect.effects === undefined
+        ? installedEffect : {
+          environmentWire: installedEffect.environmentWire,
+          prepareCaptured: facts => selectedInstalledEffect(facts).prepareCaptured(facts),
+          prepareRecovered: facts => recoveredInstalledEffect(facts).prepareRecovered(facts),
+        });
     }
     if (effectInstallation !== undefined &&
         (typeof effectInstallation.environmentWire !== 'string' ||
@@ -418,9 +461,6 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     authorizeRun: ({ref, principalId: actual}) =>
       actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
-  const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment, sourcePublication, valuesMaxRows,
-    allowEffects: effectInstallation !== undefined});
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
     sourceAccesses: (sourceProfile?.sources ??
@@ -436,6 +476,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     return checkSource({principalId: actual, input, parameters, signal});
   };
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
+  const prepareSubmit = installNodeClientProgramPreparation({moon,
+    environment, sourcePublication, valuesMaxRows, check,
+    allowEffects: effectInstallation !== undefined});
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
@@ -449,7 +492,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       environmentCid: evidenceCid,
       contractControl: control,
       modelResumeVerifier: modelController?.verifier,
-      effectTarget: effectInstallation?.targetReadAuthorization,
+      ...(installedEffect?.effects === undefined
+        ? {effectTarget: effectInstallation?.targetReadAuthorization}
+        : {effectTargets: installedEffect.effects.filter(effect =>
+          effect.targetReadAuthorization !== undefined).map(effect => ({
+          selectors: effect.effectSelectors, authorization: effect.targetReadAuthorization}))}),
       authorization: authorization == null ? authorization :
         {...authorization, observe: diagnostic},
       ...(sourceProfile?.sources === undefined &&
@@ -558,6 +605,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         !effectResumeFlights.has(ref.runDefinitionCid) &&
         !modelResumeFlights.has(ref.runDefinitionCid)});
   };
+  const continueAcceptedCancellation = async (ref, accepted) => {
+    if (accepted.kind === 'already_terminal') return;
+    dispatchOwner.cancel(ref);
+    try { await cancelEffectContinuation(ref); }
+    finally { void checkpoints?.sweep(); }
+  };
   // Request-level cancellation already owns its own pre-Run receipt. Its
   // transfer to a defined Run remains separate from a Client cancel operation.
   const cancelRequestRun = async ({ref, principalId: actual, connection}) => {
@@ -581,11 +634,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     const accepted = journal.requestCancellation(ref, {
       currentAuthorization: true, publicationCommitted,
     }, moon, control);
-    if (accepted.kind !== 'already_terminal') {
-      dispatchOwner.cancel(ref);
-      await cancelEffectContinuation(ref);
-      void checkpoints?.sweep();
-    }
+    await continueAcceptedCancellation(ref, accepted);
     return accepted;
   };
   const cancel = async ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
@@ -598,16 +647,31 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     if (!hostConnection({principalId: actual, connection, ref})) {
       throw clientOperationError('ClientCancellationDenied');
     }
-    const recorded = journal.recordCancellationOperation(ref, {
-      cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
-      modelCancellationOwner: checkpoints?.journal,
-    }, moon, control);
-    const accepted = recorded.cancellation;
-    if (recorded.recorded && accepted.kind !== 'already_terminal') {
-      dispatchOwner.cancel(ref);
-      await cancelEffectContinuation(ref);
-      void checkpoints?.sweep();
+    let recorded;
+    try {
+      recorded = journal.recordCancellationOperation(ref, {
+        cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
+        modelCancellationOwner: checkpoints?.journal,
+      }, moon, control);
+    } catch (cause) {
+      // A lost COMMIT acknowledgement can leave an accepted original operation.
+      // Observe its exact durable identity before waking the existing stop and
+      // continuation owners. Pending or unavailable custody grants no authority
+      // to advance cancellation, and the lost reply remains unknown to the SDK.
+      let retained;
+      try {
+        retained = journal.lookupCancellationOperation({...ref, cancelId, expectedRevision},
+          {currentAuthorization: hostConnection({principalId: actual, connection, ref})},
+          moon, control);
+      } catch { /* Recovery remains with the durable journal and its existing sweep. */ }
+      if (retained?.kind === 'found') {
+        try { await continueAcceptedCancellation(ref, retained.cancellation); }
+        catch { /* Preserve the original unknown reply; cleanup remains owned. */ }
+      }
+      throw cause;
     }
+    const accepted = recorded.cancellation;
+    if (recorded.recorded) await continueAcceptedCancellation(ref, accepted);
     return accepted;
   };
   const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
@@ -793,26 +857,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       const acquired = count > 0;
       if (count > 0) {
         if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
-        if (count > 2 || count === 2 && sourceProfile.sources?.length !== 2 ||
-            count === 1 && sourceProfile.sources !== undefined) {
-          throw clientOperationError('ClientProgramUnsupported');
+        try {
+          selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
+            sourceProfile, registry, values, fragment, ordered});
+        } catch (cause) {
+          throw clientOperationError('ClientProgramUnsupported', cause);
         }
-        const selected = new Set();
-        for (let task = 0; task < count; task++) {
-          try {
-            const requirement = checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
-              preparedProgram, task, 0, registry, values, fragment, ordered));
-            const adapter = installedSourceFor(sourceProfile,
-              moon.clientProgramQueryRequirementSourceRef(requirement));
-            if (count === 2 && adapter.realizationKey !== 'duckdb-acquired') {
-              throw new Error('UnsupportedEffectSourceRealization');
-            }
-            selected.add(adapter);
-          } catch (cause) {
-            throw clientOperationError('ClientProgramUnsupported', cause);
-          }
-        }
-        if (selected.size !== count) throw clientOperationError('ClientProgramUnsupported');
       }
       const occurrence = moon.clientProgramEffectInferOccurrence(preparedProgram);
       if (occurrence !== undefined) prepareInferSelection(preparedProgram, occurrence);
@@ -1031,14 +1081,18 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   };
   const openEffectTargetReads = async (facts, {signal, resume, activeResume, journalPort,
     allowDefer = true} = {}) => {
-    if (typeof effectInstallation.targetReadInventory !== 'function') return undefined;
+    const selected = installedEffect?.effects === undefined
+      ? effectInstallation : selectedInstalledEffect(facts);
+    if (typeof selected.targetReadInventory !== 'function') return undefined;
     return effectTargetReadContinuation({checkpoints,
+      ...(installedEffect?.effects === undefined ? {} : {
+        effectTargetAuthority: selected.targetReadAuthorization}),
       runId: control.runDefinitionRunId(facts.runDefinition),
       runDefinitionCid: facts.ref.runDefinitionCid,
       unitId: moon.clientProgramEffectCompilationUnitId(facts.compilation),
       declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
       submission: effectSubmissions.get(facts.prepared),
-      inventory: effectInstallation.targetReadInventory({...facts, moon}), principalId,
+      inventory: selected.targetReadInventory({...facts, moon}), principalId,
       signal, resume, allowDefer, journalPort,
       assertCurrent() {
         if (journal.lookupRunDefinition(facts.ref, moon, control)?.cancellationRequested !== false) {
@@ -1110,9 +1164,14 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                       retainedModel = {record, token, view: targetResume.view};
                     }
                   }
+                  const selectedSources = selectAcquiredEffectSources({moon,
+                    preparedEffect: facts.prepared, sourceProfile,
+                    registry, values, fragment, ordered});
                   const sourceContinuation = acquiredEffectContinuation({
-                    checkpoints: sourceProfile?.realizationKey !== 'duckdb-acquired'
-                      ? undefined : sourceCheckpoints,
+                    checkpoints: (selectedSources.length === 0
+                      ? sourceProfile?.realizationKey === 'duckdb-acquired'
+                      : selectedSources.every(({adapter}) => adapter.realizationKey === 'duckdb-acquired'))
+                      ? sourceCheckpoints : undefined,
                     moon, acquired: facts.preparedExecution,
                     submission: effectSubmissions.get(facts.prepared),
                     declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
@@ -1175,6 +1234,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
+      ...(installedEffect?.effects === undefined ? {} : {
+        validateInstallation(facts) {
+          try { selectedInstalledEffect(facts); }
+          catch (cause) { throw clientOperationError('ClientProgramUnsupported', cause); }
+        },
+      }),
       resultPolicyOriginalFor: prepared => {
         if (!inferSelections.has(prepared) ||
             moon.clientProgramEffectAcquisitionCount(prepared) !== 0) {
@@ -1687,7 +1752,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   };
   const submissionService = installNodeClientSubmission({journal, moon,
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
-    prepareSubmit, submit, lookupRequest: lookupHeld});
+    prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: ({principalId: actual, after, limit}) =>
       checkpoints.listCheckpoints({principalId: actual, after, limit}),
@@ -2170,6 +2235,27 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           // An older physical-close record cannot acknowledge a new
           // continuation's reclamation. Only its current owner can do that.
           const restorationReclaimed = () => !restorationDispatchEntered || restorationStopConfirmed;
+          const retainStoppedModelReconciliation = () => {
+            const stopped = journal.lookupRunDefinition(ref, moon, control);
+            if (!checkpoints.journal.hasUnresolvedModelCalls(runId) ||
+                effectRun?.reconciliation(ref) !== undefined ||
+                !restorationReclaimed() || stopped?.physicalCloseConfirmed !== true ||
+                dispatchOwner.operation(ref) !== undefined) return false;
+            const reconciliation = issueInstalledUnpublishedRunState(moon, {runId,
+              observedAt: now(), resultNames: stopped.resultNames,
+              dispatchReserved: true, preDispatchFailureConfirmed: false,
+              cancelledBeforeStart: false, observedTerminalOutcome: 'none',
+              executionUnknown: true});
+            if (journal.lookupRunDefinition(ref, moon, control)?.revision !== stopped.revision) return false;
+            const lifecycle = checkpoints.journal.getRunState(runId);
+            if (claim !== undefined && lifecycle?.status === 'resuming' && leaseFailure === undefined) {
+              checkpoints.journal.completeResume(claim, {runStateWire: JSON.stringify(reconciliation)});
+            } else if (claim === undefined && lifecycle?.status === 'running') {
+              checkpoints.journal.finishRun(runId, {status: 'needs_reconciliation',
+                runStateWire: JSON.stringify(reconciliation)});
+            }
+            return checkpoints.journal.getRunState(runId)?.status === 'needs_reconciliation';
+          };
           const runRestoredModel = async () => {
             assertCurrent();
             const current = journal.lookupRunDefinition(ref, moon, control);
@@ -2229,21 +2315,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
             const lifecycle = checkpoints.journal.getRunState(runId);
             if (result?.status === 'needs_reconciliation') {
               const unresolvedModel = checkpoints.journal.hasUnresolvedModelCalls(runId);
-              const stopped = journal.lookupRunDefinition(ref, moon, control);
               const effectReconciliation = effectRun?.reconciliation(ref);
               // This restoration returned only after its physical Owner's
               // stop and cleanup. Retain its unresolved outcome in the same
               // Run journal, so later sweeps do not reopen a Running frame.
-              const reconciliation = unresolvedModel && effectReconciliation === undefined &&
-                restorationStopConfirmed &&
-                stopped?.physicalCloseConfirmed === true &&
-                dispatchOwner.operation(ref) === undefined
-                ? issueInstalledUnpublishedRunState(moon, {runId,
-                  observedAt: now(), resultNames: stopped.resultNames,
-                  dispatchReserved: true, preDispatchFailureConfirmed: false,
-                  cancelledBeforeStart: false, observedTerminalOutcome: 'none',
-                  executionUnknown: true})
-                : !unresolvedModel ? effectReconciliation : undefined;
+              if (unresolvedModel) {
+                retainStoppedModelReconciliation();
+                return;
+              }
+              const reconciliation = effectReconciliation;
               if (reconciliation !== undefined) {
                 if (claim !== undefined && lifecycle?.status === 'resuming') {
                   checkpoints.journal.completeResume(claim,
@@ -2279,6 +2359,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
             }
           }).catch(async error => {
             const code = error?.code ?? error?.message;
+            // Cancellation can win before this restoration physically enters.
+            // Its confirmed prior stop still retains unknown Model responsibility;
+            // it must not leave a Running journal that only public lookup projects.
+            if (retainStoppedModelReconciliation()) return;
             const stopped = journal.lookupRunDefinition(ref, moon, control);
             if (stopped?.physicalCloseConfirmed === true &&
                 await confirmNodeRunCancellation({ref, journal, store, checkpoints,
@@ -2408,9 +2492,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
 // `beforeDispatch` remains a required execution barrier. Without a
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch, authorization, workspaceId, sourceProfilePath, sourceProfilePaths,
+  authenticate, beforeDispatch, authorization, workspaceId, connectorTable,
+  sourceProfilePath, sourceProfilePaths,
   loopbackHttp = false,
-  resolveSourceSecret, effectProfilePath, resolveEffectSecret,
+  resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
   resultDataPolicy, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
@@ -2422,8 +2507,8 @@ export async function openInstalledRemoteHttpHost({directory,
   }
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
     workspaceId,
-    beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
-    effectProfilePath, resolveEffectSecret, effectInstallation,
+    beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
+    effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy,
     retainedRelationOutput, hostCapacityPolicy, valuesMaxRows});
   const handle = createClientHttpHandler({
@@ -2473,14 +2558,15 @@ export async function openInstalledRemoteHttpHost({directory,
 // (`ACTQL_LOCAL_SOURCE_PROFILE` by default). This is the explicit step a Host
 // start restores without provider I/O.
 export async function publishInstalledSource({sourceProfilePath, directory,
-  resolveSourceSecret, signal} = {}) {
+  resolveSourceSecret, signal, connectorTable} = {}) {
+  if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
   await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
   return publishInstalledSourceProfile(
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE, {root,
       principalId: userInfo().username, moon, runtimeUrl,
-      resolveSecret: resolveSourceSecret, signal});
+      resolveSecret: resolveSourceSecret, signal, connectorTable});
 }
 
 // Publish the installed Effect's generation (its declaration, execution
@@ -2489,7 +2575,8 @@ export async function publishInstalledSource({sourceProfilePath, directory,
 // (`ACTQL_LOCAL_EFFECT_PROFILE` by default). This is the explicit step a Host
 // start restores without provider I/O.
 export async function publishInstalledEffect({effectProfilePath, directory,
-  resolveEffectSecret, signal, hostCapacityPolicy} = {}) {
+  resolveEffectSecret, signal, hostCapacityPolicy, connectorTable} = {}) {
+  if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
   await admitHostRootFormat(root);
@@ -2499,7 +2586,7 @@ export async function publishInstalledEffect({effectProfilePath, directory,
   return publishInstalledEffectProfile(
     effectProfilePath ?? process.env.ACTQL_LOCAL_EFFECT_PROFILE, {root,
       principalId: userInfo().username, moon, runtimeUrl,
-      baseEnvironmentWire, resolveSecret: resolveEffectSecret, signal});
+      baseEnvironmentWire, resolveSecret: resolveEffectSecret, signal, connectorTable});
 }
 
 export async function connectEmbeddedLocal(options) {
@@ -2517,6 +2604,9 @@ export async function connectEmbeddedLocal(options) {
     validateValuesMaxRows(valuesMaxRows);
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
     installation = {...rest, hostCapacityPolicy, valuesMaxRows};
+    if (installation.effectProfilePaths !== undefined) {
+      installation.effectProfilePaths = installedEffectPaths(installation);
+    }
   }
   const root = installation?.directory === undefined ? localStateRoot() :
     resolve(installation.directory);
@@ -2524,10 +2614,12 @@ export async function connectEmbeddedLocal(options) {
   const {installation: _installation, ...clientOptions} = options;
   return profiles.connect(root, identity,
     () => openInstalledHost({root, authorization: installation?.authorization,
+        connectorTable: installation?.connectorTable,
         sourceProfilePath: installation?.sourceProfilePath,
         sourceProfilePaths: installation?.sourceProfilePaths,
         resolveSourceSecret: installation?.resolveSourceSecret,
         effectProfilePath: installation?.effectProfilePath,
+        effectProfilePaths: installation?.effectProfilePaths,
         resolveEffectSecret: installation?.resolveEffectSecret,
         modelInstallation: installation?.modelInstallation,
         registerModelProviders: installation?.registerModelProviders,

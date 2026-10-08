@@ -19,17 +19,19 @@ function executionError(ClientError, retainFailure, code, execution, requestId, 
   return error;
 }
 
-function collectAfterQuery(query, capture, read) {
+function collectAfterQuery(query, retainResult, capture, read) {
   let captured, captureError, captureFailed = false;
   try { captured = capture(); }
   catch (cause) { captureFailed = true; captureError = cause; }
   // Capture arguments immediately, but always observe the eager query. Its
   // admission/held/observation failure takes precedence and keeps its identity;
   // a local argument failure must not leave that query rejection orphaned.
-  return query.then(result => {
+  const collected = query.then(result => {
     if (captureFailed) throw captureError;
     return read(result, captured);
   });
+  retainResult(query, collected);
+  return collected;
 }
 
 export function sourceQuery(startSource, ClientError, retainResult, retainFailure,
@@ -107,15 +109,15 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
   // share this operation; each explicitly requested collection opens a read.
   Object.defineProperties(query, {
     requestId: {value: requestId, enumerable: true},
-    all: {value: (schemaOrOptions, options) => collectAfterQuery(query,
+    all: {value: (schemaOrOptions, options) => collectAfterQuery(query, retainResult,
       () => captureResultRead(ClientError, schemaOrOptions, options),
       (result, captured) => captured.validate === undefined
         ? result.all(captured.options)
         : result.all({'~standard': {version: 1, vendor: 'actql-captured',
           validate: captured.validate}}, captured.options))},
-    one: {value: options => collectAfterQuery(query,
+    one: {value: options => collectAfterQuery(query, retainResult,
       () => captureReadOptions(options), (result, captured) => result.one(captured))},
-    scalar: {value: options => collectAfterQuery(query,
+    scalar: {value: options => collectAfterQuery(query, retainResult,
       () => captureReadOptions(options), (result, captured) => result.scalar(captured))},
   });
   return Object.freeze(query);

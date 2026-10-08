@@ -13,6 +13,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {installNodeClientSubmission} from './client-submission.mjs';
 import {composeInstalledCheckEnvironment} from
   './installed-check-environment.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
@@ -52,6 +53,7 @@ import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
 import {settleSavedTableCommit} from './table-commit-outcome.mjs';
+import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import {issueAuthorizedEffectSetReceipt} from './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
@@ -62,7 +64,7 @@ import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
   './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {canonicalJson} from '../host-common/publication-contract-control.fixture.mjs';
-import {issueCompletedEffectfulComputationEvidence, prepareCompletedEffectfulPublication, publishCompletedEffectfulRun, recoverCompletedEffectfulComputation, releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from '../host-common/completed-run-publication.mjs';
+import {issueCompletedEffectfulComputationEvidence, prepareCompletedEffectfulPublication, publishCompletedEffectfulRun, recoverCompletedEffectfulComputation, releaseCompletedRunPreparedPayloads, releasePreparedResults, storeCompletedRunResultSet} from '../host-common/completed-run-publication.mjs';
 import {retainCompletedEffectDependencyPayloads} from
   '../host-common/completed-run-publication.mjs';
 import {suspendCompletedEffectfulComputation, retireCompletedEffectfulCapture} from
@@ -181,8 +183,8 @@ test('public source preparation binds installed aliases before checking a Progra
   for (const [text, format, code] of [
     ['SELECT id FROM', 'sql', 'source_invalid_input'],
     ['FROM records |> SELECT id', 'sql', 'source_invalid_input'],
-    ['SELECT id FROM absent', 'sql', 'source_rejected'],
-    ['SELECT absent FROM records', 'sql', 'source_rejected'],
+    ['SELECT id FROM absent', 'sql', 'source_unresolved'],
+    ['SELECT absent FROM records', 'sql', 'source_invalid_input'],
   ]) {
     const outcome = prepare(text, format);
     assert.equal(moon.clientProgramPreparationReady(outcome), undefined);
@@ -931,9 +933,9 @@ function publicationEvidence(program, parameters, semantics,
 // This fixture provides missing compiler/Host policy evidence. Its checked
 // Program identity and the physical Result bytes come from product owners.
 function checkedValuesPublicationPlan(prepared, control,
-  executionContextCid = cid('a')) {
+  executionContextCid = cid('a'), requestId = 'published-values-request') {
   const request = moon.clientProgramRequestIdentity(
-    prepared, cid('a'), 'published-values-request', cid('b'));
+    prepared, cid('a'), requestId, cid('b'));
   const compilation = checked(moon.clientProgramCompileLocalValues(prepared));
   const template = control.admitRunEvidence('bound_invocation_template',
     moon.clientProgramCompilationTemplateWire(compilation),
@@ -1623,65 +1625,94 @@ test('Node JS bridge binds separately supplied Parameters through the shared che
     assert.ok(ready(prepare(withDefault, 'json', undefined)));
   });
 
-test('public submit rejects checker failures before Run admission', async () => {
+test('public submit rejects checker failures before Run admission', async t => {
   const {environment} = await checkedFixture();
   const document = await readFile(new URL('parameter-values.json', fixture),
     'utf8');
   const prepareSubmit = installNodeClientProgramPreparation({
     moon, environment});
   let admissions = 0;
-  let admittedIdentity;
+  let admittedIdentity, admittedRequestId;
+  await mkdir(scratch, {recursive: true});
+  const directory = await mkdtemp(join(scratch.pathname, 'submission-checker-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const journal = openClientRequestJournal(directory);
+  t.after(() => journal.close());
+  const control = runtimeCore(moon).publicationControl;
+  const lookupRequest = installNodeClientRequestLookup({journal, control: moon,
+    authorizedScope: ({principalId}) => principalId === 'principal-a'
+      ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
+  const submitProgram = async ({preparedProgram, requestId}) => {
+    admissions++;
+    admittedRequestId = requestId;
+    admittedIdentity = moon.clientProgramRequestIdentity(preparedProgram, cid('a'), requestId, cid('b'));
+    const accepted = await journal.admitOrLookupDefinition(admittedIdentity, {
+      namespaceId: 'namespace-a', lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      issueDefinition: () => checkedValuesPublicationPlan(preparedProgram, control, cid('a'), requestId).runDefinition,
+    }, moon, control);
+    return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
+  };
+  const submission = installNodeClientSubmission({journal, moon, prepareSubmit,
+    submit: submitProgram, lookupRequest, authorizedScope: ({principalId}) =>
+      principalId === 'principal-a' ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
   const server = createServer(createClientHttpHandler({
     authenticate: header => header === 'Bearer scoped-token'
       ? 'principal-a' : undefined,
     authorizeConnection: () => true,
-    negotiate: () => ({
+    negotiate: async request => ({
       version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-      durability: 'volatile', scopeRef: 'principal-a', capabilities: [],
+      durability: 'durable', scopeRef: 'principal-a', capabilities: [],
+      submissionEpoch: await submission.issueEpoch(request),
       limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
         maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
         maxRows: 100, maxBatchRows: 10,
         maxBatchRetainedValueBytes: 2048},
     }),
-    prepareSubmit,
+    prepareSubmit, lookupRequest, submit: submitProgram,
+    submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
     maxRequestBytes: 100000,
-    submit: ({preparedProgram, requestId}) => {
-      admissions++;
-      admittedIdentity = moon.clientProgramRequestIdentity(preparedProgram,
-        cid('a'), requestId, cid('b'));
-      return {ref: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
-        runDefinitionCid: cid('c')}, durability: 'volatile', revision: 0};
-    },
   }));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     const origin = `http://127.0.0.1:${server.address().port}/`;
-    const submit = parameters => fetch(new URL('actql/client/0.1/submit',
-      origin), {
-      method: 'POST', headers: {authorization: 'Bearer scoped-token',
-        'content-type': 'application/json'},
-      body: JSON.stringify({connection: {mode: 'local', owner: 'local',
-        runners: [], consentRefs: []}, requestId: 'saved-parameter-id',
-      kind: 'aql', input: {text: document, format: 'json'}, parameters}),
-    });
-    for (const [parameters, status, code] of [
-      [null, 422, 'ClientProgramNeedsInputs'],
-      [{n: null}, 422, 'ClientProgramRejected'],
-      [{n: 'bad'}, 422, 'ClientProgramRejected'],
-      [{n: 2, extra: true}, 422, 'ClientProgramRejected'],
-      [{n: 'x'.repeat(65536)}, 413, 'ClientParametersTooLarge'],
+    const connection = {mode: 'local', owner: 'local', runners: [], consentRefs: []};
+    const epoch = await submission.issueEpoch({principalId: 'principal-a', connection});
+    let nonce = 0;
+    const submit = parameters => {
+      const source = {kind: 'aql', input: {text: document, format: 'json'}, parameters};
+      const intent = moon.clientSubmittedIntent(JSON.stringify(source), 1048576, 65536, 64);
+      assert.ok(intent);
+      return fetch(new URL('actql/client/0.1/submit-intent', origin), {
+        method: 'POST', headers: {authorization: 'Bearer scoped-token', 'content-type': 'application/json'},
+        body: JSON.stringify({connection, submissionRef: {epoch, nonce: `checker-${++nonce}`},
+          intentCid: moon.clientSubmittedIntentCid(intent), ...source}),
+      });
+    };
+    for (const [parameters, code, classification] of [
+      [null, 'ClientProgramNeedsInputs', 'requirements'],
+      [{n: null}, 'ClientProgramInvalidInput', 'invalid_input'],
+      [{n: 'bad'}, 'ClientProgramInvalidInput', 'invalid_input'],
+      [{n: 2, extra: true}, 'ClientProgramInvalidInput', 'invalid_input'],
+      [{n: 'x'.repeat(65536)}, 'ClientParametersTooLarge', 'implementation_limit'],
     ]) {
       const response = await submit(parameters);
-      assert.equal(response.status, status);
-      assert.deepEqual(await response.json(), {code});
+      assert.equal(response.status, 200);
+      const outcome = await response.json();
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code, classification});
+      assert.deepEqual(await submission.lookupSubmission({principalId: 'principal-a', connection,
+        submissionRef: outcome.submissionRef}), outcome);
     }
     assert.equal(admissions, 0);
     const client = await connectClient({mode: 'local', owner: 'local',
       endpoint: origin, token: 'scoped-token'});
     try {
       await assert.rejects(client.startSource(document, {format: 'json',
-        requestId: 'sdk-invalid-parameter', parameters: {n: null}}),
-      {code: 'ClientProgramRejected'});
+        submissionRef: client.newSubmission({nonce: 'sdk-invalid-parameter'}), parameters: {n: null}}),
+      error => error.code === 'SubmissionNotAccepted' &&
+        error.outcome.kind === 'not_accepted' &&
+        error.outcome.problem.code === 'ClientProgramInvalidInput' &&
+        error.outcome.problem.classification === 'invalid_input');
       assert.equal(admissions, 0);
     } finally {
       client.close();
@@ -1695,10 +1726,11 @@ test('public submit rejects checker failures before Run admission', async () => 
       moon.clientProgramSemanticsCid(prepared));
     const accepted = await submit({n: 2});
     assert.equal(accepted.status, 200);
+    assert.equal((await accepted.json()).kind, 'ready');
     assert.equal(admissions, 1);
     assert.equal(moon.clientRequestParametersCid(admittedIdentity),
       moon.clientRequestParametersCid(moon.clientProgramRequestIdentity(
-        prepared, cid('a'), 'saved-parameter-id', cid('b'))));
+        prepared, cid('a'), admittedRequestId, cid('b'))));
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
@@ -2000,8 +2032,7 @@ test('public Values submit computes and reads its real Local Result',
     };
     const journalDirectory = join(directory, 'requests');
     await mkdir(journalDirectory);
-    const identity = moon.clientProgramRequestIdentity(
-      prepared, cid('a'), 'published-values-request', cid('b'));
+    let identity, originalRequestId, submissionRef;
     let store = await openLocalPublicationStore(configuration, control);
     let published;
     try {
@@ -2022,10 +2053,12 @@ test('public Values submit computes and reads its real Local Result',
       });
       let issues = 0;
       let computes = 0;
-      const negotiate = () => ({
+      let submission;
+      const negotiate = async request => ({
         version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
         durability: 'durable', scopeRef: 'principal-before-restart',
         capabilities: ['result-jsonl'],
+        submissionEpoch: await submission.issueEpoch(request),
         limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
           maxRowRetainedValueBytes: 1024,
           maxRetainedValueBytes: 4096, maxRows: 100,
@@ -2037,12 +2070,13 @@ test('public Values submit computes and reads its real Local Result',
         connection}) => {
         const requested = moon.clientProgramRequestIdentity(
           preparedProgram, cid('a'), requestId, cid('b'));
+        identity = requested; originalRequestId = requestId;
         const accepted = await journal.admitOrLookupDefinition(requested, {
           namespaceId: 'namespace-a',
           lookupExpiresAt: '2099-01-01T00:00:00.000Z',
           issueDefinition: () => {
             issues++;
-            plan = checkedValuesPublicationPlan(preparedProgram, control);
+            plan = checkedValuesPublicationPlan(preparedProgram, control, cid('a'), requestId);
             return plan.runDefinition;
           },
         }, moon, control);
@@ -2060,12 +2094,16 @@ test('public Values submit computes and reads its real Local Result',
         return {ref: start.ref, durability: start.durability,
           revision: start.revision};
       };
+      submission = installNodeClientSubmission({journal, moon, prepareSubmit, submit, lookupRequest,
+        authorizedScope: ({principalId}) => principalId === 'principal-before-restart'
+          ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
       const submitServer = createServer(createClientHttpHandler({
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-before-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
           facts.connection.owner === 'local',
         negotiate, prepareSubmit, lookupRequest, submit,
+        submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
       }));
       await new Promise(resolve => submitServer.listen(0, '127.0.0.1',
         resolve));
@@ -2077,6 +2115,7 @@ test('public Values submit computes and reads its real Local Result',
           authorizeConnection: facts => facts.connection.mode === 'local' &&
             facts.connection.owner === 'local',
           negotiate, prepareSubmit, lookupRequest, submit,
+          submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
           maxRowBytes: 1024,
         }));
         try {
@@ -2085,8 +2124,8 @@ test('public Values submit computes and reads its real Local Result',
             throw new Error('NetworkOnEmbeddedLocalSubmit');
           };
           try {
-            const accepted = await local.startSource(document, {format: 'json',
-              requestId: 'published-values-request'});
+            submissionRef = local.newSubmission({nonce: 'published-values-request'});
+            const accepted = await local.startSource(document, {format: 'json', submissionRef});
             assert.equal(accepted.profile.durability, 'durable');
             assert.equal(issues, 1);
             assert.equal(computes, 1);
@@ -2102,7 +2141,7 @@ test('public Values submit computes and reads its real Local Result',
           let responseLost = false;
           globalThis.fetch = async (url, options) => {
             const reply = await transport(url, options);
-            if (!responseLost && new URL(url).pathname.endsWith('/submit')) {
+            if (!responseLost && new URL(url).pathname.endsWith('/submit-intent')) {
               responseLost = true;
               await reply.arrayBuffer();
               throw new Error('Acceptance response lost after Host send');
@@ -2111,36 +2150,40 @@ test('public Values submit computes and reads its real Local Result',
           };
           try {
             await assert.rejects(client.startSource(document, {format: 'json',
-              requestId: 'published-values-request'}), error =>
+              submissionRef}), error =>
               error.code === 'SubmissionUnknown' &&
               error.requestId === 'published-values-request');
           } finally { globalThis.fetch = transport; }
           assert.equal(responseLost, true);
-          const recovered = await client.lookupRequest(
-            'published-values-request');
-          assert.equal(recovered.kind, 'found');
-          assert.equal(recovered.ref.runDefinitionCid,
+          const recovered = await client.lookupSubmission(submissionRef);
+          assert.equal(recovered.kind, 'ready');
+          assert.equal(recovered.admission.ref.runDefinitionCid,
             plan.runDefinition.identity);
           const submitted = await client.startSource(document, {format: 'json',
-            requestId: 'published-values-request'});
-          assert.deepEqual(submitted.ref, recovered.ref);
+            submissionRef});
+          assert.deepEqual(submitted.ref, recovered.admission.ref);
           assert.equal(submitted.profile.durability, 'durable');
           assert.equal(submitted.ref.runDefinitionCid,
             plan.runDefinition.identity);
           const repeated = await client.startSource(document, {format: 'json',
-            requestId: 'published-values-request'});
+            submissionRef});
           assert.deepEqual(repeated.ref, submitted.ref);
           const changed = document.replace('"id": 2', '"id": 3');
           assert.notEqual(changed, document);
           await assert.rejects(client.startSource(changed, {format: 'json',
-            requestId: 'published-values-request'}),
-          {code: 'ClientRequestIntentConflict'});
-          const found = await client.lookupRequest('published-values-request');
+            submissionRef}),
+          error => error.code === 'SubmissionUnknown' &&
+            error.cause?.code === 'ClientSubmittedIntentConflict' &&
+            error.submissionRef.nonce === submissionRef.nonce);
+          assert.deepEqual(await client.lookupSubmission(submissionRef), recovered);
+          const found = await client.lookupRequest(originalRequestId);
           assert.deepEqual(found.ref, submitted.ref);
           assert.equal(found.durability, 'durable');
           assert.equal(found.lookupExpiresAt, '2099-01-01T00:00:00.000Z');
-          assert.deepEqual(await client.lookupRequest('absent-request'),
-            {kind: 'not_found'});
+          const absent = await client.lookupSubmission(client.newSubmission({nonce: 'absent-request'}));
+          assert.equal(absent.kind, 'unresolvable');
+          assert.equal(issues, 1);
+          assert.equal(computes, 1);
         } finally { client.close(); }
       } finally {
         await new Promise(resolve => submitServer.close(resolve));
@@ -2251,7 +2294,7 @@ test('public Values submit computes and reads its real Local Result',
           token: 'scoped-token',
         });
         const execution = await client.attach(ref);
-        const found = await client.lookupRequest('published-values-request');
+        const found = await client.lookupRequest(originalRequestId);
         assert.deepEqual(found.ref, ref);
         assert.equal(found.durability, 'durable');
         assert.equal(execution.profile.durability, 'durable');
@@ -2381,9 +2424,10 @@ const effectInputExportArgs = limits => [
 ];
 
 async function effectFixture({splitSource = false,
+  graphProfile = false,
   splitEffectSource = 'consumer', writeKind = 'create',
   memberIds = ['save'], target = 'connector://crm/account',
-  mappingRef = 'mapping:crm.account.v1', sourceIds,
+  mappingRef = 'mapping:crm.account.v1', sourceIds, mappingSource = 'id',
   continueMembers = [], minimumApproval = 'none'} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
@@ -2424,7 +2468,7 @@ async function effectFixture({splitSource = false,
     row_mapping: writeKind === 'create' && sourceIds ? {
       Name: {field: 'id', null_behavior: 'reject'},
       External_Key__c: {field: 'id', null_behavior: 'reject'},
-    } : {Name: {field: 'id', null_behavior: 'reject'}},
+    } : {Name: {field: mappingSource, null_behavior: 'reject'}},
     schema: 'actql.mapping_contract/0.1',
     target_ref: target,
     target_schema: targetSchema,
@@ -2443,7 +2487,7 @@ async function effectFixture({splitSource = false,
   mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
     'mapping_contract_cid');
   environmentDocument.mapping_contracts = [mapping];
-  if (splitSource) {
+  if (splitSource || graphProfile) {
     environmentDocument.host_policy_profile.capacity = JSON.parse(
       canonicalJson({
         ...environmentDocument.host_policy_profile.capacity,
@@ -2459,7 +2503,7 @@ async function effectFixture({splitSource = false,
     environmentDocument.evidence_bundle_cid,
     false, false, true, false, false, false, false,
   ];
-  const environment = splitSource
+  const environment = splitSource || graphProfile
     ? moon.clientProgramCheckEnvironmentWithGraphProfile(
       ...environmentArgs,
       machineCid(JSON.parse(await readFile(new URL(
@@ -5671,13 +5715,44 @@ test('Effect source set shares exact owners and retains failed cleanup',
 // owners; it does not clone the source, substitute caller rows or require
 // Python for the ordinary Host suite.
 export async function exerciseEffectSourceSet(t, {distinctResults = false,
-  writeKind = 'store', empty = false, onTablePreview, target,
-  mappingRef, minimumApproval} = {}) {
+  writeKind = 'store', empty = false, privateTableInput = false, sparseTableInput = false, onTablePreview, target,
+  mappingRef, minimumApproval, prepareCaptureResults = false, onCompletedTableRun} = {}) {
+        assert.ok(onTablePreview === undefined || onCompletedTableRun === undefined,
+          'Select a captured Preview or an unpinned completed Run, not both');
         const fixture = await effectFixture({writeKind, target, mappingRef,
-          minimumApproval,
+          minimumApproval, graphProfile: sparseTableInput,
+          mappingSource: sparseTableInput ? 'k' : 'id',
           memberIds: ['first', 'second']});
         const document = JSON.parse(fixture.document);
         if (empty) document.stages[0].steps[0].values.rows = [];
+        if (sparseTableInput) {
+          assert.equal(privateTableInput, true);
+          document.stages[0].steps = [
+            {values: {schema: {k: {type: 'number', nullable: false},
+              p: {type: 'number', nullable: true}},
+              rows: empty ? [] : [{k: 2, p: null}, {k: 1, p: 7}]}, as: 'persons'},
+            {values: {schema: {k: {type: 'number', nullable: false}},
+              rows: empty ? [] : [{k: 3}]}, as: 'companies'},
+            {graph: {version: 'actql-graph-constructor/0.1', nodes: [
+              {name: 'Person', from: 'persons', key: ['k'], labels: [
+                {name: 'Person', properties: {mode: 'columns', columns: [{from: 'p', to: 'p'}]}}]},
+              {name: 'Company', from: 'companies', key: ['k'], labels: []},
+            ], edges: []}, as: 'g'},
+            {from: 'g', node_rows: true, as: 'graph_rows'},
+            {from: 'graph_rows', sort: [{field: 'k', dir: 'asc', nulls: 'first'}], as: 'selected'},
+          ];
+          document.stages[0].results.rows = {from: 'selected', fields: ['k']};
+        }
+        if (privateTableInput) {
+          assert.equal(writeKind, 'store');
+          assert.equal(distinctResults, false);
+          const {from, fields} = document.stages[0].results.rows;
+          document.stages[0].table_inputs = {rows: {from,
+            fields: sparseTableInput ? ['k', 'p'] : fields}};
+          for (const member of Object.values(document.stages[0].effects)) {
+            member.store.from = {table_input: 'rows'};
+          }
+        }
         if (distinctResults) {
           document.stages[0].results.other = structuredClone(
             document.stages[0].results.rows);
@@ -5686,7 +5761,8 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
         const preparation = moon.clientProgramPrepareEffectComputationWithParameters(
           JSON.stringify(document), 'json', fixture.environment, undefined, []);
         const prepared = moon.clientProgramEffectPreparationReady(preparation);
-        assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(preparation));
+        assert.ok(prepared, inspect(moon.clientProgramEffectPreparationIssue(preparation),
+          {depth: 8}));
         const evidence = publicationEvidence(
           moon.clientProgramEffectDefinitionCid(prepared),
           effectParametersCid(prepared),
@@ -5723,7 +5799,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           1n, 0n, 0n, 0n);
         assert.ok(owned);
         const execution = await runCapturedEffectComputation(owned);
-        const inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+        let inputs;
         await mkdir(scratch, {recursive: true});
         const directory = await mkdtemp(join(scratch.pathname, 'source-set-'));
         t.after(() => rm(directory, {recursive: true, force: true}));
@@ -5732,7 +5808,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           storeAuthorityCid: cid('7'), capacityBytes: 1024 * 1024,
           maxObjectBytes: 100000, maxObjects: 10,
           maxContractNodes: 10000, maxContractDepth: 64,
-          ...(onTablePreview === undefined ? {} : {
+          ...(onTablePreview === undefined && onCompletedTableRun === undefined ? {} : {
             privateEvidenceKey: Buffer.alloc(32, 4)}),
         };
         let physical = await openLocalPublicationStore(storeConfiguration, control);
@@ -5765,8 +5841,16 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             metadata_delete_by: '2026-09-24T04:00:00.000Z',
             clock_contract_cid: cid('0')}), publicationLimits);
         const issuedArguments = [];
+        let mappingIssuanceCount = 0;
+        const issuerName = privateTableInput ?
+          'issueSourceFreeLocalEffectTableArtifact' :
+          'issueSourceFreeLocalEffectResultArtifact';
         const issuerControl = Object.freeze({...control,
-          issueSourceFreeLocalEffectResultArtifact(...args) {
+          localEffectTableStorageMapping(...args) {
+            mappingIssuanceCount++;
+            return control.localEffectTableStorageMapping(...args);
+          },
+          [issuerName](...args) {
             if (distinctResults && issuedArguments.length === 1) {
               // Equal Result values do not let the first preparation claim
               // the second Result's live export receipt.
@@ -5776,14 +5860,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
                 .issueSourceFreeLocalEffectResultArtifact(...foreign),
               {code: 'MoonBitHostFailure'});
             }
-            const issued = control.issueSourceFreeLocalEffectResultArtifact(
-              ...args);
+            const issued = control[issuerName](...args);
             issuedArguments.push(args);
             return issued;
           },
         });
         const options = {moon, checkedOwner: prepared, execution, inputs,
-          maxMembers: 2, maxGroupingWork: 3,
+          maxMembers: 2, maxGroupingWork: privateTableInput ? 5 : 3,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: 100000, control: issuerControl,
@@ -5793,8 +5876,34 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           localEvidenceContext: admittedLocalEffectEvidenceContext(control,
             prepared, evidence, definition, invocation, observation),
         };
-        let sources;
+        let sources, capturedResults;
         try {
+          if (onCompletedTableRun !== undefined) {
+            // The installed connection owns Result publication and Effect pins
+            // in that order. Do not lend it pins from this lower-level binding
+            // fixture or increase its live-holding ceiling to hide an overlap.
+            return await onCompletedTableRun({moon, sourceControl: issuerControl,
+              prepared, checkedHost: owned, execution, fixture, options, definition,
+              invocation, evidence, observation, outputLimits, directory,
+              tableLimits: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 16, maxWork: 1000},
+              storeConfiguration, physicalStore: physical,
+              replaceStoreForCleanup(value) { physical = value; }});
+          }
+          if (prepareCaptureResults) {
+            // Match the installed Table connection: publish ordinary Results
+            // before acquiring Effect input pins. Never increase the pin
+            // ceiling or temporarily release an Effect borrow to export rows.
+            const context = options.localEvidenceContext;
+            capturedResults = await storeCompletedRunResultSet({execution,
+              store: physical, control: issuerControl,
+              runDefinition: context.runDefinition, invocation: context.runInvocation,
+              results: execution.resultInventory.map(() => ({retention,
+                evidenceContext: {computationContractCid: cid('2'), inputRelationCids: [],
+                  scopeCid: cid('3'), effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')}})),
+              outputLimits, contractLimits: publicationLimits});
+          }
+          inputs = checked(moon.clientProgramPinEffectSources(owned, privateTableInput ? 3 : 2));
+          options.inputs = inputs;
           await assert.rejects(preparePinnedEffectSourceSet({...options,
             maxGroupingWork: 0}), {message: 'EffectSourceGroupingLimit'});
           assert.equal(writers, 0);
@@ -5804,11 +5913,17 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           const tableLimits = {maxWireBytes: 65536, maxNodes: 4096,
             maxDepth: 16, maxWork: 1000};
           const artifact = sources.members[0].payload.localResultArtifact;
-          assert.equal(JSON.parse(artifact.wire).actual_row_count, empty ? 0 : 2);
+          const rowCount = empty ? 0 : sparseTableInput ? 3 : 2;
+          assert.equal(JSON.parse(artifact.wire).actual_row_count, rowCount);
           const storage = control.localEffectTableStorageMapping(artifact,
             tableLimits);
           const body = JSON.parse(storage.wire);
-          assert.deepEqual(body.columns, [{name: 'id', nullable: false,
+          assert.deepEqual(body.columns, sparseTableInput ? [
+            {name: 'k', nullable: false, physical_type: 'double', presence: 'required',
+              presence_field_id: null, value_field_id: 1},
+            {name: 'p', nullable: true, physical_type: 'double', presence: 'conditional',
+              presence_field_id: 3, value_field_id: 2},
+          ] : [{name: 'id', nullable: false,
             physical_type: 'double', presence: 'required',
             presence_field_id: null, value_field_id: 1}]);
           assert.equal(body.schema_cid,
@@ -5829,7 +5944,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             logical_request_scope_cid: effect.logicalRequestScopeCid(scope),
             effect_identity_cid: identity.identity,
             input_artifact_cid: artifact.identity,
-            input_relation_cid: input.logical_result_cid,
+            input_carrier: {kind: 'relation', cid: input.logical_result_cid},
             schema_cid: input.result_schema_cid,
             storage_mapping_cid: storage.identity,
             data_policy_cid: input.effective_data_policy_cid,
@@ -5837,10 +5952,24 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           operation.request_cid = canonicalHashWithoutSelf(operation,
             'request_cid');
           const bind = wire => control.bindTableInput(prepared, inputs, 0,
-            artifact, identity, scope, wire, tableLimits);
+            artifact, identity, scope, wire, storage.wire, tableLimits);
           if (writeKind === 'store') {
             const boundTable = bind(canonicalJson(operation));
             assert.equal(boundTable.wire, canonicalJson(operation));
+            // Shared binding validates content/schema correspondence without
+            // interpreting the selected Connector's physical mapping fields.
+            const opaqueBody = {version: 'fixture-physical-mapping/0.1',
+              schema_cid: input.result_schema_cid, backend_field: 'opaque'};
+            const opaque = {...opaqueBody,
+              mapping_cid: canonicalHashWithoutSelf(opaqueBody, 'mapping_cid')};
+            const opaqueOperation = {...operation, storage_mapping_cid: opaque.mapping_cid};
+            opaqueOperation.request_cid = canonicalHashWithoutSelf(opaqueOperation, 'request_cid');
+            const opaqueBound = control.bindTableInput(prepared, inputs, 0,
+              artifact, identity, scope, canonicalJson(opaqueOperation),
+              canonicalJson(opaque), tableLimits);
+            assert.equal(control.tableInputStorageMappingWire(opaqueBound), canonicalJson(opaque));
+            assert.throws(() => control.admitLocalTableStorageMapping(
+              canonicalJson(opaque), tableLimits), {code: 'MoonBitHostFailure'});
             assert.equal(control.tableInputMatchesSource(boundTable,
               artifact, identity), true);
             const otherIdentity = control.issueSourceFreeLocalEffectIdentity(
@@ -5849,21 +5978,28 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               artifact, otherIdentity), false);
             assert.throws(() => control.tableInputMatchesSource({...boundTable},
               artifact, identity), {name: 'TypeError'});
-            for (const key of ['input_artifact_cid', 'input_relation_cid',
+            for (const key of ['input_artifact_cid', 'input_carrier',
               'schema_cid', 'storage_mapping_cid', 'data_policy_cid',
               'effect_identity_cid', 'logical_request_scope_cid']) {
-              const foreign = {...operation, [key]: cid('f')};
+              const foreign = {...operation, [key]: key === 'input_carrier'
+                ? {kind: 'relation', cid: cid('f')} : cid('f')};
               foreign.request_cid = canonicalHashWithoutSelf(foreign,
                 'request_cid');
               assert.throws(() => bind(canonicalJson(foreign)),
                 {code: 'MoonBitHostFailure'});
             }
+            for (const kind of ['graph', 'vectors', 'events']) {
+              const foreign = {...operation, input_carrier: {kind, cid: input.logical_result_cid}};
+              foreign.request_cid = canonicalHashWithoutSelf(foreign, 'request_cid');
+              assert.throws(() => bind(canonicalJson(foreign)), {code: 'MoonBitHostFailure'},
+                'A sealed reference of another kind cannot replace the captured Relation owner');
+            }
             assert.throws(() => control.bindTableInput(prepared, inputs, 1,
-              artifact, identity, scope, canonicalJson(operation), tableLimits),
+              artifact, identity, scope, canonicalJson(operation), storage.wire, tableLimits),
             {code: 'MoonBitHostFailure'});
             assert.throws(() => control.bindTableInput(prepared, inputs, 0,
               artifact, {...identity}, scope, canonicalJson(operation),
-              tableLimits), {name: 'TypeError'});
+              storage.wire, tableLimits), {name: 'TypeError'});
 
             // A Table is one operation even when its checked Relation is empty.
             // Reuse the ordinary checked Run/Preview and item-key owners; no
@@ -5873,6 +6009,12 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               'store', [], [], ['first', 'second'], [cid('0'), cid('1')],
               scope, {templateOnly: true, ...(target === undefined ? {} : {target}),
                 ...(mappingRef === undefined ? {} : {mapping: mappingRef})}).wire);
+            if (privateTableInput) {
+              for (const member of template.effects) {
+                delete member.source_result;
+                member.source_table_input = 'rows';
+              }
+            }
             const operations = [];
             for (const [index, member] of template.effects.entries()) {
               const localIdentity = index === 0 ? identity : otherIdentity;
@@ -5913,12 +6055,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             const tablePreview = control.bindTablePreview(tableInput,
               captured, 0);
             await onTablePreview?.({moon, control, sourceControl: issuerControl,
+              mappingIssuanceCount: () => mappingIssuanceCount,
               effect, prepared, inputs, artifact, identity, sources, store,
               checkedHost: owned,
               captured, tableInput, tablePreview, template, authored, bindPreview,
               operations, scope, storage, directory, options, definition,
               invocation, fixture, tableLimits, execution, evidence, observation, outputLimits,
-              storeConfiguration, physicalStore: physical,
+              storeConfiguration, physicalStore: physical, capturedResults,
               replaceStoreForCleanup(value) { physical = value; }});
             assert.equal(tablePreview.subjectCid,
               JSON.parse(authored._0).effect_preview_cid);
@@ -5944,13 +6087,19 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               storage_mapping_cid: storage.identity,
               table_uuid: '11111111-2222-3333-4444-555555555555',
               generation_cid: cid('b'), metadata_location: 'file:///table/generation.json',
-              snapshot_id: empty ? null : '123', row_count: empty ? 0 : 2,
+              snapshot_id: empty ? null : '123', row_count: rowCount,
             };
             receipt.receipt_cid = canonicalHashWithoutSelf(receipt, 'receipt_cid');
             const responseWire = canonicalJson({ok: true, result: receipt});
-            const outcomeWire = canonicalJson({state: 'applied', result: receipt});
+            const bridge = {projectCommitResponse: ({responseWire, statusCode, limits}) =>
+              control.localTableCommitResponse(responseWire, statusCode, limits)};
+            const project = response => bridge.projectCommitResponse({responseWire: response,
+              statusCode: 200, limits: tableLimits});
+            const outcomeWire = canonicalJson({state: 'applied', result: expectedLogicalTableReceipt(receipt)});
             assert.equal(control.tablePreviewCommitOutcome(tablePreview,
-              responseWire, 200, tableLimits), outcomeWire);
+              project(responseWire), 200, tableLimits), outcomeWire);
+            assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
+              responseWire, 200, tableLimits), {code: 'MoonBitHostFailure'});
             assert.throws(() => control.tablePreviewCommitOutcome({...tablePreview},
               responseWire, 200, tableLimits), {name: 'TypeError'});
             for (const field of ['request_cid', 'effect_identity_cid',
@@ -5959,13 +6108,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
                 receipt.row_count + 1 : cid('9')};
               foreign.receipt_cid = canonicalHashWithoutSelf(foreign, 'receipt_cid');
               assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
-                canonicalJson({ok: true, result: foreign}), 200, tableLimits),
+                project(canonicalJson({ok: true, result: foreign})), 200, tableLimits),
               {code: 'MoonBitHostFailure'});
             }
             for (const body of [{accepted: true}, {ok: true, result: null},
               {ok: false, code: 'conflict'}, {ok: true, result: receipt, extra: true}]) {
               assert.throws(() => control.tablePreviewCommitOutcome(tablePreview,
-                canonicalJson(body), 200, tableLimits), {code: 'MoonBitHostFailure'});
+                project(canonicalJson(body)), 200, tableLimits), {code: 'MoonBitHostFailure'});
             }
             const ledgerBinding = control.tablePreviewLedgerBinding(tablePreview);
             assert.equal(ledgerBinding.memberIndex, 0);
@@ -5986,7 +6135,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               maxEntryBytes: 8192});
             let tableLedger = openTableLedger();
             const settle = () => settleSavedTableCommit({control, ledger: tableLedger,
-              tablePreview, claim, limits: tableLimits});
+              tablePreview, claim, bridge, limits: tableLimits});
             try {
               assert.deepEqual(settle(), {status: 'unknown'});
               const saved = await captureClaimedEffectResponse({ledger: tableLedger,
@@ -5997,15 +6146,20 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               assert.equal(saved.claimed, true);
               tableLedger.close();
               tableLedger = openTableLedger();
+              assert.throws(() => settleSavedTableCommit({control, ledger: tableLedger,
+                tablePreview, claim, limits: tableLimits}), {code: 'MissingTableCommitProjector'});
+              assert.equal(tableLedger.readClaimedOutcome(claim), undefined);
+              assert.equal(tableLedger.readClaimedResponse(claim).responseBytes.toString('utf8'), responseWire);
               const terminal = settle();
               assert.equal(terminal.status, 'applied');
               assert.equal(JSON.parse(terminal.receipt.wire).typed_outcome.state, 'applied');
-              assert.deepEqual(JSON.parse(terminal.receipt.wire).typed_outcome.result, receipt);
+              assert.deepEqual(JSON.parse(terminal.receipt.wire).typed_outcome.result, expectedLogicalTableReceipt(receipt));
               assert.equal(settle().receipt.identity, terminal.receipt.identity);
               await captureClaimedEffectResponse({ledger: tableLedger, claim,
                 requestCid: operations[0].request_cid,
                 execute: () => assert.fail('Settled operation was resent')});
               assert.throws(() => settleSavedTableCommit({control, ledger: tableLedger,
+                bridge,
                 tablePreview, claim: {...claim, canonicalRequestCid: cid('9')},
                 limits: tableLimits}), {code: 'ForeignTableDispatchRequest'});
             } finally { tableLedger.close(); }
@@ -6023,7 +6177,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
                   execute: async () => ({observation: {useCid: cid('7'),
                     statusCode: 200, body: Buffer.from(badResponse)}})});
                 assert.throws(() => settleSavedTableCommit({control, ledger: uncertain,
-                  tablePreview, claim, limits: tableLimits}), {code: 'MoonBitHostFailure'});
+                  tablePreview, claim, bridge, limits: tableLimits}), {code: 'MoonBitHostFailure'});
                 assert.equal(uncertain.readClaimedResponse(claim).responseBytes
                   .toString('utf8'), badResponse);
                 assert.equal(uncertain.readClaimedOutcome(claim), undefined);
@@ -6047,11 +6201,12 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               reorderedCapture, 0), {code: 'MoonBitHostFailure'});
             // Resealing a substituted request does not turn its Preview into
             // the approved exact operation. Test target and input substitutions.
-            for (const key of ['table_name', 'input_relation_cid',
+            for (const key of ['table_name', 'input_carrier',
               'storage_mapping_cid', 'catalog_identity_cid']) {
               const foreign = structuredClone(template);
               const request = foreign.effects[0].changes[0].intended_changes.value;
-              request[key] = key === 'table_name' ? 'elsewhere' : cid('9');
+              request[key] = key === 'table_name' ? 'elsewhere'
+                : key === 'input_carrier' ? {kind: 'relation', cid: cid('9')} : cid('9');
               request.request_cid = canonicalHashWithoutSelf(request, 'request_cid');
               foreign.effects[0].changes[0].target_row_identity = request.request_cid;
               const foreignCapture = bindPreview(foreign).captured;
@@ -6097,7 +6252,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
             assert.equal(control.tablePreviewInputAvailable(tablePreview), false);
             assert.equal(control.tablePreviewCommitOutcome(tablePreview,
-              responseWire, 200, tableLimits), outcomeWire);
+              project(responseWire), 200, tableLimits), outcomeWire);
             assert.throws(() => control.bindTablePreview(tableInput, captured, 0),
               {code: 'MoonBitHostFailure'});
           } else {
@@ -6107,20 +6262,26 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           for (const args of issuedArguments) {
             // The receipt was released by exportPinnedEffectInput before
             // returning the prepared Store owner.
-            assert.throws(() => control
-              .issueSourceFreeLocalEffectResultArtifact(...args),
+            assert.throws(() => control[issuerName](...args),
             {code: 'MoonBitHostFailure'});
           }
-          assert.equal(writers, distinctResults ? 2 : 1);
+          assert.equal(writers, privateTableInput ? 2 : distinctResults ? 2 : 1);
           assert.equal(sources.members[0].payload.summary.logicalCid,
             sources.members[1].payload.summary.logicalCid);
           assert.equal(sources.members[0].payload ===
             sources.members[1].payload, !distinctResults);
           assert.equal(sources.members[0].payload.localManifest,
             sources.members[1].payload.localManifest);
-          assert.deepEqual(Object.keys(JSON.parse(
-            sources.members[0].payload.localManifest.wire).results),
-          distinctResults ? ['other', 'rows'] : ['rows']);
+          const manifestBody = JSON.parse(
+            sources.members[0].payload.localManifest.wire);
+          assert.deepEqual(Object.keys(manifestBody.results),
+            distinctResults ? ['other', 'rows'] : ['rows']);
+          if (privateTableInput) {
+            assert.deepEqual(Object.keys(manifestBody.table_inputs), ['rows']);
+            const sourceBody = JSON.parse(sources.members[0].payload.summary.artifact.wire);
+            assert.equal(sourceBody.source_table_input, 'rows');
+            assert.equal(Object.hasOwn(sourceBody, 'source_result'), false);
+          }
           if (distinctResults) assert.notEqual(
             sources.members[0].payload.localResultDefinition.identity,
             sources.members[1].payload.localResultDefinition.identity);
@@ -6148,12 +6309,19 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
         } catch (error) {
           // Preserve the primary diagnostic if retained input cleanup also fails.
           t.diagnostic(error.stack);
-          if (error.cause !== undefined) t.diagnostic(inspect(error.cause));
+          if (error.cause !== undefined) t.diagnostic(inspect(error.cause, {depth: 10}));
           throw error;
         } finally {
-          moon.clientProgramReleaseEffectInputs(inputs);
+          if (inputs !== undefined) moon.clientProgramReleaseEffectInputs(inputs);
           for (const payload of sources?.payloads ?? []) {
             if (payload.prepared.status().pending) await payload.prepared.release();
+          }
+          if (capturedResults !== undefined) {
+            // Release only process-local prepared handles. The callback's
+            // existing capture owner decides durable retention/retirement.
+            const released = new Error('TableFixtureFinished');
+            try { await releasePreparedResults(capturedResults.results, released, issuerControl); }
+            catch (error) { if (error !== released) throw error; }
           }
           await physical.close();
           await execution.close();

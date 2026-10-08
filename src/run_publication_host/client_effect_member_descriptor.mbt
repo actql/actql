@@ -14,7 +14,7 @@ pub fn client_effect_member_descriptor(
   effect_id : String,
   max_work : Int,
 ) -> Result[
-  (Int, String, String, String, String, String, String?, String),
+  (Int, String, String, String, String, String, String?, String, String?),
   ClientEffectMemberDescriptorIssue,
 ] {
   if stage_index < 0 || effect_id.is_empty() || max_work < 1 {
@@ -67,6 +67,7 @@ pub fn client_effect_member_descriptor(
           @environment.mapping_shape_cid(mapping),
           @syntax.effect_header_source_result(header),
           @syntax.effect_header_failure_policy(header),
+          @syntax.effect_header_source_table_input(header),
         ),
       )
     }

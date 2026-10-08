@@ -34,6 +34,50 @@ fn entry(key : String, value : @source.Node) -> @source.Field {
 }
 
 ///|
+test "decode yields within long Text and preserves exact byte accounting" {
+  let value = String::make(257, 'é') + "😀"
+  // 257 two-byte scalars and one four-byte scalar; no key bytes.
+  for total in [518, 517] {
+    let admission = start_admission(
+      node(@source.String(value)),
+      budget(total_bytes=total),
+    ).unwrap()
+    let mut polls = 0
+    let mut terminal = false
+    for _ in 0..<100 {
+      polls += 1
+      match advance_admission(admission, 1).unwrap() {
+        AdmissionContinue(work~) => assert_eq(work, 1)
+        AdmissionComplete(cursor, ..) => {
+          assert_eq(total, 518)
+          assert_eq(text(cursor), Ok(value))
+          assert_eq(admission_usage(cursor).total_string_bytes, 518)
+          terminal = true
+          break
+        }
+        AdmissionFailed(issue, ..) => {
+          assert_eq(total, 517)
+          assert_eq(issue.kind, BudgetExceeded)
+          terminal = true
+          break
+        }
+      }
+    }
+    assert_true(terminal && polls >= 5)
+    assert_true(admission.text is None)
+    assert_true(admission.tree.is_empty())
+    assert_true(admission.work.is_empty())
+  }
+  let admission = start_admission(node(@source.String(value)), budget()).unwrap()
+  assert_true(advance_admission(admission, 1) is Ok(AdmissionContinue(..)))
+  assert_true(advance_admission(admission, 1) is Ok(AdmissionContinue(..)))
+  assert_true(admission.text is Some(_))
+  cancel_admission(admission)
+  assert_true(admission.text is None && admission.work.is_empty())
+  assert_true(advance_admission(admission, 1) is Err(Terminal))
+}
+
+///|
 test "resumable decode transfers one immutable tree without a completion copy" {
   let root = node(
     @source.Object([

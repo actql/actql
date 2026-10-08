@@ -10,6 +10,7 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/local",
+  "actql/actql/connectors/local/table",
   "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors_builtin",
@@ -106,6 +107,8 @@ pub fn client_program_admit_infer_egress(@run_publication_host.PreparedClientPro
 
 pub fn client_program_admit_local_effect_source_evidence(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
+pub fn client_program_admit_local_table_storage_mapping(String, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
+
 pub fn client_program_admit_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[Unit, @run_publication_host.ClientValuesAoAAdmissionIssue]
 
 pub fn client_program_admit_local_values_fragment(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentAdmissionIssue]
@@ -190,7 +193,7 @@ pub fn client_program_bind_issued_infer_invocation(@client_infer_host.Execution,
 
 pub fn client_program_bind_recovered_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
-pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, Int, Int, Int) -> Result[@run_publication_host.ClientTableInput, @run_publication_host.ClientTableInputIssue]
+pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientTableInput, @run_publication_host.ClientTableInputIssue]
 
 pub fn client_program_bind_table_preview(@run_publication_host.ClientTableInput, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Result[@run_publication_host.ClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
@@ -492,7 +495,7 @@ pub fn client_program_effect_managed_input_cancel(ClientEffectManagedInputImport
 
 pub fn client_program_effect_managed_input_finish(ClientEffectManagedInputImport) -> Result[@execution_relation.CompletedResultRelationExportPreparation, ClientEffectManagedInputIssue]
 
-pub fn client_program_effect_member_descriptor(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String), @run_publication_host.ClientEffectMemberDescriptorIssue]
+pub fn client_program_effect_member_descriptor(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), @run_publication_host.ClientEffectMemberDescriptorIssue]
 
 pub fn client_program_effect_plan_advance(ClientEffectPlanPreparation, Int) -> Result[(Bool, Int), ClientEffectPlanStreamIssue]
 
@@ -523,6 +526,8 @@ pub fn client_program_effect_preparation_issue(ClientEffectProgramBridgeOutcome)
 pub fn client_program_effect_preparation_issue_code(ClientEffectProgramBridgeOutcome) -> String?
 
 pub fn client_program_effect_preparation_ready(ClientEffectProgramBridgeOutcome) -> @run_publication_host.PreparedClientEffectComputation?
+
+pub fn client_program_effect_preparation_result_presence_field(ClientEffectProgramBridgeOutcome) -> String?
 
 pub fn client_program_effect_prepare_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
@@ -571,6 +576,24 @@ pub fn client_program_effect_run_start_current(@run_publication_host.ClientEffec
 pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
 pub fn client_program_effect_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
+
+pub fn client_program_effect_table_input_at(@physical_strategy.CapturedEffectInputs, Int) -> @physical_strategy.CapturedEffectTableInput?
+
+pub fn client_program_effect_table_input_export_advance(@execution_relation.CompletedTableInputRelationExportPreparation, Int) -> Result[(Bool, Int), @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_table_input_export_cancel_preparation(@execution_relation.CompletedTableInputRelationExportPreparation) -> Bool
+
+pub fn client_program_effect_table_input_export_ready(@execution_relation.CompletedTableInputRelationExportPreparation) -> Result[@execution_relation.CompletedOutputExport, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_table_input_stage(@physical_strategy.CapturedEffectTableInput) -> Int
+
+pub fn client_program_effect_table_input_task(@physical_strategy.CapturedEffectTableInput) -> Int
+
+pub fn client_program_effect_table_managed_input_begin(@physical_strategy.CapturedEffectTableInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue]
+
+pub fn client_program_effect_table_managed_input_finish(ClientEffectManagedInputImport) -> Result[@execution_relation.CompletedTableInputRelationExportPreparation, ClientEffectManagedInputIssue]
+
+pub fn client_program_effect_table_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
@@ -778,6 +801,8 @@ pub fn client_program_issue_captured_effect_input_local_invocation(@run_publicat
 
 pub fn client_program_issue_captured_effect_input_local_result_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
+pub fn client_program_issue_captured_effect_table_input_local_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
+
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
 pub fn client_program_issue_captured_task_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
@@ -811,6 +836,8 @@ pub fn client_program_issue_effect_run_definition(@run_publication_host.ClientEf
 pub fn client_program_issue_effect_source_artifact(@physical_strategy.CapturedEffectInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectSourceArtifactIssue]
 
 pub fn client_program_issue_effect_source_free_invocation(@run_publication_host.ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn client_program_issue_effect_table_source_artifact(@physical_strategy.CapturedEffectTableInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectSourceArtifactIssue]
 
 pub fn client_program_issue_effect_values_fragment(@run_publication_host.PreparedClientEffectComputation, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
 
@@ -857,6 +884,8 @@ pub fn client_program_issue_source_free_local_effect_identity(@run_publication_h
 pub fn client_program_issue_source_free_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
 
 pub fn client_program_issue_source_free_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
+
+pub fn client_program_issue_source_free_local_effect_table_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
 
 pub fn client_program_issue_task_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
 
@@ -906,7 +935,17 @@ pub fn client_program_local_effect_source_count(ClientLocalEffectHost) -> Int
 
 pub fn client_program_local_effect_source_matches(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact) -> Bool
 
-pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@effect_application.TableStorageMapping, @run_publication_host.ClientTableInputIssue]
+pub fn client_program_local_effect_table_definition_cid(@run_publication_host.ClientEffectLocalTableDefinition) -> String
+
+pub fn client_program_local_effect_table_definition_json(@run_publication_host.ClientEffectLocalTableDefinition) -> String
+
+pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
+
+pub fn client_program_local_table_commit_response(String, Int, Int, Int, Int) -> Result[String, @effect_application.TableCommitIssue]
+
+pub fn client_program_local_table_storage_mapping_cid(@table.IcebergStorageMapping) -> String
+
+pub fn client_program_local_table_storage_mapping_json(@table.IcebergStorageMapping) -> String
 
 pub fn client_program_local_values_aoa_cid(@run_publication_host.ClientValuesAoAIdentity) -> String
 
@@ -1330,10 +1369,6 @@ pub fn client_program_table_preview_operation_json(@run_publication_host.ClientT
 
 pub fn client_program_table_preview_subject_cid(@run_publication_host.ClientTablePreview) -> String
 
-pub fn client_program_table_storage_mapping_cid(@effect_application.TableStorageMapping) -> String
-
-pub fn client_program_table_storage_mapping_json(@effect_application.TableStorageMapping) -> String
-
 pub fn client_program_task_compilation_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 
 pub fn client_program_task_compilation_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
@@ -1490,6 +1525,8 @@ pub fn strategy_admit_captured_effect_source_from_capture(@run_publication.Effec
 
 pub fn strategy_admit_captured_effect_source_from_result(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
 
+pub fn strategy_admit_captured_effect_source_from_table_input(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
+
 pub fn strategy_admit_captured_local_effect_source(@run_publication.CapturedEffectSourceArtifact, String, String, String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> @run_publication.CapturedLocalEffectSourceEvidence raise NodeHostFailure
 
 pub fn strategy_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
@@ -1504,6 +1541,14 @@ pub fn strategy_admit_effect_saved_response_evidence(Array[String], String, Byte
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
+pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int) -> @run_publication.CapturedRunIssuancePreparation
+
+pub fn strategy_begin_effect_free_chain_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.ComputationEvidenceCheck
+
+pub fn strategy_begin_effect_free_commit_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.PublicationCommitPreparation
+
+pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
+
 pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessProgress
 
 pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
@@ -1514,6 +1559,8 @@ pub fn strategy_captured_effect_source_artifact_cid(@run_publication.CapturedEff
 
 pub fn strategy_captured_effect_source_holding_cid(@run_publication.CapturedEffectSourceArtifact) -> String
 
+pub fn strategy_captured_effect_source_inventory_from_artifacts_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract]) -> Bool
+
 pub fn strategy_captured_effect_source_inventory_from_capture_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> Bool
 
 pub fn strategy_captured_effect_source_inventory_from_results_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract]) -> Bool
@@ -1523,6 +1570,14 @@ pub fn strategy_captured_effect_source_matches_preview(@run_publication.EffectPr
 pub fn strategy_captured_effect_source_recovery_inventory_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract]) -> Bool
 
 pub fn strategy_captured_effect_source_store_authority_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_run_advance(@run_publication.CapturedRunIssuancePreparation, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_captured_run_cancel(@run_publication.CapturedRunIssuancePreparation) -> Unit
+
+pub fn strategy_captured_run_finish(@run_publication.CapturedRunIssuancePreparation) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_captured_run_fixture_phase(@run_publication.CapturedRunIssuancePreparation) -> String
 
 pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
@@ -1559,6 +1614,22 @@ pub fn strategy_effect_computation_record_holding_cid(@run_publication.Publicati
 pub fn strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
+
+pub fn strategy_effect_free_chain_check_advance(@run_publication.ComputationEvidenceCheck, Int) -> Int
+
+pub fn strategy_effect_free_chain_check_cancel(@run_publication.ComputationEvidenceCheck) -> Unit
+
+pub fn strategy_effect_free_chain_check_finish(@run_publication.ComputationEvidenceCheck) -> Bool
+
+pub fn strategy_effect_free_chain_check_fixture_phase(@run_publication.ComputationEvidenceCheck) -> String
+
+pub fn strategy_effect_free_commit_check_advance(@run_publication.PublicationCommitPreparation, Int) -> Int
+
+pub fn strategy_effect_free_commit_check_cancel(@run_publication.PublicationCommitPreparation) -> Unit
+
+pub fn strategy_effect_free_commit_check_finish(@run_publication.PublicationCommitPreparation) -> Bool
+
+pub fn strategy_effect_free_commit_check_fixture_phase(@run_publication.PublicationCommitPreparation) -> String
 
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
@@ -1726,7 +1797,7 @@ pub fn strategy_host_managed_result_import_cancel(StrategyHostManagedResultImpor
 
 pub fn strategy_host_managed_result_import_finish(StrategyHostManagedResultImport) -> StrategyHostOutputExport raise NodeHostFailure
 
-pub fn strategy_host_managed_result_transformation_begin(StrategyHostManagedResultImport, @run_publication_host.ClientResultTransformation) -> StrategyHostResultTransformation raise NodeHostFailure
+pub fn strategy_host_managed_result_transformation_begin(StrategyHostManagedResultImport, @run_publication_host.ClientResultTransformation?) -> StrategyHostResultTransformation raise NodeHostFailure
 
 pub fn strategy_host_modules(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
@@ -1777,6 +1848,14 @@ pub fn strategy_host_output_export_schema_bytes(StrategyHostOutputExport) -> Int
 pub fn strategy_host_output_export_schema_fields(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
 pub fn strategy_host_output_export_schema_nodes(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_snapshot_advance(@run_publication_host.PublicationOutputSnapshotPreparation, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_host_output_snapshot_begin(StrategyHostOutputExport, Int, Int, Int) -> @run_publication_host.PublicationOutputSnapshotPreparation raise NodeHostFailure
+
+pub fn strategy_host_output_snapshot_cancel(@run_publication_host.PublicationOutputSnapshotPreparation) -> Unit
+
+pub fn strategy_host_output_snapshot_finish(@run_publication_host.PublicationOutputSnapshotPreparation) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
 
 pub fn strategy_host_program_definition_cid(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> String
 
@@ -1864,7 +1943,7 @@ pub fn strategy_host_result_tasks(@connectors_builtin.ConfiguredComputeHost[@phy
 
 pub fn strategy_host_result_transformation_advance(StrategyHostResultTransformation, Int) -> Bool raise NodeHostFailure
 
-pub fn strategy_host_result_transformation_begin(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?, @run_publication_host.ClientResultTransformation) -> StrategyHostResultTransformation raise NodeHostFailure
+pub fn strategy_host_result_transformation_begin(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?, @run_publication_host.ClientResultTransformation?) -> StrategyHostResultTransformation raise NodeHostFailure
 
 pub fn strategy_host_result_transformation_cancel(StrategyHostResultTransformation) -> Unit
 

@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import './retained-input.test.mjs';
 import './cancellation-operation.test.mjs';
+import './submission-owner.test.mjs';
 import {valuesUnitIdentity, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';

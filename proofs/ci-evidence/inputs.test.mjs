@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {readCatalog, compareCatalogs} from './actions.mjs';
-import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras, mutationPackages, mutationSourceInputs} from './inputs.mjs';
+import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras, mutationPackages, mutationSourceInputs, pipelineInventoryBoundary} from './inputs.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
 import {reviewedPackageConfiguration, reviewedPackageConfigurations, packageConfigurationReview} from './package-configurations.mjs';
 
@@ -9,6 +10,7 @@ const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
 const base = new Map([
   ...sharedFiles.map(path => [path, path]),
+  [pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8')],
   ['proofs/ci-evidence/actions.mjs', 'actions'], ['proofs/ci-evidence/inputs.mjs', 'inputs'],
   ['proofs/bounded-session/action-inputs.mjs', 'encoder'], ['toolchain.json', '{}'], ['moon.mod', 'module'],
   ['scripts/setup-moonbit.mjs', 'setup'], ['.github/actions/setup-toolchain/action.yml', 'setup'],
@@ -32,14 +34,32 @@ test('unrelated source and provenance changes preserve a closed Session input id
   assert.equal(old.key, candidate.key);
 });
 
-test('shared pipeline original-consumer imports and directory membership cannot change behind an unchanged Session key', () => {
+test('separate pipeline consumers and membership do not invalidate Session inputs', () => {
   const files = new Map(base); files.set('proofs/relation-pipeline/execution-original.mjs', 'reviewed shared consumer');
   const original = inventory(files);
   files.set('proofs/relation-pipeline/execution-original.mjs', 'changed consumer');
-  assert.equal(compareInputs(original, inventory(files)).eligible, false);
+  assert.equal(compareInputs(original, inventory(files)).eligible, true);
   files.set('proofs/relation-pipeline/execution-original.mjs', 'reviewed shared consumer');
   files.set('proofs/relation-pipeline/new-import.mjs', 'new module');
-  assert.equal(compareInputs(original, inventory(files)).eligible, false);
+  assert.equal(compareInputs(original, inventory(files)).eligible, true);
+  files.delete('proofs/relation-pipeline/execution-original.mjs');
+  assert.equal(compareInputs(original, inventory(files)).eligible, true);
+});
+
+test('remaining evaluated pipeline inventory bytes and new imports stay bound and open until reviewed', () => {
+  const original = inventory();
+  for (const change of [
+    files => files.set(pipelineInventoryBoundary.path, files.get(pipelineInventoryBoundary.path) + '\nimport "./new-reader.mjs";\n'),
+    files => files.set(pipelineInventoryBoundary.path, files.get(pipelineInventoryBoundary.path) + '\nreadFileSync("external-input");\n'),
+    files => files.delete(pipelineInventoryBoundary.path),
+  ]) {
+    const files = new Map(base); change(files);
+    const observed = inventory(files);
+    assert(observed.unresolved.includes('unreviewed pipeline inventory import/effect boundary'));
+    assert.equal(compareInputs(original, observed).eligible, false);
+  }
+  assert.equal(compareInputs(original, inventory(base, 'b'.repeat(40), action,
+    {[pipelineInventoryBoundary.path]: '100755'})).eligible, false);
 });
 
 for (const [label, mutate] of [
@@ -198,4 +218,14 @@ test('unknown mutation dependency configuration preserves broad sources and expl
   assert(selected.paths.includes('src/unrelated/value.mbt'));
   assert(selected.unresolved.length > 0);
   assert(selected.directories.some(entry => entry.path === 'src/**'));
+});
+
+test('the evaluated Bridge scope observer is bound even for shared Session consumers', () => {
+  const path = 'proofs/events-bridge/observations.mjs';
+  assert(sharedFiles.includes(path));
+  const original = inventory();
+  const changed = new Map(base); changed.set(path, 'changed observer or new dynamic read');
+  assert.equal(compareInputs(original, inventory(changed)).eligible, false);
+  changed.delete(path);
+  assert(inventory(changed).unresolved.includes(`missing source input: ${path}`));
 });

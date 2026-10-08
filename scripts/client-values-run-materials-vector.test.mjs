@@ -742,8 +742,47 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('422c4edd4dd34bbf715e3d464a07f8654e51af7bf5bba74c93a13aa6de999968'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('082b73d16ed8513f88c55ce75cd1d1a78043ec08c57c02a757a3eba5e0e4dd54'));
-  assert.equal(current.run.run_definition_cid,
+  // Retain the independently authored correlated-expansion parent.
+  assert.equal(vector(pin('669a907108617a89e253dcf5d5f5ef88fe14ec46fe84df18bb6e4d22638347f5'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('4ca80c7d99dd7834c8fc281ce2aff63833e52711eb52702c2cc628c361a01af4'));
+  // Keep current main's complete parent before combining correlation syntax.
+  assert.equal(vector(pin('383eb60f32169402f128cb1e0187b8445ebb33931e75ab035e20d1e434b52ad4'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('8eb2bb63ec3c66f0457ad25820daa0e49bce63c368536b640b2e38b6d79e7bc3'));
+  // Keep both complete adopted grammar parents as independent preimages.
+  assert.equal(vector(pin('39ed3dd3cca9b11c128c369308bdbd340ee69a5b82c43bc5408b9b66b8e6f0ac'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('d48070d700e2e74ce504796caefec6fc0255d8b998f8f570e02723580949f5b3'));
+  assert.equal(vector(pin('38b2c821bd3b65aeeac218ef8300f9bc25a8dba90956fdfda1313651fdebef15'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('9bd9abd436fd9564578f921adcb16ba105274cdaaad118717d08b13d30183a2d'));
+  // Preserve the adopted checked-ARRAY parent independently of this integration.
+  assert.equal(vector(pin('865d1183ed31a4fe8b1be4e685563b932b6bc65580ed7968f8883ddc82003722'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('561ebef800dd3c16dbd971fe4c709ebf78678133926ec110d6a60714ae04e9ba'));
+  // Keep main's complete grammar/Run preimage before the grouping-only surface.
+  assert.equal(vector(pin('e14a88db3f98d88cb24edefca31ecd1c0d63f81e152a61d464756a83c5850329'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('3ed63e2c45d68425784a904b0378099fe284027a35e2c3e78d016bdc854f6903'));
+  // Grouping-only parent remains an immutable full normative preimage.
+  assert.equal(vector(pin('bb311179f5afee3d6e03181b66113f045cbd6190ce4174b32d40ac9a67459a8d'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('af4b746a75926ddcf8a506348a9df55147a10bf9c0b64e4f950d0ec6d513e9d5'));
+  // Preserve the grouping-output-alias parent as an independent full preimage.
+  assert.equal(vector(pin('4ac55d221c3878197277681acc425497bc6705a864745d4ae004bbcc17915444'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('732a5690b7573d96b3c54114780ee1255ddeab06d15514f65ec24236c1107251'));
+  // Preserve the shorthand-ordering Run with its original grammar closure.
+  assert.equal(vector(pin('fc3d401cf6db3bf3349114cc019111bbc32a112317d1e397b9573776d9ee7d6b'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('7b7be234b94ec1a22ed33e054e503320c171d39d58c4ed9cf6246e0988f5a460'));
+  // Retain the Pipe scalar-aggregate original grammar closure.
+  assert.equal(vector(pin('2a433f295994301675ad42d4acc1859474b8e0e31b3583482f057602164c8951'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('13bb9883431cd034e3e9056e249f5c25c01604506736da187bd0d506171d0a07'));
+  assert.equal(current.run.run_definition_cid,
+    pin('e5068efe3ea2216fc07cd3373f3ca0ba9af030ea9b7514aa33e75067d209e869'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

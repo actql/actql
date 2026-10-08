@@ -6,6 +6,7 @@
 // ActQL output.
 import assert from 'node:assert/strict';
 import {execFile, execFileSync} from 'node:child_process';
+import {appendFileSync} from 'node:fs';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {mkdir, mkdtemp, readdir, readFile, rm, unlink, writeFile} from
   'node:fs/promises';
@@ -44,7 +45,9 @@ const tlsKey = await readFile(join(tlsRoot, 'host.key'));
 const tlsCertificate = await readFile(join(tlsRoot, 'host.crt'));
 setDefaultCACertificates([...getCACertificates('default'),
   tlsCertificate.toString('utf8')]);
-after(() => rm(tlsRoot, {recursive: true, force: true}));
+after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+  ? console.error(`Read/Compute/Effect TLS custody retained: ${tlsRoot}`)
+  : rm(tlsRoot, {recursive: true, force: true}));
 
 const owner = userInfo().username;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -126,9 +129,11 @@ export function readComputeEffectProgram(mappingRef, {onItemFailure} = {}) {
 // A submission refused because the common path does not yet run an Effect
 // from an acquisition: recorded as not connected, never as a defect of the
 // Salesforce side and never as passing.
-export async function submitReadComputeEffect(client, program, requestId) {
+export async function submitReadComputeEffect(client, program, submissionRef) {
+  assert.equal(typeof submissionRef, 'object', 'Original submission custody is required');
+  assert.ok(submissionRef?.epoch);
   try {
-    return await client.startSource(program, {format: 'json', requestId});
+    return await client.startSource(program, {format: 'json', submissionRef});
   } catch (error) {
     if (error?.code === 'ClientProgramUnsupported') {
       throw Object.assign(new Error('ReadComputeEffectNotConnected: the ' +
@@ -186,8 +191,21 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
   const closers = [];
   t.after(async () => {
     for (const close of closers.reverse()) await close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Read/Compute/Effect original custody retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
+  // The caller issues the reference through its connected public Client.
+  // Save it before sending; recovery must read this original, not mint one.
+  const persistSubmission = async submissionRef => {
+    assert.ok(submissionRef?.epoch);
+    assert.match(submissionRef.nonce, /^[a-zA-Z0-9-]+$/u);
+    await writeFile(join(root, `${submissionRef.nonce}.submission-ref.json`),
+      JSON.stringify(submissionRef) + '\n', {flag: 'wx', mode: 0o600});
+    return submissionRef;
+  };
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
     type: 'pkcs8', format: 'pem'}));
@@ -252,7 +270,14 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
       sourceProfilePath, resolveSourceSecret: secret,
       effectProfilePath, resolveEffectSecret: secret,
       authorization: checkpointAuthorization(accountConfiguration, {
-        observe: (name, detail) => diagnostics.push({name, detail}),
+        observe: (name, detail) => {
+          diagnostics.push({name, detail});
+          if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') {
+            console.error('ACTQL_EFFECT_HOST_DIAGNOSTIC ' + JSON.stringify({
+              name, code: detail?.code, cause: detail?.cause},
+            (_key, value) => typeof value === 'bigint' ? value.toString() : value));
+          }
+        },
         ...extra})});
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
@@ -281,29 +306,57 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
   // `resultName` is the Named Result a resumed step reads; `failFirstClose`
   // makes the first close of that module's journals fail in each step.
   const embedded = async (requestId, program, {accountConfiguration =
-    hostAccountConfiguration(org.orgId), resultName, failFirstClose} = {}) => {
+    hostAccountConfiguration(org.orgId), resultName, failFirstClose, transport = 'local'} = {}) => {
+    assert.ok(['local', 'https'].includes(transport));
     const path = join(root, `embedded-${requestId}.json`);
     await writeFile(path, JSON.stringify({directory: hostRoot,
-      sourceProfilePath, effectProfilePath, program, requestId, resultName,
+      sourceProfilePath, effectProfilePath, program, requestId, resultName, transport,
+      hostTls: {keyPath: join(tlsRoot, 'host.key'), certificatePath: join(tlsRoot, 'host.crt')},
       reviewerPrivateKey: pem(reviewerKeys.privateKey),
       authorization: {...checkpointAuthorization(accountConfiguration),
         reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
           principalId: owner, publicKey: pem(reviewerKeys.publicKey)}],
         reviewReaders: [owner]}}));
-    return step => new Promise((resolve, reject) => {
-      execFile(process.execPath, [fileURLToPath(new URL(
+    const processes = [];
+    // Fixture progress is not an Owner receipt. Keep completed-process facts
+    // even when a later test step loses its reply or its guard stops the parent.
+    const progress = entry => appendFileSync(`${path}.processes.jsonl`,
+      JSON.stringify({transport, ...entry}) + '\n', {mode: 0o600});
+    const invoke = step => new Promise((resolve, reject) => {
+      progress({step, stage: 'requested'});
+      const child = execFile(process.execPath, [fileURLToPath(new URL(
         './read-compute-effect.embedded-child.mjs', import.meta.url)),
-      step, path], {timeout: 120_000, env: {...process.env,
+      step, path], {timeout: step === 'observe-effect' ? 30_000 : 120_000, env: {...process.env,
         ...(failFirstClose === undefined ? {}
           : {ACTQL_EMBEDDED_FAIL_FIRST_CLOSE: failFirstClose})}},
       (error, stdout, stderr) => {
         if (error) {
+          try { progress({step, stage: 'failed', pid: child.pid, exitCode: child.exitCode, signalCode: child.signalCode, code: error.code}); }
+          catch (cause) { reject(Object.assign(cause, {stdout, stderr})); return; }
           reject(Object.assign(error, {stdout, stderr}));
           return;
         }
-        resolve(JSON.parse(stdout.trim().split('\n').at(-1)));
+        try {
+          const report = JSON.parse(stdout.trim().split('\n').at(-1));
+          assert.equal(child.exitCode, 0);
+          assert.equal(child.signalCode, null);
+          if (step === 'observe-effect') assert.equal(report.pid, child.pid);
+          const completed = Object.freeze({step, pid: child.pid, exitCode: child.exitCode, signalCode: child.signalCode});
+          progress({stage: 'completed', ...completed});
+          processes.push(completed);
+          resolve(report);
+        } catch (cause) { reject(Object.assign(cause, {stdout, stderr})); }
       });
+      // Capture the child's actual bytes as they arrive; execFile's final
+      // callback can be lost when the parent guard stops during Host close.
+      for (const [stream, name] of [[child.stdout, 'stdout'], [child.stderr, 'stderr']]) {
+        stream.on('data', bytes => appendFileSync(`${path}.${step}.${name}.log`, bytes, {mode: 0o600}));
+      }
     });
+    invoke.processes = processes;
+    invoke.ownerObservations = async () => (await readFile(
+      `${path}.owner-observations.jsonl`, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+    return invoke;
   };
 
   const count = predicate => org.seen.filter(predicate).length;
@@ -357,7 +410,7 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
       await writeFile(path, bytes);
     }
   };
-  return {org, root, mappingRef, openHost, writeEffectProfile, embedded,
+  return {org, root, mappingRef, openHost, writeEffectProfile, embedded, persistSubmission,
     heldObjects, damageHeld,
     program: options => readComputeEffectProgram(mappingRef, options),
     // Source acquisitions (queries), target check reads, and writes are

@@ -36,6 +36,8 @@ export async function loadInstalledSalesforceEffectInstallation(checked,
   const hooks = salesforceEffectSiteHooks(effect);
   return Object.freeze({environmentWire: effect.environmentWire,
     connectorBindings: effect.connectorBindings,
+    effectSelectors: effect.effectSelectors,
+    mappings: effect.mappings,
     connectorRegistration: effect.connectorRegistration,
     connectorRevision: effect.connectorRevision,
     targetReadInventory: hooks.targetReadInventory,

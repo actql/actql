@@ -71,92 +71,27 @@ fn[T] prepare_managed_occurrence_selection(
   max_work : Int,
   computed : Bool,
 ) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue] {
-  if max_cells < 0 || max_work < 0 {
-    return Err(InvalidLimits)
-  }
-  let width = plan.columns.length()
-  if width > 0 && selected_rows.length() > max_cells / width {
-    return Err(Limit)
-  }
-  let count = selected_rows.length() * width
-  let copy_work = match selected_rows {
-    Indices(rows) => rows.length()
-    Slice(_, _) => 0
-  }
-  if count > max_work || copy_work > max_work - count {
-    return Err(Limit)
-  }
-  // Charge the copied cells and defensive row-map copy in addition to the
-  // aggregate metadata traversal's existing bounded work.
-  let rows = match selected_rows {
-    Indices(rows) => Indices(rows.copy())
-    Slice(start, count) => Slice(start, count)
-  }
-  let measurements = match
-    managed_occurrence_measurements(plan, rows, max_work - count - copy_work) {
-    Ok(facts) => facts
+  let cursor = match
+    begin_managed_occurrence_selection(
+      plan,
+      selected_rows,
+      max_cells,
+      max_work,
+      computed,
+      true,
+      fn(_, _) { true },
+    ) {
+    Ok(cursor) => cursor
     Err(issue) => return Err(issue)
   }
-  let columns = []
-  for measurement in measurements {
-    match measurement {
-      Some(measurement) => columns.push(measurement)
-      None => {
-        if !computed {
-          return Err(UnsupportedColumns)
-        }
-        columns.push({
-          rows: rows.length(),
-          bytes: 0,
-          nodes: 0,
-          max_value_bytes: 0,
-          null_rows: 0,
-          admitted_depth: 0,
-        })
-      }
+  while true {
+    match advance_managed_view_selection(cursor, 64) {
+      Ok((true, _)) => break
+      Ok((false, _)) => continue
+      Err(issue) => return Err(issue)
     }
   }
-  let receipt = plan.input.output.material.receipt
-  let source = receipt.row_measurements.unwrap()
-  let source_width = @schema.field_count(receipt.schema)
-  guard new_managed_row_measurements(count) is Some(index) else {
-    return Err(Limit)
-  }
-  for position in 0..<rows.length() {
-    let row = rows.get(position).unwrap()
-    for origin in plan.columns {
-      match origin {
-        Some(origin) => {
-          let column = plan.input.columns[origin]
-          let value = managed_row_measurement_get(
-            source,
-            row * source_width + column,
-          ).unwrap()
-          if !managed_row_measurement_push(index, value) {
-            return Err(Limit)
-          }
-        }
-        None =>
-          if !managed_row_measurement_push(index, (0, 0, false)) {
-            return Err(Limit)
-          }
-      }
-    }
-  }
-  if !managed_producer_read_available(plan.input) {
-    return Err(ForeignInput)
-  }
-  Ok({
-    plan,
-    rows,
-    facts: {
-      rows: rows.length(),
-      columns,
-      admission_usage: { work: 0, nodes: 0, text_bytes: 0, },
-    },
-    index,
-    claimed: false,
-  })
+  take_managed_view_selection(cursor)
 }
 
 ///|

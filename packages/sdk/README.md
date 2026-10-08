@@ -263,6 +263,19 @@ is inferred from an HTTP error, message or missing record. `preparing` is not a
 Run admission. `SubmissionNotSent` reports a local failure before dispatch and
 has no Owner outcome; a lost response is `SubmissionUnknown`.
 
+`explainSubmission` and `formatSubmission` use those admitted branches for
+both submission results and `lookupSubmission` results. They distinguish
+durable `not_accepted`, accepted `preparation_failed`, accepted `preparing`,
+and a validated Run reference. Only the two terminal preparation branches
+include their disclosed typed problem. An `unresolvable` lookup establishes
+neither nonacceptance nor permission to submit again. A failed exchange or
+uninterpretable lookup retains the exact original epoch/nonce and a passive
+lookup candidate without acquiring rejected response fields or borrowed causes.
+Known unsent attempts describe dispatch only, not the identity's Owner outcome.
+These immutable weak associations exist only on the original SDK result or
+error; copying or parsing it does not acquire explanatory custody. Formatting
+and localization perform no I/O and cannot change the acceptance phase.
+
 `check`, `start` and `startSource` share numeric-preserving JSON request serialization.
 NaN, infinities and negative zero are refused, including nested parameters,
 Program values, declaration defaults, boxed Numbers and `toJSON` results.
@@ -297,6 +310,20 @@ connection scope. A returned Run reference instead names its read-only `status`
 inspection. A held response names request lookup and does not promise a current
 preparation or execution state. These are presentation facts from this call,
 not a new server acceptance contract or an execution/publication/release proof.
+
+For admitted `not_accepted` or `preparation_failed` outcomes with
+`ClientProgramAnalysisLimit` and the `implementation_limit` classification,
+`preparationIssue` explains the existing checker analysis-budget fact.
+`ClientProgramImplementationLimit` with the same classification instead explains
+an unresolved implementation path reported by checking. Both facts are separate
+from the Host's independent `ClientProgramUnsupported` feature refusal. This
+fact does not establish invalid input, successful checking or execution.
+Inspect a check report for outstanding obligations and keep the original
+submission reference. A changed input requires a distinct submission identity;
+the explanation never retries. Source-dependent budget facts are projected
+from the existing audience-filtered public check and rechecked against the
+retained original intent during authorized lookup. Raw private Source limits
+remain generic when no public budget fact can be admitted.
 
 ```js
 import {explainSubmission} from '@actql/sdk';
@@ -513,6 +540,57 @@ overhead can make peak memory higher. An exceeded limit fails the delivery
 attempt without cancelling its Run; `all()` never returns a truncated result.
 The reader decodes a received transport chunk in slices no larger than 8 KiB
 or the selected row wire limit, whichever is smaller.
+
+## Original request recovery
+
+`client.recoverRequest(observationOrTarget)` creates a lookup-only recovery
+handle. It performs no I/O, submission, approval or resumption. It accepts an
+original SDK submission error (`RequestHeld` or `SubmissionUnknown`), its
+received Execution or successful short-query Result, or an original request
+lookup response/error. Mutable error properties and copied observations do
+not supply the original request context.
+
+For an epoch-bound submission, the frozen `target` retains
+`{operation: 'lookupSubmission', submissionRef: {epoch, nonce}, lookupContext: {endpoint, scopeRef}}`.
+An explicit original `lookupRequest` observation retains that operation and
+request ID instead. Recovery never substitutes the reconnect's epoch or falls
+back to a bare nonce lookup. An application
+can save this JSON and restore it with `recoverRequest(savedTarget)` after
+connecting again to the same endpoint and confirmed scope. Saved targets are
+untrusted lookup data, not authenticated references, durable acceptance or
+permission to retry. The original epoch is retained as lookup material,
+not reissued by the SDK. The SDK captures only exact own data fields
+without invoking getters, `toJSON` or conversion hooks. It refuses mismatches
+before lookup instead of translating an older context into a different scope.
+
+```js
+const recovery = client.recoverRequest(originalSubmissionError);
+const savedTarget = JSON.stringify(recovery.target); // application-owned storage
+const observation = await recovery.lookup();
+if (observation.kind === 'ready' || observation.kind === 'found') {
+  const execution = await recovery.attach(observation);
+  const state = await execution.status();
+}
+// After reconnecting: client.recoverRequest(JSON.parse(savedTarget)).
+```
+
+`lookup()` returns the selected operation's existing `SubmissionLookup` or `RequestLookup` union unchanged. A held request
+still has no Run; `not_found` and `unknown` do not establish nonexecution.
+`attach()` accepts only a `ready` or `found` observation returned by that same handle's
+`lookup()`. A direct lookup, another handle or a serialized copy does not have
+that association. This local check is not authority: the ordinary Host attach
+operation checks current access again. Each call is explicit; there is no
+polling, automatic attachment, write retry or status-to-success inference.
+
+The target preserves this Client's negotiated connection context; comparison
+does not detect a later scope change inside a credential callback. Keep that
+scope stable for the Client and create a new connection when changing it.
+Current Host authorization still applies on every operation. The standard Local Host now projects its
+existing root/principal/policy-bound authority scope for default as well as
+explicit policy connections. Reopen the same state root and configuration;
+another root with the same request ID is a different scope. Older
+principal-only lookup contexts are refused, not reinterpreted. No state path,
+input, credential or private review is added to the saved target.
 
 ## Historical held requests and Run Checkpoints
 
@@ -794,7 +872,9 @@ reason's numeric spelling failure. `explainCheckReason` supplies safe summaries
 and advisory correction hints; messages do not determine verdicts. Only existing
 authored origins supply reference, call or numeric ranges. Missing/generated
 origins and protected Source resolution acquire no fabricated span or name.
-Unaliased-column failures lacking a typed expression diagnostic remain generic.
+The existing lowerer's `UnknownColumn` also supplies `unknown_reference` facts,
+including bare column selections. It currently has no retained authored origin,
+so its location is omitted; adding an alias may expose an existing exact origin.
 The SDK uses the same submitted snapshot for syntax and expression ranges.
 `resolveCheckTextRange(outcome, location, currentInput?)` additionally returns
 zero-based `range.start`/`range.end` line and character coordinates with

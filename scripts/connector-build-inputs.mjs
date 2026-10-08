@@ -302,7 +302,8 @@ export function resolveConnectorBuildInputs(configuration) {
       }
       hostEntries.push({...checkedHost, namespace: module.namespace, root: module.root,
         sourceRoot: module.sourceRoot,
-        providerPackage: `${module.namespace}/${checkedHost.providerBundle}`, providerPackagePath});
+        ...(checkedHost.providerBundle === undefined ? {} : {
+          providerPackage: `${module.namespace}/${checkedHost.providerBundle}`, providerPackagePath})});
       entry.revision = checkedHost.revision;
     } else if (selected.revision !== undefined) {
       throw new Error('Connector revision requires an existing Host declaration');

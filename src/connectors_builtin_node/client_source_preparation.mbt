@@ -31,6 +31,7 @@ fn client_source_preparation_issue_code(
         Encoding => "source_encoding"
         QueryLowering(issue) =>
           match issue {
+            UnknownRelation => "source_unresolved"
             UnsupportedProjection
             | UnsupportedGrouping
             | UnsupportedAggregate
@@ -41,6 +42,15 @@ fn client_source_preparation_issue_code(
             | UnsupportedJoin
             | UnsupportedCte
             | UnsupportedGraph => "source_unsupported"
+            // These typed facts come from the existing lowerer. The public
+            // submission projection must still establish audience disclosure.
+            UnknownColumn
+            | AmbiguousColumn
+            | AmbiguousRelation
+            | DuplicateOutput
+            | Expression(
+              { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
+            ) => "source_invalid_input"
             _ => "source_rejected"
           }
         QuerySyntax({ issue: Limit(_), .. }) => "source_limit"
@@ -173,6 +183,8 @@ fn client_source_context(
   )
   let published : Array[@source_frontend.PublishedAlias] = []
   let mut field_count = 0
+  let input_schemas = []
+  let mut schema_work = 1000000
   for index, entry in aliases {
     @decode.closed_object(entry, [
       "name", "sourceRef", "sourceViewContractCid", "schemaContractCid",
@@ -219,6 +231,15 @@ fn client_source_context(
       raise ClientSourceStop(Limit)
     }
     field_count += fields.length()
+    let (checked_schema, used_work) = @check_environment.read_relation_schema_fields(
+      source_publication_field(schema, "fields"),
+      65536,
+      8192,
+      64,
+      schema_work,
+    ).unwrap_or_else(() => raise ClientSourceStop(Publication))
+    schema_work -= used_work
+    input_schemas.push(("source_\{index}", checked_schema))
     let connector = source_publication_text(view, "connector_id")
     let view_id = source_publication_text(view, "view_id")
     let prefix = "connector://" + connector + "/"
@@ -281,6 +302,7 @@ fn client_source_context(
       published,
       environment_cid,
       parameter_declarations~,
+      input_schemas~,
     ) {
     Ok(value) => value
     Err(issue) => raise ClientSourceStop(Alias(issue))

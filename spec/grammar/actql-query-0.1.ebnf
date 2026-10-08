@@ -66,20 +66,31 @@ graph_constraint = "WHERE", expression
 property_pair = identifier, ":", expression ;
 graph_quantifier = "{", integer, "}"
                  | "{", [ integer ], ",", integer, "}" ;
-source        = path, [ source_alias ]
+source        = table_source | unnest_source ;
+table_source  = path, [ source_alias ]
               | "(", relational_body, ")",
                 source_alias ;
 source_alias  = [ "AS" ], identifier ;
+unnest_source = "UNNEST", "(", expression, ")", source_alias,
+                [ "WITH", "OFFSET", [ source_alias ] ] ;
 join          = [ "INNER" | "LEFT", [ "OUTER" ]
                 | "RIGHT", [ "OUTER" ]
                 | "FULL", [ "OUTER" ] ],
-                "JOIN", source, ( "ON", expression
+                "JOIN", table_source, ( "ON", expression
                 | "USING", "(", identifier, { ",", identifier }, ")" ),
                 [ join_bound ]
-              | "CROSS", "JOIN", source, [ join_bound ] ;
+              | "CROSS", "JOIN", table_source, [ join_bound ]
+              | "CROSS", "JOIN", unnest_source ;
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
-group_clause  = "GROUP", "BY", expression, { ",", expression } ;
+group_clause  = "GROUP", "BY", ( "(", ")" | expression, { ",", expression } ) ;
+pipe_group_clause = "GROUP", [ "AND", "ORDER" ], "BY", ( "(", ")" | pipe_group_item, { ",", pipe_group_item } ) ;
+pipe_group_item = expression, [ [ "AS" ], identifier ], [ pipe_group_order ] ;
+pipe_group_order = [ "ASC" | "DESC" ], "NULLS", ( "FIRST" | "LAST" )
+                 | "ASC" | "DESC" ;
+pipe_aggregate_list = pipe_aggregate_item, { ",", pipe_aggregate_item } ;
+pipe_aggregate_item = expression, [ [ "AS" ], identifier ], [ pipe_aggregate_order ] ;
+pipe_aggregate_order = ( "ASC" | "DESC" ), [ "NULLS", ( "FIRST" | "LAST" ) ] ;
 having_clause = "HAVING", expression ;
 qualify_clause = "QUALIFY", expression ;
 window_clause = "WINDOW", window_definition, { ",", window_definition } ;
@@ -134,7 +145,7 @@ relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "DISTINCT" 
               | "DROP", identifier, { ",", identifier }
               | "RENAME", rename, { ",", rename }
               | "AS", identifier
-              | "AGGREGATE", select_list, [ group_clause ]
+              | "AGGREGATE", ( pipe_aggregate_list, [ pipe_group_clause ] | pipe_group_clause )
               | join | order_clause | limit_clause
               | pipe_set_part ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",

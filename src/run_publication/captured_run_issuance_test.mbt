@@ -139,6 +139,66 @@ fn captured_run_test_chain(
 }
 
 ///|
+test "publication evidence defaults reserve fixed streams without changing node limits" {
+  assert_eq(publication_evidence_workspace(-1), 0)
+  assert_eq(publication_evidence_workspace(0), 0)
+  assert_eq(publication_evidence_workspace(128), 5120)
+  assert_eq(publication_evidence_workspace(256), 6144)
+  assert_eq(publication_evidence_workspace(2147483647), 2147483647)
+  let chain = captured_run_test_chain()
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    256,
+    32,
+  ).unwrap()
+  let captured = issue_effect_free_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    chain.models,
+    65536,
+    256,
+    32,
+  ).unwrap()
+  validate_effect_free_run_evidence_chain(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    65536,
+    256,
+    32,
+  ).unwrap()
+  let explicit = captured_validation_test_start(chain, captured, workspace=2048)
+  let mut refused = false
+  for _ in 0..<10000 {
+    match explicit.advance(1) {
+      Err(EvidenceInventoryMismatch("result_artifacts")) => {
+        refused = true
+        break
+      }
+      Err(_) => abort("unrelated evidence refusal")
+      Ok((true, _)) => abort("fixed stream buffers require explicit capacity")
+      Ok((false, _)) => ()
+    }
+  }
+  assert_true(refused)
+}
+
+///|
 test "Captured Run issuer binds exact Result values and field order" {
   let chain = captured_run_test_chain()
   let snapshot = admit_captured_result_snapshot(
@@ -185,6 +245,336 @@ test "Captured Run issuer binds exact Result values and field order" {
       "\"result_values\":{\"answer\":[{\"value\":7}]}",
     ),
   )
+}
+
+///|
+fn captured_preparation_test_start() -> CapturedRunIssuancePreparation {
+  let chain = captured_run_test_chain()
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  start_effect_free_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    chain.models,
+    65536,
+    4096,
+    32,
+    32768,
+  )
+}
+
+///|
+fn captured_validation_test_start(
+  chain : CapturedRunTestChain,
+  captured : PublicationContract,
+  workspace? : Int = 32768,
+) -> ComputationEvidenceCheck {
+  start_effect_free_run_evidence_check(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    65536,
+    4096,
+    32,
+    workspace,
+  )
+}
+
+///|
+test "captured evidence validation preserves quantum-independent work and exact rows" {
+  let chain = captured_run_test_chain()
+  let issuer = captured_preparation_test_start()
+  while !issuer.advance(256).unwrap().0 {
+    ()
+  }
+  let captured = issuer.finish().unwrap()
+  let mut expected_work = None
+  for quantum in [1, 7, 64] {
+    let check = captured_validation_test_start(chain, captured)
+    let mut work = 0
+    let mut polls = 0
+    while true {
+      let (done, used) = check.advance(quantum).unwrap()
+      assert_true(used > 0 && used <= quantum)
+      work += used
+      polls += 1
+      assert_true(polls < 100000)
+      if done {
+        break
+      }
+    }
+    check.finish().unwrap()
+    assert_true(check.finish() is Err(EvidenceEncoding))
+    match expected_work {
+      None => expected_work = Some(work)
+      Some(expected) => assert_eq(work, expected)
+    }
+  }
+  let altered = final_test_reseal_captured_context(
+    captured, "\"value\":7", "\"value\":8",
+  )
+  let check = captured_validation_test_start(chain, altered)
+  let mut failure = None
+  for _ in 0..<100000 {
+    match check.advance(1) {
+      Err(issue) => {
+        failure = Some(issue)
+        break
+      }
+      Ok((done, _)) => assert_true(!done)
+    }
+  }
+  assert_eq(failure, Some(EvidenceReferenceMismatch("captured_result_values")))
+}
+
+///|
+test "captured evidence cancellation retires private checks without retiring inputs" {
+  let chain = captured_run_test_chain()
+  let issuer = captured_preparation_test_start()
+  while !issuer.advance(256).unwrap().0 {
+    ()
+  }
+  let captured = issuer.finish().unwrap()
+  let original = publication_contract_json(captured)
+  for phase in ["root-check", "receipt-check", "context-check", "rows-check"] {
+    let check = captured_validation_test_start(chain, captured)
+    let mut reached = false
+    for _ in 0..<100000 {
+      let (done, work) = check.advance(1).unwrap()
+      assert_eq(work, 1)
+      assert_true(!done)
+      if computation_evidence_check_fixture_phase(check) == phase {
+        reached = true
+        break
+      }
+    }
+    assert_true(reached)
+    check.cancel()
+    check.cancel()
+    assert_eq(computation_evidence_check_fixture_phase(check), "closed")
+    assert_true(check.advance(1) is Err(EvidenceEncoding))
+    assert_true(check.finish() is Err(EvidenceEncoding))
+    assert_eq(publication_contract_json(captured), original)
+  }
+  let too_small = captured_validation_test_start(chain, captured, workspace=11)
+  assert_true(too_small.advance(1) is Err(EvidenceEncoding))
+  assert_eq(computation_evidence_check_fixture_phase(too_small), "closed")
+  validate_effect_free_run_evidence_chain(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+}
+
+///|
+test "captured receipt checking yields before context with admitted Model evidence" {
+  let chain = captured_run_test_chain(with_model=true)
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let captured = issue_effect_free_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    chain.models,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let original = publication_contract_json(captured)
+  let check = captured_validation_test_start(chain, captured)
+  let mut receipt_polls = 0
+  for _ in 0..<10000 {
+    let (done, used) = check.advance(1).unwrap()
+    assert_eq(used, 1)
+    assert_true(!done)
+    let phase = computation_evidence_check_fixture_phase(check)
+    assert_true(phase != "context-check")
+    if phase == "receipt-check" {
+      receipt_polls += 1
+      if receipt_polls > 64 {
+        break
+      }
+    }
+  }
+  assert_eq(receipt_polls, 65)
+  check.cancel()
+  assert_eq(computation_evidence_check_fixture_phase(check), "closed")
+  assert_eq(publication_contract_json(captured), original)
+  let replay = captured_validation_test_start(chain, captured)
+  while !replay.advance(7).unwrap().0 {
+    ()
+  }
+  replay.finish().unwrap()
+}
+
+///|
+test "publication commit preparation preserves dependency refusal before binding checks" {
+  let chain = captured_run_test_chain()
+  let issuer = captured_preparation_test_start()
+  while !issuer.advance(256).unwrap().0 {
+    ()
+  }
+  let captured = issuer.finish().unwrap()
+  // Root contracts cannot substitute for Result dependencies. Invalid request
+  // and index arguments must not mask the earlier typed inventory refusal.
+  let check = start_effect_free_publication_commit_check(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    [],
+    [],
+    [],
+    [],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    chain.run,
+    chain.run,
+    chain.run,
+    65536,
+    4096,
+    32,
+    32768,
+  )
+  assert_eq(check.advance(1), Err(CommitResultEvidence(ResultEvidenceCount)))
+  assert_eq(publication_commit_preparation_fixture_phase(check), "closed")
+  assert_true(check.finish() is Err(CommitEncoding))
+  check.cancel()
+  assert_eq(
+    validate_effect_free_publication_commit_with_result_evidence(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      [],
+      [],
+      [],
+      [],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      chain.run,
+      chain.run,
+      chain.run,
+      65536,
+      4096,
+      32,
+    ),
+    Err(CommitResultEvidence(ResultEvidenceCount)),
+  )
+}
+
+///|
+test "Captured Run preparation keeps final evidence checking and quantum-independent identity" {
+  let mut identity = None
+  let mut total = None
+  for quantum in [1, 7, 64] {
+    let preparation = captured_preparation_test_start()
+    let mut work = 0
+    let mut saw_context_check = false
+    let mut saw_rows_check = false
+    let mut finished = false
+    for _ in 0..<500000 {
+      let (done, used) = preparation.advance(quantum).unwrap()
+      assert_true(used <= quantum)
+      work += used
+      let phase = captured_run_preparation_fixture_phase(preparation)
+      if phase == "context-check" {
+        saw_context_check = true
+      }
+      if phase == "rows-check" {
+        saw_rows_check = true
+      }
+      if done {
+        finished = true
+        break
+      }
+      assert_true(used > 0)
+    }
+    assert_true(finished)
+    if quantum == 1 {
+      assert_true(saw_context_check && saw_rows_check)
+    }
+    let contract = preparation.finish().unwrap()
+    let wire = publication_contract_json(contract)
+    assert_true(wire.contains("\"result_values\":{\"answer\":[{\"value\":7}]}"))
+    assert_true(wire.contains("\"result_fields\":{\"answer\":[\"value\"]}"))
+    if identity is Some(previous) {
+      assert_eq(publication_contract_identity(contract), previous)
+    }
+    identity = Some(publication_contract_identity(contract))
+    if total is Some(previous) {
+      assert_eq(work, previous)
+    }
+    total = Some(work)
+    assert_true(preparation.finish() is Err(CaptureIssuanceEncoding))
+    assert_eq(captured_run_preparation_fixture_phase(preparation), "closed")
+  }
+}
+
+///|
+test "Captured Run preparation cancels after real progress at every aggregate boundary" {
+  for
+    wanted in [
+      "context", "envelope", "seal", "context-check", "rows-check", "done",
+    ] {
+    let preparation = captured_preparation_test_start()
+    let mut progress = 0
+    let mut reached = false
+    for _ in 0..<500000 {
+      let (_, used) = preparation.advance(1).unwrap()
+      progress += used
+      if captured_run_preparation_fixture_phase(preparation) == wanted {
+        reached = true
+        break
+      }
+    }
+    assert_true(reached && progress > 0)
+    preparation.cancel()
+    preparation.cancel()
+    assert_eq(captured_run_preparation_fixture_phase(preparation), "closed")
+    assert_true(preparation.advance(1) is Err(CaptureIssuanceEncoding))
+    assert_true(preparation.finish() is Err(CaptureIssuanceEncoding))
+  }
 }
 
 ///|

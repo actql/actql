@@ -117,6 +117,85 @@ fn export_relation_all(
 }
 
 ///|
+fn snapshot_export_fixture(
+  source : CompletedOutput,
+  max_batch_bytes? : Int = 64,
+) -> (CompletedOutputExport, CompletedRelationExportReceipt) {
+  let stream = prepare_completed_relation_export(
+    source,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+    publication_schema_limits(),
+    max_batch_bytes,
+  ).unwrap()
+  while next_completed_output_export(stream).unwrap() is Some(_) {
+    ()
+  }
+  let (receipt, _) = finish_completed_relation_export(stream).unwrap()
+  (stream, receipt)
+}
+
+///|
+test "Result snapshot rejects another export receipt from the same completion" {
+  let source = export_fixture(capture_fixture())
+  let (stream, receipt) = snapshot_export_fixture(source)
+  let (other, other_receipt) = snapshot_export_fixture(source)
+  // Logical equality and the same completed generation do not establish which
+  // immutable view issued the receipt.
+  assert_eq(
+    logical_relation_cid(completed_relation_export_identity(receipt)),
+    logical_relation_cid(completed_relation_export_identity(other_receipt)),
+  )
+  assert_true(completed_relation_export_matches_output(other_receipt, source))
+  assert_true(
+    completed_relation_export_snapshot(stream, other_receipt, 1000, 100, 20)
+    is Err(ForeignMaterial),
+  )
+  assert_true(
+    completed_relation_export_snapshot(other, receipt, 1000, 100, 20)
+    is Err(ForeignMaterial),
+  )
+  // The fixture selects s, n. JSON key order remains canonical n, s, while
+  // the field inventory preserves the authored projection.
+  assert_eq(
+    completed_relation_export_snapshot(stream, receipt, 1000, 100, 20).unwrap(),
+    ("[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]", ["s", "n"]),
+  )
+  // Refusal neither closes a receipt nor revokes the producer.
+  assert_true(completed_output_available(source))
+  cancel_completed_relation_export_receipt(receipt)
+  cancel_completed_relation_export_receipt(other_receipt)
+}
+
+///|
+test "Result snapshot rejects an equal independently completed export" {
+  let source = export_fixture(capture_fixture())
+  let other_source = export_fixture(capture_fixture())
+  let (stream, receipt) = snapshot_export_fixture(source)
+  let (other, other_receipt) = snapshot_export_fixture(other_source)
+  assert_eq(
+    logical_relation_cid(completed_relation_export_identity(receipt)),
+    logical_relation_cid(completed_relation_export_identity(other_receipt)),
+  )
+  assert_true(
+    completed_relation_export_snapshot(stream, other_receipt, 1000, 100, 20)
+    is Err(ForeignMaterial),
+  )
+  assert_true(
+    completed_relation_export_snapshot(other, other_receipt, 1000, 100, 20)
+    is Ok(_),
+  )
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(
+    completed_relation_export_snapshot(stream, receipt, 1000, 100, 20)
+    is Err(Closed),
+  )
+  cancel_completed_relation_export_receipt(other_receipt)
+}
+
+///|
 test "publication export separates ordered rows from logical Relation identity" {
   let source = export_fixture(capture_fixture())
   let (receipt, text) = export_relation_all(source)

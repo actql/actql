@@ -2,7 +2,9 @@
 import {readFileSync, existsSync, lstatSync, realpathSync} from 'node:fs';
 import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {connectorManifestSelection} from './connector-manifest-selection.mjs';
-import {reservedHttpHeader} from '../adapters/host-common/http-exchange.mjs';
+import {validInstalledEffectIdentityProfile, validInstalledResponseHeaders}
+  from '../adapters/host-common/installed-connector-declaration.mjs';
+import {adapterModuleGraph} from './adapter-module-graph.mjs';
 
 // Installed Host bindings. A connector that the standard Host can install
 // for Source and/or Effect declares, in its own `host-bundle.json`, the Host profile
@@ -11,20 +13,11 @@ import {reservedHttpHeader} from '../adapters/host-common/http-exchange.mjs';
 // header names its drivers read. The common Host selects one entry by the
 // installed profile's version; it never branches on a provider name.
 const hostBundleKeys = ['installation'];
-const installationKeys = ['providerBundle', 'registration', 'responseHeaders', 'revision'];
-const optionalInstallationKeys = ['assets', 'effect', 'source'];
+const installationKeys = ['registration', 'responseHeaders', 'revision'];
+const optionalInstallationKeys = ['assets', 'effect', 'providerBundle', 'source'];
 const sourceKeys = ['exports', 'module', 'profileVersion'];
-// An Effect section may register the identity profile of its durable Effect
-// records: the version of each identity the common installed row Effect
-// issues, and the continuation's installation-binding field. Only these
-// fixed names exist; the common factory reads them from the generated table.
-const identityProfileKeys = ['continuation', 'continuationBinding', 'dispatch',
-  'recovery', 'source', 'targetCheck', 'unit'];
-const identityVersion = /^actql-[a-z0-9-]+\/0\.1$/;
-const continuationBindings = ['binding_cid', 'publication_generation_cid'];
 const sourceExports = ['check', 'identityParts', 'load', 'publish'];
 const requiredSourceExports = ['check', 'identityParts', 'load'];
-const headerName = /^[a-z0-9][a-z0-9-]*$/;
 
 const sameKeys = (value, keys) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join() === keys.join();
@@ -73,30 +66,23 @@ export function checkHostBundle(root, name, path, options = {}) {
   if (source === undefined && effect === undefined) throw invalid('Host roles');
   if (registration !== name || !/^[a-z][a-z0-9_]*$/.test(name)) throw invalid('registration');
   if (typeof revision !== 'string' || !new RegExp(`^${name}/\\d+\\.\\d+$`).test(revision)) throw invalid('revision');
-  if (typeof providerBundle !== 'string' ||
-      !new RegExp(`^connectors/${name}/[a-z][a-z0-9_]*$`).test(providerBundle)) throw invalid('providerBundle');
-  const bundlePackage = options.resolveProviderPackage === undefined
-    ? join(root, 'src', providerBundle, 'moon.pkg')
-    : options.resolveProviderPackage(providerBundle);
-  if (!existsSync(bundlePackage)) throw invalid('providerBundle package');
-  const bundleManifest = readFileSync(bundlePackage, 'utf8');
-  if (!/^supported_targets = "js"$/m.test(bundleManifest) ||
-      !/pkgtype\(kind: "foreign_library"\)/.test(bundleManifest)) throw invalid('providerBundle kind');
-  if (!Array.isArray(responseHeaders) || responseHeaders.length > 16 ||
-      new Set(responseHeaders).size !== responseHeaders.length ||
-      responseHeaders.some(header => typeof header !== 'string' || !headerName.test(header) ||
-        reservedHttpHeader(header))) {
-    throw invalid('responseHeaders');
+  if (providerBundle !== undefined) {
+    if (typeof providerBundle !== 'string' ||
+        !new RegExp(`^connectors/${name}/[a-z][a-z0-9_]*$`).test(providerBundle)) throw invalid('providerBundle');
+    const bundlePackage = options.resolveProviderPackage === undefined
+      ? join(root, 'src', providerBundle, 'moon.pkg')
+      : options.resolveProviderPackage(providerBundle);
+    if (!existsSync(bundlePackage)) throw invalid('providerBundle package');
+    const bundleManifest = readFileSync(bundlePackage, 'utf8');
+    if (!/^supported_targets = "js"$/m.test(bundleManifest) ||
+        !/pkgtype\(kind: "foreign_library"\)/.test(bundleManifest)) throw invalid('providerBundle kind');
   }
+  if (!validInstalledResponseHeaders(responseHeaders)) throw invalid('responseHeaders');
   const checkSection = (section, label) => {
     const prefix = label === 'source' ? '' : `${label} `;
     const {identityProfile, ...rest} = section ?? {};
     if (label === 'effect' && identityProfile !== undefined) {
-      if (!sameKeys(identityProfile, identityProfileKeys) ||
-          !continuationBindings.includes(identityProfile.continuationBinding) ||
-          identityProfileKeys.filter(key => key !== 'continuationBinding')
-            .some(key => typeof identityProfile[key] !== 'string' ||
-              !identityVersion.test(identityProfile[key]))) {
+      if (!validInstalledEffectIdentityProfile(identityProfile)) {
         throw invalid('effect identityProfile');
       }
       section = rest;
@@ -125,17 +111,29 @@ export function checkHostBundle(root, name, path, options = {}) {
       ...(options.resolveFile === undefined ? {} : {modulePath}),
       ...(identityProfile === undefined || label !== 'effect' ? {} : {identityProfile: {...identityProfile}})};
   };
-  // Only connector-owned static declarations are copied as data. Resolve
-  // their actual location as well as their spelling before packaging.
+  // Connector-owned declarations and explicitly listed physical I/O assets
+  // share one finite inventory. A JS/Python installation needs no dummy Moon
+  // provider bundle. Resolve actual ownership before packaging any asset.
   const prefix = `src/connectors/${name}/`;
   const connectorDirectory = join(root, prefix);
+  const adapterPrefix = `adapters/connectors/${name}/`;
+  const ownedAsset = asset => {
+    const source = asset.startsWith(prefix) && asset.endsWith('.json');
+    const physical = asset.startsWith(adapterPrefix) && /\.(?:py|in|lock|md)$/.test(asset);
+    const contract = new RegExp(`^spec/contracts/actql-${name}-[a-z0-9-]+\\.json$`).test(asset);
+    const owner = source ? connectorDirectory : physical ? join(root, adapterPrefix) :
+      contract ? join(root, 'spec/contracts') : undefined;
+    return owner !== undefined && existsSync(owner) && lstatSync(owner).isDirectory() &&
+      realpathSync(owner) === resolve(realpathSync(root), source ? prefix :
+        physical ? adapterPrefix : 'spec/contracts') &&
+      realpathSync(join(root, asset)).startsWith(realpathSync(owner) + '/');
+  };
   if (!existsSync(connectorDirectory) || !lstatSync(connectorDirectory).isDirectory() ||
       realpathSync(connectorDirectory) !== resolve(realpathSync(root), prefix) ||
       !Array.isArray(assets) || new Set(assets).size !== assets.length ||
-      assets.some(asset => typeof asset !== 'string' || !asset.startsWith(prefix) ||
-        !asset.endsWith('.json') || !safeRelativePath(asset) ||
+      assets.some(asset => typeof asset !== 'string' || !safeRelativePath(asset) ||
         !existsSync(join(root, asset)) || !lstatSync(join(root, asset)).isFile() ||
-        !realpathSync(join(root, asset)).startsWith(realpathSync(connectorDirectory) + '/'))) {
+        !ownedAsset(asset))) {
     throw invalid('assets');
   }
   const assetSources = assets.map(asset => ({path: asset, sourcePath:
@@ -175,7 +173,7 @@ export function checkHostProfiles(installations) {
 
 // Resolve concrete module paths at generation time. A distribution can map
 // each checked entry into its packaged owner without changing declarations.
-export function generateInstallations(installations, output, root, {resolveModule} = {}) {
+export function generateInstallations(installations, output, root, {resolveModule, resolveImplementationFile} = {}) {
   checkHostProfiles(installations);
   const section = (entry, section, label) => {
     const path = resolveModule === undefined
@@ -192,6 +190,18 @@ export function generateInstallations(installations, output, root, {resolveModul
       `    }),\n`;
   };
   const literal = value => JSON.stringify(value);
+  const implementation = entry => {
+    const ownerRoot = entry.root ?? root;
+    const modules = [entry.source, entry.effect].filter(Boolean).map(role => role.module);
+    const files = [...new Set([...entry.assets, ...adapterModuleGraph(ownerRoot, modules)
+      .filter(path => path.startsWith(`adapters/connectors/${entry.name}/`))])].sort();
+    if (files.length < 1 || files.length > 128) throw new Error('InvalidConnectorImplementationInventory');
+    return `    implementationFiles: Object.freeze([\n` + files.map(path => {
+      const source = resolveImplementationFile === undefined ? join(ownerRoot, path)
+        : resolveImplementationFile(entry, path);
+      return `      Object.freeze({path: ${literal(path)}, href: new URL(${literal(moduleSpecifier(output, source))}, import.meta.url).href}),\n`;
+    }).join('') + `    ]),\n`;
+  };
   return '// Generated by scripts/connector-node-bundles.mjs; edit connector host manifests.\n' +
     '// Installed Host bindings declared by connector-owned `host-bundle.json`\n' +
     '// manifests. The common Host selects one entry by the installed profile\'s\n' +
@@ -200,7 +210,9 @@ export function generateInstallations(installations, output, root, {resolveModul
     installations.map(entry => `  Object.freeze({\n` +
         `    name: ${literal(entry.name)}, registration: ${literal(entry.registration)},\n` +
         `    revision: ${literal(entry.revision)},\n` +
-        `    providerBundle: ${literal(entry.providerBundle)},\n` +
+        implementation(entry) +
+        (entry.providerBundle === undefined ? '' :
+          `    providerBundle: ${literal(entry.providerBundle)},\n`) +
         `    responseHeaders: Object.freeze(${literal(entry.responseHeaders)}),\n` +
         (entry.source === undefined ? '' : section(entry, entry.source, 'source')) +
         (entry.effect === undefined ? '' : section(entry, entry.effect, 'effect')) +

@@ -1,11 +1,15 @@
-// One step of the Embedded Read→Compute→Effect acceptance, in its own
-// process: each process opens the Embedded Local Host afresh, so consecutive
-// steps are Host restarts. Arguments: step, then the installation JSON path.
+// One step of the public Read→Compute→Effect acceptance, in its own process.
+// Local and trusted HTTPS use the same installed owner; consecutive steps
+// begin after the original child exits. Arguments: step, then installation path.
 import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
-import {readFileSync, writeFileSync} from 'node:fs';
+import {appendFileSync, readFileSync, writeFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
-import {connectEmbeddedLocal} from '../../../host-node/embedded-local.mjs';
+import {createServer} from 'node:https';
+import {userInfo} from 'node:os';
+import {getCACertificates, setDefaultCACertificates} from 'node:tls';
+import * as sdk from '../../../../packages/sdk/index.mjs';
+import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from '../../../host-node/embedded-local.mjs';
 
 const [step, installationPath] = process.argv.slice(2);
 const installation = JSON.parse(readFileSync(installationPath, 'utf8'));
@@ -26,14 +30,40 @@ if (faultModule !== undefined) {
   };
 }
 const secret = async () => 'test-only-secret';
-const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
-  durability: 'durable', installation: {
-    directory: installation.directory,
-    sourceProfilePath: installation.sourceProfilePath,
-    resolveSourceSecret: secret,
-    effectProfilePath: installation.effectProfilePath,
-    resolveEffectSecret: secret,
-    authorization: installation.authorization}});
+const diagnostics = [];
+const installed = {
+  directory: installation.directory,
+  sourceProfilePath: installation.sourceProfilePath,
+  resolveSourceSecret: secret,
+  effectProfilePath: installation.effectProfilePath,
+  resolveEffectSecret: secret,
+  authorization: {...installation.authorization,
+    observe: (name, detail) => {
+      const event = {pid: process.pid, name, code: detail?.code};
+      diagnostics.push({name, code: detail?.code});
+      // Test observations are separate from the Owner's durable receipts.
+      appendFileSync(`${installationPath}.owner-observations.jsonl`,
+        JSON.stringify(event) + '\n', {mode: 0o600});
+    }},
+};
+let client, host, server;
+let httpsRequests = 0;
+if (installation.transport === 'https') {
+  const cert = readFileSync(installation.hostTls.certificatePath);
+  setDefaultCACertificates([...getCACertificates('default'), cert.toString('utf8')]);
+  host = await openInstalledRemoteHttpHost({...installed,
+    authenticate: header => header === 'Bearer owner-token' ? userInfo().username : undefined});
+  server = createServer({key: readFileSync(installation.hostTls.keyPath), cert}, (request, response) => {
+    httpsRequests++;
+    host.handler(request, response);
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  client = await sdk.connect({mode: 'remote', durability: 'durable', token: 'owner-token',
+    endpoint: `https://127.0.0.1:${server.address().port}/`});
+} else {
+  client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+    durability: 'durable', installation: installed});
+}
 async function waitFor(check) {
   for (let attempt = 0; attempt < 400; attempt++) {
     const value = await check();
@@ -43,12 +73,16 @@ async function waitFor(check) {
   throw new Error('EmbeddedStepTimeout');
 }
 const refPath = `${installationPath}.ref.json`;
+const submissionPath = `${installationPath}.submission-ref.json`;
 try {
   if (step === 'submit') {
+    const submissionRef = client.newSubmission({nonce: installation.requestId});
+    writeFileSync(submissionPath, JSON.stringify(submissionRef) + '\n',
+      {flag: 'wx', mode: 0o600});
     let execution;
     try {
       execution = await client.startSource(installation.program, {format: 'json',
-        requestId: installation.requestId});
+        submissionRef});
     } catch (error) {
       if (error?.code === 'ClientProgramUnsupported') {
         console.log(JSON.stringify({notConnected: true}));
@@ -58,7 +92,7 @@ try {
     }
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint');
-    writeFileSync(refPath, JSON.stringify(execution.ref));
+    writeFileSync(refPath, JSON.stringify(execution.ref), {flag: 'wx', mode: 0o600});
     console.log(JSON.stringify({held: true}));
   } else if (step === 'answer') {
     const ref = JSON.parse(readFileSync(refPath, 'utf8'));
@@ -73,6 +107,11 @@ try {
       item.status)}));
   } else if (step === 'resume') {
     const ref = JSON.parse(readFileSync(refPath, 'utf8'));
+    const submissionRef = JSON.parse(readFileSync(submissionPath, 'utf8'));
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, ref);
     const execution = await client.attach(ref);
     const state = await waitFor(async () => {
       const current = await execution.status();
@@ -87,11 +126,39 @@ try {
       ?.physical_stop === 'confirmed');
     console.log(JSON.stringify({status: state.status, rows,
       ...(faultModule === undefined ? {} : {closes})}));
+  } else if (step === 'observe-effect') {
+    const ref = JSON.parse(readFileSync(refPath, 'utf8'));
+    const submissionRef = JSON.parse(readFileSync(submissionPath, 'utf8'));
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, ref);
+    const execution = await client.attach(lookup.admission.ref);
+    const state = await waitFor(async () => {
+      const current = await execution.status();
+      return current.status === 'needs_reconciliation' && current.control?.physical_stop === 'confirmed'
+        ? current : undefined;
+    });
+    let reconciled, reconcileError;
+    try { reconciled = await execution.reconcile(); }
+    catch (error) { reconcileError = error.code; }
+    console.log(JSON.stringify({pid: process.pid, transport: server ? 'https' : 'local', httpsRequests,
+      ref, state, reconcileError, reconciled, diagnostics,
+      reconciledExplanation: sdk.explainEffectUncertainty?.(reconciled),
+      explanation: sdk.explainEffectUncertainty?.(state),
+      japaneseExplanation: sdk.explainEffectUncertainty?.(state, {locale: 'ja'}),
+      copiedExplanation: sdk.explainEffectUncertainty?.({...state}),
+      formats: ['text', 'html', 'json'].map(format => sdk.formatEffectUncertainty(state, {format}))}));
   } else {
     throw new Error('InvalidEmbeddedStep');
   }
 } finally {
   await client.close();
+  if (server) {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  }
+  await host?.close();
 }
-// The Embedded Host stays open for this process; the step ends it.
+// The Host and execution owner live in this child; the parent waits for its exit.
 process.exit(0);

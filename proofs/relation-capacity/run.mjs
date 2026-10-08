@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { artifacts, bindings, checkBindings, coverage, fixture, identityFixture, snapshot, targets, validate } from './evidence.mjs';
+import { modelExecution, modelObservationUnits, artifacts, bindings, checkBindings, coverage, fixture, identityFixture, snapshot, targets, validate } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
 if (selected !== 'all' && !targets.includes(selected)) throw new Error('Use all, js, wasm or native');
@@ -21,14 +21,14 @@ function run(id, command, args, target = 'model', pkg = null) {
   const result = spawnSync(command, args, { cwd: root, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `${id}.log`), output);
-  const count = pkg ? Number(output.match(/Total tests: (\d+), passed: (\d+), failed: 0/)?.[2] ?? 0) : null;
+  const count = pkg ? Number(output.match(/Total tests: (\d+), passed: (\d+), failed: 0/)?.[2] ?? 0) : modelObservationUnits(output, result.status);
   if (result.error || result.status !== 0 || (pkg && !count)) throw result.error ?? new Error(`${id} failed: ${output}`);
   console.log(`${id}: ${count ?? 'proof'} passed`);
   return { command: [command === moon ? 'moon' : command, ...args], passed: true, exit: 0, target, count,
     milliseconds: Math.round(performance.now() - start), sourceDigest: source.digest,
     artifacts: pkg ? artifacts(root, target, pkg) : {} };
 }
-const lean = run('lean', process.execPath, ['proofs/relation-capacity/check.mjs']);
+const lean = run('lean', modelExecution.command[0], modelExecution.command.slice(1), modelExecution.target);
 for (const target of selected === 'all' ? targets : [selected]) {
   const runs = { lean };
   for (const [kind, path, pkg] of [['capacity', fixture, 'query_integration'], ['identity', identityFixture, 'execution_relation'], ['ledger', 'src/physical_resources/ledger_wbtest.mbt', 'physical_resources']]) {

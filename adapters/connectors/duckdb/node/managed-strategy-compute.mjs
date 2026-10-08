@@ -244,9 +244,20 @@ export async function runManagedColumnStrategyHostCompute(
     );
     signal?.throwIfAborted();
     if (preservesCheckedValues) {
-      const selection = checked(moon.managedStrategySelection(run, occurrences));
+      const preparation = checked(moon.managedStrategySelectionBegin(run, occurrences));
+      let selection;
+      try {
+        await finishManagedOutputReceipt(quantum => checked(
+          moon.managedSelectionAdvance(preparation, quantum)), signal);
+        selection = checked(moon.managedSelectionTake(preparation));
+      } finally {
+        // Partial selection owns copied metadata only, never the source index
+        // or a Store lease. Transfer consumes it; cancellation drops its roots.
+        moon.managedSelectionCancel(preparation);
+      }
       output = checked(moon.managedStrategySelectedOutputBegin(run, selection));
-      checked(moon.managedStrategyOutputFinish(run, output));
+      await finishManagedOutputReceipt(quantum => checked(
+        moon.managedStrategyOutputAdvanceFinish(run, output, quantum)), signal);
     }
     body = await writer.sealPhysical();
     checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));

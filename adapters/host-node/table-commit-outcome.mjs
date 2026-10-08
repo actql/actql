@@ -2,7 +2,7 @@
 // This is not an installer/approval gate or a send/retry path. A lost or invalid
 // reply remains uncertain; only the original Catalog receipt can supply the
 // typed terminal projection. Current table head is never inspected here.
-export function settleSavedTableCommit({control, ledger, tablePreview, claim,
+export function settleSavedTableCommit({control, ledger, tablePreview, claim, bridge,
   limits}) {
   const binding = control.tablePreviewLedgerBinding(tablePreview);
   const operation = JSON.parse(binding.operationWire);
@@ -20,7 +20,13 @@ export function settleSavedTableCommit({control, ledger, tablePreview, claim,
       {code: 'TableCommitResponseLimit'});
   }
   const wire = new TextDecoder('utf-8', {fatal: true}).decode(saved.responseBytes);
-  const outcomeWire = control.tablePreviewCommitOutcome(tablePreview, wire,
+  if (typeof bridge?.projectCommitResponse !== 'function') {
+    throw Object.assign(new Error('MissingTableCommitProjector'),
+      {code: 'MissingTableCommitProjector'});
+  }
+  const logicalWire = bridge.projectCommitResponse({control, responseWire: wire,
+    statusCode: saved.statusCode, limits});
+  const outcomeWire = control.tablePreviewCommitOutcome(tablePreview, logicalWire,
     saved.statusCode, limits);
   const options = {claim, preview: binding.preview,
     memberIndex: binding.memberIndex, previewRowIndex: 0};

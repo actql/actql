@@ -7,7 +7,9 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode.EncodeFailure)
   OutputExport(@execution.CompletedExportIssue)
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
-  ResultTransformation(@publication_host.CapturedClientResultTransformationIssue)
+  ResultTransformation(
+    @publication_host.CapturedClientResultTransformationIssue
+  )
   EffectIdentity(@effect.EffectIdentityIssue)
   EffectSetProgress(@effect.EffectSetProgressIssue)
   EffectFootprint(@effect.EffectFootprintIssue)
@@ -775,9 +777,10 @@ pub fn strategy_admit_captured_effect_source_from_result(
   result : @publication.PublicationContract,
   store_authority_cid : String,
 ) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
-  match @publication.admit_captured_effect_source_from_result(
-    preview, member_index, invocation, artifact, result, store_authority_cid,
-  ) {
+  match
+    @publication.admit_captured_effect_source_from_result(
+      preview, member_index, invocation, artifact, result, store_authority_cid,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -793,6 +796,38 @@ pub fn strategy_captured_effect_source_inventory_from_results_valid(
 ) -> Bool {
   @publication.captured_effect_source_inventory_from_results_valid(
     preview, member_indices, artifacts, results,
+  )
+}
+
+///|
+#export_name("strategyAdmitCapturedEffectSourceFromTableInput")
+pub fn strategy_admit_captured_effect_source_from_table_input(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  input : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_table_input(
+      preview, member_index, invocation, artifact, input, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceInventoryFromArtifactsValid")
+pub fn strategy_captured_effect_source_inventory_from_artifacts_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  relations : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_artifacts_valid(
+    preview, member_indices, artifacts, relations,
   )
 }
 
@@ -969,6 +1004,134 @@ pub fn strategy_issue_effectful_captured_run(
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
+}
+
+///|
+#export_name("strategyBeginEffectFreeCapturedRun")
+pub fn strategy_begin_effect_free_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.CapturedRunIssuancePreparation {
+  @publication.start_effect_free_captured_run(
+    run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
+    advances, authoring, models, max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
+#export_name("strategyBeginEffectfulCapturedRun")
+pub fn strategy_begin_effectful_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  sources : Array[@publication.CapturedEffectSourceArtifact],
+  local_sources : Array[@publication.CapturedLocalEffectSourceEvidence],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  preview : @publication.EffectPreviewIdentity,
+  plan_names : Array[String],
+  plan_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  dependency_wire : String?,
+  max_workspace : Int,
+) -> @publication.CapturedRunIssuancePreparation raise NodeHostFailure {
+  if plan_names.length() != plan_wires.length() {
+    raise InvalidCommand
+  }
+  let plans : Array[(String, String)] = []
+  for index in 0..<plan_names.length() {
+    plans.push((plan_names[index], plan_wires[index]))
+  }
+  let dependency_inventory = match dependency_wire {
+    None => None
+    Some(wire) =>
+      match
+        @publication.admit_captured_effect_source_dependencies(
+          local_sources, wire, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => Some(value)
+        Err(_) => raise InvalidCommand
+      }
+  }
+  @publication.start_effectful_captured_run(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    snapshots,
+    sources,
+    local_sources,
+    advances,
+    authoring,
+    models,
+    preview,
+    plans,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    dependency_inventory~,
+  )
+}
+
+///|
+#export_name("strategyCapturedRunAdvance")
+pub fn strategy_captured_run_advance(
+  preparation : @publication.CapturedRunIssuancePreparation,
+  quantum : Int,
+) -> Bool raise NodeHostFailure {
+  match preparation.advance(quantum) {
+    Ok((done, _)) => done
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedRunFinish")
+pub fn strategy_captured_run_finish(
+  preparation : @publication.CapturedRunIssuancePreparation,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match preparation.finish() {
+    Ok(contract) => contract
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedRunCancel")
+pub fn strategy_captured_run_cancel(
+  preparation : @publication.CapturedRunIssuancePreparation,
+) -> Unit {
+  preparation.cancel()
+}
+
+///|
+#export_name("strategyCapturedRunFixturePhase")
+pub fn strategy_captured_run_fixture_phase(
+  preparation : @publication.CapturedRunIssuancePreparation,
+) -> String {
+  @publication.captured_run_preparation_fixture_phase(preparation)
 }
 
 ///|
@@ -1610,6 +1773,70 @@ pub fn strategy_effect_free_run_evidence_chain_valid(
 }
 
 ///|
+#export_name("strategyPublicationEvidenceWorkspace")
+pub fn strategy_publication_evidence_workspace(max_nodes : Int) -> Int {
+  @publication.publication_evidence_workspace(max_nodes)
+}
+
+///|
+#export_name("strategyBeginEffectFreeChainCheck")
+pub fn strategy_begin_effect_free_chain_check(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.ComputationEvidenceCheck {
+  @publication.start_effect_free_run_evidence_check(
+    run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+    max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
+#export_name("strategyEffectFreeChainCheckAdvance")
+pub fn strategy_effect_free_chain_check_advance(
+  preparation : @publication.ComputationEvidenceCheck,
+  quantum : Int,
+) -> Int {
+  // Stable JS boundary: -1 is refusal, 0 is pending, and 1 is complete.
+  match preparation.advance(quantum) {
+    Ok((done, _)) => if done { 1 } else { 0 }
+    Err(_) => -1
+  }
+}
+
+///|
+#export_name("strategyEffectFreeChainCheckFinish")
+pub fn strategy_effect_free_chain_check_finish(
+  preparation : @publication.ComputationEvidenceCheck,
+) -> Bool {
+  preparation.finish() is Ok(_)
+}
+
+///|
+#export_name("strategyEffectFreeChainCheckCancel")
+pub fn strategy_effect_free_chain_check_cancel(
+  preparation : @publication.ComputationEvidenceCheck,
+) -> Unit {
+  preparation.cancel()
+}
+
+///|
+#export_name("strategyEffectFreeChainCheckFixturePhase")
+pub fn strategy_effect_free_chain_check_fixture_phase(
+  preparation : @publication.ComputationEvidenceCheck,
+) -> String {
+  @publication.computation_evidence_check_fixture_phase(preparation)
+}
+
+///|
 #export_name("strategyEffectfulComputationEvidenceChainValid")
 pub fn strategy_effectful_computation_evidence_chain_valid(
   run_definition : @publication.PublicationContract,
@@ -1657,9 +1884,9 @@ pub fn strategy_captured_effect_source_matches_preview(
   max_depth : Int,
 ) -> Bool raise NodeHostFailure {
   if @publication.captured_effect_source_matches_preview(
-    preview, member_index, invocation, source, local_evidence, store_authority_cid,
-    max_wire_bytes, max_nodes, max_depth,
-  ) {
+      preview, member_index, invocation, source, local_evidence, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
     true
   } else {
     raise InvalidCommand
@@ -1679,10 +1906,11 @@ pub fn strategy_admit_captured_effect_source_from_capture(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
-  match @publication.admit_captured_effect_source_from_capture(
-    preview, member_index, invocation, artifact, captured, store_authority_cid,
-    max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.admit_captured_effect_source_from_capture(
+      preview, member_index, invocation, artifact, captured, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(source) => source
     Err(_) => raise InvalidCommand
   }
@@ -1734,6 +1962,72 @@ pub fn strategy_effect_free_publication_commit_valid(
     max_wire_bytes, max_nodes, max_depth,
   )
   is Ok(_)
+}
+
+///|
+#export_name("strategyBeginEffectFreeCommitCheck")
+pub fn strategy_begin_effect_free_commit_check(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.PublicationCommitPreparation {
+  @publication.start_effect_free_publication_commit_check(
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
+    max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
+#export_name("strategyEffectFreeCommitCheckAdvance")
+pub fn strategy_effect_free_commit_check_advance(
+  preparation : @publication.PublicationCommitPreparation,
+  quantum : Int,
+) -> Int {
+  // Stable JS boundary: -1 is refusal, 0 is pending, and 1 is complete.
+  match preparation.advance(quantum) {
+    Ok((done, _)) => if done { 1 } else { 0 }
+    Err(_) => -1
+  }
+}
+
+///|
+#export_name("strategyEffectFreeCommitCheckFinish")
+pub fn strategy_effect_free_commit_check_finish(
+  preparation : @publication.PublicationCommitPreparation,
+) -> Bool {
+  preparation.finish() is Ok(_)
+}
+
+///|
+#export_name("strategyEffectFreeCommitCheckCancel")
+pub fn strategy_effect_free_commit_check_cancel(
+  preparation : @publication.PublicationCommitPreparation,
+) -> Unit {
+  preparation.cancel()
+}
+
+///|
+#export_name("strategyEffectFreeCommitCheckFixturePhase")
+pub fn strategy_effect_free_commit_check_fixture_phase(
+  preparation : @publication.PublicationCommitPreparation,
+) -> String {
+  @publication.publication_commit_preparation_fixture_phase(preparation)
 }
 
 ///|
@@ -1823,7 +2117,11 @@ pub fn strategy_describe_committed_result(
   max_nodes : Int,
   max_depth : Int,
 ) -> String raise NodeHostFailure {
-  match @publication.describe_committed_result(index, manifest, result_name, bindings, definition, schema_wire, format, max_wire_bytes, max_nodes, max_depth) {
+  match
+    @publication.describe_committed_result(
+      index, manifest, result_name, bindings, definition, schema_wire, format, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
     Ok(wire) => wire
     Err(_) => raise InvalidCommand
   }
@@ -2769,7 +3067,7 @@ pub fn strategy_host_result_transformation_begin(
   max_schema_depth : Int,
   max_batch_bytes : Int,
   converted_output : @execution.CompletedOutput?,
-  selection : @publication_host.ClientResultTransformation,
+  selection : @publication_host.ClientResultTransformation?,
 ) -> StrategyHostResultTransformation raise NodeHostFailure {
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
@@ -2808,9 +3106,24 @@ pub fn strategy_host_result_transformation_begin(
     },
     max_batch_bytes,
   }
-  match @publication_host.start_captured_client_result_transformation(
-    selection, run, result, limits, converted_output?,
-  ) {
+  let started = match selection {
+    Some(selection) =>
+      @publication_host.start_captured_client_result_transformation(
+        selection,
+        run,
+        result,
+        limits,
+        converted_output?,
+      )
+    None =>
+      @publication_host.start_captured_result_publication_export(
+        run,
+        result,
+        limits,
+        converted_output?,
+      )
+  }
+  match started {
     Ok(core) => { core, bridge: None, open: true, }
     Err(issue) => raise ResultTransformation(issue)
   }
@@ -2820,17 +3133,38 @@ pub fn strategy_host_result_transformation_begin(
 #export_name("strategyHostManagedResultTransformationBegin")
 pub fn strategy_host_managed_result_transformation_begin(
   value : StrategyHostManagedResultImport,
-  selection : @publication_host.ClientResultTransformation,
+  selection : @publication_host.ClientResultTransformation?,
 ) -> StrategyHostResultTransformation raise NodeHostFailure {
-  if !value.open { raise InvalidCommand }
-  let output = match @execution.finish_managed_publication_bridge(value.bridge) {
+  if !value.open {
+    raise InvalidCommand
+  }
+  let output = match
+    @execution.finish_managed_publication_bridge(value.bridge) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
-  let core = match @publication_host.start_captured_managed_result_transformation(
-    selection, value.run, value.result, value.output, value.bridge, output,
-    value.limits,
-  ) {
+  let started = match selection {
+    Some(selection) =>
+      @publication_host.start_captured_managed_result_transformation(
+        selection,
+        value.run,
+        value.result,
+        value.output,
+        value.bridge,
+        output,
+        value.limits,
+      )
+    None =>
+      @publication_host.start_captured_managed_result_publication_export(
+        value.run,
+        value.result,
+        value.output,
+        value.bridge,
+        output,
+        value.limits,
+      )
+  }
+  let core = match started {
     Ok(value) => value
     Err(issue) => raise ResultTransformation(issue)
   }
@@ -2844,7 +3178,9 @@ pub fn strategy_host_result_transformation_advance(
   value : StrategyHostResultTransformation,
   quantum : Int,
 ) -> Bool raise NodeHostFailure {
-  if !value.open { raise InvalidCommand }
+  if !value.open {
+    raise InvalidCommand
+  }
   match value.core.advance(quantum) {
     Ok((done, _)) => done
     Err(issue) => raise ResultTransformation(issue)
@@ -2856,7 +3192,9 @@ pub fn strategy_host_result_transformation_advance(
 pub fn strategy_host_result_transformation_finish(
   value : StrategyHostResultTransformation,
 ) -> StrategyHostOutputExport raise NodeHostFailure {
-  if !value.open { raise InvalidCommand }
+  if !value.open {
+    raise InvalidCommand
+  }
   match value.core.finish() {
     Ok(core) => {
       value.open = false
@@ -3059,6 +3397,45 @@ pub fn strategy_host_output_export_admit_captured_result_snapshot(
   strategy_publication_output_result(
     value.core.admit_captured_snapshot(max_wire_bytes, max_nodes, max_depth),
   )
+}
+
+///|
+/// Prepare the same snapshot owner without blocking an environment poll.
+#export_name("strategyHostOutputSnapshotBegin")
+pub fn strategy_host_output_snapshot_begin(
+  value : StrategyHostOutputExport,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication_host.PublicationOutputSnapshotPreparation raise NodeHostFailure {
+  strategy_publication_output_result(
+    value.core.start_captured_snapshot(max_wire_bytes, max_nodes, max_depth),
+  )
+}
+
+///|
+#export_name("strategyHostOutputSnapshotAdvance")
+pub fn strategy_host_output_snapshot_advance(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+  quantum : Int,
+) -> Bool raise NodeHostFailure {
+  strategy_publication_output_result(value.advance(quantum)).0
+}
+
+///|
+#export_name("strategyHostOutputSnapshotFinish")
+pub fn strategy_host_output_snapshot_finish(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+) -> @publication.CapturedResultSnapshot raise NodeHostFailure {
+  strategy_publication_output_result(value.finish())
+}
+
+///|
+#export_name("strategyHostOutputSnapshotCancel")
+pub fn strategy_host_output_snapshot_cancel(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+) -> Unit {
+  value.cancel()
 }
 
 ///|
@@ -4397,7 +4774,10 @@ pub fn strategy_remote_output_result_identity(
 
 ///|
 #export_name("strategyRemoteCoordinatorOutputReportAckJson")
-pub fn strategy_remote_coordinator_output_report_ack_json(record : @remote.CoordinatorOutputRecord, body : String) -> String raise NodeHostFailure {
+pub fn strategy_remote_coordinator_output_report_ack_json(
+  record : @remote.CoordinatorOutputRecord,
+  body : String,
+) -> String raise NodeHostFailure {
   match @remote.coordinator_output_report_ack_json(record, body) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -4406,7 +4786,10 @@ pub fn strategy_remote_coordinator_output_report_ack_json(record : @remote.Coord
 
 ///|
 #export_name("strategyRemoteOutputReportReplyAdmit")
-pub fn strategy_remote_output_report_reply_admit(body : String, result : @remote.RemoteOutputResult) -> Bool raise NodeHostFailure {
+pub fn strategy_remote_output_report_reply_admit(
+  body : String,
+  result : @remote.RemoteOutputResult,
+) -> Bool raise NodeHostFailure {
   match @remote.admit_remote_output_report_reply_json(body, result) {
     Ok(@remote.RemoteOutputReportReply::Accepted) => true
     Ok(@remote.RemoteOutputReportReply::Refused(_)) => false
@@ -4773,9 +5156,11 @@ pub fn strategy_remote_coordinator_redelivery_eligible(
   authorization_current : Bool,
   cancellation_requested : Bool,
 ) -> Bool raise NodeHostFailure {
-  match @remote.coordinator_redelivery_eligible(record, request, not_seen_body,
-    expected_authority, expected_site, expected_generation,
-    authorization_current, cancellation_requested) {
+  match
+    @remote.coordinator_redelivery_eligible(
+      record, request, not_seen_body, expected_authority, expected_site, expected_generation,
+      authorization_current, cancellation_requested,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -4791,9 +5176,11 @@ pub fn strategy_remote_coordinator_delivery_context_current(
   authorization_current : Bool,
   cancellation_requested : Bool,
 ) -> Bool raise NodeHostFailure {
-  match @remote.coordinator_delivery_context_current(request,
-    expected_authority, expected_site, expected_generation,
-    authorization_current, cancellation_requested) {
+  match
+    @remote.coordinator_delivery_context_current(
+      request, expected_authority, expected_site, expected_generation, authorization_current,
+      cancellation_requested,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -4946,7 +5333,8 @@ pub fn strategy_remote_coordinator_transition_key(
 pub fn strategy_remote_coordinator_transition_expected_history_json(
   transition : @remote.CoordinatorDispatchTransition,
 ) -> String raise NodeHostFailure {
-  match @remote.coordinator_dispatch_transition_expected_history_json(transition) {
+  match
+    @remote.coordinator_dispatch_transition_expected_history_json(transition) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -4979,14 +5367,16 @@ pub fn strategy_remote_coordinator_observation_issue_code(
   failure : NodeHostFailure,
 ) -> String {
   match failure {
-    RemoteDispatch(issue) => match issue {
-      @remote.StateCollision => "StateCollision"
-      @remote.InvalidDispatch => "InvalidDispatch"
-      @remote.ObservationHistoryCapacityExceeded => "ObservationHistoryCapacityExceeded"
-      @remote.ObservationAdmissionClosed => "ObservationAdmissionClosed"
-      @remote.ObservationHistoryRequired => "ObservationHistoryRequired"
-      _ => ""
-    }
+    RemoteDispatch(issue) =>
+      match issue {
+        @remote.StateCollision => "StateCollision"
+        @remote.InvalidDispatch => "InvalidDispatch"
+        @remote.ObservationHistoryCapacityExceeded =>
+          "ObservationHistoryCapacityExceeded"
+        @remote.ObservationAdmissionClosed => "ObservationAdmissionClosed"
+        @remote.ObservationHistoryRequired => "ObservationHistoryRequired"
+        _ => ""
+      }
     _ => ""
   }
 }
@@ -5009,7 +5399,8 @@ pub fn strategy_remote_coordinator_history_restore(
   body : String,
   evidence : @remote.RemoteExecutionEvidence?,
 ) -> Unit raise NodeHostFailure {
-  match @remote.restore_coordinator_dispatch_history_json(record, body, evidence) {
+  match
+    @remote.restore_coordinator_dispatch_history_json(record, body, evidence) {
     Ok(_) => ()
     Err(issue) => raise RemoteDispatch(issue)
   }

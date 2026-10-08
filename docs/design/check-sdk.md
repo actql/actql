@@ -627,8 +627,10 @@ operation's count or form, without asserting a particular overload or exposing
 argument values. Authored origins supply original half-open UTF-8 ranges for
 references, calls and numbers; generated or missing origins omit the location.
 The projection reads existing typed failures without resolving names again or
-searching the submitted string. Unaliased column failures currently lacking a
-typed expression diagnostic remain generic `query_invalid` and omit a range.
+searching the submitted string. The existing lowerer's direct `UnknownColumn`
+failure supplies the same `unknown_reference` fact for a bare column selection.
+It retains no authored origin, so this projection omits its range. This closes
+the reason connection, while its owned source-position connection remains open.
 Unresolved protected Source names cannot acquire an expression reason or span.
 Wrapped expression construction/admission budgets remain incomplete analysis;
 they never become expression violations. The lowerer's `UnsupportedFunction`
@@ -1378,6 +1380,19 @@ preparation-write path is introduced by these declaration conditions.
 
 ### Passive operation diagnostic formats
 
+Submission presentation follows admitted `SubmissionOutcome` and
+`SubmissionLookup` branches from the existing logical-request/journal Owners.
+Durable `not_accepted` consumes the identity before acceptance;
+`preparation_failed` retains acceptance, while `preparing` establishes no Run
+reference. Their explanations preserve the original authenticated epoch/nonce
+and disclosed typed problem, without interpreting a problem code as a phase.
+An `unresolvable` lookup, rejected response or exchange failure establishes
+neither nonacceptance nor permission to restart. A known unsent local attempt
+describes only its dispatch boundary, not the Owner outcome for a previously
+used identity. Only admitted Run references offer a Run-status candidate.
+Formatting consumes the same immutable SDK-owned explanation; copied DTOs and
+error messages cannot supply these facts.
+
 `formatSubmission`, `formatCancellation`, `formatReadFailure` and
 `formatEffectUncertainty` render only the original SDK-owned observations used
 by their corresponding explanation helpers. They offer `text`, `html` and
@@ -1681,3 +1696,27 @@ private object identity, not cause traversal, error codes or message parsing.
 formatter directly. Valid failed, cancelled, blocked or pending observations
 retain the original input without acquiring a failed-observation explanation.
 Copies cannot recover either association; no retry or additional I/O is added.
+### Retained Source submission problems
+
+Source preparation retains the existing lowerer's typed column/expression
+violations separately from unresolved Source names, unsupported forms and
+limits. A protected resolution failure can coexist with an independently
+invalid submitted parameter. The Local submission connector uses the existing
+installed public checker, with the original retained intent and the current
+audience's Source publication, before storing an input problem. A completed
+invalid bound-input report permits that classification. An undetermined,
+unavailable, failed, malformed or absent reporting result does not.
+
+Lookup and replay recheck disclosure before showing a retained Source input
+problem. Losing access returns a generic operation problem with the same
+original submission reference and acceptance phase; it does not rewrite the
+durable journal or prepare, dispatch or authorize a new Run. Restoring access
+can expose the original problem again. Check completion is never submission
+acceptance or execution success. Direct Program preparation classifications
+require their own disclosure connection and are not covered by this Source
+projection.
+
+This connection uses the request journal's existing bounded intent custody.
+It adds no stored field, public input hash, retention period or input retrieval
+endpoint. The installed checker handles original text and supplied values
+transiently under its existing input and analysis limits.

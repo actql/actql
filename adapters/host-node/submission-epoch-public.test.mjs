@@ -10,16 +10,19 @@ import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
-import {connect as connectRemote, getSubmissionInput, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
+import {connect as connectRemote, getSubmissionInput, getSubmissionOutcome,
+  explainSubmission, formatSubmission} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
+import {openClientRequestJournal} from './client-request-journal.mjs';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 async function installedFixture(t, entrance, {loseSubmissionReply = false, outcome = 'allow', epochClock} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-d-submission-public-'));
   const directory = join(root, 'host');
   const principalId = userInfo().username;
   const keys = generateKeyPairSync('ed25519');
-  let computes = 0, client, host, server, loseReply = loseSubmissionReply;
+  let computes = 0, client, host, server, port = 0, loseReply = loseSubmissionReply;
   const authorization = {
     accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
       account_id: 'submission-public', entries: [{entry_id: 'acceptance', outcome,
@@ -45,7 +48,11 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
   t.after(async () => {
     await close();
     if (certificates) setDefaultCACertificates(originalTrust);
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Submission acceptance fixture retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const open = async () => {
     if (entrance === 'local') client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
@@ -53,7 +60,7 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
     else {
       host = await openInstalledRemoteHttpHost({directory, authorization, authenticate: () => principalId});
       server = createServer({key: certificates.key, cert: certificates.cert}, (request, response) => {
-        if (loseReply && request.url.endsWith('/submit-intent')) {
+        if (loseReply && ['/submit-intent', '/restart-intent'].some(route => request.url.endsWith(route))) {
           loseReply = false;
           // The installed handler commits its answer before calling end.
           // Drop only that response, without retrying the submission.
@@ -61,7 +68,8 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
         }
         return host.handler(request, response);
       });
-      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
+      port = server.address().port;
       client = await connectRemote({mode: 'remote', token: 'fixture-principal', durability: 'durable',
         endpoint: `https://127.0.0.1:${server.address().port}/`});
     }
@@ -69,7 +77,8 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
   await open();
   return {get client() {return client;}, get computes() {return computes;},
     get root() {return root;}, get certificates() {return certificates;},
-    get endpoint() {return server && `https://127.0.0.1:${server.address().port}/`;}, close, open};
+    get endpoint() {return server && `https://127.0.0.1:${server.address().port}/`;},
+    loseNextReply() {loseReply = true;}, close, open};
 }
 
 for (const [entrance, loseSubmissionReply, defaultSubmission] of [
@@ -80,15 +89,18 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
     const f = await installedFixture(t, entrance, {loseSubmissionReply});
     let client = f.client;
     let submissionRef = defaultSubmission ? undefined : client.newSubmission({nonce: 'ordinary-original'});
-    let run;
+    let run, recovery;
     if (loseSubmissionReply) {
       await assert.rejects(client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef}), error => {
         assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
+        assert.equal(explainSubmission(error).observation, 'acceptance_unknown');
+        assert.deepEqual(explainSubmission(error).next.submissionRef, submissionRef);
+        recovery = client.recoverRequest(error);
         return error.code === 'SubmissionUnknown';
       });
-      const original = await client.lookupSubmission(submissionRef);
+      const original = await recovery.lookup();
       assert.equal(original.kind, 'ready');
-      run = await client.attach(original.admission.ref);
+      run = await recovery.attach(original);
     } else {
       const pending = client.startSource('SELECT 1 AS n', {format: 'sql',
         ...(submissionRef === undefined ? {} : {submissionRef})});
@@ -97,19 +109,28 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
         assert.deepEqual(submissionRef.epoch, client.profile.submissionEpoch);
       }
       run = await pending;
+      recovery = client.recoverRequest(run);
     }
     assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
     assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
-    const first = await client.lookupSubmission(submissionRef);
+    assert.deepEqual(recovery.target.submissionRef, submissionRef);
+    const savedTarget = JSON.parse(JSON.stringify(recovery.target));
+    const first = await recovery.lookup();
     assert.equal(first.kind, 'ready');
     assert.deepEqual(first.admission.ref, run.ref);
+    assert.deepEqual(explainSubmission(first), {observation: 'run_reference_received',
+      summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+      next: {operation: 'status', ref: run.ref}});
     assert.equal(f.computes, 1);
     await f.close(); await f.open(); client = f.client;
     assert.notDeepEqual(client.newSubmission({nonce: submissionRef.nonce}), submissionRef);
-    const found = await client.lookupSubmission(submissionRef);
+    const restored = client.recoverRequest(savedTarget);
+    const found = await restored.lookup();
     assert.equal(found.kind, 'ready');
     assert.deepEqual(found.submissionRef, submissionRef);
     assert.deepEqual(found.admission.ref, run.ref);
+    assert.deepEqual((await restored.attach(found)).ref, run.ref);
+    await assert.rejects(restored.attach({...found}), {code: 'InvalidRequestRecoveryObservation'});
     const repeated = await client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef});
     assert.deepEqual(repeated.ref, run.ref);
     assert.deepEqual(await repeated.result('answer').all(), [{n: 1}]);
@@ -122,22 +143,37 @@ for (const entrance of ['local', 'https']) {
     const f = await installedFixture(t, entrance, {outcome: 'delegate'});
     const pending = f.client.startSource('SELECT 1 AS n', {format: 'sql'});
     const original = getSubmissionInput(pending);
-    let outcome;
+    let outcome, recovery;
     await assert.rejects(pending, error => {
       assert.equal(error.code, 'SubmissionPreparationFailed');
       assert.deepEqual(getSubmissionInput(error), original);
+      recovery = f.client.recoverRequest(error);
       outcome = getSubmissionOutcome(error);
       assert.equal(outcome.kind, 'preparation_failed');
       assert.deepEqual(outcome.submissionRef, original.submissionRef);
       assert.equal(outcome.problem.code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
       assert.equal(Object.hasOwn(outcome, 'admission'), false);
+      const expected = {observation: 'preparation_failed',
+        summary: 'The Host accepted this submission, then preparation failed. No Run reference was returned; this is not a rejection before acceptance.',
+        hint: 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.',
+        problem: {code: 'ACTQL_E_DELEGATION_UNAVAILABLE', classification: 'operation_failed'},
+        next: {operation: 'lookupSubmission', submissionRef: original.submissionRef,
+          lookupContext: original.lookupContext}};
+      assert.deepEqual(explainSubmission(error), expected, '[check-mutation:submission-public-phase]');
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, expected);
       return true;
     });
     assert.equal(f.computes, 0);
     assert.deepEqual((await f.client.checkpoints()).items, []);
-    assert.deepEqual(await f.client.lookupSubmission(original.submissionRef), outcome);
+    const found = await recovery.lookup();
+    assert.deepEqual(found, outcome);
+    await assert.rejects(recovery.attach(found), {code: 'InvalidRequestRecoveryObservation'});
+    assert.equal(explainSubmission(found).observation, 'preparation_failed');
     await f.close(); await f.open();
-    assert.deepEqual(await f.client.lookupSubmission(original.submissionRef), outcome);
+    const recovered = await f.client.lookupSubmission(original.submissionRef);
+    assert.deepEqual(recovered, outcome);
+    assert.equal(explainSubmission(recovered).observation, 'preparation_failed');
+    assert.deepEqual(explainSubmission(recovered).next.submissionRef, original.submissionRef);
     assert.deepEqual((await f.client.checkpoints()).items, []);
     await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql',
       submissionRef: original.submissionRef}), error => {
@@ -145,6 +181,137 @@ for (const entrance of ['local', 'https']) {
       return error.code === 'SubmissionPreparationFailed';
     });
     assert.equal(f.computes, 0);
+  });
+}
+
+for (const [entrance, lostReply] of [['local', false], ['https', false], ['https', true]]) {
+  test(`${entrance}${lostReply ? ' lost reply' : ''}: explicit unresolved-history restart retains both identities at the public Host`, async t => {
+    let now = 1_800_000_000_000;
+    const f = await installedFixture(t, entrance, {epochClock: () => now});
+    const originalRef = f.client.newSubmission({nonce: 'original-retired-refusal'});
+    await assert.rejects(f.client.startSource('SELECT missing AS n', {format: 'sql', submissionRef: originalRef}),
+      {code: 'SubmissionNotAccepted'});
+    assert.equal(f.computes, 0);
+    await f.close(); now += 1000;
+    const journal = openClientRequestJournal(join(f.root, 'host/requests'), {
+      submissionEpochTtlMs: 1000, submissionEpochNow: () => now,
+    });
+    try {
+      assert.deepEqual(journal.retireSubmittedIntent(originalRef, {
+        authorityScopeCid: originalRef.epoch.authorityScopeCid,
+        currentAuthorization: true, expectedRevision: 0,
+      }, moon), {retired: true});
+    } finally {journal.close();}
+    await f.open();
+    assert.equal((await f.client.lookupSubmission(originalRef)).kind, 'unresolvable');
+    const freshRef = f.client.newSubmission({nonce: 'deliberately-new-work'});
+    const unresolvedHistory = {submissionRef: originalRef, acknowledgement: 'possible_prior_execution_and_effects'};
+    // Persist the exact original, new identity and decision before first send.
+    await writeFile(join(f.root, 'explicit-restart.json'), JSON.stringify({
+      submissionRef: freshRef, unresolvedHistory, text: 'SELECT 1 AS n', format: 'sql',
+    }), {flag: 'wx', mode: 0o600});
+    if (lostReply) f.loseNextReply();
+    const pending = f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef: freshRef, unresolvedHistory});
+    assert.deepEqual(getSubmissionInput(pending).unresolvedHistory, unresolvedHistory);
+    let run;
+    if (lostReply) {
+      await assert.rejects(pending, error => {
+        assert.deepEqual(getSubmissionInput(error).unresolvedHistory, unresolvedHistory);
+        return error.code === 'SubmissionUnknown';
+      });
+      const found = await f.client.lookupSubmission(freshRef);
+      assert.equal(found.kind, 'ready');
+      assert.deepEqual(found.unresolvedHistory, unresolvedHistory);
+      run = await f.client.attach(found.admission.ref);
+    } else run = await pending;
+    assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
+    assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
+    const expected = await f.client.lookupSubmission(freshRef);
+    assert.deepEqual(expected.unresolvedHistory, unresolvedHistory);
+    assert.deepEqual(expected.admission.ref, run.ref);
+    assert.equal(f.computes, 1);
+    await f.close(); await f.open();
+    assert.deepEqual(await f.client.lookupSubmission(freshRef), expected);
+    assert.deepEqual(await f.client.lookupSubmission(freshRef), expected);
+    assert.equal((await f.client.lookupSubmission(originalRef)).kind, 'unresolvable');
+    assert.equal(f.computes, 1, 'read-only recovery neither submits nor recomputes');
+    console.log('SUBMISSION_RESTART_PUBLIC_EVIDENCE', JSON.stringify({root: f.root, entrance,
+      lostReply, originalRef, freshRef, restored: expected.kind, computes: 1}));
+  });
+}
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: durable input rejection explains nonacceptance and survives original lookup`, async t => {
+    const f = await installedFixture(t, entrance);
+    const pending = f.client.startSource('SELECT missing AS n', {format: 'sql'});
+    const original = getSubmissionInput(pending);
+    let outcome;
+    await assert.rejects(pending, error => {
+      assert.equal(error.code, 'SubmissionNotAccepted');
+      outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+      const expected = {observation: 'not_accepted',
+        summary: 'The Host durably rejected this submission before acceptance. Its identity is consumed; no Run reference was returned.',
+        hint: 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.',
+        problem: {code: 'ClientProgramInvalidInput', classification: 'invalid_input'},
+        next: {operation: 'lookupSubmission', submissionRef: original.submissionRef,
+          lookupContext: original.lookupContext}};
+      assert.deepEqual(explainSubmission(error), expected, '[check-mutation:submission-public-phase]');
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, expected);
+      assert.equal(explainSubmission({...error}), undefined);
+      return true;
+    });
+    assert.equal(f.computes, 0);
+    await f.close(); await f.open();
+    const found = await f.client.lookupSubmission(original.submissionRef);
+    assert.deepEqual(found, outcome);
+    assert.equal(explainSubmission(found).observation, 'not_accepted');
+    assert.deepEqual(explainSubmission(found).next.submissionRef, original.submissionRef);
+    await assert.rejects(f.client.startSource('SELECT missing AS n', {format: 'sql',
+      submissionRef: original.submissionRef}), error => {
+      assert.deepEqual(getSubmissionOutcome(error), outcome);
+      assert.equal(explainSubmission(error).observation, 'not_accepted');
+      return error.code === 'SubmissionNotAccepted';
+    });
+    assert.equal(f.computes, 0);
+  });
+}
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: retired pre-Run history stays unresolvable at the public original lookup`, async t => {
+    let now = 1_800_000_000_000;
+    const f = await installedFixture(t, entrance, {epochClock: () => now});
+    const submissionRef = f.client.newSubmission({nonce: 'retired-original-refusal'});
+    await writeFile(join(f.root, 'retired-original-submission.json'),
+      JSON.stringify({submissionRef, text: 'SELECT missing AS n', format: 'sql'}),
+      {flag: 'wx', mode: 0o600});
+    await assert.rejects(f.client.startSource('SELECT missing AS n', {format: 'sql', submissionRef}),
+      error => error.code === 'SubmissionNotAccepted');
+    const original = await f.client.lookupSubmission(submissionRef);
+    assert.equal(original.kind, 'not_accepted');
+    assert.equal(f.computes, 0);
+    await f.close();
+    now += 1000;
+    // Trusted Host retention maintenance uses the same existing request
+    // journal. Client observation below never invokes this maintenance API.
+    const journal = openClientRequestJournal(join(f.root, 'host/requests'), {
+      submissionEpochTtlMs: 1000, submissionEpochNow: () => now,
+    });
+    try {
+      assert.deepEqual(journal.retireSubmittedIntent(submissionRef, {
+        authorityScopeCid: submissionRef.epoch.authorityScopeCid,
+        currentAuthorization: true, expectedRevision: 0,
+      }, moon), {retired: true});
+    } finally {journal.close();}
+    await f.open();
+    const expected = {kind: 'unresolvable', submissionRef,
+      problem: {code: 'submission_history_unresolvable'}};
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), expected);
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), expected);
+    assert.equal(f.computes, 0);
+    console.log('RETIRED_SUBMISSION_PUBLIC_EVIDENCE', JSON.stringify({root: f.root,
+      entrance, submissionRef, original: original.kind, restored: expected.kind, computes: 0}));
   });
 }
 
@@ -180,7 +347,14 @@ for (const entrance of ['local', 'https']) {
     assert.equal(f.computes, 1);
     clock = saved.epoch.expiresAt;
     await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef: unaccepted}));
-    assert.equal((await f.client.lookupSubmission(unaccepted)).kind, 'unresolvable');
+    const unresolved = await f.client.lookupSubmission(unaccepted);
+    assert.equal(unresolved.kind, 'unresolvable');
+    assert.deepEqual(explainSubmission(unresolved), {observation: 'history_unresolvable',
+      summary: 'The Host cannot establish the original submission outcome. Work may already have started.',
+      hint: 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.',
+      next: {operation: 'lookupSubmission', submissionRef: unaccepted,
+        lookupContext: {endpoint: f.endpoint ?? 'actql:embedded', scopeRef: f.client.profile.scopeRef}}},
+    '[check-mutation:submission-public-history]');
     assert.deepEqual(await f.client.lookupSubmission(saved), original);
     assert.equal(f.computes, 1);
     await f.close();
@@ -197,6 +371,44 @@ for (const entrance of ['local', 'https']) {
 }
 
 // Execute only when the matching-target native gate supplies its real binary.
+// A refusal's phase and public input category survive the original lookup.
+// This test uses the installed preparation/check/journal owners, with no Run.
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: durable known-input category survives original submission lookup after Host restart`, async t => {
+    const f = await installedFixture(t, entrance);
+    const submissionRef = f.client.newSubmission({nonce: 'known-input-original'});
+    const pending = f.client.startSource('SELECT missing AS n', {format: 'sql', submissionRef});
+    const original = getSubmissionInput(pending);
+    let outcome;
+    await assert.rejects(pending, error => {
+      outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.deepEqual(outcome.submissionRef, submissionRef);
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+      assert.equal('admission' in outcome, false);
+      return true;
+    });
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), outcome);
+    assert.equal(f.computes, 0);
+    await f.close(); await f.open();
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), outcome);
+    await assert.rejects(f.client.startSource(original.input.text,
+      {format: original.input.format, submissionRef}), error => {
+      assert.deepEqual(getSubmissionOutcome(error), outcome);
+      return true;
+    });
+    // An exchange exception carries no validated admission outcome. Keep the
+    // SDK's uncertainty rule and look up the immutable original fact instead.
+    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef}), error => {
+      assert.equal(error.code, 'SubmissionUnknown');
+      assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
+      return true;
+    });
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), outcome);
+    assert.equal(f.computes, 0, 'lookup/replay never prepares a new Run or performs Model/Effect work');
+  });
+}
+
 // Ordinary Node gates still exercise both public SDK entrances above.
 if (process.env.ACTQL_NATIVE_SUBMISSION_CLIENT) {
   test('Native HTTPS: original submission survives a lost reply and Host restart', async t => {

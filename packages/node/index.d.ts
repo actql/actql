@@ -1,23 +1,27 @@
-import type {HostCapacityPolicy} from '@actql/local-node';
-export type {HostCapacityPolicy} from '@actql/local-node';
+import type {HostCapacityPolicy, SourceProfilePaths, EffectProfilePaths,
+  InstalledConnectorTable} from '@actql/local-node';
+export type {HostCapacityPolicy, SourceProfilePaths, EffectProfilePaths,
+  InstalledConnectorTable} from '@actql/local-node';
 import type {Client, ConnectionOptions, ConnectionStringOptions, Durability} from '@actql/sdk';
 
 export {ClientError, RequestHeld} from '@actql/sdk';
 export type {Client, Execution, Result, Reader, RunReference,
-  ConfirmedProfile, ReadOptions, RequestLookup,
+  ConfirmedProfile, ReadOptions, RequestLookup, RequestLookupTarget, RequestRecovery,
   DeliveryAttemptLookup, ResultPromise, ResultReference, DynamicRow,
   QueryOptions, QueryParameters, StandardSchemaV1} from '@actql/sdk';
 
 export type EmbeddedHostInstallation = Readonly<{
   directory?: string;
+  connectorTable?: InstalledConnectorTable;
   /** Explicit row bound for the installed source-free, single-task Values profile.
    * Defaults to 100; 1..10000. Other work, cell and byte ceilings remain fixed. */
   valuesMaxRows?: number;
   hostCapacityPolicy?: HostCapacityPolicy;
   sourceProfilePath?: string;
-  sourceProfilePaths?: readonly [string, string];
+  sourceProfilePaths?: SourceProfilePaths;
   resolveSourceSecret?: (...args: any[]) => any;
   effectProfilePath?: string;
+  effectProfilePaths?: EffectProfilePaths;
   resolveEffectSecret?: (...args: any[]) => any;
   authorization?: Readonly<Record<string, unknown>>;
 }>;

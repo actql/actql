@@ -10,7 +10,7 @@ import {checkpointLimits, clientSourceFormats, validCancellation,
   validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validClientBody, validResourceInspection,
-  validSubmissionRef, validSubmissionOutcome, validSubmissionLookup,
+  validSubmissionRef, validSubmissionOutcome, validSubmissionLookup, validSubmissionRestart,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
@@ -107,6 +107,9 @@ const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
 const submissionExplanations = new WeakMap();
 const requestLookupExplanations = new WeakMap();
+// Keep this call's lookup target even when a found observation explains the
+// Run instead. This association is not an admission record or replay grant.
+const requestLookupContexts = new WeakMap();
 const requestCancellationExplanations = new WeakMap();
 // Validated observations keep only a weak, immutable presentation snapshot.
 // This is not an Effect ledger or a certificate joining Owner revisions.
@@ -387,6 +390,61 @@ const submissionLookupExplanation = (observation, input) => freezeInput({
     lookupContext: input.lookupContext},
 });
 
+const submissionObservationHint = 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.';
+const submissionTarget = context => ({operation: 'lookupSubmission',
+  submissionRef: context.submissionRef, lookupContext: context.lookupContext});
+const retainSubmissionExplanation = (result, outcome, context) => {
+  requestLookupContexts.set(result, context);
+  // Called only after admitting the exact Owner response and its binding.
+  // Acceptance phase follows its typed branch, never its problem code.
+  let explanation;
+  if (outcome.kind === 'ready') explanation = {
+    observation: 'run_reference_received',
+    summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+    next: {operation: 'status', ref: outcome.admission.ref},
+  };
+  else if (outcome.kind === 'held') explanation = heldRequestExplanation(outcome.held, context);
+  else {
+    const observation = outcome.kind === 'unresolvable' ? 'history_unresolvable' : outcome.kind;
+    const summaries = {
+      not_accepted: 'The Host durably rejected this submission before acceptance. Its identity is consumed; no Run reference was returned.',
+      preparation_failed: 'The Host accepted this submission, then preparation failed. No Run reference was returned; this is not a rejection before acceptance.',
+      preparing: 'The Host accepted this submission and preparation is still pending. No Run reference was returned.',
+      history_unresolvable: 'The Host cannot establish the original submission outcome. Work may already have started.',
+    };
+    explanation = {observation, summary: summaries[observation], hint: submissionObservationHint,
+      next: submissionTarget(context),
+      ...(['not_accepted', 'preparation_failed'].includes(outcome.kind)
+        ? {problem: {code: outcome.problem.code, classification: outcome.problem.classification}} : {})};
+  }
+  if (explanation.problem?.code === 'ClientProgramAnalysisLimit' &&
+      explanation.problem.classification === 'implementation_limit') {
+    explanation.preparationIssue = {kind: 'analysis_budget_exhausted',
+      summary: 'Preparation reached an analysis budget before all checking obligations were discharged. This does not establish invalid input.',
+      hint: 'Inspect a check report for remaining obligations. Keep the original submission reference; any changed input requires a separate submission identity.'};
+  }
+  if (explanation.problem?.code === 'ClientProgramImplementationLimit' &&
+      explanation.problem.classification === 'implementation_limit') {
+    explanation.preparationIssue = {kind: 'implementation_limit',
+      summary: 'Checking encountered an unresolved implementation path during preparation. This does not establish invalid input.',
+      hint: 'Inspect the check report for unresolved support conditions. Keep the original submission reference; any changed input requires a separate submission identity.'};
+  }
+  submissionExplanations.set(result, freezeInput(explanation));
+  return result;
+};
+const retainSubmissionLookupFailure = (cause, context, observation) => {
+  let error;
+  try {error = requestCancellationCause(cause);}
+  catch {error = new ClientError('ClientTransportUnknown');}
+  requestLookupContexts.set(error, context);
+  submissionExplanations.set(error, freezeInput({observation,
+    summary: observation === 'lookup_unavailable'
+      ? 'The submission lookup could not be completed. Acceptance and execution remain unresolved.'
+      : 'This SDK could not interpret the submission lookup response. Acceptance and execution remain unresolved.',
+    hint: submissionObservationHint, next: submissionTarget(context)}));
+  return error;
+};
+
 const requestObservationHint = 'Keep the original request reference and use an authorized lookup. This observation grants no permission to resubmit, execute, answer a Checkpoint or release resources.';
 const heldRequestExplanation = (answer, context) => freezeInput({
   observation: 'request_held', preparationState: answer.state,
@@ -401,6 +459,7 @@ const heldRequestExplanation = (answer, context) => freezeInput({
     : {operation: 'lookupSubmission', submissionRef: context.submissionRef, lookupContext: context.lookupContext},
 });
 const retainRequestLookupExplanation = (answer, context) => {
+  requestLookupContexts.set(answer, context);
   const observation = answer.kind === 'found' ? 'run_reference_received' :
     answer.kind === 'not_found' ? 'lookup_unresolved' : 'lookup_unavailable';
   requestLookupExplanations.set(answer, answer.kind === 'held'
@@ -424,6 +483,7 @@ const retainRequestLookupFailure = (error, context, observation) => {
   const status = error instanceof ClientError ? error.status : undefined;
   const retained = new ClientError(code,
     Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});
+  requestLookupContexts.set(retained, context);
   requestLookupExplanations.set(retained, freezeInput({observation,
     summary: observation === 'lookup_uninterpretable'
       ? 'This SDK could not interpret the request lookup response. Acceptance and execution remain unresolved.'
@@ -852,6 +912,39 @@ const ownedClientFailure = (code, details) => {
   return error;
 };
 const fail = code => { throw ownedClientFailure(code); };
+// Saved lookup targets are untrusted data. Never evaluate a getter, toJSON,
+// inherited error property or conversion while selecting the original target.
+const recoveryData = (value, keys) => {
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return undefined;
+  const fields = Object.getOwnPropertyDescriptors(value);
+  if (Reflect.ownKeys(fields).length !== keys.length ||
+      keys.some(key => !Object.hasOwn(fields, key) ||
+        !Object.hasOwn(fields[key], 'value'))) return undefined;
+  return Object.fromEntries(keys.map(key => [key, fields[key].value]));
+};
+const requestRecoveryTarget = value => {
+  const retained = submissionInputs.get(value) ?? requestLookupContexts.get(value);
+  if (retained) return retained.submissionRef === undefined
+    ? {operation: 'lookupRequest', requestId: retained.requestId, lookupContext: retained.lookupContext}
+    : {operation: 'lookupSubmission', submissionRef: retained.submissionRef,
+      lookupContext: retained.lookupContext};
+  try {
+    const submitted = recoveryData(value, ['operation', 'submissionRef', 'lookupContext']);
+    const target = submitted ?? recoveryData(value, ['operation', 'requestId', 'lookupContext']);
+    const context = recoveryData(target?.lookupContext, ['endpoint', 'scopeRef']);
+    if (!context) return undefined;
+    if (submitted?.operation === 'lookupSubmission') {
+      const ref = recoveryData(submitted.submissionRef, ['epoch', 'nonce']);
+      const epoch = recoveryData(ref?.epoch, ['version', 'authorityScopeCid', 'epochNonce',
+        'notBefore', 'expiresAt', 'authenticator']);
+      if (!epoch || !validSubmissionRef({...ref, epoch})) return undefined;
+      return {...submitted, submissionRef: {...ref, epoch}, lookupContext: context};
+    }
+    if (target?.operation !== 'lookupRequest') return undefined;
+    return {...target, lookupContext: context};
+  } catch { return undefined; }
+};
 // Read only own data properties: classification never evaluates untrusted
 // getters or keeps private reply content. Proxy failures give no usable header.
 const rejectedCheckHeader = value => {
@@ -891,6 +984,9 @@ const submissionNotSent = (context, cause) => {
   const result = new ClientError('SubmissionNotSent', {...context, cause});
   const input = submissionContexts.get(context);
   if (input) submissionInputs.set(result, input);
+  if (input) submissionExplanations.set(result, freezeInput({observation: 'not_sent',
+    summary: 'This SDK did not dispatch this submission attempt. This is not an Owner-issued rejection and does not establish the original identity outcome.',
+    hint: submissionObservationHint, next: submissionTarget(input)}));
   return result;
 };
 const retainReadExplanation = (result, context, rowsYielded, observation, cleanupUnknown = false) => {
@@ -1229,7 +1325,7 @@ async function connectSelected(selected, port) {
           signal?.throwIfAborted();
           dispatchedCancellations.add(cancellationContext);
         }
-        if (operation === 'submit-intent') {
+        if ((operation === 'submit-intent' || operation === 'restart-intent')) {
           signal?.throwIfAborted();
           dispatchedSubmissions.add(submitContext);
         }
@@ -1241,7 +1337,7 @@ async function connectSelected(selected, port) {
         return value;
       }
       catch (cause) {
-        if (operation === 'submit-intent') {
+        if ((operation === 'submit-intent' || operation === 'restart-intent')) {
           if (!dispatchedSubmissions.has(submitContext)) {
             throw submissionNotSent(submitContext, cause);
           }
@@ -1274,7 +1370,7 @@ async function connectSelected(selected, port) {
       signal?.throwIfAborted();
       dispatchedCancellations.add(cancellationContext);
     }
-    if (operation === 'submit-intent') {
+    if ((operation === 'submit-intent' || operation === 'restart-intent')) {
       signal?.throwIfAborted();
       dispatchedSubmissions.add(submitContext);
     }
@@ -1290,7 +1386,7 @@ async function connectSelected(selected, port) {
         redirect: 'error',
       });
     } catch (cause) {
-      if (operation === 'submit-intent') {
+      if ((operation === 'submit-intent' || operation === 'restart-intent')) {
         throw submissionUnknown(submitContext,
           selected.redactCredentialErrors ? undefined : cause);
       }
@@ -1304,7 +1400,7 @@ async function connectSelected(selected, port) {
       const code = typeof error?.code === 'string' &&
         /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(error.code)
         ? error.code : `HostHTTP${response.status}`;
-      if (operation === 'submit-intent') {
+      if ((operation === 'submit-intent' || operation === 'restart-intent')) {
         throw submissionUnknown(submitContext, new ClientError(code));
       }
       throw new ClientError(code, {status: response.status});
@@ -1906,10 +2002,13 @@ async function connectSelected(selected, port) {
     let body;
     try {
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
-        kind, input, parameters: options.parameters ?? null}));
+        kind, input, parameters: options.parameters ?? null,
+        ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
     } catch {fail('InvalidClientPayload');}
     if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
         options.requestId !== body.submissionRef.nonce) fail('InvalidSubmissionRef');
+    if (body.unresolvedHistory !== undefined &&
+        !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) fail('InvalidSubmissionRestart');
     const requestId = body.submissionRef.nonce;
     const context = {requestId, submissionRef: body.submissionRef,
       lookupContext: Object.freeze({endpoint: selected.endpoint, scopeRef: confirmed.scopeRef})};
@@ -1924,9 +2023,10 @@ async function connectSelected(selected, port) {
       catch (cause) {throw submissionNotSent(context, cause);}
       let outcome;
       try {
-        const response = await exchange('submit-intent', {...body, intentCid}, options.signal, context);
+        const response = await exchange(body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent',
+          {...body, intentCid}, options.signal, context);
         outcome = detachResponse(captureResponse(await controlValue(response)));
-        if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid)) {
+        if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid, body.unresolvedHistory)) {
           fail('InvalidHostSubmissionOutcome');
         }
       } catch (cause) {
@@ -1940,11 +2040,7 @@ async function connectSelected(selected, port) {
         catch (cause) {throw submissionUnknown(context, cause);}
         submissionInputs.set(run, snapshot);
         submissionOutcomes.set(run, outcome);
-        submissionExplanations.set(run, freezeInput({
-          observation: 'run_reference_received',
-          summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
-          next: {operation: 'status', ref: run.ref},
-        }));
+        retainSubmissionExplanation(run, outcome, snapshot);
         return run;
       }
       const error = outcome.kind === 'held'
@@ -1954,8 +2050,7 @@ async function connectSelected(selected, port) {
         {requestId, submissionRef: body.submissionRef, outcome});
       submissionInputs.set(error, snapshot);
       submissionOutcomes.set(error, outcome);
-      if (outcome.kind === 'held') submissionExplanations.set(error,
-        heldRequestExplanation(outcome.held, snapshot));
+      retainSubmissionExplanation(error, outcome, snapshot);
       throw error;
     })();
     submissionInputs.set(pending, snapshot);
@@ -1971,7 +2066,8 @@ async function connectSelected(selected, port) {
     try {
       // A bare legacy ID cannot recover its original epoch on reconnect.
       // Never reinterpret it as new work under the latest connection ticket.
-      if (options.submissionRef === undefined && options.requestId !== undefined) {
+      if (options.submissionRef === undefined &&
+          (options.requestId !== undefined || options.unresolvedHistory !== undefined)) {
         fail('SubmissionReferenceRequired');
       }
       return submitIntent(kind, input, {...options,
@@ -1994,6 +2090,8 @@ async function connectSelected(selected, port) {
   const retainQueryResult = (execution, result) => {
     const input = submissionInputs.get(execution);
     if (input && result !== undefined) submissionInputs.set(result, input);
+    const outcome = submissionOutcomes.get(execution);
+    if (outcome && result !== undefined) submissionOutcomes.set(result, outcome);
     return input;
   };
   const retainQueryFailure = (execution, error, cause) => {
@@ -2003,7 +2101,7 @@ async function connectSelected(selected, port) {
     const failure = runObservationFailures.get(cause);
     if (failure) runObservationFailures.set(error, failure);
   };
-  return Object.freeze({
+  const client = Object.freeze({
     profile: confirmed,
     requestedDurability: selected.wire.durability ?? null,
     startSource,
@@ -2017,10 +2115,20 @@ async function connectSelected(selected, port) {
       try {owned = freezeInput(snapshotClientRequest(submissionRef));}
       catch {fail('InvalidSubmissionRef');}
       if (!validSubmissionRef(owned)) fail('InvalidSubmissionRef');
-      const response = await exchange('lookup-submission', {submissionRef: owned}, signal);
-      const answer = detachResponse(captureResponse(await controlValue(response)));
-      if (!validSubmissionLookup(answer, selected.wire, owned)) fail('InvalidHostSubmissionLookup');
-      return freezeInput(answer);
+      const context = freezeInput({submissionRef: owned,
+        lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
+      let response;
+      try {response = await exchange('lookup-submission', {submissionRef: owned}, signal);}
+      catch (cause) {throw retainSubmissionLookupFailure(cause, context, 'lookup_unavailable');}
+      let answer;
+      try {
+        answer = detachResponse(captureResponse(await controlValue(response)));
+        if (!validSubmissionLookup(answer, selected.wire, owned)) fail('InvalidHostSubmissionLookup');
+      } catch {
+        throw retainSubmissionLookupFailure(new ClientError('InvalidHostSubmissionLookup'),
+          context, 'lookup_uninterpretable');
+      }
+      return retainSubmissionExplanation(freezeInput(answer), answer, context);
     },
     // Check authored source without starting anything. The outcome is the
     // Host's actql-check-outcome/0.1 value: a report bound to its scope and
@@ -2153,6 +2261,41 @@ async function connectSelected(selected, port) {
       } catch {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
+    },
+    // One explicit lookup target across pre-Run and Run observations. Creating
+    // or restoring this handle performs no I/O and grants no retry authority.
+    recoverRequest: observationOrTarget => {
+      if (closed) fail('ClientClosed');
+      const captured = requestRecoveryTarget(observationOrTarget);
+      if (closed) fail('ClientClosed');
+      if (!captured || (captured.operation === 'lookupRequest' &&
+          (typeof captured.requestId !== 'string' || captured.requestId.length < 1 ||
+          captured.requestId.length > 256 || /[\u0000-\u001f\u007f]/u.test(captured.requestId))) ||
+          typeof captured.lookupContext.endpoint !== 'string' ||
+          typeof captured.lookupContext.scopeRef !== 'string') {
+        fail('InvalidRequestRecoveryTarget');
+      }
+      if (captured.lookupContext.endpoint !== selected.endpoint ||
+          captured.lookupContext.scopeRef !== confirmed.scopeRef) {
+        fail('RequestRecoveryScopeMismatch');
+      }
+      const target = freezeInput(captured);
+      const found = new WeakSet();
+      return Object.freeze({target,
+        lookup: async options => {
+          const observation = target.operation === 'lookupSubmission'
+            ? await client.lookupSubmission(target.submissionRef, options)
+            : await client.lookupRequest(target.requestId, options);
+          if (observation.kind === 'found' || observation.kind === 'ready') found.add(observation);
+          return observation;
+        },
+        attach: async (observation, options) => {
+          if (closed) fail('ClientClosed');
+          if (!found.has(observation)) fail('InvalidRequestRecoveryObservation');
+          // Custody of a lookup is not authority: attach rechecks the Host now.
+          return client.attach(observation.kind === 'ready' ? observation.admission.ref : observation.ref, options);
+        },
+      });
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is
     // cancelled through its own cancellation. `accepted` means the Host
@@ -2380,6 +2523,7 @@ async function connectSelected(selected, port) {
     close,
     [Symbol.asyncDispose]: close,
   });
+  return client;
 }
 
 

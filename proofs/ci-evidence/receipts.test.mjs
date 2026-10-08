@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp, writeFile, rm} from 'node:fs/promises';
@@ -8,7 +9,7 @@ import {encode} from '../bounded-session/action-inputs.mjs';
 import {checkApplications} from './applications.mjs';
 import {checkPlan} from './check.mjs';
 import {checkCertificate} from './final.mjs';
-import {actionInputs, hash, sharedFiles} from './inputs.mjs';
+import {actionInputs, hash, sharedFiles, pipelineInventoryBoundary} from './inputs.mjs';
 import {sealReceipt, canonicalReceipt, parseReceipt, authenticateOrigin, readOriginReceipt, readOriginReceipts, observationUnits, mutationIds} from './receipts.mjs';
 
 const revision = 'a'.repeat(40), candidate = 'b'.repeat(40);
@@ -24,6 +25,7 @@ function sourceTree(catalog = null) {
     ['src/bounded_execution/moon.pkg', ''], ['src/bounded_execution/session.mbt', 'kernel'],
     ['proofs/bounded-session/a.mjs', 'proof'],
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'].map(name => [`proofs/bounded-session/${name}`, name])]);
+  files.set(pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8'));
   if (catalog) files.set(catalogPath, encode(catalog));
   return {entries: new Map([...files].map(([path]) => [path, {kind: 'blob', mode: '100644'}])),
     read: path => Buffer.from(files.get(path))};
@@ -282,4 +284,41 @@ for (const event of ['push', 'workflow_dispatch']) test(`authenticated ${event}/
       request: api(hash(invalidBytes), ({run}) => { run.event = denied.event; run.head_branch = denied.branch; })}),
     /protected main integration/u);
   }
+});
+
+const bridgeObservation = [
+  'ACTQL_EVENTS_BRIDGE:{"case":"empty-number","clock":"number","rows":0}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"nullable-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"duplicate-payload-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"timestamp-original-text","clock":"timestamp","rows":1}',
+];
+test('Bridge receipt sealing and authenticated archive reading require actual per-case coverage', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-bridge-scope-origin-'));
+  t.after(() => rm(directory, {recursive: true}));
+  const archive = join(directory, 'origin.zip');
+  const action = readCatalog().actions.find(row => row.id === 'events-connection-js');
+  const summary = 'Total tests: 1, passed: 1, failed: 0.\n';
+  const log = bridgeObservation.join('\n') + '\n' + summary;
+  const original = sealReceipt({origin, action, inputs: inputs(action), output: log, status: 0, milliseconds: 1});
+  const consume = async (receipt, observation) => {
+    const bytes = zip([[`receipts/${action.id}.json`, canonicalReceipt(receipt)], [`observations/${action.id}.log`, observation]]);
+    await writeFile(archive, bytes);
+    return readOriginReceipt({archive, artifactId: 6, action, expected, request: api(hash(bytes)), acquisition: 'reused'});
+  };
+  assert.deepEqual((await consume(original, log)).receipt, original);
+  // Consistent receipt, archive and API digests cannot substitute for missing
+  // semantic-scope observations. The real reader must reject the actual bytes.
+  for (const observation of [summary,
+    ...bridgeObservation.map((_, index) => bridgeObservation.filter((_, i) => i !== index).join('\n') + '\n' + summary),
+    log + bridgeObservation[0] + '\n', log.replace('"rows":2', '"rows":0'),
+  ]) {
+    assert.throws(() => sealReceipt({origin, action, inputs: inputs(action), output: observation, status: 0, milliseconds: 1}),
+      /actual Bridge cases/u);
+    const changed = structuredClone(original);
+    changed.execution.observationDigest = hash(observation);
+    changed.artifacts[0].digest = hash(observation);
+    changed.artifacts[0].bytes = Buffer.byteLength(observation);
+    await assert.rejects(consume(changed, observation), /actual Bridge cases/u);
+  }
+  assert.deepEqual((await consume(original, log)).receipt, original);
 });

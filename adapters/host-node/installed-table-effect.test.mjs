@@ -7,7 +7,10 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
-import {tableFixturePublicationPlan} from './fixtures/table-completed-capture.mjs';
+import {tableFixturePublicationPlan, tableFixtureWriteFootprint} from './fixtures/table-completed-capture.mjs';
+import {issueIcebergStorageMapping, admitIcebergStorageMapping, projectIcebergCommitResponse,
+  supportsIcebergTableOperation}
+  from '../connectors/local/host/iceberg-process.mjs';
 import {recoverCompletedEffectfulComputation, suspendCompletedEffectfulComputation,
   releaseCompletedRunPreparedPayloads, retireCompletedEffectfulCapture}
   from '../host-common/completed-run-publication.mjs';
@@ -19,7 +22,7 @@ const mappingRef = 'mapping:table.catalog.v1';
 for (const kind of ['frozen', 'nested', 'primitive']) {
   test(`installed Table preparation retains ${kind} failure and cleanup custody`,
     async t => exerciseEffectSourceSet(t, {target: targetRef, mappingRef,
-      minimumApproval: 'required', onTablePreview: async f => {
+      minimumApproval: 'required', onCompletedTableRun: async f => {
         const {moon, sourceControl: control} = f;
         let innerPending = true, innerRetries = 0;
         const inner = Object.freeze({status: () => ({pending: innerPending}),
@@ -31,6 +34,10 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
         const cleanupFailure = new Error('FirstTableCleanupFailure');
         let preparations = 0, cleanupCalls = 0;
         const bridge = {
+          supportsOperation: supportsIcebergTableOperation,
+          issueStorageMapping: issueIcebergStorageMapping,
+          admitStorageMapping: admitIcebergStorageMapping,
+          projectCommitResponse: projectIcebergCommitResponse,
           prepareWrite() { if (++preparations === 2) throw original; return Object.freeze({}); },
           status: () => ({attempted: true, stopped: true}),
           async cleanup() {
@@ -49,7 +56,7 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
             resource: 'catalog', targetRef, mappingRef, mappingCid: f.fixture.mappingCid,
             action: 'create', catalogCid: cid('3'), namespace: ['analytics'], tableName: `rows_${index}`,
             expectedTable: null, permissions: ['scope:store'],
-            footprint: f.template.effects[index].write_footprint})), bridge,
+            footprint: tableFixtureWriteFootprint(index)})), bridge,
           authorization: {authorize() { assert.fail('Preparation cannot authorize a provider read'); }},
           ledgerRoot: join(f.directory, 'installed-table-failure-ledger'),
           limits: {maxMembers: 2, maxInputBytes: 100000,
@@ -85,15 +92,21 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
       }}));
 }
 
-for (const empty of [false,true]) {
-  test(`installed Table hooks ${empty ? 'empty' : 'nonempty'} preserve original capture and claims`,
-    async t => exerciseEffectSourceSet(t, {empty, target: targetRef, mappingRef,
-      minimumApproval: 'required', onTablePreview: async f => {
+for (const sparseTableInput of [false, true]) for (const empty of [false,true]) {
+  test(`installed Table hooks ${sparseTableInput ? 'sparse private ' : ''}${empty ? 'empty' : 'nonempty'} preserve original capture and claims`,
+    async t => exerciseEffectSourceSet(t, {empty, sparseTableInput,
+      privateTableInput: sparseTableInput, target: targetRef, mappingRef,
+      minimumApproval: 'required', onCompletedTableRun: async f => {
         const {moon,sourceControl: control} = f;
+        const originalCompleted = f.execution.completed.slice();
         const writes = [], inspections = [];
         const materials = new WeakMap();
         let cleanupCalls = 0, testCleanup = false, finishCleanup = false;
         const bridge = {
+          supportsOperation: supportsIcebergTableOperation,
+          issueStorageMapping: issueIcebergStorageMapping,
+          admitStorageMapping: admitIcebergStorageMapping,
+          projectCommitResponse: projectIcebergCommitResponse,
           prepareWrite(value) {
             const token = Object.freeze({}); materials.set(token,value); return token;
           },
@@ -115,13 +128,21 @@ for (const empty of [false,true]) {
             resource: 'catalog', targetRef, mappingRef, mappingCid: f.fixture.mappingCid,
             action: 'create', catalogCid: cid('3'), namespace: ['analytics'], tableName: `rows_${index}`,
             expectedTable: null, permissions: ['scope:store'],
-            footprint: f.template.effects[index].write_footprint})), bridge,
+            footprint: tableFixtureWriteFootprint(index)})), bridge,
           authorization: {authorize() { assert.fail('No provider read during preparation'); }},
           ledgerRoot: join(f.directory,'installed-table-ledger'),
           limits: {maxMembers: 2, maxInputBytes: 100000,
             material: f.tableLimits, reservation: {bytes: 1048576, files: 16}}};
         await assert.rejects(createInstalledTableEffect({...options,
           targets: [...options.targets, ...options.targets]}), {code: 'DuplicateInstalledTableMapping'});
+        await assert.rejects(createInstalledTableEffect({...options,
+          bridge: {...bridge, supportsOperation: () => false}}),
+        {code: 'UnsupportedTableCarrierOperation'});
+        await assert.rejects(createInstalledTableEffect({...options,
+          bridge: {...bridge, supportsOperation: undefined}}),
+        {code: 'InvalidInstalledTableEffect'});
+        assert.deepEqual(writes, []);
+        assert.deepEqual(inspections, [], 'An absent declared operation cannot start physical I/O');
         const factory = await createInstalledTableEffect(options);
         const identity = moon.clientProgramEffectRequestIdentity(f.prepared, cid('e'), 'table-bind', cid('b'));
         const plan = tableFixturePublicationPlan(f);
@@ -151,7 +172,8 @@ for (const empty of [false,true]) {
             stage.apply.members[1].claims[0].canonicalRequestCid);
           assert.deepEqual(writes, []);
           assert.deepEqual(inspections, []);
-          assert.equal(f.execution.completed.length, 1);
+          assert.deepEqual(f.execution.completed, originalCompleted);
+          if (!sparseTableInput) assert.equal(f.execution.completed.length, 1);
           stage.apply.ledger.prepareCapturedSetIntents(stage.apply.capturedInputs,
             stage.apply.members, 100);
           const provider = JSON.parse(stage.continuationWire);
@@ -165,10 +187,30 @@ for (const empty of [false,true]) {
           assert.equal(stage.cleanupOwner.cleanupPending(), true);
           assert.equal(cleanupCalls, 1);
           finishCleanup = true;
+          let schemaReleases = 0;
+          if (sparseTableInput) {
+            // Inject only a failed release of the real Store lease. The
+            // pending schema and Ledger must remain in the same stage custody.
+            const schema = stage.cleanupOwner.schemas[0];
+            assert.equal(schema.status().pending, true);
+            stage.cleanupOwner.schemas[0] = Object.freeze({
+              status: () => schema.status(),
+              async release() {
+                if (++schemaReleases === 1) throw new Error('TableSchemaReleaseFailure');
+                return schema.release();
+              },
+            });
+            await assert.rejects(stage.dispose(), {message: 'TableSchemaReleaseFailure'});
+            assert.equal(stage.cleanupOwner.cleanupPending(), true);
+            assert.equal(schema.status().pending, true);
+            assert.equal(cleanupCalls, 3);
+          }
           await Promise.all([stage.dispose(), stage.dispose()]);
           assert.equal(cleanupCalls, 3);
+          assert.equal(schemaReleases, sparseTableInput ? 2 : 0);
           await stage.dispose();
           assert.equal(cleanupCalls, 3);
+          assert.equal(schemaReleases, sparseTableInput ? 2 : 0);
           testCleanup = false;
           assert.equal(stage.cleanupOwner.cleanupPending(), false);
           durable = await recoverCompletedEffectfulComputation({store: f.physicalStore, control,
@@ -197,7 +239,8 @@ for (const empty of [false,true]) {
           await recoveredStage.dispose();
           await recoveredStage.dispose();
           assert.equal(recoveryOwner.cleanupPending(), false);
-          assert.equal(f.execution.completed.length, 1);
+          assert.deepEqual(f.execution.completed, originalCompleted);
+          if (!sparseTableInput) assert.equal(f.execution.completed.length, 1);
           // The real recovered Ledger remains owned after a close failure,
           // even when its primary preparation exception is immutable.
           const originalFailure = Object.freeze(Object.assign(new Error('RecoveredTablePreparationFailure'),

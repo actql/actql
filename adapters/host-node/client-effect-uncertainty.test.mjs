@@ -2,10 +2,7 @@
 // provider. It saves the second update and drops only its reply. Expected
 // records are independently authored in the existing composition fixture.
 import assert from 'node:assert/strict';
-import {execFile} from 'node:child_process';
-import {join} from 'node:path';
 import test from 'node:test';
-import {fileURLToPath} from 'node:url';
 import * as sdk from '../../packages/sdk/index.mjs';
 import {approveHeldSet, expectedOrgAfterSuccess,
   readComputeEffectInstallation, submitReadComputeEffect, waitFor} from
@@ -20,69 +17,46 @@ const expectedExplanation = (ref, revision) => ({
   next: {operation: 'reconcile', ref},
 });
 
-const localObservation = path => new Promise((resolve, reject) => {
-  execFile(process.execPath, [fileURLToPath(new URL(
-    '../../scripts/fixtures/client-effect-uncertainty.child.mjs', import.meta.url)), path],
-  {timeout: 30_000}, (error, stdout, stderr) => {
-    if (error) {
-      const progress = stderr.split(/\r?\n/u)
-        .filter(line => line.startsWith('ACTQL_EFFECT_OBSERVATION_PROGRESS ')).join('\n');
-      error.message += '\nChild process outcome: ' + JSON.stringify({code: error.code,
-        signal: error.signal, killed: error.killed}) + '\n' + progress;
-      reject(Object.assign(error, {stdout, stderr})); return;
-    }
-    try { resolve(JSON.parse(stdout.trim().split('\n').at(-1))); }
-    catch (cause) { reject(cause); }
-  });
-});
-
 for (const entrance of ['local', 'https']) {
   test(`${entrance}: unresolved Effect keeps its identity after computation stops`, async t => {
     const setup = await readComputeEffectInstallation(t, {
       org: {loseReplyAfterApply: [2]}});
     const requestId = `effect-uncertain-${entrance}`;
-    let observe;
-    if (entrance === 'local') {
-      // Reuse the existing public Local submission/approval child and its
-      // private fixture configuration. Observation has its own thin child.
-      const step = await setup.embedded(requestId, setup.program());
-      assert.deepEqual(await step('submit'), {held: true});
-      assert.deepEqual(await step('answer'), {answered: ['committed']});
-      assert.deepEqual(await step('resume'), {status: 'needs_reconciliation'});
-      observe = () => localObservation(join(setup.root,
-        `embedded-${requestId}.json`));
-    } else {
-      const first = await setup.openHost();
-      const execution = await submitReadComputeEffect(
-        await first.as('owner-token'), setup.program(), requestId);
-      await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
-      await first.close();
-      const second = await setup.openHost();
-      await approveHeldSet(second, execution);
-      await second.close();
-      observe = async () => {
-        const host = await setup.openHost();
-        try {
-          const attached = await (await host.as('owner-token')).attach(execution.ref);
-          const state = await waitFor(async () => {
-            const value = await attached.status();
-            return value.status === 'needs_reconciliation' && value.control?.physical_stop === 'confirmed' ? value : undefined;
-          });
-          let reconcileError;
-          let reconciled;
-          try { reconciled = await attached.reconcile(); }
-          catch (error) { reconcileError = error.code; }
-          return {ref: attached.ref, state, reconcileError, reconciled,
-            diagnostics: host.diagnostics.map(({name, detail}) => ({name, code: detail?.code})),
-            reconciledExplanation: sdk.explainEffectUncertainty?.(reconciled),
-            explanation: sdk.explainEffectUncertainty?.(state),
-            japaneseExplanation: sdk.explainEffectUncertainty?.(state, {locale: 'ja'}),
-            copiedExplanation: sdk.explainEffectUncertainty?.({...state}),
-            formats: ['text', 'html', 'json'].map(format => sdk.formatEffectUncertainty(state, {format}))};
-        } finally { await host.close(); }
-      };
+    // The provider remains in the parent; each public Host and execution
+    // owner live in a child whose exit is observed before the next step.
+    const step = await setup.embedded(requestId, setup.program(), {transport: entrance});
+    assert.deepEqual(await step('submit'), {held: true});
+    assert.equal(setup.writes().length, 0);
+    assert.equal(setup.queries(), 1);
+    const computationEvents = events => events.filter(event =>
+      event.name === 'effect_computation_completed');
+    const initialComputation = computationEvents(await step.ownerObservations());
+    assert.equal(initialComputation.length, 1,
+      'the original Program completes Compute once before approval');
+    assert.equal(initialComputation[0].pid, step.processes[0].pid);
+    assert.deepEqual(await step('answer'), {answered: ['committed']});
+    assert.deepEqual(await step('resume'), {status: 'needs_reconciliation'});
+    assert.equal(setup.writes().length, 2);
+    assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
+    const stoppedCounts = {writes: setup.writes().length, queries: setup.queries(), targetReads: setup.targetReads()};
+    const originalProcesses = [...step.processes];
+    assert.equal(originalProcesses.length, 3);
+    t.diagnostic(JSON.stringify({entrance, originalProcesses, fixtureRoot: setup.root}));
+    for (const process of originalProcesses) {
+      assert.ok(Number.isSafeInteger(process.pid));
+      assert.equal(process.exitCode, 0);
+      assert.equal(process.signalCode, null);
     }
+    const observe = () => step('observe-effect');
     const first = await observe();
+    assert.ok(Number.isSafeInteger(first.pid));
+    assert.equal(first.transport, entrance);
+    assert.equal(first.httpsRequests > 0, entrance === 'https');
+    assert.ok(originalProcesses.every(process => process.pid !== first.pid));
+    assert.deepEqual({writes: setup.writes().length, queries: setup.queries(), targetReads: setup.targetReads()}, stoppedCounts,
+      'original-Run reconciliation cannot resend or reacquire after execution-owner process exit');
+    assert.deepEqual(computationEvents(await step.ownerObservations()), initialComputation,
+      'the first original-Run reconciliation cannot regenerate Compute');
     if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') t.diagnostic(JSON.stringify({ref: first.ref, state: first.state,
       reconciled: first.reconciled, reconcileError: first.reconcileError,
       diagnostics: first.diagnostics}));
@@ -106,6 +80,11 @@ for (const entrance of ['local', 'https']) {
       '[check-mutation:operation-effect-public-format]');
     const queries = setup.queries(), reads = setup.targetReads();
     const again = await observe();
+    assert.ok(Number.isSafeInteger(again.pid));
+    assert.equal(again.transport, entrance);
+    assert.equal(again.httpsRequests > 0, entrance === 'https');
+    assert.notEqual(again.pid, first.pid);
+    assert.ok(originalProcesses.every(process => process.pid !== again.pid));
     if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') t.diagnostic(JSON.stringify({ref: again.ref, state: again.state,
       reconciled: again.reconciled, reconcileError: again.reconcileError,
       diagnostics: again.diagnostics}));
@@ -121,6 +100,8 @@ for (const entrance of ['local', 'https']) {
     assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
     assert.equal(setup.queries(), queries);
     assert.equal(setup.targetReads(), reads);
+    assert.deepEqual(computationEvents(await step.ownerObservations()), initialComputation,
+      'repeated original-Run reconciliation cannot regenerate Compute');
     // The original Effect continuation is observation-only. Inconclusive
     // provider evidence must preserve uncertainty, not fail or resend a write.
     // Keep the Local path assertion after the independent no-resend facts,
@@ -146,9 +127,14 @@ test('https: stale Effect reconciliation advice does not grant current authority
   const setup = await readComputeEffectInstallation(t, {
     org: {loseReplyAfterApply: [2]}});
   const submittedHost = await setup.openHost();
+  const submittingClient = await submittedHost.as('owner-token');
+  const submissionRef = await setup.persistSubmission(
+    submittingClient.newSubmission({nonce: 'effect-current-authority'}));
   const submitted = await submitReadComputeEffect(
-    await submittedHost.as('owner-token'), setup.program(), 'effect-current-authority');
+    submittingClient, setup.program(), submissionRef);
   await waitFor(async () => (await submitted.status()).status === 'waiting_checkpoint');
+  assert.equal(setup.writes().length, 0);
+  assert.equal(setup.queries(), 1);
   await submittedHost.close();
   const approvingHost = await setup.openHost();
   await approveHeldSet(approvingHost, submitted);
@@ -158,6 +144,10 @@ test('https: stale Effect reconciliation advice does not grant current authority
   let credential = 'owner-token';
   const client = await observingHost.as(() => credential);
   try {
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, submitted.ref);
     const execution = await client.attach(submitted.ref);
     const state = await waitFor(async () => {
       const current = await execution.status();

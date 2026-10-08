@@ -2,14 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {authorTableOperationPreview} from './table-operation-preview.mjs';
+import {issueIcebergStorageMapping, admitIcebergStorageMapping}
+  from '../connectors/local/host/iceberg-process.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const targetRef = 'connector://table/catalog';
 const mappingRef = 'mapping:table.catalog.v1';
 
-for (const empty of [false,true]) {
-  test(`installed Table authoring ${empty ? 'empty' : 'nonempty'} uses checked whole-Relation operations`,
-    async t => exerciseEffectSourceSet(t, {empty, target: targetRef, mappingRef,
+for (const [empty, privateTableInput, sparseTableInput] of [[false,false], [true,false], [false,true], [true,true], [false,true,true], [true,true,true]]) {
+  test(`installed Table authoring ${empty ? 'empty' : 'nonempty'} ${sparseTableInput ? 'sparse private input' : privateTableInput ? 'private input' : 'Result'} uses checked whole-Relation operations`,
+    async t => exerciseEffectSourceSet(t, {empty, privateTableInput, sparseTableInput, target: targetRef, mappingRef,
       minimumApproval: 'required', onTablePreview: async f => {
         const members = f.sources.members.map((source,index) => ({
           stageIndex: 0, effectId: index === 0 ? 'first' : 'second',
@@ -21,6 +23,8 @@ for (const empty of [false,true]) {
             footprint: f.template.effects[index].write_footprint},
         }));
         const options = {moon: f.moon, control: f.sourceControl,
+          bridge: {issueStorageMapping: issueIcebergStorageMapping,
+            admitStorageMapping: admitIcebergStorageMapping},
           prepared: f.prepared, inputs: f.inputs, checkedHost: f.checkedHost,
           requestScope: f.scope,
           context: {runDefinition: f.definition, runInvocation: f.invocation,
@@ -55,6 +59,12 @@ for (const empty of [false,true]) {
             authored.tablePreviews[index]).operationWire, authored.tableInputs[index].wire);
         }
         assert.equal(authorTableOperationPreview(options).wire, authored.wire);
+        assert.throws(() => authorTableOperationPreview({...options, bridge: undefined}),
+          {code: 'InvalidTablePreviewConfiguration'});
+        assert.throws(() => authorTableOperationPreview({...options,
+          bridge: {...options.bridge, admitStorageMapping: values => ({
+            ...admitIcebergStorageMapping(values), identity: cid('f')})}}),
+        {code: 'ForeignTableStorageMapping'});
         const replaceMembers = members.map(member => ({...member,
           target: {...member.target, action: 'replace', expectedTable: {
             table_uuid: '11111111-2222-3333-4444-555555555555', generation_cid: cid('b')}}}));

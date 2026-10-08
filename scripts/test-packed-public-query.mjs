@@ -44,6 +44,9 @@ for (const [source, destination] of [
   ['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs'],
   ['scripts/fixtures/array-literal-source-input.mjs', 'array-literal-source-input.mjs'],
   ['scripts/fixtures/unnest-source-input.mjs', 'unnest-source-input.mjs'],
+  ['scripts/fixtures/correlated-unnest-source-input.mjs', 'correlated-unnest-source-input.mjs'],
+  ['scripts/fixtures/unnest-parameter-path-source-input.mjs', 'unnest-parameter-path-source-input.mjs'],
+  ['scripts/fixtures/unnest-checked-array-source-input.mjs', 'unnest-checked-array-source-input.mjs'],
   ['scripts/fixtures/named-window-source-input.mjs', 'named-window-source-input.mjs'],
   ['scripts/fixtures/qualify-source-input.mjs', 'qualify-source-input.mjs'],
   ['scripts/fixtures/join-star-source-input.mjs', 'join-star-source-input.mjs'],
@@ -288,6 +291,15 @@ if (process.argv.includes('--in-unnest-literal-array-only')) {
 if (process.argv.includes('--array-literal-only')) {
   runtimeEnvironment.ACTQL_TEST_ARRAY_LITERAL_ONLY = '1';
 }
+if (process.argv.includes('--correlated-unnest-only')) {
+  runtimeEnvironment.ACTQL_TEST_CORRELATED_UNNEST_ONLY = '1';
+}
+if (process.argv.includes('--unnest-checked-array-only')) {
+  runtimeEnvironment.ACTQL_TEST_UNNEST_CHECKED_ARRAY_ONLY = '1';
+}
+if (process.argv.includes('--unnest-parameter-path-only')) {
+  runtimeEnvironment.ACTQL_TEST_UNNEST_PARAMETER_PATH_ONLY = '1';
+}
 if (process.argv.includes('--unnest-source-only')) {
   runtimeEnvironment.ACTQL_TEST_UNNEST_SOURCE_ONLY = '1';
 }
@@ -314,6 +326,27 @@ if (process.argv.includes('--join-order-only')) {
 }
 if (process.argv.includes('--group-ordinal-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_ORDINAL_ONLY = '1';
+}
+if (process.argv.includes('--order-grouped-subexpression-only')) {
+  runtimeEnvironment.ACTQL_TEST_ORDER_GROUPED_SUBEXPRESSION_ONLY = '1';
+}
+if (process.argv.includes('--group-having-implicit-aliases-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUP_HAVING_IMPLICIT_ALIASES_ONLY = '1';
+}
+if (process.argv.includes('--grouped-implicit-property-names-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUPED_IMPLICIT_PROPERTY_NAMES_ONLY = '1';
+}
+if (process.argv.includes('--having-grouped-subexpression-only')) {
+  runtimeEnvironment.ACTQL_TEST_HAVING_GROUPED_SUBEXPRESSION_ONLY = '1';
+}
+if (process.argv.includes('--sql-grouped-subexpression-only')) {
+  runtimeEnvironment.ACTQL_TEST_SQL_GROUPED_SUBEXPRESSION_ONLY = '1';
+}
+if (process.argv.includes('--pipe-aggregate-expression-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_AGGREGATE_EXPRESSION_ONLY = '1';
+}
+if (process.argv.includes('--pipe-aggregate-order-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_AGGREGATE_ORDER_ONLY = '1';
 }
 if (process.argv.includes('--group-property-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_PROPERTY_ONLY = '1';
@@ -477,7 +510,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -494,7 +527,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--in-unnest-literal-array-
   '--graph-any-direction-only',
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
-  '--group-property-only',
+  '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
@@ -536,7 +569,10 @@ try {
 }
 if (process.argv.includes('--in-unnest-literal-array-only')) return;
 if (process.argv.includes('--array-literal-only')) return;
+if (process.argv.includes('--correlated-unnest-only')) return;
 if (process.argv.includes('--unnest-source-only')) return;
+if (process.argv.includes('--unnest-checked-array-only')) return;
+if (process.argv.includes('--unnest-parameter-path-only')) return;
 if (process.argv.includes('--ceiling-only')) return;
 if (process.argv.includes('--unary-plus-only')) return;
 if (process.argv.includes('--qualified-star-only')) return;
@@ -565,7 +601,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-any-direction-only',
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
-  '--group-property-only',
+  '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
@@ -591,6 +627,13 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--graph-abbreviated-only') ||
     process.argv.includes('--graph-quantifier-forms-only') ||
     process.argv.includes('--group-property-only') ||
+    process.argv.includes('--pipe-aggregate-order-only') ||
+    process.argv.includes('--pipe-aggregate-expression-only') ||
+    process.argv.includes('--sql-grouped-subexpression-only') ||
+    process.argv.includes('--having-grouped-subexpression-only') ||
+    process.argv.includes('--order-grouped-subexpression-only') ||
+    process.argv.includes('--grouped-implicit-property-names-only') ||
+    process.argv.includes('--group-having-implicit-aliases-only') ||
     process.argv.includes('--distinct-order-only') ||
     process.argv.includes('--implicit-property-only') ||
     process.argv.includes('--computed-object-property-only') ||

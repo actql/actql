@@ -29,3 +29,10 @@ if (explanation?.observation === 'run_reference_received') {
 }
 // @ts-expect-error A presentation result does not expose supplied secret values.
 explanation?.parameters;
+
+if (explanation?.observation === 'not_accepted' || explanation?.observation === 'preparation_failed') {
+  const issue: 'analysis_budget_exhausted' | 'implementation_limit' | undefined = explanation.preparationIssue?.kind;
+  void issue;
+  // @ts-expect-error Preparation guidance is immutable.
+  if (explanation.preparationIssue) explanation.preparationIssue.hint = 'retry';
+}

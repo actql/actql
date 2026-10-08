@@ -708,13 +708,13 @@ pub fn managed_output_finish(
 
 ///|
 /// Poll provisional physical content without issuing a retained completion.
-/// View verification retains its separate aggregate/selection admission owner.
+/// Views retain their aggregate/selection verifier and poll its common issuer.
 #export_name("managedOutputAdvanceFinish")
 pub fn managed_output_advance_finish(
   value : ManagedNodeOutput,
   quantum : Int,
 ) -> (Bool, Int) raise NodeHostFailure {
-  if !value.open || quantum <= 0 || value.receiver is View(_) {
+  if !value.open || quantum <= 0 {
     raise InvalidCommand
   }
   value.finishing = true
@@ -737,7 +737,11 @@ pub fn managed_output_advance_finish(
         Err(issue) => raise Compute(issue)
       }
     }
-    View(_) => raise InvalidCommand
+    View(port) =>
+      match @execution.advance_managed_view_output_finish(port, (), quantum) {
+        Ok(poll) => poll
+        Err(issue) => raise ManagedView(issue)
+      }
   }
   if poll.receipt is Some(receipt) {
     value.receipt = Some(receipt)

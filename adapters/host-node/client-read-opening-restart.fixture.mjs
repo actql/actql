@@ -1,6 +1,6 @@
 // A fresh process reopens only the real journal and publication Store.
 import {writeFile} from 'node:fs/promises';
-import {openReadOpeningFixture, connectOpeningHost} from './client-read-opening.fixture.mjs';
+import {openReadOpeningFixture, connectOpeningHost, traceReadRecovery} from './client-read-opening.fixture.mjs';
 
 const {directory, entrance, ref, attemptId, output, submissionRef, newRead = false} = JSON.parse(process.argv[2]);
 const fixture = await openReadOpeningFixture(directory);
@@ -16,16 +16,24 @@ try {
   const retained = fixture.retainedAdmission(ref);
   const lookupCounts = {...fixture.counts};
   if (newRead) console.log('RESTORED_READ_121_PHASE', 'original-found');
-  let rows, readAttempt;
+  let rows, readAttempt, description, readState, rowsYielded, originalAfterRead;
   if (newRead) {
+    description = await result.describe();
+    traceReadRecovery('restored-fresh-read:start', {entrance});
     const reader = result.rows(); rows = await Array.fromAsync(reader);
+    readState = reader.state();
+    rowsYielded = reader.rowsYielded();
+    traceReadRecovery('restored-fresh-read:finished', {entrance, rowsYielded});
     await host.settled();
     console.log('RESTORED_READ_121_PHASE', 'read', rows.length);
     readAttempt = await result.deliveryAttempt(reader.attemptId);
+    originalAfterRead = await result.deliveryAttempt(attemptId);
+    traceReadRecovery('restored-fresh-receipt:finished', {entrance});
     if (reader.state() !== 'complete') throw new Error('RestoredReadIncomplete');
   }
-  await writeFile(output, JSON.stringify({ref: run.ref, status: status.status,
+  await writeFile(output, JSON.stringify({pid: process.pid, ref: run.ref, status: status.status,
     first, second, request, lookupCounts, rows, readAttempt,
+    description, readState, rowsYielded, originalAfterRead,
     valuesHostPolicyOriginal: retained?.valuesHostPolicyOriginal,
     counts: fixture.counts}));
   if (newRead) console.log('RESTORED_READ_121_PHASE', 'saved');

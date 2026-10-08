@@ -41,7 +41,8 @@ test "installed Store limits cover the eight task Set publication inventory" {
     @local.local_export_retention_capacity(
       client_local_export_limits(100, values),
     ),
-    Some(1541184L),
+    // Preparation reserves sixteen fixed 64-byte continuation slots.
+    Some(1542208L),
   )
   // Eight outputs and eight ports (including both Set inputs), not six
   // authored producer operations alone. The 512 MiB ceiling is unchanged.
@@ -50,18 +51,18 @@ test "installed Store limits cover the eight task Set publication inventory" {
       [0, 1, 2, 1, 1, 1, 1, 1],
       14240000L,
       21905664L,
-      1541184L,
+      1542208L,
       536870912L,
     ),
-    Some((301494784L, 8L)),
+    Some((301502976L, 8L)),
   )
   assert_true(
     client_local_store_inventory(
       [0, 1, 2, 1, 1, 1, 1, 1],
       14240000L,
       21905664L,
-      1541184L,
-      301494783L,
+      1542208L,
+      301502975L,
     )
     is None,
   )
@@ -71,7 +72,7 @@ test "installed Store limits cover the eight task Set publication inventory" {
       Array::make(32, 1),
       14240000L,
       21905664L,
-      1541184L,
+      1542208L,
       536870912L,
     )
     is None,

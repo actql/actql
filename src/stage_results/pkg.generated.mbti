@@ -209,6 +209,8 @@ pub fn effect_result_binding_issue_stage(EffectResultBindingIssue) -> Int
 
 pub fn effect_result_binding_result(EffectResultBinding) -> @relation_results.ResultDefinition?
 
+pub fn effect_result_binding_table_input(EffectResultBinding) -> @relation_results.TableInputDefinition?
+
 pub fn effect_result_bindings_headers(EffectResultBindings) -> @stage_syntax.EffectHeaders
 
 pub fn effect_result_bindings_owner(EffectResultBindings) -> Checked
@@ -624,6 +626,7 @@ pub(all) enum EffectPreviewStaticInventoryIssue {
 pub struct EffectResultBinding {
   header : @stage_syntax.EffectHeader
   result : @relation_results.ResultDefinition?
+  table_input : @relation_results.TableInputDefinition?
   fields : Array[EffectResultFieldBinding]
 }
 
@@ -639,6 +642,7 @@ pub(all) enum EffectResultBindingIssueKind {
   WorkLimit
   ForeignProgram
   MissingResult
+  MissingTableInput
   MissingField
   InvalidCommandTarget
   UnsupportedTableInput

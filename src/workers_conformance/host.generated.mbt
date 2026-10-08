@@ -770,6 +770,70 @@ pub fn strategy_captured_effect_source_holding_cid(
 }
 
 ///|
+#export_name("strategyAdmitCapturedEffectSourceFromResult")
+pub fn strategy_admit_captured_effect_source_from_result(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  result : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_result(
+      preview, member_index, invocation, artifact, result, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceInventoryFromResultsValid")
+pub fn strategy_captured_effect_source_inventory_from_results_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  results : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_results_valid(
+    preview, member_indices, artifacts, results,
+  )
+}
+
+///|
+#export_name("strategyAdmitCapturedEffectSourceFromTableInput")
+pub fn strategy_admit_captured_effect_source_from_table_input(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  input : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_table_input(
+      preview, member_index, invocation, artifact, input, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceInventoryFromArtifactsValid")
+pub fn strategy_captured_effect_source_inventory_from_artifacts_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  relations : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_artifacts_valid(
+    preview, member_indices, artifacts, relations,
+  )
+}
+
+///|
 /// Re-admit persisted local evidence at a trust boundary. This does not
 /// replace the checked Host owner required for first issuance.
 #export_name("strategyAdmitCapturedLocalEffectSource")
@@ -1613,6 +1677,71 @@ pub fn strategy_captured_effect_source_recovery_inventory_valid(
 ) -> Bool {
   @publication.captured_effect_source_recovery_inventory_valid(
     preview, member_indices, artifacts,
+  )
+}
+
+///|
+#export_name("strategyCapturedEffectSourceMatchesPreview")
+pub fn strategy_captured_effect_source_matches_preview(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  source : @publication.CapturedEffectSourceArtifact,
+  local_evidence : @publication.CapturedLocalEffectSourceEvidence,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool raise NodeHostFailure {
+  if @publication.captured_effect_source_matches_preview(
+      preview, member_index, invocation, source, local_evidence, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    true
+  } else {
+    raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitCapturedEffectSourceFromCapture")
+pub fn strategy_admit_captured_effect_source_from_capture(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  captured : @publication.PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_capture(
+      preview, member_index, invocation, artifact, captured, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(source) => source
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceInventoryFromCaptureValid")
+pub fn strategy_captured_effect_source_inventory_from_capture_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  invocation : @publication.PublicationContract,
+  captured : @publication.PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_capture_valid(
+    preview, member_indices, artifacts, invocation, captured, store_authority_cid,
+    max_wire_bytes, max_nodes, max_depth,
   )
 }
 
@@ -2682,7 +2811,7 @@ pub fn strategy_host_result_transformation_begin(
   max_schema_depth : Int,
   max_batch_bytes : Int,
   converted_output : @execution.CompletedOutput?,
-  selection : @publication_host.ClientResultTransformation,
+  selection : @publication_host.ClientResultTransformation?,
 ) -> StrategyHostResultTransformation raise NodeHostFailure {
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
@@ -2721,14 +2850,24 @@ pub fn strategy_host_result_transformation_begin(
     },
     max_batch_bytes,
   }
-  match
-    @publication_host.start_captured_client_result_transformation(
-      selection,
-      run,
-      result,
-      limits,
-      converted_output?,
-    ) {
+  let started = match selection {
+    Some(selection) =>
+      @publication_host.start_captured_client_result_transformation(
+        selection,
+        run,
+        result,
+        limits,
+        converted_output?,
+      )
+    None =>
+      @publication_host.start_captured_result_publication_export(
+        run,
+        result,
+        limits,
+        converted_output?,
+      )
+  }
+  match started {
     Ok(core) => { core, bridge: None, open: true, }
     Err(issue) => raise ResultTransformation(issue)
   }
@@ -2738,7 +2877,7 @@ pub fn strategy_host_result_transformation_begin(
 #export_name("strategyHostManagedResultTransformationBegin")
 pub fn strategy_host_managed_result_transformation_begin(
   value : StrategyHostManagedResultImport,
-  selection : @publication_host.ClientResultTransformation,
+  selection : @publication_host.ClientResultTransformation?,
 ) -> StrategyHostResultTransformation raise NodeHostFailure {
   if !value.open {
     raise InvalidCommand
@@ -2748,16 +2887,28 @@ pub fn strategy_host_managed_result_transformation_begin(
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
-  let core = match
-    @publication_host.start_captured_managed_result_transformation(
-      selection,
-      value.run,
-      value.result,
-      value.output,
-      value.bridge,
-      output,
-      value.limits,
-    ) {
+  let started = match selection {
+    Some(selection) =>
+      @publication_host.start_captured_managed_result_transformation(
+        selection,
+        value.run,
+        value.result,
+        value.output,
+        value.bridge,
+        output,
+        value.limits,
+      )
+    None =>
+      @publication_host.start_captured_managed_result_publication_export(
+        value.run,
+        value.result,
+        value.output,
+        value.bridge,
+        output,
+        value.limits,
+      )
+  }
+  let core = match started {
     Ok(value) => value
     Err(issue) => raise ResultTransformation(issue)
   }
@@ -2990,6 +3141,45 @@ pub fn strategy_host_output_export_admit_captured_result_snapshot(
   strategy_publication_output_result(
     value.core.admit_captured_snapshot(max_wire_bytes, max_nodes, max_depth),
   )
+}
+
+///|
+/// Prepare the same snapshot owner without blocking an environment poll.
+#export_name("strategyHostOutputSnapshotBegin")
+pub fn strategy_host_output_snapshot_begin(
+  value : StrategyHostOutputExport,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication_host.PublicationOutputSnapshotPreparation raise NodeHostFailure {
+  strategy_publication_output_result(
+    value.core.start_captured_snapshot(max_wire_bytes, max_nodes, max_depth),
+  )
+}
+
+///|
+#export_name("strategyHostOutputSnapshotAdvance")
+pub fn strategy_host_output_snapshot_advance(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+  quantum : Int,
+) -> Bool raise NodeHostFailure {
+  strategy_publication_output_result(value.advance(quantum)).0
+}
+
+///|
+#export_name("strategyHostOutputSnapshotFinish")
+pub fn strategy_host_output_snapshot_finish(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+) -> @publication.CapturedResultSnapshot raise NodeHostFailure {
+  strategy_publication_output_result(value.finish())
+}
+
+///|
+#export_name("strategyHostOutputSnapshotCancel")
+pub fn strategy_host_output_snapshot_cancel(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+) -> Unit {
+  value.cancel()
 }
 
 ///|
@@ -8770,6 +8960,22 @@ pub fn strategy_effect_issue_next_ledger_entry(
 }
 
 ///|
+#export_name("strategyRemoteDispatchResponseCanRetireCancellationDelivery")
+pub fn strategy_remote_dispatch_response_can_retire_cancellation_delivery(
+  response : @remote.RemoteDispatchResponse,
+) -> Bool {
+  @remote.remote_dispatch_response_can_retire_cancellation_delivery(response)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorCanRetireCancellationDelivery")
+pub fn strategy_remote_coordinator_can_retire_cancellation_delivery(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Bool {
+  @remote.coordinator_can_retire_cancellation_delivery(record)
+}
+
+///|
 #export_name("strategyModule_local_Registration")
 pub fn local_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -9630,6 +9836,70 @@ pub fn async_strategy_captured_effect_source_holding_cid(
 }
 
 ///|
+#export_name("asyncStrategyAdmitCapturedEffectSourceFromResult")
+pub fn async_strategy_admit_captured_effect_source_from_result(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  result : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise AsyncHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_result(
+      preview, member_index, invocation, artifact, result, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyCapturedEffectSourceInventoryFromResultsValid")
+pub fn async_strategy_captured_effect_source_inventory_from_results_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  results : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_results_valid(
+    preview, member_indices, artifacts, results,
+  )
+}
+
+///|
+#export_name("asyncStrategyAdmitCapturedEffectSourceFromTableInput")
+pub fn async_strategy_admit_captured_effect_source_from_table_input(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  input : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise AsyncHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_table_input(
+      preview, member_index, invocation, artifact, input, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyCapturedEffectSourceInventoryFromArtifactsValid")
+pub fn async_strategy_captured_effect_source_inventory_from_artifacts_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  relations : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_artifacts_valid(
+    preview, member_indices, artifacts, relations,
+  )
+}
+
+///|
 /// Re-admit persisted local evidence at a trust boundary. This does not
 /// replace the checked Host owner required for first issuance.
 #export_name("asyncStrategyAdmitCapturedLocalEffectSource")
@@ -10473,6 +10743,71 @@ pub fn async_strategy_captured_effect_source_recovery_inventory_valid(
 ) -> Bool {
   @publication.captured_effect_source_recovery_inventory_valid(
     preview, member_indices, artifacts,
+  )
+}
+
+///|
+#export_name("asyncStrategyCapturedEffectSourceMatchesPreview")
+pub fn async_strategy_captured_effect_source_matches_preview(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  source : @publication.CapturedEffectSourceArtifact,
+  local_evidence : @publication.CapturedLocalEffectSourceEvidence,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool raise AsyncHostFailure {
+  if @publication.captured_effect_source_matches_preview(
+      preview, member_index, invocation, source, local_evidence, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    true
+  } else {
+    raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyAdmitCapturedEffectSourceFromCapture")
+pub fn async_strategy_admit_captured_effect_source_from_capture(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  captured : @publication.PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedEffectSourceArtifact raise AsyncHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_capture(
+      preview, member_index, invocation, artifact, captured, store_authority_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(source) => source
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyCapturedEffectSourceInventoryFromCaptureValid")
+pub fn async_strategy_captured_effect_source_inventory_from_capture_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  invocation : @publication.PublicationContract,
+  captured : @publication.PublicationContract,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_capture_valid(
+    preview, member_indices, artifacts, invocation, captured, store_authority_cid,
+    max_wire_bytes, max_nodes, max_depth,
   )
 }
 
@@ -11542,7 +11877,7 @@ pub fn async_strategy_host_result_transformation_begin(
   max_schema_depth : Int,
   max_batch_bytes : Int,
   converted_output : @execution.CompletedOutput?,
-  selection : @publication_host.ClientResultTransformation,
+  selection : @publication_host.ClientResultTransformation?,
 ) -> AsyncStrategyHostResultTransformation raise AsyncHostFailure {
   let run = @host_driver.dispatch_driver_run(
     @probe.configured_host_driver(host),
@@ -11581,14 +11916,24 @@ pub fn async_strategy_host_result_transformation_begin(
     },
     max_batch_bytes,
   }
-  match
-    @publication_host.start_captured_client_result_transformation(
-      selection,
-      run,
-      result,
-      limits,
-      converted_output?,
-    ) {
+  let started = match selection {
+    Some(selection) =>
+      @publication_host.start_captured_client_result_transformation(
+        selection,
+        run,
+        result,
+        limits,
+        converted_output?,
+      )
+    None =>
+      @publication_host.start_captured_result_publication_export(
+        run,
+        result,
+        limits,
+        converted_output?,
+      )
+  }
+  match started {
     Ok(core) => { core, bridge: None, open: true, }
     Err(issue) => raise ResultTransformation(issue)
   }
@@ -11598,7 +11943,7 @@ pub fn async_strategy_host_result_transformation_begin(
 #export_name("asyncStrategyHostManagedResultTransformationBegin")
 pub fn async_strategy_host_managed_result_transformation_begin(
   value : AsyncStrategyHostManagedResultImport,
-  selection : @publication_host.ClientResultTransformation,
+  selection : @publication_host.ClientResultTransformation?,
 ) -> AsyncStrategyHostResultTransformation raise AsyncHostFailure {
   if !value.open {
     raise InvalidCommand
@@ -11608,16 +11953,28 @@ pub fn async_strategy_host_managed_result_transformation_begin(
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
-  let core = match
-    @publication_host.start_captured_managed_result_transformation(
-      selection,
-      value.run,
-      value.result,
-      value.output,
-      value.bridge,
-      output,
-      value.limits,
-    ) {
+  let started = match selection {
+    Some(selection) =>
+      @publication_host.start_captured_managed_result_transformation(
+        selection,
+        value.run,
+        value.result,
+        value.output,
+        value.bridge,
+        output,
+        value.limits,
+      )
+    None =>
+      @publication_host.start_captured_managed_result_publication_export(
+        value.run,
+        value.result,
+        value.output,
+        value.bridge,
+        output,
+        value.limits,
+      )
+  }
+  let core = match started {
     Ok(value) => value
     Err(issue) => raise ResultTransformation(issue)
   }
@@ -11850,6 +12207,45 @@ pub fn async_strategy_host_output_export_admit_captured_result_snapshot(
   async_strategy_publication_output_result(
     value.core.admit_captured_snapshot(max_wire_bytes, max_nodes, max_depth),
   )
+}
+
+///|
+/// Prepare the same snapshot owner without blocking an environment poll.
+#export_name("asyncStrategyHostOutputSnapshotBegin")
+pub fn async_strategy_host_output_snapshot_begin(
+  value : AsyncStrategyHostOutputExport,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication_host.PublicationOutputSnapshotPreparation raise AsyncHostFailure {
+  async_strategy_publication_output_result(
+    value.core.start_captured_snapshot(max_wire_bytes, max_nodes, max_depth),
+  )
+}
+
+///|
+#export_name("asyncStrategyHostOutputSnapshotAdvance")
+pub fn async_strategy_host_output_snapshot_advance(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+  quantum : Int,
+) -> Bool raise AsyncHostFailure {
+  async_strategy_publication_output_result(value.advance(quantum)).0
+}
+
+///|
+#export_name("asyncStrategyHostOutputSnapshotFinish")
+pub fn async_strategy_host_output_snapshot_finish(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+) -> @publication.CapturedResultSnapshot raise AsyncHostFailure {
+  async_strategy_publication_output_result(value.finish())
+}
+
+///|
+#export_name("asyncStrategyHostOutputSnapshotCancel")
+pub fn async_strategy_host_output_snapshot_cancel(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+) -> Unit {
+  value.cancel()
 }
 
 ///|
@@ -17635,6 +18031,22 @@ pub fn async_strategy_effect_issue_next_ledger_entry(
     Ok(value) => value
     Err(issue) => raise EffectLedger(issue)
   }
+}
+
+///|
+#export_name("asyncStrategyRemoteDispatchResponseCanRetireCancellationDelivery")
+pub fn async_strategy_remote_dispatch_response_can_retire_cancellation_delivery(
+  response : @remote.RemoteDispatchResponse,
+) -> Bool {
+  @remote.remote_dispatch_response_can_retire_cancellation_delivery(response)
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorCanRetireCancellationDelivery")
+pub fn async_strategy_remote_coordinator_can_retire_cancellation_delivery(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Bool {
+  @remote.coordinator_can_retire_cancellation_delivery(record)
 }
 
 ///|

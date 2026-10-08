@@ -86,7 +86,7 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
     readFileSync(join(root, 'adapters/host-common/http-exchange.mjs'), 'utf8'));
   for (const entry of readHostBundles(root)) {
     for (const path of [`src/connectors/${entry.name}/host-bundle.json`,
-      `src/${entry.providerBundle}/moon.pkg`,
+      ...(entry.providerBundle === undefined ? [] : [`src/${entry.providerBundle}/moon.pkg`]),
       ...[entry.source, entry.effect].filter(Boolean).map(role => role.module), ...entry.assets]) {
       put(directory, path, readFileSync(join(root, path)));
     }
@@ -293,7 +293,7 @@ distribution[3] = distribution[3].replace(
 ).replace('packages/sdk/index.test.mjs ',
   'packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs '
 ).replace('adapters/host-node/client-cancel-response-loss.test.mjs ',
-  'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs ');
+  'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs ');
 // Workspace packed acceptance follows the original Node package boundary.
 distribution.splice(distribution.indexOf('node scripts/test-node-client-package.mjs') + 1,
   0, 'node scripts/test-packed-workspace-connection.mjs');

@@ -36,7 +36,7 @@ test "HAVING object properties match an independent checked Program" {
   // common nullable property and filter, then the public SELECT and sort.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.pipe_slots","params":{"assessment":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"t"},{"from":"t","group":{"by":["x"],"aggregates":{"n":{"fn":"count"}}}},{"derive":{"aql_having_expr_4":{"$param":"assessment"}}},{"filter":{"gt":[{"property":{"value":{"field":"aql_having_expr_4"},"name":"score"}},{"literal":10}]}},{"select":["x",{"assessment":"aql_having_expr_4"},"n"]},{"sort":[{"field":"x","dir":"asc","nulls":"first"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["x","assessment","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","params":{"assessment":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"t"},{"from":"t","group":{"by":["x"],"aggregates":{"n":{"fn":"count"}}}},{"derive":{"aql_having_expr_5":{"$param":"assessment"}}},{"filter":{"gt":[{"property":{"value":{"field":"aql_having_expr_5"},"name":"score"}},{"literal":10}]}},{"select":["x",{"assessment":"aql_having_expr_5"},"n"]},{"sort":[{"field":"x","dir":"asc","nulls":"first"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["x","assessment","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -120,8 +120,8 @@ test "HAVING object properties reuse one evaluated alias for predicate and SELEC
     msg="the selected object is evaluated once, not expanded per property",
   )
   assert_eq(body.split("\"property\":").length(), 3)
-  assert_true(body.contains("{\"first\":\"aql_having_expr_5\"}"))
-  assert_true(body.contains("{\"second\":\"aql_having_expr_5\"}"))
+  assert_true(body.contains("{\"first\":\"aql_having_expr_6\"}"))
+  assert_true(body.contains("{\"second\":\"aql_having_expr_6\"}"))
 }
 
 ///|

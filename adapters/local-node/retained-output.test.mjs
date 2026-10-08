@@ -18,7 +18,8 @@ import * as portableRuntime from
 
 const ok = value => ({$tag: 1, _0: value});
 function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
-  lease, requireDisposedRefresh = false} = {}) {
+  lease, requireDisposedRefresh = false, exportSteps = 0, onExportAdvance,
+  preparationSteps = 0, onExportPrepare, preparationPoll} = {}) {
   const events = [], material = {}, input = {};
   let releaseCheck, closed = false, clean = false, bound = false, allocated = false, index = 0;
   let advanced = 0, stopRequested = false, stopped = false, disposed = false;
@@ -48,7 +49,21 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
     key: 'task-2', limits: {wire: {max_bytes: 100}, max_batch_bytes: 64},
     install: check => {events.push('install'); releaseCheck = check; return ok();},
     begin: () => {events.push('begin'); return ok();},
+    prepare: () => {
+      events.push('export-prepare');
+      onExportPrepare?.();
+      return ok(preparationPoll ?? (preparationSteps-- > 0
+        ? {_0: false, _1: 1} : {_0: true, _1: 0}));
+    },
     next: () => ok(index++ === 0 ? '[{"n":1}' : undefined),
+    advance: () => {
+      events.push('export-advance');
+      onExportAdvance?.();
+      if (exportSteps-- > 0) return ok({batch: undefined, complete: false, steps: 1});
+      return ok(index++ === 0
+        ? {batch: '[{"n":1}', complete: false, steps: 1}
+        : {batch: undefined, complete: true, steps: 0});
+    },
     finish: () => ok({cid: `sha256:${createHash('sha256').update('[{"n":1}]').digest('hex')}`,
       bytes: 9, rows: 1, tail: ']',
       bind: available => {
@@ -106,6 +121,68 @@ test('successful retained output closes its execution before cleanup refresh', a
   assert.equal(f.events.filter(event => event === 'advance').length, 1);
   assert.equal(f.events.filter(event => event === 'task-close').length, 1);
   assert.equal(f.released(), true);
+});
+
+test('Local output yields a pending row to cancellation without append or publication', async () => {
+  const controller = new AbortController();
+  let scheduled = false;
+  const f = fixture({exportSteps: 100, onExportAdvance() {
+    if (!scheduled) {
+      scheduled = true;
+      setTimeout(() => controller.abort(new Error('ExportCancelled')), 0);
+    }
+  }});
+  let failure;
+  await assert.rejects(f.entry.run({}, controller.signal), error => {
+    failure = error;
+    return error.message === 'ExportCancelled' || error.cause?.message === 'ExportCancelled';
+  });
+  assert.equal(f.events.filter(event => event === 'export-advance').length, 1);
+  assert.equal(f.events.filter(event => Array.isArray(event) && event[0] === 'append').length, 0);
+  assert.equal(f.events.includes('bind'), false);
+  assert.equal(f.events.includes('complete'), false);
+  assert.equal(f.events.includes('stopped'), true);
+  assert.equal(f.events.includes('task-close'), true);
+  assert.equal(f.released(), false,
+    'the retained holding remains until physical Store cleanup is confirmed');
+  assert.equal(failure.cleanupPending, true);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(f.events.filter(event => event === 'task-close').length, 1);
+  assert.equal(f.released(), true);
+  assert.equal(f.events.filter(event => event === 'advance').length, 1);
+});
+
+test('Local output cancels during metadata preparation before Store acquisition', async () => {
+  const controller = new AbortController();
+  const reason = new Error('PreparationCancelled');
+  const f = fixture({preparationSteps: 100,
+    onExportPrepare() { setTimeout(() => controller.abort(reason), 0); }});
+  await assert.rejects(f.entry.run({}, controller.signal), error =>
+    error === reason || error.primaryFailure === reason);
+  assert.equal(f.events.filter(event => event === 'export-prepare').length, 1);
+  assert.equal(f.events.includes('lease'), false);
+  assert.equal(f.events.includes('export-advance'), false);
+  assert.equal(f.events.includes('complete'), false);
+  assert.equal(f.events.includes('stopped'), true);
+  assert.equal(f.events.filter(event => event === 'task-close').length, 1);
+  assert.equal(f.released(), true);
+});
+
+test('Local output rejects malformed preparation progress before Store acquisition', async () => {
+  for (const preparationPoll of [[true, 0], {}, {_0: 1, _1: 1},
+    {_0: false, _1: 0}, {_0: false, _1: 65}, {_0: true, _1: -1},
+    {_0: false, _1: 0.5}]) {
+    const f = fixture({preparationPoll});
+    await assert.rejects(f.entry.run({}), error =>
+      error.message === 'InvalidLocalOutputPreparation' ||
+      error.primaryFailure?.message === 'InvalidLocalOutputPreparation');
+    assert.equal(f.events.includes('lease'), false);
+    assert.equal(f.events.includes('export-advance'), false);
+    assert.equal(f.events.includes('complete'), false);
+    assert.equal(f.events.includes('stopped'), true);
+    assert.equal(f.events.filter(event => event === 'task-close').length, 1);
+    assert.equal(f.released(), true);
+  }
 });
 
 test('Local output seals exact content before completion and retains cleanup until physical confirmation', async () => {

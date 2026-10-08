@@ -2,7 +2,8 @@ import {lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'no
 import {isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {isBuiltin} from 'node:module';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {build, buildSync} from 'esbuild';
+import {build} from 'esbuild';
+import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
@@ -97,30 +98,35 @@ if (dataParent && !dataParent.isDirectory()) {
 }
 checkConnectorData();
 const entries = inputs.adapterEntries;
-const graph = external === undefined ? buildSync({entryPoints: entries, bundle: true,
-  packages: 'external', platform: 'node', format: 'esm', target: 'node22',
-  metafile: true, write: false, absWorkingDir: root,
-  outdir: join(root, '_build/local-node-adapter-graph')}) : await inspectExternalLocalNodeAdapterGraph(inputs);
-const sourcePaths = external === undefined ? Object.keys(graph.metafile.inputs)
-  .filter(path => path.startsWith('adapters/')).sort().map(path => ({source: join(root, path), path}))
-  : Object.keys(graph.metafile.inputs).map(path => {
-    const source = resolve(root, path);
-    return {source, path: inputs.destinationForAdapter(source)};
-  });
+const sourcePaths = external === undefined
+  ? adapterModuleGraph(root, entries).map(path => ({path, source: join(root, path)}))
+  : Object.keys((await inspectExternalLocalNodeAdapterGraph(inputs)).metafile.inputs)
+    .map(path => {
+      const source = resolve(root, path);
+      return {source, path: inputs.destinationForAdapter(source)};
+    });
 if (sourcePaths.length < entries.length ||
     entries.some(path => !sourcePaths.some(entry => entry.path === path))) {
   throw new Error('IncompleteLocalNodeAdapterGraph');
 }
-// URL-referenced optional Table I/O is not an esbuild JS import. Preserve its
-// reviewed finite worker dependency set and pinned installation requirements,
-// not tests, fixtures, virtualenvs or generated Catalog files.
-sourcePaths.push(...['catalog.py', 'custody.py', 'physical.py', 'process_worker.py',
-  'requirements.in', 'requirements.lock', 'README.md']
-  .map(name => {
-    const path = `adapters/table-iceberg/${name}`;
-    return {path, source: external === undefined ? join(root, path)
-      : external.resolveFile('actql/actql', path)};
-  }));
+// Physical I/O assets use the same finite Connector-owned inventory as
+// installation. No retired Table paths or unrelated worker files are copied.
+sourcePaths.push(...(external === undefined
+  ? inputs.dataFiles.filter(path => path.startsWith('adapters/'))
+    .map(path => ({path, source: join(root, path)}))
+  : inputs.dataInputs.filter(entry => entry.destination.startsWith('adapters/'))
+    .map(entry => ({path: entry.destination, source: entry.source}))));
+// Reject aliased destinations before copying any adapter or physical asset.
+for (const {path} of sourcePaths) {
+  const parts = path.split('/');
+  for (let index = 1; index <= parts.length; index++) {
+    const child = parts.slice(0, index).join('/');
+    const info = stat(child);
+    if (info !== undefined && (index === parts.length ? !info.isFile() : !info.isDirectory())) {
+      throw new Error(`StaleLocalNodeAdapter:${child}`);
+    }
+  }
+}
 const expected = new Set();
 const owners = new Map();
 for (const entry of sourcePaths) {

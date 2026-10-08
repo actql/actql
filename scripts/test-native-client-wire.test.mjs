@@ -4,7 +4,8 @@ import {test} from 'node:test';
 import {clientWireCorpus, connection, profile, ref}
   from './fixtures/client-wire-contract-corpus.mjs';
 import {validClientProfile, validClientAdmission, validRunRef,
-  validClientConnection, validHeldRequest, validRequestLookup, validSubmitReply, validSubmissionRef}
+  validClientConnection, validHeldRequest, validRequestLookup, validSubmitReply, validSubmissionRef,
+  validSubmissionLookup, validSubmissionOutcome}
   from '../packages/client-wire/index.mjs';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
@@ -31,7 +32,7 @@ assert.equal(new Set(corpus.map(entry => entry.name)).size, corpus.length,
 for (const entry of corpus) {
   assert.equal(typeof entry.name, 'string');
   assert.equal(typeof entry.expected, 'boolean');
-  assert.ok(['profile', 'admission', 'run_ref', 'connection', 'lookup', 'held']
+  assert.ok(['profile', 'admission', 'run_ref', 'connection', 'lookup', 'held', 'submission']
     .includes(entry.kind), `unknown corpus kind: ${entry.kind}`);
   if (entry.kind === 'lookup' || entry.kind === 'held') {
     assert.equal(typeof entry.requestId, 'string');
@@ -68,6 +69,8 @@ let reply = profile;
 let active;
 const requests = [];
 function responseValue(entry, body) {
+  if (entry.kind === 'submission' && entry.operation === 'start') return {
+    ...readySubmission(body, entry.value.admission), unresolvedHistory: entry.value.unresolvedHistory};
   if (entry.kind === 'admission') return readySubmission(body, entry.value);
   if (entry.operation === 'start' && entry.kind === 'held') return heldSubmission(body, entry.value);
   return entry.kind === 'run_ref'
@@ -132,6 +135,10 @@ const run = async (...args) => {
 function jsOutcomes(entry, selected) {
   const {value, requestId} = entry;
   switch (entry.kind) {
+    case 'submission': return [[entry.operation === 'lookup-submission'
+      ? 'validSubmissionLookup' : 'validSubmissionOutcome', entry.operation === 'lookup-submission'
+      ? validSubmissionLookup(value, selected, originalSubmission(requestId))
+      : validSubmissionOutcome(value, selected, originalSubmission(requestId), undefined, undefined)]];
     case 'profile': return [['validClientProfile',
       validClientProfile(value, selected)]];
     case 'admission': return [['validClientAdmission',
@@ -152,6 +159,7 @@ function jsOutcomes(entry, selected) {
 }
 function commandArgs(entry) {
   const requestId = entry.requestId ?? 'fixed-request';
+  if (entry.operation === 'lookup-submission') return ['lookup-submission', '--submission-ref-file', 'submission.json'];
   if (entry.operation === 'attach') return ['attach', '--ref-file', 'ref.json'];
   if (entry.operation === 'start' || entry.kind === 'admission') {
     return ['start', '--program-file', 'program.json', '--request-id', requestId];
@@ -162,7 +170,8 @@ function commandArgs(entry) {
   return ['connect'];
 }
 function assertResponseBoundary(entry, selected, actual) {
-  const route = entry.operation === 'start' ? 'submit-intent' : 'lookup-request';
+  const route = entry.operation === 'start' ? 'submit-intent'
+    : entry.operation === 'lookup-submission' ? 'lookup-submission' : 'lookup-request';
   assert.equal(actual.signal, null, 'Native must finish normally');
   assert.deepEqual(requests.map(request => request.url),
     ['/actql/client/0.1/connect', `/actql/client/0.1/${route}`],
@@ -172,7 +181,8 @@ function assertResponseBoundary(entry, selected, actual) {
     assert.equal(request.authorization, 'Bearer scoped-token');
     assert.deepEqual(request.body.connection, selected);
   }
-  assert.equal(route === 'submit-intent' ? requests[1].body.submissionRef.nonce : requests[1].body.requestId, entry.requestId,
+  assert.equal(route === 'submit-intent' || route === 'lookup-submission'
+    ? requests[1].body.submissionRef.nonce : requests[1].body.requestId, entry.requestId,
     'the requested identity must reach the response endpoint unchanged');
   if (route === 'submit-intent') assert.equal(requests[1].body.kind, 'program');
   if (entry.expected) {
@@ -184,8 +194,8 @@ function assertResponseBoundary(entry, selected, actual) {
   } else {
     assert.equal(actual.code, 1,
       `Native must reject at response validation: ${actual.stderr}`);
-    const diagnostic = entry.failureCode === 'SubmissionUnknown'
-      ? `SubmissionUnknown submission-ref-file=submission.json` : entry.failureCode;
+    const diagnostic = ['SubmissionUnknown', 'InvalidHostSubmissionLookup'].includes(entry.failureCode)
+      ? `${entry.failureCode} submission-ref-file=submission.json` : entry.failureCode;
     assert.equal(actual.stderr, `actql-native-client: ${diagnostic}\n`,
       'argument, profile, transport, and spawn failures are not rejections');
     assert.equal(actual.stdout, '', 'a rejected response must not escape');
@@ -204,6 +214,8 @@ try {
     await writeFile(join(root, 'connection.json'), JSON.stringify(selected));
     await writeFile(join(root, 'ref.json'),
       JSON.stringify(entry.kind === 'run_ref' ? entry.value : ref));
+    if (entry.operation === 'lookup-submission') await writeFile(join(root, 'submission.json'),
+      JSON.stringify(originalSubmission(entry.requestId)));
     const outcomes = jsOutcomes(entry, selected);
     const actual = await run(...commandArgs(entry));
     for (const [validator, accepted] of outcomes) {
@@ -214,7 +226,7 @@ try {
       assert.equal(actual.code, 1, actual.stderr);
       assert.match(actual.stderr, /InvalidSubmissionRef/);
       assert.equal(requests.length, 0, 'the new nonce contract rejects before I/O; historical held observation remains on lookup-request');
-    } else if (entry.kind === 'lookup' || entry.kind === 'held') {
+    } else if (entry.kind === 'lookup' || entry.kind === 'held' || entry.kind === 'submission') {
       assertResponseBoundary(entry, selected, actual);
     } else {
       assert.equal(actual.code === 0, entry.expected,

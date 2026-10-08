@@ -168,7 +168,9 @@ async function localClient(t, configuration) {
   const observation = observeCheckOnly(t, root);
   const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     installation: {directory: join(root, 'state'), ...sourceInstallation}});
-  return {check: client.check, assertNoExecution: observation.assertNoExecution};
+  return {check: client.check, startSource: client.startSource,
+    newSubmission: client.newSubmission, lookupSubmission: client.lookupSubmission,
+    assertNoExecution: observation.assertNoExecution};
 }
 
 async function httpClient(t, configuration, mutateCheckReply) {
@@ -206,7 +208,8 @@ async function httpClient(t, configuration, mutateCheckReply) {
       'content-type': 'application/json'},
     body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
       runners: [], consentRefs: []}, ...body})});
-  return Object.freeze({check: client.check, post,
+  return Object.freeze({check: client.check, post, startSource: client.startSource,
+    newSubmission: client.newSubmission, lookupSubmission: client.lookupSubmission,
     assertNoExecution: observation.assertNoExecution});
 }
 
@@ -225,6 +228,67 @@ const rightConfiguration = name => ({...configurations[name],
   aliases: name === 'absent' ? [] : [rightAlias]});
 
 const entrances = Object.freeze({local: localClient, http: httpClient});
+
+for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: submitted preparation categories use the disclosure-approved Source view`, async t => {
+    for (const visibility of ['absent', 'denied', 'undecidable', 'allowed']) {
+      const client = await open(t, configurations[visibility]);
+      for (const [text, expectedProblem] of [
+        ['SELECT missing AS n', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}],
+        ['SELECT missing AS n FROM records', visibility === 'allowed'
+          ? {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}
+          : {code: 'ClientProgramRejected', classification: 'operation_failed'}],
+        ['SELECT missing AS n FROM accounts', {code: 'ClientProgramRejected', classification: 'operation_failed'}],
+      ]) {
+        const submissionRef = client.newSubmission();
+        let original;
+        await assert.rejects(client.startSource(text, {format: 'sql', submissionRef}), error => {
+          original = frontierSDK.getSubmissionOutcome(error);
+          assert.equal(original.kind, 'not_accepted');
+          assert.deepEqual(original.problem, expectedProblem);
+          assert.deepEqual(original.submissionRef, submissionRef);
+          assert.equal('admission' in original, false);
+          return error.code === 'SubmissionNotAccepted';
+        });
+        assert.deepEqual(await client.lookupSubmission(submissionRef), original);
+      }
+      client.assertNoExecution();
+    }
+  });
+
+  test(`${entrance}: original submission explanations hide private resolution and preserve independent input violations`, async t => {
+    const clients = await Promise.all([
+      open(t, configurations.absent), open(t, configurations.denied),
+    ]);
+    for (const parameters of [null, {minimum: 'twenty'}]) {
+      const expected = parameters === null
+        ? {code: 'ClientProgramRejected', classification: 'operation_failed'}
+        : {code: 'ClientProgramInvalidInput', classification: 'invalid_input'};
+      const problems = [];
+      for (const client of clients) {
+        const pending = client.startSource('SELECT missing AS n FROM records WHERE amount >= @minimum', {
+          format: 'sql', parameterDeclarations: declarations, parameters,
+        });
+        const original = sdk.getSubmissionInput(pending);
+        let outcome;
+        await assert.rejects(pending, error => {
+          assert.equal(error.code, 'SubmissionNotAccepted');
+          outcome = sdk.getSubmissionOutcome(error);
+          assert.equal(outcome.kind, 'not_accepted');
+          assert.deepEqual(outcome.problem, expected, '[check-mutation:submission-private-input]');
+          assert.deepEqual(sdk.explainSubmission(error).problem, expected);
+          assert.deepEqual(JSON.parse(sdk.formatSubmission(error, {format: 'json'})).explanation.problem, expected);
+          problems.push(outcome.problem);
+          return true;
+        });
+        const found = await client.lookupSubmission(original.submissionRef);
+        assert.deepEqual(found, outcome);
+        client.assertNoExecution();
+      }
+      assert.deepEqual(problems[0], problems[1], '[check-mutation:submission-private-input]');
+    }
+  });
+}
 
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: typed Requirement frontiers retain context and ignore presentation order`, async t => {
@@ -642,7 +706,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.equal(literal.report.verdict, 'verified');
       assert.deepEqual(literal.report.reasons, []);
       const bare = await client.check('SELECT missing', {format});
-      assert.deepEqual(bare.report.reasons, [{code: 'query_invalid'}]);
+      assert.deepEqual(bare.report.reasons, [{code: 'query_expression_invalid', facts: {issue: 'unknown_reference'}}]);
       const protectedInput = await client.check('SELECT missing AS n FROM records', {format});
       assert.equal(protectedInput.report.verdict, 'undetermined');
       assert.deepEqual(protectedInput.report.reasons, []);
@@ -1014,6 +1078,113 @@ for (const [entrance, open] of Object.entries(entrances)) {
       scope: {kind: 'bound_input'}, verdict: 'undetermined', reasons: [],
       coverage: {limits: [{code: 'analysis_budget_exhausted'}],
         unresolved: []}}, '[check-mutation:construction-budget]');
+  });
+
+  test(`${entrance}: original submission retains a disclosed analysis budget without input blame`, async t => {
+    const text = 'SELECT id FROM records' + ' UNION ALL SELECT id FROM records'.repeat(50);
+    const problems = [];
+    for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
+      const client = await open(t, configuration);
+      const original = await client.newSubmission();
+      let error;
+      try { await client.startSource(text, {format: 'sql', submissionRef: original}); }
+      catch (cause) { error = cause; }
+      const outcome = sdk.getSubmissionOutcome(error);
+      const checked = await client.check(text, {format: 'sql'});
+      const publicBudget = configuration === configurations.allowed;
+      // Missing visible relations stop lowering before this construction
+      // budget is proven. Absence and denied access are the same obligation;
+      // they cannot borrow the budget fact from the authorized configuration.
+      assert.equal(checked.report.verdict, 'undetermined');
+      assert.deepEqual(checked.report.coverage, publicBudget
+        ? {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []}
+        : {limits: [], unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      assert.equal(outcome?.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, publicBudget
+        ? {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'}
+        : {code: 'ClientProgramRejected', classification: 'operation_failed'},
+        '[check-mutation:submission-budget-public]');
+      problems.push(outcome.problem);
+      const explanation = sdk.explainSubmission(error);
+      assert.equal(explanation.observation, 'not_accepted');
+      assert.equal(explanation.preparationIssue?.kind, publicBudget ? 'analysis_budget_exhausted' : undefined);
+      assert.deepEqual(explanation.next.submissionRef, original);
+      assert.deepEqual(await client.lookupSubmission(original), outcome);
+      let invalid;
+      try {
+        await client.startSource(text, {format: 'sql',
+          parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 'twenty'}});
+      } catch (cause) { invalid = cause; }
+      assert.deepEqual(sdk.getSubmissionOutcome(invalid)?.problem,
+        {code: 'ClientProgramInvalidInput', classification: 'invalid_input'},
+        '[check-mutation:submission-budget-independent]');
+      client.assertNoExecution();
+    }
+    assert.deepEqual(problems[1], problems[2]);
+  });
+
+  test(`${entrance}: original submission projects implementation limits only from public checking`, async t => {
+    for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
+      const client = await open(t, configuration);
+      for (const [text, sourceDependent] of [
+        ['SELECT UNKNOWN_FUNCTION(1) AS n', false],
+        ['SELECT NTILE(4) OVER (ORDER BY id) AS n FROM records', true],
+      ]) {
+        const publicLimit = !sourceDependent || configuration === configurations.allowed;
+        const checked = await client.check(text, {format: 'sql'});
+        assert.equal(checked.report.verdict, 'undetermined');
+        assert.deepEqual(checked.report.coverage.limits.map(limit => limit.code), publicLimit
+          ? ['implementation_limit'] : []);
+        assert.deepEqual(checked.report.coverage.unresolved, publicLimit ? []
+          : [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+        const original = await client.newSubmission();
+        let error;
+        try { await client.startSource(text, {format: 'sql', submissionRef: original}); }
+        catch (cause) { error = cause; }
+        const outcome = sdk.getSubmissionOutcome(error);
+        assert.equal(outcome?.kind, 'not_accepted');
+        assert.deepEqual(outcome.problem, publicLimit
+          ? {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'}
+          : {code: 'ClientProgramRejected', classification: 'operation_failed'},
+          '[check-mutation:submission-implementation-public]');
+        const explanation = sdk.explainSubmission(error);
+        assert.equal(explanation.observation, 'not_accepted');
+        assert.equal(explanation.preparationIssue?.kind, publicLimit ? 'implementation_limit' : undefined);
+        assert.deepEqual(explanation.next.submissionRef, original);
+        assert.deepEqual(await client.lookupSubmission(original), outcome);
+        let invalid;
+        try {
+          await client.startSource(text, {format: 'sql',
+            parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 'twenty'}});
+        } catch (cause) { invalid = cause; }
+        assert.deepEqual(sdk.getSubmissionOutcome(invalid)?.problem,
+          {code: 'ClientProgramInvalidInput', classification: 'invalid_input'},
+          '[check-mutation:submission-implementation-independent]');
+      }
+      client.assertNoExecution();
+    }
+  });
+
+  test(`${entrance}: Source-dependent unsupported refusal hides absent and denied Sources`, async t => {
+    const text = 'SELECT NTILE(4) OVER (ORDER BY id) AS n FROM records';
+    const problems = [];
+    for (const configuration of [configurations.absent, configurations.denied]) {
+      const client = await open(t, configuration);
+      const checked = await client.check(text, {format: 'sql'});
+      assert.equal(checked.report.verdict, 'undetermined');
+      assert.deepEqual(checked.report.coverage, {limits: [],
+        unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      let error;
+      try { await client.startSource(text, {format: 'sql'}); }
+      catch (cause) { error = cause; }
+      const outcome = sdk.getSubmissionOutcome(error);
+      assert.equal(outcome?.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
+        '[check-mutation:submission-implementation-private]');
+      problems.push(outcome.problem);
+      client.assertNoExecution();
+    }
+    assert.deepEqual(problems[0], problems[1]);
   });
 
   test(`${entrance}: an undecided source is hidden exactly like an absent ` +
@@ -4799,6 +4970,86 @@ for (const entrance of ['local', 'http']) {
         assert.deepEqual(outcome.report.reasons, []);
         assert.deepEqual(outcome.report.requirements, []);
         assert.deepEqual(outcome.report.coverage.limits.map(reason => reason.code), ['implementation_limit']);
+      }
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: bare unresolved columns retain owned explanations without invented locations`, async t => {
+    const sourceFree = await contextClient(t, entrance, absentEnvironment);
+    const visible = await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow'});
+    for (const format of ['sql', 'aql-text']) {
+      for (const [client, text, bytes] of [
+        [sourceFree, 'SELECT missing', 14],
+        [sourceFree, '--😀' + String.fromCharCode(13, 10) + 'SELECT missing', 22],
+        [sourceFree, 'SELECT `e\u0301😀`', 16],
+        [visible, 'SELECT missing FROM records', 27],
+        [visible, 'SELECT records.missing FROM records', 35],
+      ]) {
+        assert.equal(Buffer.byteLength(text), bytes);
+        const outcome = await client.check(text, {format});
+        assert.equal(outcome.outcome, 'completed');
+        assert.equal(outcome.report.verdict, 'invalid');
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.deepEqual(outcome.report.requirements, []);
+        assert.deepEqual(outcome.report.reasons, [{code: 'query_expression_invalid',
+          facts: {issue: 'unknown_reference'}}], '[check-mutation:bare-name-reason]');
+        const input = getCheckInput(outcome, 'source');
+        assert.equal(input.text, text);
+        assert.equal(outcome.report.inputs[0].byte_length, bytes);
+        assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location), undefined);
+        assert.equal(resolveCheckTextRange(outcome, outcome.report.reasons[0].location), undefined);
+        const explanation = explainCheckReason(outcome.report.reasons[0]);
+        assert.equal(explanation.kind, 'known');
+        assert.equal(explanation.hint, 'Use a declared reference from the disclosed query context.');
+        const display = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json'}));
+        assert.deepEqual(display.entries[0].facts, {issue: 'unknown_reference'});
+      }
+    }
+    // A wrapped expression already owns its authored occurrence. Its precise
+    // position must survive the added projection for an unlocated column.
+    const authored = await sourceFree.check('SELECT missing AS n', {format: 'sql'});
+    assert.equal(resolveCheckLocation(authored, authored.report.reasons[0].location).text, 'missing');
+    assert.equal(authored.report.reasons[0].location.start_byte, 7);
+    assert.equal(authored.report.reasons[0].location.end_byte, 14);
+  });
+
+  test(`${entrance}: bare column explanations preserve protected Source equivalence and independent violations`, async t => {
+    const clients = [
+      await contextClient(t, entrance, absentEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+      await contextClient(t, entrance, withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
+        {aliases: [rightAlias], readOutcome: 'delegate'}),
+    ];
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of ['SELECT missing FROM records', 'SELECT records.missing FROM records']) {
+        let original;
+        for (const client of clients) {
+          const outcome = await client.check(text, {format});
+          assert.deepEqual({verdict: outcome.report.verdict, reasons: outcome.report.reasons,
+            requirements: outcome.report.requirements, coverage: outcome.report.coverage},
+          {verdict: 'undetermined', reasons: [], requirements: [], coverage: {limits: [], unresolved: protectedSource}},
+          '[check-mutation:bare-name-protected]');
+          if (original) assert.deepEqual(outcome, original, '[check-mutation:bare-name-disclosure]');
+          else original = outcome;
+        }
+      }
+      let original;
+      for (const client of clients) {
+        const outcome = await client.check('SELECT missing, @x AS n FROM records', {format,
+          parameterDeclarations: {x: {type: 'number'}}, parameters: {x: 'private-bare-name-value'}});
+        const input = getCheckInput(outcome, 'parameters');
+        assert.deepEqual({verdict: outcome.report.verdict, reasons: outcome.report.reasons,
+          requirements: outcome.report.requirements, coverage: outcome.report.coverage},
+        {verdict: 'invalid', reasons: [{code: 'supplied_value_type_mismatch',
+          facts: {parameter: 'x', expected_type: 'number', actual_type: 'string'},
+          location: {document_id: 'parameters', revision: input.revision, kind: 'structured', pointer: '/x'}}],
+        requirements: [], coverage: {limits: [], unresolved: protectedSource}}, '[check-mutation:bare-name-public-violation]');
+        assert.doesNotMatch(JSON.stringify(outcome), /private-bare-name-value/);
+        if (original) assert.deepEqual(outcome, original, '[check-mutation:bare-name-disclosure]');
+        else original = outcome;
       }
     }
   });

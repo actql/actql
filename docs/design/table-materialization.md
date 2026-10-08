@@ -18,16 +18,35 @@ truth. A private Relation snapshot, a Named Result and a durable Table have
 different identities and lifetimes. External writers, Catalog migration, schema
 evolution, incremental writes and a dbt adapter are later units.
 
+Local Table Source and Effect installation belongs to the Local Connector.
+Its `host-bundle.json` declares the two roles and the finite physical worker
+assets. The common Host selects those declared roles; there is no second
+Table-only installation table or fallback to an older built-in profile.
+The Python Iceberg implementation stays behind the Local physical boundary,
+while shared validation, approval and Effect governance remain common.
+
 ## Operation and publication identity
 
 `actql-table-operation/0.1` binds the saved logical request scope and Effect
 identity, installed Catalog identity, exact namespace/name, create/replace
 action, expected Table UUID and generation (replace only), captured input
-Artifact and logical Relation, schema, data policy and storage mapping. Its
+Artifact and a closed `input_carrier: {kind, cid}` reference, schema, data policy
+and storage mapping. The reference admits Relation, Graph, Vectors and Events;
+its kind is part of the complete request preimage and must match the checked
+input and Connector-validated mapping. This does not install a writer for every
+kind. The current captured input consumer and Local physical declaration support
+Relation create/replace only; unsupported operation/kind pairs are refused
+before writer invocation and persistent reservation. Its
 `request_cid` excludes only that root self-field. Repeated statements retain
 their distinct checked Effect identities; a table name is not an idempotency
 key. Current authority remains a separate prerequisite, never reconstructed
 from saved values or refreshed by changing the original request.
+
+This pre-v0.1 contract replaces the retired `input_relation_cid` operation
+shape without aliases, implicit conversion or a compatibility reader. Request
+identities and dependent receipts change with the new complete preimage; saved
+operations are not relabelled with new CIDs. Historical evidence remains bound
+to its original source revision.
 
 A Table's UUID is stable through replace. A generation is the content CID of
 the exact immutable Iceberg metadata file published by the Catalog, not a
@@ -51,7 +70,7 @@ including Required/Conditional independently of nullable. Field IDs, not column
 names or positions inferred on reload, bind each logical value column to its
 Iceberg value field and, for Conditional columns, a required boolean companion.
 Companion names use a reserved physical namespace and never overwrite user
-fields. The common issuer selects consecutive IDs in canonical schema order,
+fields. The Local physical issuer selects consecutive IDs in canonical schema order,
 with each companion immediately after its value field. The pinned new-table
 writer verifies Catalog schema assignment against this sealed mapping before
 writing; silently renumbering an approved mapping is not allowed.
@@ -167,6 +186,12 @@ but foreign captured owner, or a resealed request with substituted input facts
 cannot supply that binding. The binding retains the existing owners; it does
 not establish a second input-custody or execution owner.
 
+The selected Connector issues and admits its physical storage mapping before
+binding. Shared input admission validates only the exact mapping CID, schema
+CID and Carrier kind; it does not issue or interpret backend field layouts.
+The first Table consumer accepts Relation input only. References for other
+Carrier kinds do not establish a supported writer or authorize flattening.
+
 This is input/content binding only. Target installation, approval, current
 authority, retained source availability, durable dispatch and Catalog commit
 remain separate gates. A valid binding must never be interpreted as permission
@@ -195,6 +220,10 @@ The member count is one even for zero input rows. The request CID correlation,
 required approval and expected-generation guard are sealed before apply.
 Authoring does not stage files, dispatch, establish current authorization or
 replace the installed capability's separate admission.
+
+The selected bridge supplies synchronous `issueStorageMapping` and
+`admitStorageMapping` hooks. Live commit preparation reuses the bound mapping
+bytes rather than issuing a new physical layout after approval.
 
 The Table Preview's `result_artifact_cid` names the semantic completed Result
 Artifact bound by the operation. Its separate source binding comes from the
@@ -235,8 +264,9 @@ member. The closed material record contains `mapping_wire`, `operation_wire`
 and `schema_wire`; omitted schema material is refused without reconstruction.
 A recovered typed
 Table view derives the operation from that member's sealed Preview, re-admits
-the exact mapping, and matches the original request scope, semantic Result
-Artifact, schema, logical Relation, policy and physical source occurrence.
+the exact mapping through the selected Connector's `admitStorageMapping`,
+without regeneration or substitution, and matches the original request scope,
+semantic Result Artifact, schema, logical Relation, policy and physical source occurrence.
 Capture validation and Table material admission have separate explicit limits;
 recovery does not widen the Table contract's limits. Missing material or a
 different operation is a refusal, not a request to regenerate Compute or schema.
@@ -344,8 +374,8 @@ only temporary acquisition custody, never Catalog-owned files. The optional Host
 installation loader supplies its trusted local Site/read-approval boundary;
 this adapter does not issue authority or implement another scheduler.
 
-The closed `actql-installed-table-source/0.1` and
-`actql-installed-table-effect/0.1` profiles enter the existing generic Host
+The closed `actql-installed-local-table-source/0.1` and
+`actql-installed-local-table-effect/0.1` profiles enter the existing generic Host
 installation tables. Host configuration, never Program input, selects the
 absolute Python path, bounded physical Catalog configuration, logical
 connection, account configuration, finite targets and runtime limits. Loading
@@ -355,6 +385,26 @@ mandatory approval. The existing capture, approval, Effect Ledger and receipt
 owners remain the runtime path. Source installation derives its schema from
 the saved contract and only admits opaque current read decisions or a
 Checkpoint decision for its exact physical target, field subset and principal.
+
+The selected Local installation also binds its reviewed implementation bytes,
+not only a Python executable path or a revision label. The existing adapter
+import graph and checked Connector asset declaration produce one finite file
+inventory shared with packaging. Local observes at most 128 regular files and
+16 MiB in total, including its host modules, worker, dependency lock and physical
+machine contract. Its installation and target Capability identities include the
+content observation CID. The generic Host passes this selected declaration to
+the Connector; it does not interpret Iceberg mappings or issue physical proof.
+
+Before preparation, dispatch, original-operation observation, read and cleanup,
+the Local bridge verifies that this installed content still matches. Recovered
+continuations must match the exact installation binding and approved target
+Capability. Changes do not select a replacement candidate, send a new request,
+or erase the original Ledger/capture and potential published-file responsibility.
+The Host must keep installed package files and its Python environment trusted
+and immutable while operations run: a content observation is not a sandbox or
+an atomic filesystem/executable attestation. Changes to external Python library
+bytes behind the same executable path are outside this package inventory; the
+Host installs the supplied hashed lock explicitly and governs that environment.
 
 The adapter package carries only the reviewed Python worker modules and pinned
 requirements. It carries no virtualenv, Catalog, credential, fixture data or
@@ -389,11 +439,30 @@ later commits independently of current Table head.
 
 ## Implementation boundary
 
-The narrow machine contract and bounded common admission below specify the
-operation and receipt; they do not claim ordinary Program execution is already
-connected. Subsequent units implement the real writer/Catalog transaction, bulk
-Effect lowering/application and published Local/HTTPS acceptance. Existing
-unsupported-Effect guards stay in place until that full consumer boundary closes.
+The shared operation and logical receipt bind the original checked input,
+Catalog, immutable Table identity and generation. The logical receipt includes
+the CID of the Connector-validated original physical receipt. Metadata
+locations, Iceberg snapshot IDs and field-ID/presence encoding are owned by the
+Local Connector contract. The Local MoonBit adapter admits the saved physical
+response and projects a separately sealed logical receipt; the common Owner
+then checks operation correspondence and the immutable input measurement.
+Physical response bytes remain under the existing Ledger and Catalog custody.
+Logical and physical receipt CIDs are not interchangeable, and the common
+receipt reader does not accept the physical envelope as a compatibility form.
+
+The selected installed Connector supplies `projectCommitResponse` for both live
+settlement and original-operation reconciliation. It validates its saved
+physical response using its own MoonBit contract before returning the logical
+envelope. The common Table connection has no implicit Local/Iceberg fallback;
+a missing or failed projection leaves the original response and unresolved
+responsibility intact. The Ledger saves the original physical bytes, not the
+projected logical envelope. Projection neither authorizes another send nor
+replaces the original response during recovery.
+
+The machine contracts and bounded common admission specify the supported
+operation and receipt boundaries. A Connector must connect its declared
+operation/Carrier combination to the existing writer, capture and Effect
+owners; unsupported combinations are refused before staging or dispatch.
 SQL/Pipe/CTAS use the same checked action via the Frontend owner, not a second
 writer. Public acceptance must cover approval, response loss, process restart,
 concurrent replace, later commits, missing/NULL/value, typed empty input and

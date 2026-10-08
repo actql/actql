@@ -7,7 +7,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
 import {issueCompletedEffectfulComputationEvidence,
-  releaseCompletedRunPreparedPayloads, releasePreparedResults, storeCompletedRunResultSet}
+  releaseCompletedRunPreparedPayloads, releasePreparedResults, storeCompletedRunResultSet,
+  prepareCompletedEffectfulPublication}
   from '../host-common/completed-run-publication.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {installedRowEffectUnit} from './installed-row-effect.mjs';
@@ -90,7 +91,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
     ![runtimeBundleCid, bindingCid, catalogCid].every(cid) ||
     !Array.isArray(targets) || targets.length === 0 ||
     typeof authorization?.authorize !== 'function' ||
-    !['prepareWrite','execute','inspect','cleanup','status','reconcileOperation']
+    !['prepareWrite','execute','inspect','cleanup','status','reconcileOperation',
+      'projectCommitResponse','issueStorageMapping','admitStorageMapping','supportsOperation']
       .every(name => typeof bridge?.[name] === 'function') ||
     Object.values(limits).some(value => typeof value === 'object'
       ? Object.values(value).some(bound => !positive(bound)) : !positive(value))) {
@@ -112,10 +114,16 @@ export async function createInstalledTableEffect({moon, environmentWire,
       new Set(target.permissions).size !== target.permissions.length || !target.footprint) {
       fail('InvalidInstalledTableTarget');
     }
+    // The current captured input consumer is Relation-only. The selected
+    // Connector declares whether this operation/kind is actually implemented;
+    // admitting an opaque mapping never supplies that capability or authority.
+    if (bridge.supportsOperation({action: target.action, kind: 'relation'}) !== true) {
+      fail('UnsupportedTableCarrierOperation');
+    }
     const capabilityCid = hash({version: 'actql-installed-table-capability/0.1',
       connector_registration: connectorRegistration, connector_revision: connectorRevision,
       runtime_bundle_cid: runtimeBundleCid, binding_cid: bindingCid,
-      connection, target, route: 'single_serial', idempotency: 'unavailable'});
+      connection, target, input_kind: 'relation', route: 'single_serial', idempotency: 'unavailable'});
     return Object.freeze({...target, capabilityCid});
   }));
   if (new Set(installed.map(target => wire([target.effectId, target.mappingRef]))).size !== installed.length) {
@@ -129,7 +137,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
   const resolve = descriptor => {
     const target = installed.find(target => target.effectId === descriptor._1 && target.targetRef === descriptor._3 &&
       target.mappingRef === descriptor._4 && target.mappingCid === descriptor._5);
-    if (descriptor._2 !== 'store' || descriptor._6 === undefined || target === undefined) {
+    if (descriptor._2 !== 'store' ||
+        (descriptor._6 === undefined) === (descriptor._8 === undefined) || target === undefined) {
       fail('InstalledTableMappingNotInstalled');
     }
     return target;
@@ -156,6 +165,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
     let ledger, closed = false, disposed = false;
     let flight;
     const materials = [];
+    const schemas = [];
     const drain = async () => {
       if (disposed) return true;
       for (let index=0; index<materials.length; index++) {
@@ -167,12 +177,20 @@ export async function createInstalledTableEffect({moon, environmentWire,
         // the existing WeakMap custody, without disposing another input.
         materials[index] = undefined;
       }
+      for (let index=0; index<schemas.length; index++) {
+        const prepared = schemas[index];
+        if (prepared === undefined) continue;
+        await prepared.release();
+        if (prepared.status().pending) return false;
+        schemas[index] = undefined;
+      }
       if (ledger && !closed) { ledger.close(); closed = true; }
       disposed = true;
       return true;
     };
     const owner = Object.freeze({
       materials,
+      schemas,
       setLedger(value) { if (ledger) fail('TableLedgerAlreadyOwned'); ledger = value; },
       async close() {},
       cleanup() {
@@ -180,7 +198,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
         if (flight === undefined) flight = drain().finally(() => { flight = undefined; });
         return flight;
       },
-      cleanupPending: () => !disposed && (materials.some(Boolean) || Boolean(ledger && !closed)),
+      cleanupPending: () => !disposed &&
+        (materials.some(Boolean) || schemas.some(Boolean) || Boolean(ledger && !closed)),
     });
     return owner;
   };
@@ -279,11 +298,11 @@ export async function createInstalledTableEffect({moon, environmentWire,
         store, control, maxBytes: limits.maxInputBytes, invocation: plan.invocation,
         retention: plan.results[0].retention, contractLimits: plan.contractLimits,
         localEvidenceContext: plan.localEvidenceContext,
-        sourceBindingCid: hash({version: 'actql-installed-table-source/0.1',
+        sourceBindingCid: hash({version: 'actql-installed-local-table-source/0.1',
           run_invocation_cid: plan.invocation.identity, store_authority_cid: store.storeAuthorityCid}), signal});
       if (sources.dependencies !== undefined) retainPinnedEffectDependencyPayloads({sources,
         execution, store, storedResults, control, runDefinition: plan.runDefinition});
-      const authored = authorTableOperationPreview({moon, control, prepared, inputs,
+      const authored = authorTableOperationPreview({moon, control, prepared, inputs, bridge,
         checkedHost, requestScope, context: {...context, storeAuthorityCid: store.storeAuthorityCid},
         members: descriptors.map((entry,index) => ({stageIndex: unit.stageIndex,
           effectId: entry.effectId, payload: sources.members[index].payload, target: targets[index]})), limits});
@@ -304,8 +323,15 @@ export async function createInstalledTableEffect({moon, environmentWire,
         captureEvidence: plan.captureEvidence, preview, plans: [], effectSourceHoldings: retained.holdings,
         connectorRecovery: authored.tableInputs.map((tableInput,index) =>
           capturedTableRecoveryRecord({control, tableInput, tablePreview: authored.tablePreviews[index]})),
-        contractLimits: plan.contractLimits});
+        contractLimits: plan.contractLimits, signal});
       for (const [index,holding] of retained.holdings.entries()) {
+        // A private input schema differs from the public Result projection.
+        // Keep its exact checked bytes under the existing Store schema lease;
+        // public publication adopts it, or the same cleanup owner releases it.
+        const schema = await store.putPreparedResultSchema(
+          control.tableInputSchemaWire(authored.tableInputs[index]),
+          authored.operations[index].schema_cid, plan.runDefinition.identity);
+        owner.schemas.push(schema.prepared);
         owner.materials.push(await prepareCapturedTableCommit({control, store, holding,
           tableInput: authored.tableInputs[index], identity: authored.identities[index],
           tablePreview: authored.tablePreviews[index], bridge, reservation: limits.reservation,
@@ -366,6 +392,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
     if (provider?.version !== 'actql-installed-table-continuation/0.1' ||
       !cid(provider.binding_cid) || !text(provider.program_id) || !text(provider.stage_id) ||
       !Array.isArray(provider.members)) fail('InstalledTableContinuationMismatch');
+    if (provider.binding_cid !== bindingCid) fail('InstalledTableInstallationChanged');
     const {requestIdentity, requestScope, computation: durable} = recovered;
     const {preview, computation, storedResults} = durable;
     const previewWire = control.effectComputationPreviewWire(preview);
@@ -376,7 +403,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
     const targets = body.effects.map((member,index) => {
       const saved = provider.members[index];
       const target = resolve({_1: member.effect_id, _2: member.effect_kind, _3: member.target, _4: member.mapping,
-        _5: member.resolved_mapping_contract_cid, _6: member.source_result});
+        _5: member.resolved_mapping_contract_cid, _6: member.source_result,
+        _8: member.source_table_input});
       if (saved?.effect_id !== member.effect_id || saved.mapping_cid !== target.mappingCid ||
         member.changes.length !== 1 || member.capability_evidence_cid !== target.capabilityCid) {
         fail('InstalledTableInstallationChanged');
@@ -403,10 +431,16 @@ export async function createInstalledTableEffect({moon, environmentWire,
         programId: provider.program_id, nodeId: provider.stage_id,
         maxRows: targets.length, maxWork: limits.maxWork});
       const recoveredInputs = [];
+      const inventory = prepareCompletedEffectfulPublication({execution: null,
+        store, control, storedResults, computation, preview});
       for (let index=0; index<targets.length; index++) {
-        recoveredInputs.push(await prepareRecoveredTableInput({recovered: durable, store,
+        const input = await prepareRecoveredTableInput({recovered: durable, store,
           control, memberIndex: index, requestScope, contractLimits: localContractLimits,
-          tableLimits: limits.material, signal}));
+          tableLimits: limits.material, bridge, signal});
+        recoveredInputs.push(input);
+        const schema = await store.putPreparedResultSchema(input.schemaWire,
+          JSON.parse(input.operationWire).schema_cid, inventory.chain.runDefinition.identity);
+        owner.schemas.push(schema.prepared);
       }
       const scopes = scopesOf(targets);
       // Read evidence under the installation's current gate before any lookup
@@ -475,5 +509,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
 
   return Object.freeze({environmentWire, connectorRegistration, connectorRevision,
     connectorBindings: Object.freeze([{connectorId, bindingCid}]),
+    effectSelectors: Object.freeze(installed.map(target => Object.freeze({
+      kind: 'store', target: target.targetRef, mappingRef: target.mappingRef,
+      mappingCid: target.mappingCid, effectId: target.effectId}))),
     prepareCaptured, prepareRecovered, close() {}});
 }

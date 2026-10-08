@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { artifacts, bindings, checkBindings, executedCoverage, graph, snapshot, targets, validate } from './evidence.mjs';
+import { modelExecution, modelObservationUnits, retirementModelExecution, retirementBindings, retirementFixture, executedRetirementCoverage, artifacts, bindings, stopBindings, pauseBindings, pauseFixture, executedPauseCoverage, stopFixture, checkBindings, executedCoverage, executedStopCoverage, graph, snapshot, targets, validate } from './evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
@@ -12,7 +12,7 @@ const pin = JSON.parse(readFileSync(join(root, 'toolchain.json'), 'utf8'));
 const home = process.env.MOON_HOME ?? join(root, '.toolchains', `moonbit-${pin.version}`);
 const moon = join(home, 'bin/moon');
 const env = { ...process.env, MOON_HOME: home, PATH: `${home}/bin:${process.env.PATH}` };
-const requested = bindings();
+const requested = [...bindings(), ...stopBindings(), ...pauseBindings(), ...retirementBindings()];
 checkBindings(root, requested);
 const source = snapshot(root);
 const directory = join(root, '.artifacts/relation-chain');
@@ -22,13 +22,13 @@ const worktreeDirty = spawnSync('git', ['status', '--porcelain'], { cwd: root, e
 const compiler = spawnSync(join(home, 'bin/moonc'), ['-v'], { env, encoding: 'utf8' });
 if (compiler.status !== 0 || compiler.stdout.trim() !== pin.moonc) throw new Error('Wrong MoonBit toolchain');
 
-function run(id, command, args, target = 'model', packagePath = null) {
+function run(id, command, args, target = 'model', packagePath = null, expectedModel = modelExecution) {
   const start = performance.now();
   const result = spawnSync(command, args, { cwd: root, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   const milliseconds = Math.round(performance.now() - start);
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `${id}.log`), output);
-  const count = packagePath ? Number(output.match(/Total tests: (\d+), passed: (\d+), failed: 0/)?.[2] ?? 0) : null;
+  const count = packagePath ? Number(output.match(/Total tests: (\d+), passed: (\d+), failed: 0/)?.[2] ?? 0) : modelObservationUnits(output, result.status, expectedModel);
   if (result.error || result.status !== 0 || (packagePath && count === 0)) {
     process.stderr.write(output);
     throw result.error ?? new Error(`${id} failed or executed no tests`);
@@ -41,9 +41,10 @@ function run(id, command, args, target = 'model', packagePath = null) {
   };
 }
 
-const lean = run('lean', process.execPath, ['proofs/relation-chain/check.mjs']);
+const lean = run('lean', modelExecution.command[0], modelExecution.command.slice(1), modelExecution.target);
+const retirementLean = run('retirement-lean', retirementModelExecution.command[0], retirementModelExecution.command.slice(1), retirementModelExecution.target, null, retirementModelExecution);
 for (const target of selected === 'all' ? targets : [selected]) {
-  const runs = { lean };
+  const runs = { lean, 'retirement-lean': retirementLean };
   runs[`session-${target}`] = run(`session-${target}`, moon,
     ['test', 'src/bounded_execution', '--target', target, '--deny-warn'], target, 'bounded_execution');
   runs[`connection-${target}`] = run(`connection-${target}`, moon,
@@ -51,6 +52,15 @@ for (const target of selected === 'all' ? targets : [selected]) {
   // Record the fixture's reviewed scope after executing it. Never derive this
   // witness from the caller's requested binding or the resulting claim graph.
   runs[`connection-${target}`].coverage = executedCoverage();
+  runs[`stop-connection-${target}`] = run(`stop-connection-${target}`, moon,
+    ['test', stopFixture, '--target', target, '--deny-warn'], target, 'query_integration');
+  runs[`stop-connection-${target}`].coverage = executedStopCoverage();
+  runs[`pause-connection-${target}`] = run(`pause-connection-${target}`, moon,
+    ['test', pauseFixture, '--target', target, '--deny-warn'], target, 'query_integration');
+  runs[`pause-connection-${target}`].coverage = executedPauseCoverage();
+  runs[`retirement-connection-${target}`] = run(`retirement-connection-${target}`, moon,
+    ['test', retirementFixture, '--target', target, '--deny-warn'], target, 'connectors/local');
+  runs[`retirement-connection-${target}`].coverage = executedRetirementCoverage();
   const report = {
     version: 'actql-relation-chain-evidence/0.1', mode: 'report-only', revision, worktreeDirty,
     source, toolchain: pin, target, runs, claims: graph(requested, target),
@@ -61,7 +71,8 @@ for (const target of selected === 'all' ? targets : [selected]) {
   const current = snapshot(root);
   current.builtArtifacts = Object.assign({},
     artifacts(root, target, 'bounded_execution'),
-    artifacts(root, target, 'query_integration'));
+    artifacts(root, target, 'query_integration'),
+    artifacts(root, target, 'connectors/local'));
   const derived = validate(report.claims, report, current, target);
   writeFileSync(join(directory, `${target}.json`), `${JSON.stringify(report, null, 2)}\n`);
   console.log(`${target}: ${derived.length} conditional derived claim(s); existing resource gates remain authoritative`);

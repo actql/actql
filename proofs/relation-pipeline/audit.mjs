@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { candidates, program } from './engine.mjs';
 import { registry, baseRegistry } from './registry.mjs';
 import { hash, snapshot, checkBaseline } from './inventory.mjs';
-import { validate, compareSemantics } from './evidence.mjs';
+import { validate, compareSemantics, auditModelLogs } from './evidence.mjs';
 import { auditFixture, payload, inputVariable } from './fixture.mjs';
 import { applyMutation } from './sites.mjs';
 import { checkMutationActions } from './mutation-actions.mjs';
@@ -107,13 +107,7 @@ export function createAudit(root = defaultRoot) {
       return source;
     }
     function auditModels(report) {
-      for (const [id, count] of [['session', 14], ['chain', 36]]) {
-        const model = report.models[id];
-        const log = readFileSync(artifact(model.logPath), 'utf8');
-        assert.equal(hash(log), model.logDigest);
-        assert(log.includes(`Checked ${count} theorems, expected claim types and axiom dependencies`));
-        assert(!log.includes('sorryAx'));
-      }
+      auditModelLogs(report, path => readFileSync(artifact(path), 'utf8'));
     }
     const fixedMutations = read(join(directory, 'fixed-mutations.json'));
     // Both independently executed producer baselines remain original reports.

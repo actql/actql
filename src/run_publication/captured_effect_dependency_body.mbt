@@ -49,12 +49,21 @@ pub fn admit_publication_effect_dependency_body(
 ) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
   if ![
       "result_artifact", "derivation_evidence", "ordering_evidence", "acquisition_relation",
-      "acquisition_scope", "result_retention_policy",
+      "acquisition_scope", "result_retention_policy", "table_input_artifact", "table_input_derivation",
+      "table_input_ordering",
     ].contains(kind) {
     return Err(WrongDependencyKind)
   }
+  let contract_kind = match kind {
+    "table_input_artifact" => "result_artifact"
+    "table_input_derivation" => "derivation_evidence"
+    "table_input_ordering" => "ordering_evidence"
+    _ => kind
+  }
   let contract = match
-    admit_publication_contract(kind, wire, max_bytes, max_nodes, max_depth) {
+    admit_publication_contract(
+      contract_kind, wire, max_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => return Err(InvalidBody)
   }
@@ -62,20 +71,38 @@ pub fn admit_publication_effect_dependency_body(
     return Err(InvalidBody)
   }
   let value = contract.value
+  let table = kind == "table_input_artifact" ||
+    kind == "table_input_derivation" ||
+    kind == "table_input_ordering"
+  let producer_kind = if table {
+    "local_table_input_definition"
+  } else {
+    "local_result_definition"
+  }
+  let derivation_kind = if table {
+    "table_input_derivation"
+  } else {
+    "derivation_evidence"
+  }
+  let ordering_kind = if table {
+    "table_input_ordering"
+  } else {
+    "ordering_evidence"
+  }
   let fields : Array[(String, String)] = match kind {
-    "result_artifact" =>
+    "result_artifact" | "table_input_artifact" =>
       [
-        ("result_definition_cid", "local_result_definition"),
+        ("result_definition_cid", producer_kind),
         ("invocation_cid", "local_computation"),
         ("logical_result_cid", "relation_value"),
         ("result_schema_cid", "relation_schema"),
-        ("ordering_evidence_cid", "ordering_evidence"),
+        ("ordering_evidence_cid", ordering_kind),
         ("effective_data_policy_cid", "data_policy"),
         ("effective_retention_policy_cid", "result_retention_policy"),
       ]
-    "derivation_evidence" =>
+    "derivation_evidence" | "table_input_derivation" =>
       [
-        ("producer_contract_cid", "local_result_definition"),
+        ("producer_contract_cid", producer_kind),
         ("computation_contract_cid", "local_dependencies"),
         ("logical_value_cid", "relation_value"),
         ("relation_schema_cid", "relation_schema"),
@@ -93,6 +120,7 @@ pub fn admit_publication_effect_dependency_body(
         ("effective_retention_policy_cid", "result_retention_policy"),
       ]
     "ordering_evidence" => [("producer_contract_cid", "relation_producer")]
+    "table_input_ordering" => [("producer_contract_cid", producer_kind)]
     "result_retention_policy" =>
       [
         ("retention_contract_cid", "retention_contract"),
@@ -110,8 +138,10 @@ pub fn admit_publication_effect_dependency_body(
     references.push(reference)
   }
   let lists : Array[(String, String)] = match kind {
-    "result_artifact" => [("provenance_evidence_cids", "derivation_evidence")]
-    "derivation_evidence" => [("input_relation_cids", "acquisition_relation")]
+    "result_artifact" | "table_input_artifact" =>
+      [("provenance_evidence_cids", derivation_kind)]
+    "derivation_evidence" | "table_input_derivation" =>
+      [("input_relation_cids", "acquisition_relation")]
     _ => []
   }
   for (field, target) in lists {
@@ -123,7 +153,7 @@ pub fn admit_publication_effect_dependency_body(
     }
   }
   let nested_field = match kind {
-    "ordering_evidence" => Some("witness_evidence")
+    "ordering_evidence" | "table_input_ordering" => Some("witness_evidence")
     "acquisition_relation" => Some("provenance_evidence")
     _ => None
   }
@@ -134,7 +164,7 @@ pub fn admit_publication_effect_dependency_body(
     for item in @json.array_values(items) {
       let target = match evidence_string(item, "kind") {
         Some("source") => "source_evidence"
-        Some("derivation") => "derivation_evidence"
+        Some("derivation") => derivation_kind
         Some("relation") => "acquisition_relation"
         Some("attempt_receipt") => "acquisition_attempt_receipt"
         _ => return Err(WrongDependencyKind)
@@ -311,6 +341,13 @@ pub fn admit_local_effect_dependency_body(
         [],
         ["result_name"],
       )
+    "local_table_input_definition" =>
+      (
+        "actql-local-table-input-definition/0.1",
+        [("unit_definition_cid", "local_dependencies")],
+        [],
+        ["table_input_name"],
+      )
     "local_computation" =>
       (
         "actql-local-computation-semantics/0.1",
@@ -395,9 +432,14 @@ pub fn admit_local_effect_dependency_body(
   for field in extra {
     fields.push(field)
   }
-  if !exact_local_object(
+  let valid = if kind == "local_manifest" {
+    captured_local_manifest_valid(value, max_bytes, max_nodes, max_depth)
+  } else {
+    exact_local_object(
       value, version, "self_cid", fields, max_bytes, max_nodes, max_depth,
-    ) ||
+    )
+  }
+  if !valid ||
     canonical_value_wire(value, max_bytes, max_nodes, max_depth) != Some(wire) {
     return Err(InvalidBody)
   }
@@ -431,8 +473,7 @@ pub fn admit_local_effect_dependency_body(
       }
     } else if field == "results" {
       guard @json.object_field(value, field) is Some(results) &&
-        object_fields(results) is Ok(entries) &&
-        !entries.is_empty() else {
+        object_fields(results) is Ok(entries) else {
         return Err(InvalidBody)
       }
       for (name, cid) in entries {
@@ -467,6 +508,16 @@ pub fn admit_local_effect_dependency_body(
       if field == "milestone" && text != "accepted" && text != "completed" {
         return Err(InvalidBody)
       }
+    }
+  }
+  if kind == "local_manifest" &&
+    @json.object_field(value, "table_inputs") is Some(private_map) {
+    guard object_fields(private_map) is Ok(entries) else {
+      return Err(InvalidBody)
+    }
+    for (_, cid) in entries {
+      guard string_value(cid) is Some(identity) else { return Err(InvalidBody) }
+      references.push({ kind: "table_input_artifact", identity, })
     }
   }
   Ok({

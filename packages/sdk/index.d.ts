@@ -5,7 +5,7 @@ export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
   WireCancellationLookup, WireCheckpointSummary, WireClientProfile,
-  WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup,
+  WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup, WireSubmissionRestart,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -122,6 +122,7 @@ export declare function createCheckSupplementationSession(client: Pick<Client, '
 export type SubmissionInput = Readonly<{
   requestId: string;
   submissionRef?: WireSubmissionRef;
+  unresolvedHistory?: WireSubmissionRestart;
   kind: 'program' | 'aql';
   input: unknown;
   parameters: unknown;
@@ -131,6 +132,9 @@ export type SubmissionInput = Readonly<{
 /** Detached original of the pending Promise, execution or exact SDK error.
  * Available before first send; not Host persistence, acceptance or resend authority. */
 export declare function getSubmissionInput(result: unknown): SubmissionInput | undefined;
+/** Persistable lookup data, not an authenticated identity, acceptance or retry grant.
+ * Restoring it requires the same endpoint and confirmed connection scope. */
+export type RequestLookupTarget = RequestObservationTarget;
 /** Exact, schema-admitted Owner response only; error codes alone provide no facts. */
 export declare function getSubmissionOutcome(result: unknown): SubmissionOutcome | undefined;
 type RequestObservationTarget = Readonly<{lookupContext: Readonly<{endpoint: string; scopeRef: string}>}> & (
@@ -152,13 +156,24 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
   }> | HeldRequestExplanation | Readonly<{
     observation: 'run_reference_received';
     next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+  }> | Readonly<{
+    observation: 'not_accepted' | 'preparation_failed';
+    problem: Extract<SubmissionOutcome, {kind: 'not_accepted'}>['problem'];
+    preparationIssue?: Readonly<{kind: 'analysis_budget_exhausted' | 'implementation_limit'; summary: string; hint: string}>;
+    hint: string;
+    next: RequestObservationTarget & Readonly<{operation: 'lookupSubmission'}>;
+  }> | Readonly<{
+    observation: 'preparing' | 'history_unresolvable' | 'lookup_unavailable' |
+      'lookup_uninterpretable' | 'not_sent';
+    hint: string;
+    next: RequestObservationTarget & Readonly<{operation: 'lookupSubmission'}>;
   }>);
-/** Read-only advice for this exact SDK submit result; no retry or execution permission. */
+/** Read-only advice for this exact SDK submit or lookup result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown, options?: OperationExplanationOptions): SubmissionExplanation | undefined;
 export type RequestLookupExplanation = Readonly<{summary: string; hint: string}> & (
   HeldRequestExplanation | Readonly<{
     observation: 'lookup_unresolved' | 'lookup_unavailable' | 'lookup_uninterpretable';
-    next: RequestObservationTarget;
+    next: RequestLookupTarget;
   }> | Readonly<{
     observation: 'run_reference_received';
     durability: 'durable' | 'volatile';
@@ -217,10 +232,10 @@ export type RequestCancellationExplanation = Readonly<{
 }> & (Readonly<{
   revision: number;
   next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
-}> | Readonly<{next: RequestObservationTarget}>) | Readonly<{
+}> | Readonly<{next: RequestLookupTarget}>) | Readonly<{
   observation: 'outcome_unknown';
   problem: 'exchange_failed' | 'response_uninterpretable';
-  next: RequestObservationTarget;
+  next: RequestLookupTarget;
 }>);
 /** Original request-cancellation observation; no cancel-operation identity or stop/release certificate. */
 export declare function explainRequestCancellation(result: unknown, options?: OperationExplanationOptions): RequestCancellationExplanation | undefined;
@@ -312,6 +327,15 @@ export type ConnectionOptions =
 export type ConfirmedProfile = WireClientProfile;
 
 export type RequestLookup = WireRequestLookup;
+/** Lookup-only recovery of an existing request; never submits or resumes work. */
+export interface RequestRecovery {
+  readonly target: RequestLookupTarget;
+  lookup(options?: {signal?: AbortSignal}): Promise<RequestLookup | SubmissionLookup>;
+  /** Only a found/ready observation from this handle's lookup is accepted.
+   * The Host checks current authorization again when attaching. */
+  attach(observation: Extract<RequestLookup, {kind: 'found'}> | Extract<SubmissionLookup, {kind: 'ready'}>,
+    options?: {signal?: AbortSignal}): Promise<Execution>;
+}
 
 export type RunState = WireRunState;
 export type RunNextAction = WireRunState['next_action'];
@@ -476,9 +500,10 @@ export interface Execution {
 
 type SubmissionIdentityOptions = (
   /** Omit for deliberate new work; retain getSubmissionInput(promise) before awaiting. */
-  Readonly<{submissionRef?: undefined; requestId?: never}> |
+  Readonly<{submissionRef?: undefined; requestId?: never; unresolvedHistory?: never}> |
   /** requestId only asserts this original nonce; it never allocates an identity. */
-  Readonly<{submissionRef: WireSubmissionRef; requestId?: string}>
+  Readonly<{submissionRef: WireSubmissionRef; requestId?: string;
+    unresolvedHistory?: WireSubmissionRestart}>
 );
 export type SubmissionOptions = SubmissionIdentityOptions & Readonly<{
   parameters?: unknown;
@@ -514,6 +539,9 @@ export interface Client {
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,
     options?: {signal?: AbortSignal}): Promise<RequestLookup>;
+  /** No I/O. Accepts this SDK's original submission/lookup observation, or a
+   * saved RequestLookupTarget as untrusted data. Copies of errors are refused. */
+  recoverRequest(observationOrTarget: unknown): RequestRecovery;
   cancelRequest(requestId: string, options?: {signal?: AbortSignal}):
     Promise<RequestCancellation>;
   resources(resourceConnection: string, options?: {query?: string;
