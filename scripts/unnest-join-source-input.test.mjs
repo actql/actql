@@ -45,6 +45,13 @@ test('NULL extension, original range and empty schemas have distinct obligations
   const original = byName.get('unnest-join-immutable-range');
   assert.deepEqual(original.expected.map(row => [row.current, row.original]), [[99, 2], [99, 2]]);
   assert.match(original.text, /SET code = 99 \|> JOIN.*ON e\.code = k\.key/u);
+  const whole = byName.get('unnest-join-whole-object');
+  assert.deepEqual(whole.columns[0], {name: 'original', contract: {
+    type: 'object', nullable: true, additional_properties: false,
+    fields: {code: {type: 'number', nullable: false}, label: {type: 'string', nullable: true}},
+  }});
+  assert.equal(Object.hasOwn(whole.parameterDeclarations.objects.items, 'additional_properties'), false,
+    'author contracts omit fixed machine fields; describe returns the complete checked contract');
   for (const name of ['empty', 'null-array']) {
     assert.deepEqual(byName.get('unnest-join-' + name).expected, []);
     assert.deepEqual(byName.get('unnest-join-' + name).columns, byName.get('unnest-join-sql').columns);

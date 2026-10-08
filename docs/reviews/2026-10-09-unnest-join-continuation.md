@@ -139,7 +139,7 @@ successful public execution evidence.
 
 Unkeyed FULL rejection reaches the existing common checker but its category
 falls through to `UnclassifiedFailure` in
-`src/program_check/diagnostic_category.mbt::closure_category`; the standard
+`src/program_check/diagnostic_category.mbt::closure_diagnostic_category`; the standard
 preparation bridge reports `check_unclassified`. Public Local consequently
 returns `ClientHostFailure`/500 and the SDK returns `SubmissionUnknown` for
 `packed-local-unnest-join-full`. This is not evidence of an admitted Run failure
@@ -158,3 +158,24 @@ Submitted-HEAD CI, Wasm/Native execution and broader Core coverage remain
 unverified. The existing correlated UNNEST public cohort includes these
 fixtures in both normal and selected routes; fixture registration alone is not
 successful execution evidence.
+
+## Second packed attempt and complete object expectation
+
+Clean revision `044181f6dcc2ef71612abf42380a1b82748a6584` normally produced all
+five packages and verified their digests. Public Local passed the independent
+FULL JSON control and keyed source, predicate placement, LIMIT-before-JOIN,
+object JSON/SQL/Pipe controls and DATA. It then stopped at `unnest-join-whole-object`
+because the independently authored expected describe contract omitted the
+fixed checked member `additional_properties: false`; value comparisons had
+already passed. The campaign is a failure, and HTTPS remains unexecuted in it.
+Evidence: `run-qko2kT` and external receipt
+`worktrees/.codex-scratch/public-query-evidence-dtC4io`.
+
+The authoritative `docs/spec/language.md` **Value contracts** section explicitly
+separates the author object contract (omitting this fixed member) from its
+checked machine contract (inserting `additional_properties: false`). The
+expectation now includes that fixed checked member; the authored parameter
+declaration still omits it. A fixture regression compares the complete expected
+contract and prevents moving the machine member into authoring vocabulary.
+This changes neither product code nor expected rows, nullability or column
+order. Both failed campaigns and their original evidence are retained.

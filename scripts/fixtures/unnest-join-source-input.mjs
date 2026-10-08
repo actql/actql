@@ -106,7 +106,8 @@ export const unnestJoinSuccesses = [
   success('object-pipe', objectPipe, objectCase),
   success('data', 'DATA joined = ' + objectPipe + '; FROM joined |> RESULT answer', objectCase),
   success('whole-object', objectPipe.replace('SELECT e.*,', 'SELECT e AS original, e.*,'), {
-    ...objectCase, columns: [{name: 'original', contract: object}, ...objectColumns],
+    ...objectCase, columns: [{name: 'original',
+      contract: {...object, additional_properties: false}}, ...objectColumns],
     expected: objectExpected.map(row => ({original: {code: 2, label: 'b'}, ...row})),
   }),
   success('immutable-range', objectPipe.replace('|> JOIN', '|> SET code = 99 |> JOIN')
