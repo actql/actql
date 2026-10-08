@@ -1,0 +1,45 @@
+# Ordinary Native Host profile acceptance plan
+
+Dependency: the library connection in #1027. The complete Native caller example
+is in the existing `native_retained_case_probe/normal_host_example.mbt`; it uses
+the public Native APIs, with trusted caller settings and a bounded captured-input
+identity. There is no new executable or command-line product.
+
+The plan is fixed before release execution: concurrency one, metadata-only
+physical phase observer, uncontrolled external load and OS cache. Text uses the
+existing 1,000-row Text/1,024-byte fixture and twelve-attempt ceiling. JOIN uses
+the existing 100-row JOIN/count fixture with its four-attempt ceiling. All
+ordinary result, schema, work and capacity expectations remain unchanged.
+
+Expose the actual current candidates and Host conditions once per workload.
+Measure every offered candidate three times, ascending/reversed/ascending, at
+most eighteen candidates. Use the existing explicit policy commit for these
+comparison arms. Do not filter costly or unknown candidates to force a ranking.
+Create a new validated original and bounded template at this exact source and
+binary revision. The initial exposure's missing profile is a functional fallback,
+not a success profile or a performance comparison sample.
+
+Held-out runs are separate: offline/first-use/reuse, reuse/offline/first-use,
+first-use/reuse/offline. Offline has no Native profile settings at all. First-use
+and reuse use the public ordinary Native profile connection and include original
+readback/validation, aggregation, template transfer, Source capture/identity,
+all task and Result work and confirmed release. Node original caching and Native
+once-per-Run template caching are separately reported; a restarted process
+cannot reuse a previous process's Native handle. Enclosing intervals are not
+added to nested consultation/read/phase intervals.
+
+Keep all failed, interrupted, missing and slow slots; no replacement or
+condition changes after evaluation. Native diagnostic and optional serialization
+checks must not affect execution/release. Functional cases remain separate from
+profiles: all/partial unknown, mismatched/stale profile, single candidate,
+modified/old/expired request, stopped dispatch and failed cleanup followed by
+retry. Every normal workload reaches independent Result/schema and formal
+release. A process restart constructs a fresh capture/request and may use only
+an immutable compatible original, never an old admission/commit.
+
+Record available system load-average samples and logical CPU count alongside
+unknown competing-process activity/memory pressure. No causal load explanation,
+normal-load classification, stable improvement, ETA, p90 or net benefit is
+inferred. Descriptive timing and all original costs remain visible even when
+there is no improvement. No full performance matrix, CI or external service is
+started for this unit.

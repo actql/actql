@@ -52,3 +52,17 @@ test('conditional recovery counts creation and first-use extra once, never inven
   assert.equal(wholeRunValue({creationMs:100,firstUseMs:30,offlineMs:20,reusedMs:20}).conditionalRecoveryUses,null);
   assert.equal(wholeRunValue({creationMs:100,firstUseMs:30,offlineMs:20,reusedMs:25}).conditionalRecoveryUses,null);
 });
+
+test('normal Host trajectory consumes actual current decisions and rejects unknown or changed positions', async()=>{
+  const {admitWholeRunTrajectory}=await import('./whole-run-profile.mjs');
+  const snapshots=[{body}];
+  const product={ownerCorrespondence:{observations:{candidates:snapshots,choices:[{
+    task:1,position:4,revision:1,source:'ExternalPolicy',
+  }]}}};
+  const decision={mode:'select-reference',selected_position:4,load_applicability:'unknown-uncontrolled',net_benefit:'unknown',
+    request_json:JSON.stringify({candidate_set_cid:candidates.cid,generation:0,revision:1})};
+  const stdout='normal-host-decision:'+JSON.stringify(decision)+'\n';
+  assert.equal(admitWholeRunTrajectory({stdout},product).initialAssignment[0],4);
+  assert.throws(()=>admitWholeRunTrajectory({stdout:'normal-host-decision:'+JSON.stringify({...decision,selected_position:null})},product),/UnknownNormalHostRanking/);
+  assert.throws(()=>admitWholeRunTrajectory({stdout:'normal-host-decision:'+JSON.stringify({...decision,selected_position:12})},product),/NormalDecisionExecutionChanged/);
+});

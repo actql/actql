@@ -5,7 +5,7 @@ import {join,resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
-import {cpus,release} from 'node:os';
+import {cpus,release,loadavg} from 'node:os';
 import {retainedCase} from './fixtures.mjs';
 import {profileDigest} from './local-performance-profile.mjs';
 import {sha256File} from './release-artifacts.mjs';
@@ -38,11 +38,18 @@ const instrumentationRevision=profileDigest(await Promise.all(instrumentationFil
 const environment={platform:process.platform,arch:process.arch,osRelease:release(),cpuModels:[...new Set(cpus().map(c=>c.model))],
   logicalCpus:cpus().length,node:process.version,competingLoad:'uncontrolled',osCache:'uncontrolled',
   libraryDigest:'sha256:'+await sha256File(plan.library),toolchain:JSON.parse(await readFile(join(root,'toolchain.json'),'utf8'))};
-const nativeConditions={host:'native',realization:'resident',captureMode:'metadata-only',runtimeRevision:revision,binaryDigest,inputDigest,
+const legacyNativeConditions={host:'native',realization:'resident',captureMode:'metadata-only',runtimeRevision:revision,binaryDigest,inputDigest,
   programDigest:profileDigest(fixture.program()),inputRows:fixture.rows,schemaLayout:fixture.layout,limitsDigest:profileDigest(fixture.limits),
   instrumentationRevision,measurementScopeRevision:profileDigest(wholeRunScope),environmentDigest:profileDigest(environment),
   controlDigest:profileDigest(plan.controls),concurrency:1,processState:'new-process-and-environment',osCache:'uncontrolled',
   authorizedScope:'local-synthetic-fixture-only; no export/sharing'};
+const nativeConditions=plan.normalHost?plan.normalHost.conditions:legacyNativeConditions;
+if(plan.normalHost) {
+  assert.equal(nativeConditions.runtimeRevision,revision);
+  assert.equal(nativeConditions.binaryDigest,binaryDigest);
+  assert.equal(nativeConditions.captureMode,'metadata-only');
+  assert.equal(nativeConditions.concurrency,1);
+}
 const conditions={runtimeRevision:revision,binaryDigest,measurementScope:wholeRunScope,nativeConditions};
 const schedule=stage==='comparison'?[0,1,2].flatMap(round=>(round%2?[...positions].reverse():positions)
   .map(position=>({round,arm:'forced',position})))
@@ -56,6 +63,7 @@ const report={version:'actql-local-whole-run-profile/0.1',revision,binaryDigest,
   fixturePreparationMs:plan.fixturePreparationMs,observations:[],accepted:false,
   creationMs:null,profileOriginal:null,osCache:'uncontrolled',
   intervalRules:'enclosing elapsed clock is primary; nested preparation, import, task, observer and release intervals are never added',
+  normalHost:plan.normalHost??null,
   cache:'one validated immutable local profile; no cached request, authority or deadline; no persistence across experiment processes'};
 const encode=value=>JSON.stringify(value,(_key,value)=>typeof value==='bigint'?String(value):value);
 const checkpoint=()=>writeFile(join(destination,'whole-run.json'),encode(report)+'\n',{mode:0o600});
@@ -65,7 +73,11 @@ for(const [index,step] of schedule.entries()) {
   const trial=join(destination,'trial-'+index);
   const item={index,step,conditions,observedAt:Date.now(),outcome:'unobserved',ownerAccepted:false,
     profileReadbackMs:0,templateMs:0,profileOriginal:null};
-  const started=performance.now();item.memoryBefore=process.memoryUsage();let execution;
+  const started=performance.now();
+  item.loadObservation={sampledAt:Date.now(),systemLoadAverage:loadavg(),logicalCpus:cpus().length,
+    applicationConcurrency:1,competingProcesses:'unknown',memoryPressure:'unknown',
+    applicability:'unknown-uncontrolled',causalPerformanceAttribution:'unknown'};
+  item.memoryBefore=process.memoryUsage();let execution;
   try {
     await mkdir(trial,{mode:0o700});
     if(step.arm==='first-use') {
@@ -84,7 +96,7 @@ for(const [index,step] of schedule.entries()) {
     let invocation=await prepareNativeDirectProduct({root,fixture,database:plan.database,directory:trial,
       ...plan.controls,phaseObserver:true});
     assert.equal(invocation.binary,binary);
-    if(step.arm!=='offline') {
+    if(step.arm!=='offline' && (!plan.normalHost || stage==='comparison')) {
       const extra=['--empirical-mode',step.arm==='forced'?'forced':'empirical','--empirical-objective','run-caller-elapsed',
         '--empirical-fallback','offline','--sqlite-library','/usr/lib/libsqlite3.dylib'];
       if(step.arm==='forced') extra.push('--empirical-position',String(step.position));
@@ -100,6 +112,27 @@ for(const [index,step] of schedule.entries()) {
       }
       invocation={...invocation,arguments:[...invocation.arguments,...extra]};
     }
+    if(plan.normalHost) {
+      let templateBytes,mode='diagnostic-reference';
+      if(stage==='evaluation'&&step.arm!=='offline') {
+        mode='select-reference';
+        const templateStart=performance.now();
+        templateBytes=JSON.stringify(wholeRunTemplate({profile:cache,conditions,
+          candidates:{canonical_json:JSON.stringify(plan.candidates.body),cid:plan.candidates.cid},now:Date.now()}));
+        await writeFile(join(trial,'normal-template.json'),templateBytes,{flag:'wx',mode:0o600});
+        item.templateMs=performance.now()-templateStart;
+      }
+      const settings={...plan.normalHost.settings,mode,
+        profile_file:templateBytes?'normal-template.json':'-',
+        profile_digest:templateBytes?profileDigest(templateBytes).slice(7):'-',
+        profile_revision:templateBytes?cache.profileRevision:'-',
+        profile_creation_ms:plan.normalHost.profileCreationMs??null};
+      await writeFile(join(trial,'normal-settings.json'),JSON.stringify(settings),{flag:'wx',mode:0o600});
+      // Offline is genuinely unconfigured: no profile or input identity work.
+      // Its Source/profile input identity is separately pinned by this producer.
+      invocation={...invocation,environment:stage==='evaluation'&&step.arm==='offline'?{}:
+        {ACTQL_NATIVE_HOST_PROFILE_SETTINGS:'normal-settings.json'}};
+    }
     const processStart=performance.now();
     execution=await executeNativeDirectProduct(invocation,{root,timeoutMs:fixture.limits.timeoutMs});
     item.processCycleMs=performance.now()-processStart;
@@ -110,7 +143,18 @@ for(const [index,step] of schedule.entries()) {
     item.operator={preparation:product.preparation,physicalPhases:product.physicalPhases,
       taskIntervals:product.taskIntervals,holdings:product.taskHoldings,usage:product.taskUsages,
       expectedResult:fixture.identity(),result:product.record.rows_cid};
-    item.fallback=execution.stdout.includes('empirical-fallback:1:incomplete-reference')||execution.stdout.includes('empirical-fallback:1:freshness-insufficient');
+    const normalDecisions=execution.stdout.split('\n').filter(l=>l.startsWith('normal-host-decision:')).map(l=>JSON.parse(l.slice('normal-host-decision:'.length)));
+    item.normalDecisions=normalDecisions;
+    item.normalProfileCosts={decisions:normalDecisions.map(d=>d.costs),
+      nativeReuse:'same immutable template across requests in this Run; process restart loads anew',
+      additionalTelemetryOverhead:'unknown-no-off-comparison'};
+    item.fallback=normalDecisions.length?normalDecisions[0].mode==='select-reference'&&normalDecisions[0].selected_position===null:
+      execution.stdout.includes('empirical-fallback:1:incomplete-reference')||execution.stdout.includes('empirical-fallback:1:freshness-insufficient');
+    if(plan.normalHost && !(stage==='evaluation'&&step.arm==='offline')) {
+      const line=execution.stdout.split('\n').find(l=>l.startsWith('normal-host-conditions:'));
+      assert(line,'MissingNormalHostOwnedConditions');
+      assert.deepEqual(JSON.parse(line.slice('normal-host-conditions:'.length)),nativeConditions,'NormalHostOwnedConditionsChanged');
+    }
     if(step.arm!=='offline'&&!item.fallback) item.trajectory=admitWholeRunTrajectory(execution,product);
     if(step.arm==='forced') assert.equal(item.owner.observations.choices[0].position,step.position);
     item.outcome='succeeded';item.ownerAccepted=true;

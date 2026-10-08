@@ -40,6 +40,9 @@ test "profile configuration does not read and bounds trusted configuration" {
 test "optional diagnostic serialization failure has no side effects" {
   let reference : NativePerformanceDecision = {
     task: 1,
+    positions: [7],
+    evaluated_ms: 1000L,
+    max_age_ms: None,
     mode: DiagnosticReference,
     objective: "descriptive-run-caller-elapsed",
     request: {

@@ -206,6 +206,9 @@ pub struct NativePerformanceConfiguration {
 
 pub(all) struct NativePerformanceDecision {
   task : Int
+  positions : Array[Int]
+  evaluated_ms : Int64
+  max_age_ms : Int64?
   mode : NativePerformanceMode
   objective : String
   request : @physical_strategy.PolicyRequest

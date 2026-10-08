@@ -16,7 +16,10 @@ pub fn native_performance_decision_json(
   decision : NativePerformanceDecision,
   max_bytes? : Int = 65536,
 ) -> Result[String, NativeStandardPolicyIssue] {
-  if max_bytes < 1 || max_bytes > 65536 || decision.references.length() > 64 {
+  if max_bytes < 1 ||
+    max_bytes > 65536 ||
+    decision.references.length() > 64 ||
+    decision.positions.length() > 64 {
     return Err(InvalidConfiguration)
   }
   let request = match
@@ -69,6 +72,14 @@ pub fn native_performance_decision_json(
         None => @encode.null_value(writer)
       }
     }
+    @encode.key(writer, "positions")
+    @encode.begin_array(writer)
+    for position in decision.positions {
+      @encode.number_value(writer, position.to_double())
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "evaluated_ms")
+    @encode.string_value(writer, decision.evaluated_ms.to_string())
     @encode.key(writer, "task")
     @encode.number_value(writer, decision.task.to_double())
     for
@@ -89,6 +100,7 @@ pub fn native_performance_decision_json(
       (name, value) in [
         ("oldest_ms", decision.oldest_ms),
         ("newest_ms", decision.newest_ms),
+        ("max_age_ms", decision.max_age_ms),
       ] {
       @encode.key(writer, name)
       match value {

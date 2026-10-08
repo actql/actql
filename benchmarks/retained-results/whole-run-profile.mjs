@@ -26,13 +26,26 @@ export function projectedRealization(offer) {
 
 export function admitWholeRunTrajectory(execution, product) {
   const lines = execution.stdout.split('\n');
-  const initial = lines.filter(l=>l.startsWith('whole-run-initial-assignment:'));
-  assert.equal(initial.length,1,'MissingWholeRunAssignment');
-  const assignment = JSON.parse(initial[0].slice('whole-run-initial-assignment:'.length));
-  const requests = lines.filter(l=>l.startsWith('empirical-current-request:'))
-    .map(l=>JSON.parse(l.slice('empirical-current-request:'.length)));
+  const decisions=lines.filter(l=>l.startsWith('normal-host-decision:'))
+    .map(l=>JSON.parse(l.slice('normal-host-decision:'.length)));
   const choices = product.ownerCorrespondence.observations.choices;
   const snapshots = product.ownerCorrespondence.observations.candidates;
+  let assignment,requests;
+  if(decisions.length) {
+    assert.equal(decisions.length,choices.length,'MissingNormalHostDecision');
+    assert(decisions.every(d=>d.mode==='select-reference'&&d.selected_position!==null),'UnknownNormalHostRanking');
+    assert(decisions.every(d=>d.load_applicability==='unknown-uncontrolled'&&d.net_benefit==='unknown'),'UnfoundedNormalHostBenefit');
+    assignment=snapshots[0].body[5].find(a=>a[0]===choices[0].position);
+    assert(assignment,'MissingNormalHostInitialAssignment');
+    requests=decisions.map(d=>JSON.parse(d.request_json));
+    for(let i=0;i<decisions.length;i++) assert.equal(decisions[i].selected_position,choices[i].position,'NormalDecisionExecutionChanged');
+  } else {
+    const initial = lines.filter(l=>l.startsWith('whole-run-initial-assignment:'));
+    assert.equal(initial.length,1,'MissingWholeRunAssignment');
+    assignment = JSON.parse(initial[0].slice('whole-run-initial-assignment:'.length));
+    requests = lines.filter(l=>l.startsWith('empirical-current-request:'))
+      .map(l=>JSON.parse(l.slice('empirical-current-request:'.length)));
+  }
   assert.equal(requests.length,choices.length,'MissingCurrentWholeRunRequest');
   assert.deepEqual(assignment,snapshots[0].body[5].find(a=>a[0]===choices[0].position));
   for (let i=0;i<choices.length;i++) {
@@ -93,6 +106,19 @@ export async function loadWholeRunProfile(directory,expectedDigest) {
     const execution=readNativeDirectProductExecution(item.invocation,{stdout:stdout.toString(),stderr:stderr.toString(),processCycleMs:item.processCycleMs});
     const product=admitNativeDirectProduct(fixture,item.invocation,execution);
     assert.deepEqual(execution.resultSchemaFields,fixture.workload==='fixed-join-count-shrinking-intermediate'?['n','present']:fixture.fields,'WholeRunResultSchemaChanged');
+    if(report.normalHost && !(report.stage==='evaluation'&&item.step.arm==='offline')) {
+      const line=execution.stdout.split('\n').find(l=>l.startsWith('normal-host-conditions:'));
+      assert(line,'MissingNormalHostOwnedConditions');
+      assert.deepEqual(JSON.parse(line.slice('normal-host-conditions:'.length)),item.conditions.nativeConditions,'NormalHostOwnedConditionsChanged');
+    }
+    if(report.normalHost) {
+      const decisions=execution.stdout.split('\n').filter(l=>l.startsWith('normal-host-decision:')).map(l=>JSON.parse(l.slice('normal-host-decision:'.length)));
+      assert.deepEqual(decisions,item.normalDecisions,'NormalHostDecisionProjectionChanged');
+      if(report.stage==='evaluation'&&item.step.arm!=='offline') {
+        assert.equal(decisions.length,product.ownerCorrespondence.observations.choices.length);
+        assert(decisions.slice(1).every(d=>d.reused_profile&&d.costs.first_load_and_validation_microseconds===0),'NormalHostRepeatedRead');
+      }
+    }
     assert.deepEqual(product.ownerCorrespondence,item.owner);
     if(item.step.arm!=='offline'&&!item.fallback) assert.deepEqual(admitWholeRunTrajectory(execution,product),item.trajectory);
     assert.deepEqual(product.record.usage,item.finalUsage);

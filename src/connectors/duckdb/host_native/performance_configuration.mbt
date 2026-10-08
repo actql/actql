@@ -218,6 +218,9 @@ pub fn prepare_native_performance_configuration(
 /// or release. Serialization/storage is optional work owned by the caller.
 pub(all) struct NativePerformanceDecision {
   task : Int
+  positions : Array[Int]
+  evaluated_ms : Int64
+  max_age_ms : Int64?
   mode : NativePerformanceMode
   objective : String
   request : @strategy.PolicyRequest
@@ -259,6 +262,7 @@ pub fn native_performance_decisions(
       session.decisions.map(item => {
         ..item,
         references: item.references.copy(),
+        positions: item.positions.copy(),
       })
   }
 }

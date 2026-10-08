@@ -156,7 +156,7 @@ fn prepare_native_performance_selection(
     }
   }
   // Diagnostic references never alter the ordinary offline selection.
-  let selected = if configuration.mode == SelectReference {
+  let mut selected = if configuration.mode == SelectReference {
     proposed
   } else {
     None
@@ -164,6 +164,44 @@ fn prepare_native_performance_selection(
   match performance_validate_current(run, configuration, request) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  let evaluated_ms = match performance_clock(configuration) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    @duckdb_standard_host.validate_dispatch_policy_request(
+      run.dispatch,
+      request,
+      evaluated_ms,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Dispatch(issue))
+  }
+  if selected is Some(_) &&
+    configuration.profile is Some(profile) &&
+    profile.header is Some(header) &&
+    (
+      evaluated_ms < header.newest_ms ||
+      evaluated_ms - header.oldest_ms > header.max_age_ms
+    ) {
+    selected = None
+    reason = "freshness-insufficient"
+    references = references.map(reference => {
+      ..reference,
+      median_ms: None,
+      minimum_ms: None,
+      maximum_ms: None,
+      unknown_reason: Some("freshness-insufficient"),
+    })
+  }
+  let positions = match @strategy.operational_candidate_positions(candidates) {
+    Ok(value) => value
+    Err(issue) => return Err(Wire(issue))
+  }
+  if positions.is_empty() {
+    selected = None
+    reason = "comparison-limit"
   }
   if selected is Some(position) {
     let trajectory = match
@@ -202,6 +240,11 @@ fn prepare_native_performance_selection(
   }
   let decision : NativePerformanceDecision = {
     task,
+    positions,
+    evaluated_ms,
+    max_age_ms: configuration.profile.bind(profile => {
+      profile.header.map(header => header.max_age_ms)
+    }),
     mode: configuration.mode,
     objective: "descriptive-run-caller-elapsed",
     request,
