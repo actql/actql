@@ -1,5 +1,6 @@
 import type {Client} from '@actql/sdk';
 import type {HostCapacityPolicy} from './host-policy.js';
+import type {HostObservationConnection} from './observation.js';
 export type {HostCapacityPolicy} from './host-policy.js';
 
 declare const installedConnectorTableBrand: unique symbol;
@@ -66,6 +67,7 @@ export type HostInstallation = Readonly<{
     }>;
   }>;
   retainedRelationOutput?: boolean;
+  observation?: HostObservationConnection;
 }>;
 export declare function connect(options: Readonly<{
   mode: 'local'; owner: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';

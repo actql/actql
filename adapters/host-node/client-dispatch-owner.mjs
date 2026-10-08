@@ -8,6 +8,7 @@ import {installedSourceFor} from './installed-source.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {installTaskObservation} from '../host-common/task-observation.mjs';
 
 // Terminal observation only, never a send or cancellation permission. The
 // physical owner calls this after confirmed stop and temporary reclamation;
@@ -97,6 +98,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, computeConfigurations = {},
+  observation,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
@@ -270,6 +272,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.physicalWorkMayHaveStarted) {
       throw new Error('ClientDispatchStopUnknown');
     }
+    observation?.emit('cleanup', 'cleanup_completed', {ref: entry.ref,
+      physicalStop: entry.stopObserved ? 'confirmed' : undefined});
     if (entry.acquisitionLedger !== undefined) {
       diagnostic('dispatch_cleanup_completed', {ref: entry.ref,
         resourceUsage: resourceUsage(entry.acquisitionLedger)});
@@ -596,7 +600,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.abort.signal, undefined, execution => {
           entry.cleanupOwner = execution;
           entry.pendingSetup = undefined;
-        });
+        }, observation === undefined ? undefined : installTaskObservation(({event, task, durationMs}) =>
+          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs})));
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
       await step('computed', {ref: accepted.ref,

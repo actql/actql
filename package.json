@@ -7,6 +7,8 @@
     "node": ">=22"
   },
   "scripts": {
+    "check:otel-node": "npm ci --prefix packages/otel-node --ignore-scripts && node scripts/test-otel-node.mjs",
+    "postcheck:distribution-client": "npm run check:otel-node",
     "inventory:worktrees": "node scripts/worktree-inventory.mjs",
     "check:session-evidence": "node --test proofs/bounded-session/evidence.test.mjs proofs/bounded-session/proof-check.test.mjs && node proofs/bounded-session/run.mjs all",
     "check:session-evidence-mutations": "node proofs/bounded-session/mutations.mjs",
