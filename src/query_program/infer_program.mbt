@@ -106,7 +106,9 @@ fn lower_infer_steps(
   let prefix = initial.copy()
   if !input_fields.is_empty() {
     prefix.push(("derive", construction.object(input_fields)))
-    steps.push(prefix)
+    // The next step reuses this scratch array. Retain the emitted derive
+    // before clearing it; otherwise both steps become the later projection.
+    steps.push(prefix.copy())
     prefix.clear()
   }
   // Reuse one producer. KEEP never copies the source or dispatches it again.
