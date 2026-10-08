@@ -73,6 +73,13 @@ export const aggregatePropertyOrderSuccesses = [
   success('independent-json', '', {format: 'json', text: JSON.stringify(aggregatePropertyOrderProgram),
     parameterDeclarations: undefined}),
   success('sql', "SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects"),
+  success('parenthesized-receiver', "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects"),
+  success('parenthesized-qualified-receiver', "FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((before.payload)).`score` NULLS LAST, id) AS names"),
+  success('parenthesized-range-collision', 'DATA colliding = SELECT id, name, payload, other, other.score AS score FROM objects; '
+    + "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM colliding AS payload"),
+  success('parenthesized-receiver-empty', "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects", {
+    sourceRows: [], expected: [{names: null}],
+  }),
   success('pipe-qualified', "FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY `before`.`payload`.`score` NULLS LAST, id) AS names"),
   success('per-call-opposite-order', "SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names, "
     + "STRING_AGG(name, '|' ORDER BY payload.score DESC NULLS FIRST, id) AS reverse FROM objects", {

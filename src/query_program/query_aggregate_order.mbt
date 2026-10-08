@@ -19,17 +19,30 @@ fn aggregate_order_fields(
       expression,
       @query.expression_root(expression),
     ).unwrap()
-    while root.kind is Parenthesized(child) {
-      root = @query.expression_node(expression, child).unwrap()
+    let mut explicit_property = false
+    while true {
+      match root.kind {
+        Parenthesized(child) =>
+          root = @query.expression_node(expression, child).unwrap()
+        Property(child, _) => {
+          explicit_property = true
+          root = @query.expression_node(expression, child).unwrap()
+        }
+        _ => break
+      }
     }
     guard root.kind is Reference(path) else {
       raise Abort(UnsupportedAggregate)
     }
-    if resolve(path) is Some(field) {
-      fields.push(field)
-      continue
+    if !explicit_property {
+      if resolve(path) is Some(field) {
+        fields.push(field)
+        continue
+      }
     }
-    let mut receiver = false
+    // Explicit Property nodes keep their receiver AST. Do not concatenate
+    // members into a path that could instead resolve as a range qualifier.
+    let mut receiver = explicit_property && resolve(path) is Some(_)
     for length = 1; length < path.length(); length = length + 1 {
       if resolve(path[:length].to_owned()) is Some(_) {
         receiver = true

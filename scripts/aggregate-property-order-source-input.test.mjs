@@ -15,6 +15,17 @@ test('collection orders discriminate input properties, current slots and indepen
   assert.deepEqual(expected('input-over-sibling'), [{payload: 5, names: 'b|b|a|c'}]);
   assert.deepEqual(expected('filtered-input'), [{names: 'b|b|a'}]);
   assert.deepEqual(expected('empty-global'), [{names: null}]);
+  for (const name of ['parenthesized-receiver', 'parenthesized-qualified-receiver', 'parenthesized-range-collision']) {
+    assert.deepEqual(expected(name), [{names: 'b|b|a|c'}]);
+  }
+  assert.deepEqual(expected('parenthesized-receiver-empty'), [{names: null}]);
+  const collision = successes.find(item => item.name.endsWith('parenthesized-range-collision'));
+  assert.ok(collision.text.includes('other.score AS score FROM objects'));
+  assert.ok(collision.text.includes('ORDER BY (payload).score NULLS LAST, id'));
+  assert.ok(collision.text.endsWith('FROM colliding AS payload'));
+  // Flattening the explicit object receiver into a range-qualified column
+  // would instead order by other.score and concatenate a|c|b|b.
+  assert.notDeepEqual(collision.expected, [{names: 'a|c|b|b'}]);
   const sql = successes.find(item => item.name.endsWith('-sql'));
   assert.deepEqual([sql.parameters.p1.score, sql.parameters.p2.score, sql.parameters.p3], [20, 10, null]);
   assert.deepEqual([sql.parameters.o1.score, sql.parameters.o2.score, sql.parameters.o3.score], [5, 30, 15]);
@@ -50,7 +61,7 @@ test('collection order cases retain one source acquisition and standard installe
   assert.equal(groups[0].name, 'standard');
   assert.equal(Object.hasOwn(groups[0].capacity, 'max_execution_bytes'), false);
   assert.deepEqual(['successes', 'refusals', 'executionFailures']
-    .map(kind => groups[0].inputs[kind].length), [20, 10, 1]);
+    .map(kind => groups[0].inputs[kind].length), [24, 10, 1]);
 });
 
 test('delimiter chunk expectations distinguish decoded, raw and decomposed values', () => {
