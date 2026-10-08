@@ -834,7 +834,8 @@ for (const [entrance, open] of Object.entries(entrances)) {
       // The independent missing declaration is still an outstanding bound
       // obligation; its Requirement must survive the nested supplied violation.
       assert.deepEqual(outcome.report.coverage,
-        {limits: [{code: 'bound_values_missing'}], unresolved: protectedSource});
+        {limits: [{code: 'bound_values_missing'}], unresolved: protectedSource},
+        '[check-mutation:nested-missing-coverage]');
       const declared = getCheckInput(outcome, 'parameter_declarations');
       assert.deepEqual(outcome.report.requirements, [{code: 'parameter_value_required',
         facts: {parameter: 'missing', expected_type: 'string', admission: {
