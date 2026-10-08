@@ -501,5 +501,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
 
   return Object.freeze({environmentWire, connectorRegistration, connectorRevision,
     connectorBindings: Object.freeze([{connectorId, bindingCid}]),
+    effectSelectors: Object.freeze(installed.map(target => Object.freeze({
+      kind: 'store', target: target.targetRef, mappingRef: target.mappingRef,
+      mappingCid: target.mappingCid, effectId: target.effectId}))),
     prepareCaptured, prepareRecovered, close() {}});
 }
