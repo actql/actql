@@ -178,9 +178,8 @@ pub fn numeric_literal(text : String) -> Result[Double, Issue] {
 
 ///|
 fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort {
-  if path.any(part => part.quoted) {
-    raise Abort(UnsupportedFunction)
-  }
+  // The syntax owner has decoded quoted name parts. Quotation does not change
+  // the installed function namespace, overloads or case-insensitive lookup.
   if path.length() == 2 &&
     upper(path[0].value) == "ACTQL" &&
     upper(path[1].value) == "CONCAT" {

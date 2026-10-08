@@ -28,14 +28,17 @@ fn append_order_grouped_expression(
       let matches = projections.filter(projection => {
         let name = match projection.name {
           Some(name) => Some(name.value)
-          None => match projection.expression {
-            Some(value) => match @query.expression_node(value, @query.expression_root(value)).unwrap().kind {
-              Reference(source) => Some(source.last().unwrap().value)
-              Property(_, name) => Some(name.value)
-              _ => None
+          None =>
+            match projection.expression {
+              Some(value) =>
+                match
+                  @query.expression_node(value, @query.expression_root(value)).unwrap().kind {
+                  Reference(source) => Some(source.last().unwrap().value)
+                  Property(_, name) => Some(name.value)
+                  _ => None
+                }
+              None => None
             }
-            None => None
-          }
         }
         // Use ORDER's exported-name rules for explicit and implicit aliases.
         name is Some(value) && same_name(path[0], { value, quoted: false, })

@@ -45,6 +45,8 @@ pub(all) struct Context {
   parameter_declarations : @parameters.Declarations?
   inputs : Array[Input]
   input_schemas : Array[(String, @schema.Schema)]
+  // Actual admitted Catalog; schema-only attachments do not establish Source provenance.
+  source_catalog : @environment.SourceRequestContracts?
   // Exact selected contract owner; this does not authorize model execution.
   model_tasks : @environment.ModelTasks?
 }
@@ -95,6 +97,8 @@ priv suberror Abort {
 priv struct Construction {
   builder : @builder.Builder
   generated : @origin.Origin
+  // Published contract owner for resolving named INFER INPUT fields only.
+  model_tasks : @environment.ModelTasks?
 }
 
 ///|
@@ -2271,7 +2275,9 @@ fn compile_steps(
           // SQL star names the input row, before grouping removes columns or
           // adds aggregate slots. Every expanded value must still be grouped.
           sql_group_expression_input_scope = Some({
-            visible: unnest_expression_columns(input_visible, value_table_receivers),
+            visible: unnest_expression_columns(
+              input_visible, value_table_receivers,
+            ),
             ranges: input_ranges.copy(),
           })
           sql_group_input_columns = input_visible.copy()
@@ -2928,8 +2934,8 @@ fn compile_steps(
                 (
                   slot,
                   append_grouped_expression(
-                    construction, expression, grouped_keys, resolve_input,
-                    scalar_visible, scalar_ranges, max_work,
+                    construction, expression, grouped_keys, resolve_input, scalar_visible,
+                    scalar_ranges, max_work,
                   ),
                 ),
               )
@@ -3461,17 +3467,27 @@ fn compile_steps(
             ranges: pipe_ranges,
           }
         }
-        let lower_select_expression = fn(expression : @query.Expression) -> @builder.Node raise Abort {
+        let lower_select_expression = fn(
+          expression : @query.Expression,
+        ) -> @builder.Node raise Abort {
           if sql_group_projection {
             let input_scope = sql_group_expression_input_scope.unwrap()
             append_grouped_expression(
-              construction, expression, grouped_keys,
+              construction,
+              expression,
+              grouped_keys,
               path => pipe_slot(path, input_scope.visible, input_scope.ranges),
-              expression_scope.visible, expression_scope.ranges, max_work,
+              expression_scope.visible,
+              expression_scope.ranges,
+              max_work,
             )
           } else {
             append_pipe_expression(
-              construction, expression, expression_scope.visible, expression_scope.ranges, max_work,
+              construction,
+              expression,
+              expression_scope.visible,
+              expression_scope.ranges,
+              max_work,
             )
           }
         }
@@ -3580,10 +3596,7 @@ fn compile_steps(
                         )
                         physical.push(slot)
                         derives.push(
-                          (
-                            slot,
-                            lower_select_expression(expression),
-                          ),
+                          (slot, lower_select_expression(expression)),
                         )
                         slot
                       }
@@ -3591,12 +3604,7 @@ fn compile_steps(
                   _ => {
                     let slot = pipe_physical_name(physical, "aql_pipe_expr_")
                     physical.push(slot)
-                    derives.push(
-                      (
-                        slot,
-                        lower_select_expression(expression),
-                      ),
-                    )
+                    derives.push((slot, lower_select_expression(expression)))
                     slot
                   }
                 }
@@ -3830,9 +3838,19 @@ fn compile_steps(
                       let scope = sql_group_select_scope.unwrap()
                       let input_scope = sql_group_expression_input_scope.unwrap()
                       append_grouped_expression(
-                        construction, expression, grouped_keys,
-                        path => pipe_slot(path, input_scope.visible, input_scope.ranges),
-                        scope.visible, scope.ranges, max_work,
+                        construction,
+                        expression,
+                        grouped_keys,
+                        path => {
+                          pipe_slot(
+                            path,
+                            input_scope.visible,
+                            input_scope.ranges,
+                          )
+                        },
+                        scope.visible,
+                        scope.ranges,
+                        max_work,
                       )
                     } else {
                       append_expression(
@@ -4522,7 +4540,11 @@ pub fn compile(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let dependencies = nearest_dependencies(query, context.inputs)
     let reused_query_source = dependencies.any(other => other.name == input.name)
@@ -4767,7 +4789,11 @@ fn compile_cte_query(
     Ok(value) => value
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let stages : Array[@builder.Node] = []
     let used_stage_names : Array[String] = []
@@ -5727,7 +5753,11 @@ fn compile_set_query(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let (stages, _) = compile_set_stages(
       construction, query, context, limits, "",
@@ -7151,7 +7181,11 @@ fn compile_join_query(
     Ok(value) => value
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+  }
   try {
     let part = @query.join_part_at(query, 0).unwrap()
     // A FULL JOIN requires stable row identity on both sides. Generated
