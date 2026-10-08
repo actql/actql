@@ -36,8 +36,8 @@ target, so independent INFER receipts in the same Run cannot overwrite each
 other. The Source example terminates its actual Host/execution process before
 another process reopens the user sink and supplies saved references to an
 independent evaluator. Restoring and evaluating Evidence has no Source,
-Compute or Model execution callback. This establishes completed-Run Evidence
-restoration, not resumption of a partially executed multi-INFER Run.
+Compute or Model execution callback. The completed-Run example establishes
+Evidence restoration separately from the interrupted-Run cases below.
 The ordinary Effect-free Host binds an explicit unknown-provenance Result
 Policy original; Model egress is never used as its substitute. For a
 Source-backed compiled Run, Evidence retains its actual checked Result policy
@@ -109,6 +109,40 @@ rather than delivery position, establish the associations. Unicode/newline
 fixtures are separate from the A/B quality rubric. This fixture demonstrates
 the connection; it makes no real-model quality claim.
 
+## Interrupted original-Run continuation
+
+The same Source-backed fixture also covers two durable interruption points:
+after both first-INFER responses have been saved, before any second-INFER send;
+and after the second-INFER approval Checkpoint has been committed. The first
+Host process exits at those hooks. A different process uses public
+`lookupSubmission` and `attach` with the original Submission and Run reference.
+Source acquisition remains one call, saved first-INFER calls are not resent,
+and only the second INFER's two unsent calls continue. Deferred calls remain
+unsent until the original Checkpoint is approved. Its review projection and
+scope are restored exactly, rather than rebuilt from current array positions.
+
+Opt-in Evidence preserves prepared physical input and known context in the
+existing encrypted fixed-input receipt before sending. Capture permission and
+copy capacity are required independently of Model dispatch. Missing permission,
+originals or budget leaves Evidence unavailable without changing ordinary Run
+execution. Restored Evidence compares the authenticated original call and typed
+input, and never renders a historical request through the current provider.
+After publication the same independent evaluator checks all four original
+target/item/attempt associations and exact Unicode/newline strings.
+
+These two cases do not establish provider-only response reconciliation,
+response-less unknown continuation, or all cleanup-restart refusal cases. Those
+remain separate requirements of the full interrupted-Run recovery unit.
+
+Run only these public source cases with the existing process timeouts:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-name-pattern '^public (local|https) (resumes the original|restores original approval)' adapters/host-node/source-multi-infer-evidence-public.test.mjs
+```
+
+Source checks are not evidence of clean fixed-SHA distribution acceptance;
+the packed command below supplies that separate package boundary.
+
 Run the focused source acceptance with the pinned toolchain environment:
 
 ```sh
@@ -146,5 +180,5 @@ owner records `SubmissionPreparationFailed` / `ClientProgramRejected`, and
 the downstream provider send count remains zero. It is not treated as malformed
 language. The example neither invents another egress contract nor executes a
 rejected pipeline. Planner task splitting, provider batch dispatch, Graph/text
-expansion, Cloud, and partial multi-INFER execution recovery are not acceptance
-claims for this unit.
+expansion and Cloud are not acceptance claims for this unit. Interrupted-Run
+coverage is limited to the explicitly listed durable cases above.

@@ -17,8 +17,8 @@ if (runtime === undefined) await (await import('./fixtures/source-node-client.mj
 const {expectedItems, instructionsA, instructionsB, unchangedInstructions} =
   await import(runtime?.sourceInferFixture ?? '../../scripts/fixtures/source-multi-infer-evidence.mjs');
 const worker = fileURLToPath(new URL('./source-multi-infer-evidence-worker.fixture.mjs', import.meta.url));
-async function executeHost(root, transport, scenario = 'unicode', observationMode = 'disabled') {
-  const child = spawn(process.execPath, [worker, root, transport, scenario, observationMode], {stdio: ['ignore', 'pipe', 'pipe']});
+async function executeHost(root, transport, scenario = 'unicode', observationMode = 'disabled', phase = 'complete', expectedCode = 0) {
+  const child = spawn(process.execPath, [worker, root, transport, scenario, observationMode, phase], {stdio: ['ignore', 'pipe', 'pipe']});
   let output = '', bytes = 0, exceeded = false;
   const collect = chunk => {
     bytes += chunk.length;
@@ -36,9 +36,115 @@ async function executeHost(root, transport, scenario = 'unicode', observationMod
     });
     assert.equal(expired, false, output);
     assert.equal(exceeded, false, output);
-    assert.deepEqual(exit, {code: 0, signal: null}, output);
+    assert.deepEqual(exit, {code: expectedCode, signal: null}, output);
     return child.pid;
   } finally {clearTimeout(timer); clearTimeout(hardStop);}
+}
+
+async function evaluateOriginalInventory(sink, saved) {
+  const associations = [], attempts = new Set();
+  for (const target of ['second_assessment', 'first_assessment']) {
+    const receipt = await sink.lookup(saved.subject, target);
+    assert.equal(receipt.manifest.status, 'complete');
+    assert.equal(receipt.manifest.items.length, 2);
+    for (const item of [...receipt.manifest.items].reverse()) {
+      const job = {subject: saved.subject, evidence: {...receipt.manifest, ...item},
+        caseId: `${target}-${item.modelCallSlotCid}`, expected: 'low', role: 'selection',
+        deadline: Date.now() + 10000};
+      const reply = await sink.withEvaluatorEvidence({subject: saved.subject,
+        attemptCid: item.attemptCid, references: item.references}, async resolvedEvidence => {
+        const facts = checkModelCaptureCorrespondence(job, checkResolvedEvidence(job, resolvedEvidence));
+        const sent = saved.calls.filter(call => call.slotCid === item.modelCallSlotCid);
+        assert.equal(sent.length, 1);
+        assert.deepEqual(sent[0].key, facts.typedInput.key);
+        assert.equal(sent[0].taskCid, facts.typedInput.model_task_contract_cid);
+        assert.equal(sent[0].semanticRequestCid, facts.typedInput.semantic_request_cid);
+        assert.deepEqual(facts.renderedInput, {instructions: sent[0].instructions, text: sent[0].text});
+        associations.push({target, key: facts.typedInput.key,
+          keyContracts: facts.typedInput.key_contracts, text: facts.typedInput.inputs.text});
+        attempts.add(item.attemptCid);
+        assert.equal(JSON.parse(item.references.typedInput.policy.wire).unknown_provenance, true);
+        assert.deepEqual(JSON.parse(item.references.typedInput.policy.wire).source_data_policy_cids,
+          [saved.originalSourcePolicy]);
+        return runEvaluatorProcess({job, resolvedEvidence, deadline: job.deadline,
+          onProcess(pid) {assert.notEqual(pid, process.pid);}});
+      });
+      assert.equal(reply.score, 1);
+    }
+  }
+  associations.sort((a, b) => a.target.localeCompare(b.target) || a.key[0] - b.key[0]);
+  assert.deepEqual(associations, expectedItems);
+  assert.equal(attempts.size, 4);
+  assert.equal(sink.pendingBytes(), 0);
+  assert.equal(sink.cleanupPending(), false);
+  return associations;
+}
+
+for (const transport of ['local', 'https']) {
+  test(`public ${transport} restores original approval materials for the second Source-backed INFER`, {timeout: 180000}, async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-approval-'));
+    let complete = false;
+    t.after(async () => {
+      if (complete && !runtime?.preserveArtifacts && process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') await rm(root, {recursive: true, force: true});
+      else t.diagnostic(`Retained Model approval Run: ${root}`);
+    });
+    const firstPid = await executeHost(root, transport, 'unicode', 'disabled', 'stop-second-waiting', 77);
+    const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+    assert.equal(stopped.pid, firstPid);
+    assert.equal(stopped.boundary, 'infer_waiting_checkpoint');
+    assert.equal(stopped.calls.length, 2);
+    assert.equal(stopped.sourceCalls, 1);
+    assert.deepEqual(stopped.calls.map(call => call.instructions), ['Return the original text.', 'Return the original text.']);
+    const originalRef = JSON.parse(await readFile(join(root, 'run-ref.json'), 'utf8'));
+    const restoredPid = await executeHost(root, transport, 'unicode', 'disabled', 'approve-second');
+    assert.notEqual(firstPid, restoredPid);
+    const saved = JSON.parse(await readFile(join(root, 'recovery.json'), 'utf8'));
+    assert.deepEqual(saved.ref, originalRef);
+    assert.equal(saved.terminal.status, 'succeeded');
+    assert.equal(saved.sourceCalls, 1);
+    assert.equal(saved.calls.length, 4);
+    assert.deepEqual(saved.calls.slice(0, 2), stopped.calls);
+    const sink = await createCaptureSink({directory: join(root, 'evidence'),
+      destination: 'local:source-multi-infer-evaluator', maxBytes: 131072,
+      maxPendingBytes: 1048576, retentionMs: 300000, authorize: () => true});
+    await evaluateOriginalInventory(sink, saved);
+    complete = true;
+  });
+
+  test(`public ${transport} resumes the original two-INFER Run after the first response set is saved`, {timeout: 180000}, async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-recovery-'));
+    let complete = false;
+    t.after(async () => {
+      if (complete && !runtime?.preserveArtifacts && process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') await rm(root, {recursive: true, force: true});
+      else t.diagnostic(`Retained interrupted Run: ${root}`);
+    });
+    const firstPid = await executeHost(root, transport, 'unicode', 'disabled', 'stop-first-saved', 77);
+    const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+    assert.equal(stopped.pid, firstPid);
+    assert.equal(stopped.boundary, 'infer_model_settlement_committed');
+    assert.equal(stopped.calls.length, 2);
+    assert.equal(stopped.sourceCalls, 1);
+    assert.deepEqual(stopped.calls.map(call => call.instructions), ['Return the original text.', 'Return the original text.']);
+    const originalRef = JSON.parse(await readFile(join(root, 'run-ref.json'), 'utf8'));
+    const restoredPid = await executeHost(root, transport, 'unicode', 'disabled', 'resume');
+    assert.notEqual(firstPid, restoredPid);
+    const restored = JSON.parse(await readFile(join(root, 'recovery.json'), 'utf8'));
+    assert.deepEqual(restored.ref, originalRef);
+    assert.equal(restored.terminal.status, 'succeeded');
+    assert.equal(restored.sourceCalls, 1);
+    assert.equal(restored.calls.length, 4);
+    assert.deepEqual(restored.calls.slice(0, 2), stopped.calls);
+    assert.equal(new Set(restored.calls.map(call => call.slotCid)).size, 4);
+    assert.equal(restored.manifests.length, 2);
+    assert(restored.manifests.every(receipt => receipt.manifest.status === 'complete' && receipt.manifest.items.length === 2));
+    const sink = await createCaptureSink({directory: join(root, 'evidence'),
+      destination: 'local:source-multi-infer-evaluator', maxBytes: 131072,
+      maxPendingBytes: 1048576, retentionMs: 300000, authorize: () => true});
+    await evaluateOriginalInventory(sink, restored);
+    assert.equal((await readFile(join(root, 'provider-calls.jsonl'), 'utf8')).trim().split('\n').length, 4);
+    assert.equal((await readFile(join(root, 'source-calls.jsonl'), 'utf8')).trim().split('\n').length, 1);
+    complete = true;
+  });
 }
 
 for (const transport of ['local', 'https']) {
@@ -66,43 +172,9 @@ for (const transport of ['local', 'https']) {
       now: () => at,
       authorize: facts => readAllowed && facts.destination === destination &&
         (facts.purpose !== 'external_evaluation' || sendAllowed)});
-    const associations = [], attempts = new Set();
-    // Delivery order is deliberately reversed across targets and calls. Slots
-    // are matched by their original identities, never the delivery ordinal.
-    for (const target of ['second_assessment', 'first_assessment']) {
-      const receipt = await sink.lookup(subject, target);
-      assert.equal(receipt.manifest.status, 'complete');
-      assert.equal(receipt.manifest.items.length, 2);
-      for (const item of [...receipt.manifest.items].reverse()) {
-        const job = {subject, evidence: {...receipt.manifest, ...item}, caseId: `${target}-${item.modelCallSlotCid}`,
-          expected: 'low', role: 'selection', deadline: Date.now() + 10000};
-        const reply = await sink.withEvaluatorEvidence({subject, attemptCid: item.attemptCid,
-          references: item.references}, async resolvedEvidence => {
-          const facts = checkModelCaptureCorrespondence(job, checkResolvedEvidence(job, resolvedEvidence));
-          const sent = saved.calls.filter(call => call.slotCid === item.modelCallSlotCid);
-          assert.equal(sent.length, 1);
-          assert.deepEqual(sent[0].key, facts.typedInput.key);
-          assert.equal(sent[0].taskCid, facts.typedInput.model_task_contract_cid);
-          assert.equal(sent[0].semanticRequestCid, facts.typedInput.semantic_request_cid);
-          assert.deepEqual(facts.renderedInput, {instructions: sent[0].instructions, text: sent[0].text});
-          associations.push({target, key: facts.typedInput.key,
-            keyContracts: facts.typedInput.key_contracts, text: facts.typedInput.inputs.text});
-          attempts.add(item.attemptCid);
-          assert.equal(JSON.parse(item.references.typedInput.policy.wire).unknown_provenance, true);
-          assert.deepEqual(JSON.parse(item.references.typedInput.policy.wire).source_data_policy_cids,
-            [saved.originalSourcePolicy]);
-          return runEvaluatorProcess({job, resolvedEvidence, deadline: job.deadline,
-            onProcess(pid) {assert.notEqual(pid, process.pid);}});
-        });
-        assert.equal(reply.score, 1);
-      }
-    }
-    associations.sort((a, b) => a.target.localeCompare(b.target) || a.key[0] - b.key[0]);
-    assert.deepEqual(associations, expectedItems);
-    assert.equal(attempts.size, 4);
-    assert.equal(saved.calls.length, 4);
-    assert.equal(sink.pendingBytes(), 0);
-    assert.equal(sink.cleanupPending(), false);
+    // Reuse the same identity and reversed-delivery checks after either
+    // completed-Run restoration or interrupted original-Run continuation.
+    const associations = await evaluateOriginalInventory(sink, saved);
     const receipt = await sink.lookup(subject, 'first_assessment');
     const item = receipt.manifest.items[0];
     const request = {subject, attemptCid: item.attemptCid, references: item.references};

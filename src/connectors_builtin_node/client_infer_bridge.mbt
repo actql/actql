@@ -264,7 +264,19 @@ pub fn client_program_bind_compiled_infer_result_policy(
 pub fn client_program_model_request_input_frame(
   request : @model.ModelRequest,
 ) -> String? {
-  let writer = @encode.writer(65536, 10000, 64) catch { _ => return None }
+  client_program_model_request_input_frame_bounded(request, 65536)
+}
+
+///|
+#export_name("clientProgramModelRequestInputFrameBounded")
+pub fn client_program_model_request_input_frame_bounded(
+  request : @model.ModelRequest,
+  max_bytes : Int,
+) -> String? {
+  if max_bytes < 1 || max_bytes > 65536 {
+    return None
+  }
+  let writer = @encode.writer(max_bytes, 10000, 64) catch { _ => return None }
   try {
     @encode.begin_object(writer)
     for
@@ -2198,6 +2210,26 @@ pub fn client_program_infer_prepared_input_artifact(
   value : @model.ModelPreparedCallSet,
 ) -> @publication.RunEvidenceValue? {
   @model.prepared_model_input_artifact(value)
+}
+
+///|
+#export_name("clientProgramInferPreparedRequest")
+pub fn client_program_infer_prepared_request(
+  value : @model.ModelPreparedCallSet,
+  slot : Int,
+) -> @model.ModelRequest? {
+  @model.prepared_model_request(value, slot)
+}
+
+///|
+#export_name("clientProgramInferPreparedPhysicalRequest")
+pub fn client_program_infer_prepared_physical_request(
+  value : @model.ModelPreparedCallSet,
+  slot : Int,
+) -> (@model.ModelRequest, String, String)? {
+  @model.prepared_model_physical_request(value, slot).map(pair => {
+    (pair.0, pair.1.rendered_input, pair.1.context_manifest)
+  })
 }
 
 ///|

@@ -206,6 +206,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return closeFlight;
   }
 
+  let originalPreparedCallSet;
   const operation = Object.freeze({run, stop, close, cleanup,
     installSettlementCleanup(callback) {
       if (cleanupSettlement !== undefined || typeof callback !== 'function') {
@@ -225,7 +226,24 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),
     invocationEvidence: slot => moon.clientProgramInferInvocationEvidence(active,
       slot),
-    evaluationRequest: slot => moon.clientProgramInferEvaluationRequest(active, slot),
+    evaluationRequest: slot => {
+      const physical = moon.clientProgramInferEvaluationRequest(active, slot);
+      if (physical !== undefined) return physical;
+      if (restoredInput?.token.available !== true ||
+          moon.clientProgramInferInvocationEvidence(active, slot) === undefined) return undefined;
+      const prepared = originalPreparedCallSet;
+      if (prepared === undefined) return undefined;
+      const request = moon.clientProgramInferPreparedRequest(prepared, slot);
+      const call = moon.clientProgramInferPreparedCallAt(prepared, slot);
+      if (request === undefined || call === undefined) return undefined;
+      const callWire = moon.strategyRunEvidenceJson(call);
+      const saved = restoredInput.snapshot.providerInputs?.find(item => item.callWire === callWire);
+      // This reads authenticated original strings. A current preflight must
+      // never rebuild missing historical provider input or context.
+      if (saved === undefined || saved.typedInputWire !== moon.clientProgramModelRequestInputFrame(request)) return undefined;
+      return {_0: request, _1: saved.renderedInput, _2: saved.contextManifest};
+    },
+    preparedPhysicalRequest: (prepared, slot) => moon.clientProgramInferPreparedPhysicalRequest(prepared, slot),
     // The ordinary publication control owns compilation and contract tokens.
     // It passes the original owner to MoonBit, never recompiling this Program.
     bindRun: (control, {compiled, runDefinition}) =>
@@ -243,6 +261,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         current: () => moon.clientProgramInferPreparedInputExportMatches(active, preparedCallSet, exported)});
     },
     preparedFacts: preparedCallSet => {
+      originalPreparedCallSet = preparedCallSet;
       const count = moon.clientProgramInferPreparedCallCount(preparedCallSet);
       const input = moon.clientProgramInferPreparedInput(preparedCallSet);
       const artifact = moon.clientProgramInferPreparedInputArtifact(preparedCallSet);

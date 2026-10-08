@@ -751,6 +751,10 @@ pub fn client_program_infer_prepared_input_export_matches(@client_infer_host.Exe
 
 pub fn client_program_infer_prepared_input_export_rows(@client_local_host.ClientInferRetainedInputExport) -> Array[String]
 
+pub fn client_program_infer_prepared_physical_request(@model_execution.ModelPreparedCallSet, Int) -> (@model_execution.ModelRequest, String, String)?
+
+pub fn client_program_infer_prepared_request(@model_execution.ModelPreparedCallSet, Int) -> @model_execution.ModelRequest?
+
 pub fn client_program_infer_provider_id(@check_environment.ModelExecutionContract) -> String
 
 pub fn client_program_infer_publication_advance(@client_infer_host.ResultPublication, Int) -> Result[(Bool, Int), @client_infer_host.ResultPublicationIssue]
@@ -1012,6 +1016,8 @@ pub fn client_program_model_provider_binding(String, String, String, String) -> 
 pub fn client_program_model_request_input(@model_execution.ModelRequest, String) -> String?
 
 pub fn client_program_model_request_input_frame(@model_execution.ModelRequest) -> String?
+
+pub fn client_program_model_request_input_frame_bounded(@model_execution.ModelRequest, Int) -> String?
 
 pub fn client_program_model_request_preflight(() -> (Bool, @model_execution.ModelPhysicalRequestPlan?), () -> Bool) -> @model_execution.ModelRequestPreflight
 

@@ -92,6 +92,60 @@ test "evaluation retains the invoked physical originals only while the adopted o
 }
 
 ///|
+test "prepared physical originals can be retained without invoking or granting a call" {
+  let calls = Ref(0)
+  let active = contract_capacity_start(calls, 2, 133072L)
+  guard active.source is Physical(provider) else { abort("physical fixture") }
+  require_model_call_entry(active).unwrap()
+  bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
+  bind_physical_preflight(active, request => {
+    Ok({
+      advance: () => {
+        @model.model_physical_request_plan(
+          request,
+          1000L,
+          { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+          () => (provider.invoke)(request),
+          evidence={
+            rendered_input: "é\r\n" + request.slot.to_string(),
+            context_manifest: "{\"unknown\":true}",
+          },
+        ).map(value => Some(value))
+      },
+      cleanup: () => true,
+    })
+  }).unwrap()
+  guard fixture_finish(active) is Waiting(work~) else {
+    abort("prepared call set must wait before any send")
+  }
+  let prepared = prepared_call_set(active).unwrap()
+  for slot in 0..<2 {
+    let (request, original) = @model.prepared_model_physical_request(
+      prepared, slot,
+    ).unwrap()
+    assert_eq(request.slot, slot)
+    assert_eq(original.rendered_input, "é\r\n" + slot.to_string())
+    assert_eq(original.context_manifest, "{\"unknown\":true}")
+    assert_true(
+      physical_equal(
+        request,
+        @model.prepared_model_request(prepared, slot).unwrap(),
+      ),
+    )
+  }
+  assert_eq(calls.val, 0)
+  assert_true(@model.prepared_model_request(prepared, 2) is None)
+  assert_true(@model.prepared_model_physical_request(prepared, 2) is None)
+  assert_true(cancel(active))
+  assert_true(fixture_finish(active, initial_work=work) is Stopped(_))
+  assert_true(!cleanup(active).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_true(@model.prepared_model_request(prepared, 0) is None)
+  assert_true(@model.prepared_model_physical_request(prepared, 0) is None)
+  assert_eq(calls.val, 0)
+}
+
+///|
 test "optional physical Evidence overflow stays missing without changing ordinary calls" {
   let calls = Ref(0)
   let active = contract_capacity_start(calls, 2, 133072L)

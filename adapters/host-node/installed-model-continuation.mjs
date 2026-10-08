@@ -8,6 +8,8 @@ import {bytesCid, contentCid} from './local-account-config.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
+import {MAX_MODEL_INPUT_BYTES} from './client-checkpoints.mjs';
+import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -34,7 +36,7 @@ const roles = ['model_call_attempt', 'model_attempt_accounting', 'model_attempt_
   'model_dispatch_authority', 'model_slot_capture', 'model_capture_bundle'];
 
 export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,
-  authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation}) {
+  authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation, inferEvidence}) {
   const runtime = await loadCheckpointRuntime();
   const custody = new Map();
   const live = new WeakMap();
@@ -227,7 +229,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     return result;
   }
   async function openOwned({operation, preparedCallSet, plan, selected, principalId,
-    declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort, sourceContinuation}, ownership) {
+    declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort,
+    sourceContinuation, retainEvidenceCopy}, ownership) {
     const cp = checkpoints();
     const facts = operation.preparedFacts(preparedCallSet);
     const run = JSON.parse(plan.runDefinition.wire);
@@ -282,15 +285,30 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         preparedInvocationWire: plan.compiled.preparedEvidence.wire, scopeWire: scope.wire,
         providerBindingWire: binding.wire, inputArtifactWire: input.wire,
         slotWires: [...facts.slotWires], expectedBoundary};
-      const snapshot = {version: 'actql-installed-model-input/0.1', scopeCid: scope.identity,
+      let snapshot = {version: 'actql-installed-model-input/0.1', scopeCid: scope.identity,
         inputArtifactCid: input.identity, originals, binding: fixedBinding,
         descriptorWire: exported.descriptorWire, rows: [...exported.rows],
         callScopeSnapshotWire: facts.callScopeSnapshotWire,
         providerOriginals: binding.originals, submission,
         ...(sourceContinuation === undefined ? {} : {sourceContinuation})};
-      const bodyWire = canonicalJson(snapshot);
-      const receipt = await cp.retainModelInput({runId: run.run_id,
-        runDefinitionCid: plan.runDefinition.identity, bodyWire});
+      let bodyWire = canonicalJson(snapshot);
+      const receipt = await withPreparedInferEvidence({configuration: inferEvidence,
+        moon, control, plan, selected, preparedCallSet, operation, authorityScopeCid,
+        retainCopy: retainEvidenceCopy,
+        consume(providerInputs) {
+          if (providerInputs !== undefined) {
+            const candidate = {...snapshot, providerInputs};
+            const candidateWire = canonicalJson(candidate);
+            // Optional preservation shares the existing custody ceiling.
+            // Missing capture remains incomplete; it cannot fail Model work.
+            if (Buffer.byteLength(candidateWire) <= MAX_MODEL_INPUT_BYTES) {
+              snapshot = candidate;
+              bodyWire = candidateWire;
+            }
+          }
+          return cp.retainModelInput({runId: run.run_id,
+            runDefinitionCid: plan.runDefinition.identity, bodyWire});
+        }});
       if (!exported.current()) fail('ModelInputOwnerChangedDuringCommit');
       const receiptWire = canonicalJson(receipt);
       originals = {...originals, fixedInputReceiptWire: receiptWire};

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
+import {appendFileSync, existsSync, readFileSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
-import {generateKeyPairSync} from 'node:crypto';
+import {generateKeyPairSync, sign} from 'node:crypto';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import {inspect} from 'node:util';
@@ -25,9 +26,10 @@ const {canonical} = await import(runtime?.inferFixture ?? '../../scripts/fixture
 const {program, modelConfiguration, sourceEnvironment, scenarios, instructionsA} =
   await import(runtime?.sourceInferFixture ?? '../../scripts/fixtures/source-multi-infer-evidence.mjs');
 const checked = result => {assert.equal(result.$tag, 1); return result._0;};
-const [root, transport, scenarioName = 'unicode', observationMode = 'disabled'] = process.argv.slice(2);
+const [root, transport, scenarioName = 'unicode', observationMode = 'disabled', phase = 'complete'] = process.argv.slice(2);
 assert(root && ['local', 'https'].includes(transport) && scenarios[scenarioName]);
 const scenario = scenarios[scenarioName];
+const approval = ['stop-second-waiting', 'approve-second'].includes(phase);
 let client, host, server, collector, telemetry, otlpRequests = 0;
 try {
   const base = JSON.parse(await readFile(runtime?.environment ?? new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
@@ -35,27 +37,45 @@ try {
     base.host_policy_profile);
   const database = join(root, 'source.duckdb');
   const {DuckDBInstance} = createRequire(runtime?.duckdbRequire ?? new URL('../connectors/duckdb/node/package.json', import.meta.url))('@duckdb/node-api');
+  const initialize = !existsSync(database);
   const instance = await DuckDBInstance.create(database);
   const connection = await instance.connect();
   try {
-    await connection.run('CREATE TABLE records(id DOUBLE, amount VARCHAR)');
-    for (const row of scenario.rows) {
+    if (initialize) await connection.run('CREATE TABLE records(id DOUBLE, amount VARCHAR)');
+    for (const row of initialize ? scenario.rows : []) {
       const insert = await connection.prepare('INSERT INTO records VALUES (?, ?)');
       try {insert.bindDouble(1, row.id); insert.bindVarchar(2, row.amount); await insert.run();}
       finally {insert.destroySync();}
     }
   } finally {connection.closeSync(); instance.closeSync();}
+  const installed = modelConfiguration(base, scenario);
   const accountConfiguration = canonical({version: 'actql-execution-account-config/0.1', account_id: 'source-evidence-fixture',
-    entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true}, connection: {all: true},
+    entries: approval ? [
+      {entry_id: 'first-infer', outcome: 'allow', principal: {all: true}, connection: {all: true},
+        resource: {any_of: [installed.tasks[0].contract_cid]}, operation: {any_of: ['infer']}, exclusions: []},
+      {entry_id: 'second-infer', outcome: 'delegate', principal: {all: true}, connection: {all: true},
+        resource: {any_of: [installed.tasks[1].contract_cid]}, operation: {any_of: ['infer']}, exclusions: []},
+      {entry_id: 'source', outcome: 'allow', principal: {all: true}, connection: {all: true},
+        resource: {all: true}, operation: {any_of: ['read', 'write']}, exclusions: []},
+    ] : [{entry_id: 'allow', outcome: 'allow', principal: {all: true}, connection: {all: true},
       resource: {all: true}, operation: {all: true}, exclusions: []}]});
   const sourceProfilePath = join(root, 'source-profile.json');
   await writeFile(sourceProfilePath, canonical({version: 'actql-installed-duckdb-source/0.1', database,
     schema: 'main', table: 'records', sourceRef: 'connector://crm/main/r#v',
     acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
     checkEnvironmentWire: canonical(source), accountConfigurationWire: accountConfiguration}));
-  const installed = modelConfiguration(base, scenario);
-  const keys = generateKeyPairSync('ed25519');
-  const observed = [], calls = [];
+  const keyPath = join(root, 'host-keys.json');
+  if (!existsSync(keyPath)) {
+    const keys = generateKeyPairSync('ed25519');
+    await writeFile(keyPath, JSON.stringify({privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'}),
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}), {mode: 0o600});
+  }
+  const keys = JSON.parse(await readFile(keyPath, 'utf8'));
+  const callPath = join(root, 'provider-calls.jsonl');
+  const sourcePath = join(root, 'source-calls.jsonl');
+  const readLines = path => existsSync(path) ? readFileSync(path, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : [];
+  const observed = [], calls = readLines(callPath);
+  let settlements = 0;
   const destination = 'local:source-multi-infer-evaluator';
   const sink = await createCaptureSink({directory: join(root, 'evidence'), destination,
     maxBytes: 131072, maxPendingBytes: 1048576, retentionMs: 300000,
@@ -75,10 +95,31 @@ try {
       maxBytes: 262144, sink, authorize: binding =>
         JSON.parse(binding.policy.wire).unknown_provenance === true},
     authorization: {accountConfiguration,
-      hostKey: {keyId: 'fixture-host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+      hostKey: {keyId: 'fixture-host', privateKey: keys.privateKey},
       reviewers: [{keyId: 'fixture-reviewer', reviewerId: 'fixture-reviewer', principalId: userInfo().username,
-        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
-      observe(name, detail) {observed.push({name, detail});}},
+        publicKey: keys.publicKey}],
+      reviewReaders: [userInfo().username],
+      observe(name, detail) {
+        observed.push({name, detail});
+        if (name === 'acquisition_started') appendFileSync(sourcePath, JSON.stringify({pid: process.pid, detail}) + '\n');
+      },
+      async faultInjection(name, detail) {
+        if (phase === 'stop-first-saved' && name === 'infer_model_settlement_committed' && ++settlements === 2) {
+          writeFileSync(join(root, 'stop.json'), JSON.stringify({pid: process.pid, boundary: name, detail,
+            calls, sourceCalls: readLines(sourcePath).length}));
+          process.exit(77);
+        }
+        if (phase === 'stop-second-waiting' && name === 'infer_waiting_checkpoint') {
+          const page = await client.checkpoints();
+          const summary = page.items.find(item => item.checkpointCid === detail.checkpointCid);
+          assert(summary);
+          const review = JSON.parse(new TextDecoder().decode((await client.reviewCheckpoint(summary)).bytes));
+          assert.equal(calls.length, 2);
+          writeFileSync(join(root, 'stop.json'), JSON.stringify({pid: process.pid, boundary: name, detail,
+            calls, sourceCalls: readLines(sourcePath).length, summary, review}));
+          process.exit(77);
+        }
+      }},
     registerModelProviders: moon => [{providerId: 'models/packed',
       bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-risk-model'}),
       invoke() {assert.fail('unprepared Model dispatch');},
@@ -105,6 +146,7 @@ try {
             calls.push({slotCid: input.model_call_slot_cid,
               semanticRequestCid: input.semantic_request_cid,
               taskCid: task.contract_cid, key: input.key, instructions, text});
+            appendFileSync(callPath, JSON.stringify(calls.at(-1)) + '\n');
             const urgent = first && scenarioName !== 'unicode' &&
               (instructions === instructionsA ? text === 'urgent' : text.toLowerCase() === 'urgent');
             return moon.clientProgramModelResponse(request, canonical({risk: urgent ? 'high' : 'low', reason: text}),
@@ -114,7 +156,7 @@ try {
     }],
   };
   if (transport === 'https') {
-    execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: root, stdio: 'ignore'});
+    if (!existsSync(join(root, 'host.crt'))) execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: root, stdio: 'ignore'});
     const certificate = await readFile(join(root, 'host.crt'));
     setDefaultCACertificates([...getCACertificates('default'), certificate.toString()]);
     host = await openInstalledRemoteHttpHost({...installation, authenticate: header => header === 'Bearer synthetic-evidence' ? userInfo().username : undefined});
@@ -122,16 +164,54 @@ try {
     await once(server, 'listening');
     client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'synthetic-evidence', durability: 'durable'});
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
-  const run = await client.start(program, {submissionRef: client.newSubmission({nonce: 'source-two-infers'})}).catch(error => {
-    console.error(inspect({error, observed, calls}, {depth: 12})); throw error;
-  });
-  const terminal = await run.wait();
+  let run;
+  if (phase === 'resume' || phase === 'approve-second') {
+    const submissionRef = JSON.parse(await readFile(join(root, 'submission-ref.json'), 'utf8'));
+    const found = await client.lookupSubmission(submissionRef);
+    assert.equal(found.kind, 'ready', inspect(found));
+    run = await client.attach(found.admission.ref);
+    assert.deepEqual(run.ref, JSON.parse(await readFile(join(root, 'run-ref.json'), 'utf8')));
+    if (phase === 'approve-second') {
+      const saved = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+      const page = await client.checkpoints();
+      const summary = page.items.find(item => item.checkpointCid === saved.summary.checkpointCid);
+      assert.deepEqual(summary, saved.summary);
+      const review = JSON.parse(new TextDecoder().decode((await client.reviewCheckpoint(summary)).bytes));
+      assert.deepEqual(review, saved.review);
+      assert.equal(calls.length, 2, 'the second INFER must remain unsent before approval');
+      assert.equal((await run.status()).status, 'waiting_checkpoint');
+      const resolution = await client.resolveCheckpoints([{checkpoint: summary, decision: 'approved'}],
+        {signer: {keyId: 'fixture-reviewer', reviewerId: 'fixture-reviewer',
+          sign: bytes => sign(null, bytes, keys.privateKey)}});
+      assert.equal(resolution.results[0].status, 'committed');
+    }
+  } else {
+    const submissionRef = client.newSubmission({nonce: 'source-two-infers'});
+    await writeFile(join(root, 'submission-ref.json'), JSON.stringify(submissionRef));
+    run = await client.start(program, {submissionRef}).catch(error => {
+      console.error(inspect({error, observed, calls}, {depth: 12})); throw error;
+    });
+    await writeFile(join(root, 'run-ref.json'), JSON.stringify(run.ref));
+  }
+  // A public wait may expose durable Waiting before the driver's stop hook.
+  // Only the confirmed hook above ends this child; the parent bounds failure.
+  if (phase === 'stop-second-waiting') {
+    process.once('beforeExit', () => console.error(inspect({observed, calls}, {depth: 8})));
+    await new Promise(() => {});
+  }
+  let terminal = await run.wait();
+  // Resolving a Checkpoint publishes Resuming before its background owner
+  // returns. Observe that transition through the SDK; it is not completion.
+  while (phase === 'approve-second' && ['resuming', 'running'].includes(terminal.status)) {
+    await new Promise(resolve => setTimeout(resolve, 20));
+    terminal = await run.wait();
+  }
   if (terminal.status !== 'succeeded') console.error(inspect({terminal, observed, calls}, {depth: 8}));
   assert.equal(terminal.status, 'succeeded');
   assert.deepEqual(await run.result('answer').all(), scenario.expected);
   assert.equal(calls.length, 4);
-  assert.equal(observed.filter(item => item.name === 'acquisition_started').length, 1);
-  if (scenarioName === 'unicode') {
+  assert.equal(readLines(sourcePath).length, 1);
+  if (scenarioName === 'unicode' && phase === 'complete') {
     const serial = structuredClone(program);
     serial.id = 'unsupported-serial-infer-evidence';
     serial.stages[2].inputs.items.result.stage = 'first';
@@ -163,7 +243,7 @@ try {
   await writeFile(join(root, 'recovery.json'), JSON.stringify({subject, manifests, pid: process.pid,
     scenario: scenarioName, observationMode, otlpRequests, originalSourcePolicy,
     modelTaskCids: installed.tasks.map(task => task.contract_cid),
-    calls, sourceCalls: 1, terminal, revision: runtime?.revision}));
+    calls, sourceCalls: readLines(sourcePath).length, terminal, ref: run.ref, revision: runtime?.revision}));
 } finally {
   await client?.close();
   if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
