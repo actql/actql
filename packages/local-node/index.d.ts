@@ -2,10 +2,14 @@ import type {Client} from '@actql/sdk';
 import type {HostCapacityPolicy} from './host-policy.js';
 export type {HostCapacityPolicy} from './host-policy.js';
 
+/** Multiple independently published Sources: 2–128 profiles and at most
+ * 128 total read bindings. Execution keeps its existing acquisition bounds. */
+export type SourceProfilePaths = readonly [string, string, ...string[]];
+
 export type HostInstallation = Readonly<{
   directory?: string;
   sourceProfilePath?: string;
-  sourceProfilePaths?: readonly [string, string];
+  sourceProfilePaths?: SourceProfilePaths;
   effectProfilePath?: string;
   hostCapacityPolicy?: HostCapacityPolicy;
   resolveSourceSecret?: (...args: any[]) => any;

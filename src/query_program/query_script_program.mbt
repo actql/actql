@@ -543,9 +543,9 @@ pub fn compile_query_script(
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
     }
-    match @program.admit_generated_source(source, limits.program) {
+    match admit_query_source(source, document, context, limits) {
       Ok(program) => Ok(program)
-      Err(issue) => Err(Admission(issue))
+      Err(issue) => Err(issue)
     }
   } catch {
     Abort(issue) => {

@@ -14,6 +14,8 @@ import {connect as connectRemote, getSubmissionInput, getSubmissionOutcome,
   explainSubmission, formatSubmission} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
+import {openClientRequestJournal} from './client-request-journal.mjs';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 async function installedFixture(t, entrance, {loseSubmissionReply = false, outcome = 'allow', epochClock} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-d-submission-public-'));
@@ -216,6 +218,43 @@ for (const entrance of ['local', 'https']) {
       return error.code === 'SubmissionNotAccepted';
     });
     assert.equal(f.computes, 0);
+  });
+}
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: retired pre-Run history stays unresolvable at the public original lookup`, async t => {
+    let now = 1_800_000_000_000;
+    const f = await installedFixture(t, entrance, {epochClock: () => now});
+    const submissionRef = f.client.newSubmission({nonce: 'retired-original-refusal'});
+    await writeFile(join(f.root, 'retired-original-submission.json'),
+      JSON.stringify({submissionRef, text: 'SELECT missing AS n', format: 'sql'}),
+      {flag: 'wx', mode: 0o600});
+    await assert.rejects(f.client.startSource('SELECT missing AS n', {format: 'sql', submissionRef}),
+      error => error.code === 'SubmissionNotAccepted');
+    const original = await f.client.lookupSubmission(submissionRef);
+    assert.equal(original.kind, 'not_accepted');
+    assert.equal(f.computes, 0);
+    await f.close();
+    now += 1000;
+    // Trusted Host retention maintenance uses the same existing request
+    // journal. Client observation below never invokes this maintenance API.
+    const journal = openClientRequestJournal(join(f.root, 'host/requests'), {
+      submissionEpochTtlMs: 1000, submissionEpochNow: () => now,
+    });
+    try {
+      assert.deepEqual(journal.retireSubmittedIntent(submissionRef, {
+        authorityScopeCid: submissionRef.epoch.authorityScopeCid,
+        currentAuthorization: true, expectedRevision: 0,
+      }, moon), {retired: true});
+    } finally {journal.close();}
+    await f.open();
+    const expected = {kind: 'unresolvable', submissionRef,
+      problem: {code: 'submission_history_unresolvable'}};
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), expected);
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), expected);
+    assert.equal(f.computes, 0);
+    console.log('RETIRED_SUBMISSION_PUBLIC_EVIDENCE', JSON.stringify({root: f.root,
+      entrance, submissionRef, original: original.kind, restored: expected.kind, computes: 0}));
   });
 }
 
