@@ -154,6 +154,162 @@ pub fn client_program_model_physical_request_plan(
 }
 
 ///|
+/// Physical-port originals share the same request reservation and invoke
+/// closure. This API grants no capture or evaluation disclosure permission.
+#export_name("clientProgramModelPhysicalEvidencePlan")
+pub fn client_program_model_physical_evidence_plan(
+  request : @model.ModelRequest,
+  wire_bytes : Int64,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+  rendered_input : String,
+  context_manifest : String,
+  invoke : () -> @model.ModelResponse?,
+) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
+  @model.model_physical_request_plan(
+    request,
+    wire_bytes,
+    { tokens, cost_units, duration_ms, },
+    () => {
+      match invoke() {
+        Some(response) => Ok(response)
+        None => Err(@model.ProviderError)
+      }
+    },
+    evidence={ rendered_input, context_manifest, },
+  )
+}
+
+///|
+/// Optional Host-copy capacity is explicit and separate from Model dispatch.
+/// The existing physical Ledger reserves before serialization; no read or
+/// send authority and no new execution receipt is issued here.
+#export_name("clientProgramReserveInferEvidenceCopy")
+pub fn client_program_reserve_infer_evidence_copy(
+  max_bytes : Int,
+) -> Result[(@resources.Ledger, @resources.Reservation), @resources.LedgerIssue] {
+  if max_bytes < 1 || max_bytes > 1048576 {
+    return Err(@resources.InvalidLimits)
+  }
+  let bytes = max_bytes.to_int64() * 64L + 131072L
+  let ledger = match
+    @resources.create_ledger({
+      planning_work: 0,
+      attempts: 1,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: bytes,
+      execution_bytes: 0L,
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let reservation = match @resources.reserve_attempt(ledger, 0L, bytes, 0L) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok((ledger, reservation))
+}
+
+///|
+#export_name("clientProgramReleaseInferEvidenceCopy")
+pub fn client_program_release_infer_evidence_copy(
+  ledger : @resources.Ledger,
+  reservation : @resources.Reservation,
+) -> Result[Unit, @resources.LedgerIssue] {
+  @resources.settle_reservation(ledger, reservation)
+}
+
+///|
+#export_name("clientProgramInferEvaluationRequest")
+pub fn client_program_infer_evaluation_request(
+  active : @infer_host.Execution,
+  slot : Int,
+) -> (@model.ModelRequest, String, String)? {
+  @infer_host.evaluation_request(active, slot).map(pair => {
+    (pair.0, pair.1.rendered_input, pair.1.context_manifest)
+  })
+}
+
+///|
+#export_name("clientProgramInferTargetName")
+pub fn client_program_infer_target_name(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+) -> String? {
+  @publication_host.prepared_client_infer_target_name(prepared, step)
+}
+
+///|
+#export_name("clientProgramBindCompiledInferResultPolicy")
+pub fn client_program_bind_compiled_infer_result_policy(
+  compiled : @publication_host.ClientCompiledRun,
+  cid : String,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientCompiledRun,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  @publication_host.with_client_infer_result_policy(
+    compiled, cid, wire, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramModelRequestInputFrame")
+pub fn client_program_model_request_input_frame(
+  request : @model.ModelRequest,
+) -> String? {
+  let writer = @encode.writer(65536, 10000, 64) catch { _ => return None }
+  try {
+    @encode.begin_object(writer)
+    for
+      (name, value) in [
+        (
+          "model_task_contract_cid",
+          @check_environment.model_task_identity(request.task).2,
+        ),
+        ("model_call_slot_cid", request.slot_cid),
+        ("semantic_request_cid", request.fixed_request_cid),
+      ] {
+      @encode.key(writer, name)
+      @encode.string_value(writer, value)
+    }
+    @encode.key(writer, "input_contract")
+    @parameter_contract.emit_checked(
+      @check_environment.model_task_input(request.task),
+      writer,
+    )
+    @encode.key(writer, "output_contract")
+    @parameter_contract.emit_checked(
+      @check_environment.model_task_output(request.task),
+      writer,
+    )
+    @encode.key(writer, "key")
+    @encode.begin_array(writer)
+    for value in request.key {
+      @admitted.emit_checked_wire_value(value, writer)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "inputs")
+    @encode.begin_object(writer)
+    for (name, value) in request.inputs {
+      @encode.key(writer, name)
+      @admitted.emit_checked_wire_value(value, writer)
+    }
+    @encode.end_object(writer)
+    @encode.end_object(writer)
+    Some(@encode.finish(writer))
+  } catch {
+    _ => None
+  }
+}
+
+///|
 #export_name("clientProgramInferQuantityUsage")
 pub fn client_program_infer_quantity_usage(
   active : @infer_host.Execution,
