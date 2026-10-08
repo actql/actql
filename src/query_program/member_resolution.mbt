@@ -340,12 +340,14 @@ fn MemberResolution::relation_carrier(
 
 ///|
 // Graph construction needs admitted producer definitions to issue its domain.
-// Check the resolved closed prefix through the existing pipeline owner rather
+// Check the resolved prefix through the existing pipeline owner rather
 // than manufacturing a domain or extracting a property schema by hand.
-fn MemberResolution::closed_prefix_carrier(
+fn MemberResolution::prefix_carrier(
   self : MemberResolution,
   steps : Array[@wire.Cursor],
   declarations : @parameters.Declarations?,
+  inputs? : Array[(String, @carrier.Carrier)] = [],
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> @carrier.Carrier? raise Abort {
   if self.probe_refused {
     return None
@@ -367,14 +369,18 @@ fn MemberResolution::closed_prefix_carrier(
   }
   let at = steps[steps.length() - 1]
   let root = member_construct(
-    @builder.add(builder, @builder.Array(items), @builder.origin(self.source, at).unwrap()),
+    @builder.add(
+      builder,
+      @builder.Array(items),
+      @builder.origin(self.source, at).unwrap(),
+    ),
   )
   let copy = member_construct(@builder.finish(builder, root))
   self.spend(at, @builder.usage(copy).nodes)
   match
     @pipeline.check_carriers(
       @builder.cursor(copy),
-      [],
+      inputs,
       declarations,
       None,
       {
@@ -385,6 +391,7 @@ fn MemberResolution::closed_prefix_carrier(
         max_text_bytes: self.limits.source.tree.max_total_string_bytes,
         max_depth: self.limits.source.tree.max_depth,
       },
+      model_tasks~,
     ) {
     Ok(checked) => {
       self.spend(at, @pipeline.usage(checked).work)
@@ -777,6 +784,15 @@ fn resolve_query_members(
       }
       names[name] = rows
     }
+    // These schema Carriers supply type facts only. Key assertions in the
+    // resolved prefix are checked by the common pipeline, never inferred from
+    // ITEM KEY or copied from a differently bound value.
+    let prefix_inputs = []
+    for (name, carrier) in names {
+      if carrier is Some(carrier) {
+        prefix_inputs.push((name, carrier))
+      }
+    }
     let mut current = if names.length() == 1 {
       names.values().to_array()[0]
     } else {
@@ -805,12 +821,27 @@ fn resolve_query_members(
             context.parameter_declarations,
           )
         }
-        if @wire.object_length(inputs) == Some(0) &&
-          (tag == "graph" || (current is Some(value) &&
-          @carrier.kind(value) == @carrier.GraphKind)) {
-          output = resolution.closed_prefix_carrier(
+        if tag == "infer" &&
+          context.model_tasks is Some(_) &&
+          prefix_inputs.length() == @wire.object_length(inputs).unwrap() {
+          output = resolution.prefix_carrier(
             prefix,
             context.parameter_declarations,
+            inputs=prefix_inputs,
+            model_tasks=context.model_tasks,
+          )
+        } else if @wire.object_length(inputs) == Some(0) &&
+          (
+            tag == "graph" ||
+            (
+              current is Some(value) &&
+              @carrier.kind(value) == @carrier.GraphKind
+            )
+          ) {
+          output = resolution.prefix_carrier(
+            prefix,
+            context.parameter_declarations,
+            model_tasks=context.model_tasks,
           )
         } else {
           output = resolution.operation_carrier(

@@ -45,6 +45,23 @@ export const sourceCases = {
     source: `${prefix} ${infer} KEEP (id, text AS note) AS assessment ` +
       "|> WHERE assessment.outcome = 'ok' AND assessment.value.risk = 'high'",
     rows: keptRows, columns: keptColumns, calls: 1, inputWire: '"urgent"'},
+  'folded-filter': {
+    source: `${prefix} ${infer} KEEP (id, text AS note) AS assessment ` +
+      "|> WHERE assessment.OUTCOME = 'ok' AND assessment.VaLuE.RiSk = 'high'",
+    rows: keptRows, columns: keptColumns, calls: 1, inputWire: '"urgent"'},
+  'folded-projection': {
+    source: `${source} |> SELECT assessment.VALUE.RISK AS risk, assessment.value.REASON AS reason`,
+    rows: [{risk: 'high', reason: null}],
+    columns: [{name: 'risk', contract: {type: 'string', nullable: true}},
+      {name: 'reason', contract: {type: 'string', nullable: true}}],
+    calls: 1, inputWire: '"urgent"'},
+  'folded-key': {
+    source: `${source} |> SELECT assessment.INPUT_KEY.ID AS id`,
+    rows: [{id: 'ticket-1'}], columns: [keptColumns[0]],
+    calls: 1, inputWire: '"urgent"'},
+  'folded-empty': {
+    source: `${prefix} |> WHERE FALSE ${infer} AS assessment |> SELECT assessment.VALUE.RISK AS risk`,
+    rows: [], columns: [{name: 'risk', contract: {type: 'string', nullable: true}}], calls: 0},
   'nullable-keep': {
     source: "SELECT DISTINCT 'ticket-1' AS id |> EXTEND CAST(NULL AS STRING) AS text " +
       `${infer} KEEP (id, text AS note) AS assessment`,
@@ -60,6 +77,12 @@ export const sourceCases = {
     input_key: {id: 'ticket-1'}, outcome: 'failed:provider_error', value: null,
   }}], columns: expectedColumns, calls: 1, inputWire: '"urgent"',
     noResponse: true},
+  'provider-error-folded': {
+    source: `${source} |> SELECT assessment.OUTCOME AS outcome, assessment.VALUE.RISK AS risk`,
+    rows: [{outcome: 'failed:provider_error', risk: null}],
+    columns: [{name: 'outcome', contract: {type: 'string', nullable: false}},
+      {name: 'risk', contract: {type: 'string', nullable: true}}],
+    calls: 1, inputWire: '"urgent"', noResponse: true},
   'provider-error-projection': {
     source: `${source} |> SELECT assessment.outcome AS outcome, assessment.value.risk AS risk`,
     rows: [{outcome: 'failed:provider_error', risk: null}],
@@ -69,6 +92,8 @@ export const sourceCases = {
 };
 
 export const sourceRefusals = {
+  'unknown-member': `${source} |> SELECT assessment.VALUE.missing AS risk`,
+  'folded-unproven-key': `${prefix} |> INFER \`model-task:packed-risk.v1\` ITEM KEY (text) INPUT (text = text) AS assessment |> SELECT assessment.VALUE.RISK AS risk`,
   'dropped-input': `${prefix} ${infer} AS assessment |> SELECT text`,
   'old-alias': `${prefix} |> AS original ${infer} KEEP (id) AS assessment |> SELECT original.text`,
   'unproven-key': `${prefix} |> INFER \`model-task:packed-risk.v1\` ITEM KEY (text) INPUT (text = text) AS assessment`,

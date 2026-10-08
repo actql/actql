@@ -21,6 +21,7 @@ import {
   "actql/actql/local_relation_input" @local_input,
   "actql/actql/vector_typing" @vector,
   "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/check_environment" @environment,
 }
 
 import {
@@ -28,7 +29,6 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/program_check" @check,
   "actql/actql/numeric_reduction" @numeric,
-  "actql/actql/check_environment" @environment,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/debug",
   "actql/actql/lowering_relation" @lower,
