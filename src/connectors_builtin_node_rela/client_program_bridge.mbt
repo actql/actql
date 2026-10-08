@@ -365,6 +365,20 @@ pub fn client_program_source_free_input_intent_cid() -> String {
 }
 
 ///|
+/// Compare already verified observation facts without granting Run authority.
+#export_name("clientProgramRunObservationKey")
+pub fn client_program_run_observation_key(
+  outcome : String,
+  revision : Int64,
+  cleanup_pending : Bool?,
+  physical_stop : Bool?,
+) -> String? {
+  @publication.run_observation_key(
+    outcome, revision, cleanup_pending, physical_stop,
+  )
+}
+
+///|
 /// The installed Host reports an uncommitted Run through the portable
 /// validator. Only a durable confirmed failure before physical dispatch may
 /// make this projection terminal; missing worker observation cannot.
