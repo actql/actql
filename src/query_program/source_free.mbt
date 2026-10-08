@@ -19,7 +19,7 @@ fn source_free_input(
     Ok(value) => value
     Err(issue) => raise Abort(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = { builder, generated, model_tasks: None, }
   try {
     let field = "aql_source_free_unit"
     let name = "aql_source_free"

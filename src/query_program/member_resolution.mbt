@@ -834,7 +834,7 @@ fn resolve_query_members(
       _ => None
     }
   }
-  for stage in stages {
+  for stage_index, stage in stages {
     if resolution.probe_refused {
       break
     }
@@ -895,7 +895,24 @@ fn resolve_query_members(
             context.parameter_declarations,
           )
         }
-        if tag == "infer" &&
+        if context.source_catalog is Some(catalog) &&
+          (
+            tag == "graph" ||
+            tag == "infer" ||
+            (
+              current is Some(value) &&
+              @carrier.kind(value) == @carrier.GraphKind
+            )
+          ) {
+          output = resolution.source_prefix_carrier(
+            stages,
+            stage_index,
+            prefix,
+            catalog,
+            names,
+            context.model_tasks,
+          )
+        } else if tag == "infer" &&
           context.model_tasks is Some(_) &&
           prefix_inputs.length() == @wire.object_length(inputs).unwrap() {
           output = resolution.prefix_carrier(
