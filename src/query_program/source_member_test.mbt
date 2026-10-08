@@ -403,3 +403,106 @@ test "Source object capture retains the common unresolved-order refusal" {
     ),
   )
 }
+
+///|
+test "authored public Source Graph control retains captured inputs and nullable output" {
+  // This literal is the already-authored public JSON control, not compiler
+  // output. Only id is captured: no object capture order proof is fabricated.
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.source_graph_member","params":{"minimum":{"type":"number","nullable":false},"p1":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}},"p2":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}},"p3":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}},"p4":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"stages":[{"id":"capture","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"from":"remote","filter":{"gt":[{"field":"id"},{"$param":"minimum"}]}},{"select":["id"],"as":"captured"}],"results":{"source":{"from":"captured","fields":["id"]}}},{"id":"main","inputs":{"records":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"records","derive":{"payload":{"case":{"when":[{"when":{"eq":[{"field":"id"},{"literal":1}]},"then":{"$param":"p1"}},{"when":{"eq":[{"field":"id"},{"literal":2}]},"then":{"$param":"p2"}},{"when":{"eq":[{"field":"id"},{"literal":3}]},"then":{"$param":"p3"}}],"else":{"$param":"p4"}}}}},{"select":["id","payload"],"as":"objects"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"objects","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"payload","to":"payload"}]}}]}],"edges":[]},"as":"g"},{"from":"g","match_nodes":{"definition":"N","label":"Person","where":{"literal":true},"fields":["id","payload"]},"as":"matched"},{"from":"matched","derive":{"score":{"property":{"name":"score","value":{"field":"payload"}}}}},{"select":["id","score"]},{"sort":[{"field":"id","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["id","score"]}}}],"results":{"matched":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  let source = @stage_parameters.prepare(expected, {
+    max_parameters: 100,
+    max_nodes: 10000,
+    max_text_bytes: 100000,
+    max_depth: 100,
+  }).unwrap()
+  let context = source_member_context()
+  let (views, locals) = @check_context.prepare_source_registrations(
+    source,
+    context.source_catalog.unwrap(),
+    {
+      max_work: 100000,
+      max_nodes: 10000,
+      max_text_bytes: 100000,
+      max_depth: 100,
+    },
+    max_inputs=100,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  let (wiring, _) = match
+    @check_context.prepare_sourceview_program(views, locals, {
+      max_stages: 20,
+      max_steps: 100,
+      max_results: 100,
+      max_work: 100000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_text_bytes: 100000,
+      max_depth: 100,
+    }) {
+    Ok(value) => value
+    Err(
+      @check_context.SourceViewProgramIssue::Program(
+        @stage_results.LocalProgramIssue::Order(
+          stage,
+          @relation_results.ResultOrder(issue)
+        )
+      )
+    ) =>
+      fail(
+        "authored Source control Result order stage " +
+        stage.to_string() +
+        ": " +
+        @debug.to_string(issue.kind),
+      )
+    Err(
+      @check_context.SourceViewProgramIssue::Program(
+        @stage_results.LocalProgramIssue::Pipeline(stage, issue)
+      )
+    ) =>
+      fail(
+        "authored Source control pipeline stage " +
+        stage.to_string() +
+        ": " +
+        @debug.to_string(issue.kind),
+      )
+    Err(_) => fail("authored public Source control rejected before execution")
+  }
+  let pipeline = @pipeline_parameters.pipeline(
+    @stage_parameters.collection(
+      @stage_results.stage_port_source(
+        @stage_results.wiring_stage_at(wiring, 1).unwrap(),
+      ),
+    ),
+  )
+  let rows = @carrier.complete_schema(
+    @carrier.relation_rows(@pipeline.output_carrier(pipeline).unwrap()).unwrap(),
+  ).unwrap()
+  assert_eq(@schema.field_count(rows), 2)
+  let id = @schema.field_at(rows, 0).unwrap()
+  let score = @schema.field_at(rows, 1).unwrap()
+  assert_eq(id.name, @schema.Unqualified("id"))
+  assert_false(id.contract.nullable)
+  assert_true(
+    @contract.type_equal(
+      id.contract,
+      @contract.primitive(@contract.NumberType, nullable=false),
+      100,
+    ),
+  )
+  assert_eq(score.name, @schema.Unqualified("score"))
+  assert_true(score.contract.nullable)
+  assert_true(
+    @contract.type_equal(
+      score.contract,
+      @contract.primitive(@contract.NumberType, nullable=true),
+      100,
+    ),
+  )
+}
