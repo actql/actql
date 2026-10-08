@@ -891,8 +891,18 @@ fn append_expression(
   input : Input,
   fields : Array[String],
   max_work : Int,
+  private_columns? : Array[(String, String)] = [],
 ) -> @builder.Node raise Abort {
-  let resolve = path => resolve_column(path, query, input, fields)
+  let resolve = fn(path : Array[@query.NamePart]) -> String? {
+    if path.length() == 1 {
+      for (name, slot) in private_columns {
+        if path[0].value == name {
+          return Some(slot)
+        }
+      }
+    }
+    resolve_column(path, query, input, fields)
+  }
   let lowered = if input.graph_bindings.is_empty() {
     @expression.append_with_properties(
       expression,
@@ -1770,6 +1780,7 @@ fn compile_steps(
   let mut sql_group_selected_projections : Array[@query.Projection] = []
   let having_values : Array[(@query.Expression, String)] = []
   let analytic_outputs : Array[(String, String)] = []
+  let analytic_expression_bindings : Array[(String, String)] = []
   let mut analytic_input_fields : Array[String]? = None
   let mut analytic_input_scope : JoinChainScope? = None
   let qualify_values : Array[(@query.Expression, String)] = []
@@ -3349,7 +3360,7 @@ fn compile_steps(
                   append_pipe_expression(
                     construction,
                     expression,
-                    input_scope.visible,
+                    input_scope.visible + analytic_expression_bindings,
                     input_scope.ranges,
                     max_work,
                   ),
@@ -3408,7 +3419,12 @@ fn compile_steps(
         }
         entries.push(("filter", value))
       }
-      Analytic(projections) => {
+      Analytic(projections) | AnalyticExpressions(projections, _) => {
+        let private_names = match operation {
+          AnalyticExpressions(_, names) => names
+          _ => []
+        }
+        analytic_expression_bindings.clear()
         let projections = expanded_replacement_projections(
           query,
           projections,
@@ -3486,6 +3502,12 @@ fn compile_steps(
           }
           active_fields.push(slot)
         }
+        for name in private_names {
+          guard analytic_output_slot(name.value, analytic_outputs) is Some(slot) else {
+            raise Abort(UnsupportedAnalytic)
+          }
+          analytic_expression_bindings.push((name.value, slot))
+        }
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
           if pipe_changed || pipe_rebound {
             pipe_slot(
@@ -3538,12 +3560,14 @@ fn compile_steps(
           )
         }
         let expression_scope = if sql_group_projection {
-          sql_group_select_scope.unwrap()
+          let scope = sql_group_select_scope.unwrap()
+          { ..scope, visible: scope.visible + analytic_expression_bindings, }
         } else {
           {
             visible: unnest_expression_columns(
               pipe_visible, value_table_receivers,
-            ),
+            ) +
+            analytic_expression_bindings,
             ranges: pipe_ranges,
           }
         }
@@ -3928,13 +3952,19 @@ fn compile_steps(
                             input_scope.ranges,
                           )
                         },
-                        scope.visible,
+                        scope.visible + analytic_expression_bindings,
                         scope.ranges,
                         max_work,
                       )
                     } else {
                       append_expression(
-                        construction, expression, query, input, select_fields, max_work,
+                        construction,
+                        expression,
+                        query,
+                        input,
+                        select_fields,
+                        max_work,
+                        private_columns=analytic_expression_bindings,
                       )
                     },
                   ),
@@ -4397,6 +4427,7 @@ fn compile_steps(
       analytic_input_scope = None
       qualify_values.clear()
       analytic_outputs.clear()
+      analytic_expression_bindings.clear()
       if pending_select is None {
         value_table_receivers = []
         // A projected table has its own columns. Input ranges are needed only

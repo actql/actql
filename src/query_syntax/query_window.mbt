@@ -187,6 +187,11 @@ fn QueryParser::resolve_window_operations(
           )
         Analytic(projections) =>
           Analytic(self.resolve_window_projections(projections, definitions))
+        AnalyticExpressions(projections, names) =>
+          AnalyticExpressions(
+            self.resolve_window_projections(projections, definitions),
+            names,
+          )
         Select(projections, distinct) =>
           Select(
             self.resolve_window_projections(projections, definitions),
