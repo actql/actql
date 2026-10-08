@@ -41,7 +41,8 @@ export async function compareNativeEmpiricalRuns(comparisonDirectory,evaluationD
     const current=item.mapping.choices[0];
     if(item.intervention.arm==='empirical') {
       assert.equal(current.source,'ExternalPolicy');assert.equal(current.position,chosen);
-      assert.equal(item.empirical.rankings[0].selected_position,chosen);
+      // Preserve the Native diagnostic's present-option singleton encoding.
+      assert.deepEqual(item.empirical.rankings[0].selected_position,[chosen]);
       assert.equal(item.empirical.rankings[0].profile_revision,comparison.profileRevision);
       assert.equal(item.empirical.oldStateRefusals.length,2);
       assert.equal(current.policy.revision,item.empirical.rankings[0].policy_revision);
