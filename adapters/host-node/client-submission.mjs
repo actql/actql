@@ -22,6 +22,7 @@ const immutable = value => {
 export function installNodeClientSubmission({journal, moon, authorizedScope,
   prepareSubmit, submit, lookupRequest, checkSubmissionInput}) {
   if (typeof journal?.recordSubmittedIntent !== 'function' ||
+      typeof journal?.checkSubmittedIntent !== 'function' ||
       typeof moon?.clientSubmittedIntent !== 'function' ||
       [authorizedScope, prepareSubmit, submit, lookupRequest].some(value => typeof value !== 'function') ||
       checkSubmissionInput !== undefined && typeof checkSubmissionInput !== 'function') {
@@ -39,22 +40,33 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
   const snapshot = value => immutable(JSON.parse(canonicalJson(value, {dataKeys: true})));
   const unresolved = (submissionRef, code = 'submission_history_unresolvable') =>
     immutable({kind: 'unresolvable', submissionRef, problem: {code}});
-  const storedOutcome = retained => retained.outcome ?? immutable({kind: 'preparing',
-    submissionRef: retained.submissionRef, intentCid: retained.intentCid});
+  const withRestart = (outcome, retained) => retained.unresolvedHistory === undefined ? outcome
+    : immutable({...outcome, unresolvedHistory: {
+      submissionRef: retained.unresolvedHistory.submissionRef,
+      acknowledgement: retained.unresolvedHistory.acknowledgement}});
+  const storedOutcome = retained => withRestart(retained.outcome ?? immutable({kind: 'preparing',
+    submissionRef: retained.submissionRef, intentCid: retained.intentCid}), retained);
   const discloseOutcome = async (value, outcome, fields, retained) => {
-    if (!['not_accepted', 'preparation_failed'].includes(outcome.kind) ||
-        !['ClientProgramInvalidInput', 'ClientProgramAnalysisLimit', 'ClientProgramImplementationLimit'].includes(outcome.problem.code)) return outcome;
+    if (!['not_accepted', 'preparation_failed'].includes(outcome.kind)) return outcome;
+    const projectsProblem = ['ClientProgramInvalidInput', 'ClientProgramAnalysisLimit',
+      'ClientProgramImplementationLimit'].includes(outcome.problem.code);
+    // Only a call supplying the exact validated intent may receive its input
+    // observation. A reference-only lookup does not establish input custody.
+    const observesInput = value.kind === 'aql' && value.intentCid === outcome.intentCid;
+    if (!projectsProblem && !observesInput) return outcome;
     // The durable problem describes the original preparation, not a new check.
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
     const intent = immutable(JSON.parse(retained.intentWire));
     if (intent.kind !== 'aql' || !['sql', 'aql-text'].includes(intent.input.format)) return outcome;
-    let disclosable = false;
+    let disclosable = !projectsProblem;
+    let checkObservation;
     try {
       const report = await checkSubmissionInput?.({principalId: value.principalId,
         connection: value.connection, input: intent.input, parameters: intent.parameters});
       const observed = report?.report ?? report?.partial_report;
-      disclosable = validCheckOutcome(report) && (outcome.problem.code === 'ClientProgramInvalidInput'
+      if (validCheckOutcome(report)) checkObservation = report;
+      disclosable = !projectsProblem || validCheckOutcome(report) && (outcome.problem.code === 'ClientProgramInvalidInput'
         ? observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid'
         : observed?.scope.kind === 'bound_input' && observed.coverage.limits.some(
           limit => limit.code === (outcome.problem.code === 'ClientProgramAnalysisLimit'
@@ -66,11 +78,12 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     const current = await authorize(value);
     if (current.authorityScopeCid !== fields.authorityScopeCid ||
         current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
-    if (disclosable) return outcome;
-    // Do not rewrite the journal: authorization loss affects this response,
-    // while the same original intent and acceptance phase remain retained.
-    return immutable({...outcome, problem: {code: 'ClientProgramRejected',
-      classification: 'operation_failed'}});
+    const projected = disclosable ? outcome : {...outcome,
+      problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}};
+    // This newly bound observation is response metadata, never a journal
+    // record or a permission to inspect another submission's original input.
+    return immutable({...projected, ...(observesInput && checkObservation !== undefined
+      ? {checkObservation} : {})});
   };
   const refresh = async (value, retained, fields) => {
     if (['not_accepted', 'preparation_failed'].includes(retained.phase)) return storedOutcome(retained);
@@ -109,13 +122,15 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     let retained;
     try {retained = journal.lookupSubmittedIntent(value.submissionRef, fields, moon);}
     catch (error) {
-      if (['ClientSubmittedIntentCorrupt', 'ClientSubmissionEpochCustodyLost'].includes(error?.code)) {
+      if (['ClientSubmittedIntentCorrupt', 'ClientSubmissionEpochCustodyLost',
+        'ClientSubmissionRestartCorrupt', 'ClientSubmissionRestartCustodyLost'].includes(error?.code)) {
         return unresolved(value.submissionRef);
       }
       throw error;
     }
     const original = retained === undefined ? unresolved(value.submissionRef) : await refresh(value, retained, fields);
-    const result = retained === undefined ? original : await discloseOutcome(value, original, fields, retained);
+    const result = retained === undefined ? original : withRestart(
+      await discloseOutcome(value, original, fields, retained), retained);
     if (!validSubmissionLookup(result, value.connection, value.submissionRef)) fail('InvalidClientHostSubmissionLookup');
     return result;
   };
@@ -155,6 +170,12 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (input === undefined || moon.clientSubmittedIntentCid(input) !== value.intentCid) {
       fail('InvalidClientSubmittedIntent');
     }
+    // The Host supplies principalId after authentication. Client data cannot
+    // substitute another actor for this explicit decision. Check through the
+    // same journal owner before preparation and at atomic receipt acceptance.
+    const restartFields = current => ({...current, actorId: value.principalId,
+      unresolvedHistory: value.unresolvedHistory});
+    journal.checkSubmittedIntent(value.submissionRef, input, restartFields(fields), moon);
     let retained = journal.lookupSubmittedIntent(value.submissionRef, fields, moon);
     if (retained !== undefined) {
       if (retained.intentCid !== value.intentCid) fail('ClientSubmittedIntentConflict');
@@ -189,17 +210,19 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         ? 'ClientProgramInvalidInput' : error.code;
       const candidate = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
         problem: {code, classification: classification(code)}};
-      const outcome = await discloseOutcome(value, candidate, current,
+      const projected = await discloseOutcome(value, candidate, current,
         {intentWire: moon.clientSubmittedIntentWire(input)});
+      const {checkObservation: transientObservation, ...outcome} = projected;
+      void transientObservation;
       const result = retained === undefined
         ? journal.recordSubmittedIntent(value.submissionRef, input,
-          {...current, phase: kind, outcome}, moon)
+          {...restartFields(current), phase: kind, outcome}, moon)
         : journal.completeSubmittedIntent(value.submissionRef, outcome,
           {...current, connection: value.connection, expectedRevision: retained.revision}, moon);
       return await discloseOutcome(value, storedOutcome(result), current, result);
     }
     const current = await authorize(value);
-    retained = journal.recordSubmittedIntent(value.submissionRef, input, current, moon);
+    retained = journal.recordSubmittedIntent(value.submissionRef, input, restartFields(current), moon);
     if (retained.phase !== 'preparing') {
       return await discloseOutcome(value, await refresh(value, retained, current), current, retained);
     }

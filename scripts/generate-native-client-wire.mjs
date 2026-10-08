@@ -1,23 +1,68 @@
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
+import {nativeCheckReportRules} from './client-check-report-rules.mjs';
 
 // Compile the selected wire schemas to ordinary MoonBit predicates. This is a
 // build-time projection, not a schema interpreter in the Native executable.
-export function nativeClientWire(schemas, rules, requestRules) {
+export function nativeClientWire(schemas, rules, requestRules, checkPins, reportRules) {
   const functions = [];
   let serial = 0;
+  let checkDepth = 0;
+  const emitted = new Map();
   const quote = JSON.stringify;
   function emit(schema, name = `wire_rule_${serial++}`) {
+    const key = (checkDepth > 0 ? 'check:' : 'wire:') + JSON.stringify(schema);
+    if (emitted.has(key)) {
+      const existing = emitted.get(key);
+      if (arguments.length > 1 && name !== existing) {
+        functions.push(`///|\nfn ${name}(value : Json) -> Bool {\n  ${existing}(value)\n}\n`);
+        return name;
+      }
+      return existing;
+    }
+    emitted.set(key, name);
     const lines = [];
+    if (schema.$ref !== undefined) {
+      if (!['check_outcome', 'value_contract'].includes(schema.$ref) || Object.keys(schema).length !== 1 ||
+          schemas[schema.$ref] === undefined) throw new Error('UnsupportedNativeWireReference');
+      let referred;
+      checkDepth++;
+      try { referred = emit(schemas[schema.$ref]); } finally { checkDepth--; }
+      lines.push(`if !${referred}(value) { return false }`);
+      if (schema.$ref === 'check_outcome') {
+        if (!checkPins?.reason || !checkPins?.outcome) throw new Error('MissingNativeCheckPins');
+        lines.push('guard value is Object(fields) else { return false }',
+          `if fields.get("reason_schema_cid") != Some(Json::string(${quote(checkPins.reason)})) { return false }`,
+          `if fields.get("outcome_schema_cid") != Some(Json::string(${quote(checkPins.outcome)})) { return false }`,
+          'if !wire_check_report_contract(value) { return false }');
+      }
+      functions.push(`///|\nfn ${name}(${lines.length ? 'value' : '_value'} : Json) -> Bool {\n  ${lines.join('\n  ')}\n  true\n}\n`);
+      return name;
+    }
     for (const key of Object.keys(schema)) if (!['type','required','properties',
       'additionalProperties','items','uniqueItems','const','enum','pattern',
       'minLength','maxLength','minimum','maximum','minItems','maxItems',
-      'allOf','oneOf','not'].includes(key)) throw new Error(`UnsupportedNativeWireRule:${key}`);
+      'allOf','oneOf','not','if','then','propertyNames','minProperties'].includes(key)) throw new Error(`UnsupportedNativeWireRule:${key}`);
     if (Object.hasOwn(schema, 'const') && Object.hasOwn(schema, 'enum')) {
       throw new Error('UnsupportedNativeWireConstAndEnum');
     }
     if (schema.additionalProperties === false && !schema.properties) {
       throw new Error('UnsupportedNativeWireClosedObjectWithoutProperties');
+    }
+    // Conditional diagnostic constraints apply only to their JSON type.
+    // Keep the existing strict rejection for unrelated untyped wire rules.
+    if (checkDepth > 0 && schema.type === undefined) {
+      const constrained = [['number', ['minimum', 'maximum'], 'Number(_, ..)'],
+        ['string', ['minLength', 'maxLength', 'pattern'], 'String(_)'],
+        ['array', ['items', 'minItems', 'maxItems'], 'Array(_)']]
+        .filter(([, keys]) => keys.some(key => Object.hasOwn(schema, key)));
+      if (constrained.length > 1) throw new Error('UnsupportedNativeWireMixedConstraint');
+      if (constrained.length === 1) {
+        const [type, , pattern] = constrained[0];
+        const typed = emit({...schema, type});
+        functions.push(`///|\nfn ${name}(value : Json) -> Bool {\n  if value is ${pattern} { return ${typed}(value) }\n  true\n}\n`);
+        return name;
+      }
     }
     // Refuse combinations this bounded compiler does not implement. The JS
     // projection can express untyped conditional constraints; silently dropping
@@ -26,17 +71,32 @@ export function nativeClientWire(schemas, rules, requestRules) {
       ['string', ['minLength', 'maxLength', 'pattern']],
       ['integer', ['minimum', 'maximum']],
       ['array', ['items', 'uniqueItems', 'minItems', 'maxItems']],
-    ]) if (keys.some(key => Object.hasOwn(schema, key)) && schema.type !== type) {
+    ]) if (keys.some(key => Object.hasOwn(schema, key)) && schema.type !== type && !(checkDepth > 0 && type === 'integer' && schema.type === 'number')) {
       throw new Error(`UnsupportedNativeWireConstraintType:${type}`);
     }
     if (schema.allOf) for (const rule of schema.allOf) lines.push(`if !${emit(rule)}(value) { return false }`);
     if (schema.oneOf) lines.push(`if [${schema.oneOf.map(rule => `${emit(rule)}(value)`).join(', ')}].filter(fn(ok) { ok }).length() != 1 { return false }`);
+    if (schema.if) {
+      if (!schema.then) throw new Error('UnsupportedNativeWireConditional');
+      lines.push(`if ${emit(schema.if)}(value) && !${emit(schema.then)}(value) { return false }`);
+    } else if (schema.then) throw new Error('UnsupportedNativeWireConditional');
     if (schema.not) lines.push(`if ${emit(schema.not)}(value) { return false }`);
     if (schema.const !== undefined || schema.enum) {
       const values = schema.enum ?? [schema.const];
-      if (values.some(value => typeof value !== 'string')) throw new Error('UnsupportedNativeWireLiteral');
-      lines.push(`guard value is String(text) else { return false }`,
-        `if !(${values.map(value => `text == ${quote(value)}`).join(' || ')}) { return false }`);
+      if (values.every(value => typeof value === 'boolean')) {
+        lines.push('if !(value is True || value is False) { return false }',
+          `if !(${values.map(value => `(value is ${value ? 'True' : 'False'})`).join(' || ')}) { return false }`);
+      } else if (values.every(value => typeof value === 'number' && Number.isFinite(value))) {
+        const number = value => String(value).match(/[.e]/iu) ? String(value) : String(value) + '.0';
+        lines.push('guard value is Number(number, ..) else { return false }',
+          `if !(${values.map(value => `number == ${number(value)}`).join(' || ')}) { return false }`);
+      } else if (values.every(value => value === null)) {
+        lines.push('guard value is Null else { return false }');
+      } else {
+        if (values.some(value => typeof value !== 'string')) throw new Error('UnsupportedNativeWireLiteral');
+        lines.push('guard value is String(text) else { return false }',
+          `if !(${values.map(value => `text == ${quote(value)}`).join(' || ')}) { return false }`);
+      }
     }
     if (schema.type === 'string') {
       lines.push('guard value is String(text) else { return false }');
@@ -45,7 +105,28 @@ export function nativeClientWire(schemas, rules, requestRules) {
       if (schema.pattern === '^[^\\u0000-\\u001f\\u007f]+$') lines.push('if text.is_empty() { return false }', 'for character in text { if character.to_int() < 32 || character.to_int() == 127 { return false } }');
       else if (schema.pattern === '^sha256:[0-9a-f]{64}$') lines.push('if text.length() != 71 || !text.has_prefix("sha256:") { return false }', 'for character in text[7:] { if !((character >= \'0\' && character <= \'9\') || (character >= \'a\' && character <= \'f\')) { return false } }');
       else if (schema.pattern === '^[0-9a-f]{64}$') lines.push('if text.length() != 64 { return false }', 'for character in text { if !((character >= \'0\' && character <= \'9\') || (character >= \'a\' && character <= \'f\')) { return false } }');
+      else if (schema.pattern === '^rev:[0-9a-f]{64}$') lines.push('if text.length() != 68 || !text.has_prefix("rev:") { return false }',
+        `for character in text[4:] { if !((character >= '0' && character <= '9') || (character >= 'a' && character <= 'f')) { return false } }`);
+      else if (schema.pattern === '^[A-Za-z0-9:_-]+$') lines.push('if text.is_empty() { return false }',
+        `for character in text { if !((character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') || character == ':' || character == '_' || character == '-') { return false } }`);
+      else if (schema.pattern === '^[a-z][a-z0-9_]{0,63}$') lines.push('if text.is_empty() || text.length() > 64 { return false }',
+        `if text[0] < 'a' || text[0] > 'z' { return false }`,
+        `for character in text { if !((character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') || character == '_') { return false } }`);
+      else if (schema.pattern === '^(?:/(?:[^~]|~[01])*)*$') lines.push('if !text.is_empty() && !text.has_prefix("/") { return false }',
+        'let mut escape = false', `for character in text { if escape { if character != '0' && character != '1' { return false }; escape = false } else if character == '~' { escape = true } }`,
+        'if escape { return false }');
+      else if (schema.pattern === '^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$') lines.push(
+        'if text.is_empty() || text == "__cid" || text.has_prefix("__actql_") || text.contains(".") { return false }',
+        'let mut nonblank = false',
+        'for character in text { let code = character.to_int(); if !(code == 9 || code == 10 || code == 11 || code == 12 || code == 13 || code == 32 || code == 160 || code == 5760 || (code >= 8192 && code <= 8202) || code == 8232 || code == 8233 || code == 8239 || code == 8287 || code == 12288 || code == 65279) { nonblank = true } }',
+        'if !nonblank { return false }');
       else if (schema.pattern !== undefined) throw new Error(`UnsupportedNativeWirePattern:${schema.pattern}`);
+    } else if (schema.type === 'boolean') {
+      lines.push('if !(value is True || value is False) { return false }');
+    } else if (schema.type === 'number') {
+      lines.push('guard value is Number(number, ..) else { return false }', 'if number.is_nan() || number.is_inf() { return false }');
+      if (schema.minimum !== undefined) lines.push(`if number < ${schema.minimum}.0 { return false }`);
+      if (schema.maximum !== undefined) lines.push(`if number > ${schema.maximum}.0 { return false }`);
     } else if (schema.type === 'integer') {
       lines.push('guard value is Number(number, ..) else { return false }', 'if number != number.floor() || number < -9007199254740991.0 || number > 9007199254740991.0 { return false }');
       if (schema.minimum !== undefined) lines.push(`if number < ${schema.minimum}.0 { return false }`);
@@ -59,14 +140,22 @@ export function nativeClientWire(schemas, rules, requestRules) {
     } else if (schema.type === 'object' || schema.properties || schema.required || schema.additionalProperties !== undefined) {
       lines.push('guard value is Object(fields) else { return false }');
       if (schema.additionalProperties === false) lines.push(`for key, _ in fields { if !(${Object.keys(schema.properties ?? {}).map(key => `key == ${quote(key)}`).join(' || ') || 'false'}) { return false } }`);
+      else if (checkDepth > 0 && schema.additionalProperties === true) { /* JSON Schema permits these fields. */ }
+      else if (checkDepth > 0 && schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+        const unknown = emit(schema.additionalProperties);
+        const known = Object.keys(schema.properties ?? {}).map(key => `key == ${quote(key)}`).join(' || ') || 'false';
+        lines.push(`for ${known === 'false' ? '_key' : 'key'}, item in fields { if !(${known}) && !${unknown}(item) { return false } }`);
+      }
       else if (schema.additionalProperties !== undefined) throw new Error('UnsupportedNativeWireAdditionalProperties');
+      if (schema.minProperties !== undefined) lines.push(`if fields.size() < ${schema.minProperties} { return false }`);
+      if (schema.propertyNames) lines.push(`for key, _ in fields { if !${emit(schema.propertyNames)}(Json::string(key)) { return false } }`);
       for (const key of schema.required ?? []) lines.push(`if !fields.contains(${quote(key)}) { return false }`);
       for (const [key, rule] of Object.entries(schema.properties ?? {})) lines.push(`if fields.get(${quote(key)}) is Some(item) { if !${emit(rule)}(item) { return false } }`);
     } else if (schema.type !== undefined) throw new Error(`UnsupportedNativeWireType:${schema.type}`);
-    functions.push(`///|\nfn ${name}(value : Json) -> Bool {\n  ${lines.join('\n  ')}\n  true\n}\n`);
+    functions.push(`///|\nfn ${name}(${lines.length ? 'value' : '_value'} : Json) -> Bool {\n  ${lines.join('\n  ')}\n  true\n}\n`);
     return name;
   }
-  for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup',
+  for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup','submission_restart',
     'connection','profile','admission','run_ref',
     'lookup_found','lookup_not_found','lookup_unknown','held',
     'cancellation_ref','cancellation','cancellation_lookup']) emit(schemas[name], `wire_${name}_shape`);
@@ -93,7 +182,8 @@ export function nativeClientWire(schemas, rules, requestRules) {
       '  guard value is Object(fields) else { return false }\n' +
       `  ${alternatives.join(' ||\n  ')}\n}\n`);
   }
-  const source = '// Generated from spec/contracts/actql-client-host.json.\n// Run: node scripts/generate-client-host-wire.mjs --write\n\n' + functions.join('\n');
+  const source = '// Generated from spec/contracts/actql-client-host.json.\n// Run: node scripts/generate-client-host-wire.mjs --write\n\n' +
+    functions.join('\n') + '\n' + nativeCheckReportRules(reportRules);
   // Use the repository's pinned formatter, also required by the CI formatting gate.
   const formatter = process.env.MOON_HOME ? join(process.env.MOON_HOME, 'bin', 'moonfmt') : 'moonfmt';
   return execFileSync(formatter, ['-'], {input: source, encoding: 'utf8', timeout: 10000});

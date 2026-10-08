@@ -23,6 +23,10 @@
     {
       "path": "actql/actql/value_contract",
       "alias": "parameter_contract"
+    },
+    {
+      "path": "actql/actql/connectors/local/table",
+      "alias": "local_table"
     }
   ]
 }

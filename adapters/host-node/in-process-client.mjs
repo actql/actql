@@ -93,7 +93,7 @@ export function createNodeInProcessClientHost({
       if (operation === 'check' && !validClientBody(operation, body)) {
         fail('InvalidClientRequest');
       }
-      if (operation === 'submit-intent' || operation === 'lookup-submission') {
+      if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
         try {body = snapshotClientRequest(body);}
         catch {fail('InvalidClientRequest');}
         if (!validClientBody(operation, body)) fail('InvalidClientRequest');
@@ -138,7 +138,7 @@ export function createNodeInProcessClientHost({
         return handler(Object.freeze({principalId, connection,
           ...Object.fromEntries(Object.entries(body).filter(([key]) =>
             key !== 'connection')),
-          ...(signal === undefined || operation === 'submit' || operation === 'submit-intent'
+          ...(signal === undefined || ['submit', 'submit-intent', 'restart-intent'].includes(operation)
             ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
         }));
@@ -156,10 +156,11 @@ export function createNodeInProcessClientHost({
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, prepared)});
       }
-      if (operation === 'submit-intent' || operation === 'lookup-submission') {
-        const answer = await invoke(operation === 'submit-intent' ? submitIntent : lookupSubmission);
-        const valid = operation === 'submit-intent'
-          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid)
+      if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
+        const submitting = operation !== 'lookup-submission';
+        const answer = await invoke(submitting ? submitIntent : lookupSubmission);
+        const valid = submitting
+          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid, body.unresolvedHistory)
           : validSubmissionLookup(answer, connection, body.submissionRef);
         if (!valid) fail('InvalidClientHostSubmissionOutcome');
         return answer;

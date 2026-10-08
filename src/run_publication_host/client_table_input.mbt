@@ -3,7 +3,7 @@ pub(all) enum ClientTableInputIssue {
   ForeignOwner
   ForeignIdentity
   NotStore
-  Mapping(@effect.TableStorageMappingIssue)
+  Mapping(@effect.TableContractIssue)
   Operation(@effect.TableContractIssue)
   ForeignInput
   Preview(@effect.TablePreviewIssue)
@@ -18,7 +18,7 @@ pub(all) enum ClientTableInputIssue {
 struct ClientTableInput {
   artifact : ClientEffectLocalResultArtifact
   identity : ClientEffectLocalIdentity
-  mapping : @effect.TableStorageMapping
+  mapping : @effect.StorageMappingReference
   operation : @effect.TableOperation
   scope : @request_scope.LogicalRequestScope
 }
@@ -33,21 +33,6 @@ struct ClientTablePreview {
 }
 
 ///|
-pub fn client_effect_local_table_storage_mapping(
-  artifact : ClientEffectLocalResultArtifact,
-  max_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> Result[@effect.TableStorageMapping, ClientTableInputIssue] {
-  @effect.issue_table_storage_mapping(
-    artifact.export_receipt,
-    max_bytes,
-    max_nodes,
-    max_depth,
-  ).map_err(issue => Mapping(issue))
-}
-
-///|
 /// Adapters may author target/action material, but cannot substitute the input
 /// Artifact, effective policy, logical Relation, schema, or physical mapping.
 /// Existing Preview/current-authority and send-once Ledger gates remain needed.
@@ -59,6 +44,7 @@ pub fn bind_client_table_input(
   identity : ClientEffectLocalIdentity,
   scope : @request_scope.LogicalRequestScope,
   operation_wire : String,
+  mapping : @effect.StorageMappingReference,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -77,12 +63,14 @@ pub fn bind_client_table_input(
     @syntax.effect_header_kind(header) == "store" else {
     return Err(NotStore)
   }
-  let mapping = match
-    client_effect_local_table_storage_mapping(
-      artifact, max_bytes, max_nodes, max_depth,
+  if @effect.storage_mapping_reference_kind(mapping) != @carrier.RelationKind ||
+    @effect.storage_mapping_reference_schema_cid(mapping) !=
+    @execution.relation_schema_cid(
+      @execution.completed_relation_export_schema_identity(
+        artifact.export_receipt,
+      ),
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+    return Err(ForeignInput)
   }
   let operation = match
     @effect.admit_table_operation(
@@ -114,6 +102,7 @@ pub fn bind_client_table_input(
       scope,
       identity.cid,
       client_effect_local_result_artifact_cid(artifact),
+      @carrier.RelationKind,
       relation,
       mapping,
       policy,
@@ -133,7 +122,7 @@ pub fn client_table_input_operation(
 ///|
 pub fn client_table_input_mapping(
   value : ClientTableInput,
-) -> @effect.TableStorageMapping {
+) -> @effect.StorageMappingReference {
   value.mapping
 }
 

@@ -9,6 +9,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openSqliteDispatchJournal} from './sqlite-dispatch-journal.mjs';
 import {createRemoteDispatchRuntime, prepareRemoteRuntimeRegistration} from
   './remote-dispatch-runtime.mjs';
+import './remote-installed-members.test.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);

@@ -222,3 +222,28 @@ The current 114 inputs and corpus digest remain unchanged. Future additions in
 the corpus regression use generator-only fixtures to demonstrate two successive
 extensions; they are not registered product operations, runtime acceptance or
 new semantic guarantees.
+
+### Explicit equivalence of late resolution supplements
+
+Two independently introduced immutable supplements can name different raw
+receipt IDs for the same complete late source set. They remain an error by
+default. To join them, append an
+`actql-foundation-supplement-equivalence/0.1` record in the existing supplement
+directory, strictly after every member receipt. Its closed body contains
+`version`, `id`, `target` (original declaration ID and SHA-256 digest), `members`
+(sorted unique supplement IDs and exact SHA-256 digests), and `reason`.
+
+At least two ordinary resolution supplements must share the exact target and
+the complete set of actual source revisions. Every declaration and supplement
+still independently passes canonical bytes, real Git parents/modes/digests,
+ancestor closure, late-introduction and effective source-binding checks. The
+record cannot excuse a dependency already in the original declaration, two
+aliases within one supplement, partially overlapping sets, conflicting source
+bindings or a rewritten original. One member cannot belong to overlapping
+equivalence records. Originals, their introduction revisions and every raw
+receipt remain in the composed artifact. No receipt is deleted or chosen as a
+representative that exempts the others from validation.
+
+This is append-only provenance integration, not runtime compatibility or
+permission to reuse test results. Full retained-history validation is still
+required for the actual integrated source.

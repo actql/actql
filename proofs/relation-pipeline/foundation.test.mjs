@@ -165,6 +165,111 @@ test('late receipt supplement survives another legitimate supplement on a differ
   assert.deepEqual(readFileSync(join(repo.root, repo.declarationPath(original.id))), originalBytes);
 });
 
+function equivalentLateReceipts(t, { duplicateWithinMember = false,
+  redundantOriginal = false, twoLateGroups = false } = {}) {
+  const f = lateResolution(t, {twoLateGroups});
+  const alias = {...f.right, id: 'right-alias'};
+  f.repo.record(alias);
+  if (duplicateWithinMember) f.supplement.inputs = [alias.id, f.right.id].sort();
+  if (redundantOriginal) f.supplement.inputs = ['left-registration', f.right.id];
+  f.record();
+  const second = {...f.supplement, id: 'complete-alias-resolution', inputs: [alias.id]};
+  const secondPath = `${DECLARATION_DIRECTORY}-supplements/${second.id}.json`;
+  f.repo.write(secondPath, `${JSON.stringify(second, null, 2)}\n`);
+  const secondIntroduction = f.repo.commit('Append independent alias receipt');
+  const records = [f.supplement, second];
+  const equivalence = {version: 'actql-foundation-supplement-equivalence/0.1',
+    id: 'normalize-equivalent-late-receipts', target: f.supplement.target,
+    members: records.map(record => ({id: record.id, digest: sha256(readFileSync(
+      join(f.repo.root, `${DECLARATION_DIRECTORY}-supplements/${record.id}.json`)))}))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    reason: 'Join two independently verified complete late source sets without rewriting either receipt'};
+  const path = `${DECLARATION_DIRECTORY}-supplements/${equivalence.id}.json`;
+  const normalize = (value = equivalence) => {
+    f.repo.write(path, `${JSON.stringify(value, null, 2)}\n`);
+    return f.repo.commit('Declare exact equivalence after both immutable receipts');
+  };
+  return {...f, records, secondPath, secondIntroduction, equivalence, path, normalize};
+}
+
+test('explicit equivalence joins equal late source bindings and preserves every raw receipt', t => {
+  const f = equivalentLateReceipts(t);
+  assert.throws(() => compose(f.repo), /Redundant foundation supplement dependency/);
+  const before = f.records.map(record => readFileSync(join(f.repo.root,
+    `${DECLARATION_DIRECTORY}-supplements/${record.id}.json`)));
+  const introduction = f.normalize();
+  const aggregate = compose(f.repo);
+  assert.equal(aggregate.supplements.length, 3);
+  assert.deepEqual(aggregate.supplements.find(record => record.id === f.equivalence.id)
+    .introductions, [introduction]);
+  assert.equal(declaration(aggregate, f.original.id).digest, sha256(f.originalBytes));
+  assert.deepEqual(declaration(aggregate, f.original.id).introductions, [f.originalIntroduction]);
+  for (const [index, record] of f.records.entries()) {
+    assert.deepEqual(readFileSync(join(f.repo.root,
+      `${DECLARATION_DIRECTORY}-supplements/${record.id}.json`)), before[index]);
+    assert.equal(aggregate.supplements.find(value => value.id === record.id).digest,
+      sha256(before[index]));
+  }
+  assert.deepEqual(aggregate.integrations[0].supplements,
+    ['complete-alias-resolution', 'complete-late-resolution']);
+});
+
+for (const [name, edit, pattern] of [
+  ['unknown member', value => { value.members[0].id = 'absent'; }, /equivalence member/],
+  ['changed member digest', value => { value.members[0].digest = '0'.repeat(64); }, /Changed foundation supplement equivalence member/],
+  ['duplicate member', value => { value.members.push(value.members[0]); }, /Noncanonical foundation supplement equivalence members/],
+  ['one member', value => { value.members.pop(); }, /Incomplete foundation supplement equivalence members/],
+  ['extra member field', value => { value.members[0].skip = true; }, /equivalence member fields/],
+  ['extra normalization field', value => { value.skip = true; }, /foundation supplement fields/],
+]) test(`explicit supplement equivalence rejects ${name}`, t => {
+  const f = equivalentLateReceipts(t);
+  const value = structuredClone(f.equivalence);
+  edit(value);
+  f.normalize(value);
+  assert.throws(() => compose(f.repo), pattern);
+});
+
+test('explicit equivalence refuses unequal complete late source sets', t => {
+  const f = equivalentLateReceipts(t, {twoLateGroups: true});
+  f.normalize();
+  assert.throws(() => compose(f.repo), /Different foundation supplement equivalence source sets/);
+});
+
+test('explicit equivalence does not excuse duplicate aliases within one receipt', t => {
+  const f = equivalentLateReceipts(t, {duplicateWithinMember: true});
+  f.normalize();
+  assert.throws(() => compose(f.repo), /Redundant dependency within foundation supplement equivalence member/);
+});
+
+test('explicit equivalence cannot excuse a dependency present in the immutable original', t => {
+  const f = equivalentLateReceipts(t, {redundantOriginal: true});
+  const second = {...f.records[1], inputs: f.supplement.inputs};
+  // Rewrite only this disposable synthetic repository's unpublished fixture.
+  f.repo.git('reset', '--hard', `${f.secondIntroduction}^`);
+  f.repo.write(f.secondPath, `${JSON.stringify(second, null, 2)}\n`);
+  f.repo.commit('Append second receipt repeating an original dependency');
+  f.equivalence.members.find(member => member.id === second.id).digest =
+    sha256(readFileSync(join(f.repo.root, f.secondPath)));
+  f.normalize();
+  assert.throws(() => compose(f.repo), /Redundant foundation supplement dependency/);
+});
+
+test('explicit equivalence must be introduced strictly after every member', t => {
+  const f = equivalentLateReceipts(t);
+  const secondBytes = readFileSync(join(f.repo.root, f.secondPath));
+  f.repo.git('reset', '--hard', `${f.secondIntroduction}^`);
+  f.repo.write(f.secondPath, secondBytes);
+  f.normalize();
+  assert.throws(() => compose(f.repo), /equivalence must follow every member/);
+});
+
+test('explicit equivalence cannot bypass a false declaration kind on a source alias', t => {
+  const f = equivalentLateReceipts(t);
+  f.repo.record({...f.right, id: 'conflicting-right-alias', kind: 'resolution', inputs: []});
+  f.normalize();
+  assert.throws(() => compose(f.repo), /Incorrect foundation declaration kind/);
+});
+
 test('an unchanged real Git checkpoint composes without declarations', t => {
   const repo = new FoundationRepository(t);
   const aggregate = compose(repo);

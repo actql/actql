@@ -303,8 +303,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     assert(raw.equals(Buffer.from(`${JSON.stringify(supplement, null, 2)}\n`)), 'Noncanonical foundation supplement JSON');
     const completion = supplement.version === 'actql-foundation-change-completion/0.1';
     const normalization = supplement.version === 'actql-foundation-single-base-normalization/0.1';
-    keys(supplement, ['version', 'id', 'target', ...(normalization ? [] : [completion ? 'changes' : 'inputs']), 'reason'], 'foundation supplement');
-    if (!completion && !normalization) assert.equal(supplement.version, 'actql-foundation-resolution-supplement/0.1');
+    const equivalence = supplement.version === 'actql-foundation-supplement-equivalence/0.1';
+    keys(supplement, ['version', 'id', 'target', ...(normalization ? [] : [completion ? 'changes' : equivalence ? 'members' : 'inputs']), 'reason'], 'foundation supplement');
+    if (!completion && !normalization && !equivalence) assert.equal(supplement.version, 'actql-foundation-resolution-supplement/0.1');
     assert.match(supplement.id, id, 'Invalid foundation supplement ID');
     assert.equal(path, `${supplementDirectory}/${supplement.id}.json`, 'Ambiguous foundation supplement filename');
     keys(supplement.target, ['id', 'digest'], 'foundation supplement target');
@@ -336,6 +337,17 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
         assert.equal(change.afterMode, after.mode, 'Incorrect foundation completion current mode');
         assert(before.some(entry => entry.digest !== after.digest || entry.mode !== after.mode), 'Unchanged foundation completion path');
       }
+    } else if (equivalence) {
+      assert(Array.isArray(supplement.members) && supplement.members.length >= 2,
+        'Incomplete foundation supplement equivalence members');
+      for (const member of supplement.members) {
+        keys(member, ['id', 'digest'], 'foundation supplement equivalence member');
+        assert.match(member.id, id, 'Invalid foundation supplement equivalence member ID');
+        assert.match(member.digest, digest, 'Invalid foundation supplement equivalence member digest');
+      }
+      assert.deepEqual(supplement.members.map(member => member.id),
+        sorted(new Set(supplement.members.map(member => member.id))),
+        'Noncanonical foundation supplement equivalence members');
     } else {
       assert(Array.isArray(supplement.inputs) && supplement.inputs.length
         && supplement.inputs.every(value => typeof value === 'string' && byId.has(value)), 'Unknown or empty foundation supplement inputs');
@@ -345,7 +357,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     for (const introduction of introduced) {
       assert(original.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
         'Foundation supplement must follow its original declaration');
-      if (!completion && !normalization) for (const input of supplement.inputs) {
+      if (!completion && !normalization && !equivalence) for (const input of supplement.inputs) {
         const dependency = declarations.find(value => value.id === input);
         assert(dependency.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
           'Foundation supplement must follow its dependency declaration');
@@ -353,10 +365,39 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     }
     const record = { path, digest: hash(raw), introductions: introduced, ...supplement };
     supplements.push(record);
-    if (normalization) continue;
+    if (normalization || equivalence) continue;
     const collection = completion ? completionsByTarget : supplementsByTarget;
     if (!collection.has(original.id)) collection.set(original.id, []);
     collection.get(original.id).push(record);
+  }
+  // Equivalence is explicit and digest-bound. Every raw receipt still passes
+  // its own schema, Git, ancestry, late-introduction and source-binding checks.
+  // This joins only complete, equal late source sets across separate receipts;
+  // it cannot excuse an original dependency or a duplicate within one receipt.
+  const equivalentSupplements = new Map();
+  for (const equivalence of supplements.filter(record =>
+    record.version === 'actql-foundation-supplement-equivalence/0.1')) {
+    let sources;
+    for (const member of equivalence.members) {
+      const raw = supplements.find(record => record.id === member.id);
+      assert(raw?.version === 'actql-foundation-resolution-supplement/0.1',
+        'Unknown or wrong-kind foundation supplement equivalence member');
+      assert.equal(member.digest, raw.digest, 'Changed foundation supplement equivalence member');
+      assert.deepEqual(raw.target, equivalence.target,
+        'Different foundation supplement equivalence targets');
+      for (const introduction of equivalence.introductions) {
+        assert(raw.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
+          'Foundation supplement equivalence must follow every member');
+      }
+      const current = sorted(new Set(raw.inputs.map(input => byId.get(input).revision)));
+      assert.equal(current.length, raw.inputs.length,
+        'Redundant dependency within foundation supplement equivalence member');
+      if (sources) assert.deepEqual(current, sources,
+        'Different foundation supplement equivalence source sets');
+      else sources = current;
+      assert(!equivalentSupplements.has(raw.id), 'Ambiguous foundation supplement equivalence');
+      equivalentSupplements.set(raw.id, equivalence.id);
+    }
   }
   const requirements = new Map();
   for (const revision of revisions) {
@@ -424,10 +465,17 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
             assert.deepEqual(inputRevisions, visible, 'Incomplete original foundation resolution inputs');
           }
           const effective = new Set(inputRevisions);
+          const lateSources = new Map();
           for (const supplement of additions) for (const input of supplement.inputs) {
             const source = byId.get(input).revision;
             assert(inputs.includes(source), 'Non-ancestral or cyclic foundation supplement dependency');
-            assert(!effective.has(source), 'Redundant foundation supplement dependency');
+            if (effective.has(source)) {
+              const prior = lateSources.get(source);
+              assert(prior && prior.id !== supplement.id &&
+                equivalentSupplements.has(prior.id) &&
+                equivalentSupplements.get(prior.id) === equivalentSupplements.get(supplement.id),
+              'Redundant foundation supplement dependency');
+            } else lateSources.set(source, supplement);
             effective.add(source);
           }
           inputRevisions = sorted(effective);

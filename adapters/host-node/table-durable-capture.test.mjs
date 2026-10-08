@@ -9,6 +9,7 @@ import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {preparePinnedEffectSourceHoldings} from './effect-input-export.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {completedTableCaptureOptions} from './fixtures/table-completed-capture.mjs';
+import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   suspendCompletedEffectfulComputation,
   retireCompletedEffectfulCapture} from '../host-common/completed-run-publication.mjs';
@@ -27,7 +28,7 @@ function receiptFixture(operation, rowCount) {
   const receipt = {...body, receipt_cid: `sha256:${createHash('sha256')
     .update(canonicalJson(body, {dataKeys: true})).digest('hex')}`};
   return {response: canonicalJson({ok: true, result: receipt}, {dataKeys: true}),
-    outcome: canonicalJson({state: 'applied', result: receipt}, {dataKeys: true})};
+    outcome: canonicalJson({state: 'applied', result: expectedLogicalTableReceipt(receipt)}, {dataKeys: true})};
 }
 const childRecovery = `
 import fs from 'node:fs';
@@ -39,6 +40,8 @@ import {recoverCompletedEffectfulComputation, prepareCompletedEffectfulPublicati
   suspendCompletedEffectfulComputation} from './adapters/host-common/completed-run-publication.mjs';
 import {prepareRecoveredTableInput, readRecoveredTableInput}
   from './adapters/host-node/table-capture-recovery.mjs';
+import {admitIcebergStorageMapping}
+  from './adapters/connectors/local/host/iceberg-process.mjs';
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 const control = runtimeCore(moon).publicationControl;
 const physicalStore = await openLocalPublicationStore({...input.store,
@@ -65,14 +68,22 @@ const inventory = prepareCompletedEffectfulPublication({execution: null, store, 
 const effect = runtimeCore(moon).effectApplicationControl;
 const scope = effect.logicalRequestScope('sha256:' + 'e'.repeat(64), 'table-bind', 128);
 const options = {recovered, store, control, memberIndex: 0, requestScope: scope,
-  contractLimits: input.limits, tableLimits: input.tableLimits};
+  contractLimits: input.limits, tableLimits: input.tableLimits,
+  bridge: {admitStorageMapping: admitIcebergStorageMapping}};
+await assert.rejects(prepareRecoveredTableInput({...options, bridge: undefined}),
+  {code: 'MissingTableMappingValidator'});
+await assert.rejects(prepareRecoveredTableInput({...options,
+  bridge: {admitStorageMapping: values => ({wire: values.mappingWire + ' '})}}),
+  {code: 'ForeignTableRecoveryMapping'});
 const table = await prepareRecoveredTableInput(options);
 const tableRows = await readRecoveredTableInput({prepared: table, maxBytes: 100000});
 const tableBinding = control.tablePreviewLedgerBinding(table.tablePreview);
 assert.equal(control.tablePreviewCommitOutcome(table.tablePreview,
-  input.receipt.response, 200, input.tableLimits), input.receipt.outcome);
+  control.localTableCommitResponse(input.receipt.response, 200, input.tableLimits),
+  200, input.tableLimits), input.receipt.outcome);
 assert.throws(() => control.tablePreviewCommitOutcome(table.tablePreview,
-  input.foreignRowCount.response, 200, input.tableLimits), {code: 'MoonBitHostFailure'});
+  control.localTableCommitResponse(input.foreignRowCount.response, 200, input.tableLimits),
+  200, input.tableLimits), {code: 'MoonBitHostFailure'});
 assert.throws(() => control.tablePreviewCommitOutcome(table.tablePreview,
   input.receipt.response, 500, input.tableLimits), {code: 'MoonBitHostFailure'});
 assert.equal(control.recoveredTablePreviewMatchesSource(table.tablePreview,
@@ -147,14 +158,16 @@ await assert.rejects(readRecoveredTableInput({prepared: table, maxBytes: 100000}
 // Receipt projection remains immutable after release; it is not availability
 // or permission to resend this operation.
 assert.equal(control.tablePreviewCommitOutcome(table.tablePreview,
-  input.receipt.response, 200, input.tableLimits), input.receipt.outcome);
+  control.localTableCommitResponse(input.receipt.response, 200, input.tableLimits),
+  200, input.tableLimits), input.receipt.outcome);
 await store.close();
 process.stdout.write(JSON.stringify(result));
 `;
 
 for (const [empty, privateTableInput, sparseTableInput] of [[false,false], [true,false], [false,true], [true,true], [false,true,true], [true,true,true]]) {
   test(`Table durable capture restores ${empty ? 'empty' : 'nonempty'} ${sparseTableInput ? 'sparse private input' : privateTableInput ? 'private input' : 'Result'} semantic Preview in a new process`,
-    async t => exerciseEffectSourceSet(t, {empty, privateTableInput, sparseTableInput, onTablePreview: async f => {
+    async t => exerciseEffectSourceSet(t, {empty, privateTableInput, sparseTableInput,
+      prepareCaptureResults: true, onTablePreview: async f => {
       const rowCount = empty ? 0 : sparseTableInput ? 3 : 2;
       const expectedRows = empty ? [] : sparseTableInput ?
         [{k: 1, p: 7}, {k: 2, p: null}, {k: 3}] : [{id: 1}, {id: 2}];

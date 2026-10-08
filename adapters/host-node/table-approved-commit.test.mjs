@@ -13,7 +13,8 @@ import {ensureCheckpointRuntime, accountConfiguration, accountEntry} from './aut
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {preparePinnedEffectSourceHoldings, readPinnedEffectTableInput} from './effect-input-export.mjs';
-import {createIcebergPhysicalBridge} from './table-iceberg-process.mjs';
+import {createIcebergPhysicalBridge, issueIcebergStorageMapping, admitIcebergStorageMapping}
+  from '../connectors/local/host/iceberg-process.mjs';
 import {prepareCapturedTableCommit, prepareRecoveredTableCommit, bindApprovedTableCommitDispatch,
   refreshCapturedTableTargets, capturedTableCommitPhysicalStatus,
   cleanupCapturedTableCommit} from './table-commit-apply.mjs';
@@ -29,6 +30,7 @@ import {openEffectLedger} from './effect-ledger.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const python = pathToFileURL(process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(
@@ -43,7 +45,7 @@ for (const recovery of [false, true]) {
 for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, true], [true, true]]) {
   test(`approved ${recovery ? 'recovered' : 'captured'} Table ${empty ? 'empty' : 'nonempty'}${sparseTableInput ? ' sparse private input' : ''} commit uses one operation per member`,
     async t => exerciseEffectSourceSet(t, {empty, privateTableInput: sparseTableInput,
-      sparseTableInput, target, mappingRef,
+      sparseTableInput, target, mappingRef, prepareCaptureResults: recovery,
       minimumApproval: 'required', onTablePreview: async f => {
         ensureCheckpointRuntime();
         const {moon, sourceControl: control, effect, tableLimits: limits} = f;
@@ -52,6 +54,8 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
         // captured owners. The independently authored fixture remains the
         // oracle for operation material, not the installed Preview producer.
         const authored = authorTableOperationPreview({moon, control,
+          bridge: {issueStorageMapping: issueIcebergStorageMapping,
+            admitStorageMapping: admitIcebergStorageMapping},
           prepared: f.prepared, inputs: f.inputs, checkedHost: f.checkedHost,
           requestScope: f.scope,
           context: {runDefinition: f.definition, runInvocation: f.invocation,
@@ -90,7 +94,7 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
           limits: {bytes: 16777216, files: 128, operations: 16}};
         const setup = spawnSync(fileURLToPath(python), ['-c',
           'import json,sys; from catalog import TableCatalog; c=json.loads(sys.argv[1]); t=TableCatalog(c["database"],c["warehouse"],c["catalogCid"],c["limits"]); t.create_namespace("analytics"); t.engine.dispose()',
-          JSON.stringify(catalog)], {cwd: fileURLToPath(new URL('../table-iceberg/', import.meta.url)),
+          JSON.stringify(catalog)], {cwd: fileURLToPath(new URL('../connectors/local/iceberg/', import.meta.url)),
           encoding: 'utf8', timeout: 20000});
         assert.ifError(setup.error);
         assert.equal(setup.status, 0, setup.stderr);
@@ -112,6 +116,7 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
         };
         const bridge = createIcebergPhysicalBridge({python, run: 'captured-table', catalog});
         const tableInputs = [], tablePreviews = [], materials = [], members = [];
+        const issuedBeforeDispatch = f.mappingIssuanceCount();
         const preview = JSON.parse(f.authored._0);
         for (const [index, member] of preview.effects.entries()) {
           const identity = authored.identities[index];
@@ -141,6 +146,8 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
           holding: retained.holdings[0], tableInput: f.tableInput, identity: f.identity,
           tablePreview: f.tablePreview, bridge, reservation: {bytes: 1048576, files: 16},
           maxBytes: 100000, limits});
+        assert.equal(f.mappingIssuanceCount(), issuedBeforeDispatch,
+          'Dispatch must reuse the approved mapping, not issue a new one');
         assert.deepEqual(capturedTableCommitPhysicalStatus(discarded),
           {attempted: false, stopped: false});
         assert.deepEqual(await cleanupCapturedTableCommit({prepared: discarded}),
@@ -222,7 +229,7 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
             assert.equal(recovered.computation.capturedRun.identity, computation.capturedRun.identity);
             for (let index = 0; index < tableInputs.length; index++) {
               const recoveredInput = await prepareRecoveredTableInput({recovered, store: activeStore,
-                control, memberIndex: index, requestScope: f.scope,
+                control, bridge, memberIndex: index, requestScope: f.scope,
                 contractLimits: f.options.contractLimits, tableLimits: limits});
               assert.equal(recoveredInput.operationWire, tableInputs[index].wire);
               assert.equal(recoveredInput.mappingWire, f.storage.wire);
@@ -302,6 +309,12 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
             ? [{k: 1, p: 7}, {k: 2, p: null}, {k: 3}] : [{id: 1}, {id: 2}];
           const receipts = members.map(member => JSON.parse(
             ledger.readClaimedOutcome(member.claims[0]).outcomeJson).typed_outcome.result);
+          const physicalReceipts = await Promise.all(f.operations.map(async (operation, index) => {
+            const original = await bridge.reconcileOperation(operation);
+            assert.equal(original.ok, true);
+            assert.deepEqual(receipts[index], expectedLogicalTableReceipt(original.result));
+            return original.result;
+          }));
           ledger.close();
           ledger = openLedger();
           const replay = await apply({...approved, ledger, authorization: undefined,
@@ -309,7 +322,7 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
             bindDispatch: () => assert.fail('Terminal operation resent')});
           assert.equal(replay.dispatched, 0);
           assert.equal(countCommits(), 2);
-          for (const receipt of receipts) {
+          for (const receipt of physicalReceipts) {
             assert.equal(receipt.row_count, expected.length);
             assert.deepEqual(sameData((await bridge.read(receipt, JSON.parse(f.storage.wire))).result), expected);
           }
@@ -328,7 +341,7 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
             assert.equal(activeStore.status().storedBytes, 0);
             assert.equal(activeStore.status().reservedBytes, 0);
           }
-          for (const receipt of receipts) {
+          for (const receipt of physicalReceipts) {
             assert.deepEqual(sameData((await bridge.read(receipt, JSON.parse(f.storage.wire))).result), expected);
           }
           if (!sparseTableInput) assert.equal(f.execution.completed.length, 1);

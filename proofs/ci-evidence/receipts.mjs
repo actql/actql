@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {observeBridgeCases} from '../events-bridge/observations.mjs';
 import {mutationObservation} from './mutation-observation.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {parseTestExecution} from '../../scripts/test-execution.mjs';
@@ -74,6 +75,7 @@ export function observationUnits(action, output, status) {
     const result = parseTestExecution('moon', output);
     assert(result.success && result.counts.failed === 0 && result.counts.tests === result.counts.passed);
     assert(result.counts.passed >= action.minimumUnits, 'Zero/incomplete executed action');
+    if (action.id.startsWith('events-connection-')) observeBridgeCases(output, status);
     return result.counts.passed;
   }
   if (action.id === 'model' || action.id === 'events-model') {
