@@ -150,6 +150,8 @@ pub fn coordinator_exact_retransmission_eligible(CoordinatorDispatchIntentRecord
 
 pub fn coordinator_execution_observation(CoordinatorDispatchIntentRecord, String, String, String) -> Result[CoordinatorExecutionObservation, DispatchIssue]
 
+pub fn coordinator_initial_delivery_eligible(CoordinatorDispatchIntentRecord, DispatchRequest, String, String, Int, Bool, Bool, Bool) -> Result[Bool, DispatchIssue]
+
 pub fn coordinator_managed_output_matches(CoordinatorDispatchIntentRecord, DispatchRequest, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Bool
 
 pub fn coordinator_output_admission_durable_json(RemotePollOutput, RemoteOutputPlan) -> Result[String, DispatchIssue]

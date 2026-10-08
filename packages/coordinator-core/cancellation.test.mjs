@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {admitDispatchJson, pollCancelJson} from './index.mjs';
+import * as owner from './index.mjs';
 
 // Fixed contract preimages, not expectations generated from this issuer.
 const vectors = JSON.parse(readFileSync(new URL('../../spec/fixtures/remote-site-wire-vectors.json', import.meta.url))).vectors;
@@ -58,3 +59,70 @@ for (const [name, state, expected] of [
     assert.equal(core.canRetireCancellationDelivery(restored), expected);
   });
 }
+
+// Initial dispatch continuation must retain current cancellation authority.
+const initialCid = digit => `sha256:${digit.repeat(64)}`;
+const initialContext = {coordinatorAuthority: 'coordinator-a', siteKey: 'site-a',
+  siteGeneration: 1, authorizationCurrent: true, cancellationRequested: false, outcomePersistedBeforeEverySend: true};
+
+function restoredIntent() {
+  const request = owner.prepareDispatch({coordinatorAuthority: 'coordinator-a',
+    runDefinitionCid: initialCid('0'), taskKey: 'task-a', taskAttempt: 1,
+    dispatchId: 'dispatch-a', siteKey: 'site-a', siteGeneration: 1,
+    runtimeBundleCid: initialCid('a'), connectorRegistration: 'local',
+    connectorRevision: 'local/1', strategyRevision: 'strategy/1',
+    inputBindingCid: initialCid('1'), obligationsCid: initialCid('2'), budgetCid: initialCid('3'),
+    evidenceIssuerCapabilityCid: initialCid('b'), grantCid: initialCid('4')});
+  const admission = owner.prepareIntent(owner.createJournal('coordinator-a'), request);
+  const saved = owner.admissionDurableJson(admission);
+  owner.commitIntent(admission);
+  const durable = owner.admitDurableJson(saved);
+  const record = owner.restoreDurable(owner.createJournal('coordinator-a'), durable);
+  return {request, durable, record};
+}
+
+test('reconstructed initial intent can continue without fabricating Site acceptance', () => {
+  const {request, durable, record} = restoredIntent();
+  const before = owner.recordStateCodes(record);
+  assert.equal(owner.initialDeliveryEligible(record, request, initialContext), true);
+  assert.equal(owner.redeliveryEligible(record, request, '', initialContext), false);
+  assert.deepEqual(owner.recordStateCodes(record), before);
+  const transition = owner.prepareUnknown(record);
+  const saved = owner.transitionDurableJson(durable, transition);
+  owner.commitTransition(transition);
+  const reconstructed = owner.restoreDurable(owner.createJournal('coordinator-a'),
+    owner.admitDurableJson(saved));
+  assert.equal(owner.initialDeliveryEligible(reconstructed, request, initialContext), false);
+  assert.equal(owner.redeliveryEligible(reconstructed, request, '', initialContext), false);
+});
+
+test('initial intent requires current authority Site generation and cancellation checks', () => {
+  const {request, record} = restoredIntent();
+  for (const changed of [{authorizationCurrent: false}, {cancellationRequested: true},
+    {outcomePersistedBeforeEverySend: false}]) {
+    assert.equal(owner.initialDeliveryEligible(record, request, {...initialContext, ...changed}), false);
+  }
+  for (const changed of [{coordinatorAuthority: 'other'}, {siteKey: 'other'}, {siteGeneration: 2}]) {
+    assert.throws(() => owner.initialDeliveryEligible(record, request,
+      {...initialContext, ...changed}), {code: 'CoordinatorOwnerRejected'});
+  }
+  assert.throws(() => owner.initialDeliveryEligible(record, request,
+    {...initialContext, outcomePersistedBeforeEverySend: undefined}), /InvalidCoordinatorInitialDeliveryContext/u);
+  for (const changed of [{authorizationCurrent: 1}, {cancellationRequested: undefined},
+    {siteGeneration: NaN}, {siteGeneration: 2147483648}]) {
+    assert.throws(() => owner.initialDeliveryEligible(record, request,
+      {...initialContext, ...changed}), /InvalidCoordinatorRedeliveryContext/u);
+  }
+});
+
+test('historical Accepted retains its own recovery decision and is never initial delivery', () => {
+  const {request, record} = restoredIntent();
+  const response = owner.admitResponseJson(JSON.stringify({
+    version: 'actql-remote-dispatch-response/0.1',
+    dispatch_request_cid: owner.dispatchCid(request), revision: 0,
+    state: [0, 0, 0, 0, 0]}), request, false);
+  const transition = owner.prepareResponseObservation(record, response);
+  owner.commitTransition(transition);
+  assert.equal(owner.initialDeliveryEligible(record, request, initialContext), false);
+  assert.equal(owner.redeliveryEligible(record, request, '', initialContext), true);
+});

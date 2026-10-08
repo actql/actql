@@ -109,6 +109,24 @@ test('changed target binding and changed submission refuse restart', async () =>
   {code: 'EffectTargetBindingChanged'});
 });
 
+test('target continuation forwards the exact private authority without retaining or serializing it', async () => {
+  const f = fixture();
+  const authority = {toJSON() { assert.fail('Authority tokens must never be serialized'); }};
+  const received = [];
+  const authorize = f.options.checkpoints.effectTargetAuthorization;
+  f.options.checkpoints.effectTargetAuthorization = options => {
+    received.push(options.effectTargetAuthority);
+    return authorize(options);
+  };
+  const owner = await effectTargetReadContinuation({...f.options, effectTargetAuthority: authority});
+  assert.deepEqual(received, [authority, authority]);
+  assert.ok(received.every(value => value === authority));
+  assert.equal((await owner.prepare()).status, 'waiting_checkpoint');
+  assert.equal(Object.hasOwn(owner.captureBinding(), 'effectTargetAuthority'), false);
+  assert.equal(Object.hasOwn(f.records[0].continuation, 'effectTargetAuthority'), false);
+  owner.close();
+});
+
 test('expired or rejected earlier target approval cannot be carried forward', async () => {
   const f = fixture();
   const first = await effectTargetReadContinuation(f.options);
