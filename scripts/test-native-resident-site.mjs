@@ -55,7 +55,14 @@ const retainedCancelBeforeConsumer =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CANCEL_BEFORE_CONSUMER === '1';
 const retainedProducerHolderRecreation =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_PRODUCER_HOLDER_RECREATION === '1';
+const retainedCompletedConsumerRecreation =
+  process.env.ACTQL_TEST_RESIDENT_RETAINED_COMPLETED_CONSUMER_RECREATION === '1';
 const retainedHandoffInterruption = process.env.ACTQL_TEST_RESIDENT_RETAINED_HANDOFF_INTERRUPTION;
+if (retainedCompletedConsumerRecreation && (retainedCoordinatorReconstruction ||
+  retainedCancelBeforeConsumer || retainedProducerHolderRecreation ||
+  retainedHandoffInterruption !== undefined)) {
+  throw new Error('select the completed consumer restoration independently');
+}
 if (retainedHandoffInterruption !== undefined &&
   !['transfer-pending', 'receiver-committed', 'consumer-borrowed'].includes(retainedHandoffInterruption)) {
   throw new Error('unknown retained handoff interruption');
@@ -64,12 +71,14 @@ if (retainedHandoffInterruption !== undefined && retainedProducerHolderRecreatio
   throw new Error('select one holder interruption boundary');
 }
 if ((retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
-  retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined) && !retainedConsumerMode) {
+  retainedProducerHolderRecreation || retainedCompletedConsumerRecreation ||
+  retainedHandoffInterruption !== undefined) && !retainedConsumerMode) {
   throw new Error('retained fault selection requires the retained consumer case');
 }
 const sourceMode = process.argv.includes('--source-only') || retainedConsumerMode;
 if (retainedChainMode && (retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
-  retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined)) {
+  retainedProducerHolderRecreation || retainedCompletedConsumerRecreation ||
+  retainedHandoffInterruption !== undefined)) {
   throw new Error('select the chain case independently from two-task fault cases');
 }
 if (retainedMiddleRecreation && !retainedChainMode) {
@@ -918,6 +927,8 @@ try {
           ? ['--holder-kill-at', 'completed-retained-intermediate'] : []),
         ...(retainedProducerHolderRecreation
           ? ['--holder-kill-at', 'completed-producer'] : []),
+        ...(retainedCompletedConsumerRecreation
+          ? ['--holder-kill-at', 'completed-consumer'] : []),
         ...(retainedHandoffInterruption === undefined ? [] : [
           '--holder-kill-at', `retained-${retainedHandoffInterruption}`,
           '--holder-pause-at', `retained-${retainedHandoffInterruption}`,
@@ -1217,6 +1228,31 @@ try {
           assert.equal(gateway.withdraw({dispatch: consumerDispatch}), true);
           const interruptedDelivery = await consumerDelivery;
           assert.equal(interruptedDelivery.code, 'RemoteDispatchWithdrawn');
+        } else if (retainedCompletedConsumerRecreation) {
+          await waitFor(() => site.lines.some(line => line.kind === 'holder-killed' &&
+            line.point === 'completed-consumer'), 'durable consumer holder interruption');
+          await waitFor(() => site.lines.some(line => line.kind === 'holder-exited'),
+            'original completed consumer holder physical exit');
+          assert.equal((await entries()).length, 2);
+          assert.equal(gateway.withdraw({dispatch: consumerDispatch}), true);
+          const interruptedDelivery = await consumerDelivery;
+          assert.equal(interruptedDelivery.code, 'RemoteDispatchWithdrawn');
+          interruptedReceiver = {
+            allocations: retainedJournalRows('remote_transfer_destination_allocation'),
+            readers: retainedJournalRows('remote_transfer_destination_reader'),
+          };
+          assert.equal(interruptedReceiver.readers.length, 1);
+          assert.equal(interruptedReceiver.readers[0].body.split('\n')[4], 'released');
+          assert.equal(interruptedReceiver.readers[0].revision, 1, 'original borrow returned once');
+          // Recreate the original producer holder first, exactly as Cloud's
+          // retained input recovery does. Its custody map must then restore
+          // the completed descendant for Output without another dispatch.
+          const replay = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
+            'recreate producer before completed consumer Output');
+          assert.deepEqual(runHost.retainedInputResultFacts(replay), runHost.retainedInputResultFacts(result));
+          assert.ok(site.lines.some(line => line.kind === 'holder-restored' &&
+            line.request_cid === siteControl.identity(producerDispatch)));
+          assert.equal((await entries()).length, 2, 'reconstruction cannot execute either task again');
         } else if (retainedHandoffInterruption === 'consumer-borrowed') {
           interruptedReceiver = await waitForHandoffInterruption();
           assert.equal(interruptedReceiver.readers.length, 1);
@@ -1328,6 +1364,19 @@ try {
         assert.equal((await entries()).length, taskCount);
         await waitFor(() => reportState().pending === 0, 'retained consumer durable Output ACK');
         assert.equal(reportState().pending, 0, 'real typed Output ACK must be durably admitted');
+        if (retainedCompletedConsumerRecreation) {
+          assert.deepEqual(retainedJournalRows('remote_transfer_destination_allocation'),
+            interruptedReceiver.allocations, 'completed input is not physically retransferred');
+          assert.deepEqual(retainedJournalRows('remote_transfer_destination_reader'),
+            interruptedReceiver.readers, 'restoration cannot borrow or return the input again');
+          assert.equal(site.lines.filter(line => line.kind === 'holder-killed' &&
+            line.point === 'completed-consumer').length, 1);
+          assert.equal(site.lines.filter(line => line.kind === 'holder-restored' &&
+            line.request_cid === siteControl.identity(producerDispatch)).length, 1);
+          assert.equal(site.lines.filter(line => line.kind === 'consumer-restored' &&
+            line.request_cid === siteControl.identity(consumerDispatch)).length, 1,
+          'the completed descendant is restored exactly once inside its producer holder');
+        }
         assert.equal(inspectProgress().executionComplete, true);
         assert.equal(inspectProgress().publicationReady, true);
         assert.deepEqual(inspectProgress().tasks.map(task => task.nextWork),
@@ -1420,14 +1469,17 @@ try {
         checkedTaskStart: true, cloudRunStartCas: false,
         publicationReady: inspectProgress().publicationReady,
         taskCleanup: inspectProgress().tasks.map(task => task.cleanup),
-        producerHolderRecreated: retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined,
+        producerHolderRecreated: retainedProducerHolderRecreation || retainedCompletedConsumerRecreation ||
+          retainedHandoffInterruption !== undefined,
         middleHolderRecreated: retainedMiddleRecreation,
+        completedConsumerRestored: retainedCompletedConsumerRecreation,
         retainedHandoffInterruption: retainedHandoffInterruption ?? null,
         transferResumedBeforeCommit: retainedHandoffInterruption === 'transfer-pending',
         pendingReceiverAllocationsPreserved: retainedHandoffInterruption === 'transfer-pending',
         committedReceiverAllocationsUnchanged: interruptedReceiver !== undefined &&
           retainedHandoffInterruption !== 'transfer-pending',
-        originalBorrowReturnedOnce: retainedHandoffInterruption === 'consumer-borrowed',
+        originalBorrowReturnedOnce: retainedCompletedConsumerRecreation ||
+          retainedHandoffInterruption === 'consumer-borrowed',
         cancelledBeforeConsumer: retainedCancelBeforeConsumer,
         receiverHoldingReclaimed: true, resultReread: !retainedCancelBeforeConsumer,
         publicCloudAcceptance: false}));

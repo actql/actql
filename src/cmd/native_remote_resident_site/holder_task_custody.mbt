@@ -9,6 +9,9 @@ priv struct HolderTaskCustody {
   consumer : @resident_host.ResidentRetainedConsumer?
   process_hold : Ref[@bundle.NativeActiveRuntimeBinding?]
   mut executed : @resident_host.ResidentExecuted?
+  mut restoration : @resident_host.ResidentCompletedAttempt?
+  mut restoration_cleanup : @runtime.NativeRemoteRuntime?
+  mut restoration_failed : Bool
   mut handoff : (String, @resident_host.ResidentRetainedTransfer)?
   mut successor_identity : String?
   mut release_requested : Bool
@@ -31,6 +34,9 @@ fn new_holder_task_custody(
     consumer,
     process_hold: Ref(None),
     executed,
+    restoration: None,
+    restoration_cleanup: None,
+    restoration_failed: false,
     handoff: None,
     successor_identity: None,
     release_requested: false,
@@ -155,6 +161,30 @@ fn close_holder_task(
     // The original holder's report handoff still precedes physical teardown.
     // Each released descendant already persisted its own exact report custody.
     holder_checkpoint(resources)("report-handoff")
+  }
+  // A pending reconstructed owner must finish restoring its exact custody
+  // before cleanup can discharge it. Keep that same owner across retries.
+  if task.restoration is Some(owner) {
+    match owner.advance() {
+      @resident_host.ResidentCompletedReady(completed) => {
+        task.executed = Some(completed)
+        task.restoration = None
+      }
+      _ => return false
+    }
+  }
+  if task.restoration_cleanup is Some(runtime) {
+    if runtime.close() is Err(_) {
+      return false
+    }
+    // Physical close alone does not settle historical dispatch cleanup.
+    if !holder_completed_restoration_settled(task, environment.journal) {
+      return false
+    }
+    task.restoration_cleanup = None
+  }
+  if !holder_completed_restoration_settled(task, environment.journal) {
+    return false
   }
   if task.handoff is Some((_, handoff)) {
     while handoff.reclaim() is Err(_) {
@@ -287,4 +317,20 @@ fn handle_holder_release_frame(
     }
   }
   true
+}
+
+///|
+/// Failed restoration is not completed execution or cleanup. Only the existing
+/// journal's formal release can settle it without a successfully restored owner.
+fn holder_completed_restoration_settled(
+  task : HolderTaskCustody,
+  journal : @journal.Journal,
+) -> Bool {
+  if !task.restoration_failed || task.executed is Some(_) {
+    return true
+  }
+  match journal.require(task.request) {
+    Ok(record) => @remote.remote_runtime_record_released(record)
+    Err(_) => false
+  }
 }

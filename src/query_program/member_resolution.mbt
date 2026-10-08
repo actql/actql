@@ -266,6 +266,7 @@ fn MemberResolution::expression(
   root : @wire.Cursor,
   rows : @schema.Schema?,
   declarations : @parameters.Declarations?,
+  retain_refusal? : (@typing.Issue) -> Unit = _ => (),
 ) -> Unit raise Abort {
   // Literal data is not expression structure. All other forms already came
   // from the query lowerer, and the common expression admission still checks
@@ -355,7 +356,8 @@ fn MemberResolution::expression(
         )
       // Unknown or invalid receivers retain ordinary checking's rejection.
       // No row sampling, guessed field type or input-scope fallback is used.
-      Err(_) => {
+      Err(issue) => {
+        retain_refusal(issue)
         self.defer_refusal()
         return
       }

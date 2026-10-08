@@ -37,44 +37,24 @@ pub fn prepare_program_references(
   }
   // attach_program_references visits each Stage after the reference branch.
   let cap = max_work - stages.work - count
-  let request_work = @request_slots.work(requests.slots)
-  if request_work > cap || count > cap - request_work {
-    return Err(BudgetExceeded)
-  }
-  let mut remaining = cap - request_work - count
-  let uses = []
-  for i in 0..<count {
-    let body = match
-      @stage_body.prepare(@stages.operations_stage_at(collected, i).unwrap(), {
-        ..body_limits,
-        max_work: Int::min(body_limits.max_work, remaining),
-      }) {
-      Ok(v) => v
-      Err(e) => return Err(Body(i, e))
-    }
-    let value = match
-      @stage_body.collect_parameter_uses(body, {
-        ..use_limits,
-        max_work: Int::min(use_limits.max_work, remaining),
-      }) {
-      Ok(v) => v
-      Err(e) => return Err(Uses(i, e))
-    }
-    remaining -= @stage_body.parameter_work(value)
-    uses.push(value)
-  }
-  let inventory = match
-    @program_refs.prepare(requests.slots, uses, {
-      ..reference_limits,
-      max_work: Int::min(reference_limits.max_work, cap),
-    }) {
-    Ok(v) => v
-    Err(e) => return Err(Inventory(e))
-  }
   let usage = match
-    @program_refs.check_declaration_usage(inventory, max_work=cap) {
+    @program_refs.prepare_declaration_usage(
+      requests.slots,
+      Array::makei(count, i => {
+        @stages.operations_stage_at(collected, i).unwrap()
+      }),
+      body_limits,
+      use_limits,
+      reference_limits,
+      max_work=cap,
+    ) {
     Ok(v) => v
-    Err(e) => return Err(Usage(e))
+    Err(InvalidLimits) => return Err(InvalidLimits)
+    Err(BudgetExceeded) => return Err(BudgetExceeded)
+    Err(Body(i, e)) => return Err(Body(i, e))
+    Err(Uses(i, e)) => return Err(Uses(i, e))
+    Err(Inventory(e)) => return Err(Inventory(e))
+    Err(Usage(e)) => return Err(Usage(e))
   }
   let values = @references.bound_values(
     @stages.bound_program_index(stages.operations),

@@ -1,3 +1,4 @@
+import './fixtures/structured-program-diagnostic-identities.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -5,11 +6,11 @@ import {readCheckReasonCatalog, validateCheckReasonCatalog} from './check-reason
 import {buildCheckReasonCatalog, generateCheckReasonCatalog} from './generate-check-reason-catalog.mjs';
 const registry = JSON.parse(readFileSync(new URL('../spec/contracts/actql-protocol-schemas.json', import.meta.url)));
 const catalog = readCheckReasonCatalog();
-test('catalog generates current facts wire, SDK metadata and reference outputs with unchanged pins', () => {
+test('catalog generates current facts wire, SDK metadata and reference outputs with independently fixed current pins', () => {
   assert.equal(registry.artifact_schema_cids.check_reason,
-    'sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739');
+    'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a');
   assert.equal(registry.artifact_schema_cids.check_outcome,
-    'sha256:801971ab7c91652f2e3a606cdae7567fe313ca2931df81d7ab4c24d3d130e0a9');
+    'sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f');
   assert.deepEqual(catalog.reason_schema, registry.artifact_schemas.check_reason);
   assert.equal(buildCheckReasonCatalog(catalog, registry).size, 3);
   generateCheckReasonCatalog();

@@ -35,6 +35,8 @@ export const unnestParameterPathSuccesses = [
   success('sql'),
   success('case-insensitive-receiver', sql.replace('@payload', '@PAYLOAD')),
   success('quoted-receiver', sql.replace('@payload', '@`PAYLOAD`')),
+  success('case-insensitive-members', sql.replace('.nested.items', '.NESTED.ItEmS')),
+  success('quoted-case-insensitive-members', sql.replace('.nested.items', '.`NESTED`.`ITEMS`')),
   success('pipe', 'FROM UNNEST(@payload.nested.items) element WITH OFFSET position |> SELECT element.*, position |> ORDER BY position', {format: 'aql-text'}),
   success('quoted-parentheses', 'SELECT * FROM UNNEST(((@payload).`nested`).`items`) element WITH OFFSET position ORDER BY position'),
   success('null-parent', sql, {parameters: {payload: null}, expected: []}),
@@ -42,12 +44,36 @@ export const unnestParameterPathSuccesses = [
   success('null-array', sql, {parameters: {payload: {nested: {items: null}}}, expected: []}),
   success('empty-array', sql, {parameters: {payload: {nested: {items: []}}}, expected: []}),
 ];
+const mixedDeclarations = {payload: {...declarations.payload, fields: {
+  Nested: {...declarations.payload.fields.nested, fields: {
+    Items: declarations.payload.fields.nested.fields.items,
+  }},
+}}};
+const mixedParameters = {payload: {Nested: {Items: parameters.payload.nested.items}}};
+const mixedProgram = structuredClone(unnestParameterPathProgram);
+mixedProgram.params = mixedDeclarations;
+mixedProgram.stages[0].steps[1].derive.array.property.name = 'Items';
+mixedProgram.stages[0].steps[1].derive.array.property.value.property.name = 'Nested';
+unnestParameterPathSuccesses.push(
+  success('mixed-declaration-json-control', JSON.stringify(mixedProgram), {
+    format: 'json', parameterDeclarations: undefined, parameters: mixedParameters,
+  }),
+  success('mixed-declaration-members', sql, {
+    parameterDeclarations: mixedDeclarations, parameters: mixedParameters,
+  }),
+);
+const collisionDeclarations = {payload: {...declarations.payload, fields: {
+  ...declarations.payload.fields, NESTED: declarations.payload.fields.nested,
+}}};
+const collisionParameters = {payload: {...parameters.payload, NESTED: parameters.payload.nested}};
 const refusal = (name, text = sql, extra = {}) => ({name: 'unnest-parameter-path-refusal-' + name,
   format: 'sql', text, parameterDeclarations: declarations, parameters, ...extra});
 export const unnestParameterPathRefusals = [
-  refusal('undeclared', sql, {parameterDeclarations: undefined}),
-  refusal('unknown-property', sql.replace('.items)', '.missing)')),
-  refusal('non-array', sql.replace('.nested.items)', '.nested)')),
+  refusal('undeclared', sql, {parameterDeclarations: undefined, expectedCode: 'ClientProgramInvalidInput'}),
+  refusal('unknown-property', sql.replace('.items)', '.missing)'), {expectedCode: 'ClientProgramInvalidInput'}),
+  refusal('non-array', sql.replace('.nested.items)', '.nested)'), {expectedCode: 'ClientProgramInvalidInput'}),
   refusal('bound', sql, {parameters: {payload: {nested: {items: [null, null, null, null]}}}}),
   refusal('field-type', sql, {parameters: {payload: {nested: {items: [{id: 'wrong', label: null}]}}}}),
+  refusal('member-case-collision', sql, {parameterDeclarations: collisionDeclarations,
+    parameters: collisionParameters, expectedCode: 'ClientProgramInvalidInput'}),
 ];
