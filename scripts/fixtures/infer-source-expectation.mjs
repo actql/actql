@@ -37,6 +37,16 @@ const keptRows = [{id: 'ticket-1', note: 'urgent', assessment: {
 // All cases are authored from the common outcome, key and projection rules.
 // No expected row or contract is obtained from a compiler or Result reader.
 export const sourceCases = {
+  'literal-input': {
+    source: "SELECT DISTINCT 'ticket-1' AS id " +
+      "|> INFER `model-task:packed-risk.v1` ITEM KEY (id) INPUT (text = 'urgent') AS assessment",
+    rows: expectedRows, columns: expectedColumns, calls: 1, inputWire: '"urgent"',
+  },
+  'expression-input': {
+    source: "SELECT DISTINCT 'ticket-1' AS id " +
+      "|> INFER `model-task:packed-risk.v1` ITEM KEY (id) INPUT (text = CONCAT('ur', 'gent')) AS assessment",
+    rows: expectedRows, columns: expectedColumns, calls: 1, inputWire: '"urgent"',
+  },
   minimal: {source, rows: expectedRows, columns: expectedColumns, calls: 1,
     inputWire: '"urgent"'},
   'folded-input': {source: `${prefix} |> INFER \`model-task:packed-risk.v1\` ` +

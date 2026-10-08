@@ -45,6 +45,8 @@ pub(all) struct Context {
   parameter_declarations : @parameters.Declarations?
   inputs : Array[Input]
   input_schemas : Array[(String, @schema.Schema)]
+  // Actual admitted Catalog; schema-only attachments do not establish Source provenance.
+  source_catalog : @environment.SourceRequestContracts?
   // Exact selected contract owner; this does not authorize model execution.
   model_tasks : @environment.ModelTasks?
 }
@@ -2273,7 +2275,9 @@ fn compile_steps(
           // SQL star names the input row, before grouping removes columns or
           // adds aggregate slots. Every expanded value must still be grouped.
           sql_group_expression_input_scope = Some({
-            visible: unnest_expression_columns(input_visible, value_table_receivers),
+            visible: unnest_expression_columns(
+              input_visible, value_table_receivers,
+            ),
             ranges: input_ranges.copy(),
           })
           sql_group_input_columns = input_visible.copy()
@@ -2930,8 +2934,8 @@ fn compile_steps(
                 (
                   slot,
                   append_grouped_expression(
-                    construction, expression, grouped_keys, resolve_input,
-                    scalar_visible, scalar_ranges, max_work,
+                    construction, expression, grouped_keys, resolve_input, scalar_visible,
+                    scalar_ranges, max_work,
                   ),
                 ),
               )
@@ -3463,17 +3467,27 @@ fn compile_steps(
             ranges: pipe_ranges,
           }
         }
-        let lower_select_expression = fn(expression : @query.Expression) -> @builder.Node raise Abort {
+        let lower_select_expression = fn(
+          expression : @query.Expression,
+        ) -> @builder.Node raise Abort {
           if sql_group_projection {
             let input_scope = sql_group_expression_input_scope.unwrap()
             append_grouped_expression(
-              construction, expression, grouped_keys,
+              construction,
+              expression,
+              grouped_keys,
               path => pipe_slot(path, input_scope.visible, input_scope.ranges),
-              expression_scope.visible, expression_scope.ranges, max_work,
+              expression_scope.visible,
+              expression_scope.ranges,
+              max_work,
             )
           } else {
             append_pipe_expression(
-              construction, expression, expression_scope.visible, expression_scope.ranges, max_work,
+              construction,
+              expression,
+              expression_scope.visible,
+              expression_scope.ranges,
+              max_work,
             )
           }
         }
@@ -3582,10 +3596,7 @@ fn compile_steps(
                         )
                         physical.push(slot)
                         derives.push(
-                          (
-                            slot,
-                            lower_select_expression(expression),
-                          ),
+                          (slot, lower_select_expression(expression)),
                         )
                         slot
                       }
@@ -3593,12 +3604,7 @@ fn compile_steps(
                   _ => {
                     let slot = pipe_physical_name(physical, "aql_pipe_expr_")
                     physical.push(slot)
-                    derives.push(
-                      (
-                        slot,
-                        lower_select_expression(expression),
-                      ),
-                    )
+                    derives.push((slot, lower_select_expression(expression)))
                     slot
                   }
                 }
@@ -3832,9 +3838,19 @@ fn compile_steps(
                       let scope = sql_group_select_scope.unwrap()
                       let input_scope = sql_group_expression_input_scope.unwrap()
                       append_grouped_expression(
-                        construction, expression, grouped_keys,
-                        path => pipe_slot(path, input_scope.visible, input_scope.ranges),
-                        scope.visible, scope.ranges, max_work,
+                        construction,
+                        expression,
+                        grouped_keys,
+                        path => {
+                          pipe_slot(
+                            path,
+                            input_scope.visible,
+                            input_scope.ranges,
+                          )
+                        },
+                        scope.visible,
+                        scope.ranges,
+                        max_work,
                       )
                     } else {
                       append_expression(
