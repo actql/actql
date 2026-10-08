@@ -133,14 +133,14 @@ const mutations = [
     from: "return retainCancellationExplanation(freezeInput(owned), context,\n            owned.kind === 'found' ? owned.cancellation.kind : 'outcome_unknown',\n            owned.kind === 'found' ? owned.cancellation.revision : undefined);",
     to: 'return freezeInput(owned);',
     targets: ['local', 'https'].flatMap(entrance => ['before-commit', 'after-commit'].map(loss => target(
-      `${entrance}: original cancellation lookup after ${loss} loss and process restart uses a successful Run`,
+      `${entrance}: original cancellation lookup after ${loss} loss preserves publication before physical stop and process restart`,
       'cancel-lookup-public', 'deepStrictEqual')))},
   {name: 'cancellation lookup turns unknown custody into a terminal observation', path,
     file: 'adapters/host-node/client-cancellation-public.test.mjs',
     from: "owned.kind === 'found' ? owned.cancellation.kind : 'outcome_unknown'",
     to: "owned.kind === 'found' ? owned.cancellation.kind : 'already_terminal'",
     targets: ['local', 'https'].map(entrance => target(
-      `${entrance}: original cancellation lookup after before-commit loss and process restart uses a successful Run`,
+      `${entrance}: original cancellation lookup after before-commit loss preserves publication before physical stop and process restart`,
       'cancel-lookup-public', 'deepStrictEqual'))},
   {name: 'cancellation lookup input reobserves the original operation identity', path,
     file: 'packages/sdk/cancellation-lookup-explanation.test.mjs',

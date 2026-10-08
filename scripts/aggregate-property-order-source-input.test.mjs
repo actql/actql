@@ -34,7 +34,7 @@ test('collection orders discriminate input properties, current slots and indepen
 });
 
 test('independent JSON controls preserve predicate, scalar aggregate argument and actual array key assertion', () => {
-  const controls = successes.filter(item => item.format === 'json');
+  const controls = successes.filter(item => item.format === 'json' && item.name.startsWith('aggregate-property-order-'));
   assert.deepEqual(controls.map(item => JSON.parse(item.text)),
     [aggregatePropertyOrderProgram, aggregateDefaultDelimiterProgram, aggregatePropertyOrderArrayProgram]);
   for (const item of controls) assert.equal(item.parameterDeclarations, undefined);
@@ -54,14 +54,14 @@ test('independent JSON controls preserve predicate, scalar aggregate argument an
 
 test('collection order cases retain one source acquisition and standard installed ceilings', () => {
   for (const item of successes) assert.equal(item.sourceReadSessionCount, 1);
-  for (const item of successes) assert.deepEqual(Object.keys(item.parameters).sort(),
+  for (const item of successes.filter(item => item.name.startsWith('aggregate-property-order-'))) assert.deepEqual(Object.keys(item.parameters).sort(),
     Object.keys(aggregatePropertyOrderProgram.params).sort());
   const groups = publicQueryProfiles({successes, refusals, executionFailures: failures});
   assert.equal(groups.length, 1);
   assert.equal(groups[0].name, 'standard');
   assert.equal(Object.hasOwn(groups[0].capacity, 'max_execution_bytes'), false);
   assert.deepEqual(['successes', 'refusals', 'executionFailures']
-    .map(kind => groups[0].inputs[kind].length), [24, 10, 1]);
+    .map(kind => groups[0].inputs[kind].length), [37, 20, 1]);
 });
 
 test('delimiter chunk expectations distinguish decoded, raw and decomposed values', () => {
