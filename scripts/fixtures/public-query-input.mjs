@@ -551,8 +551,8 @@ export async function exercisePublicQueryInput(connect, options,
         assert.equal((await execution.status()).status, 'succeeded');
       }
     }
-    for (const {name, text, resultNames, sourceReadSessionCount, ...input} of executionFailures) {
-      await prepareCase?.();
+    for (const {name, text, resultNames, sourceRows, sourceReadSessionCount, ...input} of executionFailures) {
+      await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-execution-failure-' + name;
       const submissionRef = client.newSubmission({nonce: requestId});
       const beforeSubmit = await counters();
