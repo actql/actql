@@ -892,24 +892,28 @@
         "UNION ALL",
         "UNION DISTINCT",
         "INTERSECT DISTINCT",
-        "EXCEPT DISTINCT"
+        "EXCEPT DISTINCT",
+        "BY NAME ON (column_list)"
       ],
-      "canonical_lowering": "position alignment then existing operations",
+      "canonical_lowering": "position or strict name alignment, explicit ON-list output projection, then existing append/intersect/except",
       "preconditions": [
         "compatible explicit types",
-        "strict BY NAME exact field set"
+        "strict BY NAME exact field set",
+        "strict ON list exactly matches each input field set and determines output spelling/order"
       ],
       "spec_section": "7.7",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-4",
       "acceptance_case_ids": [
         "SQL-10",
         "SQL-11",
         "SQL-12"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "set-by-name-list-source-input: independent JSON control, typed rows, NULL, duplicates, ordered columns and pre-admission refusals"
+      ]
     },
     {
       "feature_id": "query.analytic",

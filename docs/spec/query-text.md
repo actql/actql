@@ -358,6 +358,26 @@ join implementation, source re-acquisition or evidence fabrication is added.
 The selected [GoogleSQL RIGHT JOIN](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#right_outer_join)
 is a logical outer join, not a new placement or authorization instruction.
 
+Supported SQL and Pipe set operators also accept `BY NAME ON (column_list)`.
+This is strict name matching, equivalent to GoogleSQL `STRICT CORRESPONDING BY`:
+each input must have exactly the listed column names, with no duplicate input
+or list names under case-insensitive column lookup. The list specifies output
+column order and authored spelling, including backtick-quoted names. Both
+operands are projected to that order using evaluated fields before the existing
+append/intersect/except operation; expressions are not reevaluated. SQL chains
+require the same ordered list and retain the first modifier's spelling. Each
+successive Pipe set operator can declare its own list against the current
+Relation. ORDER BY and downstream Pipe operators see only the combined output.
+Normal type compatibility, NULL, duplicate and equality contracts remain with
+the common checker and operations. DATA and CTE sets use the same rules without
+additional acquisition. INNER/FULL/LEFT name propagation and CORRESPONDING
+spelling remain separate unimplemented surfaces; omitting those modes does not
+implicitly drop unlisted columns or add NULL-filled columns.
+The selected [GoogleSQL set modifier](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#by_name_or_corresponding)
+defines that equivalence. The pinned resolver and pipe-set fixtures corroborate
+strict matching and ON-list spelling; parser acceptance does not establish
+backend execution coverage.
+
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
 body, named FROM/JOIN subquery and parenthesized query operand use the same
 relational query composition: SELECT or FROM-starting Pipe, set expressions,

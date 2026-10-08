@@ -6341,7 +6341,7 @@ fn compile_set_stages(
       raise Abort(InvalidContext)
     }
     let term_name = "aql_set_output_" + index.to_string()
-    let (body, output) = compile_steps(
+    let (body, compiled_output) = compile_steps(
       construction,
       term,
       input,
@@ -6374,6 +6374,24 @@ fn compile_set_stages(
         ]),
       )
     }
+    let mut output = compiled_output
+    let mut term_result = term_name
+    if index == 0 {
+      let part = @query.set_part_at(query, 0).unwrap()
+      let ordered = set_output_fields(output, part)
+      let (matched, needed) = set_alignment_fields(ordered, output, true)
+      if needed {
+        term_result = term_name + "_ordered"
+        term_steps.push(
+          construction.object([
+            ("from", construction.text(term_name)),
+            ("select", set_select_fields(construction, ordered, matched)),
+            ("as", construction.text(term_result)),
+          ]),
+        )
+      }
+      output = ordered
+    }
     stages.push(
       construction.object([
         ("id", construction.text(term_stage)),
@@ -6401,7 +6419,7 @@ fn compile_set_stages(
             (
               term_stage,
               construction.object([
-                ("from", construction.text(term_name)),
+                ("from", construction.text(term_result)),
                 (
                   "fields",
                   construction.array(
@@ -6417,11 +6435,25 @@ fn compile_set_stages(
     sources.push(term_stage)
     outputs.push(output)
   }
-  let left_fields = outputs[0]
+  let mut left_fields = outputs[0]
   let mut current_stage = sources[0]
   for index in 0..<@query.set_part_count(query) {
     let part = @query.set_part_at(query, index).unwrap()
     let right_fields = outputs[index + 1]
+    let ordered = set_output_fields(left_fields, part)
+    let (left_matched, left_needed) = set_alignment_fields(
+      ordered, left_fields, true,
+    )
+    if left_needed {
+      let aligned_name = prefix + "aql_set_left_" + index.to_string()
+      stages.push(
+        set_alignment_stage(
+          construction, current_stage, aligned_name, ordered, left_matched,
+        ),
+      )
+      current_stage = aligned_name
+    }
+    left_fields = ordered
     let (matched, alignment_needed) = set_alignment_fields(
       left_fields,
       right_fields,

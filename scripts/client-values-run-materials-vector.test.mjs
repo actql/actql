@@ -815,8 +815,24 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('ba59c48eb915694484664a7daf7f839e492c36eae44137993f39130793c59672'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('afb2b3cedb82f86b5296376ac0dd10cee8991082c1f05971768059bb52d77e2b'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve both complete BY NAME ON and adopted shorthand-ROWS parents.
+  assert.equal(vector(pin('e42554bffefec21c3d2ca451aba842fb7b353b1c2580477916c02a13a540b90c'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('c7f33c1d74c88186b8354a28021c1146e4042115d7e17ae62f9edccf49ddffa4'));
+  assert.equal(vector(pin('440dfe0c1508b744e4ce22e6729dc362678785119932aa142aba313dc57b8680'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('64f4e1246e3493acf214c0010568f156f7fefc026fb3c0bb07bf59c5d9dcea2f'));
+  // Retain the complete published BY NAME ON grammar-bound original.
+  assert.equal(vector(pin('06af2bb4ef4b70809d026cce5a051ad442eba4484a4defd49a097aecdbc9b34e'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('1341bd6588f20cde58f0b89676618dad7fff8e589ea245b622b3d7b1a409d9bb'));
+  // Retain the adopted GROUP BY ALL + Table integrated closure separately.
+  assert.equal(vector(pin('54d4cdb8d0565a3ddba0098fa7c2066a67d65bb4523de480fc231bb09300478e'),
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('e853cc5da66441b448d65f7c2fa8b2285daa9b0c1eebf4c8edb2792b01db671d'));
+  assert.equal(current.run.run_definition_cid,
+    pin('daf9145193294b0c6f5f98df5b9f8a8b4066d3f85543be47122131bffd0de273'));
+
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
