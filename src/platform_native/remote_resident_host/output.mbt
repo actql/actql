@@ -399,6 +399,47 @@ pub fn complete_resident_output_intent(
 }
 
 ///|
+/// Persist an authenticated release request for a completed original dispatch.
+/// This only begins release: payload intents, physical cleanup and reservations
+/// remain owned until their existing cleanup Owners confirm them separately.
+pub fn begin_resident_output_release(
+  journal : @journal.Journal,
+  delegation : @resident.ResidentSiteDelegation,
+  generation : Int,
+  request : @remote.DispatchRequest,
+) -> Result[Unit, ResidentOutputIssue] {
+  if @resident.check_resident_dispatch_delegation(
+      delegation, request, generation,
+    )
+    is Err(_) {
+    return Err(OutputForeign)
+  }
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(OutputJournal(issue))
+  }
+  let (execution, _, cleanup, _, _) = @remote.dispatch_record_state(record)
+  if !(execution is @remote.NativeSettled) {
+    return Err(OutputUnavailable)
+  }
+  match cleanup {
+    @remote.CleanupReleasing | @remote.CleanupReleased => Ok(())
+    @remote.CleanupForceLost | @remote.CleanupRecoveredAfterLoss =>
+      Err(OutputUnavailable)
+    @remote.CleanupActive | @remote.CleanupUnknown => {
+      let transition = match @remote.prepare_begin_remote_release(record) {
+        Ok(value) => value
+        Err(issue) => return Err(OutputProtocol(issue))
+      }
+      journal
+      .commit_transition(transition)
+      .map(_ => ())
+      .map_err(issue => OutputJournal(issue))
+    }
+  }
+}
+
+///|
 /// A stopped process is not permission to destroy an unfinished Output.
 /// Resolve the intent's original attempt through the existing dispatch journal;
 /// only a formally begun release permits this orphan cleanup to reclaim it.
