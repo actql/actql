@@ -82,6 +82,14 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`ABS(expr)` in SQL and Pipe has exactly one finite binary64 `number` operand
+and lowers to the common `abs` node. It returns the exact magnitude, including
+subnormal and maximum finite values, and canonical positive zero. NULL
+propagates and result nullability follows the operand, including on empty
+input. The operand is evaluated once on demand under the common lazy-demand,
+first-failure, cancellation and logical-budget rules. The adopted subset has
+no implicit conversions, decimal overloads or non-finite numeric values.
+
 `SELECT * EXCEPT (name, ...)` uses the adopted
 [GoogleSQL column-exclusion syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except).
 It expands the current visible star columns, removes all matching named

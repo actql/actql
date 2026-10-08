@@ -50,6 +50,7 @@ pub(all) enum UnaryOperator {
   Lower
   Floor
   Sqrt
+  Abs
 } derive(Eq, Debug)
 
 ///|
@@ -193,6 +194,7 @@ fn expression_tag(
     | "lower"
     | "floor"
     | "sqrt"
+    | "abs"
     | "is_true"
     | "is_false"
     | "is_unknown"
@@ -261,6 +263,7 @@ fn expression_children(
     | "lower"
     | "floor"
     | "sqrt"
+    | "abs"
     | "not"
     | "is_null"
     | "not_null"
@@ -828,6 +831,7 @@ fn lower_typed_expression_measured(
         "lower" => Unary(Lower, args[0])
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
+        "abs" => Unary(Abs, args[0])
         "len" => Unary(Length, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])

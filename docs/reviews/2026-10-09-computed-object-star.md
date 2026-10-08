@@ -6,7 +6,8 @@ This unit follows #1060's named object-column star connection. It starts from
 `595a822a4240681f4ed22c38df0dc76b724fd72e`, integrates main
 `1e1dd7fd6fbe16dc91a035128f43fd6fb3bb2817` normally, and adopts the parent's
 grammar-pin repair `4952f42c9293ec7636c0d7b240ee9be4a3bc1a54`.
-The parent remains an unmerged dependency; the final merge destination is main.
+The parent was subsequently adopted into main. This PR now targets main; the
+original preparation and acceptance revisions below retain their own identity.
 
 The selected [GoogleSQL expression-star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
 allows a value with fields as a SELECT star receiver. This unit connects existing
@@ -222,3 +223,27 @@ Required submitted-HEAD CI, Wasm/native, broad packed coverage and ordered or
 anonymous STRUCT remain unverified. #1060 remains an unmerged parent dependency;
 this is a completed local public cohort, not a merge approval. Draft is retained,
 and neither a manual CI retry nor a merge is performed.
+
+## Reviewed main integration
+
+The integration owner normally merged main
+`bb873b35c123f5ac62b50faaa4bd113e8fb87f2b`, retaining ABS and the adopted
+object-column-star implementation. Product lowering and parser changes merge
+without conflicts. Eight normative/fixture conflicts are resolved through the
+ordinary manifest, dependency, metadata, canonical-vector and family writers.
+
+The independently assembled current grammar is
+`sha256:a85a3517afd7a705e99e746f5a08332370b072ddc77868372db19b977ee87ecb`;
+the independently assembled current Values Run is
+`sha256:6e1a597d8e0473c402cca0fd54e582189c4d1da5064aadab98a647bb6888f645`.
+The complete submitted computed-star grammar and its original pre-ABS
+Unit/AoA/Program closure remain separate immutable fixtures. The main
+object-star/ABS grammar and original Run also remain independently checked.
+No old Run is rebound or admitted as a new Run.
+
+`run-F5EgWR` passes 25 independent Node corpus/profile/grammar/Run cases and
+five read-only generator/freshness checks, with complete output and released
+locks. The five retained producer tarballs at `e28f1755d` were independently
+rehashed against their manifest and complete public consumer receipts. Those
+Local/HTTPS results are evidence of that clean producer, not a new integrated
+HEAD packed or all-target campaign. CI remains paused.
