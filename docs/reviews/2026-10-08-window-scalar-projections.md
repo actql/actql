@@ -70,7 +70,7 @@ amounts. Window order differs from final Result order.
   LIMIT/OFFSET, multiple distinct windows, named-window CASE, evaluated alias
   demand in QUALIFY, nullable LAG, grouping before a window, an authored column
   resembling a private name, DISTINCT window values, and typed empty input.
-- Six preparation refusals: invalid ranking arity, undeclared parameter,
+- Seven preparation refusals: invalid ranking arity, undeclared/unused parameter,
   sibling window input, removed range alias, nested window and operand type.
   Refusal requires zero durable Run admission and provider I/O. Invalid ranking
   arity retains the existing `ClientProgramInvalidInput` category.
@@ -82,6 +82,17 @@ amounts. Window order differs from final Result order.
 These cases are registered in ordinary packed acceptance.
 `--window-scalar-only` selects this cohort for bounded Local/HTTPS verification;
 it does not replace the normal registration or bypass pristine package checks.
+
+The first pristine package attempt at `6bb1835715fab4b9be94e21455b438fe1b709351`
+passed the JSON control and three parameterized Local cases, then rejected the
+multiple-window case before admission. Evidence: `public-query-evidence-UzFvWN`.
+A focused preparation diagnostic (`run-zCfnWF`) identified
+`PreparedReferencesIssue::Usage(UnusedParameter("increment"))`: the fixture
+helper had attached a parameter declaration to cases that did not use it.
+Those cases now omit the unused declaration and value; rows, column contracts,
+ordering and ceilings are unchanged. The same unused declaration is retained
+as an explicit preparation refusal. HTTPS and later cases were not reached by
+that first attempt. No checker rule was relaxed for this fixture correction.
 
 ## Focused evidence and exact-SHA execution
 
@@ -106,6 +117,12 @@ node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
   scripts/window-scalar-source-input.test.mjs \
   scripts/analytic-countif-source-input.test.mjs
 ```
+
+After the parameter fixture correction, the same Node selection passed 4/4
+again (`run-9d182a` / `focused-test-oclcnB`). A read-only preparation probe
+using the existing built bridge and the unchanged installed analytic profile
+accepted all eleven SQL/Pipe normal sources (`run-KOGU32`). This probe is
+checker evidence, not public execution or pristine new-SHA package acceptance.
 
 Affected interface generation: `run-P54cs9`,
 `moon info --target js,wasm,native src/query_syntax`; no divergent interface was

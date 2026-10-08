@@ -7,6 +7,7 @@ const sourceRows = [{id: 4, amount: 20}, {id: 1, amount: null},
   {id: 0, amount: 999}];
 const columns = ['id', 'n'].map(name => ({name, contract: number}));
 const declarations = {increment: number};
+const parameterInput = {parameterDeclarations: declarations, parameters: {increment: 1}};
 const expected = [{id: 1, n: 5}, {id: 2, n: 2}, {id: 3, n: 4},
   {id: 4, n: 3}, {id: 5, n: 6}];
 export const windowScalarProgram = {version: 'actql/0.1', id: 'fixture.window_scalar',
@@ -28,15 +29,15 @@ const window = 'ORDER BY amount DESC NULLS LAST, id';
 const sql = `SELECT id, ROW_NUMBER() OVER (${window}) + @increment AS n FROM records WHERE id > 0 ORDER BY id`;
 const success = (name, text, extra = {}) => ({name: 'window-scalar-' + name,
   format: 'sql', text, sourceRows, expected, columns, sourceReadSessionCount: 1,
-  parameterDeclarations: declarations, parameters: {increment: 1}, ...extra});
+  ...extra});
 export const windowScalarSuccesses = [
   success('independent-json', JSON.stringify(windowScalarProgram),
-    {format: 'json', parameterDeclarations: undefined}),
-  success('sql-arithmetic', sql),
+    {format: 'json', parameters: {increment: 1}}),
+  success('sql-arithmetic', sql, parameterInput),
   success('pipe-arithmetic',
     `FROM records |> WHERE id > 0 |> SELECT id, ROW_NUMBER() OVER (${window}) + @increment AS n |> ORDER BY id`,
-    {format: 'aql-text'}),
-  success('limit-offset', sql + ' LIMIT 3 OFFSET 1', {expected: expected.slice(1, 4)}),
+    {format: 'aql-text', ...parameterInput}),
+  success('limit-offset', sql + ' LIMIT 3 OFFSET 1', {...parameterInput, expected: expected.slice(1, 4)}),
   success('multiple-windows', 'SELECT id, COALESCE(LAG(amount) OVER (ORDER BY id), 0) '
     + `+ ROW_NUMBER() OVER (${window}) AS n FROM records WHERE id > 0 ORDER BY id`,
     {expected: [{id: 1, n: 4}, {id: 2, n: 1}, {id: 3, n: 23}, {id: 4, n: 12}, {id: 5, n: 25}]}),
@@ -46,7 +47,7 @@ export const windowScalarSuccesses = [
       expected: [{id: 1, n: 0}, {id: 2, n: 20}, {id: 3, n: 10}, {id: 4, n: 20}, {id: 5, n: null}]}),
   success('qualify-evaluated-alias', `SELECT id, ROW_NUMBER() OVER (${window}) + @increment AS n `
     + 'FROM records WHERE id > 0 QUALIFY n <= 3 ORDER BY n',
-    {expected: [{id: 2, n: 2}, {id: 4, n: 3}]}),
+    {...parameterInput, expected: [{id: 2, n: 2}, {id: 4, n: 3}]}),
   success('nullable-navigation', 'SELECT id, LAG(amount) OVER (ORDER BY id) + 1 AS n '
     + 'FROM records WHERE id > 0 ORDER BY id',
     {columns: [{name: 'id', contract: number}, {name: 'n', contract: nullable}],
@@ -61,12 +62,14 @@ export const windowScalarSuccesses = [
   success('distinct-window-values', 'SELECT DISTINCT RANK() OVER (ORDER BY amount DESC NULLS LAST) + 1 AS n '
     + 'FROM records WHERE id > 0 ORDER BY n',
     {columns: [{name: 'n', contract: number}], expected: [{n: 2}, {n: 4}, {n: 5}]}),
-  success('typed-empty', sql, {sourceRows: [], expected: []}),
+  success('typed-empty', sql, {...parameterInput, sourceRows: [], expected: []}),
 ];
 export const windowScalarRefusals = [
   {name: 'invalid-ranking-arity', expectedCode: 'ClientProgramInvalidInput',
     text: 'SELECT ROW_NUMBER(id) OVER (ORDER BY id) + 1 AS n FROM records'},
   {name: 'undeclared-parameter', text: 'SELECT ROW_NUMBER() OVER (ORDER BY id) + @missing AS n FROM records'},
+  {name: 'unused-parameter', expectedCode: 'ClientProgramInvalidInput', ...parameterInput,
+    text: 'SELECT ROW_NUMBER() OVER (ORDER BY id) + 1 AS n FROM records'},
   {name: 'sibling-window-input', text: 'SELECT amount AS invented, LAG(invented) OVER (ORDER BY id) + 1 AS n FROM records'},
   {name: 'removed-range', format: 'aql-text', text: 'FROM records AS old |> AS current |> SELECT LAG(old.amount) OVER (ORDER BY id) + 1 AS n'},
   {name: 'nested-window', text: 'SELECT LAG(ROW_NUMBER() OVER (ORDER BY id)) OVER (ORDER BY id) + 1 AS n FROM records'},

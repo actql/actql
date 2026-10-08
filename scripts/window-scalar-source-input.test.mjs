@@ -18,6 +18,13 @@ test('window operands retain independent ordering, NULL, keys and scope controls
   assert.deepEqual(byName.get('window-scalar-group-before-window').expected,
     [{amount: 10, n: 2}, {amount: 20, n: 4}, {amount: null, n: 5}]);
   assert.deepEqual(byName.get('window-scalar-distinct-window-values').expected, [{n: 2}, {n: 4}, {n: 5}]);
+  assert.equal(byName.get('window-scalar-multiple-windows').parameterDeclarations, undefined);
+  assert.equal(byName.get('window-scalar-multiple-windows').parameters, undefined);
+  assert.deepEqual(byName.get('window-scalar-sql-arithmetic').parameterDeclarations,
+    {increment: {type: 'number', nullable: false}});
+  const unused = windowScalarRefusals.find(item => item.name === 'window-scalar-refuse-unused-parameter');
+  assert.deepEqual(unused.parameterDeclarations, byName.get('window-scalar-sql-arithmetic').parameterDeclarations);
+  assert.equal(unused.expectedCode, 'ClientProgramInvalidInput');
   const all = [...windowScalarSuccesses, ...windowScalarRefusals, ...windowScalarExecutionFailures];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
 });
