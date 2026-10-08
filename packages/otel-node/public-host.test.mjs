@@ -100,11 +100,11 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
     } else client = await localConnect({mode: 'local', owner: 'local',
       durability: 'durable', installation});
     const journal = join(installation.directory, 'requests/client-requests.sqlite3');
-    const check = await client.check(`SELECT ${sentinel} FROM`, {format: 'sql'});
+    const check = await client.check(`SELECT ${sentinel} FROM`, {kind: 'text', scope: 'bound_input', format: 'sql'});
     assert.equal(check.report.verdict, 'invalid');
     assert.equal(requestRows(journal), 0, 'checking creates no Run');
     if (mode === 'normal') {
-      const typed = await client.check('SELECT @id AS id', {format: 'sql',
+      const typed = await client.check('SELECT @id AS id', {kind: 'text', scope: 'bound_input', format: 'sql',
         parameterDeclarations: {id: {type: 'number'}},
         parameters: {id: 'not-a-number'}});
       assert.equal(typed.report.verdict, 'invalid');

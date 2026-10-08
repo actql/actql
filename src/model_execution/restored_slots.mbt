@@ -7,6 +7,7 @@ pub fn start_restored_model_slot_replay(
   read : ModelSlotReplayRead,
   fixed_request_cid : String,
   limits : ModelExecutionLimits,
+  compiled_run? : @publication_host.ClientCompiledRun? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   if model_slot_replay_count(read) !=
     Some(@relation.prepared_infer_rows_count(rows)) {
@@ -15,12 +16,13 @@ pub fn start_restored_model_slot_replay(
   if read.storage.proofs is Some(_) {
     guard read.storage.observation is Some(observation) &&
       read.storage.saved_admission is Some(admission) &&
-      read.storage.saved_definition is Some(definition) else {
+      read.storage.saved_definition is Some(definition) &&
+      compiled_run is Some(compiled) else {
       return Err(OutputIdentity)
     }
     match
       @publication_host.check_client_infer_saved_observation_scope(
-        scope, admission, definition, observation,
+        scope, admission, definition, observation, compiled,
       ) {
       Err(issue) => return Err(InvocationEvidence(issue))
       Ok(_) => ()

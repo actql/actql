@@ -56,6 +56,8 @@ pub fn bind_captured_effect_preview_inputs(CapturedEffectRunDAG, CapturedEffectI
 
 pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @program_check.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
 
+pub fn bind_operational_profile_template(String, PolicyRequest) -> Result[String, SearchIssue]
+
 pub fn borrow_captured_any_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedAnyResultBorrow, RunIssue]
 
 pub fn borrow_captured_carrier_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.CarrierManagedCompletedOutput, Int) -> Result[CapturedResidentResultBorrow, RunIssue]
@@ -532,6 +534,16 @@ pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[Ca
 
 pub fn open_source_free_effect_run_dag(CheckedEffectRunDAG, @physical_resources.Ledger) -> Result[CapturedEffectRunDAG, RunIssue]
 
+pub fn operational_candidate_positions(PolicyCandidateSet) -> Result[Array[Int], SearchIssue]
+
+pub fn operational_candidate_trajectory(PolicyCandidateSet, Int) -> Result[OperationalAssignmentTrajectory, SearchIssue]
+
+pub fn operational_estimate_conditions_json(OperationalEstimateConditions) -> Result[String, SearchIssue]
+
+pub fn operational_profile_template_header(String) -> Result[OperationalProfileTemplateHeader, SearchIssue]
+
+pub fn operational_residual_position(PolicyCandidateSet, OperationalAssignmentTrajectory, Int) -> Result[Int?, SearchIssue]
+
 pub fn pin_captured_any_result_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedResultOccurrence)], Int) -> Result[CapturedAnyResultOutputSet, RunIssue]
 
 pub fn pin_captured_effect_source(CapturedEffectRunDAG, Int, Int) -> Result[CapturedEffectInput, RunIssue]
@@ -602,7 +614,7 @@ pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 
 pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), CapturedEffectProposalIssue]
 
-pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64) -> Result[EmpiricalRanking, SearchIssue]
+pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64, quantity? : String) -> Result[EmpiricalRanking, SearchIssue]
 
 pub fn record_host_cleanup_closes_awaited(HostCleanupProgress) -> Bool
 
@@ -775,6 +787,8 @@ pub fn strategy_generation(StrategyRevision) -> Int
 pub fn strategy_history_at(CapturedDAG, Int) -> StrategyRevision?
 
 pub fn strategy_history_count(CapturedDAG) -> Int
+
+pub fn strategy_offline_policy_position(StrategyChoiceSet) -> Result[Int?, SearchIssue]
 
 pub fn strategy_policy_candidates(StrategyChoiceSet) -> PolicyCandidateSet?
 
@@ -1137,8 +1151,34 @@ pub(all) enum NumericObservationFamily {
   Analytic
 } derive(Eq, @debug.Debug)
 
+pub struct OperationalAssignmentTrajectory {
+  tasks : Array[OperationalRealization?]
+}
+
+pub(all) struct OperationalEstimateConditions {
+  host : String
+  realization : String
+  capture_mode : String
+  runtime_revision : String
+  binary_digest : String
+  input_digest : String
+  program_digest : String
+  input_rows : Int
+  schema_layout : String
+  limits_digest : String
+  instrumentation_revision : String
+  measurement_scope_revision : String
+  environment_digest : String
+  control_digest : String
+  concurrency : Int
+  process_state : String
+  os_cache : String
+  authorized_scope : String
+} derive(Eq, @debug.Debug)
+
 pub(all) struct OperationalEstimateSidecar {
   request : PolicyRequest
+  conditions : OperationalEstimateConditions
   profile_revision : String
   oldest_ms : Int64
   newest_ms : Int64
@@ -1146,6 +1186,17 @@ pub(all) struct OperationalEstimateSidecar {
   capture_ms : Double?
   references : Array[OperationalTimeReference]
 } derive(Eq, @debug.Debug)
+
+pub(all) struct OperationalProfileTemplateHeader {
+  profile_revision : String
+  candidate_snapshot_cid : String
+  conditions : OperationalEstimateConditions
+  oldest_ms : Int64
+  newest_ms : Int64
+  max_age_ms : Int64
+} derive(Eq, @debug.Debug)
+
+type OperationalRealization derive(Eq)
 
 pub(all) struct OperationalTimeReference {
   position : Int

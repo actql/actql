@@ -38,7 +38,14 @@ priv enum CheckFinding {
 ///|
 priv enum CheckStop {
   Report
+  TemplateVerified(@program_check.TemplateCheckedProgram)
   Failed(String)
+}
+
+///|
+priv enum CheckProjection {
+  Bound(@program_check.CheckOutcome)
+  TemplateDiagnostic(@program_check.CheckDiagnostic)
 }
 
 ///|
@@ -61,12 +68,22 @@ pub fn client_program_check_source(
   declarations_revision : String?,
   parameters_revision : String?,
   correlation_ref : String,
+  scope : String,
 ) -> String {
+  let scope = match check_scope(scope) {
+    Some(scope) => scope
+    None => return check_failed_json("check_request_invalid", correlation_ref)
+  }
+  if scope == TemplateOnly && parameters is Some(_) {
+    return check_failed_json("check_request_invalid", correlation_ref)
+  }
   let findings : Array[CheckFinding] = []
   let stop = check_source_findings(
     findings, document, format, environment, visible_publication, declarations, parameters,
+    scope,
   )
   check_outcome_json(findings, stop, context_ref, correlation_ref, {
+    scope,
     structured_program: false,
     program_pointer: None,
     source_revision,
@@ -135,6 +152,7 @@ fn check_source_findings(
   visible_publication : String,
   declarations : String?,
   parameters : String?,
+  scope : @program_check.CheckScope,
 ) -> CheckStop {
   let selected = match @source_frontend.select_format(format) {
     Ok(Text) => @source_frontend.Text
@@ -247,22 +265,17 @@ fn check_source_findings(
           Err(_) => return Failed("check_internal")
         }
     }
+    check_missing_value_findings(findings, declared, supplied, scope)
     match
       @parameter_binding.bind(declared, supplied, {
         max_nodes: 8192,
         max_depth: 64,
         max_text_bytes: 65536,
       }) {
-      Ok(NeedsBindings(missing)) => {
-        findings.push(Limit("bound_values_missing"))
-        for index in 0..<@parameter_binding.missing_count(missing) {
-          let declaration = @parameter_binding.missing_at(missing, index).unwrap()
-          if declaration.name.length() <= 256 &&
-            check_declaration_type(declaration) is Some(expected) {
-            findings.push(RequiredValue(declaration, expected))
-          }
+      Ok(NeedsBindings(_)) =>
+        if scope == BoundInput {
+          findings.push(Limit("bound_values_missing"))
         }
-      }
       Ok(Ready(bound)) => explanation_bindings = Some(bound)
       Err(issue) =>
         match check_binding_fault(issue) {
@@ -447,15 +460,38 @@ fn check_source_findings(
   }
   // Use the same admitted checker owner without serializing and reparsing
   // generated JSON. Authored provenance stays owned by the submitted input.
-  match
-    @program_check.check_parsed(
-      program,
-      environment,
-      supplied,
-      client_program_standard_limits().checking,
-    ) {
-    Checked(_) => ()
-    NeedsInputs(requests) => {
+  let outcome : CheckProjection = match scope {
+    BoundInput =>
+      Bound(
+        @program_check.check_parsed(
+          program,
+          environment,
+          supplied,
+          client_program_standard_limits().checking,
+        ),
+      )
+    TemplateOnly =>
+      match
+        @program_check.check_parsed_scoped(
+          program,
+          environment,
+          TemplateOnly,
+          None,
+          client_program_standard_limits().checking,
+        ) {
+        TemplateOnly(Verified(checked)) =>
+          return check_template_public_stop(findings, checked)
+        TemplateOnly(Rejected(diagnostic)) => TemplateDiagnostic(diagnostic)
+        TemplateOnly(Unresolved(frontier)) =>
+          TemplateDiagnostic(
+            @program_check.template_frontier_diagnostic(frontier).unwrap(),
+          )
+        _ => return Failed("check_internal")
+      }
+  }
+  match outcome {
+    Bound(Checked(_)) => ()
+    Bound(NeedsInputs(requests)) => {
       // Project only the existing owner's known public context conditions.
       // No environment probing, raw policy values or generated input location.
       let capacity_required = @program_check.input_request_at(requests, 0)
@@ -471,11 +507,12 @@ fn check_source_findings(
         findings.push(Limit("bound_values_missing"))
       }
     }
-    Rejected(diagnostic) => {
+    Bound(Rejected(diagnostic)) | TemplateDiagnostic(diagnostic) => {
       // The pure computation checker deliberately refuses Effects. Close that
       // exact admitted Program with the existing static Effect owner instead;
       // SQL spelling, target provider and public Result count are irrelevant.
-      if @program_check.diagnostic_cause(diagnostic)
+      if scope == BoundInput &&
+        @program_check.diagnostic_cause(diagnostic)
         is Source(UnsupportedEffects(_)) {
         match
           @publication_host.prepare_parsed_client_effect_computation(
@@ -518,7 +555,8 @@ fn check_source_findings(
               ),
             )
           }
-        MissingInput => findings.push(Limit("bound_values_missing"))
+        MissingInput =>
+          check_missing_input_findings(findings, diagnostic, scope)
         UnsupportedImplementation =>
           findings.push(Limit("implementation_limit"))
         CompileLimit => findings.push(Limit("analysis_budget_exhausted"))
@@ -528,6 +566,91 @@ fn check_source_findings(
     }
   }
   Report
+}
+
+///|
+fn check_scope(value : String) -> @program_check.CheckScope? {
+  match value {
+    "template_only" => Some(TemplateOnly)
+    "bound_input" => Some(BoundInput)
+    _ => None
+  }
+}
+
+///|
+/// A known missing Host policy is the existing Owner's context Requirement.
+/// Other incomplete material remains unresolved under the requested scope.
+fn check_missing_input_findings(
+  findings : Array[CheckFinding],
+  diagnostic : @program_check.CheckDiagnostic,
+  scope : @program_check.CheckScope,
+) -> Unit {
+  if @program_check.diagnostic_cause(diagnostic)
+    is Template(_, Capacity(MissingCapacity)) {
+    findings.push(CapacityPolicyRequired)
+    findings.push(Limit("checking_context_missing"))
+  } else {
+    findings.push(
+      Limit(
+        if scope == BoundInput {
+          "bound_values_missing"
+        } else {
+          "checking_material_missing"
+        },
+      ),
+    )
+  }
+}
+
+///|
+/// Preserve declaration-owned absences even when another supplied value is
+/// rejected. This reads presence only; the existing binder still admits values.
+fn check_missing_value_findings(
+  findings : Array[CheckFinding],
+  declarations : @parameter_binding.Declarations,
+  supplied : @decode.Cursor?,
+  scope : @program_check.CheckScope,
+) -> Unit {
+  let supplied_object = match supplied {
+    None => None
+    Some(value) => @decode.open_object(value).to_option()
+  }
+  for declaration in @parameter_binding.declarations(declarations) {
+    let present = supplied_object is Some(object) &&
+      @decode.lookup(object, declaration.name) is Some(_)
+    if (supplied is None || supplied_object is Some(_)) &&
+      !present &&
+      !@parameter_binding.has_default(declaration) &&
+      declaration.name.length() <= 256 &&
+      check_declaration_type(declaration) is Some(expected) {
+      if scope == BoundInput {
+        findings.push(Limit("bound_values_missing"))
+      }
+      findings.push(RequiredValue(declaration, expected))
+    }
+  }
+}
+
+///|
+/// Only complete common static-scope evidence can authorize this verdict.
+/// Public runtime demands must still cover the owner's exact requirement set.
+fn check_template_public_stop(
+  findings : Array[CheckFinding],
+  checked : @program_check.TemplateCheckedProgram,
+) -> CheckStop {
+  let mut requirements = 0
+  for finding in findings {
+    if finding is RequiredValue(_, _) {
+      requirements = requirements + 1
+    } else {
+      return Report
+    }
+  }
+  if requirements != @program_check.template_checked_input_count(checked) {
+    findings.push(Limit("implementation_limit"))
+    return Report
+  }
+  TemplateVerified(checked)
 }
 
 ///|
@@ -964,6 +1087,21 @@ fn write_check_report(
   documents : CheckDocuments,
   requirement_limit : Int,
 ) -> Unit raise @encode.EncodeFailure {
+  let required_count = findings
+    .iter()
+    .filter(finding => {
+      finding
+      is (RequiredValue(_, _) | CapacityPolicyRequired | NumericProfileRequired)
+    })
+    .count()
+  let template_report_limited = documents.scope == TemplateOnly &&
+    verdict == "verified" &&
+    required_count > requirement_limit
+  let reported_verdict = if template_report_limited {
+    "undetermined"
+  } else {
+    verdict
+  }
   let violations = check_codes(findings, finding => {
     match finding {
       Violation(code) => Some(code)
@@ -1003,6 +1141,9 @@ fn write_check_report(
       _ => None
     }
   })
+  if template_report_limited {
+    limits.push("reporting_budget_exhausted")
+  }
   @encode.begin_object(writer)
   @encode.key(writer, "context_ref")
   @encode.string_value(writer, context_ref)
@@ -1097,13 +1238,6 @@ fn write_check_report(
     )
   }
   @encode.end_array(writer)
-  let mut required_count = 0
-  for finding in findings {
-    if finding
-      is (RequiredValue(_, _) | CapacityPolicyRequired | NumericProfileRequired) {
-      required_count = required_count + 1
-    }
-  }
   if required_count > requirement_limit {
     // Only already-public input obligations determine this bounded summary.
     // Never expose an omitted count or replace protected coverage with it.
@@ -1519,7 +1653,8 @@ fn write_check_report(
             "parameter_declarations"
           },
           revision,
-          (if documents.structured_program { "/params/" } else { "/" }) + name,
+          (if documents.structured_program { "/params/" } else { "/" }) +
+          name.replace_all(old="~", new="~0").replace_all(old="/", new="~1"),
         )
       }
       @encode.end_object(writer)
@@ -1529,10 +1664,17 @@ fn write_check_report(
   @encode.key(writer, "scope")
   @encode.begin_object(writer)
   @encode.key(writer, "kind")
-  @encode.string_value(writer, "bound_input")
+  @encode.string_value(
+    writer,
+    if documents.scope == TemplateOnly {
+      "template_only"
+    } else {
+      "bound_input"
+    },
+  )
   @encode.end_object(writer)
   @encode.key(writer, "verdict")
-  @encode.string_value(writer, verdict)
+  @encode.string_value(writer, reported_verdict)
   @encode.end_object(writer)
 }
 
@@ -1570,10 +1712,15 @@ fn check_outcome_attempt(
   requirement_limit : Int,
 ) -> String? {
   try {
+    if stop is TemplateVerified(checked) &&
+      @program_check.template_checked_input_count(checked) !=
+      findings.iter().filter(finding => finding is RequiredValue(_, _)).count() {
+      return None
+    }
     let writer = @encode.writer(65536, 4096, 16)
     @encode.begin_object(writer)
     match stop {
-      Report => {
+      Report | TemplateVerified(_) => {
         @encode.key(writer, "outcome")
         @encode.string_value(writer, "completed")
         @encode.key(writer, "report")
@@ -1581,7 +1728,11 @@ fn check_outcome_attempt(
           writer,
           findings,
           context_ref,
-          check_verdict(findings),
+          if stop is TemplateVerified(_) {
+            "verified"
+          } else {
+            check_verdict(findings)
+          },
           documents,
           requirement_limit,
         )
@@ -1649,6 +1800,7 @@ fn check_failed_json(problem : String, correlation_ref : String) -> String {
 
 ///|
 priv struct CheckDocuments {
+  scope : @program_check.CheckScope
   structured_program : Bool
   program_pointer : String?
   source_revision : String

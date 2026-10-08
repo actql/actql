@@ -257,7 +257,7 @@ const paths = [
     assert: answer => assert.deepEqual({state: answer.record.state, receipt: answer.hostReleaseReceipt,
       observation: sdk.explainDeliveryAttempt(answer).observation},
     {state: 'streaming', receipt: null, observation: 'delivery_streaming'}, '[check-mutation:response-capture-delivery]')},
-  {name: 'check', reply: () => structuredClone(checked), call: f => f.client.check('SELECT 1 AS n', {format: 'sql'}),
+  {name: 'check', reply: () => structuredClone(checked), call: f => f.client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'}),
     code: 'InvalidHostCheckOutcome', key: 'report', first: checked.report,
     later: {...checked.report, context_ref: 'ctx:replacement', inputs: [{...checked.report.inputs[0], revision: 'rev:' + '2'.repeat(64)}]},
     assert: answer => assert.deepEqual({context: answer.report.context_ref,

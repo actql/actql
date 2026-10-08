@@ -368,12 +368,18 @@ pub fn client_program_source_free_input_intent_cid() -> String {
 pub fn client_program_run_observation_key(
   outcome : String,
   revision : Int64,
-  cleanup_pending : Bool?,
-  physical_stop : Bool?,
+  cleanup_pending_present : Bool,
+  cleanup_pending : Bool,
+  physical_stop_present : Bool,
+  physical_stop : Bool,
 ) -> String? {
-  @publication.run_observation_key(
-    outcome, revision, cleanup_pending, physical_stop,
-  )
+  let cleanup = if cleanup_pending_present {
+    Some(cleanup_pending)
+  } else {
+    None
+  }
+  let stopped = if physical_stop_present { Some(physical_stop) } else { None }
+  @publication.run_observation_key(outcome, revision, cleanup, stopped)
 }
 
 ///|

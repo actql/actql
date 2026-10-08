@@ -41,7 +41,10 @@ for (const entrance of ['local', 'https']) {
     const stoppedCounts = {writes: setup.writes().length, queries: setup.queries(), targetReads: setup.targetReads()};
     const originalProcesses = [...step.processes];
     assert.equal(originalProcesses.length, 3);
-    t.diagnostic(JSON.stringify({entrance, originalProcesses, fixtureRoot: setup.root}));
+    // Keep optional trace events outside the strict mutation acceptance path.
+    if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') {
+      t.diagnostic(JSON.stringify({entrance, originalProcesses, fixtureRoot: setup.root}));
+    }
     for (const process of originalProcesses) {
       assert.ok(Number.isSafeInteger(process.pid));
       assert.equal(process.exitCode, 0);

@@ -14,6 +14,7 @@ fn empirical_test_candidates(single? : Bool = false) -> PolicyCandidateSet {
 fn empirical_test_sidecar() -> OperationalEstimateSidecar {
   {
     request: operational_test_request(),
+    conditions: operational_test_admit(operational_test_body(), 1100L).unwrap().conditions,
     profile_revision: "profile",
     oldest_ms: 1000L,
     newest_ms: 1000L,
@@ -157,5 +158,48 @@ test "one or partly unknown candidate set cannot claim an empirical ranking" {
       1100L,
     )
     is Err(_),
+  )
+}
+
+///|
+test "whole caller elapsed references cannot silently borrow task processing" {
+  let sidecar = empirical_test_sidecar()
+  assert_eq(
+    rank_operational_candidates(
+      empirical_test_candidates(),
+      sidecar,
+      1,
+      "whole-run",
+      1100L,
+      quantity="run-caller-elapsed",
+    ).unwrap().selected_position,
+    None,
+  )
+  let whole = {
+    ..sidecar,
+    references: sidecar.references.map(r => {
+      ..r,
+      quantity: "run-caller-elapsed",
+    }),
+  }
+  let ranking = rank_operational_candidates(
+    empirical_test_candidates(),
+    whole,
+    1,
+    "whole-run",
+    1100L,
+    quantity="run-caller-elapsed",
+  ).unwrap()
+  assert_eq(ranking.selected_position, Some(7))
+  assert_eq(ranking.reason, "run-caller-elapsed-median")
+  assert_eq(
+    rank_operational_candidates(
+      empirical_test_candidates(),
+      whole,
+      1,
+      "whole-run",
+      1100L,
+    ).unwrap().selected_position,
+    None,
   )
 }

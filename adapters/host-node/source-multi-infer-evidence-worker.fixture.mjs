@@ -1,0 +1,173 @@
+import assert from 'node:assert/strict';
+import {readFile, writeFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {generateKeyPairSync} from 'node:crypto';
+import {tmpdir, userInfo} from 'node:os';
+import {join} from 'node:path';
+import {inspect} from 'node:util';
+import {createCaptureSink} from '../../examples/infer-evaluation/capture-sink.mjs';
+
+import {createServer as httpsServer} from 'node:https';
+import {createServer as httpServer} from 'node:http';
+import {execFileSync} from 'node:child_process';
+import {once} from 'node:events';
+import {getCACertificates, setDefaultCACertificates} from 'node:tls';
+
+const runtime = process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS === undefined ? undefined :
+  JSON.parse(await readFile(process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS, 'utf8'));
+const {connect} = runtime === undefined
+  ? await (await import('./fixtures/source-node-client.mjs')).prepareSourceNodeClient({assemble: false})
+  : await import(runtime.client);
+const {openInstalledRemoteHttpHost} = await import(runtime?.httpHost ?? '../../packages/local-node/http-host.mjs');
+const {createNodeHostObservability} = await import(runtime?.observation ?? '../../packages/otel-node/index.mjs');
+const {providerBindingOriginals} = await import(runtime?.providerFixture ?? '../../scripts/fixtures/model-provider-binding-fixture.mjs');
+const {canonical} = await import(runtime?.inferFixture ?? '../../scripts/fixtures/installed-infer-fixture.mjs');
+const {program, modelConfiguration, sourceEnvironment, scenarios, instructionsA} =
+  await import(runtime?.sourceInferFixture ?? '../../scripts/fixtures/source-multi-infer-evidence.mjs');
+const checked = result => {assert.equal(result.$tag, 1); return result._0;};
+const [root, transport, scenarioName = 'unicode', observationMode = 'disabled'] = process.argv.slice(2);
+assert(root && ['local', 'https'].includes(transport) && scenarios[scenarioName]);
+const scenario = scenarios[scenarioName];
+let client, host, server, collector, telemetry, otlpRequests = 0;
+try {
+  const base = JSON.parse(await readFile(runtime?.environment ?? new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+  const source = sourceEnvironment(JSON.parse(await readFile(runtime?.sourceEnvironment ?? new URL('./fixtures/query-amount-environment.json', import.meta.url), 'utf8')),
+    base.host_policy_profile);
+  const database = join(root, 'source.duckdb');
+  const {DuckDBInstance} = createRequire(runtime?.duckdbRequire ?? new URL('../connectors/duckdb/node/package.json', import.meta.url))('@duckdb/node-api');
+  const instance = await DuckDBInstance.create(database);
+  const connection = await instance.connect();
+  try {
+    await connection.run('CREATE TABLE records(id DOUBLE, amount VARCHAR)');
+    for (const row of scenario.rows) {
+      const insert = await connection.prepare('INSERT INTO records VALUES (?, ?)');
+      try {insert.bindDouble(1, row.id); insert.bindVarchar(2, row.amount); await insert.run();}
+      finally {insert.destroySync();}
+    }
+  } finally {connection.closeSync(); instance.closeSync();}
+  const accountConfiguration = canonical({version: 'actql-execution-account-config/0.1', account_id: 'source-evidence-fixture',
+    entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true}, connection: {all: true},
+      resource: {all: true}, operation: {all: true}, exclusions: []}]});
+  const sourceProfilePath = join(root, 'source-profile.json');
+  await writeFile(sourceProfilePath, canonical({version: 'actql-installed-duckdb-source/0.1', database,
+    schema: 'main', table: 'records', sourceRef: 'connector://crm/main/r#v',
+    acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+    checkEnvironmentWire: canonical(source), accountConfigurationWire: accountConfiguration}));
+  const installed = modelConfiguration(base, scenario);
+  const keys = generateKeyPairSync('ed25519');
+  const observed = [], calls = [];
+  const destination = 'local:source-multi-infer-evaluator';
+  const sink = await createCaptureSink({directory: join(root, 'evidence'), destination,
+    maxBytes: 131072, maxPendingBytes: 1048576, retentionMs: 300000,
+    authorize: facts => facts.destination === destination});
+  if (observationMode === 'sampling-zero') {
+    collector = httpServer((request, response) => {otlpRequests++; request.resume(); response.end();}).listen(0, '127.0.0.1');
+    await once(collector, 'listening');
+    telemetry = createNodeHostObservability({environment: false,
+      traces: {endpoint: `http://127.0.0.1:${collector.address().port}/v1/traces`, sampleRate: 0}});
+    assert.equal(telemetry.configuration().signals.traces.enabled, true);
+    assert.equal(telemetry.configuration().signals.traces.sampleRate, 0);
+  } else assert.equal(observationMode, 'disabled');
+  const installation = {
+    ...(telemetry === undefined ? {} : {observation: telemetry.connection}),
+    directory: join(root, 'host'), sourceProfilePath, modelInstallation: installed.installation,
+    inferEvidence: {target: ['first_assessment', 'second_assessment'], destination,
+      maxBytes: 262144, sink, authorize: binding =>
+        JSON.parse(binding.policy.wire).unknown_provenance === true},
+    authorization: {accountConfiguration,
+      hostKey: {keyId: 'fixture-host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+      reviewers: [{keyId: 'fixture-reviewer', reviewerId: 'fixture-reviewer', principalId: userInfo().username,
+        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+      observe(name, detail) {observed.push({name, detail});}},
+    registerModelProviders: moon => [{providerId: 'models/packed',
+      bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-risk-model'}),
+      invoke() {assert.fail('unprepared Model dispatch');},
+      validatePrompt(taskCid, selector, wire) {
+        return installed.tasks.some(task => task.contract_cid === taskCid) && selector === 'packed-risk-model' &&
+          JSON.parse(wire).format === 'packed-risk/0.1';
+      },
+      quantityCapacity: {limits: {tokens: 66n, costUnits: 0n, durationMs: 1000n},
+        perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}},
+      observeEgress: () => ({_0: 'public', _1: 'fixture-region', _2: false, _3: false}),
+      physicalPreflight: request => {
+        const text = JSON.parse(moon.clientProgramModelRequestInput(request, 'text'));
+        const input = JSON.parse(moon.clientProgramModelRequestInputFrame(request));
+        const task = installed.tasks.find(value => value.contract_cid === input.model_task_contract_cid);
+        assert(task);
+        const first = task.task_id === 'model-task:first-assessment.v1';
+        const instructions = first ? scenario.firstInstructions : scenario.secondInstructions;
+        const renderedInput = canonical({instructions, text});
+        const contextManifest = canonical({promptTemplateCid: task.prompt_template_cid,
+          selectedFields: ['text'], retrievalPolicy: 'none', knownExternalContext: [], providerHiddenContext: 'unknown'});
+        return moon.clientProgramModelRequestPreflight(() => ({_0: true,
+          _1: checked(moon.clientProgramModelPhysicalEvidencePlan(request, 1000n, 33n, 0n, 500n,
+            renderedInput, contextManifest, () => {
+            calls.push({slotCid: input.model_call_slot_cid,
+              semanticRequestCid: input.semantic_request_cid,
+              taskCid: task.contract_cid, key: input.key, instructions, text});
+            const urgent = first && scenarioName !== 'unicode' &&
+              (instructions === instructionsA ? text === 'urgent' : text.toLowerCase() === 'urgent');
+            return moon.clientProgramModelResponse(request, canonical({risk: urgent ? 'high' : 'low', reason: text}),
+              'packed-risk-model', `source-evidence-${calls.length}`, 1n, 2n, new Date().toISOString());
+          }))}), () => true);
+      },
+    }],
+  };
+  if (transport === 'https') {
+    execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: root, stdio: 'ignore'});
+    const certificate = await readFile(join(root, 'host.crt'));
+    setDefaultCACertificates([...getCACertificates('default'), certificate.toString()]);
+    host = await openInstalledRemoteHttpHost({...installation, authenticate: header => header === 'Bearer synthetic-evidence' ? userInfo().username : undefined});
+    server = httpsServer({key: await readFile(join(root, 'host.key')), cert: certificate}, host.handler).listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'synthetic-evidence', durability: 'durable'});
+  } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
+  const run = await client.start(program, {submissionRef: client.newSubmission({nonce: 'source-two-infers'})}).catch(error => {
+    console.error(inspect({error, observed, calls}, {depth: 12})); throw error;
+  });
+  const terminal = await run.wait();
+  if (terminal.status !== 'succeeded') console.error(inspect({terminal, observed, calls}, {depth: 8}));
+  assert.equal(terminal.status, 'succeeded');
+  assert.deepEqual(await run.result('answer').all(), scenario.expected);
+  assert.equal(calls.length, 4);
+  assert.equal(observed.filter(item => item.name === 'acquisition_started').length, 1);
+  if (scenarioName === 'unicode') {
+    const serial = structuredClone(program);
+    serial.id = 'unsupported-serial-infer-evidence';
+    serial.stages[2].inputs.items.result.stage = 'first';
+    serial.stages[2].steps[1].infer.input = {text: {literal: 'downstream'}};
+    // The public Submission contract records this unsupported downstream
+    // preparation as an operation failure, not malformed language input.
+    await assert.rejects(client.start(serial,
+      {submissionRef: client.newSubmission({nonce: 'serial-infer-negative'})}),
+      error => error.code === 'SubmissionPreparationFailed' &&
+        error.outcome?.problem?.code === 'ClientProgramRejected' &&
+        error.outcome.problem.classification === 'operation_failed');
+    assert.equal(calls.length, 4, 'the refused downstream INFER must not send');
+    assert.equal(observed.filter(item => item.name === 'acquisition_started').length, 1);
+  }
+  const subject = {runDefinitionCid: run.ref.runDefinitionCid, authorityScopeCid: run.ref.authorityScopeCid};
+
+  const manifests = [];
+  for (const target of ['first_assessment', 'second_assessment']) {
+    const receipt = await sink.lookup(subject, target);
+    assert.equal(receipt.manifest.status, 'complete');
+    assert.equal(receipt.manifest.items.length, 2);
+    manifests.push(receipt);
+  }
+  assert.equal(sink.pendingBytes(), 0);
+  assert.equal(sink.cleanupPending(), false);
+  await telemetry?.close(); telemetry = undefined;
+  assert.equal(otlpRequests, 0);
+  const originalSourcePolicy = source.contract_registry.find(value => value.kind === 'data_policy').cid;
+  await writeFile(join(root, 'recovery.json'), JSON.stringify({subject, manifests, pid: process.pid,
+    scenario: scenarioName, observationMode, otlpRequests, originalSourcePolicy,
+    modelTaskCids: installed.tasks.map(task => task.contract_cid),
+    calls, sourceCalls: 1, terminal, revision: runtime?.revision}));
+} finally {
+  await client?.close();
+  if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
+  await host?.close();
+  await telemetry?.close();
+  if (collector) await new Promise(resolve => collector.close(resolve));
+}

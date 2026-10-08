@@ -2041,7 +2041,9 @@ function publicationControl(moon) {
       const compilation = compiledRunResult(kind === 'values'
         ? moon.clientProgramCompileLocalValues(checkedProgram)
         : kind === 'infer'
-          ? moon.clientProgramCompileLocalInfer(checkedProgram, inferGraph)
+          ? Array.isArray(inferGraph)
+            ? moon.clientProgramCompileLocalInfers(checkedProgram, inferGraph)
+            : moon.clientProgramCompileLocalInfer(checkedProgram, inferGraph)
           : moon.clientProgramCompileLocalTasks(checkedProgram),
       kind === 'values' ? 'RunHostCompilationRejected'
         : 'RunHostTaskCompilationRejected');
@@ -2120,6 +2122,14 @@ function publicationControl(moon) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) throw new TypeError('Foreign Client compiled Run');
       const original = moon.clientProgramCompiledRunSourceFreeResultPolicy(value);
+      return original === undefined ? undefined : Object.freeze({
+        kind: original._0, cid: original._1, wire: original._2,
+      });
+    },
+    compiledInferEvaluationPolicy(compiled) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined) throw new TypeError('Foreign Client compiled Run');
+      const original = moon.clientProgramCompiledRunEvaluationPolicy(value);
       return original === undefined ? undefined : Object.freeze({
         kind: original._0, cid: original._1, wire: original._2,
       });
