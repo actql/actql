@@ -51,6 +51,21 @@ test "prepared Result ports and contexts retain the same resolved order owner" {
     ),
   )
   let (work, text) = usage(context)
+  let prepared = prepare_pipeline_orders(
+    orders,
+    max_work=work,
+    max_text_bytes=text,
+  ).unwrap()
+  let reused = bind_prepared_pipeline_orders(
+    prepared,
+    [None, None, None],
+    applications,
+    policy(),
+    max_work=work,
+    max_text_bytes=text,
+  ).unwrap()
+  assert_eq(usage(reused), (work, text))
+  assert_true(physical_equal(checked_orders(reused), orders))
   let ordinary = check(
     result,
     [None, None, None],
@@ -73,6 +88,17 @@ test "prepared Result ports and contexts retain the same resolved order owner" {
   assert_true(
     check_resolved_orders(
       orders,
+      [None, None, None],
+      applications,
+      policy(),
+      max_work=work - 1,
+      max_text_bytes=text,
+    )
+    is Err(_),
+  )
+  assert_true(
+    bind_prepared_pipeline_orders(
+      prepared,
       [None, None, None],
       applications,
       policy(),

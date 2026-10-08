@@ -126,6 +126,8 @@ pub fn bind_capacity_inputs(@stage_syntax.Program, Array[StageCapacityInput], In
 
 pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
 
+pub fn bind_prepared_pipeline_orders(PipelineOrderPreparation, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
+
 pub fn bind_program_source_contracts(ProgramSourceIdentity, SourceContractRequirements, Int) -> Result[ProgramSourceContracts, SourceContractIssue]
 
 pub fn bind_program_sources(OperationProfileChecks, ProgramReferences, SourceBindingRequirements, Int) -> Result[ProgramSourceChecks, ProgramSourcesIssue]
@@ -696,6 +698,14 @@ pub fn pattern_usage(PatternChecks) -> PatternUsage
 
 pub fn pipeline_authoring_capacity(PipelineAuthoringClosure) -> @check_environment.Capacity
 
+pub fn pipeline_authoring_context_orders(PipelineAuthoringContext) -> PipelineOrderPreparation
+
+pub fn pipeline_authoring_context_pipeline(PipelineAuthoringContext) -> PipelineContext
+
+pub fn pipeline_authoring_context_source(PipelineAuthoringContext) -> PipelineAuthoringClosure
+
+pub fn pipeline_authoring_context_usage(PipelineAuthoringContext) -> (Int, Int, Int)
+
 pub fn pipeline_authoring_expressions(PipelineAuthoringClosure) -> @pipeline_typing.ExpressionSlots
 
 pub fn pipeline_authoring_profiles(PipelineAuthoringClosure) -> PipelineOperationProfileChecks
@@ -763,6 +773,8 @@ pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Ar
 pub fn prepare_local_stage_contexts_from_inputs(@stage_results.PreparedLocalSource, ProgramCapacityInputs, @capacity_policy.Policy, CapacityStageLimits, derived_capacity_limits? : @capacity_witness.Limits?, sourceviews? : @sourceview_resolution.PipelineInputs?) -> Result[StageContexts, CapacityStageIssue]
 
 pub fn prepare_nest_value_envelope(NestItemLimit, Int, Int) -> Result[NestValueEnvelope, NestValueIssue]
+
+pub fn prepare_pipeline_authoring_context(PipelineAuthoringClosure, PipelineOrderPreparation, CapacityStageLimits, @capacity_witness.Limits) -> Result[PipelineAuthoringContext, PipelineAuthoringContextIssue]
 
 pub fn prepare_pipeline_orders(@relation_results.CheckedOrders, max_work~ : Int, max_text_bytes~ : Int) -> Result[PipelineOrderPreparation, Issue]
 
@@ -2618,6 +2630,18 @@ pub(all) struct PatternUsage {
 } derive(Eq, @debug.Debug)
 
 type PipelineAuthoringClosure
+
+type PipelineAuthoringContext
+
+pub enum PipelineAuthoringContextIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOrders
+  UnsupportedInputs
+  Values(ValuesCapacityIssue)
+  Capacity(@capacity_graph_preflight.PreparationIssue)
+  Context(Issue)
+}
 
 pub enum PipelineAuthoringIssue {
   InvalidLimits

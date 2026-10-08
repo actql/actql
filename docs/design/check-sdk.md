@@ -1427,6 +1427,14 @@ that same preparation and charges its exact prefix once. Repeated and unused
 producer visits retain distinct sites; neither resolved order nor an empty
 pending-expression inventory certifies complete Program template checking.
 
+For a closed source-free pipeline, authoring capacity preparation applies real
+Values count proofs and the selected capacity policy through the existing
+coverage and context owners. It retains the original order preparation and
+never supplies execution Parameter values. Pipelines with input obligations
+remain explicitly unconnected at this boundary; their scope is not narrowed.
+This capacity owner is separate from Result publication and complete Program
+template verification.
+
 ### Passive operation diagnostic formats
 
 Submission presentation follows admitted `SubmissionOutcome` and

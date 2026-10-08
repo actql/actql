@@ -165,6 +165,37 @@ pub fn check_resolved_orders(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  bind_prepared_pipeline_orders(
+    prepared,
+    bindings,
+    applications,
+    selected_policy,
+    max_work~,
+    max_text_bytes~,
+    proof_owners~,
+    input_owners~,
+  )
+}
+
+///|
+/// Continue the exact retained order/expression owner through the existing
+/// guard and capacity checks. Absence is not a fabricated Parameter value set.
+pub fn bind_prepared_pipeline_orders(
+  prepared : PipelineOrderPreparation,
+  bindings : Array[@parameter.BoundValues?],
+  applications : Array[@capacity.ApplicationCoverage],
+  selected_policy : @policy.Policy,
+  max_work~ : Int,
+  max_text_bytes~ : Int,
+  proof_owners? : Array[(Int, Int, Int)] = [],
+  input_owners? : Array[(Int, Int, Int, Int)] = [],
+) -> Result[PipelineContext, Issue] {
+  if max_work < 0 || max_text_bytes < 0 {
+    return Err(InvalidIntegrationLimits)
+  }
+  if prepared.work > max_work || prepared.text > max_text_bytes {
+    return Err(PriorOrderLimit)
+  }
   let closure = @results.checked_producer_orders(prepared.orders)
   let guards = match
     @pipeline.bind_contextual_guards(
