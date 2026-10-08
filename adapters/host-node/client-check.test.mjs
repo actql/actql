@@ -1119,8 +1119,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
       ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, 29, {line: 1, character: 0}],
     ];
     const revisions = [];
-    for (const [text, start, end, position] of cases) {
-      const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+    for (const format of ['sql', 'aql-text']) for (const [text, start, end, position] of cases) {
+      let outcome;
+      try { outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format}); }
+      catch (cause) {
+        if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+      }
+      assert.notEqual(outcome, undefined, '[check-mutation:syntax-original-binding]');
       assert.equal(outcome.outcome, 'completed', '[check-mutation:syntax-outcome]');
       assert.equal(outcome.report.verdict, 'invalid');
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
