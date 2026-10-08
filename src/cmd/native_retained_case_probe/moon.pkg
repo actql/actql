@@ -3,6 +3,11 @@ supported_targets = "native"
 pkgtype(kind: "executable")
 
 import {
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+  "actql/actql/platform_native/trusted_clock" @clock,
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/platform_native/bounded_files" @files,
   "actql/actql/platform_native/remote_application_profile" @application,
   "actql/actql/physical_strategy_example" @example,
   "actql/actql/connectors/duckdb/host_native" @host,

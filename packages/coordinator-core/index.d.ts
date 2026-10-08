@@ -1,5 +1,81 @@
 declare const ownerHandle: unique symbol;
 
+export type BundleDistribution = {readonly [ownerHandle]: 'bundle-distribution'};
+export type BundleHoldScope = {readonly [ownerHandle]: 'bundle-hold-scope'};
+export type BundleHoldBinding = {readonly [ownerHandle]: 'bundle-hold-binding'};
+export type BundleCustodyRequest = {readonly [ownerHandle]: 'bundle-custody-request'};
+export type BundleCustodyResponse = {readonly [ownerHandle]: 'bundle-custody-response'};
+export type BundleCustodyOperation = 'retain' | 'query' | 'release';
+export type BundleCustodyObservation = 'retained' | 'fenced' | 'unresolved' | 'unavailable';
+
+/** Exact scope for the caller's own hold on an explicitly permitted existing
+ * bundle. These fields identify the request; they grant no permission. */
+export interface BundleHoldScopeInput {
+  distribution: BundleDistribution;
+  coordinatorAuthority: string;
+  workspaceId: string;
+  authorityScopeCid: string;
+  environment: string;
+  setRevisionCid: string;
+  runtimeBundleCid: string;
+  siteKey: string;
+  siteGeneration: number;
+  attemptId: string;
+}
+
+/** Portable shared-owner client values. No installation, activation, physical
+ * Store mutation, authority setup, transport, or automatic retry is exposed. */
+export const bundleRetention: Readonly<{
+  prepareDistribution(members: readonly string[]): BundleDistribution;
+  distributionIdentity(value: BundleDistribution): string;
+  distributionJson(value: BundleDistribution): string;
+  /** Distribution CID followed by its sorted member bundle CIDs. */
+  distributionProjection(value: BundleDistribution): string[];
+  distributionContains(value: BundleDistribution, runtimeBundleCid: string): boolean;
+  admitDistributionJson(body: string, claimedCid: string): BundleDistribution;
+  prepareHoldScope(input: Readonly<BundleHoldScopeInput>): BundleHoldScope;
+  holdScopeIdentity(value: BundleHoldScope): string;
+  holdScopeJson(value: BundleHoldScope): string;
+  /** Scope CID, coordinator, workspace, authority scope CID, environment, set
+   * revision CID, distribution CID, bundle CID, Site key, generation, attempt. */
+  holdScopeProjection(value: BundleHoldScope): string[];
+  admitHoldScopeJson(distribution: BundleDistribution, body: string,
+    claimedCid: string): BundleHoldScope;
+  holdBindingIdentity(value: BundleHoldBinding): string;
+  holdBindingJson(value: BundleHoldBinding): string;
+  /** Binding CID, catalog, coordinator, workspace, authority scope CID,
+   * environment, set revision CID, distribution CID, bundle CID, Site key,
+   * generation, initial revision, attempt. */
+  holdBindingProjection(value: BundleHoldBinding): string[];
+  holdBindingScope(value: BundleHoldBinding): BundleHoldScope;
+  admitHoldBindingJson(distribution: BundleDistribution, body: string,
+    claimedCid: string): BundleHoldBinding;
+  /** Discovers a binding. A context response is never retained readiness. */
+  prepareCustodyContextQuery(distribution: BundleDistribution,
+    scope: BundleHoldScope): BundleCustodyRequest;
+  /** Persist the exact returned binding JSON/CID before retain. Recovery uses
+   * that same binding; never refresh its catalog, revision, or attempt. */
+  prepareCustodyRequest(distribution: BundleDistribution,
+    binding: BundleHoldBinding, operation: BundleCustodyOperation): BundleCustodyRequest;
+  custodyRequestIdentity(value: BundleCustodyRequest): string;
+  custodyRequestJson(value: BundleCustodyRequest): string;
+  custodyRequestOperation(value: BundleCustodyRequest): BundleCustodyOperation;
+  custodyRequestScope(value: BundleCustodyRequest): BundleHoldScope;
+  custodyRequestBinding(value: BundleCustodyRequest): BundleHoldBinding | undefined;
+  admitCustodyRequestJson(body: string, claimedCid: string): BundleCustodyRequest;
+  /** Binds the canonical response to this exact original request and verb. */
+  admitCustodyResponseJson(request: BundleCustodyRequest, body: string,
+    claimedCid: string): BundleCustodyResponse;
+  custodyResponseIdentity(value: BundleCustodyResponse): string;
+  custodyResponseJson(value: BundleCustodyResponse): string;
+  custodyResponseKind(value: BundleCustodyResponse): 'context' | 'observation';
+  custodyResponseBinding(value: BundleCustodyResponse): BundleHoldBinding;
+  /** Empty for context. Only an observation can report retained custody. */
+  custodyResponseObservation(value: BundleCustodyResponse): BundleCustodyObservation | '';
+  custodyResponseCatalog(value: BundleCustodyResponse): string | undefined;
+  custodyResponseRevision(value: BundleCustodyResponse): number | undefined;
+}>;
+
 export type Journal = {readonly [ownerHandle]: 'journal'};
 export type DispatchRequest = {readonly [ownerHandle]: 'dispatch-request'};
 export type IntentAdmission = {readonly [ownerHandle]: 'intent-admission'};

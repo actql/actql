@@ -14,24 +14,26 @@ const alias = Object.freeze({name: 'records', sourceRef: 'connector://crm/main/r
   schemaContractCid: cid('4'), sourceViewContractCid: cid('5')});
 
 async function check({write = 'dispatch', read = 'dispatch', binding = table,
-  failWrite = false, signal} = {}) {
+  failWrite = false, signal, kind = 'source'} = {}) {
   const decisions = [], analyzed = [];
   const authorization = kind => ({async authorize(...args) {
     decisions.push([kind, ...args]);
     if (kind === 'write' && failWrite) throw new Error('UnavailablePrivateWriter');
     return {action: kind === 'write' ? write : read};
   }});
+  const respond = args => {
+    analyzed.push(args);
+    return JSON.stringify({version: 'actql-check-outcome/0.1', outcome: 'failed',
+      correlation_ref: args.at(-1), problem: {code: 'check_internal'},
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid});
+  };
   const moon = {
     clientProgramCheckingEnvironmentCid: () => cid('6'),
     clientProgramCheckCompilerIdentity: () => '{}',
     clientProgramCheckContextIdentity: () => '{}',
     clientProgramCheckUnavailable: () => '{}',
-    clientProgramCheckSource(...args) {
-      analyzed.push(args);
-      return JSON.stringify({version: 'actql-check-outcome/0.1', outcome: 'failed',
-        correlation_ref: args.at(-1), problem: {code: 'check_internal'},
-        reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid});
-    },
+    clientProgramCheckSource: (...args) => respond(args),
+    clientProgramCheckProgram: (...args) => respond(args),
   };
   const owner = installNodeClientCheck({moon, environment: {},
     contextKey: new Uint8Array(32).fill(7),
@@ -41,9 +43,12 @@ async function check({write = 'dispatch', read = 'dispatch', binding = table,
     tableWriteAccesses: [{authorization: authorization('write'), connection: 'catalog',
       resource: 'report', capabilityCid: binding.capabilityCid}],
   });
-  await owner({principalId: 'author', input: {format: 'sql',
-    text: 'CREATE TABLE analytics.report AS SELECT 1 AS id'}, parameters: null, signal});
-  return {decisions, publication: JSON.parse(analyzed[0][3]), context: analyzed[0][6]};
+  await owner({principalId: 'author', kind,
+    input: kind === 'program' ? {version: 'actql/0.1', stages: [], results: {}}
+      : {format: 'sql', text: 'CREATE TABLE analytics.report AS SELECT 1 AS id'},
+    parameters: null, signal});
+  return {decisions, publication: JSON.parse(analyzed[0][kind === 'program' ? 2 : 3]),
+    context: analyzed[0][kind === 'program' ? 4 : 6]};
 }
 
 test('Table binding visibility uses its own write scope, never a Source read grant', async () => {
@@ -80,4 +85,14 @@ test('cancelled checks do not conceal cancellation as an inaccessible Table name
   const controller = new AbortController();
   controller.abort(new Error('CheckCancelled'));
   await assert.rejects(check({signal: controller.signal}), /CheckCancelled/);
+});
+
+test('structured checking keeps its input binding and independent Table write disclosure', async () => {
+  const shown = await check({kind: 'program', read: 'deny'});
+  assert.deepEqual(shown.publication, {environmentCid: cid('6'), aliases: [], tableWrites: [table]});
+  assert.notEqual(shown.context, (await check({read: 'deny'})).context);
+  assert.equal(shown.context, (await check({kind: 'program', read: 'deny'})).context);
+  const hidden = await check({kind: 'program', write: 'deny'});
+  assert.deepEqual(hidden.publication, {environmentCid: cid('6'), aliases: [alias]});
+  assert.notEqual(hidden.context, shown.context);
 });

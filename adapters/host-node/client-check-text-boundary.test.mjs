@@ -44,6 +44,7 @@ const environment = moon.clientProgramCheckEnvironment(canonicalText(wire),
 async function publicCheck(t, entrance) {
   const counts = {exchanges: 0, authorization: 0, analysis: 0};
   const check = installNodeClientCheck({moon: {...moon,
+    clientProgramCheckProgram: () => assert.fail('Text fixture must not check a structured Program'),
     clientProgramCheckSource: (...args) => {
       counts.analysis++;
       return moon.clientProgramCheckSource(...args);

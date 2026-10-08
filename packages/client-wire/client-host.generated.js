@@ -4497,6 +4497,7 @@ const schemas = {
                     "document_id": {
                       "enum": [
                         "source",
+                        "program",
                         "parameter_declarations",
                         "parameters"
                       ]
@@ -4541,6 +4542,49 @@ const schemas = {
                             "code": {
                               "type": "string",
                               "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "code",
+                            "location"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "implementation_limit",
+                                "analysis_budget_exhausted"
+                              ]
+                            },
+                            "location": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "document_id",
+                                "revision",
+                                "pointer"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                },
+                                "revision": {
+                                  "type": "string",
+                                  "pattern": "^rev:[0-9a-f]{64}$"
+                                },
+                                "pointer": {
+                                  "type": "string",
+                                  "pattern": "^(?:/(?:[^~]|~[01])*)*$",
+                                  "maxLength": 4096
+                                }
+                              }
                             }
                           }
                         },
@@ -4705,6 +4749,7 @@ const schemas = {
                             },
                             "document_id": {
                               "enum": [
+                                "program",
                                 "parameter_declarations",
                                 "parameters"
                               ]
@@ -5252,7 +5297,11 @@ const schemas = {
                                 "invalid_arguments",
                                 "expected_boolean",
                                 "invalid_bounds",
-                                "function_lowering_unresolved"
+                                "function_lowering_unresolved",
+                                "missing_field",
+                                "wrong_type",
+                                "unexpected_null",
+                                "invalid_structure"
                               ]
                             }
                           }
@@ -5309,6 +5358,54 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "program_structure_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -5488,10 +5585,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -5628,7 +5731,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -5680,7 +5786,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -5791,7 +5900,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -5851,10 +5963,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -6074,7 +6192,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -6109,10 +6236,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -6156,7 +6289,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -6184,7 +6326,8 @@ const schemas = {
                                 "expression_type_mismatch",
                                 "implementation_limit",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "program_structure_invalid"
                               ]
                             }
                           }
@@ -6289,6 +6432,7 @@ const schemas = {
                             },
                             "document_id": {
                               "enum": [
+                                "program",
                                 "parameter_declarations",
                                 "parameters"
                               ]
@@ -6836,7 +6980,11 @@ const schemas = {
                                 "invalid_arguments",
                                 "expected_boolean",
                                 "invalid_bounds",
-                                "function_lowering_unresolved"
+                                "function_lowering_unresolved",
+                                "missing_field",
+                                "wrong_type",
+                                "unexpected_null",
+                                "invalid_structure"
                               ]
                             }
                           }
@@ -6893,6 +7041,54 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "program_structure_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -7072,10 +7268,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -7212,7 +7414,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -7264,7 +7469,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -7375,7 +7583,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -7435,10 +7646,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -7658,7 +7875,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -7693,10 +7919,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -7740,7 +7972,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -7768,7 +8009,8 @@ const schemas = {
                                 "expression_type_mismatch",
                                 "implementation_limit",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "program_structure_invalid"
                               ]
                             }
                           }
@@ -7907,7 +8149,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
+            "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -7977,6 +8219,7 @@ const schemas = {
                     "document_id": {
                       "enum": [
                         "source",
+                        "program",
                         "parameter_declarations",
                         "parameters"
                       ]
@@ -8021,6 +8264,49 @@ const schemas = {
                             "code": {
                               "type": "string",
                               "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "code",
+                            "location"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "implementation_limit",
+                                "analysis_budget_exhausted"
+                              ]
+                            },
+                            "location": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "document_id",
+                                "revision",
+                                "pointer"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                },
+                                "revision": {
+                                  "type": "string",
+                                  "pattern": "^rev:[0-9a-f]{64}$"
+                                },
+                                "pointer": {
+                                  "type": "string",
+                                  "pattern": "^(?:/(?:[^~]|~[01])*)*$",
+                                  "maxLength": 4096
+                                }
+                              }
                             }
                           }
                         },
@@ -8185,6 +8471,7 @@ const schemas = {
                             },
                             "document_id": {
                               "enum": [
+                                "program",
                                 "parameter_declarations",
                                 "parameters"
                               ]
@@ -8732,7 +9019,11 @@ const schemas = {
                                 "invalid_arguments",
                                 "expected_boolean",
                                 "invalid_bounds",
-                                "function_lowering_unresolved"
+                                "function_lowering_unresolved",
+                                "missing_field",
+                                "wrong_type",
+                                "unexpected_null",
+                                "invalid_structure"
                               ]
                             }
                           }
@@ -8789,6 +9080,54 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "program_structure_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -8968,10 +9307,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -9108,7 +9453,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -9160,7 +9508,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -9271,7 +9622,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -9331,10 +9685,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -9554,7 +9914,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -9589,10 +9958,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -9636,7 +10011,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -9664,7 +10048,8 @@ const schemas = {
                                 "expression_type_mismatch",
                                 "implementation_limit",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "program_structure_invalid"
                               ]
                             }
                           }
@@ -9769,6 +10154,7 @@ const schemas = {
                             },
                             "document_id": {
                               "enum": [
+                                "program",
                                 "parameter_declarations",
                                 "parameters"
                               ]
@@ -10316,7 +10702,11 @@ const schemas = {
                                 "invalid_arguments",
                                 "expected_boolean",
                                 "invalid_bounds",
-                                "function_lowering_unresolved"
+                                "function_lowering_unresolved",
+                                "missing_field",
+                                "wrong_type",
+                                "unexpected_null",
+                                "invalid_structure"
                               ]
                             }
                           }
@@ -10373,6 +10763,54 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "program_structure_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -10552,10 +10990,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -10692,7 +11136,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -10744,7 +11191,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -10855,7 +11305,10 @@ const schemas = {
                                 "const": "structured"
                               },
                               "document_id": {
-                                "const": "parameter_declarations"
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -10915,10 +11368,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -11138,7 +11597,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -11173,10 +11641,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
                               },
                               "document_id": {
-                                "const": "source"
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -11220,7 +11694,16 @@ const schemas = {
                           "location": {
                             "properties": {
                               "kind": {
-                                "const": "text"
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
                               }
                             }
                           }
@@ -11248,7 +11731,8 @@ const schemas = {
                                 "expression_type_mismatch",
                                 "implementation_limit",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "program_structure_invalid"
                               ]
                             }
                           }
@@ -11405,7 +11889,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
+            "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -11451,7 +11935,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
+            "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -12520,8 +13004,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739";
-export const checkOutcomeSchemaCid = "sha256:801971ab7c91652f2e3a606cdae7567fe313ca2931df81d7ab4c24d3d130e0a9";
+export const checkReasonSchemaCid = "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
+export const checkOutcomeSchemaCid = "sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {
@@ -12627,8 +13111,10 @@ export const validCheckOutcomeContract = value => {
   const documents = new Map(report.inputs.map(input => [input.document_id, input]));
   const occurrences = [...report.reasons, ...report.requirements, ...report.coverage.limits];
   if (documents.size !== report.inputs.length) return false;
-  if (documents.get('source')?.kind !== 'text' ||
-      report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;
+  const program = documents.get('program');
+    if (program ? program.kind !== 'structured' || documents.has('source') ||
+        documents.has('parameter_declarations') : documents.get('source')?.kind !== 'text') return false;
+    if (report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;
   for (const reason of occurrences) {
       const location = reason.location;
       if (!location) continue;

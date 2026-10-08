@@ -634,8 +634,8 @@ the reason connection, while its owned source-position connection remains open.
 Unresolved protected Source names cannot acquire an expression reason or span.
 Wrapped expression construction/admission budgets remain incomplete analysis;
 they never become expression violations. The lowerer's `UnsupportedFunction`
-also remains incomplete analysis: its existing type covers unknown names,
-quoted function names and unsupported qualified forms without distinguishing
+also remains incomplete analysis: its existing type covers unknown names and
+unsupported qualified forms without distinguishing
 a proven input violation from implementation support. It projects only the
 existing `implementation_limit` coverage, not an expression reason or location.
 That does not certify the construct as valid or allow a Program to be issued.
@@ -1777,3 +1777,55 @@ has its own context binding; the old report and its locations retain their
 original inputs. A successful new check does not automatically resubmit the
 failed request or grant execution permission. The known Requirement frontier
 does not certify complete template checking or narrow the original bound scope.
+
+### Structured Program rejection observations
+
+`client.start(program)` may expose the same transient observation on
+`not_accepted` and `preparation_failed`. It uses the admitted Program parser,
+parameter binding, Source inventory and common checker. It does not expose a
+standalone Program check API or structured editing fixes.
+
+The original Program is an input document with `document_id: "program"` and
+`kind: "structured"`. A reason or Requirement identifies that document's
+opaque revision and RFC 6901 pointer. Missing fields point at their existing
+parent, including the root pointer `""`; explicit `null` remains a present
+value. Pointer member spellings come from the original admitted JSON, including
+Unicode and escaped slash/tilde. No SQL span or generated text range is
+substituted. When the Owner has no recoverable path, the location is omitted.
+Supplied parameters remain a separate structured document.
+
+The SDK captures an immutable input snapshot before its first await and binds
+only a detached, revalidated response to that call. `getCheckInput` and
+`resolveCheckLocation` access the original Program through the owned observation;
+`resolveCheckTextRange` does not apply to it. Copies, another input/revision,
+and an old response with another intent cannot acquire custody. Safe catalog
+advice is available through `explainCheckReason`; `getCheckFixes` returns an
+empty list for this completed observation. These getters send no request and
+confer neither execution nor resubmission permission. The SDK's weak associations
+do not independently keep the original error or observation alive. A reachable
+original observation retains its input snapshot, and a held input object can
+retain that snapshot directly;
+Host journal retention, limits and disposal are unchanged, with no added
+persistent diagnostic storage or promised time-based retention.
+
+Source publication is checked before projecting Source-dependent facts. Absent,
+unpublished, denied and undecided Sources share one protected unresolved
+boundary, without a cursor, field name or count. Independent admitted parameter
+violations and missing declarations remain visible. The original rejection's
+coarse Problem is also protected when its cause could reveal that distinction.
+The preparation bridge maps the Source Owner's unresolved/ambiguous selector to
+its existing generic nonacceptance code, while leaving checker categories and
+actual configuration failures unchanged. Local Source reference shorthand and
+Table inputs lacking publication evidence remain unresolved rather than falsely
+verified. Unsupported declarations and analysis limits retain their own typed
+classification; they are not user violations.
+
+This coordinated update changes the closed check outcome/reason schemas and
+both schema CIDs, the reason catalog revision, shared JS/Native received-report
+rules, generated Host wire/SDK types and active independent fixtures. Program
+and Source/declaration document domains are mutually exclusive. Existing
+`actql-diagnostics/0.1` and frozen contract history remain separate and unchanged.
+Older pins are explicitly rejected; no compatibility adapter manufactures
+success or empty diagnostics. Program input and supplied-parameter bindings use
+Host-keyed references over their exact serialized spelling, distinct from
+configuration identity normalization and from document revisions.

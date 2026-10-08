@@ -1,0 +1,1 @@
+DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id AS id, a.payload.SCORE AS score

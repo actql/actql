@@ -45,6 +45,8 @@ pub(all) struct Context {
   parameter_declarations : @parameters.Declarations?
   inputs : Array[Input]
   input_schemas : Array[(String, @schema.Schema)]
+  // Actual admitted Catalog; schema-only attachments do not establish Source provenance.
+  source_catalog : @environment.SourceRequestContracts?
   // Exact selected contract owner; this does not authorize model execution.
   model_tasks : @environment.ModelTasks?
 }
@@ -96,6 +98,9 @@ priv suberror Abort {
 priv struct Construction {
   builder : @builder.Builder
   generated : @origin.Origin
+  // Published contract owner for resolving named INFER INPUT fields only.
+  model_tasks : @environment.ModelTasks?
+  parameter_names : ParameterNames?
 }
 
 ///|
@@ -373,6 +378,10 @@ fn same_expression(
         match (@expression.numeric_literal(x), @expression.numeric_literal(y)) {
           (Ok(a), Ok(b)) => if a != b { return false }
           _ => return false
+        }
+      (ParameterReference(x), ParameterReference(y)) =>
+        if ascii_upper(x) != ascii_upper(y) {
+          return false
         }
       (Reference(x), Reference(y)) => if !references(x, y) { return false }
       (Call(x, ax), Call(y, ay)) => {
@@ -773,6 +782,7 @@ fn append_pipe_expression(
       path => pipe_slot(path, visible, ranges),
       construction.builder,
       max_work,
+      resolve_parameter=construction.parameter_resolver(),
     ) {
     Ok(node) => node
     Err(error) => raise Abort(Expression(error))
@@ -888,6 +898,7 @@ fn append_expression(
       resolve,
       construction.builder,
       max_work,
+      resolve_parameter=construction.parameter_resolver(),
     )
   } else {
     @expression.append_with_macros(
@@ -899,6 +910,7 @@ fn append_expression(
       construction.builder,
       max_work,
       resolve_properties=true,
+      resolve_parameter=construction.parameter_resolver(),
     )
   }
   match lowered {
@@ -1016,6 +1028,7 @@ fn append_order_expression(
       resolve,
       construction.builder,
       max_work,
+      resolve_parameter=construction.parameter_resolver(),
     )
   } else {
     @expression.append_with_macros(
@@ -1026,6 +1039,7 @@ fn append_order_expression(
       },
       construction.builder,
       max_work,
+      resolve_parameter=construction.parameter_resolver(),
     )
   }
   match lowered {
@@ -1238,6 +1252,7 @@ fn lower_aggregate_resolved(
                   resolve,
                   construction.builder,
                   max_work,
+                  resolve_parameter=construction.parameter_resolver(),
                 ) {
                 Ok(value) => value
                 Err(error) => raise Abort(Expression(error))
@@ -1262,6 +1277,7 @@ fn lower_aggregate_resolved(
               resolve,
               construction.builder,
               max_work,
+              resolve_parameter=construction.parameter_resolver(),
             ) {
             Ok(value) => value
             Err(error) => raise Abort(Expression(error))
@@ -1372,14 +1388,14 @@ fn analytic_boundary(
       construction.object([
         (
           "preceding",
-          construction.object([("$param", construction.text(name))]),
+          construction.object([("$param", construction.parameter_text(name))]),
         ),
       ])
     FollowingParameter(name) =>
       construction.object([
         (
           "following",
-          construction.object([("$param", construction.text(name))]),
+          construction.object([("$param", construction.parameter_text(name))]),
         ),
       ])
   }
@@ -1452,6 +1468,7 @@ fn lower_analytic_call(
                 resolve,
                 construction.builder,
                 max_work,
+                resolve_parameter=construction.parameter_resolver(),
               ) {
               Ok(node) => node
               Err(error) => raise Abort(Expression(error))
@@ -1478,13 +1495,42 @@ fn lower_analytic_call(
 }
 
 ///|
+// Source parameter names share the admitted case-insensitive namespace.
+// Literal boundaries and different boundary kinds remain distinct.
+fn same_analytic_boundary(
+  left : @query.FrameBoundary,
+  right : @query.FrameBoundary,
+) -> Bool {
+  match (left, right) {
+    (PrecedingParameter(a), PrecedingParameter(b))
+    | (FollowingParameter(a), FollowingParameter(b)) =>
+      ascii_upper(a) == ascii_upper(b)
+    _ => left == right
+  }
+}
+
+///|
+fn same_analytic_frame(
+  left : @query.AnalyticFrame?,
+  right : @query.AnalyticFrame?,
+) -> Bool {
+  match (left, right) {
+    (None, None) => true
+    (Some(a), Some(b)) =>
+      same_analytic_boundary(a.start, b.start) &&
+      same_analytic_boundary(a.end, b.end)
+    _ => false
+  }
+}
+
+///|
 fn same_analytic_window(
   left : @query.AnalyticWindow,
   right : @query.AnalyticWindow,
 ) -> Bool {
   if left.partition_by.length() != right.partition_by.length() ||
     left.order_by.length() != right.order_by.length() ||
-    left.frame != right.frame {
+    !same_analytic_frame(left.frame, right.frame) {
     return false
   }
   for index in 0..<left.partition_by.length() {
@@ -1786,7 +1832,11 @@ fn compile_steps(
           raise Abort(DuplicateOutput)
         }
         let element_contract = unnest_source_element(
-          expression, parameter_declarations, source_limits, max_work,
+          expression,
+          parameter_declarations,
+          source_limits,
+          max_work,
+          construction.parameter_resolver(),
         )
         if selected_projections(query).any(projection => {
             if projection.star is None {
@@ -2775,6 +2825,7 @@ fn compile_steps(
                     input_resolve,
                     construction.builder,
                     max_work,
+                    resolve_parameter=construction.parameter_resolver(),
                   ) {
                   Ok(value) => value
                   Err(error) => raise Abort(Expression(error))
@@ -3209,6 +3260,7 @@ fn compile_steps(
               resolve_having,
               construction.builder,
               max_work,
+              resolve_parameter=construction.parameter_resolver(),
             ) {
             Ok(value) => value
             Err(error) => raise Abort(Expression(error))
@@ -3371,6 +3423,7 @@ fn compile_steps(
             resolve,
             construction.builder,
             max_work,
+            resolve_parameter=construction.parameter_resolver(),
           ) {
           Ok(value) => value
           Err(error) => raise Abort(Expression(error))
@@ -4142,6 +4195,7 @@ fn compile_steps(
                           resolve,
                           construction.builder,
                           max_work,
+                          resolve_parameter=construction.parameter_resolver(),
                         ) {
                         Ok(node) => node
                         Err(error) =>
@@ -4592,7 +4646,21 @@ pub fn compile(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let parameter_names = query_parameter_names(
+    context.parameter_declarations,
+    limits.max_expression_work,
+  ) catch {
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
+  }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+    parameter_names,
+  }
   try {
     let dependencies = nearest_dependencies(query, context.inputs)
     let reused_query_source = dependencies.any(other => other.name == input.name)
@@ -4837,7 +4905,21 @@ fn compile_cte_query(
     Ok(value) => value
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let parameter_names = query_parameter_names(
+    context.parameter_declarations,
+    limits.max_expression_work,
+  ) catch {
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
+  }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+    parameter_names,
+  }
   try {
     let stages : Array[@builder.Node] = []
     let used_stage_names : Array[String] = []
@@ -5424,6 +5506,7 @@ fn compile_join_steps(
           resolve,
           construction.builder,
           limits.max_expression_work,
+          resolve_parameter=construction.parameter_resolver(),
         ) {
         Ok(value) => value
         Err(error) => raise Abort(Expression(error))
@@ -5797,7 +5880,21 @@ fn compile_set_query(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let parameter_names = query_parameter_names(
+    context.parameter_declarations,
+    limits.max_expression_work,
+  ) catch {
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
+  }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+    parameter_names,
+  }
   try {
     let (stages, _) = compile_set_stages(
       construction, query, context, limits, "",
@@ -6841,6 +6938,7 @@ fn joined_projection(
           resolve,
           construction.builder,
           max_work,
+          resolve_parameter=construction.parameter_resolver(),
         ) {
         Ok(value) => value
         Err(error) => raise Abort(Expression(error))
@@ -6886,6 +6984,7 @@ fn joined_projection(
             resolve,
             construction.builder,
             max_work,
+            resolve_parameter=construction.parameter_resolver(),
           ) {
           Ok(value) => value
           Err(error) => raise Abort(Expression(error))
@@ -6924,6 +7023,7 @@ fn joined_projection(
         },
         construction.builder,
         max_work,
+        resolve_parameter=construction.parameter_resolver(),
       ) {
       Ok(value) => value
       Err(error) => raise Abort(Expression(error))
@@ -7221,7 +7321,21 @@ fn compile_join_query(
     Ok(value) => value
     Err(issue) => return Err(Construction(issue))
   }
-  let construction : Construction = { builder, generated, }
+  let parameter_names = query_parameter_names(
+    context.parameter_declarations,
+    limits.max_expression_work,
+  ) catch {
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
+  }
+  let construction : Construction = {
+    builder,
+    generated,
+    model_tasks: context.model_tasks,
+    parameter_names,
+  }
   try {
     let part = @query.join_part_at(query, 0).unwrap()
     // A FULL JOIN requires stable row identity on both sides. Generated

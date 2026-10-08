@@ -593,8 +593,11 @@ export async function exercisePublicQueryInput(connect, options,
         outcome = error.outcome;
         assert.equal(outcome.kind, 'not_accepted');
         assert.deepEqual(outcome.submissionRef, submissionRef);
-        assert.ok(inputCodes.has(outcome.problem.code), String(outcome.problem.code));
-        if (expectedCode !== undefined) assert.equal(outcome.problem.code, expectedCode);
+        if (expectedCode === undefined) {
+          assert.ok(inputCodes.has(outcome.problem.code), String(outcome.problem.code));
+        } else {
+          assert.equal(outcome.problem.code, expectedCode);
+        }
         assert.ok(!String(error.message).includes('secret-value'));
         return true;
       });

@@ -186,6 +186,18 @@ fn client_source_context(
   )
   let published : Array[@source_frontend.PublishedAlias] = []
   let mut field_count = 0
+  let prepared_catalog = match
+    @program_check.prepare_source_catalog(environment, {
+      max_work: 10000000,
+      max_bytes: 1048576,
+      max_nodes: 65536,
+      max_depth: 64,
+    }) {
+    Ok(value) => value
+    Err(@program_check.EnvironmentFailure::BudgetExceeded) =>
+      raise ClientSourceStop(Limit)
+    Err(_) => raise ClientSourceStop(Publication)
+  }
   let input_schemas = []
   let mut schema_work = 1000000
   for index, entry in aliases {
@@ -306,6 +318,9 @@ fn client_source_context(
       environment_cid,
       parameter_declarations~,
       input_schemas~,
+      source_catalog=Some(
+        @program_check.source_catalog_contracts(prepared_catalog),
+      ),
       model_tasks=@program_check.checking_environment_model_tasks(environment),
     ) {
     Ok(value) => value

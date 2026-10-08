@@ -39,7 +39,10 @@ fn lower_analytic_offset(
       }
       ParameterReference(parameter) =>
         return { ..construction, generated: origin, }.object([
-          ("$param", { ..construction, generated: origin, }.text(parameter)),
+          (
+            "$param",
+            { ..construction, generated: origin, }.parameter_text(parameter),
+          ),
         ])
       _ => raise Abort(UnsupportedAnalytic)
     }

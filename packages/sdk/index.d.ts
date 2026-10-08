@@ -71,7 +71,7 @@ export type CheckFailureInput = Readonly<{text: string; format: ClientSourceForm
 export declare function getCheckFailureInput(error: unknown): CheckFailureInput | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
   Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
-/** Available only for the exact response of this SDK check call. */
+/** Available only for the exact check or rejection observation of this SDK call. */
 export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
 export type CheckFix = WireCheckFix;
