@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {observeBridgeCases} from '../events-bridge/observations.mjs';
 import {mutationObservation} from './mutation-observation.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {parseTestExecution} from '../../scripts/test-execution.mjs';
@@ -250,4 +251,3 @@ export async function readOriginReceipts({archive, artifactId, actions, expected
 export async function readOriginReceipt({action, ...options}) {
   return (await readOriginReceipts({...options, actions: [action]})).get(action.id);
 }
-import {observeBridgeCases} from '../events-bridge/observations.mjs';
