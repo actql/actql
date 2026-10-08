@@ -74,3 +74,69 @@ for (const [index, order] of ['l.amount', 'l.id + 1', 'r.amount + 1'].entries())
     format: 'sql', text: 'SELECT DISTINCT -l.amount AS amount FROM records AS l '
       + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 ORDER BY ' + order});
 }
+
+// The SELECT input property and ORDER property have different AST spellings,
+// but the same receiver slot. DISTINCT must retain and sort the computed value
+// without restoring the dropped object or deriving the property a second time.
+const receiverNumber = {type: 'number', nullable: true};
+const receiverObject = {type: 'object', nullable: true, fields: {score: receiverNumber}};
+const receiverDeclarations = {a: receiverObject, b: receiverObject,
+  c: receiverObject, d: receiverObject};
+const receiverParameters = {a: {score: 10}, b: {score: 20}, c: null, d: {score: null}};
+const receiverRows = [{id: 2, amount: 20}, {id: 1, amount: 10},
+  {id: 4, amount: 10}, {id: 3, amount: 99}, {id: 5, amount: 88}, {id: 0, amount: 777}];
+const receiverData = 'DATA objects = SELECT id, amount AS score, '
+  + 'CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload '
+  + 'FROM records WHERE id > 0; ';
+const receiverExpected = [{score: 10}, {score: 20}, {score: null}];
+const receiverColumns = [{name: 'score', contract: receiverNumber}];
+export const orderReceiverProgram = {version: 'actql/0.1', id: 'fixture.order_property_receiver',
+  params: receiverDeclarations,
+  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {gt: [{field: 'id'}, {literal: 0}]}},
+      {select: ['amount', 'id'], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['amount', 'id']}}},
+  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{from: 'records', derive: {payload: {case: {when: [
+      {when: {eq: [{field: 'id'}, {literal: 2}]}, then: {$param: 'a'}},
+      {when: {or: [{eq: [{field: 'id'}, {literal: 1}]}, {eq: [{field: 'id'}, {literal: 4}]}]}, then: {$param: 'b'}},
+      {when: {eq: [{field: 'id'}, {literal: 5}]}, then: {$param: 'd'}},
+    ], else: {$param: 'c'}}}}},
+      {select: ['id', {score: 'amount'}, 'payload']},
+      {derive: {selected_score: {property: {name: 'score', value: {field: 'payload'}}}}},
+      {select: [{score: 'selected_score'}]}, {distinct: ['score']},
+      {sort: [{field: 'score', dir: 'asc', nulls: 'last'}], as: 'ordered'}],
+    results: {rows: {from: 'ordered', fields: ['score']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const receiverCase = (name, query, extra = {}) => ({name: 'order-receiver-' + name,
+  format: 'aql-text', text: receiverData + query,
+  parameterDeclarations: receiverDeclarations, parameters: receiverParameters,
+  sourceRows: receiverRows, sourceReadSessionCount: 1,
+  expected: receiverExpected, columns: receiverColumns, ...extra});
+distinctOrderSuccesses.push(
+  receiverCase('independent-json', '', {format: 'json', parameterDeclarations: undefined,
+    text: JSON.stringify(orderReceiverProgram)}),
+  receiverCase('distinct-explicit', 'SELECT DISTINCT payload.score AS score FROM objects ORDER BY (payload).score NULLS LAST'),
+  receiverCase('distinct-qualified', 'SELECT DISTINCT (payload).score AS score FROM objects ORDER BY objects.payload.score NULLS LAST'),
+  receiverCase('distinct-quoted', 'SELECT DISTINCT ((payload)).`SCORE` AS score FROM objects ORDER BY payload.score NULLS LAST'),
+  receiverCase('distinct-pipe', 'FROM objects AS active |> SELECT DISTINCT active.payload.score AS score |> ORDER BY (payload).score NULLS LAST'),
+  receiverCase('distinct-computed', 'SELECT DISTINCT payload.score + 1 AS score FROM objects ORDER BY (payload).score + 1 NULLS LAST', {
+    expected: [{score: 11}, {score: 21}, {score: null}],
+  }),
+  receiverCase('distinct-limited', 'SELECT DISTINCT (payload).score AS score FROM objects ORDER BY objects.payload.score NULLS LAST LIMIT 2 OFFSET 1', {
+    expected: [{score: 20}, {score: null}],
+  }),
+  receiverCase('distinct-empty', 'SELECT DISTINCT payload.score AS score FROM objects ORDER BY (payload).score NULLS LAST', {sourceRows: [], expected: []}),
+  receiverCase('ordinary-reuse', 'SELECT payload.score AS score FROM objects ORDER BY (payload).score NULLS LAST', {
+    expected: [{score: 10}, {score: 20}, {score: 20}, {score: null}, {score: null}],
+  }),
+);
+for (const [index, query] of [
+  'SELECT DISTINCT (payload).score AS score FROM objects AS payload ORDER BY payload.score',
+  'SELECT DISTINCT payload.score AS score FROM objects AS payload ORDER BY (payload).score',
+  'SELECT DISTINCT (payload).score + 1 AS score FROM objects AS payload ORDER BY payload.score + 1',
+  'SELECT DISTINCT payload.score AS score FROM objects ORDER BY objects.id',
+].entries()) {
+  distinctOrderRefusals.push({...receiverCase('unselected-' + index, query),
+    expectedCode: 'ClientProgramInvalidInput'});
+}
