@@ -165,7 +165,7 @@ test('trace export failure does not disable logs or metrics or change execution'
     logs: {endpoint: `${sink.endpoint}/v1/logs`}});
   const observer = installHostObservation(adapter.connection);
   t.after(async () => { await observer.close(); await adapter.close(); });
-  observer.emit('compute', 'task_completed', {task: 0});
+  observer.emit('compute', 'task_completed', {task: 0}, {durationMs: 1});
   await observer.close();
   assert.equal(adapter.status().signals.traces.failed, 1);
   assert.equal(adapter.status().signals.metrics.sent, 1);
@@ -179,7 +179,7 @@ test('sampling off still exports independently enabled metrics and logs', async 
     metrics: {endpoint: `${sink.endpoint}/v1/metrics`}, logs: {endpoint: `${sink.endpoint}/v1/logs`}});
   const observer = installHostObservation(adapter.connection);
   t.after(async () => { await observer.close(); await adapter.close(); });
-  observer.emit('compute', 'task_completed', {task: 0});
+  observer.emit('compute', 'task_completed', {task: 0}, {durationMs: 1});
   await observer.close();
   assert.deepEqual(sink.packets.map(item => item.path).sort(), ['/v1/logs', '/v1/metrics']);
 });
@@ -194,7 +194,7 @@ test('application provider callback is deferred and its shutdown is never called
     }}),
   }});
   const observer = installHostObservation(adapter.connection);
-  observer.emit('compute', 'task_completed', {task: 0});
+  observer.emit('compute', 'task_completed', {task: 0}, {durationMs: 1});
   assert.equal(calls, 0);
   atomic = false;
   await observer.close(); await adapter.close();
