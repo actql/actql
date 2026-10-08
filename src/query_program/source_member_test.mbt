@@ -229,6 +229,54 @@ test "Source Graph members retain the real Source and independent Program" {
 }
 
 ///|
+test "Source Graph member binding checks a derived nullable parameter receiver" {
+  // Complete expectation authored from ordinary Source/derive/Graph contracts;
+  // the public corpus separately uses the installed flat records Source.
+  let declarations = @parameters.read_declarations(
+    Some(
+      unnest_value_cursor(
+        (
+          #|{"p":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}}
+        ),
+      ),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  // No WHERE was declared: bind the Source directly to derive. The private
+  // identity slot is allocated against the two projected fields, not steps.
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","params":{"p":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"stages":[{"id":"main","inputs":{"objects":{"connector":"crm/main","resource":"r","view":"v"}},"steps":[{"from":"objects","derive":{"aql_query_expr_1":{"$param":"p"}}},{"select":["id",{"payload":"aql_query_expr_1"}],"as":"aql_data_1"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_1","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"payload","to":"payload"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","match_nodes":{"definition":"N","where":{"literal":true},"bindings":{"identity":"aql_keyed_identity_2"},"fields":["aql_keyed_identity_2","id","payload"],"label":"Person"},"as":"aql_keyed_seeds_3"},{"from":"aql_keyed_seeds_3","derive":{"aql_query_expr_1":{"property":{"name":"score","value":{"field":"payload"}}}}},{"select":["id",{"score":"aql_query_expr_1"}],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id","score"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  let context = {
+    ..source_member_context(),
+    parameter_declarations: Some(declarations),
+  }
+  for spelling in ["score", "SCORE", "`ScOrE`"] {
+    let actual = compile_query_script(
+      @query.parse_query_script(
+        "DATA projected = SELECT id, @p AS payload FROM objects; DATA g = PROPERTY GRAPH (NODE TABLES (projected AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id AS id, a.payload." +
+        spelling +
+        " AS score",
+        syntax_limits(),
+      ).unwrap(),
+      context,
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(actual), semantic(expected))
+    assert_false(semantic(actual).contains("aql_member_type_probe"))
+  }
+}
+
+///|
 test "Source member Context rejects a foreign generation or ModelTask owner" {
   let environment = source_member_environment()
   let wire = @check.checking_environment_wire(environment)
