@@ -123,6 +123,7 @@ fn append_set_final_steps(
             group,
             path => pipe_slot(path, visible, []),
             limits.max_expression_work,
+            limits.max_collection_bytes,
             reserved,
             evaluated,
             derives,
