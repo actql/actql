@@ -1,4 +1,49 @@
 ///|
+// An explicit ON list retains strict BY NAME matching and determines output
+// spelling and order. Schema/type compatibility stays with the common checker.
+fn set_output_fields(
+  left_fields : Array[String],
+  part : @query.SetPart,
+) -> Array[String] raise Abort {
+  match part.by_name_columns {
+    None => left_fields
+    Some(columns) => {
+      if !part.by_name || columns.length() != left_fields.length() {
+        raise Abort(UnsupportedSet)
+      }
+      let fields : Array[String] = []
+      for name in columns {
+        if fields.any(field => same_name(name, { value: field, quoted: false, })) {
+          raise Abort(UnsupportedSet)
+        }
+        fields.push(name.value)
+      }
+      // Also rejects missing or ambiguous input columns under field-name rules.
+      ignore(set_alignment_fields(fields, left_fields, true))
+      fields
+    }
+  }
+}
+
+///|
+fn set_select_fields(
+  construction : Construction,
+  fields : Array[String],
+  matched : Array[String],
+) -> @builder.Node raise Abort {
+  construction.array(
+    fields.mapi((index, field) => {
+      let source = construction.text(matched[index])
+      if field == matched[index] {
+        source
+      } else {
+        construction.object([(field, source)])
+      }
+    }),
+  )
+}
+
+///|
 fn set_alignment_fields(
   left_fields : Array[String],
   right_fields : Array[String],
@@ -280,4 +325,59 @@ fn append_set_final_steps(
     current = final_name
   }
   current
+}
+
+///|
+fn set_alignment_stage(
+  construction : Construction,
+  source : String,
+  name : String,
+  fields : Array[String],
+  matched : Array[String],
+) -> @builder.Node raise Abort {
+  construction.object([
+    ("id", construction.text(name)),
+    (
+      "inputs",
+      construction.object([
+        (
+          "r",
+          construction.object([
+            (
+              "result",
+              construction.object([
+                ("stage", construction.text(source)),
+                ("result", construction.text(source)),
+              ]),
+            ),
+          ]),
+        ),
+      ]),
+    ),
+    (
+      "steps",
+      construction.array([
+        construction.object([
+          ("from", construction.text("r")),
+          ("select", set_select_fields(construction, fields, matched)),
+          ("as", construction.text("aligned_rows")),
+        ]),
+      ]),
+    ),
+    (
+      "results",
+      construction.object([
+        (
+          name,
+          construction.object([
+            ("from", construction.text("aligned_rows")),
+            (
+              "fields",
+              construction.array(fields.map(field => construction.text(field))),
+            ),
+          ]),
+        ),
+      ]),
+    ),
+  ])
 }

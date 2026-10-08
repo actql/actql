@@ -455,6 +455,7 @@ pub(all) struct SetPart {
   kind : String
   duplicates : String
   by_name : Bool
+  by_name_columns : Array[NamePart]?
   right : Query
 }
 
