@@ -249,7 +249,7 @@ fn lower_script_graph_rows(
     input,
     fields,
     limits.max_expression_work,
-    limits.source,
+    limits,
     limits.max_collection_items,
     limits.max_collection_bytes,
     0,
