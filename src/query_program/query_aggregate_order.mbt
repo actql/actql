@@ -54,9 +54,10 @@ fn aggregate_order_matches_argument(
 }
 
 ///|
-// Aggregate-local order keys use the input scope, never SELECT siblings. A
-// static typed property path is a total projection of an admitted row: NULL
-// receivers propagate NULL and missing/non-object members fail common checking.
+// Aggregate-local order keys use the input scope, never SELECT siblings.
+// Typed parameters and static property paths are total projections after
+// admission: NULL receivers propagate NULL and invalid values/members fail
+// common checking. Parameter receivers do not use the input-column resolver.
 // Do not hoist arbitrary calls or arithmetic out of aggregate demand here.
 fn aggregate_order_fields(
   construction : Construction,
@@ -86,26 +87,29 @@ fn aggregate_order_fields(
         _ => break
       }
     }
-    guard root.kind is Reference(path) else {
-      raise Abort(UnsupportedAggregate)
-    }
-    if !explicit_property {
-      if resolve(path) is Some(field) {
-        fields.push(field)
-        continue
+    match root.kind {
+      Reference(path) => {
+        if !explicit_property {
+          if resolve(path) is Some(field) {
+            fields.push(field)
+            continue
+          }
+        }
+        // Explicit Property nodes keep their receiver AST. Do not concatenate
+        // members into a path that could instead resolve as a range qualifier.
+        let mut receiver = explicit_property && resolve(path) is Some(_)
+        for length = 1; length < path.length(); length = length + 1 {
+          if resolve(path[:length].to_owned()) is Some(_) {
+            receiver = true
+            break
+          }
+        }
+        if !receiver {
+          raise Abort(UnknownColumn)
+        }
       }
-    }
-    // Explicit Property nodes keep their receiver AST. Do not concatenate
-    // members into a path that could instead resolve as a range qualifier.
-    let mut receiver = explicit_property && resolve(path) is Some(_)
-    for length = 1; length < path.length(); length = length + 1 {
-      if resolve(path[:length].to_owned()) is Some(_) {
-        receiver = true
-        break
-      }
-    }
-    if !receiver {
-      raise Abort(UnknownColumn)
+      ParameterReference(_) => ()
+      _ => raise Abort(UnsupportedAggregate)
     }
     let mut reused : String? = None
     for (previous, field) in evaluated {
