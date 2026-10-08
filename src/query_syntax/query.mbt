@@ -646,14 +646,16 @@ fn QueryParser::name(self : QueryParser) -> NamePart raise QueryAbort {
 ///|
 fn QueryParser::set_column_list(
   self : QueryParser,
+  keyword? : String = "ON",
 ) -> Array[NamePart]? raise QueryAbort {
-  if !self.has("ON") {
+  if !self.has(keyword) {
     return None
   }
-  self.keyword("ON")
+  self.keyword(keyword)
+  let modifier = if keyword == "BY" { "CORRESPONDING BY" } else { "BY NAME ON" }
   if self.advance().value != Symbol(40) {
     raise QueryAbort(
-      "Expected BY NAME ON opening parenthesis",
+      "Expected " + modifier + " opening parenthesis",
       self.peek().start,
     )
   }
@@ -668,11 +670,45 @@ fn QueryParser::set_column_list(
   }
   if self.advance().value != Symbol(41) {
     raise QueryAbort(
-      "Expected BY NAME ON closing parenthesis",
+      "Expected " + modifier + " closing parenthesis",
       self.peek().start,
     )
   }
   Some(columns)
+}
+
+///|
+fn QueryParser::set_name_matching(
+  self : QueryParser,
+  inner_prefix : Bool,
+) -> (Bool, Bool, Array[NamePart]?) raise QueryAbort {
+  if self.has("STRICT") {
+    if inner_prefix {
+      raise QueryAbort(
+        "INNER set cannot use STRICT CORRESPONDING",
+        self.peek().start,
+      )
+    }
+    self.keyword("STRICT")
+    self.keyword("CORRESPONDING")
+    return (true, false, self.set_column_list(keyword="BY"))
+  }
+  if self.has("CORRESPONDING") {
+    self.keyword("CORRESPONDING")
+    return (true, true, self.set_column_list(keyword="BY"))
+  }
+  if self.has("BY") {
+    self.keyword("BY")
+    self.keyword("NAME")
+    return (true, inner_prefix, self.set_column_list())
+  }
+  if inner_prefix {
+    raise QueryAbort(
+      "INNER set requires BY NAME or CORRESPONDING",
+      self.peek().start,
+    )
+  }
+  (false, false, None)
 }
 
 ///|
@@ -2000,21 +2036,10 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       self.keyword("DISTINCT")
       "distinct"
     }
-    let by_name = if self.has("BY") {
-      self.keyword("BY")
-      self.keyword("NAME")
-      true
-    } else {
-      false
-    }
-    if inner_by_name && !by_name {
-      raise QueryAbort("INNER set requires BY NAME", self.peek().start)
-    }
-    let mut by_name_columns = if by_name {
-      self.set_column_list()
-    } else {
-      None
-    }
+    let (by_name, inner_by_name, columns) = self.set_name_matching(
+      inner_by_name,
+    )
+    let mut by_name_columns = columns
     match set_spelling {
       Some((old_kind, old_duplicates, old_by_name, old_inner, old_columns)) => {
         if old_kind != kind ||
@@ -2334,17 +2359,9 @@ fn QueryParser::pipe_tail(
         self.keyword("DISTINCT")
         "distinct"
       }
-      let by_name = if self.has("BY") {
-        self.keyword("BY")
-        self.keyword("NAME")
-        true
-      } else {
-        false
-      }
-      if inner_by_name && !by_name {
-        raise QueryAbort("INNER set requires BY NAME", self.peek().start)
-      }
-      let by_name_columns = if by_name { self.set_column_list() } else { None }
+      let (by_name, inner_by_name, by_name_columns) = self.set_name_matching(
+        inner_by_name,
+      )
       if self.advance().value != Symbol(40) {
         raise QueryAbort(
           "Pipe set input must be parenthesized",

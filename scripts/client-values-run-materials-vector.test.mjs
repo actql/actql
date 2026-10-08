@@ -803,8 +803,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('06af2bb4ef4b70809d026cce5a051ad442eba4484a4defd49a097aecdbc9b34e'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('1341bd6588f20cde58f0b89676618dad7fff8e589ea245b622b3d7b1a409d9bb'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the complete INNER grammar before CORRESPONDING spellings.
+  assert.equal(vector(pin('bbeffcd367c6ae1a43cafdb7a08a17dc30eb277205a0f461afafab7967990317'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('eed9783fdb6055043260a0e5399d4f544d6f45f4454a1b5f78fec5f44d4ef065'));
+  assert.equal(current.run.run_definition_cid,
+    pin('20e54d94d54d3803aba993288e2ce2210dad0c0b18203a3a7cc2e1947c3e6624'));
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
