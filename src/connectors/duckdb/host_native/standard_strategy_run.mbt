@@ -214,6 +214,7 @@ pub fn open_native_standard_strategy_run(
       configuration,
       input: performance_input,
       trajectory: None,
+      candidates: None,
       decisions: [],
       omitted: 0,
       unavailable_reason: None,
@@ -808,6 +809,7 @@ pub fn close_native_standard_strategy_run(
       if !pending && run.performance is Some(session) {
         session.input = None
         session.trajectory = None
+        session.candidates = None
       }
       Ok(!pending)
     }

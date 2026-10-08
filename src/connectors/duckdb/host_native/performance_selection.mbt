@@ -40,17 +40,19 @@ fn prepare_native_performance_selection(
   }
   let started = @bench.monotonic_clock_start()
   let configuration = session.configuration
+  // A stopped/already committed Owner has no consultation. Check that
+  // boundary before requiring its optional profile clock to remain open.
+  match @duckdb_standard_host.prepare_dispatch_policy_choice(run.dispatch) {
+    Err(issue) => return Err(Dispatch(issue))
+    Ok(false) => return Ok(())
+    Ok(true) => ()
+  }
   let now = match performance_clock(configuration) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if now < 0L || now > 9223372036854715807L {
     return Err(InvalidConfiguration)
-  }
-  match @duckdb_standard_host.prepare_dispatch_policy_choice(run.dispatch) {
-    Err(issue) => return Err(Dispatch(issue))
-    Ok(false) => return Ok(())
-    Ok(true) => ()
   }
   let request = match
     @duckdb_standard_host.prepare_dispatch_policy_request(
@@ -93,7 +95,9 @@ fn prepare_native_performance_selection(
         Err(issue) => return Err(issue)
       }
       if conditions is None {
-        reason = "input-identity-unavailable"
+        reason = session.unavailable_reason.unwrap_or(
+          "input-identity-unavailable",
+        )
       } else if conditions.unwrap() != header.conditions {
         reason = "conditions-mismatch"
       } else if run.observe_phase is None ||
@@ -102,7 +106,8 @@ fn prepare_native_performance_selection(
       } else if observed < header.newest_ms ||
         observed - header.oldest_ms > header.max_age_ms {
         reason = "freshness-insufficient"
-      } else if !configuration.allow_uncontrolled_load {
+      } else if configuration.mode == SelectReference &&
+        !configuration.allow_uncontrolled_load {
         reason = "uncontrolled-load-not-permitted"
       } else if session.trajectory is Some(trajectory) {
         // Never reuse a previous request or a previous position. The current
@@ -130,7 +135,7 @@ fn prepare_native_performance_selection(
             run.dispatch,
             request,
             body,
-            "configured-local-profile",
+            "configured-local-profile-producer",
             profile.original_revision,
             configuration.clock,
           ) {
@@ -156,7 +161,7 @@ fn prepare_native_performance_selection(
     }
   }
   // Diagnostic references never alter the ordinary offline selection.
-  let selected = if configuration.mode == SelectReference {
+  let mut selected = if configuration.mode == SelectReference {
     proposed
   } else {
     None
@@ -164,6 +169,44 @@ fn prepare_native_performance_selection(
   match performance_validate_current(run, configuration, request) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  let evaluated_ms = match performance_clock(configuration) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    @duckdb_standard_host.validate_dispatch_policy_request(
+      run.dispatch,
+      request,
+      evaluated_ms,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Dispatch(issue))
+  }
+  if selected is Some(_) &&
+    configuration.profile is Some(profile) &&
+    profile.header is Some(header) &&
+    (
+      evaluated_ms < header.newest_ms ||
+      evaluated_ms - header.oldest_ms > header.max_age_ms
+    ) {
+    selected = None
+    reason = "freshness-insufficient"
+    references = references.map(reference => {
+      ..reference,
+      median_ms: None,
+      minimum_ms: None,
+      maximum_ms: None,
+      unknown_reason: Some("freshness-insufficient"),
+    })
+  }
+  let positions = match @strategy.operational_candidate_positions(candidates) {
+    Ok(value) => value
+    Err(issue) => return Err(Wire(issue))
+  }
+  if positions.is_empty() {
+    selected = None
+    reason = "comparison-limit"
   }
   if selected is Some(position) {
     let trajectory = match
@@ -202,6 +245,11 @@ fn prepare_native_performance_selection(
   }
   let decision : NativePerformanceDecision = {
     task,
+    positions,
+    evaluated_ms,
+    max_age_ms: configuration.profile.bind(profile => {
+      profile.header.map(header => header.max_age_ms)
+    }),
     mode: configuration.mode,
     objective: "descriptive-run-caller-elapsed",
     request,
@@ -240,6 +288,7 @@ fn prepare_native_performance_selection(
   } else if session.omitted < 2147483647 {
     session.omitted += 1
   }
+  session.candidates = Some(candidates)
   Ok(())
 }
 

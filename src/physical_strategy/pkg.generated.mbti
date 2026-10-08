@@ -534,6 +534,8 @@ pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[Ca
 
 pub fn open_source_free_effect_run_dag(CheckedEffectRunDAG, @physical_resources.Ledger) -> Result[CapturedEffectRunDAG, RunIssue]
 
+pub fn operational_candidate_positions(PolicyCandidateSet) -> Result[Array[Int], SearchIssue]
+
 pub fn operational_candidate_trajectory(PolicyCandidateSet, Int) -> Result[OperationalAssignmentTrajectory, SearchIssue]
 
 pub fn operational_estimate_conditions_json(OperationalEstimateConditions) -> Result[String, SearchIssue]

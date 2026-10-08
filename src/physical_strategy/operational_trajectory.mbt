@@ -36,9 +36,6 @@ fn operational_assignments(
     raise PolicyWireStop
   }
   let entries = policy_wire_decoded(@decode.elements(assignments))
-  if entries.length() > 64 {
-    raise PolicyWireStop
-  }
   entries
 }
 
@@ -129,6 +126,33 @@ pub fn operational_residual_position(
       }
     }
     Ok(best)
+  } catch {
+    _ => Err(InvalidPreference)
+  }
+}
+
+///|
+pub fn operational_candidate_positions(
+  candidates : PolicyCandidateSet,
+) -> Result[Array[Int], SearchIssue] {
+  try {
+    let positions = []
+    let assignments = operational_assignments(candidates)
+    if assignments.length() > 64 {
+      return Ok([])
+    }
+    for assignment in assignments {
+      let fields = policy_wire_decoded(@decode.elements(assignment))
+      if fields.length() != 6 {
+        raise PolicyWireStop
+      }
+      let position = policy_wire_decoded(@decode.int32(fields[0]))
+      if position < 0 || positions.contains(position) {
+        raise PolicyWireStop
+      }
+      positions.push(position)
+    }
+    Ok(positions)
   } catch {
     _ => Err(InvalidPreference)
   }
