@@ -51,6 +51,7 @@ test "SQL and Pipe grouped navigation offsets match the independent Program" {
   for
     text in [
       "SELECT id, LAG(amount, (2)) OVER (ORDER BY id) AS previous, LEAD(amount, ((@p))) OVER (ORDER BY id) AS next FROM orders ORDER BY id",
+      "SELECT id, LAG(amount, (2)) OVER (ORDER BY id) AS previous, LEAD(amount, ((@P))) OVER (ORDER BY id) AS next FROM orders ORDER BY id",
       "FROM orders |> SELECT id, LAG(amount, ((2))) OVER (ORDER BY id) AS previous, LEAD(amount, (@p)) OVER (ORDER BY id) AS next |> ORDER BY id",
     ] {
     let actual = match

@@ -87,6 +87,8 @@ test "parameter property UNNEST star matches an independent nullable Program" {
   for
     text in [
       "SELECT element.*, position FROM UNNEST(@payload.nested.items) element WITH OFFSET position ORDER BY position",
+      "SELECT element.*, position FROM UNNEST(@PAYLOAD.nested.items) element WITH OFFSET position ORDER BY position",
+      "SELECT element.*, position FROM UNNEST(@`PAYLOAD`.nested.items) element WITH OFFSET position ORDER BY position",
       "SELECT * FROM UNNEST(((@payload).nested).`items`) element WITH OFFSET position ORDER BY position",
       "FROM UNNEST(@payload.nested.items) element WITH OFFSET position |> SELECT element.*, position |> ORDER BY position",
     ] {

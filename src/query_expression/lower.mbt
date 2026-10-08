@@ -215,8 +215,16 @@ pub fn append(
   resolve : (Array[@query.NamePart]) -> String?,
   builder : @builder.Builder,
   max_work : Int,
+  resolve_parameter? : ((String) -> Result[String, Issue])? = None,
 ) -> Result[@builder.Node, Diagnostic] {
-  append_with_macros(ast, resolve, (_, _) => None, builder, max_work)
+  append_with_macros(
+    ast,
+    resolve,
+    (_, _) => None,
+    builder,
+    max_work,
+    resolve_parameter~,
+  )
 }
 
 ///|
@@ -227,8 +235,17 @@ pub fn append_with_properties(
   resolve : (Array[@query.NamePart]) -> String?,
   builder : @builder.Builder,
   max_work : Int,
+  resolve_parameter? : ((String) -> Result[String, Issue])? = None,
 ) -> Result[@builder.Node, Diagnostic] {
-  append_resolved(ast, resolve, (_, _) => None, builder, max_work, true)
+  append_resolved(
+    ast,
+    resolve,
+    (_, _) => None,
+    builder,
+    max_work,
+    true,
+    resolve_parameter,
+  )
 }
 
 ///|
@@ -242,9 +259,10 @@ pub fn append_with_macros(
   builder : @builder.Builder,
   max_work : Int,
   resolve_properties? : Bool = false,
+  resolve_parameter? : ((String) -> Result[String, Issue])? = None,
 ) -> Result[@builder.Node, Diagnostic] {
   append_resolved(
-    ast, resolve, resolve_macro, builder, max_work, resolve_properties,
+    ast, resolve, resolve_macro, builder, max_work, resolve_properties, resolve_parameter,
   )
 }
 
@@ -256,6 +274,7 @@ fn append_resolved(
   builder : @builder.Builder,
   max_work : Int,
   resolve_properties : Bool,
+  resolve_parameter : ((String) -> Result[String, Issue])?,
 ) -> Result[@builder.Node, Diagnostic] {
   if max_work < 0 {
     return Err({ issue: InvalidLimits, origin: None, })
@@ -380,6 +399,14 @@ fn append_resolved(
           )
         ParameterReference(name) => {
           parameter = true
+          let name = match resolve_parameter {
+            None => name
+            Some(resolve) =>
+              match resolve(name) {
+                Ok(name) => name
+                Err(issue) => raise Abort(issue)
+              }
+          }
           lowering.form("$param", lowering.add(String(name)))
         }
         Parenthesized(child) => {
@@ -650,13 +677,15 @@ pub fn lower(
   ast : @query.Expression,
   resolve : (Array[@query.NamePart]) -> String?,
   limits : Limits,
+  resolve_parameter? : ((String) -> Result[String, Issue])? = None,
 ) -> Result[Lowered, Diagnostic] {
   let builder = match
     @builder.create(@query.expression_document(ast), limits.construction) {
     Ok(builder) => builder
     Err(issue) => return Err({ issue: Construction(issue), origin: None, })
   }
-  let root = match append(ast, resolve, builder, limits.max_work) {
+  let root = match
+    append(ast, resolve, builder, limits.max_work, resolve_parameter~) {
     Ok(root) => root
     Err(error) => {
       @builder.discard(builder)
