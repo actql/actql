@@ -572,7 +572,18 @@ fn execute_timed_native_strategy_run(
             },
           )
         }
-        let candidates = @standard_host.dispatch_policy_candidates(dispatch).unwrap()
+        // The normal Host mints and commits its own request. The immutable
+        // projection becomes visible only after that consultation; do not read
+        // the common pending projection before a request has been minted.
+        let candidates = if normal {
+          match @host.prepare_native_standard_strategy_performance_choice(run) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          @host.native_performance_candidate_snapshot(run).unwrap()
+        } else {
+          @standard_host.dispatch_policy_candidates(dispatch).unwrap()
+        }
         println(
           "compute-candidates:" +
           next_task.to_string() +
@@ -670,13 +681,7 @@ fn execute_timed_native_strategy_run(
             }
           }
           None =>
-            if normal {
-              match
-                @host.prepare_native_standard_strategy_performance_choice(run) {
-                Ok(_) => ()
-                Err(issue) => return Err(issue)
-              }
-            } else {
+            if !normal {
               match
                 @standard_host.commit_dispatch_offline_policy_choice(dispatch) {
                 Err(issue) => return Err(@host.Dispatch(issue))

@@ -73,3 +73,14 @@ This scope gate is compiler-checked; actual multi-Source performance profiling
 and physical acceptance are outside this two-workload unit. Measurement failures
 also use the existing local-process outcome classifier: SIGABRT is failure, not
 a successful sample or a user cancellation/interruption.
+
+The next exposure at `d3a020519e5752a6e5ba5ec16fc1cefd8d1b7299`
+completed Source identity/conditions but aborted before the first task. An
+unconfigured control using the same release binary passed Result and formal
+release. The configured caller read `dispatch_policy_candidates` before the
+normal Host minted its request; the common API deliberately exposes no projection
+at that point. The caller now delegates consultation first and reads the Host's
+last immutable projection afterwards. Only the latest bounded projection is
+retained; confirmed close clears it. This diagnostic cannot authorize dispatch.
+Raw failure/control logs are preserved. No comparison/evaluation samples existed
+at either setup failure. LLDB launch timed out and supplies no runtime evidence.

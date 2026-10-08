@@ -247,9 +247,21 @@ priv struct NativePerformanceSession {
   configuration : NativePerformanceConfiguration
   mut input : NativePerformanceInput?
   mut trajectory : @strategy.OperationalAssignmentTrajectory?
+  // Retain only the latest bounded immutable projection for caller diagnostics.
+  // This is not a pending request, a grant or a history of candidate bodies.
+  mut candidates : @strategy.PolicyCandidateSet?
   decisions : Array[NativePerformanceDecision]
   mut omitted : Int
   mut unavailable_reason : String?
+}
+
+///|
+/// The last consultation's immutable projection, after common admission.
+/// Its positions cannot authorize another request or dispatch.
+pub fn native_performance_candidate_snapshot(
+  run : NativeStandardStrategyRun,
+) -> @strategy.PolicyCandidateSet? {
+  run.performance.bind(session => session.candidates)
 }
 
 ///|

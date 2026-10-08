@@ -287,6 +287,7 @@ fn prepare_native_performance_selection(
   } else if session.omitted < 2147483647 {
     session.omitted += 1
   }
+  session.candidates = Some(candidates)
   Ok(())
 }
 

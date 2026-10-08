@@ -61,6 +61,8 @@ pub fn native_acquisition_runtime_source_capture(NativeAcquisitionRuntime) -> Re
 
 pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
 
+pub fn native_performance_candidate_snapshot(NativeStandardStrategyRun) -> @physical_strategy.PolicyCandidateSet?
+
 pub fn native_performance_conditions(NativeStandardStrategyRun) -> Result[@physical_strategy.OperationalEstimateConditions?, NativeStandardPolicyIssue]
 
 pub fn native_performance_decision_json(NativePerformanceDecision, max_bytes? : Int) -> Result[String, NativeStandardPolicyIssue]
