@@ -135,8 +135,10 @@ function bindCheckObservation(outcome, body) {
   try {
     const report = outcome.report ?? outcome.partial_report;
     if (report) {
-      const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
-      if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
+      const received = body.kind === 'program'
+        ? new Map([['program', {kind: 'structured', value: body.input}]])
+        : new Map([['source', {kind: 'text', text: body.input.text}]]);
+      if (body.kind !== 'program' && body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
         {kind: 'structured', value: body.input.parameterDeclarations});
       if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
       if (report.inputs.length !== received.size) throw new TypeError('InvalidCheckInputBinding');
@@ -2076,8 +2078,8 @@ async function connectSelected(selected, port) {
         }
         if (outcome.checkObservation !== undefined) {
           checkObservation = outcome.checkObservation;
-          if (body.kind !== 'aql' || !['sql', 'aql-text'].includes(body.input.format) ||
-              !bindCheckObservation(checkObservation, {input: body.input, parameters: body.parameters})) {
+          if (!(body.kind === 'program' || body.kind === 'aql' && ['sql', 'aql-text'].includes(body.input.format)) ||
+              !bindCheckObservation(checkObservation, {kind: body.kind, input: body.input, parameters: body.parameters})) {
             fail('InvalidHostSubmissionCheckObservation');
           }
           delete outcome.checkObservation;

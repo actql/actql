@@ -202,15 +202,24 @@ pub fn client_program_preparation_issue_code(
               EffectNotSupported(_) => "effect_not_supported"
               NeedsInputs(_) => "needs_inputs"
               Check(diagnostic) =>
-                match @program_check.diagnostic_category(diagnostic) {
-                  @program_check.InvalidInput => "check_invalid_input"
-                  @program_check.InvalidConfiguration =>
-                    "check_invalid_configuration"
-                  @program_check.UnsupportedImplementation =>
-                    "check_unsupported"
-                  @program_check.CompileLimit => "check_compile_limit"
-                  @program_check.MissingInput => "check_missing_input"
-                  @program_check.UnclassifiedFailure => "check_unclassified"
+                if @program_check.diagnostic_cause(diagnostic)
+                  is Source(Registration(Selection(issue))) &&
+                  issue.kind is (Unresolved | Ambiguous(_)) {
+                  // The existing Source Owner could not resolve the authored
+                  // selector. This is a nonacceptance, not a Host installation
+                  // failure or proof that the caller's input is invalid.
+                  "source_unresolved"
+                } else {
+                  match @program_check.diagnostic_category(diagnostic) {
+                    @program_check.InvalidInput => "check_invalid_input"
+                    @program_check.InvalidConfiguration =>
+                      "check_invalid_configuration"
+                    @program_check.UnsupportedImplementation =>
+                      "check_unsupported"
+                    @program_check.CompileLimit => "check_compile_limit"
+                    @program_check.MissingInput => "check_missing_input"
+                    @program_check.UnclassifiedFailure => "check_unclassified"
+                  }
                 }
               MissingCheckedStage(_) => "missing_checked_stage"
               MissingStageIdentity(_) => "missing_stage_identity"
