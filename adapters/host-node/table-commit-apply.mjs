@@ -56,8 +56,7 @@ export async function prepareCapturedTableCommit({control, store, holding,
     fail('UnavailableTableCommitInput');
   }
   const operation = JSON.parse(binding.operationWire);
-  const mapping = JSON.parse(control.localEffectTableStorageMapping(
-    holding.localResultArtifact, limits).wire);
+  const mapping = JSON.parse(control.tableInputStorageMappingWire(tableInput));
   // Pure bounded preparation, before any durable send claim. No Catalog I/O.
   const schemaWire = control.tableInputSchemaWire(tableInput);
   const physical = bridge.prepareWrite({operation, mapping, rows, reservation, schemaWire});
@@ -173,7 +172,7 @@ export function bindApprovedTableCommitDispatch({control, ledger, prepared,
         {useCid: credentialUseCid, signal})});
     // Only the durably saved, fully matched original Catalog receipt settles
     // the common Ledger. Unknown/error replies preserve reconciliation duty.
-    return settleSavedTableCommit({control, ledger,
+    return settleSavedTableCommit({control, ledger, bridge: material.bridge,
       tablePreview: material.tablePreview, claim, limits});
   };
 }

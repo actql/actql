@@ -41,7 +41,6 @@ import {readSourceProfileJson} from './source-profile-json.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
-import {tableInstallation} from './installed-table-installation.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
   capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
@@ -69,7 +68,7 @@ const duckdbInstallation = Object.freeze({
     }),
   }),
 });
-const installations = installedConnectorTable([duckdbInstallation, tableInstallation,
+const installations = installedConnectorTable([duckdbInstallation,
   ...installedConnectors]);
 
 // Select the installed connector of a Host profile and load its
@@ -105,8 +104,8 @@ export async function installedSourceIdentity(path) {
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   // Omission and an explicitly empty alias publication have the same meaning.
   if (queryAliases.length === 0) delete profile.queryAliases;
-  const {module} = await selectInstallation(profile);
-  const parts = await module.identityParts(profile, providerProfile, read);
+  const {entry, module} = await selectInstallation(profile);
+  const parts = await module.identityParts(profile, providerProfile, read, entry);
   if (!Array.isArray(parts) || parts.length === 0) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }

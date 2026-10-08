@@ -18,6 +18,7 @@ import {
   "actql/actql/connectors/duckdb/compute" @duckdb_compute,
   "actql/actql/connectors/local" @local_connector,
   "actql/actql/connectors/local/driver" @local_driver,
+  "actql/actql/connectors/local/table" @local_table,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_resources" @resources,
   "actql/actql/physical_strategy" @strategy,

@@ -2726,23 +2726,33 @@ function publicationControl(moon) {
       const issued = checked(moon.clientProgramLocalEffectTableStorageMapping(
         owned, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       return Object.freeze({
-        identity: moon.clientProgramTableStorageMappingCid(issued),
-        wire: moon.clientProgramTableStorageMappingJson(issued),
+        identity: moon.clientProgramLocalTableStorageMappingCid(issued),
+        wire: moon.clientProgramLocalTableStorageMappingJson(issued),
+      });
+    },
+    admitLocalTableStorageMapping(wire, limits) {
+      issuanceLimits(limits, 'Local Table storage mapping');
+      if (typeof wire !== 'string') throw new TypeError('Invalid Local Table mapping');
+      const admitted = checked(moon.clientProgramAdmitLocalTableStorageMapping(
+        wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({
+        identity: moon.clientProgramLocalTableStorageMappingCid(admitted),
+        wire: moon.clientProgramLocalTableStorageMappingJson(admitted),
       });
     },
     bindTableInput(owner, inputs, memberIndex, artifact, identity, scope,
-      operationWire, limits) {
+      operationWire, mappingWire, limits) {
       issuanceLimits(limits, 'Table input');
       const ownedArtifact = localEffectArtifactTokens.get(artifact);
       const ownedIdentity = localEffectIdentityTokens.get(identity);
       if (ownedArtifact === undefined || ownedIdentity === undefined ||
           !Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
-          typeof operationWire !== 'string') {
+          typeof operationWire !== 'string' || typeof mappingWire !== 'string') {
         throw new TypeError('Invalid Table input owner');
       }
       const issued = checked(moon.clientProgramBindTableInput(
         owner, inputs, memberIndex, ownedArtifact, ownedIdentity, scope,
-        operationWire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+        operationWire, mappingWire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       // Content/owner binding only. Nothing stages or dispatches a Table write.
       const value = Object.freeze({
         wire: moon.clientProgramTableInputOperationJson(issued),
@@ -2827,6 +2837,14 @@ function publicationControl(moon) {
       const owned = tablePreviewTokens.get(preview);
       if (owned === undefined) throw new TypeError('Foreign Table Preview');
       return moon.clientProgramTablePreviewInputAvailable(owned);
+    },
+    localTableCommitResponse(responseWire, statusCode, limits) {
+      issuanceLimits(limits, 'Local Table physical response');
+      if (typeof responseWire !== 'string' || !Number.isSafeInteger(statusCode)) {
+        throw new TypeError('Invalid Local Table physical response');
+      }
+      return checked(moon.clientProgramLocalTableCommitResponse(responseWire,
+        statusCode, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
     tablePreviewCommitOutcome(preview, responseWire, statusCode, limits) {
       issuanceLimits(limits, 'Table commit outcome');

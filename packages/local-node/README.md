@@ -54,6 +54,27 @@ for merged capabilities and work that is still in a PR. Salesforce requires
 explicit declaration publication through the packaged `publishSource` export;
 Host startup restores the publication without provider I/O.
 
+Multiple independently published Effects use `installation.effectProfilePaths`
+(or `effectProfilePaths` on the HTTP Host). Publish each profile with the
+existing `publishEffect` operation first. The plural option takes two or more
+distinct absolute paths and cannot be combined with the singular option,
+`ACTQL_LOCAL_EFFECT_PROFILE`, or the HTTP Host's injected Effect installation. Every
+installation must own at least one unique admitted Mapping. The Host rejects
+more than 256 profiles before loading because its shared checker permits only
+256 Environment members in total; the same checker's 64 KiB, 4096-node and
+depth-64 limits still apply to the combined Environment. Profile files have a
+separate 8 MiB read bound. Run execution retains its existing member, row and
+work limits.
+
+Checked Effect kinds, targets and exact Mapping references/CIDs select one
+installation for the complete Set before Compute. Missing, ambiguous or
+mixed-installation Sets fail preparation. Unused installations perform no
+target reads, secret resolution or dispatch. Target-read accounts remain
+separate, and restart selects the original authenticated capture's Mappings
+before the existing adapter validates its capability and physical bindings.
+The original Run, Checkpoint, Preview and ledger owners still govern unknown
+outcomes and cleanup.
+
 An installed Effect uses `publishEffect({effectProfilePath, directory,
 resolveEffectSecret})` to publish its declaration, execution Mappings and
 Check Environment before Host start. The public embedded connection supplies
