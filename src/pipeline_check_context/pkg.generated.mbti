@@ -106,6 +106,22 @@ pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work
 
 pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.Checked, Array[BoundParameters], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int) -> Result[StageContexts, StageIssue]
 
+pub fn authoring_core_contract_body_at(AuthoringCoreContracts, Int) -> CoreContractBody?
+
+pub fn authoring_core_contract_body_count(AuthoringCoreContracts) -> Int
+
+pub fn authoring_core_contract_publication_at(AuthoringCoreContracts, Int) -> AuthoringPublicationChecks?
+
+pub fn authoring_core_contract_root_at(AuthoringCoreContracts, Int) -> CoreContractRoot?
+
+pub fn authoring_core_contract_root_count(AuthoringCoreContracts) -> Int
+
+pub fn authoring_core_contract_semantics(AuthoringCoreContracts) -> @program_references.ProgramSemantics
+
+pub fn authoring_core_contract_source(AuthoringCoreContracts) -> SourceViewDeclarationPreparation
+
+pub fn authoring_core_contract_usage(AuthoringCoreContracts) -> (Int, Int)
+
 pub fn authoring_publication_at(AuthoringPublicationChecks, Int) -> AuthoringPublicationSelection?
 
 pub fn authoring_publication_byte_host(AuthoringPublicationSelection) -> @capacity_policy.Ceiling
@@ -237,6 +253,8 @@ pub fn close_program_source_modes(ProgramIncomingLinks, Int, Int) -> Result[Prog
 pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) -> Result[StageRequirementClosure, StageRequirementIssue]
 
 pub fn collect_asof_search_bounds(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[AsOfSearchBounds, AsOfSearchLimitIssue]
+
+pub fn collect_authoring_core_contracts(SourceViewDeclarationPreparation, @program_references.ProgramSemantics, Array[AuthoringPublicationChecks], CoreContractLimits) -> Result[AuthoringCoreContracts, AuthoringCoreContractIssue]
 
 pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?, numeric_slots? : ProgramNumericSlots?, analytic_numeric_slots? : ProgramAnalyticNumericSlots?, pivot_numeric_slots? : ProgramPivotNumericSlots?) -> Result[CoreContractInventory, CoreContractIssue]
 
@@ -1368,6 +1386,20 @@ pub struct AssertionConsumptionLink {
   site : OperationRequirementSite
   results : @relation_results.CheckedResults
 }
+
+pub enum AuthoringCoreContractIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignSemantics
+  StageInventory
+  ForeignPublication(Int)
+  UnsupportedIncoming(Int)
+  UnsupportedLocalInputs(Int)
+  UnsupportedTableInputs(Int)
+  Collection(CoreContractIssue)
+}
+
+type AuthoringCoreContracts
 
 type AuthoringPublicationChecks
 
