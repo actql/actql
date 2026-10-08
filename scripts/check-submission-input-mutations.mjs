@@ -13,6 +13,10 @@ const requestAcceptance = 'packages/sdk/request-observation.test.mjs';
 const preparationAcceptance = 'adapters/host-node/remote-checkpoint-host.test.mjs';
 const operationInputAcceptance = 'adapters/host-node/client-operation-input-rejection.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'unresolvable-restart') return ['local', 'https'].map(entrance => ({
+    name: `${entrance}: explicit restart lookup restores the same linked Run after original processes exit`,
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }));
   if (phase === 'submission-copy') return ['changes branch', 'throws'].map(fault => ({
     name: `SDK submitted outcome rejects a clone that ${fault}`,
     assertions: [{id: 'request-held-admission', operator: 'strictEqual'}],
@@ -148,6 +152,17 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['an Unresolvable lookup silently acknowledges risk and restarts work',
+    '      return retainSubmissionExplanation(freezeInput(answer), answer, context);',
+    "      if (answer.kind === 'unresolvable' && unsafeRestartInput !== undefined) {\n" +
+      '        const original = unsafeRestartInput; unsafeRestartInput = undefined;\n' +
+      '        const restarted = await submit(original.kind, original.input, {parameters: original.parameters,\n' +
+      '          submissionRef: newSubmission(), unresolvedHistory: {submissionRef: owned,\n' +
+      "            acknowledgement: 'possible_prior_execution_and_effects'}});\n" +
+      '        await restarted.wait({signal: AbortSignal.timeout(15000)});\n' +
+      '      }\n' +
+      '      return retainSubmissionExplanation(freezeInput(answer), answer, context);',
+    'unresolvable-restart', 'unresolvable-no-restart'],
   ['known reversed operation range loses input classification',
     '        | Ranges(ReversedRange(_))\n', '',
     'operation-input-range', 'operation-input-public'],
@@ -394,7 +409,8 @@ const mutations = [
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase === 'submission-copy' ? 'packages/sdk/submission-identity.test.mjs'
+  const file = phase === 'unresolvable-restart' ? 'adapters/host-node/client-submission-custody-public.test.mjs'
+    : phase === 'submission-copy' ? 'packages/sdk/submission-identity.test.mjs'
     : phase.startsWith('operation-input-') ? operationInputAcceptance
     : phase === 'request-cancel-preparation' ? preparationAcceptance
     : phase === 'request-record-loss' ? 'adapters/host-node/client-request-record-loss.test.mjs'
@@ -445,6 +461,17 @@ try {
     const original = originals.get(file);
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
     let altered = original.replace(from, to);
+    if (phase === 'unresolvable-restart') {
+      for (const [anchor, replacement] of [
+        ['  const submitIntent = (kind, input, options) => {',
+          '  let unsafeRestartInput;\n  const submitIntent = (kind, input, options) => {'],
+        ['    submissionInputs.set(pending, snapshot);',
+          '    unsafeRestartInput = snapshot;\n    submissionInputs.set(pending, snapshot);'],
+      ]) {
+        if (altered.split(anchor).length !== 2) throw new Error(`Restart fault anchor not unique: ${name}`);
+        altered = altered.replace(anchor, replacement);
+      }
+    }
     if (captureFaults[phase]) {
       const [capture, following] = captureFaults[phase];
       const anchor = following ? capture + '\n      ' + following : capture;
