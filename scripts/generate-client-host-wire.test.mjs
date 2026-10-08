@@ -36,6 +36,21 @@ test('Native cancellation shapes retain each registered operation boundary', () 
   }
 });
 
+test('received check report rules are complete for both generated consumers', () => {
+  const output = buildClientHostWire(registry, protocol);
+  assert.match(output.module, /export const validCheckOutcomeContract/);
+  assert.match(output.native, /if !wire_check_report_contract\(value\)/);
+  for (const change of [
+    value => {delete value.check_report_rules;},
+    value => {value.check_report_rules.pop();},
+    value => {value.check_report_rules.push('future_rule');},
+    value => {value.check_report_rules[1] = value.check_report_rules[0];},
+  ]) {
+    const changed = structuredClone(registry); change(changed);
+    assert.throws(() => buildClientHostWire(changed, protocol), /InvalidClientCheckReportRules/);
+  }
+});
+
 test('schema and operation mutations invalidate generated Client–Host wire',
   () => {
     const original = buildClientHostWire(registry, protocol);

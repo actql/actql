@@ -7,11 +7,12 @@ import {project, structuralValidatorSource, typeOf} from
 
 import {nativeClientWire, responseRules, jsResponseRules,
   requestResponseRules, jsRequestResponseRules} from './generate-native-client-wire.mjs';
+import {checkReportRules, jsCheckReportRules} from './client-check-report-rules.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
 const runStateSource = 'spec/contracts/actql-protocol-schemas.json';
-const names = ['submission_epoch', 'submission_ref', 'submission_outcome', 'submission_lookup',
+const names = ['submission_epoch', 'submission_ref', 'submission_outcome', 'submission_lookup', 'submission_restart',
   'run_ref', 'connection', 'profile', 'admission',
   'lookup_found', 'lookup_not_found', 'lookup_unknown', 'held',
   'checkpoint_summary', 'checkpoint_review', 'resolve_item',
@@ -19,7 +20,7 @@ const names = ['submission_epoch', 'submission_ref', 'submission_outcome', 'subm
   'cancellation_ref', 'cancellation_lookup',
   'request_cancellation', 'resource_listing', 'resource_inspection',
   'resource_peek', 'result_description'];
-const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'SubmissionLookup',
+const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'SubmissionLookup', 'SubmissionRestart',
   'RunRef', 'Connection', 'Profile', 'Admission',
   'LookupFound', 'LookupNotFound', 'LookupUnknown', 'Held',
   'CheckpointSummary', 'CheckpointReview', 'ResolveItem', 'ResolveResult',
@@ -35,6 +36,7 @@ export function buildClientHostWire(registry, protocol) {
     throw new Error('InvalidClientHostRegistry');
   }
   const rules = responseRules(registry);
+  const reportRules = checkReportRules(registry);
   const operations = Object.entries(registry.operations);
   if (operations.length === 0 || operations.some(([name, keys]) =>
     !/^[a-z][a-z-]*$/u.test(name) || !Array.isArray(keys) ||
@@ -100,7 +102,8 @@ export function buildClientHostWire(registry, protocol) {
     `export const validCheckOutcomeShape = value => ` +
     `valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;\n`;
   const requestRules = requestResponseRules(registry, schemas);
-  const native = nativeClientWire(schemas, rules, requestRules);
+  const native = nativeClientWire(schemas, rules, requestRules, {reason: protocol.artifact_schema_cids.check_reason,
+    outcome: protocol.artifact_schema_cids.check_outcome}, reportRules);
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export declare const checkOutcomeProtocol: Readonly<{version: ${JSON.stringify(checkVersion)}; ` +
     `reasonSchemaCid: string; outcomeSchemaCid: string; ` +
@@ -118,7 +121,7 @@ export function buildClientHostWire(registry, protocol) {
     `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n` +
     `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.fixes.items))};\n`;
   return {module: module + jsResponseRules(rules) +
-    jsRequestResponseRules(schemas, requestRules), types, native};
+    jsRequestResponseRules(schemas, requestRules) + jsCheckReportRules(reportRules), types, native};
 }
 
 async function main() {

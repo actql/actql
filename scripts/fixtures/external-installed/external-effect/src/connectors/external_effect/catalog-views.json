@@ -1,0 +1,1 @@
+{"views":[{"resource":"events","resource_kind":"event","fields":[{"name":"id","type":"string","nullable":false},{"name":"key","type":"string","nullable":false},{"name":"note","type":"string","nullable":false}]}]}

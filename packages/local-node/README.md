@@ -5,6 +5,28 @@
 compiler and runtime, and the built-in Local Host adapters.
 Connected Remote mode imports only the lightweight SDK path.
 
+Trusted Host bootstrap code can create a complete, process-local installation
+table with `createInstalledConnectorTable(entries)` from `@actql/local-node`.
+Pass its opaque handle as `installation.connectorTable` to an embedded Client,
+or as `connectorTable` to the HTTP Host and `publishSource`/`publishEffect`.
+Use the same handle for publication and Host startup. Entries retain the existing
+Source/Effect profile schema, registration, revision, provider bundle and lazy
+module-loader declarations. Construction snapshots these declarations without
+loading modules, resolving secrets or contacting providers.
+
+An explicit table has no implicit built-in fallback; an empty table supports
+source-free Values. Duplicate profile versions within one role are rejected.
+Different tables may select different implementations of the same profile
+schema. Clients sharing an open embedded root must supply the identical table
+handle; another handle refuses with `InstalledHostConfigurationMismatch`.
+Separate roots can use different tables. Omitting the option preserves the
+generated default installation and lazy optional DuckDB behavior.
+
+This table snapshots loader references and metadata, not executable file or
+closure contents. It does not issue durable Connector Set identity, retain old
+artifact bytes, or activate a Workspace revision. Those require the artifact
+and Set lifecycle owners; serializing or copying a handle cannot recreate it.
+
 Each embedded Client holds a private lease on the compatible installed Host.
 `await client.close()` seals that Client, disposes its readers, then releases
 the lease. Other Clients retain their own leases. The final close stops new
@@ -113,6 +135,33 @@ profile's original is saved with request acceptance and bound into the Run's
 execution context. Restart/attach reads the original successful Run without
 recompiling under the current defaults. A new read uses a new attempt and grant;
 lookup of an interrupted attempt opens no payload and consumes no new grant.
+
+## Authored Connector Node adapters
+
+An externally authored Connector Host or Site module can import the common
+installation helpers from `@actql/local-node/connector-installation`. This
+subpath directly re-exports the existing installed row Source and Effect
+owners: `createInstalledRowSource`, `rowSourceCheckEnvironment`,
+`rowSourceMapping`, `installRowSourceAuthorization`,
+`openRowSourceCredentialSite`, `createInstalledRowEffect`, and
+`retainInstalledHostInitializationFailure`. It also exports `checked` for
+the pinned runtime's raised-result representation and
+`invokeScopedCredentialOperation` for a declared physical credential call.
+Use `canonicalJson` from `@actql/sdk/host-port` when needed.
+
+These helpers consume the installed Host's common runtime, regenerated
+declarations, account gate, credential Site, and registered installation
+entry. Keep the supplied common and provider runtime objects, decisions,
+grants, and other runtime handles intact. Their identity belongs to their
+original owners; the declaration types do not describe the complete generated
+MoonBit ABI. Connector code supplies its provider meaning and physical driver,
+while the common owners retain authorization, credential use, capture,
+Effect Ledger claims, recovery, and retryable cleanup. The helper subpath does
+not register an installation or grant permission to perform provider I/O.
+
+The package contains the helper implementations and their dependencies after
+normal prepack. Authored packages import this public subpath, without depending
+on a repository checkout or importing private `adapters` paths.
 
 ## HTTP Host
 

@@ -134,6 +134,8 @@ pub fn captured_effect_source_table_input_from_capture(EffectPreviewIdentity, In
 
 pub fn captured_local_effect_source_json(CapturedLocalEffectSourceEvidence, Int, Int, Int) -> String?
 
+pub fn captured_run_preparation_fixture_inventory(CapturedRunIssuancePreparation) -> (Int, Int, Bool, Bool)
+
 pub fn captured_run_preparation_fixture_phase(CapturedRunIssuancePreparation) -> String
 
 pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String, String, Int, Int, Int) -> Result[Unit, EffectRowOutcomeIssue]

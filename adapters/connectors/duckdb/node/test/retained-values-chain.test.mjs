@@ -354,7 +354,9 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             ['strategyEffectFreeChainCheckAdvance',
               'strategyEffectFreeCommitCheckAdvance'].includes(property)) {
           return preparation => {
-            const result = target[property](preparation, 32);
+            const result = target[property](preparation,
+              ['suffix-check', 'capture-inventory', 'result-lookup']
+                .includes(route.cancelValidationPhase) ? 1 : 32);
             const chain = property === 'strategyEffectFreeChainCheckAdvance';
             const phase = chain
               ? target.strategyEffectFreeChainCheckFixturePhase(preparation)
@@ -367,6 +369,18 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             }
             if (phase === 'receipt-check') {
               route.receiptPolls = (route.receiptPolls ?? 0) + 1;
+              assert.equal(result, 0);
+            }
+            if (chain && phase === 'suffix-check') {
+              route.suffixPolls = (route.suffixPolls ?? 0) + 1;
+              assert.equal(result, 0);
+            }
+            if (chain && phase === 'capture-inventory') {
+              route.captureInventoryPolls = (route.captureInventoryPolls ?? 0) + 1;
+              assert.equal(result, 0);
+            }
+            if (chain && phase === 'result-lookup') {
+              route.resultLookupPolls = (route.resultLookupPolls ?? 0) + 1;
               assert.equal(result, 0);
             }
             if (!chain) {
@@ -387,7 +401,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             assert.equal(completedDispatches, 3);
             if (chain && mode === 'cancel-during-publication-validation' &&
                 !scheduled && phase === route.cancelValidationPhase &&
-                route.validationPolls > 1) {
+                route.validationPolls > 1 &&
+                (phase !== 'suffix-check' || route.suffixPolls >= 3) &&
+                (phase !== 'capture-inventory' || route.captureInventoryPolls >= 3) &&
+                (phase !== 'result-lookup' || route.resultLookupPolls >= 2)) {
               assert.equal(result, 0);
               assert.ok(route.validationPolls > 1);
               scheduled = true;
@@ -414,7 +431,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         if (route.observeCapturePreparation &&
             property === 'strategyCapturedRunAdvance') {
           return preparation => {
-            const result = target[property](preparation, 32);
+            const before = target.strategyCapturedRunFixturePhase(preparation);
+            const result = target[property](preparation,
+              route.cancelCapturePhase === 'snapshot-inventory' &&
+                before === 'snapshot-inventory' ? 1 : 32);
             const complete = checked(result);
             const phase = target.strategyCapturedRunFixturePhase(preparation);
             route.capturePolls = (route.capturePolls ?? 0) + 1;
@@ -423,9 +443,14 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
               route.captureRootPolls = (route.captureRootPolls ?? 0) + 1;
               assert.equal(complete, false);
             }
+            if (phase === 'snapshot-inventory') {
+              route.captureSnapshotPolls = (route.captureSnapshotPolls ?? 0) + 1;
+              assert.equal(complete, false);
+            }
             assert.equal(completedDispatches, 3);
             if (mode === 'cancel-during-captured-run' && !scheduled &&
-                phase === route.cancelCapturePhase && route.capturePolls > 1) {
+                phase === route.cancelCapturePhase && route.capturePolls > 1 &&
+                (phase !== 'snapshot-inventory' || route.captureSnapshotPolls >= 3)) {
               assert.equal(complete, false);
               assert.ok(route.capturePolls > 1);
               scheduled = true;
@@ -996,7 +1021,7 @@ for (const mode of ['success', 'cancel-during-result-snapshot']) {
   });
 }
 
-for (const phase of ['success', 'root-check', 'context-check', 'rows-check']) {
+for (const phase of ['success', 'root-check', 'snapshot-inventory', 'context-check', 'rows-check']) {
   test(`retained Captured Run issuance yields through final evidence checking: ${phase}`, async () => {
     const first = {id: 1, note: `${'é'.repeat(257)}e\u0301\r\n😀`};
     const second = {id: 2, note: null};
@@ -1029,6 +1054,7 @@ for (const phase of ['success', 'root-check', 'context-check', 'rows-check']) {
         });
         assert.ok(route.capturePhases.has(phase));
         if (phase === 'root-check') assert.ok(route.captureRootPolls > 1);
+        if (phase === 'snapshot-inventory') assert.ok(route.captureSnapshotPolls >= 3);
         assert.equal(route.captureCancels, 1);
         assert.equal(observations().scheduled, true);
         await assert.rejects(publication.lookupCommittedIndex({
@@ -1044,7 +1070,8 @@ for (const phase of ['success', 'root-check', 'context-check', 'rows-check']) {
   });
 }
 
-for (const phase of ['success', 'receipt-check', 'context-check', 'rows-check']) {
+for (const phase of ['success', 'receipt-check', 'context-check', 'capture-inventory',
+  'result-lookup', 'rows-check', 'suffix-check']) {
   test(`retained publication validation yields before commit: ${phase}`, async () => {
     const first = {id: 1, note: `${'é'.repeat(257)}e\u0301\r\n😀`};
     const second = {id: 2, note: null};
@@ -1100,6 +1127,9 @@ for (const phase of ['success', 'receipt-check', 'context-check', 'rows-check'])
         assert.ok(route.validationPhases.has('rows-check'));
       }
       assert.ok(route.validationPhases.has('receipt-check'));
+      if (phase === 'suffix-check') assert.ok(route.suffixPolls >= 3);
+      if (phase === 'capture-inventory') assert.ok(route.captureInventoryPolls >= 3);
+      if (phase === 'result-lookup') assert.ok(route.resultLookupPolls >= 2);
       assert.ok(route.validationPolls > 1);
       assert.equal(observations().dispatches, 3);
       assert.equal(observations().completedDispatches, 3);

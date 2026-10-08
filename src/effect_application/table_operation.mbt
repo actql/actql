@@ -21,7 +21,8 @@ pub struct TableOperation {
   expected_uuid : String?
   expected_generation_cid : String?
   input_artifact_cid : String
-  input_relation_cid : String
+  input_kind : @carrier.Kind
+  input_carrier_cid : String
   schema_cid : String
   mapping_cid : String
   data_policy_cid : String
@@ -38,7 +39,7 @@ pub struct TableReceipt {
   generation_cid : String
   schema_cid : String
   mapping_cid : String
-  snapshot_id : String?
+  physical_receipt_cid : String
   row_count : Int64
 }
 
@@ -140,7 +141,10 @@ pub fn admit_table_operation(
     ledger_cid(value, "effect_identity_cid") is Some(effect_cid) &&
     ledger_cid(value, "catalog_identity_cid") is Some(catalog_cid) &&
     ledger_cid(value, "input_artifact_cid") is Some(input_artifact_cid) &&
-    ledger_cid(value, "input_relation_cid") is Some(input_relation_cid) &&
+    @json.object_field(value, "input_carrier") is Some(input_carrier) &&
+    @json.object_field_count(input_carrier) == Some(2) &&
+    ledger_string(input_carrier, "kind") is Some(input_kind_name) &&
+    ledger_cid(input_carrier, "cid") is Some(input_carrier_cid) &&
     ledger_cid(value, "schema_cid") is Some(schema_cid) &&
     ledger_cid(value, "storage_mapping_cid") is Some(mapping_cid) &&
     ledger_cid(value, "data_policy_cid") is Some(data_policy_cid) &&
@@ -159,6 +163,13 @@ pub fn admit_table_operation(
     }
   }
   let replace = action == "replace"
+  let input_kind = match input_kind_name {
+    "relation" => @carrier.RelationKind
+    "graph" => @carrier.GraphKind
+    "vectors" => @carrier.VectorsKind
+    "events" => @carrier.EventsKind
+    _ => return Err(InvalidShape)
+  }
   let (expected_uuid, expected_generation_cid) = match
     @json.object_field(value, "expected_table") {
     Some(@json.Null) if !replace => (None, None)
@@ -183,35 +194,12 @@ pub fn admit_table_operation(
     expected_uuid,
     expected_generation_cid,
     input_artifact_cid,
-    input_relation_cid,
+    input_kind,
+    input_carrier_cid,
     schema_cid,
     mapping_cid,
     data_policy_cid,
   })
-}
-
-///|
-fn table_snapshot_id(
-  value : @json.CanonicalValue,
-) -> Result[String?, TableContractIssue] {
-  match @json.object_field(value, "snapshot_id") {
-    Some(@json.Null) => Ok(None)
-    Some(@json.String(id)) => {
-      if id.is_empty() || id.length() > 19 || id[0] == '0' {
-        return Err(InvalidShape)
-      }
-      for c in id.iter() {
-        if c < '0' || c > '9' {
-          return Err(InvalidShape)
-        }
-      }
-      if id.length() == 19 && id > "9223372036854775807" {
-        return Err(InvalidShape)
-      }
-      Ok(Some(id))
-    }
-    _ => Err(InvalidShape)
-  }
 }
 
 ///|
@@ -227,8 +215,8 @@ pub fn admit_table_receipt(
     Ok(v) => v
     Err(issue) => return Err(issue)
   }
-  guard @json.object_field_count(value) == Some(12) &&
-    ledger_string(value, "version") == Some("actql-table-receipt/0.1") &&
+  guard @json.object_field_count(value) == Some(11) &&
+    ledger_string(value, "version") == Some("actql-table-logical-receipt/0.1") &&
     ledger_cid(value, "request_cid") is Some(request_cid) &&
     ledger_cid(value, "effect_identity_cid") is Some(effect_cid) &&
     ledger_cid(value, "catalog_identity_cid") is Some(catalog_cid) &&
@@ -237,17 +225,8 @@ pub fn admit_table_receipt(
     ledger_string(value, "table_uuid") is Some(table_uuid) &&
     table_uuid_valid(table_uuid) &&
     ledger_cid(value, "generation_cid") is Some(generation_cid) &&
-    ledger_string(value, "metadata_location") is Some(location) &&
-    !location.is_empty() &&
-    location.length() <= 4096 &&
+    ledger_cid(value, "physical_receipt_cid") is Some(physical_receipt_cid) &&
     ledger_integer(value, "row_count", 0L) is Some(row_count) else {
-    return Err(InvalidShape)
-  }
-  let snapshot_id = match table_snapshot_id(value) {
-    Ok(v) => v
-    Err(issue) => return Err(issue)
-  }
-  if row_count > 0L && snapshot_id is None {
     return Err(InvalidShape)
   }
   if request_cid != request.cid ||
@@ -269,7 +248,7 @@ pub fn admit_table_receipt(
     generation_cid,
     schema_cid,
     mapping_cid,
-    snapshot_id,
+    physical_receipt_cid,
     row_count,
   })
 }

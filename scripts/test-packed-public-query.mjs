@@ -120,6 +120,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
+  ['scripts/fixtures/model-provider-binding-fixture.mjs', 'model-provider-binding-fixture.mjs'],
   ['scripts/fixtures/infer-source-expectation.mjs', 'infer-source-expectation.mjs'],
   ['scripts/fixtures/packed-infer-source.mjs', 'packed-infer-source.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],

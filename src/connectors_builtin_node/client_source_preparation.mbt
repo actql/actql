@@ -303,6 +303,7 @@ fn client_source_context(
       environment_cid,
       parameter_declarations~,
       input_schemas~,
+      model_tasks=@program_check.checking_environment_model_tasks(environment),
     ) {
     Ok(value) => value
     Err(issue) => raise ClientSourceStop(Alias(issue))

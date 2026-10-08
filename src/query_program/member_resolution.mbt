@@ -84,6 +84,42 @@ fn[A] member_construct(result : Result[A, @builder.Issue]) -> A raise Abort {
 }
 
 ///|
+fn member_copy_limits(
+  limits : @builder.Limits,
+  allowance : Int,
+) -> @builder.Limits {
+  {
+    ..limits,
+    source: {
+      ..limits.source,
+      max_nodes: limits.source.max_nodes.min(allowance),
+    },
+    tree: { ..limits.tree, max_nodes: limits.tree.max_nodes.min(allowance), },
+  }
+}
+
+///|
+fn[A] member_copy_construct(
+  result : Result[A, @builder.Issue],
+  self : MemberResolution,
+  at : @wire.Cursor,
+  allowance : Int,
+) -> A raise Abort {
+  match result {
+    Ok(value) => value
+    Err(@builder.NodeLimit) if allowance <
+      self.limits.source.source.max_nodes.min(self.limits.source.tree.max_nodes) =>
+      raise Abort(
+        Expression({
+          issue: @expression.WorkLimit,
+          origin: @builder.origin(self.source, at),
+        }),
+      )
+    Err(issue) => raise Abort(Construction(issue))
+  }
+}
+
+///|
 fn member_lookup(cursor : @wire.Cursor, name : String) -> @wire.Cursor? {
   member_success(@wire.open_object(cursor)).bind(object => {
     @wire.lookup(object, name)
@@ -105,35 +141,18 @@ fn MemberResolution::copy(
   // scheduling guard refuses before building an over-budget child tree.
   let allowance = self.work
   self.work = 0
-  let copy_limits : @builder.Limits = {
-    ..self.limits.source,
-    source: {
-      ..self.limits.source.source,
-      max_nodes: self.limits.source.source.max_nodes.min(allowance),
-    },
-    tree: {
-      ..self.limits.source.tree,
-      max_nodes: self.limits.source.tree.max_nodes.min(allowance),
-    },
-  }
+  let copy_limits = member_copy_limits(self.limits.source, allowance)
   let builder = member_construct(@builder.create(self.document, copy_limits))
-  let root = match
+  let root = member_copy_construct(
     @builder.import_source(builder, self.source, cursor, replace_text=at => {
       self.replacements.get(
         @wire.tree_index(@builder.cursor(self.source), at).unwrap(),
       )
-    }) {
-    Ok(root) => root
-    Err(@builder.NodeLimit) if allowance <
-      self.limits.source.source.max_nodes.min(self.limits.source.tree.max_nodes) =>
-      raise Abort(
-        Expression({
-          issue: @expression.WorkLimit,
-          origin: @builder.origin(self.source, cursor),
-        }),
-      )
-    Err(issue) => raise Abort(Construction(issue))
-  }
+    }),
+    self,
+    cursor,
+    allowance,
+  )
   let result = member_construct(@builder.finish(builder, root))
   // Return only unused lent work; failed imports retain their reservation.
   self.work = allowance - @builder.usage(result).nodes
@@ -378,6 +397,92 @@ fn MemberResolution::relation_carrier(
   guard schema is Some(schema) else { return None }
   self.spend(at, @schema.field_count(schema))
   Some(@carrier.relation(@carrier.typed_rows(schema)))
+}
+
+///|
+// Graph construction needs admitted producer definitions to issue its domain.
+// Check the resolved prefix through the existing pipeline owner rather
+// than manufacturing a domain or extracting a property schema by hand.
+fn MemberResolution::prefix_carrier(
+  self : MemberResolution,
+  steps : Array[@wire.Cursor],
+  declarations : @parameters.Declarations?,
+  inputs? : Array[(String, @carrier.Carrier)] = [],
+  model_tasks? : @environment.ModelTasks? = None,
+) -> @carrier.Carrier? raise Abort {
+  if self.probe_refused {
+    return None
+  }
+  let at = steps[steps.length() - 1]
+  // Hold the remaining copy allowance before importing a prefix. The common
+  // importer refuses an over-budget subtree before scheduling its children.
+  let allowance = self.work
+  self.work = 0
+  let builder = member_construct(
+    @builder.create(
+      self.document,
+      member_copy_limits(self.limits.source, allowance),
+    ),
+  )
+  let items = []
+  for step in steps {
+    items.push(
+      member_copy_construct(
+        @builder.import_source(builder, self.source, step, replace_text=at => {
+          self.replacements.get(
+            @wire.tree_index(@builder.cursor(self.source), at).unwrap(),
+          )
+        }),
+        self,
+        at,
+        allowance,
+      ),
+    )
+  }
+  let root = member_copy_construct(
+    @builder.add(
+      builder,
+      @builder.Array(items),
+      @builder.origin(self.source, at).unwrap(),
+    ),
+    self,
+    at,
+    allowance,
+  )
+  let copy = member_construct(@builder.finish(builder, root))
+  self.work = allowance - @builder.usage(copy).nodes
+  match
+    @pipeline.check_carriers(
+      @builder.cursor(copy),
+      inputs,
+      declarations,
+      None,
+      {
+        max_steps: self.limits.source.tree.max_nodes,
+        max_work: self.work,
+        max_nodes: self.limits.source.tree.max_nodes,
+        max_tokens: self.limits.source.tree.max_nodes,
+        max_text_bytes: self.limits.source.tree.max_total_string_bytes,
+        max_depth: self.limits.source.tree.max_depth,
+      },
+      model_tasks~,
+    ) {
+    Ok(checked) => {
+      self.spend(at, @pipeline.usage(checked).work)
+      @pipeline.output_carrier(checked)
+    }
+    Err({ kind: BudgetExceeded, .. }) =>
+      raise Abort(
+        Expression({
+          issue: @expression.WorkLimit,
+          origin: @builder.origin(self.source, at),
+        }),
+      )
+    Err(_) => {
+      self.defer_refusal()
+      None
+    }
+  }
 }
 
 ///|
@@ -753,16 +858,27 @@ fn resolve_query_members(
       }
       names[name] = rows
     }
+    // These schema Carriers supply type facts only. Key assertions in the
+    // resolved prefix are checked by the common pipeline, never inferred from
+    // ITEM KEY or copied from a differently bound value.
+    let prefix_inputs = []
+    for (name, carrier) in names {
+      if carrier is Some(carrier) {
+        prefix_inputs.push((name, carrier))
+      }
+    }
     let mut current = if names.length() == 1 {
       names.values().to_array()[0]
     } else {
       None
     }
+    let prefix = []
     for step in @wire.elements(member_lookup(stage, "steps").unwrap()).unwrap() {
       if resolution.probe_refused {
         break
       }
       resolution.spend(step, 1)
+      prefix.push(step)
       if member_text(step, "from") is Some(name) {
         current = names.get(name).bind(value => value)
       }
@@ -779,13 +895,37 @@ fn resolve_query_members(
             context.parameter_declarations,
           )
         }
-        output = resolution.operation_carrier(
-          tag,
-          body,
-          current,
-          names,
-          context.parameter_declarations,
-        )
+        if tag == "infer" &&
+          context.model_tasks is Some(_) &&
+          prefix_inputs.length() == @wire.object_length(inputs).unwrap() {
+          output = resolution.prefix_carrier(
+            prefix,
+            context.parameter_declarations,
+            inputs=prefix_inputs,
+            model_tasks=context.model_tasks,
+          )
+        } else if @wire.object_length(inputs) == Some(0) &&
+          (
+            tag == "graph" ||
+            (
+              current is Some(value) &&
+              @carrier.kind(value) == @carrier.GraphKind
+            )
+          ) {
+          output = resolution.prefix_carrier(
+            prefix,
+            context.parameter_declarations,
+            model_tasks=context.model_tasks,
+          )
+        } else {
+          output = resolution.operation_carrier(
+            tag,
+            body,
+            current,
+            names,
+            context.parameter_declarations,
+          )
+        }
       }
       current = output
       if member_text(step, "as") is Some(name) {

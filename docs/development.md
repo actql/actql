@@ -250,8 +250,11 @@ manifests that generate its installed connector table. The resolved inventory
 in `scripts/local-node-package-inputs.mjs` is shared by runtime compilation,
 asset copying and adapter packaging. A stale generated table is refused.
 
-An installation can list connector-owned JSON declarations in `assets`.
-They must be existing regular files below that connector's source directory;
+An installation can list connector-owned JSON declarations and physical I/O
+assets in `assets`. JSON declarations must be below that connector's source
+directory. Physical Python workers, requirement pins and documentation must be
+below its adapter directory and use the admitted `.py`, `.in`, `.lock` or `.md`
+suffixes. All assets must be existing regular files in their declared owner;
 absolute paths, traversal, aliases to outside files and duplicate entries are
 refused. These files retain their package-relative locations for the installed
 adapter's URL reads. The package contains these declared data files, not the
@@ -261,6 +264,12 @@ module graph builder.
 The generated `packages/local-node/src/connectors` directory is ignored by
 Git. Packing and freshness checks refuse old undeclared files or symbolic links
 there; remove stale generated output before rebuilding after an asset removal.
+Adapter destinations also refuse symbolic links before any copy. A Host
+installation implemented in JS or Python may omit `providerBundle`; it still
+declares its real Source/Effect roles, registration and revision, and does not
+receive a dummy MoonBit provider runtime. Local Table I/O uses this declared
+installation and finite asset inventory, not a handwritten Host entry or worker
+list. Python dependencies remain optional installation dependencies.
 `test-packed-installed-connectors.mjs` creates an empty producer from source,
 uses normal prepack, and checks all registered provider bundles in an external
 consumer, including GitHub Source/Effect startup without provider I/O.
@@ -308,7 +317,7 @@ the external module namespace, and the Node bridge imports the generated
 assembly through the Host module namespace. The current external profile is
 JS with static Node contribution loading and a generated Compute bridge.
 Handwritten product Client bridge extensions are refused explicitly. External
-Read/Effect installation tables are a separate integration step.
+Read/Effect installations use the installed Host composition below.
 
 Package acquisition, normal package integrity verification and stable input
 placement remain with the trusted build harness. This resolver downloads and
@@ -325,6 +334,44 @@ not acquire an invented Connector revision. Existing Host registrations and
 revisions retain their meaning. Build receipts and npm integrity are package
 input evidence; executable component identity, signature, activation and
 retention remain with the existing runtime bundle owner.
+
+### Trusted external installed Host builds
+
+The same resolved input snapshot includes checked `hostEntries` for Read-only,
+Effect-only and combined Host contributions. External modules use the existing
+`src/connectors/<registration>` and `adapters/connectors/<registration>/host`
+manifest layout. A provider's qualified MoonBit package belongs to its module;
+its `providerBundle` remains the safe package-local
+`connectors/<registration>/<bundle>` key. This key grants no execution authority.
+
+Generate with `checkNodeAssembly(hostRoot, true, {buildInputs,
+installations: true})`, then pass
+`localNodePackageInputs(hostRoot, {buildInputs})` to the existing builders.
+`buildExternalLocalNodeRuntime({inputs, destination, compiledDirectory})`
+compiles only the inventory's exact module-owned targets into fresh output.
+`buildLocalNodeAdapters({root: hostRoot, inputs, destination})` copies the same
+inventory's finite adapter graph and static declarations. The destination and
+compiled directory stay inside the Host root. The harness supplies the local
+MoonBit workspace; these functions never download or install dependencies.
+
+The inventory separates physical source paths from distribution destinations,
+rejects ownership collisions, and places the selected installation table at
+the ordinary `adapters/connectors-builtin/installations.generated.mjs` path.
+The adapter graph stays within verified module roots. External helper modules
+stay beneath their registration's adapter directory; declared assets stay in
+its source directory. Supported external imports are Node built-ins and the
+existing ActQL package boundaries; the Host's optional DuckDB package remains
+optional. Unsupported dependency shapes are explicit build-profile limits.
+
+Authored Node installation adapters reuse
+`@actql/local-node/connector-installation`, a direct export of the common row,
+credential invocation and initialization-cleanup helpers. Common runtime
+handles and separately compiled provider handles keep their respective owners;
+the provider boundary exchanges the existing serializable values. Host profile
+validation, authorization, capture, publication, Effect claims, recovery and
+cleanup remain unchanged. See `scripts/fixtures/external-installed/README.md`
+and `scripts/test-packed-external-installed.mjs` for normal prepack and an
+external application consuming the resulting package set.
 
 ## Bounded local execution
 

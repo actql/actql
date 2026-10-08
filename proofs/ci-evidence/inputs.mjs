@@ -12,7 +12,7 @@ export const hash = value => createHash('sha256').update(value).digest('hex');
 // closed key may be issued; changing the digest is not an automatic review.
 export const pipelineInventoryBoundary = Object.freeze({
   path: 'proofs/relation-pipeline/inventory.mjs',
-  digest: '9a7c1ffef354d2ba1cd60b70f7bbac7c68b49aac378a60cb5a0f66cb4b937e43',
+  digest: '127927a4a7738ae1f0efa67da9a5ffbc8b6e68eaf6cbc713fee6a9f3763acf50',
 });
 // The mutation executor also reads these audit inputs during restoration.
 export const mutationSnapshotExtras = Object.freeze([
@@ -28,6 +28,7 @@ export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidenc
   'proofs/ci-evidence/costs.mjs',
   'proofs/ci-evidence/execution-recipes.mjs',
   'proofs/events-bridge/evidence.mjs',
+  'proofs/events-bridge/observations.mjs',
   'proofs/bounded-session/evidence.mjs', 'proofs/bounded-session/run.mjs',
   'proofs/ci-evidence/package-configurations.mjs',
   'proofs/ci-evidence/isolated-contract.mjs',
