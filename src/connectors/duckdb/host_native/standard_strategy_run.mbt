@@ -15,6 +15,7 @@ struct NativeStandardStrategyRun {
   database_path : String
   retained_profile : NativeStrategyRetainedOutputProfile?
   observe_phase : ((NativeStandardStrategyPhaseEvent) -> Unit)?
+  performance : NativePerformanceSession?
   resident_environments : Array[NativeResidentEnvironment]
   mut resident_fault : NativeResidentFault?
   mut resident_task_demand_bytes : Int64
@@ -83,6 +84,7 @@ pub(all) enum NativeStandardStrategyRunIssue {
   Database(@native_duckdb.NativeDuckDBIssue)
   DuckDB(NativeStrategyComputeRunIssue)
   Local(NativeStrategyLocalIssue)
+  Performance(NativeStandardPolicyIssue)
 }
 
 ///|
@@ -178,11 +180,17 @@ pub fn open_native_standard_strategy_run(
   database_path? : String = "",
   retained_profile? : NativeStrategyRetainedOutputProfile,
   observe_phase? : (NativeStandardStrategyPhaseEvent) -> Unit,
+  performance? : NativePerformanceConfiguration,
+  performance_input? : NativePerformanceInput,
 ) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue] {
   if transfer_bytes < 0 || execution_bytes <= 0 {
     return Err(InvalidSelection)
   }
   if retained_profile is Some(profile) && profile.max_file_bytes <= 0L {
+    return Err(InvalidSelection)
+  }
+  if performance_input is Some(input) &&
+    (performance is None || !physical_equal(input.dispatch, dispatch)) {
     return Err(InvalidSelection)
   }
   // Every realization this Host selects (Local, DuckDB, native) starts only
@@ -202,6 +210,14 @@ pub fn open_native_standard_strategy_run(
     database_path,
     retained_profile,
     observe_phase,
+    performance: performance.map(configuration => {
+      configuration,
+      input: performance_input,
+      trajectory: None,
+      decisions: [],
+      omitted: 0,
+      unavailable_reason: None,
+    }),
     resident_environments: [],
     resident_fault: None,
     resident_task_demand_bytes: 0L,
@@ -234,6 +250,14 @@ pub fn execute_next_native_standard_strategy_task(
 ] {
   if !run.accepting {
     return Err(Closed)
+  }
+  match prepare_native_standard_strategy_performance_choice(run) {
+    Ok(_) => ()
+    Err(issue) => {
+      run.accepting = false
+      run.stop_dispatch()
+      return Err(issue)
+    }
   }
   let prepared = match
     @duckdb_standard_host.prepare_next_dispatch(run.dispatch) {
@@ -780,7 +804,13 @@ pub fn close_native_standard_strategy_run(
   }
   match first {
     Some(issue) => Err(issue)
-    None => Ok(!pending)
+    None => {
+      if !pending && run.performance is Some(session) {
+        session.input = None
+        session.trajectory = None
+      }
+      Ok(!pending)
+    }
   }
 }
 
