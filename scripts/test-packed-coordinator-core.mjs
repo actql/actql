@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir, mkdtemp, readdir, rm, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
@@ -36,6 +36,15 @@ try {
   installation);
   assert.deepEqual(await readdir(join(installation, 'node_modules/@actql')),
     ['coordinator-core']);
+  for (const name of ['bundle-retention.test.mjs', 'bundle-retention.typecheck.mts']) {
+    await copyFile(join(repository, 'packages/coordinator-core', name),
+      join(installation, name));
+  }
+  process.stdout.write(run(process.execPath,
+    ['--test', 'bundle-retention.test.mjs'], installation));
+  run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
+    '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+    '--target', 'ES2022', 'bundle-retention.typecheck.mts'], installation);
   await writeFile(join(installation, 'smoke.mjs'), `
   import assert from 'node:assert/strict';
   const {admitPollNotSeen, dispatchCid, pollQueryJson, pollReleaseJson,
@@ -181,7 +190,14 @@ try {
       {maxChunks: 4, maxManifestBytes: 4096, maxReferencedBytes: 12n}));
   assert.equal(coordinator.outputReportAckJson(reopened, report), expectedAck);
   assert.deepEqual(coordinator.outputRecordStatus(reopened), status);
+  // Client handles come only from the installed package. The independent Site
+  // owner receives canonical bytes/CIDs over real authenticated HTTPS.
+  const {exercisePortableBundleRetention} = await import(${JSON.stringify(
+    pathToFileURL(join(repository,
+      'adapters/site-node/fixtures/https-bundle-retention.mjs')).href)});
+  await exercisePortableBundleRetention(coordinator.bundleRetention);
   console.log('packed coordinator-core release, not-seen, output request, durable replay and exact ACK');
+  console.log('packed coordinator-core bundle retention over authenticated HTTPS');
   `);
   process.stdout.write(run(process.execPath, ['smoke.mjs'], installation));
 } finally {
