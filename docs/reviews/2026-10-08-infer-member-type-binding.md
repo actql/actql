@@ -129,3 +129,20 @@ existing INFER/binder callers and all retained member-budget controls. RelA Node
 source freshness and the updated public fixture's Node syntax check also passed.
 This is evidence of the integrated working revision; it does not relabel the
 earlier package failure or establish Local/HTTPS rows.
+
+## Integrated-head public attempt
+
+`run-NRW2ii` normally generated all five packages from clean
+`d90fed7fa07f34425f1d512fb4b1b7af9b7a005a`, with the exact revision and five
+digests retained in `/private/tmp/actql-b-infer-member-d90fed7fa-pack/packed-client-packages.json`.
+The 12 preliminary profile tests passed. The first Local minimal source then
+reached Host preparation but returned `SubmissionPreparationFailed`, classified
+as `implementation_limit` with `ClientProgramUnsupported`. It did not publish a
+Run or Result. HTTPS, later source cases and capture replay were not reached.
+This is distinct from the earlier SDK refusal of a missing submission reference.
+
+The exact command and error are retained in
+`public-query-evidence-dKkvoC/006.started.json` and `006.stderr.log`. The public
+fixture now observes the existing Host's `infer_preparation_rejected` diagnostic
+to retain the first typed boundary in stderr. This adds observability only; it
+does not change expected values, execution, admission or error classification.

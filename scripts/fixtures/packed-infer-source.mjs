@@ -5,6 +5,7 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import {inspect} from 'node:util';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {canonical, configuration} from './installed-infer-fixture.mjs';
@@ -23,6 +24,14 @@ const {installation, taskCid} = configuration(
 const keys = generateKeyPairSync('ed25519');
 let calls = 0;
 const authorization = {
+  observe(name, detail) {
+    if (name === 'infer_preparation_rejected') {
+      // Keep the existing Host's first typed boundary in command stderr.
+      // This deterministic fixture contains no external Model input or secrets.
+      console.error(name, inspect(detail, {depth: 4, maxArrayLength: 12,
+        maxStringLength: 256}));
+    }
+  },
   hostKey: {keyId: 'packed-host', privateKey: keys.privateKey.export({
     type: 'pkcs8', format: 'pem'})},
   reviewers: [{keyId: 'packed-reviewer', reviewerId: 'packed-reviewer',
