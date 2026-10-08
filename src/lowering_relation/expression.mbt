@@ -47,6 +47,7 @@ pub(all) enum UnaryOperator {
   IsUnknown
   Length
   Upper
+  Lower
   Floor
   Sqrt
 } derive(Eq, Debug)
@@ -189,6 +190,7 @@ fn expression_tag(
     | "$param"
     | "negate"
     | "upper"
+    | "lower"
     | "floor"
     | "sqrt"
     | "is_true"
@@ -256,6 +258,7 @@ fn expression_children(
     }
     "negate"
     | "upper"
+    | "lower"
     | "floor"
     | "sqrt"
     | "not"
@@ -822,6 +825,7 @@ fn lower_typed_expression_measured(
         }
         "negate" => Unary(Negate, args[0])
         "upper" => Unary(Upper, args[0])
+        "lower" => Unary(Lower, args[0])
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
         "len" => Unary(Length, args[0])

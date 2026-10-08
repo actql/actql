@@ -434,6 +434,7 @@ pub(all) enum QueryOperation {
   Qualify(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   AnalyticExpressions(Array[Projection], Array[NamePart])
+  OrderAnalytic(Array[Projection], Bool)
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
   Limit(QueryInteger, QueryInteger)

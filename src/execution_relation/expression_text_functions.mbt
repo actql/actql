@@ -14,6 +14,7 @@ priv enum TextFunctionKind {
   TextLength
   TextReplace
   TextUpper
+  TextLower
 } derive(Eq)
 
 ///|
@@ -38,6 +39,9 @@ priv struct TextFunctionState {
   mut bytes : Int
   mut weight : Int64
   mut builder : StringBuilder?
+  mut preceding_cased : Bool
+  mut probing_sigma : Bool
+  mut probe_position : Int
 }
 
 ///|
@@ -132,6 +136,9 @@ fn start_text_function(
     bytes: 2,
     weight: 1L,
     builder: None,
+    preceding_cased: false,
+    probing_sigma: false,
+    probe_position: 0,
   })
 }
 
@@ -250,6 +257,28 @@ fn advance_text_function(
     }
     return Ok(None)
   }
+  if state.probing_sigma {
+    // Unicode 16 Final_Sigma uses possessive Case_Ignorable skipping.
+    // Probe only the original input; a witness never changes left context.
+    let following_cased = if state.probe_position == state.input.length() {
+      false
+    } else {
+      guard text_function_scalar(state.input, state.probe_position)
+        is Some((scalar, next, _, _)) else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      if @scalar.unicode_is_case_ignorable(scalar) {
+        state.probe_position = next
+        return Ok(None)
+      }
+      @scalar.unicode_is_cased(scalar)
+    }
+    state.replacement = if following_cased { "σ" } else { "ς" }
+    state.probing_sigma = false
+    state.emitting = true
+    state.emission = 0
+    return Ok(None)
+  }
   if state.position == state.input.length() {
     if state.building {
       guard state.builder is Some(builder) else {
@@ -277,14 +306,37 @@ fn advance_text_function(
     state.building = true
     state.position = 0
     state.matched = 0
+    state.preceding_cased = false
+    state.probing_sigma = false
+    state.probe_position = 0
     return Ok(None)
   }
-  if state.kind == TextUpper {
+  if state.kind == TextUpper || state.kind == TextLower {
     guard text_function_scalar(state.input, state.position)
       is Some((scalar, next, _, _)) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
-    if @scalar.unicode_upper_mapping(scalar) is Some(mapped) {
+    if state.kind == TextLower {
+      let final_sigma_candidate = scalar == 'Σ' && state.preceding_cased
+      if !@scalar.unicode_is_case_ignorable(scalar) {
+        state.preceding_cased = @scalar.unicode_is_cased(scalar)
+      }
+      if final_sigma_candidate {
+        // Sigma itself is not case-ignorable. Probes therefore cover
+        // disjoint ignorable runs, at most one extra scan per input scalar
+        // per pass. Each probe advances under the frame's control budget.
+        state.position = next
+        state.probe_position = next
+        state.probing_sigma = true
+        return Ok(None)
+      }
+    }
+    let mapped = if state.kind == TextUpper {
+      @scalar.unicode_upper_mapping(scalar)
+    } else {
+      @scalar.unicode_lower_mapping(scalar)
+    }
+    if mapped is Some(mapped) {
       // Borrow the fixed mapping. Each expanded scalar is sized/emitted by
       // the existing continuation, never by an unbounded host casing call.
       state.position = next
