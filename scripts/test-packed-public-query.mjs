@@ -118,6 +118,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-equality-source-input.mjs', 'graph-equality-source-input.mjs'],
   ['scripts/fixtures/graph-difference-source-input.mjs', 'graph-difference-source-input.mjs'],
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
+  ['scripts/fixtures/source-graph-member-input.mjs', 'source-graph-member-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
   ['scripts/fixtures/model-provider-binding-fixture.mjs', 'model-provider-binding-fixture.mjs'],
@@ -228,6 +229,9 @@ if (process.argv.includes('--analytic-frame-parameter-only')) {
 }
 if (process.argv.includes('--analytic-property-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY = '1';
+}
+if (process.argv.includes('--source-graph-member-only')) {
+  runtimeEnvironment.ACTQL_TEST_SOURCE_GRAPH_MEMBER_ONLY = '1';
 }
 if (process.argv.includes('--graph-projection-property-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_PROJECTION_PROPERTY_ONLY = '1';
@@ -524,6 +528,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--unnest-checked-array-onl
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
+  '--source-graph-member-only',
   '--graph-property-predicate-only',
   '--graph-any-direction-only',
   '--graph-abbreviated-only',
@@ -568,6 +573,7 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+if (process.argv.includes('--source-graph-member-only')) return;
 if (process.argv.includes('--in-unnest-literal-array-only')) return;
 if (process.argv.includes('--array-literal-only')) return;
 if (process.argv.includes('--correlated-unnest-only')) return;
