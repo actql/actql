@@ -38,7 +38,9 @@ export function traceReadRecovery(phase, facts = {}) {
 }
 export async function openReadOpeningFixture(directory, loss,
   {valuesMaxRows, expectedRowCount = 2, expressionFragment = false,
-    observeSubmission = () => {}} = {}) {
+    observeSubmission = () => {}, reverseRereads = false} = {}) {
+  assert.equal(typeof reverseRereads, 'boolean');
+  if (reverseRereads) assert.equal(expectedRowCount, 2);
   traceReadRecovery('store-open:start', {expectedRowCount});
   const store = await openLocalPublicationStore({directory: join(directory, 'publication'),
     storeAuthorityCid: cid('7'), capacityBytes: 512 * 1024 * 1024,
@@ -48,6 +50,7 @@ export async function openReadOpeningFixture(directory, loss,
   const journal = openClientRequestJournal(join(directory, 'requests'));
   traceReadRecovery('journal-open:finished');
   const counts = {admissions: 0, readers: 0, computes: 0, definitions: 0};
+  const deliveryOrders = [];
   let allowed = true, armed = loss, loseReply, beforeSuccessRecord, beforeRow;
   const observed = {...store,
     async appendDeliveryRecord(wire) {
@@ -72,9 +75,25 @@ export async function openReadOpeningFixture(directory, loss,
     },
     async withCommittedResultRows(...args) {
       counts.readers++;
+      const reverse = reverseRereads && counts.readers > 1;
       const use = args[4];
-      args[4] = (metadata, readRows) => use(metadata, accept =>
-        readRows(async (row, index) => {await beforeRow?.(index); return accept(row, index);}));
+      args[4] = (metadata, readRows) => use(metadata, async accept => {
+        const order = [];
+        deliveryOrders.push(order);
+        const emit = async (row, index) => {
+          order.push(row); await beforeRow?.(index); return accept(row, index);
+        };
+        if (!reverse) return readRows(emit);
+        // Only this bounded two-row fixture changes enumeration. The Store
+        // verifies the original payload before the real Delivery Owner emits
+        // the same rows in another order; no Result identity is fabricated.
+        assert.equal(metadata.rowCount, 2);
+        const rows = [];
+        const summary = await readRows((row, index) => { rows.push({row, index}); });
+        assert.equal(rows.length, 2);
+        for (const {row, index} of rows.reverse()) await emit(row, index);
+        return summary;
+      });
       return store.withCommittedResultRows(...args);
     },
   };
@@ -153,7 +172,7 @@ export async function openReadOpeningFixture(directory, loss,
     lookupRequest: services.lookupRequest});
   services.submitIntent = submission.submitIntent;
   services.lookupSubmission = submission.lookupSubmission;
-  return {services, counts, store, journal,
+  return {services, counts, store, journal, deliveryOrders,
     retainedAdmission: ref => journal.lookupRunDefinition(ref, moon, control)?.runAdmissionEvidence,
     beforeSuccessRecord: callback => {beforeSuccessRecord = callback;},
     beforeRow: callback => {beforeRow = callback;},
