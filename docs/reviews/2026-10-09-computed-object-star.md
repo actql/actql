@@ -6,7 +6,8 @@ This unit follows #1060's named object-column star connection. It starts from
 `595a822a4240681f4ed22c38df0dc76b724fd72e`, integrates main
 `1e1dd7fd6fbe16dc91a035128f43fd6fb3bb2817` normally, and adopts the parent's
 grammar-pin repair `4952f42c9293ec7636c0d7b240ee9be4a3bc1a54`.
-The parent remains an unmerged dependency; the final merge destination is main.
+The parent is now adopted into main; this PR targets main. Original receipts
+retain their own revision and artifact attribution.
 
 The selected [GoogleSQL expression-star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
 allows a value with fields as a SELECT star receiver. This unit connects existing
@@ -302,5 +303,51 @@ client-wire, sdk and node digests match the earlier package table.
 The following review update is documentation only; it does not claim newly
 packed documentation-HEAD bytes. The two earlier failed campaigns and the
 pre-integration success remain separate evidence. Required exact submitted-HEAD
-CI, Wasm/native and broader coverage are still unverified. #1060 remains the
-unmerged parent; no Ready transition, manual CI retry or merge is performed.
+CI, Wasm/native and broader coverage are still unverified by this author. This
+campaign preceded the external integration of #1060/#1063; no Ready transition,
+manual CI retry or merge was performed by this author.
+
+## Reviewed main integration
+
+The integration owner normally merged main
+`bb873b35c123f5ac62b50faaa4bd113e8fb87f2b`, retaining ABS and the adopted
+object-column-star implementation. Product lowering and parser changes merge
+without conflicts. Eight normative/fixture conflicts are resolved through the
+ordinary manifest, dependency, metadata, canonical-vector and family writers.
+
+The independently assembled current grammar is
+`sha256:a85a3517afd7a705e99e746f5a08332370b072ddc77868372db19b977ee87ecb`;
+the independently assembled current Values Run is
+`sha256:6e1a597d8e0473c402cca0fd54e582189c4d1da5064aadab98a647bb6888f645`.
+The complete submitted computed-star grammar and its original pre-ABS
+Unit/AoA/Program closure remain separate immutable fixtures. The main
+object-star/ABS grammar and original Run also remain independently checked.
+No old Run is rebound or admitted as a new Run.
+
+`run-F5EgWR` passes 25 independent Node corpus/profile/grammar/Run cases and
+five read-only generator/freshness checks, with complete output and released
+locks. The five retained producer tarballs at `e28f1755d` were independently
+rehashed against their manifest and complete public consumer receipts. Those
+Local/HTTPS results are evidence of that clean producer, not a new integrated
+HEAD packed or all-target campaign. CI remains paused.
+
+Concurrent author integration `28e7b26b5` preserves the same normative grammar
+and Values Run as the independent root oracle. Its complete frozen object-star
+parent preimage is retained as well. Product parser/lowering and packed fixture
+blobs are unchanged across this evidence-only reconciliation.
+
+## Current main status and evidence scope
+
+GitHub records #1060 and #1063 as merged. #1063's submitted head is
+`ca547d0da3157e2feeab83b29e28b4be33566e93`, and main contains it at
+`0264ae847e9f22590f42a92cff0ab97c180a25ed`. The difference between the successful
+`28e7b26b5...` producer source and that submitted head is confined to this review
+record and the retained proof-resolution declaration. Parser/lowering, common
+contracts, manifests, independent fixtures and packed consumer blobs match.
+
+The documentation-only success record was authored concurrently with that
+external merge. This follow-up preserves both the integration owner's history
+record and the complete author campaign. It does not relabel packages as built
+from the submitted or main merge SHA. Local/HTTPS success is established for its
+recorded clean producer; required CI/all-target coverage remains separate. No
+merge or CI rerun was performed by this author.
