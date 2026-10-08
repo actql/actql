@@ -2124,8 +2124,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
       Ok(Some(@remote.Plan(output))) | Ok(Some(@remote.Output(output))) => {
         backoff_ms = 0
-        // Only the live holder of the dispatch owns its output; the
-        // operation is relayed to it unchanged.
+        // Relay unchanged to the live holder. If it has exited, select only
+        // the original completed custody for the existing restoration path.
         let request = @remote.remote_poll_output_request(output)
         let identity = @remote.dispatch_request_identity(request)
         let intent = @remote.remote_poll_output_intent(output)
@@ -2147,7 +2147,15 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             } else {
               report("output-unavailable", [("request_cid", identity)])
             }
-          _ => report("output-unavailable", [("request_cid", identity)])
+          _ => {
+            if holder is None &&
+              queue_completed_output_holder(
+                journal, site_delegation, generation, queue, request,
+              ) {
+              report("output-holder-queued", [("request_cid", identity)])
+            }
+            report("output-unavailable", [("request_cid", identity)])
+          }
         }
       }
       Err(issue) => {
