@@ -361,6 +361,14 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
               : target.strategyEffectFreeCommitCheckFixturePhase(preparation);
             route.validationPolls = (route.validationPolls ?? 0) + 1;
             (route.validationPhases ??= new Set()).add(phase);
+            if (phase === 'root-check') {
+              route.rootPolls = (route.rootPolls ?? 0) + 1;
+              assert.equal(result, 0);
+            }
+            if (phase === 'receipt-check') {
+              route.receiptPolls = (route.receiptPolls ?? 0) + 1;
+              assert.equal(result, 0);
+            }
             if (!chain) {
               route.commitPolls = (route.commitPolls ?? 0) + 1;
               if (phase === 'result-evidence') {
@@ -411,9 +419,13 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             const phase = target.strategyCapturedRunFixturePhase(preparation);
             route.capturePolls = (route.capturePolls ?? 0) + 1;
             (route.capturePhases ??= new Set()).add(phase);
+            if (phase === 'root-check') {
+              route.captureRootPolls = (route.captureRootPolls ?? 0) + 1;
+              assert.equal(complete, false);
+            }
             assert.equal(completedDispatches, 3);
             if (mode === 'cancel-during-captured-run' && !scheduled &&
-                phase === route.cancelCapturePhase) {
+                phase === route.cancelCapturePhase && route.capturePolls > 1) {
               assert.equal(complete, false);
               assert.ok(route.capturePolls > 1);
               scheduled = true;
@@ -984,7 +996,7 @@ for (const mode of ['success', 'cancel-during-result-snapshot']) {
   });
 }
 
-for (const phase of ['success', 'context-check', 'rows-check']) {
+for (const phase of ['success', 'root-check', 'context-check', 'rows-check']) {
   test(`retained Captured Run issuance yields through final evidence checking: ${phase}`, async () => {
     const first = {id: 1, note: `${'é'.repeat(257)}e\u0301\r\n😀`};
     const second = {id: 2, note: null};
@@ -1003,6 +1015,7 @@ for (const phase of ['success', 'context-check', 'rows-check']) {
       if (mode === 'success') {
         const owner = await run();
         assert.equal(owner.status, 'published');
+        assert.ok(route.capturePhases.has('root-check'));
         assert.ok(route.capturePhases.has('context-check'));
         assert.ok(route.capturePhases.has('rows-check'));
         await assertPublishedRows(publication, plan, owner.execution, [second, first]);
@@ -1015,6 +1028,7 @@ for (const phase of ['success', 'context-check', 'rows-check']) {
           return true;
         });
         assert.ok(route.capturePhases.has(phase));
+        if (phase === 'root-check') assert.ok(route.captureRootPolls > 1);
         assert.equal(route.captureCancels, 1);
         assert.equal(observations().scheduled, true);
         await assert.rejects(publication.lookupCommittedIndex({
@@ -1030,7 +1044,7 @@ for (const phase of ['success', 'context-check', 'rows-check']) {
   });
 }
 
-for (const phase of ['success', 'context-check', 'rows-check']) {
+for (const phase of ['success', 'receipt-check', 'context-check', 'rows-check']) {
   test(`retained publication validation yields before commit: ${phase}`, async () => {
     const first = {id: 1, note: `${'é'.repeat(257)}e\u0301\r\n😀`};
     const second = {id: 2, note: null};
@@ -1052,6 +1066,10 @@ for (const phase of ['success', 'context-check', 'rows-check']) {
         assert.equal(owner.status, 'published');
         await assertPublishedRows(publication, plan, owner.execution, [second, first]);
         assert.ok(route.commitPolls > 1);
+        assert.ok(route.rootPolls > 1,
+          'publication root validation must yield before context checks');
+        assert.ok(route.receiptPolls > 1,
+          'embedded receipt validation must yield before context checks');
         assert.ok(route.resultEvidencePolls > 1,
           'Result dependency resolution must yield within commit validation');
         assert.ok(route.bindingPolls > 1,
@@ -1077,8 +1095,11 @@ for (const phase of ['success', 'context-check', 'rows-check']) {
           runDefinitionCid: plan.runDefinition.identity,
         }, () => true), /PublicationLookupDenied/);
       }
-      assert.ok(route.validationPhases.has('context-check'));
-      if (phase !== 'context-check') assert.ok(route.validationPhases.has('rows-check'));
+      if (phase !== 'receipt-check') assert.ok(route.validationPhases.has('context-check'));
+      if (phase === 'success' || phase === 'rows-check') {
+        assert.ok(route.validationPhases.has('rows-check'));
+      }
+      assert.ok(route.validationPhases.has('receipt-check'));
       assert.ok(route.validationPolls > 1);
       assert.equal(observations().dispatches, 3);
       assert.equal(observations().completedDispatches, 3);

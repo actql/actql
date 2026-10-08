@@ -124,6 +124,69 @@ test "refused Graph prefix retains its remaining allowance and stops continuatio
 }
 
 ///|
+test "member copy lends bounded work before importing any over-budget tree" {
+  let (source, document) = probe_budget_source()
+  // One array, two five-node property expressions and one nine-node expression.
+  let nodes = 1 + 5 + 9 + 5
+  let exact = probe_budget_state(source, document, work=nodes)
+  let copied = exact.copy(@builder.cursor(source))
+  assert_eq(@builder.usage(copied).nodes, nodes)
+  assert_eq(exact.work, 0)
+  let short = probe_budget_state(source, document, work=nodes - 1)
+  let rejected = try {
+    ignore(short.copy(@builder.cursor(source)))
+    false
+  } catch {
+    Abort(Expression({ issue: @expression.WorkLimit, .. })) => true
+    _ => false
+  }
+  assert_true(rejected)
+  // A failed importer cannot release the allowance and start another copy.
+  assert_eq(short.work, 0)
+}
+
+///|
+test "authored member discovery reserves children before scheduling the scan" {
+  let (source, document) = probe_budget_source()
+  // Visit the array root and schedule its three children before finding a member.
+  let exact = probe_budget_state(source, document, work=1 + 3)
+  assert_true(exact.has_authored_member())
+  assert_eq(exact.work, 0)
+  let short = probe_budget_state(source, document, work=3)
+  let rejected = try {
+    ignore(short.has_authored_member())
+    false
+  } catch {
+    Abort(Expression({ issue: @expression.WorkLimit, .. })) => true
+    _ => false
+  }
+  assert_true(rejected)
+  assert_eq(short.work, 2)
+}
+
+///|
+test "each receiver environment debits its field and admitted name work" {
+  let (source, document) = probe_budget_source()
+  let root = @builder.cursor(source)
+  let rows = probe_budget_rows()
+  // One field plus the seven UTF-16 units in its name, for each probe.
+  let exact = probe_budget_state(source, document, work=2 * (1 + 7))
+  ignore(exact.environment(root, Some(rows), None))
+  assert_eq(exact.work, 8)
+  ignore(exact.environment(root, Some(rows), None))
+  assert_eq(exact.work, 0)
+  let short = probe_budget_state(source, document, work=7)
+  let rejected = try {
+    ignore(short.environment(root, Some(rows), None))
+    false
+  } catch {
+    Abort(Expression({ issue: @expression.WorkLimit, .. })) => true
+    _ => false
+  }
+  assert_true(rejected)
+}
+
+///|
 test "refused common member probe retains its allowance and stops further probes" {
   let (source, document) = probe_budget_source()
   let resolution = probe_budget_state(source, document)
