@@ -116,5 +116,6 @@
       "program_semantics_cid": "sha256:a0c4c52c89c99f580394bf1991b31e543f9789fc6fd0b99cbea2bffb947abc70"
     },
     "programCid": "sha256:666d7674d445fbd6c81cdd499cd8691cf12840b77f90bcff02d7e06af9abfeac"
-  }
+  },
+  "aoa_contract_cid": "sha256:6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85"
 }
