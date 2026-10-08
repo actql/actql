@@ -117,3 +117,37 @@ success. The final public receipt and package digests belong in the PR report.
 No full Core, Wasm/Native campaign, manual CI retry or merge is performed for
 this unit. Draft CI and focused local success do not establish full integration
 or completion of the overall Frontend goal.
+
+## Public caller failure and local repair
+
+Normal five-package production and digest verification at
+`c6a2a0ca0a15fb25ea62f2fe4064f0dd0efae4cd` succeeded. The existing selected
+consumer stopped at `correlated-unnest-joined-parent`, after thirteen existing
+Embedded Local positive cases. The new star cases, refusals and HTTPS cohort
+were not reached. Evidence: `run-4TLXJX`,
+`worktrees/.codex-scratch/public-query-evidence-f1SvOG`; command `010` has
+complete stdout/stderr and exit 1. No acceptance success is inferred from this
+partial run; its Store, tarballs and digest manifest remain protected.
+
+The unchanged source joins `records r` to `(SELECT 1 AS key) k` with
+`MAX_OUTPUT_ROWS 4`, expands declared `@items = [2,NULL,2]`, and orders by
+`r.id, position`. Its public refusal was `ClientProgramInvalidInput` before
+Run admission. A focused reproduction through the same script input-binding
+path identifies `ExpressionTyping(UnknownParameter("items"))`:
+`run-5ClKgQ`, `focused-test-30t5dr`, 5/6 passed. The direct standalone CTE
+probe instead returned `UnsupportedCte` (`run-tnLd1B`); it is a different
+route and is not used as the public failure's cause. Diagnostic test setup
+errors are retained separately and are not successful checks.
+
+`compile_join_chain_steps` omitted `context.parameter_declarations` when
+calling `compile_steps`. Its source-free ARRAY probe therefore lacked a
+declaration even though the Program root and parameter name resolver had it.
+The repair forwards existing declarations from the stage/script callers
+through the common joined-row lowerer. It changes neither the predicate nor
+the declared JOIN bound, CTE capture, stage ownership or execution strategy.
+The parameter and all original fixture rows/contracts/order remain unchanged.
+
+After this local forwarding repair, the fixed scope/caller regressions and
+existing JOIN-chain tests pass **14/14**, `run-WTr3LV`,
+`focused-test-h6UKP8`. Exact new-HEAD packed acceptance is still required; the
+failed `c6a2a0ca0` packages cannot establish the later repair's success.

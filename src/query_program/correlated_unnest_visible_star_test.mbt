@@ -188,3 +188,57 @@ test "correlated nullable object star matches an independent complete Program" {
     )
   }
 }
+
+///|
+test "joined parent retains the declared ARRAY parameter for correlated expansion" {
+  let declarations = @parameters.read_declarations(
+    Some(
+      unnest_value_cursor(
+        (
+          #|{"items":{"type":"array","nullable":true,"max_items":3,"items":{"type":"number","nullable":true}}}
+        ),
+      ),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  // The captured public Host uses the shared script input-binding path.
+  let program = match
+    compile_query_script(
+      @query.parse_query_script(
+        "SELECT p.id, element, position FROM parents p JOIN (SELECT 1 AS key) k ON p.id = k.key MAX_OUTPUT_ROWS 4 CROSS JOIN UNNEST(@items) element WITH OFFSET position ORDER BY p.id, position",
+        syntax_limits(),
+      ).unwrap(),
+      {
+        ..correlated_unnest_context(),
+        parameter_declarations: Some(declarations),
+      },
+      construction_limits(),
+    ) {
+    Ok(program) => program
+    Err(Expression({ issue: UnknownReference, .. })) =>
+      fail("joined lowering: UnknownReference")
+    Err(ExpressionTyping({ kind: UnknownParameter(name), .. })) =>
+      fail("joined lowering: UnknownParameter " + name)
+    Err(UnsupportedCte) => fail("joined lowering: UnsupportedCte")
+    Err(UnsupportedJoin) => fail("joined lowering: UnsupportedJoin")
+    Err(UnknownColumn) => fail("joined lowering: UnknownColumn")
+    Err(AmbiguousColumn) => fail("joined lowering: AmbiguousColumn")
+    Err(_) => fail("unexpected joined lowering refusal")
+  }
+  match
+    @check.check_parsed(
+      program,
+      check_environment(),
+      Some(unnest_value_cursor("{\"items\":[2,null,2]}")),
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    _ => fail("the joined Values parent requires no Source")
+  }
+}
