@@ -43,3 +43,10 @@ normal-load classification, stable improvement, ETA, p90 or net benefit is
 inferred. Descriptive timing and all original costs remain visible even when
 there is no improvement. No full performance matrix, CI or external service is
 started for this unit.
+
+The first exposure at `795dd58ae3f4051086c17304c666f4b4a752a300` failed
+before identity preparation: the caller applied the non-null `required` reader
+to a nullable profile-creation cost. This is a functional setup failure, not a
+comparison sample. Its raw guard logs and release witness are retained; no
+comparison/evaluation slots were collected or replaced. The nullable lookup
+uses the same bounded decoder and does not change Source acquisition or limits.

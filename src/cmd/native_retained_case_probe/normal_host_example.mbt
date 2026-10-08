@@ -60,7 +60,7 @@ fn normal_host_example(
     "host",
   ).unwrap()
   let file = normal_setting(object, "profile_file")
-  let cost = @decode.required(object, "profile_creation_ms").unwrap()
+  let cost = @decode.lookup(object, "profile_creation_ms").unwrap()
   let creation_ms = if @decode.is_null(cost) {
     None
   } else {
@@ -117,7 +117,7 @@ fn normal_host_example(
     max_nodes: value_nodes,
     max_depth: 64,
   }
-  let identity = @query.identify_captured_source_relation(
+  let identity_result = @query.identify_captured_source_relation(
     source,
     rows,
     {
@@ -130,7 +130,25 @@ fn normal_host_example(
     wire,
     { max_fields: columns, max_bytes: 65536, max_nodes: 4096, max_depth: 16, },
     batch_bytes,
-  ).unwrap()
+  )
+  let identity = match identity_result {
+    Ok(value) => value
+    Err(@query.Export(@execution.Admission(@execution.CaptureLimit))) =>
+      abort("normal Host source identity capture limit")
+    Err(@query.Export(@execution.Admission(_))) =>
+      abort("normal Host source identity admission")
+    Err(@query.Export(@execution.Wire(@execution.OrderLimit))) =>
+      abort("normal Host source identity ordering limit")
+    Err(@query.Export(@execution.Wire(@execution.Encoding(_)))) =>
+      abort("normal Host source identity encoding limit")
+    Err(@query.Export(@execution.Schema(@execution.FieldLimit))) =>
+      abort("normal Host source identity schema field limit")
+    Err(@query.Export(@execution.NotCellRepresentation)) =>
+      abort("normal Host source identity requires cell representation")
+    Err(@query.Export(@execution.InvalidTarget)) =>
+      abort("normal Host source identity target")
+    Err(_) => abort("normal Host source identity unavailable")
+  }
   let input = @host.prepare_native_performance_input(dispatch, source, identity).unwrap()
   println(
     "normal-host-input-binding-us:" +
