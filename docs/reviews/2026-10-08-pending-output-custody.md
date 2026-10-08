@@ -5,8 +5,9 @@
 The actual two-task Worker/Native acceptance used Cloud source
 `427c7a0227b95fd6ffaa9fa0119c7b2222df450d` and formally adopted OSS source
 `ad7fd0f88791a3fec4cd0a5164699a7048fbcda5`. Source, producer and consumer
-executed once each. Output had uploaded a chunk but had not committed its
-original Transfer when the bounded invocation stopped.
+executed once each. The original Output Transfer was admitted, but had not
+committed when the bounded invocation stopped. The observed HTTP 201 was the
+Transfer admission response; it does not establish a chunk upload.
 
 An attach-only continuation of the same Run observed Native startup reclaiming
 one Output intent before restoring its consumer holder. Subsequent exact Output
@@ -21,6 +22,14 @@ at the fix's main base, `97a98b27edaee19786217093aacb3e1768c35892`.
 Original failure evidence remains in `completed-successor-partial-output-recovery-defect.json`
 and the original acceptance journal, Transfer Store and command receipts. They
 are retained; this fix does not declare that historical Run recovered.
+
+A subsequent public SDK cancellation of the same original Run confirmed both
+tasks' release through their existing Owners and reclaimed the Native temporary
+resources without another executor entry. The Cloud-side Output Transfer still
+requires cleanup. A read-only reconstruction through the installed Owners finds
+the exact original request's wake retained and pending; an earlier audit's
+hard-coded request name incorrectly reported that wake absent. Neither Native
+resource reclamation nor Run cancellation proves the remaining Transfer settled.
 
 ## Ownership boundary
 
