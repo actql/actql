@@ -71,6 +71,8 @@ pub fn coordinator_durable_revision(@remote_site_protocol.DurableCoordinatorDisp
 
 pub fn coordinator_exact_retransmission_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest) -> Bool
 
+pub fn coordinator_initial_delivery_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest, String, String, Int, Bool, Bool, Bool) -> Result[Bool, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_intent_is_new(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Bool
 
 pub fn coordinator_issue_output_plan_poll_json(@remote_site_protocol.DurableCoordinatorDispatchRecord, String, String, String, String, String, String, String, String, Int, Int64, Int64, String, String, String, String) -> Result[String, @remote_site_protocol.DispatchIssue]

@@ -1,5 +1,5 @@
-import type {HostCapacityPolicy, SourceProfilePaths} from '@actql/local-node';
-export type {HostCapacityPolicy, SourceProfilePaths} from '@actql/local-node';
+import type {HostCapacityPolicy, SourceProfilePaths, EffectProfilePaths} from '@actql/local-node';
+export type {HostCapacityPolicy, SourceProfilePaths, EffectProfilePaths} from '@actql/local-node';
 import type {Client, ConnectionOptions, ConnectionStringOptions, Durability} from '@actql/sdk';
 
 export {ClientError, RequestHeld} from '@actql/sdk';
@@ -18,6 +18,7 @@ export type EmbeddedHostInstallation = Readonly<{
   sourceProfilePaths?: SourceProfilePaths;
   resolveSourceSecret?: (...args: any[]) => any;
   effectProfilePath?: string;
+  effectProfilePaths?: EffectProfilePaths;
   resolveEffectSecret?: (...args: any[]) => any;
   authorization?: Readonly<Record<string, unknown>>;
 }>;

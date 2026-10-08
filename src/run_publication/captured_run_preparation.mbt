@@ -23,6 +23,8 @@ priv struct CapturedRunIssuanceInputs {
 ///|
 priv enum CapturedRunPreparationPhase {
   Prepare
+  Root(PublicationRootPreparation)
+  PrepareChecked
   Context(EffectContextPreparation)
   Envelope(Int)
   Emit(@json.CanonicalEmit, Int)
@@ -177,7 +179,42 @@ fn CapturedRunIssuancePreparation::step(
       if self.max_workspace < self.live {
         return Err(CaptureIssuanceEncoding)
       }
-      let prepared = match prepare_captured_computation_inputs(inputs) {
+      if inputs.authoring.name != "authoring_context" {
+        return Err(CaptureIssuanceWrongContract("authoring_context"))
+      }
+      if self.max_workspace - self.live < 12 {
+        return Err(CaptureIssuanceEncoding)
+      }
+      self.phase = Root(
+        start_publication_root_preparation(
+          {
+            run_definition: inputs.run_definition,
+            invocation: inputs.invocation,
+            definitions: inputs.definitions,
+            artifacts: inputs.artifacts,
+            manifest: inputs.manifest,
+            max_wire_bytes: inputs.max_wire_bytes,
+            max_nodes: inputs.max_nodes,
+            max_depth: inputs.max_depth,
+          },
+          self.max_workspace - self.live,
+        ),
+      )
+    }
+    Root(child) =>
+      match child.advance(1) {
+        Err(issue) => return Err(CaptureIssuanceChain(issue))
+        Ok((done, _)) => {
+          self.peak = Int::max(self.peak, self.live + child.peak)
+          if done {
+            child.cancel()
+            self.phase = PrepareChecked
+          }
+        }
+      }
+    PrepareChecked => {
+      let prepared = match
+        prepare_captured_computation_inputs_after_root(inputs) {
         Ok(prepared) => prepared
         Err(issue) => return Err(issue)
       }
@@ -403,6 +440,7 @@ pub fn CapturedRunIssuancePreparation::cancel(
   }
   self.closed = true
   match self.phase {
+    Root(child) => child.cancel()
     Context(child) => child.cancel()
     Emit(cursor, _) => @json.cancel_emit(cursor)
     Seal(child) => child.cancel()
@@ -425,17 +463,17 @@ pub fn CapturedRunIssuancePreparation::cancel(
 pub fn captured_run_preparation_fixture_phase(
   preparation : CapturedRunIssuancePreparation,
 ) -> String {
-  if preparation.closed { return "closed" }
+  if preparation.closed {
+    return "closed"
+  }
   match preparation.phase {
     Prepare => "prepare"
+    Root(_) => "root-check"
+    PrepareChecked => "prepare"
     Context(_) => "context"
     Envelope(_) | Emit(_, _) => "envelope"
     Seal(_) => "seal"
-    Check(child) => match child.phase {
-      ContextHash(_, _) => "context-check"
-      Fields(_, _, _, _, _) | Rows(_, _) => "rows-check"
-      _ => "metadata-check"
-    }
+    Check(child) => computation_evidence_check_fixture_phase(child)
     Done => "done"
   }
 }
