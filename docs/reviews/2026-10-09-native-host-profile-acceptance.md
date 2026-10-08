@@ -100,3 +100,93 @@ This failed evaluation and its unobserved remaining slots stay in the original.
 A corrected runtime/artifact revision requires its own fixed comparison and
 held-out evaluation; old successful comparisons are not relabelled or pooled.
 The plan retains the same cases, rounds, order, ceilings and termination rule.
+
+## Integrated fixed-source acceptance
+
+Executed source: `848d8435dc52c773281dd8da385a9f925d26f905`.
+Release binary:
+`sha256:a7830d2a9d4146362e092eb4d90842990dde54dcd2586cac0004cb212b5b0168`.
+Generated C:
+`sha256:d474edefcff36863117f8d15d59e314bc6a88605c9c80b9b575734a0922546c4`.
+The clean-source release producer (`run-J9FoCo`) ran:
+
+```sh
+moon check --target native src/cmd/native_retained_case_probe --deny-warn
+moon build --target native --release src/cmd/native_retained_case_probe --deny-warn
+```
+
+The existing local supervisor (`run-v3aJIw`, 360-second ceiling) then ran the
+fixed protocol recorded in the archive's `commands`: actual Source/candidate
+exposures, `run-whole-native-profile.mjs` comparisons and held-out evaluations,
+twelve ordinary Host boundaries, and `run-whole-native-boundaries.mjs` limited
+to `binding,expiry`. All 54 comparison and 18 held-out slots succeeded. All
+fourteen boundary cases succeeded. There are two initial workload exposures and
+one separate single-candidate exposure; none are performance samples.
+
+Text has two presented assignments; JOIN has sixteen. Every positive Run passed
+independent result CID/schema checks and formal release. The normal selector
+changed the first assignment from ordinary offline position 7 to presented
+position 0 for Text, and from position 1 to position 0 for JOIN; these numbers
+are observations of these exact snapshots, not lasting meanings. All later
+requests matched the selected residual task/registration/resident realization,
+with generation/revision and physical-attempt/holding correspondence checked.
+Unconfigured execution had no profile/input-binding diagnostics. Diagnostic
+reference preserved offline selection. No load permission, incomplete/all-unknown,
+incompatible/stale/missing profile and single-candidate cases used the expected
+reasoned offline path. A changed pin refused admission with zero physical attempts
+and confirmed cleanup. Modified/old/current-state and real-clock-expired requests
+were refused through the existing Native/common admission. No retry/new request
+was manufactured from a refusal. Stop retained holdings until close; injected
+cleanup failure retained responsibility and a retry released it without another
+Compute. Restart used a new process/capture/request, not an old commit.
+This does not establish durable public Run recovery or public `Cancelled`.
+
+Independent consumer `run-9T8xOy` validated original bytes and recalculated
+held-out comparisons using `compareWholeNativeProfiles`, without another Native
+execution. Costs include profile access/validation, template preparation, Source
+capture/identity, all checked tasks, Result readback, formal release and original
+record persistence in the outer caller clock. Nested intervals are not added.
+
+| Workload | Offline median | First-use median | Reuse median | Profile creation |
+| --- | ---: | ---: | ---: | ---: |
+| Text (1,000 rows) | 484.38 ms | 780.36 ms | 726.94 ms | 3,894.23 ms |
+| JOIN/count (100 rows) | 115.49 ms | 637.00 ms | 147.65 ms | 10,244.26 ms |
+
+Each group has three fixed held-out samples. Reuse was slower by 242.55 ms and
+32.15 ms respectively; conditional recovery counts are unknown. The first-use
+profile readback/validation medians were 147.24 ms and 431.26 ms; reuse avoids
+that Node original reconstruction, while a new Native process loads a new
+immutable handle and subsequent requests within that Run do not reread it.
+Profile creation is separate and counted once. Direct recording/consultation
+costs and all phase/cold/warm/process intervals are retained in the originals.
+External load and OS cache were uncontrolled; memory pressure and causal load
+attribution are unknown. These descriptive results establish no stable benefit,
+ETA, p90, general workload improvement or capture overhead against off mode.
+No further samples were collected to seek a favorable result.
+
+Evidence: [summary](evidence/2026-10-09-normal-native-host-848d8435d.json)
+and [originals/commands](evidence/2026-10-09-normal-native-host-848d8435d.tar.gz).
+Earlier failed originals and the pre-existing inverse results remain separate.
+#1027 requires the connection fixes in #1031; review the integrated stack.
+Subsequent documentation/evidence-only commits do not relabel this executed
+runtime revision. Their compiled/source inputs must match the release witness.
+CI remains intentionally stopped. Cloud, Node Host, durable Run recovery,
+multi-capture profiling, all-target/full integration and external telemetry are
+unverified and outside this acceptance. The old Actions-original/reuse/savings
+work remains deferred without periodic queries or CI dispatch.
+
+Creation-cost scope: the table's creation values and trusted caller diagnostic
+cost receipt cover the comparison campaign plus final original validation, once.
+They are not an all-in profiling cost. The archive summary also reports the
+combined guarded Text/JOIN setup interval, which contains synthetic DB preparation,
+condition/candidate exposure and plan persistence. That enclosing interval was
+not apportioned between workloads. Fixture preparation is reported separately;
+it must not also be added to the enclosing setup interval. Per-workload all-in
+creation and a standalone exposure/capture overhead are unknown. No fabricated
+phase sum or unmeasured setup cost is used to infer benefit or recovery.
+
+The published archive itself was independently extracted and checked by
+`run-WHMZNj` (120-second local supervisor). Its exact digest, both original
+streams and all descriptive comparison fields matched the summary. No Native
+execution was repeated. The archival verification command is preserved in the
+local guard output; the archive README gives the portable read-only consumer.
