@@ -85,6 +85,8 @@ pub(all) enum Issue {
   UnsupportedEffect
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
+  // Retain the common checker's cause and authored cursor from scope probes.
+  ExpressionTyping(@typing.Issue)
   Admission(@program.SyntaxError)
 }
 
