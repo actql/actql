@@ -268,3 +268,13 @@ recovery counts creation and first-use extra once and assumes observed reuse
 saving continues. Without a positive saving and adequate observations it is
 unknown. Revision or measurement-condition changes require recollection, whose
 cost cannot be silently transferred from an older revision.
+
+## Diagnostic versus selection permission
+
+The ordinary Native Host's `DiagnosticReference` mode retains its offline
+selection while displaying compatible descriptive references. It does not
+require permission to use an uncontrolled-load ranking for selection.
+`SelectReference` requires the separate `allow_uncontrolled_load` setting;
+without it, the Host retains offline selection and reports the refusal reason.
+Both modes retain request, profile and disclosure validation. Load applicability,
+stable improvement and net benefit remain unknown.

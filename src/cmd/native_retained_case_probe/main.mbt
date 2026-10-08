@@ -1549,6 +1549,8 @@ fn main {
         native_strategy_issue_name(issue),
       )
     Err(@host.Local(_)) => abort("native strategy Local task rejected")
+    Err(@host.Performance(_)) =>
+      abort("native performance consultation rejected")
   }
   if empirical_mode == "expiry" {
     close_observed_run(run, ledger, 0)
