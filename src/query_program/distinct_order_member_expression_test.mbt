@@ -14,27 +14,38 @@ fn distinct_order_member_expected() -> @program.Program {
 ///|
 test "selected nullable member ORDER control passes the common checker" {
   assert_true(
-    @check.check_parsed(distinct_order_member_expected(), check_environment(), None, check_limits())
+    @check.check_parsed(
+      distinct_order_member_expected(),
+      check_environment(),
+      None,
+      check_limits(),
+    )
     is Checked(_),
   )
 }
 
 ///|
 test "DISTINCT ORDER can use a selected member inside a scalar expression" {
-  for text in [
-    "SELECT DISTINCT payload.score AS score FROM objects ORDER BY payload.score + 1 NULLS LAST",
-    "SELECT DISTINCT payload.score AS score FROM objects ORDER BY (payload).score + 1 NULLS LAST",
-    "SELECT DISTINCT ((payload)).`SCORE` AS score FROM objects ORDER BY objects.payload.score + 1 NULLS LAST",
-  ] {
+  for
+    text in [
+      "SELECT DISTINCT payload.score AS score FROM objects ORDER BY payload.score + 1 NULLS LAST",
+      "SELECT DISTINCT payload.score AS score FROM objects ORDER BY (payload).score + 1 NULLS LAST",
+      "SELECT DISTINCT ((payload)).`SCORE` AS score FROM objects ORDER BY objects.payload.score + 1 NULLS LAST",
+    ] {
     let actual = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
       group_property_context(),
       construction_limits(),
     ).unwrap()
-    assert_eq(semantic(actual), semantic(distinct_order_member_expected()), msg=text)
+    assert_eq(
+      semantic(actual),
+      semantic(distinct_order_member_expected()),
+      msg=text,
+    )
     assert_eq(semantic(actual).split("\"property\":").length(), 2, msg=text)
     assert_true(
-      @check.check_parsed(actual, check_environment(), None, check_limits()) is Checked(_),
+      @check.check_parsed(actual, check_environment(), None, check_limits())
+      is Checked(_),
       msg=text,
     )
   }
@@ -42,13 +53,18 @@ test "DISTINCT ORDER can use a selected member inside a scalar expression" {
 
 ///|
 test "selected member mapping cannot restore an unselected member or receiver" {
-  for text in [
-    "SELECT DISTINCT (payload).score AS score FROM objects AS payload ORDER BY payload.score + 1",
-    "SELECT DISTINCT payload.score AS score FROM objects AS payload ORDER BY (payload).score + 1",
-    "SELECT DISTINCT payload.score + 1 AS score FROM objects ORDER BY payload.score + 2",
-  ] {
+  for
+    text in [
+      "SELECT DISTINCT (payload).score AS score FROM objects AS payload ORDER BY payload.score + 1",
+      "SELECT DISTINCT payload.score AS score FROM objects AS payload ORDER BY (payload).score + 1",
+      "SELECT DISTINCT payload.score + 1 AS score FROM objects ORDER BY payload.score + 2",
+    ] {
     assert_true(
-      compile(@query.parse_query(text, syntax_limits()).unwrap(), group_receiver_scope_context(), construction_limits())
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        group_receiver_scope_context(),
+        construction_limits(),
+      )
       is Err(UnsupportedOrdering),
       msg=text,
     )
@@ -59,31 +75,51 @@ test "selected member mapping cannot restore an unselected member or receiver" {
 test "selected member mapping cannot recover another input object" {
   assert_true(
     compile(
-      @query.parse_query("SELECT DISTINCT payload.score AS score FROM objects ORDER BY other.score + 1", syntax_limits()).unwrap(),
-      group_property_context(), construction_limits(),
-    ) is Err(UnsupportedOrdering),
+      @query.parse_query(
+        "SELECT DISTINCT payload.score AS score FROM objects ORDER BY other.score + 1",
+        syntax_limits(),
+      ).unwrap(),
+      group_property_context(),
+      construction_limits(),
+    )
+    is Err(UnsupportedOrdering),
   )
 }
 
 ///|
 test "receiver alias lowering records the independent common object DISTINCT limit" {
-  for text in [
-    "SELECT DISTINCT payload.score AS original_score, other AS payload FROM objects ORDER BY -payload.score NULLS LAST, original_score NULLS LAST",
-    "SELECT DISTINCT payload.score AS original_score, other AS payload FROM objects ORDER BY -objects.payload.score NULLS LAST, original_score NULLS LAST",
-  ] {
+  for
+    text in [
+      "SELECT DISTINCT payload.score AS original_score, other AS payload FROM objects ORDER BY -payload.score NULLS LAST, original_score NULLS LAST",
+      "SELECT DISTINCT payload.score AS original_score, other AS payload FROM objects ORDER BY -objects.payload.score NULLS LAST, original_score NULLS LAST",
+    ] {
     let actual = compile(
-      @query.parse_query(text, syntax_limits()).unwrap(), group_property_context(), construction_limits(),
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      group_property_context(),
+      construction_limits(),
     ).unwrap()
     // This separate common limit is preserved, not a successful execution.
-    guard @check.check_parsed(actual, check_environment(), None, check_limits()) is Rejected(error) else {
+    guard @check.check_parsed(actual, check_environment(), None, check_limits())
+      is Rejected(error) else {
       fail("retained object DISTINCT support requires a common contract change")
     }
-    guard @check.diagnostic_cause(error) is Source(SourceView(Program(Program(Pipeline(stage, issue))))) else {
+    guard @check.diagnostic_cause(error)
+      is Source(SourceView(Program(Program(Pipeline(stage, issue))))) else {
       raise @check.diagnostic_cause(error)
     }
     assert_eq(stage, 0)
-    assert_eq(issue.kind, @pipeline.Operation(@relation.NotKeyComparable("payload")))
-    assert_eq(issue.path, [Key("stages"), Index(0), Key("steps"), Index(3), Key("distinct"), Index(1)])
+    assert_eq(
+      issue.kind,
+      @pipeline.Operation(@relation.NotKeyComparable("payload")),
+    )
+    assert_eq(issue.path, [
+      Key("stages"),
+      Index(0),
+      Key("steps"),
+      Index(3),
+      Key("distinct"),
+      Index(1),
+    ])
     let body = semantic(actual)
     // The alias path consumes the retained object; the qualified path consumes
     // the evaluated original score. Neither reads the removed input receiver.
@@ -91,7 +127,11 @@ test "receiver alias lowering records the independent common object DISTINCT lim
       assert_true(body.contains("\"negate\":{\"field\":\"original_score\"}"))
       assert_eq(body.split("\"property\":").length(), 2)
     } else {
-      assert_true(body.contains("\"negate\":{\"property\":{\"name\":\"score\",\"value\":{\"field\":\"payload\"}}}"))
+      assert_true(
+        body.contains(
+          "\"negate\":{\"property\":{\"name\":\"score\",\"value\":{\"field\":\"payload\"}}}",
+        ),
+      )
       assert_eq(body.split("\"property\":").length(), 3)
     }
   }
@@ -100,11 +140,18 @@ test "receiver alias lowering records the independent common object DISTINCT lim
 ///|
 test "Pipe DISTINCT ORDER binds selected members without keeping input ranges" {
   let actual = compile(
-    @query.parse_query("FROM objects AS active |> SELECT DISTINCT active.payload.score AS score |> ORDER BY -(payload).score NULLS LAST", syntax_limits()).unwrap(),
-    group_property_context(), construction_limits(),
+    @query.parse_query(
+      "FROM objects AS active |> SELECT DISTINCT active.payload.score AS score |> ORDER BY -(payload).score NULLS LAST",
+      syntax_limits(),
+    ).unwrap(),
+    group_property_context(),
+    construction_limits(),
   ).unwrap()
   let body = semantic(actual)
   assert_eq(body.split("\"property\":").length(), 2)
   assert_true(body.contains("\"negate\":{\"field\":\"score\"}"))
-  assert_true(@check.check_parsed(actual, check_environment(), None, check_limits()) is Checked(_))
+  assert_true(
+    @check.check_parsed(actual, check_environment(), None, check_limits())
+    is Checked(_),
+  )
 }
