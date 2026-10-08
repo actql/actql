@@ -2,7 +2,7 @@
 // envelopes are independent literals; the admitted control uses the checker.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer, request as httpsRequest} from 'node:https';
 import {join} from 'node:path';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
@@ -10,7 +10,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import test, {after} from 'node:test';
 import {ClientError, connect, getCheckInput, resolveCheckLocation,
   resolveCheckTextRange, explainCheckReason, getCheckContextRequirements,
-  getCheckFixes, createCheckSupplementationSession} from '../../packages/sdk/index.mjs';
+  getCheckFixes, createCheckSupplementationSession, createCheckDocumentSession} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
@@ -44,7 +44,7 @@ const environment = moon.clientProgramCheckEnvironment(canonicalText(wire),
   wire.evidence_bundle_cid, false, false, true, true, false, false, false);
 
 async function publicCheck(t, entrance, {program = false, environmentWire = wire,
-  visibility, contextKey} = {}) {
+  visibility, contextKey, afterCheck} = {}) {
   const selected = environmentWire === wire ? environment
     : moon.clientProgramCheckEnvironment(canonicalText(environmentWire),
       environmentWire.evidence_bundle_cid, false, false, true, true, false, false, false);
@@ -86,7 +86,11 @@ async function publicCheck(t, entrance, {program = false, environmentWire = wire
       limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
         maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
         maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}}),
-    check, maxRowBytes: 1024, maxRequestBytes: 65536};
+    async check(request) {
+      const outcome = await check(request);
+      await afterCheck?.(request, outcome);
+      return outcome;
+    }, maxRowBytes: 1024, maxRequestBytes: 65536};
   const body = text => ({connection, kind: 'text', scope: 'bound_input', input: {text, format: 'sql'}, parameters: null});
   if (entrance === 'local') {
     const host = createNodeInProcessClientHost(configuration);
@@ -241,6 +245,106 @@ for (const entrance of ['local', 'http']) {
       {start: {line: 1, character: 8}, end: {line: 1, character: 8}});
     assert.equal(counts.authorization, 1);
     assert.equal(counts.analysis, 1);
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: document sessions retain original spans across buffer edits and reply reordering`, async t => {
+    const directory = await mkdtemp(join(scratch, 'document-session-'));
+    t.after(async () => {
+      if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+        console.error(`Document-session evidence retained: ${directory}`);
+      } else await rm(directory, {recursive: true, force: true});
+    });
+    const gates = [0, 1].map(() => {
+      let enter, release;
+      const entered = new Promise(resolve => {enter = resolve;});
+      const waiting = new Promise(resolve => {release = resolve;});
+      return {enter, release, entered, waiting};
+    });
+    t.after(() => gates.forEach(gate => gate.release()));
+    let replies = 0;
+    const {client, counts} = await publicCheck(t, entrance, {
+      async afterCheck(request, outcome) {
+        const gate = gates[replies++];
+        if (!gate) return;
+        // Delay the actual checker outcome before the ordinary Host returns
+        // it. No response fields, input revisions or verdicts are fabricated.
+        gate.enter({request, outcome});
+        await gate.waiting;
+      },
+    });
+    const originalText = '/*é😀e\u0301*/\r\nSELECT (';
+    const editedText = originalText + ' ';
+    const session = createCheckDocumentSession(client, {text: originalText, version: 1});
+    t.after(() => session.close());
+    const options = {scope: 'bound_input', format: 'sql'};
+    const firstPending = session.check(options);
+    await gates[0].entered;
+    session.update(editedText, 2);
+    gates[0].release();
+    const first = await firstPending;
+    const syntax = observation => observation.outcome.report.reasons.find(
+      reason => reason.code === 'query_syntax_invalid');
+    const firstLocation = syntax(first).location;
+    const firstInput = getCheckInput(first.outcome, 'source');
+    const staleRange = session.resolveTextRange(first, firstLocation);
+    await writeFile(join(directory, 'edit-observation.json'), JSON.stringify({
+      entrance, originalText, editedText, first, firstInput, staleRange,
+      originalRange: resolveCheckTextRange(first.outcome, firstLocation), counts,
+    }), {mode: 0o600});
+    assert.equal(staleRange, undefined, '[check-mutation:document-public-edit]');
+    assert.equal(firstInput.text, originalText);
+    assert.deepEqual(first.outcome.report.inputs.map(({document_id, byte_length}) =>
+      ({document_id, byte_length})), [{document_id: 'source', byte_length: 23}]);
+    assert.deepEqual({start: firstLocation.start_byte, end: firstLocation.end_byte},
+      {start: 23, end: 23});
+    assert.deepEqual(resolveCheckTextRange(first.outcome, firstLocation).range,
+      {start: {line: 1, character: 8}, end: {line: 1, character: 8}});
+    assert.equal(JSON.parse(session.format(first, {format: 'json'})).entries[0].location, undefined);
+    await assert.rejects(session.applyFixes(first, [], {version: 3, reviewed: true}),
+      {code: 'CheckFixStale'});
+
+    // Same bytes/version, different scope/context: the later bound check is
+    // current even when the earlier actual template reply arrives afterwards.
+    const earlierPending = session.check({...options, scope: 'template_only'});
+    await gates[1].entered;
+    const current = await session.check(options);
+    gates[1].release();
+    const earlier = await earlierPending;
+    const earlierLocation = syntax(earlier).location;
+    const currentLocation = syntax(current).location;
+    const reorderedRange = session.resolveTextRange(earlier, earlierLocation);
+    const currentRange = session.resolveTextRange(current, currentLocation);
+    await writeFile(join(directory, 'order-observation.json'), JSON.stringify({
+      entrance, editedText, earlier, current, reorderedRange, currentRange, counts,
+    }), {mode: 0o600});
+    assert.equal(reorderedRange, undefined, '[check-mutation:document-public-order]');
+    assert.deepEqual(earlier.outcome.report.scope, {kind: 'template_only'});
+    assert.deepEqual(current.outcome.report.scope, {kind: 'bound_input'});
+    assert.notEqual(earlier.outcome.report.context_ref, current.outcome.report.context_ref);
+    assert.equal(getCheckInput(current.outcome, 'source').text, editedText);
+    assert.deepEqual({start: currentLocation.start_byte, end: currentLocation.end_byte},
+      {start: 24, end: 24});
+    assert.deepEqual(currentRange.range,
+      {start: {line: 1, character: 9}, end: {line: 1, character: 9}});
+    assert.equal(currentRange.positionEncoding, 'utf-16');
+    assert.equal(JSON.parse(session.format(earlier, {format: 'json'})).entries[0].location, undefined);
+    assert.deepEqual(JSON.parse(session.format(current, {format: 'json'})).entries[0].location.range,
+      currentRange.range);
+    const copied = structuredClone(current);
+    assert.equal(session.resolveTextRange(copied, currentLocation), undefined);
+    assert.equal(getCheckInput(copied.outcome, 'source'), undefined);
+
+    session.update('SELECT 1 AS n', 3);
+    const corrected = await session.check(options);
+    assert.equal(corrected.outcome.report.verdict, 'verified');
+    assert.equal(session.resolveTextRange(current, currentLocation), undefined);
+    const reopened = createCheckDocumentSession(client, {text: editedText, version: 2});
+    assert.equal(reopened.resolveTextRange(current, currentLocation), undefined);
+    reopened.close(); session.close();
+    assert.equal(session.resolveTextRange(corrected, currentLocation), undefined);
+    assert.deepEqual(counts, {exchanges: 4, authorization: 4, analysis: 4});
   });
 }
 
