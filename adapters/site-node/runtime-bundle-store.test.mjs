@@ -16,6 +16,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {signRemoteRuntimeBundle} from
   './remote-bundle-signature.mjs';
 import {openRuntimeBundleStore} from './runtime-bundle-store.mjs';
+import './runtime-bundle-retention.test.mjs';
 
 const control = runtimeCore(moon).remoteBundleControl;
 const targetTriple = 'aarch64-apple-darwin';
