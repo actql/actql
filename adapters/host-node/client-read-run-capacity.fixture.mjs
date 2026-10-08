@@ -24,30 +24,15 @@ export async function attemptBytes(directory) {
   return Promise.all(names.map(name => readFile(join(root, name, 'attempt.json'), 'utf8')));
 }
 
-function assertReadExplanation(failure, consumer, ref, endpoint, attemptId) {
-  const count = consumer === 'rows' ? 120 : 0;
+function readDiagnostics(failure) {
+  // Return actual SDK observations; the named parent test owns assertions.
   const explanation = sdk.explainReadFailure(failure);
-  assert.equal(explanation.rowsYielded, count, '[check-mutation:read-121-count]');
-  const {cleanup, ...facts} = explanation;
-  assert.ok(cleanup === undefined || cleanup === 'unknown');
-  assert.deepEqual(facts, {
-    observation: 'read_incomplete', attemptId, rowsYielded: count,
-    summary: `This read stopped after returning ${count} rows.`,
-    hint: 'Keep this read reference. Look it up before deciding whether to open a new read from the beginning.',
-    next: {operation: 'deliveryAttempt', ref, resultName: 'answer', attemptId,
-      lookupContext: {endpoint, scopeRef: 'principal'}},
-  }, '[check-mutation:read-121-facts]');
-  assert.equal(sdk.explainReadFailure({...failure}), undefined, '[check-mutation:read-121-custody]');
-  for (const format of ['text', 'html', 'json']) {
-    const output = sdk.formatReadFailure(failure, {format});
-    assert.ok(output);
-    assert.doesNotMatch(output, /InjectedPhysicalRowInterruption|fixture-token/);
-    if (format === 'json') assert.deepEqual(JSON.parse(output).explanation, explanation,
-      '[check-mutation:read-121-format]');
-  }
+  const copiedExplanationAbsent = sdk.explainReadFailure({...failure}) === undefined;
+  const formats = ['text', 'html', 'json'].map(format =>
+    ({format, output: sdk.formatReadFailure(failure, {format})}));
   failure.code = 'Succeeded'; failure.rowsYielded = 999; failure.attemptId = 'foreign-read';
-  assert.deepEqual(sdk.explainReadFailure(failure), explanation, '[check-mutation:read-121-custody]');
-  return explanation;
+  return {explanation, copiedExplanationAbsent, formats,
+    editedExplanation: sdk.explainReadFailure(failure)};
 }
 
 async function initialRead({directory, entrance, consumer}) {
@@ -57,7 +42,7 @@ async function initialRead({directory, entrance, consumer}) {
       observeSubmission: (stage, error) => console.log('READ_121_SUBMISSION', entrance, stage,
         error === undefined ? '' : inspect(error, {depth: 8}))});
   const host = await connectOpeningHost(fixture, entrance, directory);
-  let release, ref, submissionRef, attemptId, observed, originalPolicy, failure, explanation;
+  let release, ref, submissionRef, attemptId, observed, originalPolicy, failure, diagnostics;
   const yielded = new Promise(resolve => {release = resolve;});
   if (consumer === 'all') release();
   fixture.beforeRow(async index => {
@@ -103,7 +88,7 @@ async function initialRead({directory, entrance, consumer}) {
     assert.equal(observed.record.state, 'failed');
     assert.equal(observed.hostReleaseReceipt, null);
     const beforeExplanation = {...fixture.counts};
-    explanation = assertReadExplanation(failure, consumer, ref, host.endpoint, attemptId);
+    diagnostics = readDiagnostics(failure);
     assert.deepEqual(fixture.counts, beforeExplanation, '[check-mutation:read-121-passive]');
     assert.equal((await run.status()).status, 'succeeded');
     const bytes = await attemptBytes(directory);
@@ -121,7 +106,7 @@ async function initialRead({directory, entrance, consumer}) {
     fixture.authorize(true);
     // Stop this Host/Owner after the interrupted attempt. The existing
     // restoration child owns the explicit new read and its durable receipt.
-    assert.deepEqual(sdk.explainReadFailure(failure), explanation);
+    diagnostics.finalExplanation = sdk.explainReadFailure(failure);
     assert.equal((await run.status()).status, 'succeeded');
     assert.deepEqual(await result.deliveryAttempt(attemptId), observed);
     assert.deepEqual(fixture.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});
@@ -142,7 +127,7 @@ async function initialRead({directory, entrance, consumer}) {
     traceReadRecovery('initial-121-close:finished', {entrance});
   }
   return {pid: process.pid, ref, submissionRef, attemptId, observed, originalPolicy,
-    explanation, counts: {...fixture.counts}};
+    endpoint: host.endpoint, diagnostics, counts: {...fixture.counts}};
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
