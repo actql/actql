@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {readCatalog} from './actions.mjs';
 import {gitTree, actionInputs, compareInputs, pipelineInventoryBoundary, hash} from './inputs.mjs';
@@ -77,15 +78,26 @@ test('reviewed inventory model admission changes no eager Session input read bou
     .replace("import assert from 'node:assert/strict';\n", ''), prefix(old));
   const introduced = execFileSync('git', ['--no-replace-objects', 'show', `38f7801241a0a5ce32a2861a8603960016a29769:${path}`], {cwd: root});
   assert.equal(hash(introduced), hash(current), 'Unreviewed function or top-level change');
+  assert.equal(readFileSync(new URL(`../../${path}`, import.meta.url)).toString(), current,
+    'The executed module must match the actual Git input');
   // Execute the actual module with filesystem/child-process effects refused.
-  // This tests import-time effects, not the explicit scientific history call.
-  const input = `import fs from 'node:fs'; import child from 'node:child_process';
+  // Preload its exact bytes so Node's own filesystem module loader is not
+  // mistaken for an eager effect of the module. Its imports are Node builtins.
+  const execute = source => {
+    const url = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
+    const input = `import fs from 'node:fs'; import child from 'node:child_process';
     import {syncBuiltinESMExports} from 'node:module';
     const refuse=()=>{throw new Error('Eager inventory effect');};
     for(const name of ['readFileSync','readdirSync','writeFileSync','statSync','lstatSync'])fs[name]=refuse;
     for(const name of ['spawnSync','execSync','execFileSync','spawn','exec','execFile','fork'])child[name]=refuse;
     syncBuiltinESMExports();
-    await import('./proofs/relation-pipeline/inventory.mjs'); console.log('PASS import without scientific I/O');`;
-  assert.equal(execFileSync(process.execPath, ['--input-type=module', '-e', input], {cwd: root, encoding: 'utf8'}).trim(),
+    await import(${JSON.stringify(url)}); console.log('PASS import without scientific I/O');`;
+    return execFileSync(process.execPath, ['--input-type=module', '-e', input],
+      {cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
+  };
+  assert.equal(execute(current),
     'PASS import without scientific I/O');
+  assert.throws(() => execute(`${current}\nreadFileSync('unlisted-scientific-input');\n`),
+    error => error.status !== 0 && /Eager inventory effect/u.test(error.stderr),
+    'The preload must still refuse an independently introduced eager read');
 });
