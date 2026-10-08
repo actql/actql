@@ -6,6 +6,10 @@ export const captureModes = Object.freeze(['off', 'metadata-only', 'evidence-ena
 export const profileMetrics = Object.freeze(['processCycleMs', 'coldMs', 'warmMs',
   'cleanupMs', 'executionMs', 'captureMs', 'recordingMs', 'observedEndToEndMs']);
 const outcomes = ['succeeded', 'failed', 'cancelled', 'interrupted', 'unobserved'];
+// Process crashes are failures, not cancellation or successful cleanup.
+export const localProcessFailureOutcome = error => error?.killed ||
+  ['SIGINT','SIGTERM','SIGKILL'].includes(error?.signal) ? 'interrupted' : 'failed';
+
 export const profileDigest = value => 'sha256:' + createHash('sha256')
   .update(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest('hex');
 const duration = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;

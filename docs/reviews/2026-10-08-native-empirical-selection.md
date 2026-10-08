@@ -57,6 +57,23 @@ when physical cleanup is unresolved. Do not replenish failed/slow observations.
 If selection does not change or held-out processing does not improve, report that
 outcome without altering the fixed plan or gates.
 
+## Preserved failed implementation campaign
+
+The first campaign at `18c469a01abe95beb32aadfc7d2a8c5bf789499c`
+executed one position-0 slot and then stopped: the fixture incorrectly used its
+positive-count CLI parser for a zero-based candidate position. Source acquisition
+completed, Compute never started, and the process exited with SIGABRT. Formal
+Owner cleanup was not observed. The original retains its then-emitted
+`interrupted` label plus the actual SIGABRT; that crash is a failure, not cancellation.
+The recorder classification is corrected without rewriting that original.
+
+The failed slot, raw bytes, Source DB and `run-Zc3BQW` remain preserved. No
+successful replacement is appended to that six-slot campaign. Following the
+fixture fix, a separately identified source/binary campaign keeps the same fixed
+six/six protocol and uses no measurement from the failed source. Candidate
+position parsing now admits zero and rejects malformed/negative forced input
+before Source/resource initialization. Positive fixture counts stay positive.
+
 ## Execution evidence
 
 Pending exact-source release acceptance. Limited diagnostic results do not

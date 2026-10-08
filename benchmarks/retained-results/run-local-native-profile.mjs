@@ -14,7 +14,7 @@ import {prepareNativeDirectProduct, executeNativeDirectProduct, admitNativeDirec
 import {nativeCostObservation} from './native-cost-observation.mjs';
 import {sha256File} from './release-artifacts.mjs';
 import {captureLocalExecution, captureLimitBytes} from './local-profile-capture.mjs';
-import {nativeProfileSchedule, nativeOperationalSchedule, nativeEmpiricalSchedule, profileDigest, validateLocalObservation,
+import {nativeProfileSchedule, nativeOperationalSchedule, nativeEmpiricalSchedule, localProcessFailureOutcome, profileDigest, validateLocalObservation,
   aggregateLocalProfiles, describeObservationOverhead} from './local-performance-profile.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -201,7 +201,7 @@ for (const step of schedule) {
     if (!['complete', 'omitted'].includes(item.capture.status)) item.unknown.push('capture-incomplete');
   } catch (error) {
     // A killed process is interrupted, never owner-confirmed Cancelled.
-    item.outcome = error.signal || error.killed ? 'interrupted' : 'failed';
+    item.outcome = localProcessFailureOutcome(error);
     item.ownerAccepted = false;
     item.unknown.push('execution-or-admission-incomplete');
     item.failure = {code: typeof error.code === 'string' || typeof error.code === 'number' ? error.code : null,

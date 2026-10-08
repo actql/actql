@@ -990,6 +990,21 @@ fn main {
   operational_require(
     ["reject", "offline"].contains(required(matches, "empirical-fallback")),
   )
+  // A candidate position is zero-based, unlike positive fixture counts.
+  // Admit this input before opening Source or allocating Native resources.
+  let empirical_position = if empirical_mode == "forced" {
+    let position : Int = @string.from_str(
+      required(matches, "empirical-position"),
+    ) catch {
+      _ => abort("invalid candidate position")
+    }
+    if position < 0 {
+      abort("negative candidate position")
+    }
+    Some(position)
+  } else {
+    None
+  }
   let root = required(matches, "application-root")
   let database_path = required(matches, "database")
   let library_path = required(matches, "duckdb-library")
@@ -1377,11 +1392,7 @@ fn main {
     ).unwrap()
     Some({
       mode: empirical_mode,
-      position: if empirical_mode == "forced" {
-        Some(int_option(matches, "empirical-position"))
-      } else {
-        None
-      },
+      position: empirical_position,
       root: required(matches, "empirical-profile-root"),
       profile_revision: required(matches, "empirical-profile-revision"),
       template_pin: required(matches, "empirical-template-pin"),

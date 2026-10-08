@@ -4,7 +4,7 @@ import {mkdtemp, mkdir, readFile, writeFile, rm, readdir} from 'node:fs/promises
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeProfileSchedule, aggregateLocalProfiles, profileDigest,
-  validateLocalObservation, matchLocalProfile, describeObservationOverhead} from './local-performance-profile.mjs';
+  validateLocalObservation, matchLocalProfile, describeObservationOverhead, localProcessFailureOutcome} from './local-performance-profile.mjs';
 import {captureLocalExecution} from './local-profile-capture.mjs';
 import {readLocalNativeProfile} from './read-local-native-profile.mjs';
 import {retainedCase, workloads} from './fixtures.mjs';
@@ -177,4 +177,12 @@ test('an unobserved quantity stays unknown even in a complete execution profile'
   const [profile] = aggregateLocalProfiles(samples, options);
   assert.equal(profile.metrics.executionMs.status, 'unknown'); assert.equal(profile.metrics.executionMs.median, null);
   assert.equal(profile.metrics.processCycleMs.status, 'descriptive-only');
+});
+
+test('native crash is a failure; process interruption never confirms cancellation or cleanup', () => {
+  assert.equal(localProcessFailureOutcome({signal:'SIGABRT',killed:false}), 'failed');
+  assert.equal(localProcessFailureOutcome({signal:'SIGSEGV'}), 'failed');
+  assert.equal(localProcessFailureOutcome({code:1}), 'failed');
+  for (const signal of ['SIGINT','SIGTERM','SIGKILL']) assert.equal(localProcessFailureOutcome({signal}), 'interrupted');
+  assert.equal(localProcessFailureOutcome({killed:true}), 'interrupted');
 });
