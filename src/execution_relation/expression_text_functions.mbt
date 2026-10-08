@@ -10,14 +10,22 @@ priv struct TextArgumentsState {
 }
 
 ///|
+priv enum TextFunctionKind {
+  TextLength
+  TextReplace
+  TextUpper
+  TextLower
+} derive(Eq)
+
+///|
 priv struct TextFunctionState {
   expression : @lower.Expression
   roots : Array[ExpressionRootLease?]
-  length_only : Bool
+  kind : TextFunctionKind
   null_result : Bool
   input : String
   search : String
-  replacement : String
+  mut replacement : String
   output_root : ExpressionRootLease?
   reserved : Int
   mut position : Int
@@ -31,6 +39,9 @@ priv struct TextFunctionState {
   mut bytes : Int
   mut weight : Int64
   mut builder : StringBuilder?
+  mut preceding_cased : Bool
+  mut probing_sigma : Bool
+  mut probe_position : Int
 }
 
 ///|
@@ -38,7 +49,7 @@ fn start_text_function(
   expression : @lower.Expression,
   values : Array[Value],
   roots : Array[ExpressionRootLease?],
-  length_only : Bool,
+  kind : TextFunctionKind,
   scope : ExpressionRoots?,
   workspace : RowWorkspace,
 ) -> Result[TextFunctionState, EvalIssue] {
@@ -53,7 +64,9 @@ fn start_text_function(
   if !reserve_slots(workspace, 2) {
     return Err({ kind: WorkspaceLimit, expression, })
   }
-  let output_root = if !length_only && !null_result && scope is Some(scope) {
+  let output_root = if kind != TextLength &&
+    !null_result &&
+    scope is Some(scope) {
     let budget = scope.budget
     if budget.host_nodes < 1 ||
       budget.host_depth < 1 ||
@@ -93,24 +106,24 @@ fn start_text_function(
   Ok({
     expression,
     roots,
-    length_only,
+    kind,
     null_result,
     input: text(values[0]),
-    search: if length_only {
-      ""
-    } else {
+    search: if kind == TextReplace {
       text(values[1])
-    },
-    replacement: if length_only {
-      ""
     } else {
+      ""
+    },
+    replacement: if kind == TextReplace {
       text(values[2])
+    } else {
+      ""
     },
     output_root,
-    reserved: if length_only {
-      2
-    } else {
+    reserved: if kind == TextReplace {
       12
+    } else {
+      2
     },
     position: 0,
     matched: 0,
@@ -123,6 +136,9 @@ fn start_text_function(
     bytes: 2,
     weight: 1L,
     builder: None,
+    preceding_cased: false,
+    probing_sigma: false,
+    probe_position: 0,
   })
 }
 
@@ -217,7 +233,7 @@ fn advance_text_function(
   if state.null_result {
     return Ok(Some(Null))
   }
-  if state.length_only {
+  if state.kind == TextLength {
     if state.position == state.input.length() {
       return Ok(Some(Number(state.count.to_double())))
     }
@@ -239,6 +255,28 @@ fn advance_text_function(
       Ok(next) => next
       Err(issue) => return Err(issue)
     }
+    return Ok(None)
+  }
+  if state.probing_sigma {
+    // Unicode 16 Final_Sigma uses possessive Case_Ignorable skipping.
+    // Probe only the original input; a witness never changes left context.
+    let following_cased = if state.probe_position == state.input.length() {
+      false
+    } else {
+      guard text_function_scalar(state.input, state.probe_position)
+        is Some((scalar, next, _, _)) else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      if @scalar.unicode_is_case_ignorable(scalar) {
+        state.probe_position = next
+        return Ok(None)
+      }
+      @scalar.unicode_is_cased(scalar)
+    }
+    state.replacement = if following_cased { "σ" } else { "ς" }
+    state.probing_sigma = false
+    state.emitting = true
+    state.emission = 0
     return Ok(None)
   }
   if state.position == state.input.length() {
@@ -268,6 +306,50 @@ fn advance_text_function(
     state.building = true
     state.position = 0
     state.matched = 0
+    state.preceding_cased = false
+    state.probing_sigma = false
+    state.probe_position = 0
+    return Ok(None)
+  }
+  if state.kind == TextUpper || state.kind == TextLower {
+    guard text_function_scalar(state.input, state.position)
+      is Some((scalar, next, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    if state.kind == TextLower {
+      let final_sigma_candidate = scalar == 'Σ' && state.preceding_cased
+      if !@scalar.unicode_is_case_ignorable(scalar) {
+        state.preceding_cased = @scalar.unicode_is_cased(scalar)
+      }
+      if final_sigma_candidate {
+        // Sigma itself is not case-ignorable. Probes therefore cover
+        // disjoint ignorable runs, at most one extra scan per input scalar
+        // per pass. Each probe advances under the frame's control budget.
+        state.position = next
+        state.probe_position = next
+        state.probing_sigma = true
+        return Ok(None)
+      }
+    }
+    let mapped = if state.kind == TextUpper {
+      @scalar.unicode_upper_mapping(scalar)
+    } else {
+      @scalar.unicode_lower_mapping(scalar)
+    }
+    if mapped is Some(mapped) {
+      // Borrow the fixed mapping. Each expanded scalar is sized/emitted by
+      // the existing continuation, never by an unbounded host casing call.
+      state.position = next
+      state.replacement = mapped
+      state.emitting = true
+      state.emission = 0
+      return Ok(None)
+    }
+    state.position = match
+      append_text_function_scalar(state, state.input, state.position) {
+      Ok(next) => next
+      Err(issue) => return Err(issue)
+    }
     return Ok(None)
   }
   if !state.search.is_empty() &&

@@ -48,6 +48,19 @@ fn client_source_preparation_issue_code(
             | AmbiguousColumn
             | AmbiguousRelation
             | DuplicateOutput
+            | ExpressionTyping(
+              {
+                kind: UnknownField(_)
+                | UnknownParameter(_)
+                | TypeMismatch(_)
+                | MissingJoinScope(_)
+                | ForbiddenConstructorValue
+                | InvalidStaticOption(_)
+                | InvalidJsonLiteral(_)
+                | NullTypeUnresolved,
+                ..
+              }
+            )
             | Expression(
               { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
             ) => "source_invalid_input"

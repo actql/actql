@@ -302,3 +302,43 @@ pub fn ResidentCompletedAttempt::runtime(
 ) -> @runtime.NativeRemoteRuntime {
   self.runtime
 }
+
+///|
+/// Project the producer of an exact saved completed consumer through its
+/// checked retained-input route. This grants no execution or cleanup authority:
+/// the caller must acquire the actual slot and use completed restoration to
+/// admit current delegation and reconstruct original output custody.
+pub fn resident_completed_consumer_producer_identity(
+  journal : @journal.Journal,
+  admission : ResidentRunAdmission,
+  request : @remote.DispatchRequest,
+  at : String,
+) -> Result[String, ResidentHostIssue] {
+  let attempt = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let envelope = match journal.dispatch_envelope(attempt) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(EnvelopeMissing)
+    Err(issue) => return Err(Journal(issue))
+  }
+  let dispatch = match @remote.admit_remote_poll_dispatch_json(envelope) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  if @remote.dispatch_request_identity(
+      @remote.remote_poll_dispatch_request(dispatch),
+    ) !=
+    @remote.dispatch_request_identity(request) {
+    return Err(Protocol(@remote.DispatchIdentityMismatch))
+  }
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  if @remote.dispatch_record_state_codes(record)[0] != 3 {
+    return Err(Runtime(@runtime.CompletedRestorationPending))
+  }
+  resident_retained_consumer_producer_identity(admission, dispatch, at)
+}

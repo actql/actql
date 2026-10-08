@@ -46,6 +46,7 @@ import {prepareCompletedEffectFreeRunPublication} from
   './run-publication-preflight.mjs';
 import {ExecutionAuthorizationError, missingAuthorizationGate} from
   './authorization-gate.mjs';
+import {projectTaskObservation} from './task-observation.mjs';
 
 export class StrategyHostError extends Error {
   constructor(code) { super(code); this.code = code; }
@@ -291,6 +292,7 @@ export async function runInstalledStrategy(
   beforeCompute,
   authorization = missingAuthorizationGate(),
   observeTaskStart,
+  taskObservation,
 ) {
   if (observeCompletion !== undefined && typeof observeCompletion !== 'function') {
     throw new StrategyHostError('InvalidCompletionObserver');
@@ -748,6 +750,8 @@ export async function runInstalledStrategy(
       // authorized. A deny, failure, unsupported defer or persisted wait
       // stops the Run through the existing stop path.
       await authorizeActivation(siteCandidate.site, entry, index);
+      // Activation has returned; no callback occurs inside its commit.
+      projectTaskObservation(taskObservation, 'task_started', index);
       let plannerObserverMilliseconds;
       if (observeTaskStart) {
         const observationStarted = performance.now();
@@ -973,6 +977,8 @@ export async function runInstalledStrategy(
         task: index,
         executionSite: executionSiteDescription(siteCandidate.site),
       }));
+      projectTaskObservation(taskObservation, 'task_completed', index,
+        completed.at(-1).taskElapsedMilliseconds);
       if (observeCompletion) {
         const output = result?.completed ?? core.output(setup, index);
         if (output == null) throw new StrategyHostError('MissingCompletedOutput');

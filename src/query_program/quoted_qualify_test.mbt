@@ -43,12 +43,45 @@ test "quoted QUALIFY window calls match an independent hidden-analytic Program" 
 }
 
 ///|
-test "quoted QUALIFY calls retain the common unsupported-signature boundary" {
+test "ranking analytic arguments retain the invalid-input cause and authored range" {
   for
-    source in [
-      "SELECT x FROM t QUALIFY `RANK`(x) OVER (ORDER BY y) <= 1", "SELECT x FROM t QUALIFY `ROW_NUMBER`(x) OVER (ORDER BY y) <= 1",
-      "SELECT x FROM t QUALIFY `LAG`(x, 1, 2) OVER (ORDER BY y) IS NOT NULL",
+    name in [
+      "ROW_NUMBER", "`rOw_NuMbEr`", "RANK", "`RANK`", "DENSE_RANK", "`DENSE_RANK`",
     ] {
+    let call = name + "(x)"
+    for
+      (source, start) in [
+        ("SELECT " + call + " OVER (ORDER BY y) AS n FROM t", 7),
+        ("SELECT x FROM t QUALIFY " + call + " OVER (ORDER BY y) <= 1", 24),
+      ] {
+      guard compile(
+          @query.parse_query(source, syntax_limits()).unwrap(),
+          join_order_context(),
+          construction_limits(),
+        )
+        is Err(
+          Expression(
+            { issue: @expression.InvalidArguments, origin: Some(origin), }
+          )
+        ) else {
+        fail("known ranking arity must retain its input violation: " + source)
+      }
+      assert_eq(@origin.start(origin).utf16_offset, start, msg=source)
+      assert_eq(
+        @origin.end(origin).utf16_offset,
+        start + call.length(),
+        msg=source,
+      )
+    }
+  }
+}
+
+///|
+test "valid analytic default arguments retain the unsupported-profile boundary" {
+  for name in ["LAG", "`LAG`", "LEAD", "`LEAD`"] {
+    let source = "SELECT x FROM t QUALIFY " +
+      name +
+      "(x, 1, 2) OVER (ORDER BY y) IS NOT NULL"
     assert_true(
       compile(
         @query.parse_query(source, syntax_limits()).unwrap(),

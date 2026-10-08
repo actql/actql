@@ -111,7 +111,9 @@ pub fn explain_captured_strategy(
         @encode.key(w, "reason")
         @encode.string_value(
           w,
-          if !revision.search_complete {
+          if revision.selection_source is ExternalPolicy(_) {
+            "external_policy"
+          } else if !revision.search_complete {
             "bounded_frontier"
           } else if revision.estimated_fastest {
             "estimated_fastest"
@@ -119,6 +121,22 @@ pub fn explain_captured_strategy(
             "host_preferred"
           },
         )
+        @encode.key(w, "policy")
+        match revision.selection_source {
+          ExternalPolicy(policy) => {
+            @encode.begin_object(w)
+            @encode.key(w, "policy_id")
+            @encode.string_value(w, policy.policy_id)
+            @encode.key(w, "revision")
+            @encode.string_value(w, policy.revision)
+            @encode.key(w, "request_id")
+            @encode.string_value(w, policy.request_id)
+            @encode.key(w, "explanation")
+            @encode.string_value(w, policy.explanation)
+            @encode.end_object(w)
+          }
+          _ => @encode.null_value(w)
+        }
         @encode.key(w, "remaining_at_selection")
         emit_strategy_assessment(w, revision.assessment)
         @encode.key(w, "ledger_at_selection")

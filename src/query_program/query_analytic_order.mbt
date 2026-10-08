@@ -1,5 +1,5 @@
 ///|
-// OVER partition/order keys see one immutable SELECT input scope. Numeric
+// OVER keys use their clause-owned resolver: SELECT inputs or ORDER aliases. Numeric
 // order literals are values, not the ordinals of the query's final ORDER BY.
 // Only ordinary expressions become private derive slots; common analytic
 // checking retains key type and order law.

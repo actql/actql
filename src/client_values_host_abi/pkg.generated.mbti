@@ -3,6 +3,7 @@ package "actql/actql/client_values_host_abi"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/host_observation",
   "actql/actql/logical_request_scope",
   "actql/actql/program_check",
   "actql/actql/remote_site_protocol",
@@ -61,6 +62,8 @@ pub fn client_values_host_begin_result_material_holds(String, String) -> @run_pu
 pub fn client_values_host_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
 
 pub fn client_values_host_cancellation_intent_cid(@run_publication_host.ClientCancellationIdentity) -> String
+
+pub fn client_values_host_charge_observation(@host_observation.ObservationBudget, @host_observation.ObservationScope, String, String?, Int) -> Result[Bool, @host_observation.ObservationIssue]
 
 pub fn client_values_host_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[Unit, @run_publication.RunProgramBindingIssue]
 
@@ -173,6 +176,14 @@ pub fn client_values_host_manifest_read_grant_allows_bytes(@run_publication.Publ
 pub fn client_values_host_manifest_read_grant_valid_at(@run_publication.PublicationContract, String) -> Bool
 
 pub fn client_values_host_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_observation_budget(@host_observation.ObservationScope, String, Int, Int, Bool, String?, String, Int, Int, Int, Int, Array[String]) -> Result[@host_observation.ObservationBudget, @host_observation.ObservationIssue]
+
+pub fn client_values_host_observation_budget_snapshot(@host_observation.ObservationBudget) -> (String, String, Int, Int, Int, Int, Array[String])
+
+pub fn client_values_host_observation_scope(String, String, String, String, Bool) -> @host_observation.ObservationScope?
+
+pub fn client_values_host_observation_scope_key(@host_observation.ObservationScope) -> String
 
 pub fn client_values_host_output_contract_cid(@run_publication_host.ClientValuesCompilation) -> String
 

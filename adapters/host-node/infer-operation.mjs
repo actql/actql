@@ -213,6 +213,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),
     invocationEvidence: slot => moon.clientProgramInferInvocationEvidence(active,
       slot),
+    evaluationRequest: slot => moon.clientProgramInferEvaluationRequest(active, slot),
     // The ordinary publication control owns compilation and contract tokens.
     // It passes the original owner to MoonBit, never recompiling this Program.
     bindRun: (control, {compiled, runDefinition}) =>
@@ -265,6 +266,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           }}),
     entryCurrent: (entry, preparedCallSet) =>
       moon.clientProgramInferCallEntryCurrent(entry, preparedCallSet),
+    bindModelObservation: (preparedCallSet, observe) =>
+      moon.clientProgramBindInferModelObservation(active, preparedCallSet, value => {
+        // Only the installed metadata observer is called here. Its failure
+        // must not escape into invoke, admission, accounting, or cleanup.
+        try {
+          const facts = moon.clientProgramInferPhysicalObservationFacts(value);
+          observe({slot: facts._0, attemptCid: facts._1, event: facts._2, outcome: facts._3});
+        } catch { /* Optional observation has no execution authority. */ }
+      }),
     restoreCall: (preparedCallSet, slot, record, proof, bundle) => checked(
       moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle)),
     restoreUnknown: (preparedCallSet, slot, attempt, authority) => checked(

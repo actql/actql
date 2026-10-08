@@ -50,11 +50,17 @@ fn QueryParser::window_specification(
   }
   let frame = if self.has("ROWS") {
     self.keyword("ROWS")
-    self.keyword("BETWEEN")
-    let start = self.frame_boundary()
-    self.keyword("AND")
-    let end = self.frame_boundary()
-    Some({ start, end, })
+    if self.has("BETWEEN") {
+      self.keyword("BETWEEN")
+      let start = self.frame_boundary()
+      self.keyword("AND")
+      let end = self.frame_boundary()
+      Some({ start, end, })
+    } else {
+      // GoogleSQL's single-boundary frame ends at CURRENT ROW. Keep interval
+      // and bound-parameter validation in the existing common frame checker.
+      Some({ start: self.frame_boundary(), end: CurrentRow, })
+    }
   } else {
     None
   }
@@ -187,6 +193,11 @@ fn QueryParser::resolve_window_operations(
           )
         Analytic(projections) =>
           Analytic(self.resolve_window_projections(projections, definitions))
+        AnalyticExpressions(projections, names) =>
+          AnalyticExpressions(
+            self.resolve_window_projections(projections, definitions),
+            names,
+          )
         Select(projections, distinct) =>
           Select(
             self.resolve_window_projections(projections, definitions),

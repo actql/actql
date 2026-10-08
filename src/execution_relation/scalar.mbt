@@ -55,6 +55,8 @@ pub fn unary(
   value : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    // Expanding text is evaluated only by the bounded expression continuation.
+    Upper | Lower => Err(InvalidOperand)
     Length =>
       match value {
         Null => Ok(Null)
@@ -79,6 +81,17 @@ pub fn unary(
       match value {
         Null => Ok(Null)
         Number(n) => finite(n.floor())
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
+    Sqrt =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n < 0.0 {
+            Err(ArithmeticFailure)
+          } else {
+            finite(n.sqrt())
+          }
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
     Negate =>

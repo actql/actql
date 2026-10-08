@@ -1,0 +1,56 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/host_observation"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_observation_scope(String, String, String, String, ObservationPurpose) -> ObservationScope?
+
+pub fn charge_observation(ObservationBudget, ObservationScope, String, String?, Int) -> Result[ObservationCharge, ObservationIssue]
+
+pub fn observation_budget_snapshot(ObservationBudget) -> ObservationBudgetSnapshot
+
+pub fn observation_scope_key(ObservationScope) -> String
+
+pub fn open_observation_budget(ObservationScope, String, Int, Int, Bool, ObservationBudgetSnapshot?) -> Result[ObservationBudget, ObservationIssue]
+
+// Errors
+
+// Types and methods
+type ObservationBudget
+
+pub(all) struct ObservationBudgetSnapshot {
+  scope_key : String
+  request_key : String
+  max_records : Int
+  max_bytes : Int
+  records : Int
+  bytes : Int
+  fact_hashes : Array[String]
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ObservationCharge {
+  ObservationCharged
+  ObservationRepeated
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ObservationIssue {
+  InvalidObservationBudget
+  ObservationBudgetUnavailable
+  ForeignObservationCustody
+  ObservationRecordLimit
+  ObservationRunLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ObservationPurpose {
+  CustomerTelemetry
+  ServiceOperations
+} derive(Eq, @debug.Debug)
+
+type ObservationScope derive(Eq)
+
+// Type aliases
+
+// Traits

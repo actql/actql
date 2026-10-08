@@ -105,8 +105,10 @@ window_specification = identifier
                      | "(", [ identifier ], [ partition_clause ],
                        [ order_clause ], [ rows_frame ], ")" ;
 partition_clause = "PARTITION", "BY", expression, { ",", expression } ;
-rows_frame = "ROWS", "BETWEEN", frame_boundary, "AND", frame_boundary ;
+rows_frame = "ROWS", ( "BETWEEN", frame_boundary, "AND", frame_boundary
+                     | frame_boundary ) ;
 frame_boundary = "CURRENT", "ROW"
+               | "UNBOUNDED", ( "PRECEDING" | "FOLLOWING" )
                | limit_integer, ( "PRECEDING" | "FOLLOWING" ) ;
 select_list   = select_item, { ",", select_item } ;
 select_item   = ( "*" | path, ".", "*" ), [ star_except ], [ star_replace ]

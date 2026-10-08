@@ -33,8 +33,8 @@ const originalDigest = originals => bytesCid(Buffer.from(canonicalJson(select(or
 const roles = ['model_call_attempt', 'model_attempt_accounting', 'model_attempt_outcome',
   'model_dispatch_authority', 'model_slot_capture', 'model_capture_bundle'];
 
-export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid,
-  authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic}) {
+export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,
+  authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation}) {
   const runtime = await loadCheckpointRuntime();
   const custody = new Map();
   const live = new WeakMap();
@@ -216,9 +216,15 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     } catch (error) { release(token); throw error; }
   }
   async function observe(entry) {
-    return entry.provenance === 'immediate'
+    const result = await (entry.provenance === 'immediate'
       ? checkpoints().journal.observeImmediateModelCall(entry)
-      : checkpoints().journal.observeResumedCall(entry);
+      : checkpoints().journal.observeResumedCall(entry));
+    diagnostic('model_call_observed', {ref: {namespaceId, authorityScopeCid,
+      runDefinitionCid: entry.runDefinitionCid}, task: entry.taskIndex,
+      attempt: entry.attemptIndex, attemptCid: entry.attemptCid, slot: entry.ordinal,
+      outcome: {SavedSuccess: 'succeeded', SavedFailure: 'failed',
+        EnteredUnknown: 'unknown', Unsent: 'pending'}[result?.state]});
+    return result;
   }
   async function openOwned({operation, preparedCallSet, plan, selected, principalId,
     declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort, sourceContinuation}, ownership) {
@@ -299,6 +305,37 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       entries: new Map()};
     live.set(preparedCallSet, owner);
     ownership.owner = owner;
+    if (observation?.canMeasure('infer')) {
+      let physical;
+      const installed = operation.bindModelObservation(preparedCallSet, facts => {
+        try {
+          if (facts.event === 'started') {
+            // MoonBit emits this only at actual invoke, after durable entry
+            // and cancellation checks, never during approval or replay.
+            physical = {slot: facts.slot, attemptCid: facts.attemptCid,
+              started: performance.now()};
+            return;
+          }
+          const interval = physical;
+          physical = undefined;
+          const receipt = owner.entries.get(facts.slot);
+          if (interval === undefined || interval.slot !== facts.slot ||
+              interval.attemptCid !== facts.attemptCid ||
+              receipt?.attemptCid !== facts.attemptCid) {
+            observation.noteLoss(); return;
+          }
+          observation.emit('infer', 'transport_completed', {
+            ref: {namespaceId, authorityScopeCid, runDefinitionCid: receipt.runDefinitionCid},
+            task: receipt.taskIndex, slot: receipt.ordinal, attempt: receipt.attemptIndex,
+            attemptCid: facts.attemptCid,
+            // This is the physical callback disposition, not Run completion
+            // or proof that a returned response was valid, saved, or published.
+            outcome: facts.outcome,
+          }, {segment: facts.attemptCid, durationMs: performance.now() - interval.started});
+        } catch { observation.noteLoss(); }
+      });
+      if (!installed) observation.noteLoss();
+    }
     let view = existing === undefined ? undefined : cp.journal.readModelCalls(existing.inventory);
     if (view !== undefined) {
       for (const slot of view.slots) {
@@ -415,6 +452,10 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                   : cp.journal.enterResumedCall(claim, {...reference, checkpointCid: existing.checkpointCid,
                       resolutionCid: decision.admission.resolutionCid});
                 owner.entries.set(original.slot, receipt);
+                diagnostic('model_call_entered', {ref: {namespaceId, authorityScopeCid,
+                  runDefinitionCid: receipt.runDefinitionCid}, task: receipt.taskIndex,
+                  slot: receipt.ordinal, attempt: receipt.attemptIndex,
+                  attemptCid: receipt.attemptCid, outcome: 'running'});
                 return true;
               } catch (error) {
                 owner.entryFailure = error;

@@ -47,6 +47,78 @@ fn physical_preflight_fixture(
 }
 
 ///|
+test "evaluation retains the invoked physical originals only while the adopted owner is live" {
+  let calls = Ref(0)
+  let active = contract_capacity_start(calls, 2, 133072L)
+  guard active.source is Physical(provider) else { abort("physical fixture") }
+  let sent : Array[String] = []
+  bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
+  bind_physical_preflight(active, request => {
+    let rendered = "é\r\n" + request.slot.to_string()
+    let context = "{\"provider_internals\":\"unknown\",\"selected\":[]}"
+    Ok({
+      advance: () => {
+        @model.model_physical_request_plan(
+          request,
+          1000L,
+          { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+          () => {
+            sent.push(rendered)
+            (provider.invoke)(request)
+          },
+          evidence={ rendered_input: rendered, context_manifest: context, },
+        ).map(value => Some(value))
+      },
+      cleanup: () => true,
+    })
+  }).unwrap()
+  assert_true(evaluation_request(active, 0) is None)
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_eq(calls.val, 2)
+  for slot in 0..<2 {
+    let (request, original) = evaluation_request(active, slot).unwrap()
+    assert_eq(request.slot, slot)
+    assert_eq(original.rendered_input, sent[slot])
+    assert_eq(
+      original.context_manifest,
+      "{\"provider_internals\":\"unknown\",\"selected\":[]}",
+    )
+  }
+  assert_true(evaluation_request(active, 2) is None)
+  assert_true(!cleanup(active).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_true(evaluation_request(active, 0) is None)
+  assert_eq(calls.val, 2)
+}
+
+///|
+test "optional physical Evidence overflow stays missing without changing ordinary calls" {
+  let calls = Ref(0)
+  let active = contract_capacity_start(calls, 2, 133072L)
+  guard active.source is Physical(provider) else { abort("physical fixture") }
+  bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
+  bind_physical_preflight(active, request => {
+    Ok({
+      advance: () => {
+        @model.model_physical_request_plan(
+          request,
+          1L,
+          { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+          () => (provider.invoke)(request),
+          evidence={ rendered_input: "é", context_manifest: "{}", },
+        ).map(value => Some(value))
+      },
+      cleanup: () => true,
+    })
+  }).unwrap()
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_eq(calls.val, 2)
+  assert_true(evaluation_request(active, 0) is None)
+  assert_true(!cleanup(active).unwrap())
+  assert_true(cleanup(active).unwrap())
+}
+
+///|
 test "all exact physical plans precede the first model dispatch" {
   let calls = Ref(0)
   let active = contract_capacity_start(calls, 2, 133072L)
