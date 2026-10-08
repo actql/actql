@@ -282,6 +282,47 @@ No semantic operation matrix, product owner, test retirement or CI reuse policy
 is introduced. Model/Store authority, arbitrary provider refinement, machine
 faults, physical capacity and eventual stopping remain separate obligations.
 
+## Early intermediate retirement reuses the productive accounting model
+
+The existing built-in-only chain can reclaim a completed intermediate execution
+before starting its successor. `Retirement.lean` supplies 19 conditional lifetime
+laws over the existing `RelationChain.State`. It reuses that model's accepted
+child/control accounting and responsibility proofs. The original 54-law checker
+and all prompt/stop/pause claims remain unchanged. The additional checker audits
+55 laws: 36 existing Session/chain laws and 19 new retirement laws; that is not
+55 additional guarantees.
+
+Pending in this model means an accepted, already stopped intermediate child. It
+is not an arbitrary cancel request. False/error cleanup keeps execution custody;
+success transfers the one owed child to released exactly once. The parent's
+completed-output references survive that transfer. A successor can start only
+with no owed execution, a pending checked handoff and a running parent. Metadata
+preparation may charge additional control work without starting that successor.
+Finite admitted traces preserve the original productive budget, each started
+child's responsibility and at most one owed child execution. This count does not
+include retained outputs, cursors, closures or other live allocations. Pending
+cancellation keeps custody and forbids new Compute; active-child cancellation
+and delayed stopping retain their separate original claims.
+
+`retirement-evidence.mjs` fixes one finite `builtin-chain/early-retirement` scope
+for the eight existing `relation_chain_lifetime_wbtest.mbt` cases. These use real
+binding/group/JOIN and Values/UNNEST children, observe `current`/`children` plus
+accepted output generations, preserve pending/error cleanup, exercise scoped
+cancellation and confirm conservative fallback for an unaudited step. They are
+not a new operation-by-fault matrix. The shared runner executes the additional
+model and existing fixture for each selected target; the same final graph gate
+requires both, common Session correspondence, actual target/artifacts and every
+local premise/residual. Original model or prompt fixture substitution, missing
+cases, widened scope and a physical-memory guarantee are rejected.
+
+The lifetime law does not certify kernel semantics, checked input identity,
+GC completion, physical sizing, an unconditional max-scratch capacity or arbitrary
+family/provider refinement. New eligible kernels still need their own semantic,
+resource and connection evidence. The formal model and finite actual connection
+can be reused without copying these common laws or eight cases per operation;
+source-input changes still invalidate old evidence. No additional cached action
+or Actions reuse qualification is authorized.
+
 ## Existing lifetime assertions detect intermediate-retirement faults
 
 The normal mutation command retains all nine original accounting/ownership
