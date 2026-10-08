@@ -4,7 +4,7 @@ declare const client: Client;
 const encoding: CheckPositionEncoding = 'utf-8';
 const session = createCheckDocumentSession(client, {text: 'SELECT (', version: -1, positionEncoding: encoding});
 session.update('SELECT (', 0);
-const observation = await session.check({format: 'sql'});
+const observation = await session.check({scope: 'bound_input', format: 'sql'});
 const fixes = getCheckFixes(observation.outcome);
 if (fixes?.length) {
   await session.applyFixes(observation, fixes, {version: 1, reviewed: true});

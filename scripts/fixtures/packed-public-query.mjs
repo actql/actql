@@ -684,23 +684,23 @@ const observe = directory => () => {
 // Public check must also work from installed tarballs, without repository imports.
 async function exercisePublicCheck(options) {
   const client = await connect(options);
-  const first = await client.check('SELECT 1 AS n', {format: 'sql'});
+  const first = await client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
   assert.equal(first.report.verdict, 'verified');
-  assert.deepEqual(await client.check('SELECT 1 AS n', {format: 'sql'}), first);
-  const invalid = await client.check('SELECT missing AS n', {format: 'sql'});
+  assert.deepEqual(await client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'}), first);
+  const invalid = await client.check('SELECT missing AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
   assert.equal(invalid.report.verdict, 'invalid');
   assert.notEqual(invalid.report.context_ref, first.report.context_ref);
   for (const pair of [['e\u0301', 'é'], ['\r', '\n']]) {
     const refs = [];
     for (const x of pair) {
-      const result = await client.check('SELECT @x AS n', {format: 'sql',
+      const result = await client.check('SELECT @x AS n', {kind: 'text', scope: 'bound_input', format: 'sql',
         parameterDeclarations: {x: {type: 'string'}}, parameters: {x}});
       assert.equal(result.report.verdict, 'verified');
       refs.push(result.report.context_ref);
     }
     assert.notEqual(refs[0], refs[1]);
   }
-  const budget = await client.check('SELECT id FROM never_configured', {
+  const budget = await client.check('SELECT id FROM never_configured', {kind: 'text', scope: 'bound_input',
     format: 'sql', parameterDeclarations: {x: {type: 'array', items: {type: 'number'}}},
     parameters: {x: Array(9000).fill(1)}});
   assert.equal(budget.report.verdict, 'undetermined');

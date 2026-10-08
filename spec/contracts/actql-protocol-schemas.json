@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:65ae02cddbe0842fde526adba2815449df0b126b82cb8edbf2698e2ad0b2503b",
+  "artifact_registry_cid": "sha256:f56b6a1000f8cb8bcef25dd5539b93edc8f7d17a48ee8467eeab9fe164e0ac54",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,7 +10713,7 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f",
+    "check_outcome": "sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9",
     "check_reason": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
@@ -75599,11 +75599,6 @@
                         "items": {},
                         "maxItems": 0
                       },
-                      "requirements": {
-                        "type": "array",
-                        "items": {},
-                        "maxItems": 0
-                      },
                       "coverage": {
                         "properties": {
                           "limits": {
@@ -75618,7 +75613,57 @@
                           }
                         }
                       }
-                    }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "scope": {
+                              "properties": {
+                                "kind": {
+                                  "const": "bound_input"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "requirements": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "scope": {
+                              "properties": {
+                                "kind": {
+                                  "const": "template_only"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "requirements": {
+                              "items": {
+                                "properties": {
+                                  "code": {
+                                    "const": "parameter_value_required"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
                   }
                 },
                 {
@@ -79265,7 +79310,10 @@
                   ],
                   "properties": {
                     "kind": {
-                      "const": "bound_input"
+                      "enum": [
+                        "template_only",
+                        "bound_input"
+                      ]
                     }
                   }
                 },
@@ -79327,11 +79375,6 @@
                         "items": {},
                         "maxItems": 0
                       },
-                      "requirements": {
-                        "type": "array",
-                        "items": {},
-                        "maxItems": 0
-                      },
                       "coverage": {
                         "properties": {
                           "limits": {
@@ -79346,7 +79389,57 @@
                           }
                         }
                       }
-                    }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "scope": {
+                              "properties": {
+                                "kind": {
+                                  "const": "bound_input"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "requirements": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "scope": {
+                              "properties": {
+                                "kind": {
+                                  "const": "template_only"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "requirements": {
+                              "items": {
+                                "properties": {
+                                  "code": {
+                                    "const": "parameter_value_required"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
                   }
                 },
                 {
@@ -82993,7 +83086,10 @@
                   ],
                   "properties": {
                     "kind": {
-                      "const": "bound_input"
+                      "enum": [
+                        "template_only",
+                        "bound_input"
+                      ]
                     }
                   }
                 },

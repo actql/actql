@@ -62,6 +62,9 @@ export function project(schema) {
 export function typeOf(schema) {
   if (schema.$ref === 'value_contract') return 'WireValueContractShape';
   if (schema.$ref === 'check_outcome') return 'WireCheckOutcomeShape';
+  if (schema.allOf && schema.type === undefined && !schema.oneOf) {
+    return schema.allOf.map(rule => `(${typeOf(rule)})`).join(' & ');
+  }
   if (schema.oneOf) return schema.oneOf.map(typeOf).join(' | ');
   if (Object.hasOwn(schema, 'const')) return JSON.stringify(schema.const);
   if (schema.enum) return schema.enum.map(JSON.stringify).join(' | ');

@@ -21,7 +21,7 @@ async function checkedInput(t, text, byteLength) {
           precision: 'exact'}}], requirements: [], coverage: {limits: [], unresolved: []}}}));
   t.after(() => mock.restoreAll());
   const client = await connect({mode: 'remote', endpoint: 'https://host.example/', token: 'token'});
-  const outcome = await client.check(text, {format: 'sql'});
+  const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
   return {outcome, location: outcome.report.reasons[0].location};
 }
 
@@ -99,7 +99,7 @@ async function checkedStructuredInput(t) {
         coverage: {limits: [], unresolved: []}}}));
   t.after(() => mock.restoreAll());
   const client = await connect({mode: 'remote', endpoint: 'https://host.example/', token: 'token'});
-  const outcome = await client.check('SELECT 1 AS n', {format: 'sql', parameters});
+  const outcome = await client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql', parameters});
   return {outcome, location, parameters};
 }
 

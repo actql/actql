@@ -66,12 +66,13 @@ test('public wire accepts the exact connected request shapes', () => {
   }
 });
 
-test('check requests carry authored source and bindings only', () => {
+test('check requests select an explicit input kind and scope without execution', () => {
   const input = {text: 'SELECT id FROM records WHERE amount >= @p',
     format: 'sql', parameterDeclarations: {p: {type: 'number'}}};
-  assert.equal(validClientBody('check', {connection, input,
+  const bound = {connection, kind: 'text', scope: 'bound_input', input, parameters: null};
+  assert.equal(validClientBody('check', {...bound,
     parameters: {p: 1}}), true);
-  assert.equal(validClientBody('check', {connection,
+  assert.equal(validClientBody('check', {...bound,
     input: {text: 'SELECT id FROM records', format: 'aql-text'},
     parameters: null}), true);
   for (const invalid of [
@@ -82,10 +83,28 @@ test('check requests carry authored source and bindings only', () => {
     {parameters: []},
     {requestId: 'not-a-run'},
   ]) {
-    assert.equal(validClientBody('check', {connection, input,
-      parameters: null, ...invalid}), false, JSON.stringify(invalid));
+    assert.equal(validClientBody('check', {...bound, ...invalid}), false, JSON.stringify(invalid));
   }
   assert.equal(validClientBody('check', {connection, input}), false);
+  for (const key of ['scope', 'kind', 'parameters']) {
+    const missing = {...bound}; delete missing[key];
+    assert.equal(validClientBody('check', missing), false, key);
+  }
+  for (const kind of ['text', 'program']) {
+    const authored = kind === 'text' ? input : {version: 'actql/0.1', params: {'é/~': {type: 'number'}}, stages: []};
+    const template = {connection, kind, scope: 'template_only', input: authored};
+    assert.equal(validClientBody('check', template), true, kind);
+    assert.equal(validClientBody('check', {...template, scope: 'bound_input', parameters: null}), true, kind);
+    for (const parameters of [undefined, null, {}, {x: 1}]) {
+      assert.equal(validClientBody('check', {...template, parameters}), false, 'template bindings presence');
+    }
+    for (const invalid of [{scope: 'auto'}, {kind: 'aql'}, {requestId: 'execution'}, {ref}]) {
+      assert.equal(validClientBody('check', {...template, ...invalid}), false);
+    }
+  }
+  for (const input of [null, [], 'program']) {
+    assert.equal(validClientBody('check', {connection, kind: 'program', scope: 'template_only', input}), false);
+  }
 });
 
 test('source format selection is explicit and bounded', () => {
@@ -119,6 +138,24 @@ test('source format selection is explicit and bounded', () => {
       requestId: 'saved-declarations', kind: 'aql',
       input: {text: 'SELECT @p', format: 'sql', parameterDeclarations},
       parameters: null}), false);
+  }
+});
+
+test('independent template scope admits only execution-value Requirements with complete coverage', () => {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/check-template.verified.json', import.meta.url), 'utf8'));
+  assert.equal(validCheckOutcome(fixture), true);
+  for (const change of [
+    value => {value.report.scope.kind = 'bound_input';},
+    value => {delete value.report.scope;},
+    value => {value.report.omissions = {requirements: true};},
+    value => {value.report.coverage.limits = [{code: 'analysis_budget_exhausted'}];},
+    value => {value.report.coverage.limits = [{code: 'implementation_limit'}];},
+    value => {value.report.coverage.unresolved = [{boundary: 'source_resolution', reason: 'unresolved_protected'}];},
+    value => {value.report.requirements[0].code = 'host_capacity_policy_required';},
+    value => {value.outcome_schema_cid = 'sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f';},
+  ]) {
+    const changed = structuredClone(fixture); change(changed);
+    assert.equal(validCheckOutcome(changed), false, '[check-mutation:template-wire-scope]');
   }
 });
 

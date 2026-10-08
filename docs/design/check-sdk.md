@@ -84,6 +84,28 @@ a fresh bound-input check and execution still requires an explicit request.
 
 ## Bound checking outcomes
 
+The public Client uses one overloaded `check` operation for text and structured
+Program snapshots. Every call explicitly selects its input kind and original
+checking scope. Template-only has no submitted bindings; presence of a binding
+member, even null or an empty object, is an invalid check request at SDK and
+Host admission. Declaration defaults remain admitted by the declaration Owner.
+
+The Host includes this scope in its keyed context reference and passes it to
+the common scoped constructor. Only the opaque `TemplateCheckedProgram` can
+produce a public verified template report with execution-value Requirements.
+Partial declaration preparation, unavailable material, protected obligations,
+unsupported paths and budgets retain the original unresolved scope. Reporting
+truncation also prevents verification, even when static construction completed.
+
+The SDK captures the selection and immutable original input before yielding,
+rejects a response for a different scope, and binds locations to the submitted
+document revisions. Program pointers never become source-text spans. Template
+verification with known runtime Requirements permits another explicitly
+requested bound-input check in a bounded supplementation session; it does not
+reset the session's total attempt budget or start execution. A submission's
+rejection observation continues to have bound-input scope and cannot borrow a
+standalone template verdict.
+
 The checker distinguishes three outcomes:
 
 - A complete opaque CheckedProgram, constructed only after static closure.
@@ -896,10 +918,13 @@ There is no negative-existence authority for installed query aliases; omission
 from an audience-visible publication cannot prove absence. Provider Resource
 catalog completeness is not query-alias completeness.
 
-The first supported boundary is bound-input checking. Template-only checking,
-fix application, report retrieval, LSP conversion and execution/Delivery outcome
-explanations remain separate work. The input-report connection does not claim
-the design's S1–S9/X1–X17/invariant completion gate.
+Public authoring checks select bound-input or template-only scope explicitly.
+Complete common static-scope evidence permits template verification with
+execution-value Requirements; unsupported or incomplete static paths retain
+the requested scope as undetermined. Original text fixes and editor positions
+use their existing input custody. Structured automatic edits, Host report
+retrieval and a complete LSP server remain separate work. This connection does
+not claim the design's S1–S9/X1–X17/invariant completion gate.
 
 
 ### Predicate type explanations
@@ -1408,8 +1433,9 @@ prevents an incomplete frontier. Analysis is not repeated.
 Stage topology or an unbound result wiring cannot certify all remaining static
 obligations as verified(template). A public template scope requires the common
 checker to close those obligations under a scope selected before checking,
-without fabricated values or a second checker. No template success or unsupported
-preparation-write path is introduced by these declaration conditions.
+without fabricated values or a second checker. These declaration conditions
+alone introduce neither template success nor a preparation-write path; the
+separate common static closure described above supplies the complete witness.
 
 The common `program_references.prepare_declaration_usage` continuation collects
 operation/Effect and request references from the exact retained staged source
