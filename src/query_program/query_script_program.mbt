@@ -173,7 +173,7 @@ fn lower_script_relation_term(
     input,
     fields,
     limits.max_expression_work,
-    limits.source,
+    limits,
     limits.max_collection_items,
     limits.max_collection_bytes,
     start_at,

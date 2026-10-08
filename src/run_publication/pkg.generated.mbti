@@ -662,6 +662,8 @@ pub fn run_evidence_value_json(RunEvidenceValue) -> String
 
 pub fn run_evidence_value_name(RunEvidenceValue) -> String
 
+pub fn run_observation_key(String, Int64, Bool?, Bool?) -> String?
+
 pub fn run_publication_authorization(RunPublicationAdmission) -> RunEvidenceValue
 
 pub fn run_publication_compiled_plan_cid(RunPublicationAdmission) -> String

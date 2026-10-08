@@ -83,6 +83,17 @@ pub fn unary(
         Number(n) => finite(n.floor())
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
+    Sqrt =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n < 0.0 {
+            Err(ArithmeticFailure)
+          } else {
+            finite(n.sqrt())
+          }
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     Negate =>
       match value {
         Null => Ok(Null)

@@ -163,6 +163,7 @@ fn emit_frames(
                   Negate => "negate"
                   Upper => "upper"
                   Floor => "floor"
+                  Sqrt => "sqrt"
                   Not => "not"
                   IsNull => "is_null"
                   NotNull => "not_null"

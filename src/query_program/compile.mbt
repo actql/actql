@@ -1451,7 +1451,15 @@ fn lower_analytic_call(
       let entries = [("fn", construction.text(wire_name))]
       if name == "ROW_NUMBER" || name == "RANK" || name == "DENSE_RANK" {
         if !arguments.is_empty() {
-          raise Abort(UnsupportedAnalytic)
+          raise Abort(
+            Expression({
+              issue: @expression.InvalidArguments,
+              origin: @query.expression_origin(
+                expression,
+                @query.expression_root(expression),
+              ),
+            }),
+          )
         }
       } else {
         if arguments.is_empty() ||
@@ -1711,7 +1719,7 @@ fn compile_steps(
   input : Input,
   fields : Array[String],
   max_work : Int,
-  source_limits : @builder.Limits,
+  query_limits : Limits,
   max_collection_items : Int64,
   max_collection_bytes : Int64,
   start_at : Int,
@@ -1835,7 +1843,7 @@ fn compile_steps(
         let element_contract = unnest_source_element(
           expression,
           parameter_declarations,
-          source_limits,
+          query_limits,
           max_work,
           construction.parameter_resolver(),
         )
@@ -4713,7 +4721,7 @@ pub fn compile(
       input,
       fields,
       limits.max_expression_work,
-      limits.source,
+      limits,
       limits.max_collection_items,
       limits.max_collection_bytes,
       start_at,
@@ -5101,7 +5109,7 @@ fn compile_cte_query(
           cte_input,
           body_output,
           limits.max_expression_work,
-          limits.source,
+          limits,
           limits.max_collection_items,
           limits.max_collection_bytes,
           0,
@@ -5340,7 +5348,7 @@ fn compile_cte_stage(
     input,
     fields,
     limits.max_expression_work,
-    limits.source,
+    limits,
     limits.max_collection_items,
     limits.max_collection_bytes,
     body_start,
@@ -6063,7 +6071,7 @@ fn compile_set_stages(
       input,
       fields,
       limits.max_expression_work,
-      limits.source,
+      limits,
       limits.max_collection_items,
       limits.max_collection_bytes,
       if common_capture_filter {
@@ -7224,7 +7232,7 @@ fn append_join_order_steps(
       input,
       visible_names,
       limits.max_expression_work,
-      limits.source,
+      limits,
       limits.max_collection_items,
       limits.max_collection_bytes,
       next,
