@@ -77,7 +77,26 @@ existing normal/focused HAVING-object corpus, retaining its earlier nine
 normal cases, four refusals and one expected demanded-expression failure.
 No additional harness, test-side Program patch or enlarged ceiling is used.
 
+## Public refusal classification
+
+The first clean-HEAD packed attempt at
+`dcfa033a0b814e1e8e735144c890211eec908415` completed all 21 Local positive
+cases and its expected demanded-expression failure, then stopped on the new
+refusal fixture's incorrectly asserted `ClientProgramImplementationLimit`.
+The existing source-preparation owner maps an expression `UnknownReference`
+to `source_invalid_input`, and the public preparation projection maps that to
+`ClientProgramInvalidInput`. The new refusal fixtures now require this exact
+existing code; a focused lowerer test also fixes `UnknownReference`. No product
+error classification or accepted input was changed. HTTPS and final cohort
+completion were not established by that attempt. The original failure logs
+remain in `public-query-evidence-pUoePS/010.stderr.log`.
+
 ## Focused evidence
+
+The refusal follow-up executed this file alone: **8/8**,
+`run-6w9K7B` / `focused-test-xzAAtJ`. The sandboxed launcher could not
+inspect its process group and executed no tests; the authorized bounded
+wrapper retry completed normally.
 
 Repaired JS: **23/23**, `run-xitlKo` / `focused-test-pRy6ww`.
 Node fixture/profile checks: **17/17**, `run-WKy4uP` / `focused-test-vGjubg`.

@@ -66,4 +66,4 @@ export const aggregateMemberCallRefusals = [
   count + 'HAVING COUNT((missing).score) > 0',
   count + 'HAVING COUNT(n) > 0',
 ].map((text, index) => ({...base, name: 'aggregate-member-call-invalid-' + index,
-  text: prefix + text, expectedCode: 'ClientProgramImplementationLimit'}));
+  text: prefix + text, expectedCode: 'ClientProgramInvalidInput'}));

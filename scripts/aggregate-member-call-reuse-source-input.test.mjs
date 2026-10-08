@@ -34,7 +34,7 @@ test('receiver and modifier counterexamples retain independent NULL duplicate an
   assert.deepEqual(cases.get('aggregate-member-call-filter-contrast').expected, []);
   assert.deepEqual(cases.get('aggregate-member-call-order-contrast').expected, [{names: 'b|b|a|c'}]);
   assert.ok(aggregateMemberCallSuccesses.every(item => item.sourceReadSessionCount === 1));
-  assert.ok(aggregateMemberCallRefusals.every(item => item.expectedCode === 'ClientProgramImplementationLimit'));
+  assert.ok(aggregateMemberCallRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
 });
 
 test('aggregate member obligations are copied and registered in the existing normal and focused Host cohorts', () => {

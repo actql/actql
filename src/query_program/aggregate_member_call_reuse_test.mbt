@@ -152,3 +152,22 @@ test "HAVING reuses a selected aggregate across equivalent property receivers" {
     )
   }
 }
+
+///|
+test "aggregate member invalid receivers retain UnknownReference" {
+  for
+    text in [
+      "SELECT COUNT(payload.score) AS n FROM objects HAVING COUNT((missing).score) > 0",
+      "SELECT COUNT(payload.score) AS n FROM objects HAVING COUNT(n) > 0",
+    ] {
+    assert_true(
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        aggregate_property_order_context(),
+        construction_limits(),
+      )
+      is Err(Expression({ issue: @expression.UnknownReference, .. })),
+      msg=text,
+    )
+  }
+}
