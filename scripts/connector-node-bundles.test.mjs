@@ -143,7 +143,7 @@ test('connector host manifests generate the installed connector table and refuse
         exports: {check: 'checkExample', identityParts: 'partsExample', load: 'loadExample'}}}});
     const checked = checkHostBundle(scratch, 'example', write(valid()));
     assert.equal(checked.registration, 'example');
-    assert.match(generateInstallations([checked, salesforce],
+    assert.match(generateInstallations([checked],
       join(scratch, 'adapters/connectors-builtin/installations.generated.mjs'), scratch),
     /import\("\.\.\/connectors\/example\/host\/installed-example-source\.mjs"\)/);
     assert.throws(() => generateInstallations([checked, {...checked, name: 'twin'}],

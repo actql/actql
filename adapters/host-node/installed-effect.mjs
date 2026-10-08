@@ -22,12 +22,11 @@ import {composeInstalledEffects, validPluralEffectPaths}
 export {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
-import {tableInstallation} from './installed-table-installation.mjs';
 import {installedConnectorFor, installedEffectTable,
   loadInstalledEffectModule, providerBundleUrl,
   verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
-const installations = installedEffectTable([tableInstallation, ...installedConnectors]);
+const installations = installedEffectTable(installedConnectors);
 
 const refuse = (code, cause) => {
   const failure = Object.assign(new TypeError(code, {cause}), {code});
@@ -117,9 +116,9 @@ async function providerRuntime(entry, runtimeUrl) {
 // never an access token; no profile contents are returned to the caller.
 export async function installedEffectIdentity(path) {
   const profile = await readProfile(path);
-  const {module} = await selectInstallation(profile);
+  const {entry, module} = await selectInstallation(profile);
   module.check(profile);
-  const parts = await module.identityParts(profile, readProfileJson);
+  const parts = await module.identityParts(profile, readProfileJson, entry);
   if (!Array.isArray(parts) || parts.length === 0) {
     refuse('InvalidInstalledEffectProfile');
   }

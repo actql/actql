@@ -5,13 +5,19 @@ import {capturedTableRecoveryRecord} from '../table-capture-recovery.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
+export const tableFixtureWriteFootprint = index => ({
+  kind: 'collection', resource_identity_scheme_cid: cid('f'),
+  provider_namespace: 'reference', provider_boundary_cid: cid(String(index)),
+  resource_kind: 'Account', provider_object_identity_cids: [],
+});
+
 export async function completedTableCaptureOptions({fixture: f, retained, preview,
   tableInputs = [f.tableInput], tablePreviews = [f.tablePreview]}) {
   const control = f.sourceControl, limits = f.options.contractLimits;
   const plan = tableFixturePublicationPlan(f);
   const authoringContext = control.admitRunEvidence('authoring_context',
     JSON.stringify(JSON.parse(f.authored._0).authoring_context), limits);
-  const storedResults = await storeCompletedRunResultSet({execution: f.execution,
+  const storedResults = f.capturedResults ?? await storeCompletedRunResultSet({execution: f.execution,
     store: f.physicalStore, control, runDefinition: plan.runDefinition,
     invocation: plan.invocation, results: plan.results,
     outputLimits: f.outputLimits, contractLimits: limits});

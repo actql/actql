@@ -7,9 +7,10 @@
 //
 // A source installation module exports:
 // - `check(providerProfile)`: the profile's shape, before any I/O;
-// - `identityParts(profile, providerProfile, read)`: the parts of the
+// - `identityParts(profile, providerProfile, read, installation)`: the parts of the
 //   installation identity (the profile and the installed, published
-//   documents it names), without a credential value or provider I/O;
+//   documents it names), without a credential value or provider I/O. The
+//   selected declaration's finite implementation inventory is also available;
 // - `load(checked, {root, principalId, moon, baseEnvironmentWire,
 //   resolveSecret, installation, providerMoon?, runtimeBundleCid?})`: the
 //   installed source adapter (`installed-source.mjs`);
@@ -17,7 +18,8 @@
 //
 // Source and Effect are independent optional roles; an entry has at least one.
 // An Effect installation module (`effect` section) exports the same
-// entries; its `identityParts(profile, read)` takes the profile only, and its
+// entries; its `identityParts(profile, read, installation)` takes no separate
+// provider profile, and its
 // `load` also receives the Host's own `ledgerRoot` and returns the Effect
 // Site hooks (`installed-effect.mjs`).
 import {basename} from 'node:path';
@@ -44,6 +46,10 @@ function checkEntry(entry) {
           entry.providerBundle)) ||
       (entry.responseHeaders !== undefined &&
         !Array.isArray(entry.responseHeaders)) ||
+      (entry.implementationFiles !== undefined && (!Array.isArray(entry.implementationFiles) ||
+        entry.implementationFiles.length < 1 || entry.implementationFiles.length > 128 ||
+        new Set(entry.implementationFiles.map(file => file?.path)).size !== entry.implementationFiles.length ||
+        entry.implementationFiles.some(file => typeof file?.path !== 'string' || typeof file.href !== 'string'))) ||
       (entry.effect !== undefined && (!entry.effect ||
         typeof entry.effect !== 'object' ||
         !profileVersionPattern.test(entry.effect.profileVersion ?? '') ||

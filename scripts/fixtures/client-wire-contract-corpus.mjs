@@ -59,6 +59,37 @@ add('admission:attach durable downgrade','admission',{...admission,durability:'v
 corpus.at(-1).operation = 'attach';
 export const clientWireCorpus=corpus;
 
+// Independent restart-link response fixtures. The Native client must bind the
+// saved older reference to the queried fresh reference, as the JS client does.
+const restartFresh = {epoch: {
+  version: 'actql-submission-epoch/0.1', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+  epochNonce: 'b'.repeat(64), authenticator: 'c'.repeat(64),
+  notBefore: 1800000000000, expiresAt: 1800000001000,
+}, nonce: 'native-restart-fresh'};
+const restartOld = {epoch: {...restartFresh.epoch,
+  epochNonce: 'd'.repeat(64), authenticator: 'e'.repeat(64),
+  notBefore: 1799999998000, expiresAt: 1799999999000}, nonce: 'native-restart-original'};
+const restartLink = {submissionRef: restartOld,
+  acknowledgement: 'possible_prior_execution_and_effects'};
+const restartReady = {kind: 'ready', submissionRef: restartFresh,
+  intentCid: `sha256:${'f'.repeat(64)}`, admission, unresolvedHistory: restartLink};
+for (const [label, link, expected] of [
+  ['valid saved older reference', restartLink, true],
+  ['foreign original authority', {...restartLink, submissionRef: {...restartOld,
+    epoch: {...restartOld.epoch, authorityScopeCid: `sha256:${'9'.repeat(64)}`}}}, false],
+  ['same epoch cannot establish older history', {...restartLink,
+    submissionRef: {...restartOld, epoch: restartFresh.epoch}}, false],
+  ['invalid original epoch interval', {...restartLink, submissionRef: {...restartOld,
+    epoch: {...restartOld.epoch, notBefore: restartOld.epoch.expiresAt}}}, false],
+  ['wrong acknowledgement', {...restartLink, acknowledgement: 'retry'}, false],
+]) corpus.push({name: `submission restart:${label}`, kind: 'submission',
+  operation: 'lookup-submission', requestId: restartFresh.nonce,
+  value: {...restartReady, unresolvedHistory: link}, expected,
+  failureCode: 'InvalidHostSubmissionLookup'});
+corpus.push({name: 'submission restart:unsolicited link in ordinary submit',
+  kind: 'submission', operation: 'start', requestId: restartFresh.nonce,
+  value: restartReady, expected: false, failureCode: 'SubmissionUnknown'});
+
 // These outcomes are authored from the public contract, not from validator or
 // generator output. Length boundaries count UTF-16 units, including astral text.
 const fixedRequestId = 'fixed-request';

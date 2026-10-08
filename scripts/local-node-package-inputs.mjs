@@ -51,7 +51,7 @@ export function localNodePackageInputs(root) {
     throw new Error('StaleLocalNodeInstallationTable');
   }
   const runtimePackages = unique([...hostRuntimes,
-    ...installations.map(entry => entry.providerBundle)]);
+    ...installations.map(entry => entry.providerBundle).filter(Boolean)]);
   return Object.freeze({
     runtimePackages,
     runtimeFiles: Object.freeze(runtimePackages.map(path =>
@@ -59,7 +59,8 @@ export function localNodePackageInputs(root) {
     adapterEntries: unique([...hostAdapters, ...installations.flatMap(entry =>
       [entry.source, entry.effect].filter(Boolean).map(role => role.module))]),
     dataFiles: unique([...hostContracts, ...installations.flatMap(entry => entry.assets)]),
-    providerBundles: Object.freeze(installations.map(entry => Object.freeze({
+    providerBundles: Object.freeze(installations.filter(entry => entry.providerBundle !== undefined)
+      .map(entry => Object.freeze({
       name: entry.name, package: entry.providerBundle,
       file: `${entry.providerBundle}/${basename(entry.providerBundle)}.js`,
     }))),
