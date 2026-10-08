@@ -107,14 +107,7 @@ test "reversed bound frame Parameters retain the common frame rejection" {
           @check.diagnostic_cause(diagnostic)
           is Closure(Operations(Frames(InvalidFrame(_)))),
         )
-        // Record the common classification without pinning the defective one.
-        println(
-          if @check.diagnostic_category(diagnostic) is UnclassifiedFailure {
-            "UnclassifiedFailure"
-          } else {
-            "Classified frame rejection"
-          },
-        )
+        assert_eq(@check.diagnostic_category(diagnostic), InvalidInput)
       }
       _ => fail("Reversed bound intervals must remain rejected")
     }

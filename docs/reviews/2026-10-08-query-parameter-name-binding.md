@@ -118,3 +118,56 @@ The merge had no conflicts and preserves both corrections. The final submitted
 HEAD and its limited integration checks are recorded in the PR body separately
 from the earlier working-tree evidence above. No CI result or public execution
 is inferred from the merge.
+
+## Submitted package evidence and integrated refusal correction
+
+Normal producer `run-zKKIXO` generated all five packages from clean submitted
+`2d3362a02ba284ca5b4eb239ded13d0bccbf8221`. The original manifest is
+`/private/tmp/actql-b-parameter-binding-2d3362a02-pack/packed-client-packages.json`.
+All five tarball SHA-256 digests were checked before reuse. No skipped prepack,
+adapter overlay, manifest rewriting or old-package fallback was used.
+
+The existing `--limit-parameter-only` consumer passed on both Embedded Local
+and real HTTPS: all **14 successes / 13 preparation refusals** per transport.
+Receipt: `run-hYyePs`. Complete evidence:
+`worktrees/.codex-scratch/public-query-evidence-vpQTbv/summary.json`, passed,
+with no evidence errors and generated installations removed after recording.
+The public runner retains complete described contracts/column order, expected
+rows, NULL/duplicates, acquisition and retry/attach checks, and zero Run
+admission/provider I/O on preparation refusals.
+
+The same exact packages then ran the unfiltered frame cohort (`run-PcNIoN`,
+`public-query-evidence-oMQOzc`). All eight Local successes passed, including
+mixed-case shared windows and typed empty output. The first reversed-frame
+refusal stopped on a stale expected code: `ClientProgramRejected` instead of
+`ClientProgramInvalidInput`. HTTPS and the rest of the refusals were not reached;
+this failed campaign is retained and is not successful full-frame acceptance.
+
+The correction follows the already adopted common boundary, not the runtime
+output alone. Common commit `e8347bc4e8` classifies
+`Closure(Operations(Frames(InvalidFrame(_))))` as `InvalidInput` and fixes that
+exact cause/category in `program_check/diagnostic_category_wbtest.mbt`.
+`client_program_bridge.mbt` maps it to `check_invalid_input`, and the existing
+Node preparation adapter maps that category to `ClientProgramInvalidInput`.
+The original frame handoff also requested this invalid-input classification.
+The four source/independent-JSON controls now require that exact public code;
+inputs, parameters, Programs, rows, types, order and limits remain unchanged.
+The source-to-checker test asserts the exact common category as well as cause.
+Before correction the new bounded Node control failed **4/5** (`run-XiJUfL`,
+`focused-test-M22cwU`); that failure is not a product rejection defect.
+
+Normally merged main `6df5644df1070b2ed2509609d7214ccffde30795`, retaining
+#981 QUALIFY and #963 NEAREST input controls, without conflicts. Earlier
+`2d3362a02...` package results remain evidence of that SHA. Fresh integrated
+packages and the remaining frame/UNNEST public consumers are still required;
+no older successful campaign is relabeled as this newer HEAD's result.
+
+Integrated working-tree verification: **17/17 JS** in `run-6RCjjC`,
+`focused-test-Ii5G2M`, selecting parameter names, frame parameters, nullable
+parameter UNNEST, script NEAREST and quoted QUALIFY. That guard's following
+Node command had an incorrect wrapper kind and did not execute Node tests;
+the whole guard is not reported as passed. The corrected Node-only selection
+passed **11/11** (`run-Hcpc1B`, `focused-test-Ikq1yk`): analytic profile/typed
+frame controls, LIMIT parameters and parameter UNNEST. No JS repetition, full
+Core, proof, performance or manual CI rerun was added. Pinned direct moonfmt
+and `git diff --check` passed.
