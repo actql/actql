@@ -33,3 +33,7 @@ import {
   "moonbitlang/core/string",
   "actql/actql/platform_native/remote_runtime" @runtime,
 }
+
+import {
+  "actql/actql/physical_manifest" @output_manifest,
+} for "wbtest"
