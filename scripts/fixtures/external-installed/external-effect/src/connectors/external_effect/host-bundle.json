@@ -1,0 +1,19 @@
+{
+  "installation": {
+    "registration": "external_effect",
+    "revision": "external_effect/0.1",
+    "providerBundle": "connectors/external_effect/host_node",
+    "assets": ["src/connectors/external_effect/catalog-views.json", "src/connectors/external_effect/writes.json"],
+    "responseHeaders": [],
+    "effect": {
+      "profileVersion": "actql-installed-external-effect/0.1",
+      "module": "adapters/connectors/external_effect/host/installation.mjs",
+      "exports": {
+        "check": "checkProfile",
+        "identityParts": "identityParts",
+        "publish": "publish",
+        "load": "load"
+      }
+    }
+  }
+}

@@ -248,8 +248,10 @@ test "Captured Run issuer binds exact Result values and field order" {
 }
 
 ///|
-fn captured_preparation_test_start() -> CapturedRunIssuancePreparation {
-  let chain = captured_run_test_chain()
+fn captured_preparation_test_start(
+  with_model? : Bool = false,
+) -> CapturedRunIssuancePreparation {
+  let chain = captured_run_test_chain(with_model~)
   let snapshot = admit_captured_result_snapshot(
     chain.definition,
     chain.artifact,
@@ -512,7 +514,7 @@ test "Captured Run preparation keeps final evidence checking and quantum-indepen
   let mut identity = None
   let mut total = None
   for quantum in [1, 7, 64] {
-    let preparation = captured_preparation_test_start()
+    let preparation = captured_preparation_test_start(with_model=true)
     let mut work = 0
     let mut saw_context_check = false
     let mut saw_rows_check = false
@@ -559,9 +561,10 @@ test "Captured Run preparation keeps final evidence checking and quantum-indepen
 test "Captured Run preparation cancels after real progress at every aggregate boundary" {
   for
     wanted in [
-      "context", "envelope", "seal", "context-check", "rows-check", "done",
+      "source-advances", "snapshot-inventory", "model-inventory", "context", "envelope",
+      "seal", "context-check", "rows-check", "done",
     ] {
-    let preparation = captured_preparation_test_start()
+    let preparation = captured_preparation_test_start(with_model=true)
     let mut progress = 0
     let mut reached = false
     for _ in 0..<500000 {
@@ -578,6 +581,52 @@ test "Captured Run preparation cancels after real progress at every aggregate bo
     assert_eq(captured_run_preparation_fixture_phase(preparation), "closed")
     assert_true(preparation.advance(1) is Err(CaptureIssuanceEncoding))
     assert_true(preparation.finish() is Err(CaptureIssuanceEncoding))
+  }
+}
+
+///|
+test "capture input reference reservations survive context emission and cancel once" {
+  for cancel in [false, true] {
+    let preparation = captured_preparation_test_start(with_model=true)
+    let mut reached = false
+    for _ in 0..<500000 {
+      let (done, _) = preparation.advance(1).unwrap()
+      assert_true(!done)
+      if captured_run_preparation_fixture_phase(preparation) == "context" {
+        let (_, slots, snapshots, models) = captured_run_preparation_fixture_inventory(
+          preparation,
+        )
+        assert_eq(slots, 2)
+        assert_true(snapshots && models)
+        reached = true
+        break
+      }
+    }
+    assert_true(reached)
+    if !cancel {
+      let mut retired = false
+      for _ in 0..<500000 {
+        let (done, _) = preparation.advance(1).unwrap()
+        assert_true(!done)
+        let (_, slots, snapshots, models) = captured_run_preparation_fixture_inventory(
+          preparation,
+        )
+        if captured_run_preparation_fixture_phase(preparation) == "envelope" {
+          assert_eq(slots, 0)
+          assert_true(!snapshots && !models)
+          retired = true
+          break
+        }
+        assert_eq(slots, 2)
+      }
+      assert_true(retired)
+    }
+    preparation.cancel()
+    preparation.cancel()
+    assert_eq(
+      captured_run_preparation_fixture_inventory(preparation),
+      (0, 0, false, false),
+    )
   }
 }
 
