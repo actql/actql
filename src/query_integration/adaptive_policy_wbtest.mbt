@@ -62,6 +62,10 @@ test "adaptive implementation failure is sticky and revokes old direct dispatch"
   )
   let stopped = @resources.ledger_usage(ledger)
   assert_true(@strategy.next_captured_task(run) is None)
+  let explanation = @strategy.explain_captured_strategy(run, 65536, 10000).unwrap()
+  assert_true(explanation.contains("\"reason\":\"external_policy\""))
+  assert_true(explanation.contains("\"request_id\":\"plan-17\""))
+  assert_true(explanation.contains("\"explanation\":\"prefer native\""))
   assert_eq(@strategy.strategy_history_count(run), 1)
   assert_eq(calls[0], 4)
   assert_true(

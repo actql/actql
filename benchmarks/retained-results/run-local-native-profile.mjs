@@ -9,17 +9,20 @@ import {cpus, release} from 'node:os';
 import {promisify} from 'node:util';
 import {retainedCase, workloads} from './fixtures.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
+import {loadLocalOperationalProfile, localOperationalTemplate} from './operational-estimates.mjs';
 import {prepareNativeDirectProduct, executeNativeDirectProduct, admitNativeDirectProduct} from './native-direct-product.mjs';
 import {nativeCostObservation} from './native-cost-observation.mjs';
 import {sha256File} from './release-artifacts.mjs';
 import {captureLocalExecution, captureLimitBytes} from './local-profile-capture.mjs';
-import {nativeProfileSchedule, nativeOperationalSchedule, profileDigest, validateLocalObservation,
+import {nativeProfileSchedule, nativeOperationalSchedule, nativeEmpiricalSchedule, profileDigest, validateLocalObservation,
   aggregateLocalProfiles, describeObservationOverhead} from './local-performance-profile.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const destination = resolve(process.argv[2] ?? '');
 const operational = process.argv[3] === '--operational-six';
-assert((process.argv.length === 3 || process.argv.length === 4 && operational) && destination !== root &&
+const empiricalStage = process.argv[3] === '--empirical-comparison' ? 'comparison'
+  : process.argv[3] === '--empirical-evaluation' ? 'evaluation' : null;
+assert((process.argv.length === 3 || process.argv.length === 4 && (operational || empiricalStage === 'comparison') || process.argv.length === 5 && empiricalStage === 'evaluation') && destination !== root &&
   !destination.startsWith(root + sep), 'ExpectedExternalOwnedProfileDirectory');
 assert.notEqual(process.env.ACTQL_NATIVE_PROBE_PROFILE, 'debug', 'ProfileRequiresReleaseProbe');
 const exec = promisify(execFile), experimentStart = performance.now();
@@ -47,26 +50,36 @@ const environment = {platform: process.platform, arch: process.arch, osRelease: 
   cpuModels: [...new Set(cpus().map(cpu => cpu.model))], logicalCpus: cpus().length,
   node: process.version, libraryDigest, toolchain: JSON.parse(await readFile(join(root, 'toolchain.json'))),
   experimentConcurrency: 1, providerThreads: 'unknown', competingLoad: 'uncontrolled'};
+const comparison = empiricalStage === 'evaluation' ? await loadLocalOperationalProfile(resolve(process.argv[4])) : null;
+if (comparison) {assert.equal(comparison.report.revision,revision);assert.equal(comparison.report.binaryDigest,binaryDigest);
+  assert.equal(comparison.report.scheduleKind,'empirical-comparison');assert(comparison.report.accepted);
+  assert.equal(comparison.report.observations.length,6);}
 await mkdir(destination, {mode: 0o700}); // Refuse an existing destination: originals are immutable.
-const database = join(destination, 'source.duckdb');
+const database = comparison ? join(resolve(process.argv[4]),'source.duckdb') : join(destination, 'source.duckdb');
 const sourceStart = performance.now();
-await exec(process.execPath, [join(root,
+if (!comparison) await exec(process.execPath, [join(root,
   'adapters/connectors/duckdb/node/bench/create-retained-source.mjs'), database,
 fixture.workload, fixture.layout, String(fixture.rows)], {cwd: root, timeout: fixture.limits.timeoutMs});
 const sourcePreparationMs = performance.now() - sourceStart;
 const inputDigest = 'sha256:' + await sha256File(database);
 const controls = {fresh: {residentPolicy: false, nativeRates: ['1000', '1000', '1000']},
   resident: {residentPolicy: true, nativeRates: ['1000', '1000', '1000']}};
-const observations = [], schedule = operational ? nativeOperationalSchedule() : nativeProfileSchedule();
+if (empiricalStage) controls.resident = {residentPolicy:true,nativeRates:['1','1','1'],
+  residentEstimates:{preparationMilliseconds:'1000',cleanupMilliseconds:'1000',
+    taskMilliseconds:['1000','1000','1000'],importMilliseconds:['1000','1000','1000','1000']}};
+const observations = [], schedule = empiricalStage ? nativeEmpiricalSchedule(empiricalStage)
+  : operational ? nativeOperationalSchedule() : nativeProfileSchedule();
+
 const report = {version: 'actql-local-native-profile-experiment/0.1', revision,
   compiledSourceRevision: revision, buildWitness, binaryDigest, environment, instrumentationRevision,
-  schedule, scheduleKind: operational ? 'operational-six' : 'capture-mode-eighteen',
+  schedule, scheduleKind: empiricalStage ? 'empirical-'+empiricalStage : operational ? 'operational-six' : 'capture-mode-eighteen',
   concurrency: 1, caseId: fixture.id, limits: fixture.limits,
   dataStatistics: {source: 'independent synthetic fixture, not inferred runtime statistics',
     rows: fixture.rows, expectedOutput: fixture.identity(), ndv: null, selectivity: null},
   localEligibility: eligibility, controls, sourcePreparationMs,
   freshnessPolicy: {maxAgeMs: 86400000, minimumSamples: 3,
     scope: 'explicit local analysis window, not a scientifically calibrated expiry'},
+  empiricalPlan: empiricalStage ? {objective:'first-task-processing-median',intervention:'first position only; later tasks use current common offline choice',conditionsScope:'same offered profile; selected realization/position are interventions in mapping',fallback:'preconfigured-offline-on-incomplete-reference',ties:'lowest-position',profileOriginal:comparison?.profileRevision??null,phase:empiricalStage,calibrated:false} : null,
   observationLimit: schedule.length, perCaptureLimitBytes: captureLimitBytes, checkpointWritesMs: [],
   measurementScopes: {processCycleMs: 'parent preparation through child exit; excludes subsequent local capture/admission',
     coldMs: 'same process cycle minus child cleanup; existing coldMs boundary',
@@ -98,16 +111,47 @@ for (const step of schedule) {
   const started = performance.now();
   let rawExecution;
   try {
-    const invocation = await prepareNativeDirectProduct({root, fixture, database, directory,
+    let invocation = await prepareNativeDirectProduct({root, fixture, database, directory,
       ...controls[step.realization], phaseObserver: step.mode !== 'off'});
+    if (empiricalStage) {
+      const extra = ['--empirical-mode',step.arm.startsWith('position-') ? 'forced' : 'empirical',
+        '--empirical-fallback','offline','--sqlite-library','/usr/lib/libsqlite3.dylib'];
+      if (empiricalStage === 'comparison') extra.push('--empirical-position',step.arm.slice('position-'.length));
+      if (empiricalStage === 'evaluation') {
+        const first = comparison.report.observations[0].mapping.candidateProjections.find(p=>p.task===1);
+        const candidates={canonical_json:JSON.stringify(first.body),cid:profileDigest(JSON.stringify(first.body))};
+        const template=localOperationalTemplate({profile:comparison,
+          conditions:step.arm==='offline-fallback'&&step.round===0 ? {...conditions,inputDigest:'different-input'} : conditions,
+          task:1,candidates,now:Date.now()});
+        if (step.arm==='offline-fallback'&&step.round===1) {
+          template.entries=template.entries.map(entry=>entry.position===7&&entry.quantity==='task-processing'
+            ? {...entry,status:'unknown',reason:'quantity-unobserved',median_ms:null,minimum_ms:null,maximum_ms:null} : entry);
+        }
+        if (step.arm==='offline-fallback'&&step.round===2) {template.oldest_ms='0';template.newest_ms='0';}
+
+        const bytes=JSON.stringify(template);await writeFile(join(directory,'task-1.json'),bytes,{flag:'wx',mode:0o600});
+        extra.push('--empirical-profile-root',directory,'--empirical-profile-revision',comparison.profileRevision,
+          '--empirical-template-pin',profileDigest(bytes));
+      }
+      invocation={...invocation,arguments:[...invocation.arguments,...extra]};
+    }
     assert.equal(invocation.binary, binary);
     const execution = await executeNativeDirectProduct(invocation, {root, timeoutMs: fixture.limits.timeoutMs});
     rawExecution = execution;
     const cycleMs = performance.now() - started;
     const product = admitNativeDirectProduct(fixture, invocation, execution);
     const owner = product.ownerCorrespondence;
-    assert(owner.observations.choices.every(choice => choice.name === 'duckdb' &&
+    if (!empiricalStage) assert(owner.observations.choices.every(choice => choice.name === 'duckdb' &&
       choice.resident === (step.realization === 'resident')), 'ExperimentChoiceMismatch');
+    else {
+      const first=owner.observations.candidates.find(p=>p.task===1);
+      assert.deepEqual(first.body[5].map(c=>c[0]).sort((a,b)=>a-b),[0,7],'ChangedEmpiricalCandidateSet');
+      const baseline=observations[0]?.mapping.candidateProjections.find(p=>p.task===1)?.body;
+      if (baseline) assert.deepEqual(first.body,baseline,'EmpiricalSnapshotDrift');
+      if (comparison) assert.deepEqual(first.body,comparison.report.observations[0].mapping.candidateProjections.find(p=>p.task===1).body,'ComparisonSnapshotMismatch');
+      if (empiricalStage==='comparison') assert.equal(owner.observations.choices[0].position,Number(step.arm.slice('position-'.length)));
+      if (step.arm==='offline-fallback') assert.equal(owner.observations.choices[0].position,0,'ControlledOfflineBaselineChanged');
+    }
     const metadata = {id: item.id, revision, binaryDigest, inputDigest, instrumentationRevision,
       expectedRowsCid: fixture.identity().rowsCid, actualRowsCid: product.record.rows_cid,
       candidates: owner.observations.candidates, choices: owner.observations.choices,
@@ -130,6 +174,17 @@ for (const step of schedule) {
         ownerCorrespondence: owner, taskIntervals: product.taskIntervals,
         result: {cleanup_us: product.record.cleanup_us}, physicalPhases: product.physicalPhases})};
     item.preparation = product.preparation;
+    if (empiricalStage) {
+      item.intervention={phase:empiricalStage,arm:step.arm};
+      const lines=prefix=>execution.stdout.split('\n').filter(line=>line.startsWith(prefix)).map(line=>line.slice(prefix.length));
+      item.empirical={rankings:lines('empirical-ranking:').map(JSON.parse),responses:lines('empirical-response:').map(JSON.parse),
+        sidecars:lines('empirical-sidecar:').map(JSON.parse),fallbacks:lines('empirical-fallback:'),
+        revokedRequests:lines('empirical-old-request-refused:'),oldStateRefusals:lines('empirical-old-state-refused:'),
+        consultationMicroseconds:lines('empirical-consult-us:').map(Number)};
+      await writeFile(join(directory,'native-stdout.log'),execution.stdout,{flag:'wx',mode:0o600});
+      await writeFile(join(directory,'native-stderr.log'),execution.stderr,{flag:'wx',mode:0o600});
+      item.rawEvidence={stdoutDigest:profileDigest(execution.stdout),stderrDigest:profileDigest(execution.stderr)};
+    }
     item.capture = await captureLocalExecution({mode: step.mode, directory, metadata,
       stdout: execution.stdout, stderr: execution.stderr});
     Object.assign(item.metrics, {processCycleMs: cycleMs, coldMs: cycleMs - product.cleanupMs,
@@ -174,19 +229,20 @@ report.modeInvariance = ['fresh', 'resident'].map(realization => {
   const members = observations.filter(item => item.conditions.realization === realization);
   const invariant = item => ({holdings: item.mapping?.holdings, taskUsages: item.mapping?.taskUsages,
     attempts: item.mapping?.attempts, finalUsage: item.mapping?.finalUsage});
-  const baseline = operational ? members[0] : members.find(item => item.conditions.captureMode === 'off');
+  const baseline = operational || empiricalStage ? members[0] : members.find(item => item.conditions.captureMode === 'off');
   const baselineDigest = baseline?.ownerAccepted ? profileDigest(invariant(baseline)) : null;
   return {realization, count: members.length, unchanged: baselineDigest !== null &&
     members.every(item => item.ownerAccepted && profileDigest(invariant(item)) === baselineDigest),
     scope: 'exact result holdings, measured work, physical attempt deltas and final ledger usage; no public cancellation claim'};
 });
+if (empiricalStage) report.modeInvariance = [{scope:'off/on invariance unmeasured; treatment-specific attempts and work individually admitted',unchanged:null}];
 report.provenanceReadback = {sourceUnchanged: inputDigest === 'sha256:' + await sha256File(database),
   binaryUnchanged: binaryDigest === 'sha256:' + await sha256File(binary),
   libraryUnchanged: libraryDigest === 'sha256:' + await sha256File(library),
   sourceRevisionUnchanged: revision === await git(['rev-parse', 'HEAD']) && await git(['status', '--porcelain']) === ''};
 report.accepted = observations.length === schedule.length && observations.every(item => item.ownerAccepted && !item.unknown.length) &&
-  report.profiles.length === (operational ? 2 : 6) && report.profiles.every(profile => profile.status === 'descriptive-only') &&
-  report.modeInvariance.every(item => item.unchanged) &&
+  report.profiles.length === (empiricalStage ? 1 : operational ? 2 : 6) && report.profiles.every(profile => profile.status === 'descriptive-only') &&
+  (empiricalStage ? true : report.modeInvariance.every(item => item.unchanged)) &&
   Object.values(report.provenanceReadback).every(Boolean);
 report.experimentElapsedMs = performance.now() - experimentStart;
 await checkpoint();

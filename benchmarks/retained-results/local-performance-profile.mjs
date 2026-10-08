@@ -23,6 +23,16 @@ export const nativeOperationalSchedule = () => Array.from({length: 3}, (_, round
   ['fresh', 'resident'].map(realization => ({round, mode: 'metadata-only', realization})))
   .flat().map((entry, index) => Object.freeze({...entry, index}));
 
+// Every arm sees the same resident-enabled offer configuration. The intervention
+// is recorded separately from conditions; chosen realization stays in mapping.
+export function nativeEmpiricalSchedule(stage) {
+  assert(['comparison', 'evaluation'].includes(stage));
+  const arms = stage === 'comparison' ? ['position-0', 'position-7'] : ['empirical', 'offline-fallback'];
+  return Array.from({length:3}, (_, round) => (round % 2 ? [...arms].reverse() : arms)
+    .map(arm => ({round, mode:'metadata-only', realization:'resident', arm})))
+    .flat().map((entry,index) => Object.freeze({...entry,index}));
+}
+
 export function validateLocalObservation(value) {
   assert.equal(value?.version, 'actql-local-performance-observation/0.1');
   assert.equal(typeof value.id, 'string');

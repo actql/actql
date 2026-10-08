@@ -159,7 +159,7 @@ test('offline partial interrupted experiment stays unknown and altered original 
     await writeFile(join(child, 'observation.json'), original);
     item.originalRecordDigest = profileDigest(original); item.metrics.recordingMs = 1; item.metrics.observedEndToEndMs = 20;
     const fixture = retainedCase(workloads[2], 'text-1024', 1000);
-    const report = {version: 'actql-local-native-profile-experiment/0.1', schedule: nativeProfileSchedule(),
+    const report = {version: 'actql-local-native-profile-experiment/0.1', scheduleKind:'capture-mode-eighteen', schedule: nativeProfileSchedule(),
       caseId: fixture.id, dataStatistics: {expectedOutput: fixture.identity()}, observations: [item],
       revision: item.conditions.runtimeRevision, binaryDigest: item.conditions.binaryDigest,
       instrumentationRevision: item.conditions.instrumentationRevision, freshnessPolicy: {minimumSamples: 3}};
