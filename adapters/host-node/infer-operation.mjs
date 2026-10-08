@@ -8,6 +8,18 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
 const activeOperations = new WeakMap();
 
+// Publication metadata is issued by the same bounded common owner only after
+// every original Model component has completed. This does not advance calls.
+export function startCompleteInferObservation({moon, operations, ledger, maxSlots, maxWireBytes, maxWork}) {
+  const active = operations.map(operation => {
+    const value = activeOperations.get(operation);
+    if (value === undefined) throw new TypeError('ForeignInferOperation');
+    return value;
+  });
+  return checked(moon.clientProgramStartCompleteInferObservationIssuance(active,
+    ledger, maxSlots, maxWireBytes, maxWork));
+}
+
 // Called by the installed Run's dispatch callback. The caller transfers this
 // object to client-dispatch-owner before calling run, hence before any advance.
 // Exactly one physical provider or already Store-confirmed saved read is used.

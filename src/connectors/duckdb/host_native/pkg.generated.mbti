@@ -61,6 +61,18 @@ pub fn native_acquisition_runtime_source_capture(NativeAcquisitionRuntime) -> Re
 
 pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
 
+pub fn native_performance_candidate_snapshot(NativeStandardStrategyRun) -> @physical_strategy.PolicyCandidateSet?
+
+pub fn native_performance_conditions(NativeStandardStrategyRun) -> Result[@physical_strategy.OperationalEstimateConditions?, NativeStandardPolicyIssue]
+
+pub fn native_performance_decision_json(NativePerformanceDecision, max_bytes? : Int) -> Result[String, NativeStandardPolicyIssue]
+
+pub fn native_performance_decisions(NativeStandardStrategyRun) -> Array[NativePerformanceDecision]
+
+pub fn native_performance_omitted_decisions(NativeStandardStrategyRun) -> Int
+
+pub fn native_performance_unavailable_reason(NativeStandardStrategyRun) -> String?
+
 pub fn native_resident_import_scratch_bytes(NativeComputeImportLimits, Int, Int, Int, Bool) -> Int64?
 
 pub fn native_resident_task_scratch_bytes(NativeComputeImportLimits, Int, Int, Int, Int?) -> Int64?
@@ -79,13 +91,21 @@ pub fn native_strategy_compute_runtime_output(NativeStrategyComputeRuntime) -> R
 
 pub fn open_native_read_only_source_acquisition(NativeReadOnlySourceBinding, @host.NativeHostConfiguration, @native.Library, String) -> Result[NativeAcquisitionRuntime, NativeReadOnlySourceIssue]
 
-pub fn open_native_standard_strategy_run(@standard_host.StrategyHostDispatch, NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String, retained_profile? : NativeStrategyRetainedOutputProfile, observe_phase? : (NativeStandardStrategyPhaseEvent) -> Unit) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue]
+pub fn open_native_standard_strategy_run(@standard_host.StrategyHostDispatch, NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String, retained_profile? : NativeStrategyRetainedOutputProfile, observe_phase? : (NativeStandardStrategyPhaseEvent) -> Unit, performance? : NativePerformanceConfiguration, performance_input? : NativePerformanceInput) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue]
 
 pub fn open_native_strategy_compute_run() -> NativeStrategyComputeRun
+
+pub fn prepare_native_local_performance_profile(String, String, String, String, creation_ms? : Double) -> Result[NativeLocalPerformanceProfile, NativeStandardPolicyIssue]
+
+pub fn prepare_native_performance_configuration(NativePerformanceMode, NativePerformanceRuntime, @trusted_clock.NativeTrustedClock, String, String, String, profile? : NativeLocalPerformanceProfile, allow_uncontrolled_load? : Bool, timeout_ms? : Int64) -> Result[NativePerformanceConfiguration, NativeStandardPolicyIssue]
+
+pub fn prepare_native_performance_input(@standard_host.StrategyHostDispatch, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity) -> Result[NativePerformanceInput, NativeStandardPolicyIssue]
 
 pub fn prepare_native_read_only_source_binding(@host.NativeHostConfiguration, String, Int64) -> Result[NativeReadOnlySourceBinding, NativeReadOnlySourceIssue]
 
 pub fn prepare_native_standard_policy_consultation(@standard_host.StrategyHostDispatch, @http_client.Client, @trusted_clock.NativeTrustedClock, String, String, String, String, String, Int64, Int, (@physical_strategy.PolicyRequest, @physical_strategy.PolicyCandidateSet) -> Bool) -> Result[NativeStandardPolicyConsultation?, NativeStandardPolicyIssue]
+
+pub fn prepare_native_standard_strategy_performance_choice(NativeStandardStrategyRun) -> Result[Unit, NativeStandardStrategyRunIssue]
 
 pub fn rank_native_operational_estimate(@standard_host.StrategyHostDispatch, @physical_strategy.OperationalEstimateSidecar, Int, String, @trusted_clock.NativeTrustedClock, quantity? : String) -> Result[@physical_strategy.EmpiricalRanking, NativeStandardPolicyIssue]
 
@@ -156,10 +176,85 @@ type NativeComputeRetainedInput
 
 type NativeComputeRuntime
 
+pub struct NativeLocalPerformanceProfile {
+  root_path : String
+  name : String
+  template_digest : String
+  original_revision : String
+  creation_ms : Double?
+  mut template : String?
+  mut header : @physical_strategy.OperationalProfileTemplateHeader?
+  mut attempted : Bool
+  mut failure : NativeStandardPolicyIssue?
+  mut read_microseconds : Double
+}
+
 pub(all) enum NativeParameterBindingIssue {
   Parameter(@adapter.ValueIssue)
   Runtime(@native.NativeDuckDBIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct NativePerformanceConfiguration {
+  mode : NativePerformanceMode
+  runtime : NativePerformanceRuntime
+  profile : NativeLocalPerformanceProfile?
+  clock : @trusted_clock.NativeTrustedClock
+  run_identity : String
+  authority : String
+  policy_revision : String
+  allow_uncontrolled_load : Bool
+  timeout_ms : Int64
+}
+
+pub(all) struct NativePerformanceDecision {
+  task : Int
+  positions : Array[Int]
+  evaluated_ms : Int64
+  max_age_ms : Int64?
+  mode : NativePerformanceMode
+  objective : String
+  request : @physical_strategy.PolicyRequest
+  profile_revision : String?
+  reason : String
+  selected_position : Int?
+  offline_position : Int?
+  conditions : @physical_strategy.OperationalEstimateConditions?
+  references : Array[@physical_strategy.OperationalTimeReference]
+  profile_creation_ms : Double?
+  profile_read_microseconds : Double
+  consultation_microseconds : Double
+  reused_profile : Bool
+  oldest_ms : Int64?
+  newest_ms : Int64?
+  load_applicability : String
+  stable_improvement : String
+  net_benefit : String
+}
+
+pub struct NativePerformanceInput {
+  dispatch : @standard_host.StrategyHostDispatch
+  source : @execution_query.CapturedInputSource
+  identity : @execution_query.CapturedSourceRelationIdentity
+}
+
+pub(all) enum NativePerformanceMode {
+  DiagnosticReference
+  SelectReference
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NativePerformanceRuntime {
+  runtime_revision : String
+  artifact_digest : String
+  environment_digest : String
+  control_digest : String
+  instrumentation_revision : String
+  measurement_scope_revision : String
+  capture_mode : String
+  process_state : String
+  authorized_scope : String
+  realization : String
+  concurrency : Int
+}
 
 type NativeReadOnlySourceBinding
 
@@ -245,6 +340,7 @@ pub(all) enum NativeStandardStrategyRunIssue {
   Database(@native.NativeDuckDBIssue)
   DuckDB(NativeStrategyComputeRunIssue)
   Local(NativeStrategyLocalIssue)
+  Performance(NativeStandardPolicyIssue)
 }
 
 pub(all) struct NativeStandardStrategyTaskCompletion {

@@ -111,8 +111,11 @@ export function checkModelCaptureCorrespondence(job, values) {
   const {bundle_cid: bundleCid, ...body} = bundle;
   if (validation.outcome !== 'accepted' || bundle.version !== 'actql-model-capture-bundle/0.1' ||
       bundleCid !== original.captureBundleCid || contentCid(canonicalJson(body)) !== bundleCid ||
-      !Array.isArray(bundle.captures) || bundle.captures.length !== 1) fail('RequiredEvidenceUnavailable');
-  const captured = bundle.captures[0], evidence = captured.evidence;
+      !Array.isArray(bundle.captures) || bundle.captures.length < 1 || bundle.captures.length > 128 ||
+      new Set(bundle.captures.map(capture => capture?.model_call_slot_cid)).size !== bundle.captures.length) fail('RequiredEvidenceUnavailable');
+  const captured = bundle.captures.find(capture => capture.model_call_slot_cid === original.modelCallSlotCid);
+  if (captured === undefined) fail('RequiredEvidenceUnavailable');
+  const evidence = captured.evidence;
   if (canonicalJson(evidence) !== canonicalJson(validation.evidence) ||
       evidence?.version !== 'actql-model-invocation-evidence/0.1' ||
       evidence.model_task_contract_cid !== original.modelTaskCid ||

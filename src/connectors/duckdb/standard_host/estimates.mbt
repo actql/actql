@@ -191,6 +191,15 @@ pub fn dispatch_policy_candidates(
 }
 
 ///|
+pub fn dispatch_offline_policy_position(
+  host : StrategyHostDispatch,
+) -> Result[Int?, DispatchIssue] {
+  @host_driver.compute_host_offline_policy_position(host.runtime).map_err(
+    adaptive_estimate_issue,
+  )
+}
+
+///|
 /// Exact planner-side counts for the pending candidate set.
 pub fn dispatch_policy_search_diagnostics(
   host : StrategyHostDispatch,
@@ -260,4 +269,9 @@ pub fn commit_dispatch_offline_policy_choice(
   @host_driver.commit_compute_host_policy_choice(host.runtime, None).map_err(
     adaptive_estimate_issue,
   )
+}
+
+///|
+pub fn dispatch_has_estimates(host : StrategyHostDispatch) -> Bool {
+  @host_driver.compute_host_has_estimates(host.runtime)
 }

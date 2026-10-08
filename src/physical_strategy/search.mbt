@@ -858,6 +858,25 @@ pub fn commit_strategy_choice(
 }
 
 ///|
+/// Read the existing offline chooser's proposal for explanation only. This
+/// neither commits nor checks execution authority; the commit checks remain.
+pub fn strategy_offline_policy_position(
+  choices : StrategyChoiceSet,
+) -> Result[Int?, SearchIssue] {
+  match
+    @cost.choose_serial(
+      choices.durations,
+      choices.priority,
+      choices.durations.length() * 2,
+    ) {
+    Err(issue) => Err(Cost(issue))
+    Ok(EstimatedFastest(index, _)) | Ok(HostPreferred(index)) =>
+      Ok(Some(choices.feasible[index].assessment.position))
+    Ok(NoCandidates) | Ok(Deferred) => Ok(None)
+  }
+}
+
+///|
 /// Mint one bounded consultation for this choice set. The Host authenticates
 /// the policy peer and retains this request across the I/O boundary.
 pub fn prepare_strategy_policy_request(
