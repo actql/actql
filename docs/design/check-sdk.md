@@ -1378,6 +1378,15 @@ checker to close those obligations under a scope selected before checking,
 without fabricated values or a second checker. No template success or unsupported
 preparation-write path is introduced by these declaration conditions.
 
+The common `program_references.prepare_declaration_usage` continuation collects
+operation/Effect and request references from the exact retained staged source
+without requiring effective Parameter values. Bound construction uses the same
+continuation before its real-value binding and Stage attachment. Its aggregate
+ceiling includes the request, stage-body and use prefixes; exact-copy input from
+a different admitted Program cannot replace the original owners. This limited
+declaration-use witness does not close expression, operation, authority, resource
+or publication obligations and cannot certify a template by itself.
+
 ### Passive operation diagnostic formats
 
 Submission presentation follows admitted `SubmissionOutcome` and

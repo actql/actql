@@ -7,7 +7,9 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
+  "actql/actql/pipeline_parameters",
   "actql/actql/source_request_slots",
+  "actql/actql/stage_parameters",
   "actql/actql/stage_source",
   "moonbitlang/core/debug",
 }
@@ -44,6 +46,8 @@ pub fn parameter_work(ParameterValues) -> Int
 pub fn parameters(Index) -> @parameter_references.Index
 
 pub fn prepare(@source_request_slots.Slots, Array[@stage_source.ParameterUses], Limits) -> Result[Inventory, Issue]
+
+pub fn prepare_declaration_usage(@source_request_slots.Slots, Array[@stage_parameters.CollectedStage], @stage_source.Limits, @pipeline_parameters.Limits, Limits, max_work~ : Int) -> Result[DeclarationUsage, PreparationIssue]
 
 pub fn prepare_program_definition(ProgramSemantics, Int, Int, Int) -> ProgramDefinition raise @encode_core.EncodeFailure
 
@@ -151,6 +155,15 @@ pub(all) struct Limits {
 }
 
 type ParameterValues
+
+pub enum PreparationIssue {
+  InvalidLimits
+  BudgetExceeded
+  Body(Int, @stage_source.Issue)
+  Uses(Int, @stage_source.ParameterIssue)
+  Inventory(Issue)
+  Usage(UsageIssue)
+}
 
 type ProgramDefinition
 
