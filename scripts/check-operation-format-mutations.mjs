@@ -9,6 +9,25 @@ const unit = 'packages/sdk/operation-formats.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const facts = 'operation formats retain typed facts, original lookup references and unknown outcomes without I/O';
 const mutations = [
+  {name: 'public check display omits terminal control escaping', path: 'packages/sdk/index.mjs',
+    file: 'adapters/host-node/client-check.test.mjs',
+    from: '/[\\u007f-\\u009f\\u061c\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]/gu',
+    to: '/a^/gu', targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: actual check display keeps hostile declaration names as data`,
+      'public-display-terminal', 'doesNotMatch'))},
+  {name: 'public check display omits HTML markup escaping', path: 'packages/sdk/index.mjs',
+    file: 'adapters/host-node/client-check.test.mjs',
+    from: 'const checkHtml = value => value.replace(/[&<>"\']/gu, character =>',
+    to: 'const checkHtml = value => value.replace(/a^/gu, character =>',
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: actual check display keeps hostile declaration names as data`,
+      'public-display-html', 'doesNotMatch'))},
+  {name: 'public check display omits Agent data escaping', path: 'packages/sdk/index.mjs',
+    file: 'adapters/host-node/client-check.test.mjs',
+    from: '/[<>&\\u007f-\\u009f\\u061c\\u200e\\u200f\\u2028-\\u202e\\u2066-\\u2069]/gu',
+    to: '/a^/gu', targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: actual check display keeps hostile declaration names as data`,
+      'public-display-agent', 'doesNotMatch'))},
   {name: 'expired retired identity is admitted as new work',
     path: 'adapters/host-node/client-request-journal.mjs',
     file: 'adapters/host-node/submission-epoch-public.test.mjs',
