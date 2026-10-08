@@ -118,6 +118,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-equality-source-input.mjs', 'graph-equality-source-input.mjs'],
   ['scripts/fixtures/graph-difference-source-input.mjs', 'graph-difference-source-input.mjs'],
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
+  ['scripts/fixtures/source-graph-member-input.mjs', 'source-graph-member-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
   ['scripts/fixtures/model-provider-binding-fixture.mjs', 'model-provider-binding-fixture.mjs'],
@@ -228,6 +229,9 @@ if (process.argv.includes('--analytic-frame-parameter-only')) {
 }
 if (process.argv.includes('--analytic-property-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY = '1';
+}
+if (process.argv.includes('--source-graph-member-only')) {
+  runtimeEnvironment.ACTQL_TEST_SOURCE_GRAPH_MEMBER_ONLY = '1';
 }
 if (process.argv.includes('--graph-projection-property-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_PROJECTION_PROPERTY_ONLY = '1';
