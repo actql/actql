@@ -25,7 +25,12 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
         safe = true
         current_range = Some(name)
       }
-      Set(_) | Drop(_) | Rename(_) | Extend(_) | Analytic(_) =>
+      Set(_)
+      | Drop(_)
+      | Rename(_)
+      | Extend(_)
+      | Analytic(_)
+      | AnalyticExpressions(_, _) =>
         if current_range is Some(_) {
           safe = false
         }
