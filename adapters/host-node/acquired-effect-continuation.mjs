@@ -220,8 +220,13 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       restorations.add(owner);
       const capturedSource = moon.clientProgramSourceCaptureSource(owner);
       if (capturedSource === undefined) fail('SourceCaptureCustodyUnavailable');
-      const identity = checked(moon.clientProgramIdentifyCapturedEffectSourceRelation(capturedSource));
-      const logicalInput = checked(moon.clientProgramEffectIssueCapturedSourceLogicalAt(
+      const pure = acquired.kind === 'infer';
+      if (pure && moon.clientProgramCapturedTaskSourceMatches(acquired.prepared,
+          capturedSource, source.occurrence.task) !== true) fail('HeldAcquisitionChanged');
+      const identity = checked((pure ? moon.clientProgramIdentifyCapturedSourceRelation
+        : moon.clientProgramIdentifyCapturedEffectSourceRelation)(capturedSource));
+      const logicalInput = checked((pure ? moon.clientProgramIssueCapturedTaskSourceLogical
+        : moon.clientProgramEffectIssueCapturedSourceLogicalAt)(
         acquired.prepared, capturedSource, identity, requirement, source.occurrence.task));
       const close = async () => {
         if (!moon.clientProgramCloseSourceCapture(owner)) fail('SourceCaptureCleanupPending');

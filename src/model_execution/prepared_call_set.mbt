@@ -81,6 +81,34 @@ pub fn prepared_model_call_at(
 }
 
 ///|
+/// The original typed request, not a send capability or a reconstructed row.
+pub fn prepared_model_request(
+  value : ModelPreparedCallSet,
+  slot : Int,
+) -> ModelRequest? {
+  if !prepared_model_current(value) {
+    return None
+  }
+  value.owner.state.requests.get(slot).map(item => item.request)
+}
+
+///|
+/// Retained provider-port originals after no-I/O preparation. Callers must
+/// reserve copy custody and authorize capture before saving these strings.
+pub fn prepared_model_physical_request(
+  value : ModelPreparedCallSet,
+  slot : Int,
+) -> (ModelRequest, ModelPhysicalRequestEvidence)? {
+  guard prepared_model_request(value, slot) is Some(request) &&
+    value.owner.state.physical_plans.get(slot) is Some(plan) &&
+    physical_equal(request, plan.request) &&
+    plan.evidence is Some(evidence) else {
+    return None
+  }
+  Some((request, evidence))
+}
+
+///|
 pub fn prepared_model_input_artifact(
   value : ModelPreparedCallSet,
 ) -> @publication.RunEvidenceValue? {

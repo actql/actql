@@ -478,7 +478,7 @@ fn infer_scope_expected_sources(
   if count == 0 {
     return Ok([])
   }
-  if count != 2 || occurrence.task != count {
+  if count < 1 || count > 2 || occurrence.task < count {
     return Err(UnsupportedBindings)
   }
   let pipeline = @lower.pipeline(

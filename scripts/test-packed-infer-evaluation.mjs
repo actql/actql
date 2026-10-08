@@ -84,7 +84,7 @@ async ({root, directory, run, recordTarball}) => {
   args[1] = '--test-reporter=' + pathToFileURL(join(root, 'scripts/test-execution-reporter.mjs')).href;
   const stdout = run(process.execPath, args, {cwd: root, env: runtimeEnv, timeout: 600000});
   const checked = assertTestExecution('node', process.execPath, args, {status: 0, stdout});
-  assert.equal(checked.counts.passed, 8, 'Single and Source-backed multiple INFER must execute through both transports and actual observability modes');
+  assert.equal(checked.counts.passed, 24, 'Single, Source-backed and interrupted original-Run INFER cases must execute through the declared public boundaries');
   console.log(stdout.trimEnd());
   const receipts = [];
   for (const transport of ['local', 'https']) for (const mode of ['disabled', 'sampling-zero']) {
@@ -97,7 +97,8 @@ async ({root, directory, run, recordTarball}) => {
     assert.equal(new Set(receipt.evaluatorProcessIds).size, 3);
     receipts.push(receipt);
   }
-  const sourceReceipts = [];
+  const {expectedColumns} = await import(pathToFileURL(join(root, 'scripts/fixtures/source-multi-infer-evidence.mjs')));
+  const sourceReceipts = [], recoveryReceipts = [], unknownReceipts = [], deniedReceipts = [], cleanupReceipts = [], corruptReceipts = [], foreignResponseReceipts = [];
   for (const transport of ['local', 'https']) {
     const restored = JSON.parse(await readFile(join(directory, `source-evidence-${transport}-disabled.json`), 'utf8'));
     assert.equal(restored.revision, before.revision); assert.equal(restored.complete, true);
@@ -111,9 +112,74 @@ async ({root, directory, run, recordTarball}) => {
     assert(comparison.runs.every(run => run.revision === before.revision && run.sourceCalls === 1 &&
       run.calls.length === 4 && run.otlpRequests === 0 && run.terminal.status === 'succeeded'));
     sourceReceipts.push({transport, restored, comparison});
+    for (const boundary of ['first-saved', 'second-approval', 'provider-saved']) {
+      const recovery = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-${boundary}.json`), 'utf8'));
+      assert.equal(recovery.revision, before.revision);
+      assert.equal(recovery.complete, true);
+      assert.equal(recovery.transport, transport); assert.equal(recovery.boundary, boundary);
+      assert.equal(recovery.status, 'succeeded');
+      assert.notEqual(recovery.firstPid, recovery.restoredPid);
+      assert.equal(recovery.sourceCalls, 1); assert.equal(recovery.providerCalls, 4);
+      assert.equal(new Set(recovery.originalSlots).size, 2);
+      assert.deepEqual(recovery.columns, expectedColumns);
+      assert.equal(recovery.restoredItems.length, 4);
+      assert.equal(new Set(recovery.evaluatorPids).size, 4);
+      assert.equal(recovery.otlpRequests, 0);
+      recoveryReceipts.push(recovery);
+    }
+    const unknown = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-unknown.json`), 'utf8'));
+    assert.equal(unknown.revision, before.revision); assert.equal(unknown.complete, true);
+    assert.equal(unknown.transport, transport); assert.equal(unknown.boundary, 'unknown');
+    assert.equal(unknown.status, 'needs_reconciliation');
+    assert.equal(new Set([unknown.firstPid, unknown.restoredPid, unknown.againPid]).size, 3);
+    assert.equal(unknown.sourceCalls, 1); assert.equal(unknown.providerCalls, 4);
+    assert.equal(unknown.inventoryCount, 4); assert.equal(unknown.capturedItems.length, 3);
+    assert.equal(new Set(unknown.evaluatorPids).size, 3);
+    assert.equal(typeof unknown.unknownAttemptCid, 'string');
+    assert.deepEqual(unknown.trial, {status: 'incomplete', reason: 'RequiredEvidenceUnavailable', records: []});
+    assert.equal(unknown.observationMode, transport === 'https' ? 'sampling-zero' : 'disabled');
+    assert.equal(unknown.otlpRequests, 0);
+    unknownReceipts.push(unknown);
+    const denied = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-denied.json`), 'utf8'));
+    assert.equal(denied.revision, before.revision); assert.equal(denied.complete, true);
+    assert.equal(denied.transport, transport); assert.equal(denied.boundary, 'infer-rejected');
+    assert.equal(denied.status, 'needs_reconciliation');
+    assert.equal(denied.refusalCode, 'ExecutionAuthorizationDenied');
+    assert.notEqual(denied.firstPid, denied.restoredPid);
+    assert.equal(denied.sourceCalls, 1); assert.equal(denied.providerCalls, 2);
+    deniedReceipts.push(denied);
+    const cleanup = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-cleanup.json`), 'utf8'));
+    assert.equal(cleanup.revision, before.revision); assert.equal(cleanup.complete, true);
+    assert.equal(cleanup.transport, transport); assert.equal(cleanup.boundary, 'cleanup-retry');
+    assert.equal(new Set([cleanup.firstPid, cleanup.pendingPid, cleanup.retryPid]).size, 3);
+    assert.equal(cleanup.sourceCalls, 1); assert.equal(cleanup.providerCalls, 4);
+    assert(cleanup.retiredHoldings.length > 0 && cleanup.retiredHoldings.every(item => item.state === 'retired'));
+    assert.equal(new Set(cleanup.evaluatorPids).size, 4);
+    cleanupReceipts.push(cleanup);
+    const corrupt = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-corrupt.json`), 'utf8'));
+    assert.equal(corrupt.revision, before.revision); assert.equal(corrupt.complete, true);
+    assert.equal(corrupt.transport, transport); assert.equal(corrupt.boundary, 'modified-custody');
+    assert.equal(corrupt.status, 'needs_reconciliation');
+    assert.equal(corrupt.refusalCode, 'PublicationObjectCorrupt');
+    assert.notEqual(corrupt.firstPid, corrupt.restoredPid);
+    assert.equal(corrupt.sourceCalls, 1); assert.equal(corrupt.providerCalls, 2);
+    corruptReceipts.push(corrupt);
+    const foreign = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-foreign-response.json`), 'utf8'));
+    assert.equal(foreign.revision, before.revision); assert.equal(foreign.complete, true);
+    assert.equal(foreign.transport, transport); assert.equal(foreign.boundary, 'foreign-response');
+    assert.deepEqual(foreign.refusals.map(item => item.field), ['attemptWire', 'callWire']);
+    for (const refusal of foreign.refusals) {
+      assert.notDeepEqual(refusal.ref, foreign.foreignRef);
+      assert.equal(new Set([foreign.foreignFirstPid, foreign.foreignRestoredPid,
+        refusal.firstPid, refusal.restoredPid, refusal.againPid]).size, 5);
+      assert.equal(refusal.status, 'needs_reconciliation');
+      assert.equal(refusal.sourceCalls, 1); assert.equal(refusal.providerCalls, 3);
+      assert.equal(refusal.lookupCount, 1);
+    }
+    foreignResponseReceipts.push(foreign);
   }
   assert.deepEqual(checkoutState(repository), before);
   await writeFile(join(directory, 'evaluation-summary.json'), JSON.stringify({revision: before.revision,
     complete: true, receipts: receipts.map(({transport, observationMode, physicalCalls, observationRecords}) =>
-      ({transport, observationMode, physicalCalls, observationRecords})), sourceReceipts}, null, 2) + '\n');
+      ({transport, observationMode, physicalCalls, observationRecords})), sourceReceipts, recoveryReceipts, unknownReceipts, deniedReceipts, cleanupReceipts, corruptReceipts, foreignResponseReceipts}, null, 2) + '\n');
 });

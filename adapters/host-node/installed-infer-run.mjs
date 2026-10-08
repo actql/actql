@@ -11,11 +11,12 @@ import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
+  checkpoints, prepareAcquisition, sourceAccessFor,
   computeConfigurations = {}}) {
   const control = core.publicationControl;
   return async ({preparedProgram, plan, store, principalId, signal,
     retainExecution, acquiredInfer, replay = false, beginPhysicalWork = () => {},
-    submission, existingModel, modelClaim}) => {
+    submission, existingModel, modelClaim, assertCurrent}) => {
     const selected = selections.get(preparedProgram);
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
@@ -23,7 +24,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     if (selected.components !== undefined) {
       return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
         store, principalId, signal, retainExecution, acquiredInfer, replay,
-        beginPhysicalWork, submission, modelController, inferEvidence,
+        beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
+        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
         namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
         registry, values, fragment, ordered, computeConfigurations});
     }

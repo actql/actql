@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {configureInferEvidence, projectInferEvidence} from './infer-evaluation-evidence.mjs';
+import {configureInferEvidence, projectInferEvidence, withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 
 function fixture({authorize = () => true, capture = async () => ({status: 'complete', references: {}}), releaseFails = false, maxBytes = 4096,
   structuredResponse = {risk: 'high'}} = {}) {
@@ -21,6 +21,203 @@ function fixture({authorize = () => true, capture = async () => ({status: 'compl
     authorityScopeCid: 'scope', retainCopy: value => retained.push(value)};
   return {trace, retained, manifests, facts, config};
 }
+
+function preparedFixture(options) {
+  const f = fixture(options);
+  const original = 'e\u0301/é/CR\r/LF\n/CRLF\r\n/\u0000/\\/"/😀';
+  Object.assign(f.facts.moon, {
+    clientProgramInferOccurrenceTargetName: () => 'named',
+    clientProgramInferPreparedCallCount: () => 1,
+    clientProgramInferPreparedCallAt: () => ({wire: '{"slot":"original"}'}),
+    strategyRunEvidenceJson: value => value.wire,
+    clientProgramModelRequestInputFrameBounded: () => {f.trace.push('serialize'); return '{}';},
+  });
+  f.facts.selected.occurrence = {};
+  f.facts.preparedCallSet = {};
+  f.facts.operation.preparedPhysicalRequest = () => ({_0: {}, _1: original, _2: '{"unknown":true}'});
+  return {...f, original};
+}
+
+function partialFixture(options = {}) {
+  const f = fixture(options);
+  const calls = ['saved', 'unknown'].map((name, slot) => ({slotCid: name,
+    callWire: JSON.stringify({model_call_slot_cid: name, model_task_cid: 'task',
+      input_key_cid: `key-${slot}`, fixed_request_cid: `request-${slot}`}),
+    state: slot === 0 ? 'SavedSuccess' : 'EnteredUnknown',
+    outcome: slot === 0 ? 'ok' : 'result_unknown',
+    entry: {slotCid: name, attemptCid: `attempt-${slot}`},
+    ...(slot === 0 ? {captureBundleCid: 'saved-bundle'} : {})}));
+  const inventory = {count: 2, calls, async readBundle(slot, beforeRead) {
+    assert.equal(slot, 0);
+    beforeRead(options.physicalBytes ?? 100);
+    f.trace.push('private decode');
+    return {count: 1, cid: 'saved-bundle', wire: JSON.stringify({captures: [{
+      model_call_slot_cid: 'saved', semantic_request_cid: 'request-0', structured_response: {risk: 'low'},
+      evidence: {model_call_slot_cid: 'saved', model_task_contract_cid: 'task', validated_structured_output_cid: 'output'},
+    }]})};
+  }};
+  f.facts.continuation = {evaluationInventory: () => inventory};
+  f.facts.partial = true;
+  return {...f, inventory};
+}
+
+test('partial Evidence reserves before private reading and retains the original unknown inventory', async () => {
+  const f = partialFixture();
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.trace, ['reserved', 'private decode', 'serialize', 'copy handed to sink', 'release']);
+  const manifest = f.manifests[0].manifest;
+  assert.equal(manifest.status, 'incomplete');
+  assert.deepEqual(manifest.items.map(item => [item.modelCallSlotCid, item.attemptCid,
+    item.inputKeyCid, item.callState, item.status]), [
+    ['saved', 'attempt-0', 'key-0', 'SavedSuccess', 'complete'],
+    ['unknown', 'attempt-1', 'key-1', 'EnteredUnknown', 'incomplete'],
+  ]);
+  assert.equal(manifest.items[1].reason, 'ModelResultUnknown');
+  assert.equal(Object.hasOwn(manifest.items[1], 'references'), false);
+});
+
+test('denied partial Evidence cannot decode private captures or disclose typed key identities', async () => {
+  const f = partialFixture({authorize: () => false});
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.trace, ['reserved', 'release']);
+  assert.equal(f.manifests[0].manifest.items.length, 2);
+  for (const item of f.manifests[0].manifest.items) {
+    assert.equal(item.reason, 'EvidenceReadDenied');
+    assert.equal(Object.hasOwn(item, 'inputKeyCid'), false);
+    assert.equal(Object.hasOwn(item, 'references'), false);
+  }
+});
+
+test('partial physical copy exhaustion refuses before decoding without dropping unknown items', async () => {
+  const f = partialFixture({physicalBytes: 1000});
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.trace, ['reserved', 'release']);
+  assert.deepEqual(f.manifests[0].manifest.items.map(item => [item.modelCallSlotCid, item.reason]), [
+    ['saved', 'EvaluationBudgetExceeded'], ['unknown', 'ModelResultUnknown'],
+  ]);
+});
+
+test('missing partial originals keep the complete required inventory without invented responses', async () => {
+  const f = partialFixture();
+  f.inventory.readBundle = async () => undefined;
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.manifests[0].manifest.items.map(item => [item.modelCallSlotCid, item.reason]), [
+    ['saved', 'RequiredEvidenceUnavailable'], ['unknown', 'ModelResultUnknown'],
+  ]);
+  assert.deepEqual(f.trace, ['reserved', 'release']);
+});
+
+test('a foreign original capture cannot be shifted into a partial saved slot', async () => {
+  const f = partialFixture();
+  f.inventory.readBundle = async () => ({count: 1, cid: 'foreign',
+    wire: JSON.stringify({captures: [{model_call_slot_cid: 'foreign'}]})});
+  await projectInferEvidence(f.facts);
+  assert.equal(f.manifests[0].manifest.items[0].reason, 'EvidenceSubjectMismatch');
+  assert.equal(f.manifests[0].manifest.items.length, 2);
+  assert.deepEqual(f.trace, ['reserved', 'release']);
+});
+
+test('partial copy cleanup failure preserves inventory and retries the same reservation once', async () => {
+  const f = partialFixture({releaseFails: true});
+  await projectInferEvidence(f.facts);
+  const manifest = f.manifests[0].manifest;
+  assert.equal(manifest.reason, 'EvidenceCopyCleanupPending');
+  assert.equal(manifest.cleanupPending, true);
+  assert.deepEqual(manifest.items.map(item => item.modelCallSlotCid), ['saved', 'unknown']);
+  assert.equal(f.retained[0].cleanupPending(), true);
+  assert.equal(await f.retained[0].cleanup(), false);
+  let retries = 0;
+  f.facts.moon.clientProgramReleaseInferEvidenceCopy = () => {retries++; return {$tag: 1};};
+  assert.equal(await f.retained[0].cleanup(), true);
+  assert.equal(await f.retained[0].cleanup(), true);
+  assert.equal(retries, 1);
+  assert.equal(f.retained[0].cleanupPending(), false);
+  assert.equal(f.trace.filter(value => value === 'reserved').length, 1);
+});
+
+test('prepared originals reserve copy custody before persistence and retain exact raw text', async () => {
+  const f = preparedFixture();
+  let saved;
+  await withPreparedInferEvidence({...f.facts, consume: async inputs => {
+    f.trace.push('persist'); saved = structuredClone(inputs);
+    assert.equal(await f.retained[0].close(), false);
+  }});
+  assert.deepEqual(f.trace, ['reserved', 'serialize', 'persist', 'release']);
+  assert.deepEqual(saved, [{callWire: '{"slot":"original"}', typedInputWire: '{}',
+    renderedInput: f.original, contextManifest: '{"unknown":true}'}]);
+  assert.equal(f.retained[0].cleanupPending(), false);
+});
+
+test('capture denial omits optional originals before reserving or serializing', async () => {
+  const f = preparedFixture({authorize: facts => {
+    assert.equal(facts.purpose, 'capture'); return false;
+  }});
+  let count = 0;
+  await withPreparedInferEvidence({...f.facts, consume: inputs => {
+    assert.equal(inputs, undefined); count++;
+  }});
+  assert.equal(count, 1);
+  assert.deepEqual(f.trace, []);
+});
+
+test('prepared capture accounts JSON escaping at the exact existing copy ceiling', async () => {
+  const initial = preparedFixture();
+  const saved = [{callWire: '{"slot":"original"}', typedInputWire: '{}',
+    renderedInput: initial.original, contextManifest: '{"unknown":true}'}];
+  const exact = Buffer.byteLength(JSON.stringify(saved));
+  for (const [maxBytes, accepted] of [[exact, true], [exact - 1, false]]) {
+    const f = preparedFixture({maxBytes});
+    await withPreparedInferEvidence({...f.facts, consume: inputs => {
+      assert.deepEqual(inputs, accepted ? saved : undefined);
+    }});
+    assert.equal(f.retained[0].cleanupPending(), false);
+    assert.equal(f.trace.filter(value => value === 'release').length, 1);
+  }
+});
+
+test('failed prepared copy release retains the same retry handle without repeating persistence', async () => {
+  const f = preparedFixture({releaseFails: true});
+  let persisted = 0;
+  await withPreparedInferEvidence({...f.facts, consume: () => {persisted++;}});
+  assert.equal(f.retained[0].cleanupPending(), true);
+  assert.equal(await f.retained[0].cleanup(), false);
+  await withPreparedInferEvidence({...f.facts, consume: inputs => assert.equal(inputs, undefined)});
+  assert.equal(f.trace.filter(value => value === 'reserved').length, 1);
+  f.facts.moon.clientProgramReleaseInferEvidenceCopy = () => {f.trace.push('retry'); return {$tag: 1};};
+  assert.equal(await f.retained[0].cleanup(), true);
+  assert.equal(await f.retained[0].cleanup(), true);
+  assert.equal(f.trace.filter(value => value === 'retry').length, 1);
+  assert.equal(persisted, 1);
+});
+
+test('persistence rejection releases optional copy custody and propagates the actual commit failure', async () => {
+  const f = preparedFixture();
+  await assert.rejects(withPreparedInferEvidence({...f.facts, consume: async () => {
+    throw new Error('OriginalInputCommitFailed');
+  }}), {message: 'OriginalInputCommitFailed'});
+  assert.equal(f.retained[0].cleanupPending(), false);
+});
+
+test('concurrent capture authorization cannot acquire two persistence flights', async () => {
+  const authorize = [], f = preparedFixture({authorize: () => new Promise(resolve => authorize.push(resolve))});
+  let finish, copied, omitted = 0;
+  const entered = new Promise(resolve => {copied = resolve;});
+  const first = withPreparedInferEvidence({...f.facts, consume: inputs => {
+    assert.equal(inputs.length, 1); copied(); return new Promise(resolve => {finish = resolve;});
+  }});
+  const second = withPreparedInferEvidence({...f.facts, consume: inputs => {
+    assert.equal(inputs, undefined); omitted++;
+  }});
+  assert.equal(authorize.length, 2);
+  for (const permit of authorize) permit(true);
+  await entered;
+  await second;
+  assert.equal(omitted, 1);
+  assert.equal(f.trace.filter(value => value === 'reserved').length, 1);
+  assert.equal(await f.retained[0].close(), false);
+  finish(); await first;
+  assert.equal(f.retained[0].cleanupPending(), false);
+});
 
 test('optional projection reserves before serialization and returns copy capacity after sink settlement', async () => {
   const f = fixture();
