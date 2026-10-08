@@ -104,3 +104,26 @@ product failure is claimed for that attempt. That guard observation is not proof
 of another process's completion; no competing gate, automatic retry, lock removal
 or unguarded pack was started. Resume the same selected consumer when the heavy
 slot is available, using packages attributed to the actual submitted clean SHA.
+
+## Later execution and main integration
+
+Clean `6690ad972299267cdd1c38f6f8911101101d1dce` subsequently produced all five
+packages normally in `run-xtxUA8`. The selected consumer then exceeded the
+combined 600-second outer budget and ended with SIGTERM/exit 124. The producer
+used about 140 seconds; the consumer's acceptance child had no completion record.
+Twelve profile checks and README Local/HTTPS quickstarts completed, but no Graph
+case completed. This does not establish a Graph product failure or public Graph
+success. Manifest/digests and logs are retained; the expired installation's
+node_modules/cache were removed separately without removing Store or evidence.
+
+The merged #942/#952 revisions are now in main
+`f299df8092021f3f8fe5d3072a57a512c9dd7872`, normally merged as
+`625359501a16a9c748ca69bd82bd0978bbc70960`. The sole conflict combined the Graph
+prefix tests with main's copy/discovery/receiver work tests; neither side was
+discarded. The new prefix importer now receives its remaining node allowance
+before construction, retaining the same WorkLimit and refused-probe reservation
+rules. `run-f4Uzw3` passed 16/16 JS member/Graph budget controls over that merge's
+working revision, including an independently short prefix-import allowance.
+Prior public packages/results are not relabelled as evidence of this revision.
+Required public Graph execution remains pending on normally packed integrated
+source; external producer provenance coverage is also still incomplete.
