@@ -60,8 +60,16 @@ Nonaggregate analytic function-name support is a separate boundary.
   compiler controls, and aggregate WHERE callers. Receipt:
   `_build/local-checks/attempts/run-An1dZd`; focused evidence:
   `_build/focused-evidence/focused-test-oYVEjt`.
-- Public statistical fixture syntax and `git diff --check` passed. The later
-  source-free COUNT-empty public case requires its own syntax check.
+- A later bounded working-tree gate passed **5/5 JS tests**, including
+  independent complete Programs for quoted COUNTIF OVER in SQL/Pipe with
+  nullable operands and a one-row preceding/following frame, and COUNT-star
+  over empty source-free input. The ordinary checker accepts both controls;
+  the empty case requires no acquired inputs. Receipt:
+  `_build/local-checks/attempts/run-ekNB6B`; focused evidence:
+  `_build/focused-evidence/focused-test-w0X5wj`. This supplements the earlier
+  12-test gate rather than relabeling it as a later clean-HEAD run.
+- Public statistical fixture syntax, including the later source-free
+  COUNT-empty case, and `git diff --check` passed.
 - Existing fixed positive, failure and refusal cases are retained. New public
   examples add mixed-case/escaped names in SQL/Pipe, aggregate OVER with the
   original prefix order and NULLs, and COUNT-star on empty source-free input.
