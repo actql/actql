@@ -155,6 +155,46 @@ test('disabled adapter neither exports nor creates a localhost fallback', async 
   assert.equal(adapter.status().projection.deliveryFailed, 0);
 });
 
+test('closing a managed pipeline revokes queued and not-yet-sent signals', async t => {
+  let entered;
+  const sending = new Promise(resolve => { entered = resolve; });
+  const paths = [];
+  const server = createServer((request, response) => {
+    paths.push(request.url);
+    request.resume();
+    entered();
+    // Keep the already-entered trace outstanding until the adapter closes.
+    response.on('error', () => {});
+  }).listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => { server.closeAllConnections(); return new Promise(resolve => server.close(resolve)); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const adapter = createNodeHostObservability({endpoint: base,
+    logs: {endpoint: `${base}/v1/logs`}, metrics: {endpoint: `${base}/v1/metrics`}});
+  const observer = installHostObservation(adapter.connection);
+  t.after(async () => { await adapter.close(); await observer.close(); });
+  observer.emit('compute', 'task_completed');
+  await sending;
+  observer.emit('cleanup', 'cleanup_completed');
+  await adapter.close();
+  await observer.close();
+  assert.deepEqual(paths, ['/v1/traces'], 'no queued or later signal leaves after revocation');
+  for (const sender of Object.values(adapter.status().signals)) assert.equal(sender.active, 0);
+});
+
+test('actual Source and Model attempt facts use standard CLIENT span kind', async t => {
+  const sink = await collector(t);
+  const adapter = createNodeHostObservability({endpoint: sink.endpoint});
+  const observer = installHostObservation(adapter.connection);
+  t.after(async () => { await observer.close(); await adapter.close(); });
+  observer.emit('infer', 'attempt_observed', {outcome: 'unknown'});
+  observer.emit('source', 'attempt_completed');
+  await observer.close();
+  const spans = records(sink.packets, 'traces');
+  assert.equal(spans.length, 2);
+  for (const span of spans) assert.equal(field(span, 6), 3);
+});
+
 test('effective inspection is finite and does not disclose destination credentials or probe', async () => {
   const adapter = createNodeHostObservability({endpoint: 'https://collector.invalid',
     include: ['run', 'compute'], exclude: ['compute'], projectionLimits: {queueRecords: 1}});

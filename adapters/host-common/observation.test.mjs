@@ -8,6 +8,24 @@ const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
+test('internal Effect projection uses the active scope and defers delivery', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record)}));
+  await observer.run('submit', trace, () => {
+    observer.diagnostic('effect_application_observed',
+      {outcome: 'needs_reconciliation', receipt: 'SECRET_SENTINEL'});
+    assert.equal(records.length, 0, 'no processor runs inside completion');
+  });
+  await observer.close();
+  const effects = records.filter(record => record.operation === 'effect');
+  assert.equal(effects.length, 1);
+  assert.equal(effects[0].attributes['actql.outcome'], 'needs_reconciliation');
+  assert.equal(effects[0].durationMs, undefined);
+  assert.deepEqual(effects[0].parent, trace);
+  assert.equal(JSON.stringify(records).includes('SECRET_SENTINEL'), false);
+});
+
 test('metadata projection discards every unapproved value and baggage', async () => {
   const records = [];
   const observer = installHostObservation(createHostObservationConnection({

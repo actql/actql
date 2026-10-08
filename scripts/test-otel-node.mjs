@@ -12,4 +12,5 @@ process.exitCode = runFocusedTests('node', [
   'packages/otel-node/index.test.mjs',
   'packages/otel-node/public-host.test.mjs',
   'packages/otel-node/recovery.test.mjs',
+  'packages/otel-node/effect-public.test.mjs',
 ], {timeout: 240000});

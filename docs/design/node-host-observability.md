@@ -13,6 +13,7 @@ Native, Workers and hosted multi-tenant export are not supported by this adapter
 | Run admission | `client-request-journal.acceptDefinition` | After semantic admission commit; only a new admission initializes optional consumption |
 | Task activation/completion | `strategy` activation and checked completion | Bounded internal hook after the confirmed operation; no output handle passed to exporters |
 | Model physical attempt | `installed-model-continuation` / Checkpoint journal | After entry/observation receipt; actual task, slot, attempt and attempt CID |
+| Effect application | Common Set receipt / publication disposition through the installed Effect Site | Confirmed application fact with the original Run ref; interrupted adapters cannot supply a semantic outcome |
 | Approval waiting | Dispatch owner with retained Checkpoint | Waiting event, not inferred permission or a long-lived span |
 | Resolution | Installed Checkpoint owner | Committed resolution and original Run ref, not automatically resumed execution |
 | Recovery | Existing journal/controller diagnostics and Run inspection | New finite ingress segment, saved caller link, actual observed state |
@@ -27,7 +28,9 @@ task ordering. Arbitrary Owner diagnostic details, resource usage objects,
 locations and raw failures are discarded. Completed tasks reuse the existing
 driver's measured elapsed time; ingress segments measure their own duration.
 Other instant fact spans do not claim a physical duration, including Model
-attempt receipts. Logical work/accounting is not inferred from these clocks.
+attempt receipts. Source/Model attempt facts use standard CLIENT span kind;
+application/receipt facts remain INTERNAL, never inferred physical sends.
+Logical work/accounting is not inferred from these clocks.
 
 The common projection copies fixed fields into a bounded queue and delivers
 after `setImmediate`. The Host does not import an OTel SDK. SDK/HTTP propagation
@@ -78,7 +81,8 @@ delivery failure and deadline discard. They are diagnostic, not completeness
 certificates. Shutdown never reports physical settlement of a pending callback.
 
 The first profile is immutable and metadata-only. Explicit adapter close
-disables owned delivery. Live disclosure reconfiguration, content redaction,
+revokes queued and not-yet-sent owned delivery and aborts outstanding sends;
+already-delivered data cannot be recalled. Live disclosure reconfiguration, content redaction,
 tenant routing, hosted export and recall of downstream buffers are not offered.
 Application providers are not a way to extend the guaranteed managed boundary.
 

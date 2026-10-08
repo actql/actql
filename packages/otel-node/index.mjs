@@ -82,12 +82,13 @@ export function createNodeHostObservability(options = {}) {
       ? [] : config.projection.include,
     currentContext,
     async deliver(record) {
-      if (closed) return;
+      if (closed) throw new Error('ObservationPipelineDisabled');
       if (busy) { deliveryConflicts++; throw new Error('ObservationDeliveryBusy'); }
       busy = true;
       const failures = [];
       // Each signal remains independent when a different destination fails.
       const attempt = async work => {
+        if (closed) return;
         try { await work(); } catch (cause) { failures.push(cause); }
       };
       try {
@@ -100,13 +101,17 @@ export function createNodeHostObservability(options = {}) {
             endedSpan = undefined;
             const method = record.attributes['http.request.method'];
             const route = record.attributes['http.route'];
+            const clientAttempt = ['source', 'infer'].includes(record.operation) &&
+              ['attempt_started', 'attempt_completed', 'attempt_observed'].includes(record.event);
             const span = tracer.startSpan(method === undefined ? `actql.${record.operation}` :
               route === undefined ? method : `${method} ${route}`, {
-              kind: method === undefined ? SpanKind.INTERNAL : SpanKind.SERVER, attributes: record.attributes,
+              kind: method !== undefined ? SpanKind.SERVER :
+                clientAttempt ? SpanKind.CLIENT : SpanKind.INTERNAL,
+              attributes: record.attributes,
               startTime: record.observedAt - (record.durationMs ?? 0),
               links: record.link === undefined ? [] : [{context: {...record.link, isRemote: true}}],
             }, parent);
-            span.addEvent(record.event, record.observedAt);
+            if (logger === undefined) span.addEvent(record.event, record.observedAt);
             if (method === undefined ? record.attributes['actql.outcome'] === 'failed' :
                 record.attributes['http.response.status_code'] >= 500) {
               span.setStatus({code: SpanStatusCode.ERROR});

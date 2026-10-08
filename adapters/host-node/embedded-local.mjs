@@ -1128,6 +1128,14 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       },
     });
   };
+  const observeEffectCompletion = (ref, result) => {
+    // Only a common Set receipt/publication result supplies these facts. A
+    // transport error or an aborted adapter supplies no semantic disposition.
+    const outcome = {published: 'committed', waiting: 'waiting_checkpoint',
+      needs_reconciliation: 'needs_reconciliation', failed: 'failed'}[result?.result?.status];
+    if (outcome !== undefined) diagnostic('effect_application_observed', {ref, outcome});
+    return result;
+  };
   const executeEffectComputation = (facts, sourceResume, targetResume, modelResume) => {
     const activeResume = sourceResume ?? targetResume ?? modelResume;
     const readResume = sourceResume ?? targetResume;
@@ -1245,7 +1253,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
               checkpoints.effectAuthorization({...options,
                 ...(nextJournal === undefined ? {} : {journalPort: nextJournal})}),
             recordReconciliation: (...args) =>
-              effectRun.recordReconciliation(...args)}));
+              effectRun.recordReconciliation(...args)})).then(result =>
+                observeEffectCompletion(facts.ref, result));
         },
         observeStopped: terminalOutcome => {
           recordNodeRunPhysicalStop({ref: facts.ref, journal, moon, control},
@@ -2115,7 +2124,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                   return reads;
                 },
                 recordReconciliation: (...args) =>
-                  effectRun.recordReconciliation(...args)})),
+                  effectRun.recordReconciliation(...args)})).then(result =>
+                    observeEffectCompletion(ref, result)),
             // The original Compute stopped before the Effect Checkpoint.
             // Its nonterminal stop observation is immutable. Effect failure
             // and reconciliation belong to the Checkpoint and Effect owners.

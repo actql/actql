@@ -222,3 +222,35 @@ environment precedence, disable, missing destinations, credentials and bounded
 standard-setting diagnostics. This was a dirty-source diagnostic, not a claim
 against a submitted clean SHA. The environment fixture is included in the
 ordinary OTel CI selection; final verification is recorded in PR #971.
+
+## Effect receipt and delivery follow-up
+
+The existing HTTPS Effect fixture now has a narrow observability selection:
+one successful independently approved Set, waiting cancellation without send,
+and an applied request whose reply is lost. The original full inventory
+selection is unchanged. Both completed and unknown recovery retain original
+Run references, exact independent rows/transcripts, and no additional sends.
+The expected physical sends are one to each installed provider.
+
+An initial 90-second inventory diagnostic timed out (`run-1iXxLX`); it does not
+establish a product failure or a pass. The narrowed diagnostic completed with
+15 projection cases passing and its public Effect case failing on missing
+`application_observed` records (`run-dsLGD8`, `focused-test-jjjXYI`). Execution,
+approval, independent Results and unknown non-resend had passed before that
+assertion. This caught a projection defect: recovered background dispatch is
+not guaranteed to inherit an ingress AsyncLocalStorage context.
+
+The correction projects the common receipt/publication Owner result through
+the installed Host's explicit original Run reference. It adds no outcome
+inference, replay authority or execution state machine. Rejected adapters do
+not invent a semantic Effect outcome. Source/Model attempt receipt facts use
+CLIENT span kind; Effect disposition remains an INTERNAL fact without an
+invented transport interval. Logs replace duplicate span events when enabled.
+Managed close aborts in-flight delivery and suppresses remaining signals and
+queued records; external data already sent cannot be recalled.
+
+Selected public declarations passed strict TypeScript checking, and Node
+adapter assembly/freshness and whitespace checks passed after the correction.
+These diagnostics are not final clean-SHA acceptance. The final command,
+counts, receipt directories and SHA are recorded in PR #971. No additional
+full Core, packed, Native or performance campaign was run for this follow-up.
