@@ -9,6 +9,7 @@ import {inspect} from 'node:util';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {canonical, configuration} from './installed-infer-fixture.mjs';
+import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
 import {sourceCases, sourceRefusals} from './infer-source-expectation.mjs';
 
 const [transport, phase, caseName = 'minimal'] = process.argv.slice(2);
@@ -59,6 +60,8 @@ const checked = result => {
   return result._0;
 };
 const registerModelProviders = moon => [{providerId: 'models/packed',
+  bindingOriginals: providerBindingOriginals('models/packed',
+    {selector: 'packed-risk-model'}),
   invoke() { throw new Error('UnpreparedModelCall'); },
   validatePrompt(actual, selector, wire) {
     return actual === taskCid && selector === 'packed-risk-model' &&

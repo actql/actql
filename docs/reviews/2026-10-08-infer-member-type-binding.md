@@ -146,3 +146,24 @@ The exact command and error are retained in
 fixture now observes the existing Host's `infer_preparation_rejected` diagnostic
 to retain the first typed boundary in stderr. This adds observability only; it
 does not change expected values, execution, admission or error classification.
+
+Source inspection also found a stale provider-registration fixture: unlike the
+current single-INFER consumer, the source consumer omitted `bindingOriginals`.
+The existing `admitInstalledModelProviderBinding` rejects that omission with
+`InstalledModelProviderBindingUnavailable` before its common issuer is called;
+a direct focused control confirmed that refusal. The source consumer now uses
+the same independently authored `model-provider-binding-fixture.mjs`, with its
+actual provider and selector, and the normal packed driver copies that file.
+No Owner condition was weakened. This is a confirmed fixture contract gap, not
+yet an attribution of the preceding public failure's first internal cause.
+
+`run-DHvj64` refused a diagnostic follow-up before producing or consuming any
+package because D's `run-CEo3J5` owned the shared heavy guard. Subsequent public
+evidence must use the new clean source revision and retain the observed boundary.
+
+`run-bet0ak` passed the 12 existing public-driver/profile Node controls after
+the registration change. Both changed JavaScript files passed syntax checks and
+`git diff --check` passed. A preceding wrapper invocation, `run-MYZ0B4`, selected
+an absolute executable instead of the required `node` kind and executed zero
+tests; it is not passing evidence. None of these static controls proves INFER
+execution, provider binding or replay on the public transports.
