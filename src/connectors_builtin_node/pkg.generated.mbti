@@ -2135,11 +2135,105 @@ pub fn strategy_remote_bundle_activation_transition_at(@remote_bundle.RemoteBund
 
 pub fn strategy_remote_bundle_activation_transition_count(@remote_bundle.RemoteBundleActivation) -> Int
 
+pub fn strategy_remote_bundle_catalog_incarnation_valid(String) -> Bool
+
 pub fn strategy_remote_bundle_component_prepare(String, String, Int64) -> @remote_bundle.RemoteBundleComponent
 
 pub fn strategy_remote_bundle_component_projection(@remote_bundle.RemoteBundleComponent) -> Array[String]
 
+pub fn strategy_remote_bundle_custody_context_query_prepare(@remote_bundle.RemoteBundleDistribution, @remote_bundle.RemoteBundleHoldScope) -> @remote_bundle.RemoteBundleCustodyRequest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_context_response_prepare(@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleHoldBinding) -> @remote_bundle.RemoteBundleCustodyResponse raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_request_admit_json(String, String) -> @remote_bundle.RemoteBundleCustodyRequest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_request_binding(@remote_bundle.RemoteBundleCustodyRequest) -> @remote_bundle.RemoteBundleHoldBinding?
+
+pub fn strategy_remote_bundle_custody_request_distribution(@remote_bundle.RemoteBundleCustodyRequest) -> @remote_bundle.RemoteBundleDistribution
+
+pub fn strategy_remote_bundle_custody_request_identity(@remote_bundle.RemoteBundleCustodyRequest) -> String
+
+pub fn strategy_remote_bundle_custody_request_json(@remote_bundle.RemoteBundleCustodyRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_request_operation(@remote_bundle.RemoteBundleCustodyRequest) -> String
+
+pub fn strategy_remote_bundle_custody_request_prepare(@remote_bundle.RemoteBundleDistribution, @remote_bundle.RemoteBundleHoldBinding, String) -> @remote_bundle.RemoteBundleCustodyRequest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_request_scope(@remote_bundle.RemoteBundleCustodyRequest) -> @remote_bundle.RemoteBundleHoldScope
+
+pub fn strategy_remote_bundle_custody_response_admit_json(@remote_bundle.RemoteBundleCustodyRequest, String, String) -> @remote_bundle.RemoteBundleCustodyResponse raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_response_binding(@remote_bundle.RemoteBundleCustodyResponse) -> @remote_bundle.RemoteBundleHoldBinding
+
+pub fn strategy_remote_bundle_custody_response_catalog_incarnation(@remote_bundle.RemoteBundleCustodyResponse) -> String?
+
+pub fn strategy_remote_bundle_custody_response_catalog_incarnation_text(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_custody_response_fields_prepare(@remote_bundle.RemoteBundleCustodyRequest, String, Bool, String, Bool, Int) -> @remote_bundle.RemoteBundleCustodyResponse raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_response_identity(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_custody_response_json(@remote_bundle.RemoteBundleCustodyResponse) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_response_kind(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_custody_response_observation(@remote_bundle.RemoteBundleCustodyResponse) -> @remote_bundle.RemoteBundleHoldObservation?
+
+pub fn strategy_remote_bundle_custody_response_observation_text(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_custody_response_prepare(@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleHoldObservation, String?, Int?) -> @remote_bundle.RemoteBundleCustodyResponse raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_response_record_revision(@remote_bundle.RemoteBundleCustodyResponse) -> Int?
+
+pub fn strategy_remote_bundle_custody_response_record_revision_text(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_distribution_admit_json(String, String) -> @remote_bundle.RemoteBundleDistribution raise NodeHostFailure
+
+pub fn strategy_remote_bundle_distribution_contains(@remote_bundle.RemoteBundleDistribution, String) -> Bool
+
+pub fn strategy_remote_bundle_distribution_identity(@remote_bundle.RemoteBundleDistribution) -> String
+
+pub fn strategy_remote_bundle_distribution_json(@remote_bundle.RemoteBundleDistribution) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_distribution_prepare(Array[String]) -> @remote_bundle.RemoteBundleDistribution raise NodeHostFailure
+
+pub fn strategy_remote_bundle_distribution_projection(@remote_bundle.RemoteBundleDistribution) -> Array[String]
+
 pub fn strategy_remote_bundle_drain_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_admit_json(@remote_bundle.RemoteBundleDistribution, String, String) -> @remote_bundle.RemoteBundleHoldBinding raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_from_scope(@remote_bundle.RemoteBundleHoldScope, String, Int) -> @remote_bundle.RemoteBundleHoldBinding raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_identity(@remote_bundle.RemoteBundleHoldBinding) -> String
+
+pub fn strategy_remote_bundle_hold_binding_json(@remote_bundle.RemoteBundleHoldBinding) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_matches_scope(@remote_bundle.RemoteBundleHoldBinding, @remote_bundle.RemoteBundleHoldScope) -> Bool
+
+pub fn strategy_remote_bundle_hold_binding_prepare(@remote_bundle.RemoteBundleDistribution, String, String, String, String, String, String, String, String, Int, Int, String) -> @remote_bundle.RemoteBundleHoldBinding raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_projection(@remote_bundle.RemoteBundleHoldBinding) -> Array[String]
+
+pub fn strategy_remote_bundle_hold_binding_scope(@remote_bundle.RemoteBundleHoldBinding) -> @remote_bundle.RemoteBundleHoldScope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_fence_prepare(String, @remote_bundle.RemoteBundleRecord, @remote_bundle.RemoteBundleHoldBinding, Bool) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_observation_projection(@remote_bundle.RemoteBundleHoldObservation) -> String
+
+pub fn strategy_remote_bundle_hold_observe(String, @remote_bundle.RemoteBundleRecord?, @remote_bundle.RemoteBundleHoldBinding, Bool) -> @remote_bundle.RemoteBundleHoldObservation
+
+pub fn strategy_remote_bundle_hold_retain_prepare(String, String?, @remote_bundle.RemoteBundleRecord, @remote_bundle.RemoteBundleHoldBinding, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_scope_admit_json(@remote_bundle.RemoteBundleDistribution, String, String) -> @remote_bundle.RemoteBundleHoldScope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_scope_identity(@remote_bundle.RemoteBundleHoldScope) -> String
+
+pub fn strategy_remote_bundle_hold_scope_json(@remote_bundle.RemoteBundleHoldScope) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_scope_prepare(@remote_bundle.RemoteBundleDistribution, String, String, String, String, String, String, String, Int, String) -> @remote_bundle.RemoteBundleHoldScope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_scope_projection(@remote_bundle.RemoteBundleHoldScope) -> Array[String]
 
 pub fn strategy_remote_bundle_manifest_admit_json(String, String) -> @remote_bundle.RemoteBundleManifest raise NodeHostFailure
 
