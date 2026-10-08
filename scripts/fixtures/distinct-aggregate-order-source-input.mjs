@@ -1,4 +1,6 @@
 // Authored Programs and expectations; no compiler or evaluator generates them.
+import {distinctArrayReferenceKeySuccesses, distinctArrayReferenceKeyRefusals}
+  from './distinct-array-reference-key-source-input.mjs';
 const number = {type: 'number', nullable: false};
 const string = {type: 'string', nullable: true};
 const sourceRows = [{id: 4, amount: 20}, {id: 2, amount: 10},
@@ -68,3 +70,5 @@ distinctAggregateOrderRefusals.push({
   parameters: {payload: {name: 'inner'}},
   expectedCode: 'ClientProgramImplementationLimit',
 });
+distinctAggregateOrderSuccesses.push(...distinctArrayReferenceKeySuccesses);
+distinctAggregateOrderRefusals.push(...distinctArrayReferenceKeyRefusals);
