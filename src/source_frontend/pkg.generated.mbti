@@ -2,6 +2,7 @@
 package "actql/actql/source_frontend"
 
 import {
+  "actql/actql/check_environment",
   "actql/actql/expression_syntax",
   "actql/actql/frontend_source_map",
   "actql/actql/parameter_binding",
@@ -15,7 +16,7 @@ import {
 }
 
 // Values
-pub fn bind_query_context(Array[PublishedAlias], String, program_id? : String, parameter_declarations? : @parameter_binding.Declarations?, input_schemas? : Array[(String, @relation_schema.Schema)]) -> Result[@query_program.Context, AliasIssue]
+pub fn bind_query_context(Array[PublishedAlias], String, program_id? : String, parameter_declarations? : @parameter_binding.Declarations?, input_schemas? : Array[(String, @relation_schema.Schema)], model_tasks? : @check_environment.ModelTasks?, source_catalog? : @check_environment.SourceRequestContracts?) -> Result[@query_program.Context, AliasIssue]
 
 pub fn check_array_profile(@program_check.CheckedProgram, max_work~ : Int, max_slots~ : Int) -> Result[Unit, ArrayProfileIssue]
 

@@ -11,7 +11,7 @@ import {clientHostOperations, clientHostRequestKeys,
   validRequestCancellationShape, validResultDescriptionShape, validResolveItemShape,
   validResolveResultShape, validResourceInspectionShape,
   validResourceListingShape, validResourcePeekShape,
-  validRunRefShape, validRunStateShape, validCheckOutcomeShape,
+  validRunRefShape, validRunStateShape, validCheckOutcomeContract,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 import {validSubmissionEpochShape, validSubmissionRefShape,
   validSubmissionOutcomeShape, validSubmissionLookupShape, validSubmissionRestartShape} from './client-host.generated.js';
@@ -161,12 +161,13 @@ function submissionFactsMatch(value, expected, intentCid) {
 // binding is checked by the journal; a received reply additionally needs the
 // selected connection below.
 export function validStoredSubmissionOutcome(value, expected, intentCid) {
-  return validSubmissionOutcomeShape(value) && submissionFactsMatch(value, expected, intentCid) &&
+  return validSubmissionOutcomeShape(value) && value.checkObservation === undefined && submissionFactsMatch(value, expected, intentCid) &&
     (value.kind !== 'ready' || value.admission.durability === 'durable');
 }
 
 export function validSubmissionOutcome(value, selected, expected, intentCid, unresolvedHistory) {
   return validSubmissionOutcomeShape(value) &&
+    (value.checkObservation === undefined || validCheckOutcome(value.checkObservation)) &&
     (arguments.length < 5 || restartMatches(value.unresolvedHistory, unresolvedHistory)) &&
     submissionFactsMatch(value, expected, intentCid) &&
     (value.kind !== 'ready' || validClientAdmission(value.admission, selected)) &&
@@ -188,29 +189,7 @@ export function validRunState(value) {
 // The registered contract and generated validator enforce verdict/coverage
 // consistency as well as shape, without enumerating reason codes.
 export function validCheckOutcome(value) {
-  if (!validCheckOutcomeShape(value)) return false;
-  const report = value.report ?? value.partial_report;
-  if (!report) return true;
-  const documents = new Map(report.inputs.map(input => [input.document_id, input]));
-  if (documents.size !== report.inputs.length || documents.get('source')?.kind !== 'text' ||
-      report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;
-  for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits]) {
-    const location = reason.location;
-    if (location) {
-      const input = documents.get(location.document_id);
-      if (!input || input.revision !== location.revision || input.kind !== location.kind) return false;
-      if (location.kind === 'text' && (location.start_byte > location.end_byte ||
-          location.end_byte > input.byte_length)) return false;
-    }
-    for (const fix of reason.fixes ?? []) {
-      const input = documents.get(fix.target.document_id);
-      if (!input || input.kind !== 'text' || input.revision !== fix.target.revision) return false;
-      // This known proposal inserts only at the original exact EOF.
-      if (fix.edits.some(edit => edit.start_byte !== input.byte_length ||
-          edit.end_byte !== input.byte_length)) return false;
-    }
-  }
-  return true;
+  return validCheckOutcomeContract(value);
 }
 
 export function validSubmitPreparationError(value) {

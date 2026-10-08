@@ -824,6 +824,9 @@
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
+            "checkObservation": {
+              "$ref": "actql-protocol-schemas.json#/artifact_schemas/check_outcome"
+            },
             "problem": {
               "type": "object",
               "additionalProperties": false,
@@ -990,6 +993,9 @@
             "intentCid": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "checkObservation": {
+              "$ref": "actql-protocol-schemas.json#/artifact_schemas/check_outcome"
             },
             "problem": {
               "type": "object",
@@ -3313,6 +3319,12 @@
       }
     }
   },
+  "check_report_rules": [
+    "unique_document_ids",
+    "input_document_kinds",
+    "locations_match_input",
+    "fix_targets_match_exact_eof"
+  ],
   "response_rules": {
     "profile": {
       "matchConnection": [

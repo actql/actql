@@ -1,0 +1,135 @@
+import assert from 'node:assert/strict';
+import {cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {dirname, isAbsolute, join, relative, sep} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import test from 'node:test';
+import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
+import {checkNodeAssembly} from './connector-node-bundles.mjs';
+import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {buildLocalNodeAdapters, inspectExternalLocalNodeAdapterGraph} from './build-local-node-adapters.mjs';
+
+const repository = fileURLToPath(new URL('../', import.meta.url));
+function fixture(t, {collision = false, adapterImport} = {}) {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-external-inventory-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const host = join(root, 'host'); mkdirSync(join(host, 'src'), {recursive: true});
+  writeFileSync(join(host, 'moon.mod'), 'name = "fixture/installed_host"\nversion = "0.0.1"\n' +
+    'source = "src"\nimport { "actql/actql@0.0.1", "fixture/external_read@0.0.1", "fixture/external_effect@0.0.1", }\n');
+  const providers = ['read', 'effect'].map(role => {
+    const source = join(root, role);
+    cpSync(join(repository, 'scripts/fixtures/external-installed', `external-${role}`), source, {recursive: true});
+    return {role, root: source, name: `external_${role}`};
+  });
+  if (collision) {
+    const reader = providers[0];
+    for (const prefix of ['src/connectors', 'adapters/connectors']) {
+      renameSync(join(reader.root, prefix, reader.name), join(reader.root, prefix, 'duckdb'));
+    }
+    const path = join(reader.root, 'src/connectors/duckdb/host-bundle.json');
+    writeFileSync(path, readFileSync(path, 'utf8').replaceAll('external_read', 'duckdb'));
+    reader.name = 'duckdb';
+  }
+  if (adapterImport !== undefined) {
+    const adapter = join(providers[0].root, 'adapters/connectors/external_read/host/installation.mjs');
+    const helper = join(dirname(adapter), 'helper.mjs');
+    writeFileSync(helper, 'export const independent = 17;\n');
+    const target = adapterImport({providers, helper});
+    const specifier = isAbsolute(target) ? relative(dirname(adapter), target).split(sep).join('/') : target;
+    const prefix = specifier.startsWith('.') || !isAbsolute(target) ? '' : './';
+    writeFileSync(adapter, `import ${JSON.stringify(prefix + specifier)};\n` + readFileSync(adapter, 'utf8'));
+  }
+  const inputs = resolveConnectorBuildInputs({target: 'js',
+    modules: [{namespace: 'actql/actql', version: '0.0.1', root: repository},
+      {namespace: 'fixture/installed_host', version: '0.0.1', root: host},
+      ...providers.map(entry => ({namespace: `fixture/external_${entry.role}`, version: '0.0.1', root: entry.root}))],
+    host: 'fixture/installed_host', connectors: providers.map(entry => ({name: entry.name,
+      module: `fixture/external_${entry.role}`, directory: `src/connectors/${entry.name}`}))});
+  checkNodeAssembly(host, true, {buildInputs: inputs, installations: true});
+  return {host, inputs, providers};
+}
+
+test('external inventory separates exact provider build owners from stable distribution keys', t => {
+  const f = fixture(t), inputs = localNodePackageInputs(f.host, {buildInputs: f.inputs});
+  assert.deepEqual(inputs.providerBundles.map(entry => entry.name), ['external_read', 'external_effect']);
+  for (const entry of f.providers) {
+    const name = `connectors/${entry.name}/host_node`;
+    const runtime = inputs.runtimeInputs.find(value => value.package === name);
+    assert.equal(runtime.moduleRoot, entry.root);
+    assert.equal(runtime.target, `src/${name}`);
+    assert.equal(runtime.qualifiedPackage, `fixture/external_${entry.role}/${name}`);
+    assert.equal(runtime.compiledFile, `fixture/external_${entry.role}/${name}/host_node.js`);
+    assert.equal(runtime.file, `${name}/host_node.js`);
+    assert.ok(inputs.adapterInputs.some(value => value.ownerRoot === entry.root &&
+      value.source.startsWith(entry.root) && value.destination.startsWith(`adapters/connectors/${entry.name}/`)));
+    assert.ok(inputs.dataInputs.some(value => value.ownerRoot === entry.root &&
+      value.destination.startsWith(`src/connectors/${entry.name}/`)));
+  }
+  const core = inputs.runtimeInputs.find(entry => entry.package === 'connectors_builtin_node');
+  assert.equal(core.namespace, 'actql/actql');
+  assert.ok(Object.isFrozen(inputs.runtimeInputs));
+  const packaged = inputs.installationTable.render(join(f.host, 'package'));
+  assert.ok(!packaged.includes(f.host));
+  assert.match(packaged, /\.\.\/connectors\/external_read\/host\/installation\.mjs/);
+  assert.match(packaged, /\.\.\/connectors\/external_effect\/host\/installation\.mjs/);
+  assert.throws(() => inputs.destinationForAdapter(join(f.providers[0].root, 'unlisted.mjs')),
+    /UndeclaredLocalNodeAdapterInput/);
+});
+
+test('external provider cannot replace an existing common Host runtime destination', t => {
+  const f = fixture(t, {collision: true});
+  assert.throws(() => localNodePackageInputs(f.host, {buildInputs: f.inputs}),
+    /ConflictingLocalNodeRuntime:connectors\/duckdb\/host_node/);
+});
+
+test('external distribution refuses a stale table and another composition root', t => {
+  const f = fixture(t);
+  assert.throws(() => localNodePackageInputs(repository, {buildInputs: f.inputs}), /InvalidLocalNodeBuildRoot/);
+  writeFileSync(join(f.host, 'adapters/connectors-builtin/installations.generated.mjs'), 'export const installedConnectors = [];\n');
+  assert.throws(() => localNodePackageInputs(f.host, {buildInputs: f.inputs}), /StaleLocalNodeInstallationTable/);
+});
+
+test('external adapter graph preserves own helpers and generated installation edges', async t => {
+  const f = fixture(t, {adapterImport: ({helper}) => helper});
+  const inputs = localNodePackageInputs(f.host, {buildInputs: f.inputs});
+  const graph = await inspectExternalLocalNodeAdapterGraph(inputs);
+  assert.ok(Object.keys(graph.metafile.inputs).some(path => path.endsWith('/external_read/host/helper.mjs')));
+  assert.ok(Object.keys(graph.metafile.inputs).some(path => path.endsWith('/external_effect/host/installation.mjs')));
+});
+
+test('cross-owner adapter and runtime imports refuse before a producer-relative path can be copied', async t => {
+  for (const target of [
+    () => join(repository, 'adapters/host-common/runtime-result.mjs'),
+    () => join(repository, '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'),
+    ({providers}) => join(providers[1].root, 'adapters/connectors/external_effect/host/installation.mjs'),
+  ]) {
+    const f = fixture(t, {adapterImport: target});
+    const inputs = localNodePackageInputs(f.host, {buildInputs: f.inputs});
+    await assert.rejects(inspectExternalLocalNodeAdapterGraph(inputs), /CrossOwnerLocalNodeAdapterImport/);
+  }
+});
+
+test('external adapter cannot import a public package absent from the distribution dependency set', async t => {
+  const f = fixture(t, {adapterImport: () => '@actql/run-host-core'});
+  const inputs = localNodePackageInputs(f.host, {buildInputs: f.inputs});
+  await assert.rejects(inspectExternalLocalNodeAdapterGraph(inputs), /UndeclaredLocalNodeDependency/);
+});
+
+test('copying preserves an external author own packages/sdk helper path', async t => {
+  const f = fixture(t, {adapterImport: ({providers}) => {
+    const helper = join(providers[0].root, 'adapters/connectors/external_read/packages/sdk/index.mjs');
+    mkdirSync(dirname(helper), {recursive: true});
+    writeFileSync(helper, 'export const independentlyOwned = 19;\n');
+    return helper;
+  }});
+  const inputs = localNodePackageInputs(f.host, {buildInputs: f.inputs});
+  const destination = join(f.host, 'package');
+  await buildLocalNodeAdapters({root: f.host, inputs, destination});
+  await buildLocalNodeAdapters({root: f.host, inputs, destination, check: true});
+  const copied = readFileSync(join(destination,
+    'adapters/connectors/external_read/host/installation.mjs'), 'utf8');
+  assert.ok(copied.startsWith('import "../packages/sdk/index.mjs";\n'));
+  assert.equal(readFileSync(join(destination,
+    'adapters/connectors/external_read/packages/sdk/index.mjs'), 'utf8'),
+  'export const independentlyOwned = 19;\n');
+});
