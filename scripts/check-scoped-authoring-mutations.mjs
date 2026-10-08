@@ -8,7 +8,23 @@ import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 const file = 'adapters/host-node/client-check-text-boundary.test.mjs';
 const cases = (name, assertions) => ['local', 'http'].map(entrance =>
   ({name: `${entrance}: ${name}`, assertions}));
+const bindingCases = binding => ['text', 'program'].flatMap(kind => [
+  ...cases(`${kind} Owner results retain the current ${binding} binding`,
+    [{id: `owner-${binding}-binding`, operator: 'deepStrictEqual'}]),
+  ...(binding === 'scope' ? [] : cases(`${kind} partial Owner reports retain the current ${binding} binding`,
+    [{id: `owner-${binding}-binding`, operator: 'deepStrictEqual'}])),
+]);
 const mutations = [
+  {name: 'Owner binding accepts an earlier context', path: 'adapters/host-node/client-check.mjs',
+    from: 'report.context_ref === context &&', to: 'true &&', targets: bindingCases('context')},
+  {name: 'Owner binding accepts different original documents', path: 'adapters/host-node/client-check.mjs',
+    from: `report.inputs.length === documents.length && documents.every(expected =>
+      report.inputs.some(actual => actual.document_id === expected.document_id &&
+        actual.kind === expected.kind && actual.revision === expected.revision &&
+        actual.byte_length === expected.byte_length))`,
+    to: 'true', targets: bindingCases('documents')},
+  {name: 'Owner binding promotes template scope to bound input', path: 'adapters/host-node/client-check.mjs',
+    from: 'report.scope.kind === scope &&', to: 'true &&', targets: bindingCases('scope')},
   {name: 'an old document reply acquires the edited buffer revision', path: 'packages/sdk/index.mjs',
     from: '      observation.version === current.version && record.input.text === current.text ? record : undefined;',
     to: '      true ? record : undefined;',
