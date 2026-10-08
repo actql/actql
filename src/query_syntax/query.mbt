@@ -78,6 +78,7 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum GroupingScope {
   SqlSelect
+  SqlSelectAll
   PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 
@@ -135,6 +136,15 @@ pub(all) struct UpdateEffectClause {
 }
 
 ///|
+/// Table writes consume the completed Relation once. A missing name denotes
+/// an anonymous operation whose identity is fixed by ordinary Program lowering.
+pub(all) struct TableEffectClause {
+  name : NamePart?
+  target : Array[NamePart]
+  allow_replace : Bool
+}
+
+///|
 pub(all) struct InferClause {
   contract : NamePart
   keys : Array[Array[NamePart]]
@@ -162,6 +172,9 @@ pub(all) struct SetPart {
   kind : String
   duplicates : String
   by_name : Bool
+  inner_by_name : Bool
+  sql_chain : Bool
+  by_name_columns : Array[NamePart]?
   right : Query
 }
 
@@ -196,6 +209,7 @@ struct Query {
   sets : Array[SetPart]
   final_operations : Array[QueryOperation]
   effect : UpdateEffectClause?
+  table_effect : TableEffectClause?
   work : Int
 }
 
@@ -226,7 +240,12 @@ pub fn join_part_at(query : Query, index : Int) -> JoinPart? {
 
 ///|
 pub fn set_part_at(query : Query, index : Int) -> SetPart? {
-  query.sets.get(index)
+  query.sets
+  .get(index)
+  .map(part => {
+    ..part,
+    by_name_columns: part.by_name_columns.map(columns => columns.copy()),
+  })
 }
 
 ///|
@@ -276,6 +295,7 @@ pub fn starts_query(
         keyword(first, "WITH") ||
         keyword(first, "FROM") ||
         keyword(first, "DATA") ||
+        keyword(first, "CREATE") ||
         first.value == Symbol(40),
       )
     }
@@ -295,7 +315,11 @@ pub fn starts_sql(
     Ok(tokens) => {
       let first = token_at(tokens, 0).unwrap()
       if first.value != Symbol(40) {
-        return Ok(keyword(first, "SELECT") || keyword(first, "WITH"))
+        return Ok(
+          keyword(first, "SELECT") ||
+          keyword(first, "WITH") ||
+          keyword(first, "CREATE"),
+        )
       }
       // Inspect admitted tokens, not source substrings: parentheses and
       // comments do not change whether the head is SQL or FROM-headed Pipe.
@@ -421,6 +445,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
           copy_projections(projections),
           match scope {
             SqlSelect => SqlSelect
+            SqlSelectAll => SqlSelectAll
             PipeAggregate(names, embedded) =>
               PipeAggregate(names.copy(), embedded.copy())
           },
@@ -638,6 +663,90 @@ fn QueryParser::name(self : QueryParser) -> NamePart raise QueryAbort {
 }
 
 ///|
+fn QueryParser::set_column_list(
+  self : QueryParser,
+  keyword? : String = "ON",
+) -> Array[NamePart]? raise QueryAbort {
+  if !self.has(keyword) {
+    return None
+  }
+  self.keyword(keyword)
+  let modifier = if keyword == "BY" { "CORRESPONDING BY" } else { "BY NAME ON" }
+  if self.advance().value != Symbol(40) {
+    raise QueryAbort(
+      "Expected " + modifier + " opening parenthesis",
+      self.peek().start,
+    )
+  }
+  let columns : Array[NamePart] = []
+  while true {
+    self.node()
+    columns.push(self.name())
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    ignore(self.advance())
+  }
+  if self.advance().value != Symbol(41) {
+    raise QueryAbort(
+      "Expected " + modifier + " closing parenthesis",
+      self.peek().start,
+    )
+  }
+  Some(columns)
+}
+
+///|
+fn QueryParser::set_name_matching(
+  self : QueryParser,
+  inner_prefix : Bool,
+) -> (Bool, Bool, Array[NamePart]?) raise QueryAbort {
+  if self.has("STRICT") {
+    if inner_prefix {
+      raise QueryAbort(
+        "INNER set cannot use STRICT CORRESPONDING",
+        self.peek().start,
+      )
+    }
+    self.keyword("STRICT")
+    self.keyword("CORRESPONDING")
+    return (true, false, self.set_column_list(keyword="BY"))
+  }
+  if self.has("CORRESPONDING") {
+    self.keyword("CORRESPONDING")
+    return (true, true, self.set_column_list(keyword="BY"))
+  }
+  if self.has("BY") {
+    self.keyword("BY")
+    self.keyword("NAME")
+    return (true, inner_prefix, self.set_column_list())
+  }
+  if inner_prefix {
+    raise QueryAbort(
+      "INNER set requires BY NAME or CORRESPONDING",
+      self.peek().start,
+    )
+  }
+  (false, false, None)
+}
+
+///|
+fn same_set_column_list(
+  left : Array[NamePart]?,
+  right : Array[NamePart]?,
+) -> Bool {
+  match (left, right) {
+    (None, None) => true
+    (Some(left), Some(right)) =>
+      left.length() == right.length() &&
+      left
+      .mapi((index, name) => same_cte_name(name, right[index]))
+      .all(value => value)
+    _ => false
+  }
+}
+
+///|
 fn QueryParser::path(self : QueryParser) -> Array[NamePart] raise QueryAbort {
   let parts = [self.name()]
   while self.peek().value == Symbol(46) {
@@ -813,6 +922,7 @@ fn QueryParser::bind_query(
     sets: [],
     final_operations: [],
     effect: None,
+    table_effect: None,
     work: self.work,
   }
 }
@@ -965,7 +1075,20 @@ fn QueryParser::join_part(
 
 ///|
 fn QueryParser::starts_join(self : QueryParser) -> Bool {
-  pipe_join_head(self.peek())
+  pipe_join_head(self.peek()) && !self.starts_inner_set()
+}
+
+///|
+fn set_operator_token(token : Token) -> Bool {
+  keyword(token, "UNION") ||
+  keyword(token, "INTERSECT") ||
+  keyword(token, "EXCEPT")
+}
+
+///|
+fn QueryParser::starts_inner_set(self : QueryParser) -> Bool {
+  self.has("INNER") &&
+  set_operator_token(token_at(self.source, self.index + 1).unwrap())
 }
 
 ///|
@@ -1754,7 +1877,17 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     }) ||
     !embedded.is_empty()
   if self.has("GROUP") {
-    operations.push(Group(self.group_keys(), group_projections, SqlSelect))
+    if self.source.tokens
+      .get(self.index + 2)
+      .map(token => keyword(token, "ALL"))
+      .unwrap_or(false) {
+      self.keyword("GROUP")
+      self.keyword("BY")
+      self.keyword("ALL")
+      operations.push(Group([], group_projections, SqlSelectAll))
+    } else {
+      operations.push(Group(self.group_keys(), group_projections, SqlSelect))
+    }
   } else if grouped {
     operations.push(Group([], group_projections, SqlSelect))
   }
@@ -1823,6 +1956,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     sets: [],
     final_operations: [],
     effect: None,
+    table_effect: None,
     work: self.work,
   }
 }
@@ -1832,6 +1966,39 @@ fn QueryParser::query(
   self : QueryParser,
   cte_body? : Bool = false,
 ) -> Query raise QueryAbort {
+  if self.has("CREATE") {
+    if cte_body {
+      raise QueryAbort(
+        "Table write is not allowed in a declaration body",
+        self.peek().start,
+      )
+    }
+    let clause = self.table_create_clause(None)
+    self.keyword("AS")
+    // Direct CTAS computation is top-level. Parentheses do not turn it into
+    // an ordinary CTE or introduce another acquisition/execution owner.
+    let parentheses = self.peek().value == Symbol(40)
+    if parentheses {
+      self.symbol(40)
+    }
+    if self.has("CREATE") {
+      raise QueryAbort(
+        "CTAS input cannot contain another terminal write",
+        self.peek().start,
+      )
+    }
+    let body = self.query()
+    if parentheses {
+      self.symbol(41)
+    }
+    if body.effect is Some(_) || body.table_effect is Some(_) {
+      raise QueryAbort(
+        "CTAS input cannot contain another terminal write",
+        self.peek().start,
+      )
+    }
+    return { ..body, table_effect: Some(clause), work: self.work, }
+  }
   let ctes : Array[CtePart] = []
   let scope : Array[(NamePart, NamePart)] = []
   let nested_scope = !self.cte_scopes.is_empty()
@@ -1901,9 +2068,18 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   let mut term = self.sql_operand()
   let ctes = term.ctes.copy()
   let sets : Array[SetPart] = []
-  let mut set_spelling : (String, String, Bool)? = None
-  while self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
+  let mut set_spelling : (String, String, Bool, Bool, Array[NamePart]?)? = None
+  while self.has("UNION") ||
+        self.has("INTERSECT") ||
+        self.has("EXCEPT") ||
+        self.has("INNER") {
     self.node()
+    let inner_by_name = if self.has("INNER") {
+      self.keyword("INNER")
+      true
+    } else {
+      false
+    }
     let kind = if self.has("UNION") {
       self.keyword("UNION")
       "union"
@@ -1924,30 +2100,43 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       self.keyword("DISTINCT")
       "distinct"
     }
-    let by_name = if self.has("BY") {
-      self.keyword("BY")
-      self.keyword("NAME")
-      true
-    } else {
-      false
-    }
+    let (by_name, inner_by_name, columns) = self.set_name_matching(
+      inner_by_name,
+    )
+    let mut by_name_columns = columns
     match set_spelling {
-      Some((old_kind, old_duplicates, old_by_name)) =>
+      Some((old_kind, old_duplicates, old_by_name, old_inner, old_columns)) => {
         if old_kind != kind ||
           old_duplicates != duplicates ||
-          old_by_name != by_name {
+          old_by_name != by_name ||
+          old_inner != inner_by_name ||
+          !same_set_column_list(old_columns, by_name_columns) {
           raise QueryAbort(
             "Mixed set operators require parentheses",
             self.peek().start,
           )
         }
-      None => set_spelling = Some((kind, duplicates, by_name))
+        // One SQL set chain uses its first modifier's display spelling.
+        by_name_columns = old_columns
+      }
+      None =>
+        set_spelling = Some(
+          (kind, duplicates, by_name, inner_by_name, by_name_columns),
+        )
     }
     let right = self.sql_operand()
     for cte in right.ctes {
       ctes.push(cte)
     }
-    sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
+    sets.push({
+      kind,
+      duplicates,
+      by_name,
+      inner_by_name,
+      sql_chain: true,
+      by_name_columns,
+      right: { ..right, ctes: [], },
+    })
   }
   let tail : Array[QueryOperation] = []
   let order_calls : Array[(NamePart, AggregateCall)] = []
@@ -1994,8 +2183,9 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       })[0]
     for operation in term.operations {
       match operation {
-        Group(keys, projections, SqlSelect) => {
-          operations.push(Group(keys, projections + hidden, SqlSelect))
+        Group(keys, projections, scope) if scope == SqlSelect ||
+          scope == SqlSelectAll => {
+          operations.push(Group(keys, projections + hidden, scope))
           grouped = true
         }
         Analytic(_) | AnalyticExpressions(_, _) | Select(_, _) if !grouped => {
@@ -2067,6 +2257,7 @@ fn QueryParser::pipe(
       sets: [],
       final_operations: [],
       effect: None,
+      table_effect: None,
       work: self.work,
     },
     cte_body~,
@@ -2089,8 +2280,9 @@ fn QueryParser::pipe_tail(
   let sets = input.sets.copy()
   let final_operations = input.final_operations.copy()
   let mut effect = input.effect
+  let mut table_effect = input.table_effect
   while self.peek().value == Pipe {
-    if effect is Some(_) {
+    if effect is Some(_) || table_effect is Some(_) {
       raise QueryAbort("EFFECT must be terminal", self.peek().start)
     }
     // Once a set is complete, a following relational operator consumes its
@@ -2124,11 +2316,14 @@ fn QueryParser::pipe_tail(
         sets,
         final_operations,
         effect: None,
+        table_effect: None,
         work: self.work,
       }
       return self.pipe_tail(self.bind_query(producer), cte_body~)
     }
     if pipe_join_head(next) &&
+      !(keyword(next, "INNER") &&
+      set_operator_token(token_at(self.source, self.index + 2).unwrap())) &&
       !operations.is_empty() &&
       !(operations.length() == 1 && operations[0] is Where(_)) {
       let producer : Query = {
@@ -2142,6 +2337,7 @@ fn QueryParser::pipe_tail(
         sets,
         final_operations,
         effect: None,
+        table_effect: None,
         work: self.work,
       }
       self.spend(operations.length())
@@ -2196,12 +2392,21 @@ fn QueryParser::pipe_tail(
             self.peek().start,
           )
       }
-    } else if self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
+    } else if self.has("UNION") ||
+      self.has("INTERSECT") ||
+      self.has("EXCEPT") ||
+      self.starts_inner_set() {
       if !final_operations.is_empty() {
         raise QueryAbort(
           "Set input cannot follow final ordering",
           self.peek().start,
         )
+      }
+      let inner_by_name = if self.has("INNER") {
+        self.keyword("INNER")
+        true
+      } else {
+        false
       }
       let kind = if self.has("UNION") {
         self.keyword("UNION")
@@ -2223,13 +2428,9 @@ fn QueryParser::pipe_tail(
         self.keyword("DISTINCT")
         "distinct"
       }
-      let by_name = if self.has("BY") {
-        self.keyword("BY")
-        self.keyword("NAME")
-        true
-      } else {
-        false
-      }
+      let (by_name, inner_by_name, by_name_columns) = self.set_name_matching(
+        inner_by_name,
+      )
       if self.advance().value != Symbol(40) {
         raise QueryAbort(
           "Pipe set input must be parenthesized",
@@ -2256,7 +2457,15 @@ fn QueryParser::pipe_tail(
           self.peek().start,
         )
       }
-      sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
+      sets.push({
+        kind,
+        duplicates,
+        by_name,
+        inner_by_name,
+        sql_chain: false,
+        by_name_columns,
+        right: { ..right, ctes: [], },
+      })
     } else if self.starts_correlated_unnest() {
       if !sets.is_empty() {
         raise QueryAbort(
@@ -2487,7 +2696,23 @@ fn QueryParser::pipe_tail(
           self.peek().start,
         )
       }
-      effect = Some(self.update_effect_clause())
+      if token_at(self.source, self.index + 2)
+        .map(token => keyword(token, "CREATE"))
+        .unwrap_or(false) {
+        self.keyword("EFFECT")
+        let name = self.name()
+        table_effect = Some(self.table_create_clause(Some(name)))
+      } else {
+        effect = Some(self.update_effect_clause())
+      }
+    } else if self.has("CREATE") {
+      if cte_body {
+        raise QueryAbort(
+          "Table write is not allowed in a declaration body",
+          self.peek().start,
+        )
+      }
+      table_effect = Some(self.table_create_clause(None))
     } else if self.has("INFER") {
       if cte_body {
         raise QueryAbort(
@@ -2524,6 +2749,7 @@ fn QueryParser::pipe_tail(
     sets,
     final_operations,
     effect,
+    table_effect,
     work: self.work,
   }
 }
@@ -2731,6 +2957,27 @@ pub fn terminal_effect(query : Query) -> UpdateEffectClause? {
 }
 
 ///|
+pub fn terminal_table_effect(query : Query) -> TableEffectClause? {
+  query.table_effect.map(clause => { ..clause, target: clause.target.copy(), })
+}
+
+///|
+fn QueryParser::table_create_clause(
+  self : QueryParser,
+  name : NamePart?,
+) -> TableEffectClause raise QueryAbort {
+  self.node()
+  self.keyword("CREATE")
+  let allow_replace = self.has("OR")
+  if allow_replace {
+    self.keyword("OR")
+    self.keyword("REPLACE")
+  }
+  self.keyword("TABLE")
+  { name, target: self.path(), allow_replace, }
+}
+
+///|
 // Preserve the parsed source and expression origins when a checked Model
 // producer is retained before an Effect continuation. This is AST slicing,
 // not reparsing text or constructing another execution language.
@@ -2738,7 +2985,7 @@ pub fn effect_result_continuation(
   query : Query,
   input : NamePart,
 ) -> (Query, Query)? {
-  if query.effect is None ||
+  if (query.effect is None && query.table_effect is None) ||
     !query.sets.is_empty() ||
     !query.final_operations.is_empty() {
     return None
@@ -2752,6 +2999,7 @@ pub fn effect_result_continuation(
           ..query,
           operations: Array::makei(index + 1, i => query.operations[i]),
           effect: None,
+          table_effect: None,
         }
         let tail = {
           ..query,

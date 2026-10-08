@@ -7,6 +7,7 @@ pub suberror LocalConstructionFailure {
   Source(SourceFailure)
   Closure(ConstructionFailure)
   Units(UnitBuildFailure)
+  Template(TemplateDeclarationPreparation, TemplateConstructionIssue)
 }
 
 ///|

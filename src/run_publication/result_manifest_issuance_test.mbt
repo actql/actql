@@ -37,6 +37,64 @@ fn manifest_test_invocation(template : String) -> PublicationContract {
 }
 
 ///|
+test "Effect-only Manifest is an exact empty inventory, not a hidden Result" {
+  let template = ordering_test_cid("1")
+  let run = manifest_test_run(template)
+  let invocation = manifest_test_invocation(template)
+  let manifest = issue_result_manifest(run, invocation, [], [], 8192, 64, 5).unwrap()
+  // Independently hashed from the fixed run/invocation bodies above, not
+  // obtained from the Manifest issuer or its output.
+  assert_eq(
+    publication_contract_identity(run),
+    "sha256:ba43e5152870093950a1f9429f85ef2567cece738226e7c45ab4f81560171584",
+  )
+  assert_eq(
+    publication_contract_identity(invocation),
+    "sha256:728611beedc6bb4daa8f225c2ccbb21e41078e8448b47fbf018d9eb56106d288",
+  )
+  assert_eq(
+    publication_contract_identity(manifest),
+    "sha256:316b1059d931be7a41fd71f622fdd314d402f41051a195dcfe4f43b306941523",
+  )
+  let expected_wire =
+    #|{"invocation_cid":"sha256:728611beedc6bb4daa8f225c2ccbb21e41078e8448b47fbf018d9eb56106d288","result_manifest_cid":"sha256:316b1059d931be7a41fd71f622fdd314d402f41051a195dcfe4f43b306941523","results":{},"run_definition_cid":"sha256:ba43e5152870093950a1f9429f85ef2567cece738226e7c45ab4f81560171584","version":"actql-result-manifest/0.1"}
+  assert_eq(publication_contract_json(manifest), expected_wire)
+  assert_eq(
+    validate_run_publication_chain(
+      run,
+      invocation,
+      [],
+      [],
+      manifest,
+      8192,
+      64,
+      5,
+    ),
+    Ok(()),
+  )
+  let definition = result_definition_contract(
+    prepare_result_definition(ordering_test_cid("2"), "hidden").unwrap(),
+  )
+  assert_true(
+    issue_result_manifest(run, invocation, [definition], [], 8192, 64, 5)
+    is Err(ManifestIssuanceInventoryMismatch),
+  )
+  assert_true(
+    validate_run_publication_chain(
+      run,
+      invocation,
+      [definition],
+      [],
+      manifest,
+      8192,
+      64,
+      5,
+    )
+    is Err(_),
+  )
+}
+
+///|
 fn manifest_test_retention(policy : String) -> PublicationContract {
   seal_publication_contract(
     "result_retention_policy",

@@ -82,6 +82,77 @@ pub fn effect_header_body(value : EffectHeader) -> @wire.Cursor {
 }
 
 ///|
+/// Authored Table intent and the fixed selected write binding remain in the
+/// same checked Effect body. This reference is not a dispatch permission.
+pub fn effect_header_table_write(value : EffectHeader) -> @wire.Cursor? {
+  if value.kind != "store" {
+    return None
+  }
+  @wire.lookup(@wire.open_object(value.body).unwrap(), "table_write")
+}
+
+///|
+fn header_table_cid(source : @wire.Cursor) -> Unit raise EffectHeaderStop {
+  let value = header_text(source)
+  if value.length() != 71 || !value.has_prefix("sha256:") {
+    header_fail(source, InvalidBody)
+  }
+  for index in 7..<value.length() {
+    let c = value[index]
+    if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+      header_fail(source, InvalidBody)
+    }
+  }
+}
+
+///|
+fn header_table_write(
+  source : @wire.Cursor,
+  budget : HeaderBudget,
+) -> Unit raise EffectHeaderStop {
+  header_spend(budget, 6, source)
+  let body = header_object(source, [
+    "intent", "action", "expected_table", "mapping_cid", "capability_cid", "installation_binding_cid",
+  ])
+  let intent = header_text(header_required(body, "intent", source))
+  let action = header_text(header_required(body, "action", source))
+  if !["create", "create_or_replace"].contains(intent) ||
+    !["create", "replace"].contains(action) ||
+    (intent == "create" && action != "create") {
+    header_fail(source, InvalidBody)
+  }
+  for name in ["mapping_cid", "capability_cid", "installation_binding_cid"] {
+    header_table_cid(header_required(body, name, source))
+  }
+  let expected = header_required(body, "expected_table", source)
+  if action == "create" {
+    if !(@wire.view(expected) is @wire.NullValue) {
+      header_fail(expected, InvalidBody)
+    }
+  } else {
+    header_spend(budget, 2, expected)
+    let expected_body = header_object(expected, ["table_uuid", "generation_cid"])
+    let uuid = header_text(
+      header_required(expected_body, "table_uuid", expected),
+    )
+    if uuid.length() != 36 {
+      header_fail(expected, InvalidBody)
+    }
+    for index in 0..<uuid.length() {
+      let c = uuid[index]
+      if [8, 13, 18, 23].contains(index) {
+        if c != '-' {
+          header_fail(expected, InvalidBody)
+        }
+      } else if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+        header_fail(expected, InvalidBody)
+      }
+    }
+    header_table_cid(header_required(expected_body, "generation_cid", expected))
+  }
+}
+
+///|
 pub struct EffectHeaders {
   owner : Program
   members : Array[EffectHeader]
@@ -398,12 +469,19 @@ fn header_member(
         "target", "mapping", "from", "id", "match", "ids", "external_id", "where",
         "max_items", "on_item_failure",
       ]
-    "store" => ["target", "mapping", "from", "max_items", "on_item_failure"]
+    "store" =>
+      [
+        "target", "mapping", "from", "table_write", "max_items", "on_item_failure",
+      ]
     "command" =>
       ["from", "target", "contract", "input", "max_items", "on_item_failure"]
     _ => abort("closed effect kind")
   }
   let body = header_object(source, fields)
+  if selected == "store" &&
+    @wire.lookup(body, "table_write") is Some(table_write) {
+    header_table_write(table_write, budget)
+  }
   let contract_source = header_required(
     body,
     if selected == "command" {

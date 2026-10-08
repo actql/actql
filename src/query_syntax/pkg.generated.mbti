@@ -94,6 +94,8 @@ pub fn starts_sql(String, LexicalLimits, source_path? : String) -> Result[Bool, 
 
 pub fn terminal_effect(Query) -> UpdateEffectClause?
 
+pub fn terminal_table_effect(Query) -> TableEffectClause?
+
 pub fn token_at(Tokens, Int) -> Token?
 
 pub fn token_count(Tokens) -> Int
@@ -308,6 +310,7 @@ pub(all) struct GraphQuery {
 
 pub(all) enum GroupingScope {
   SqlSelect
+  SqlSelectAll
   PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 
@@ -453,6 +456,9 @@ pub(all) struct SetPart {
   kind : String
   duplicates : String
   by_name : Bool
+  inner_by_name : Bool
+  sql_chain : Bool
+  by_name_columns : Array[NamePart]?
   right : Query
 }
 
@@ -485,6 +491,12 @@ pub(all) struct StarReplacement {
   expression : Expression?
   aggregate : AggregateCall?
   analytic : AnalyticCall?
+}
+
+pub(all) struct TableEffectClause {
+  name : NamePart?
+  target : Array[NamePart]
+  allow_replace : Bool
 }
 
 pub struct Token {

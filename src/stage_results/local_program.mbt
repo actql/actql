@@ -287,13 +287,17 @@ pub fn prepare_local_program(
     }
     work -= attached_work(attached) - import_work
     let checked = match
-      @results.check(pipeline, @decode.required(body, "results").unwrap(), {
-        max_results: results,
-        max_work: work,
-        max_nodes: nodes,
-        max_text_bytes: text,
-        max_depth: limits.max_depth,
-      }) {
+      @results.check_inventory(
+        pipeline,
+        @decode.required(body, "results").unwrap(),
+        {
+          max_results: results,
+          max_work: work,
+          max_nodes: nodes,
+          max_text_bytes: text,
+          max_depth: limits.max_depth,
+        },
+      ) {
       Err(e) => return Err(Results(i, e))
       Ok(v) => v
     }

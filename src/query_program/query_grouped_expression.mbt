@@ -74,7 +74,15 @@ fn append_grouped_expression_resolved(
           }),
         )
       }
-      if same_expression(key, child, references~) {
+      let same_key = match
+        (
+          group_reference_path(key, @query.expression_root(key)),
+          group_reference_path(child, @query.expression_root(child)),
+        ) {
+        (Some(left), Some(right)) => references(left, right)
+        _ => same_expression(key, child, references~)
+      }
+      if same_key {
         let mut serial = bindings.length()
         let mut reference = "aql_pipe_group_bound_" + serial.to_string()
         while reserved_names.any(name => {
@@ -116,4 +124,35 @@ fn append_grouped_expression_resolved(
     Ok(node) => node
     Err(error) => raise Abort(Expression(error))
   }
+}
+
+///|
+// Preserve property paths across parentheses. Looking only at Reference nodes
+// would turn (payload).score into the whole payload column for prefix inference.
+fn group_reference_path(
+  expression : @query.Expression,
+  node : Int,
+) -> Array[@query.NamePart]? {
+  let members : Array[@query.NamePart] = []
+  let mut current = node
+  while true {
+    match @query.expression_node(expression, current).unwrap().kind {
+      Parenthesized(child) => current = child
+      Property(child, name) => {
+        members.push(name)
+        current = child
+      }
+      Reference(path) => {
+        let result = path.copy()
+        let mut index = members.length() - 1
+        while index >= 0 {
+          result.push(members[index])
+          index -= 1
+        }
+        return Some(result)
+      }
+      _ => return None
+    }
+  }
+  None
 }

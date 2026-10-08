@@ -50,11 +50,9 @@ pub fn select_publication_row_limit(
   guard @policy.ceiling(policy, "max_artifact_rows") is Some(host) else {
     return Err(MissingHostCeiling)
   }
-  let mut maximum = @policy.ceiling_value(host)
-  for i in first..<(first + count) {
-    let rows = @capacity.target_membership_rows(owner.rows[i].membership)
-    maximum = Int64::min(maximum, @step_bounds.target_rows_value(rows))
-  }
+  let maximum = publication_row_candidate_minimum(host, count, index => {
+    owner.rows[first + index].membership
+  })
   Ok({
     owner,
     result,
@@ -64,6 +62,22 @@ pub fn select_publication_row_limit(
     count,
     work: owner.work + count + 1,
   })
+}
+
+///|
+// Both prebinding and bound publication select the same scope-correct numeric
+// minimum. Indexed access retains all candidates without copying their arrays.
+fn publication_row_candidate_minimum(
+  host : @policy.Ceiling,
+  count : Int,
+  candidate_at : (Int) -> @capacity.TargetMembership,
+) -> Int64 {
+  let mut maximum = @policy.ceiling_value(host)
+  for index in 0..<count {
+    let rows = @capacity.target_membership_rows(candidate_at(index))
+    maximum = Int64::min(maximum, @step_bounds.target_rows_value(rows))
+  }
+  maximum
 }
 
 ///|
