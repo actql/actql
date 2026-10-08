@@ -2,9 +2,13 @@
 
 ## Baseline and scope
 
-Main baseline: `4aa66a85ebd90f037b9a5a4af3d0850ed91b1bd1`.
-This branch starts at #1055 `935cca732b3ab9015ee23f13a395ca7489ed106f`;
-its final integration target is main, with that dependency retained until merged.
+Initial main baseline: `4aa66a85ebd90f037b9a5a4af3d0850ed91b1bd1`.
+This branch started at #1055 `935cca732b3ab9015ee23f13a395ca7489ed106f`.
+#1053 and #1055 subsequently reached main. The #1055 adopted head
+`a1f67d0a3c6106959b5f7c8d1acb356ab2ee7336` is an ancestor of adopted main
+`7448151e13e9eff680077cf42b0f73c6136cb04b`. Ordinary integration merge
+`ed441a86c4c864014001f26dea737ad7d156e923` completes without conflicts;
+the PR now targets main with no remaining unmerged parent dependency.
 
 The existing parser accepts `SELECT id, payload.* FROM objects`, but the
 lowerer resolves receiver stars only as Relation ranges. The independent
@@ -107,8 +111,23 @@ Normal package SHA-256 digests:
 | local-node | `266fb4a202b32740dd5ae403a06f2664c5b3e51deb6cd596b2e865884fc82412` |
 | node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
 
-The subsequent review-record commit changes only this document, not compiled
-source, corpus, consumer or package inputs. It is not a new packed campaign.
+The initial subsequent review-record commit
+`17d6958678f2f09cc4d6bed3d0bc067adba74a27` changes only this document.
+The later main integration adds existing submission/read test fixtures,
+mutation validators, diagnostic fixtures and the parent's review record.
+The compiler, runtime implementation and this cohort's fixture/consumer files
+are unchanged from the packed source. This is not a new clean-HEAD packed
+campaign or a claim of independently rebuilt final-HEAD package bytes.
+
+After integration, the same two focused Node files pass **15/15** at clean
+`ed441a86c4c864014001f26dea737ad7d156e923`, with pinned Node 22.22.0:
+attempt `run-UDakvY`, evidence `focused-test-blSrUW`. An earlier Node 22.23.2
+diagnostic also passed 15/15 (`run-Xe97Do` / `focused-test-2pZXOx`) but is not
+the pinned check. Two sandbox-limited pinned launches stopped before tests
+when the existing supervisor could not inspect its owned process group;
+they are not executed test failures or successes. The successful pinned check
+uses the unchanged supervisor. The final evidence update is documentation only.
+
 Required submitted-HEAD CI, full Core, Wasm/native, broad packed campaigns and
 ordered STRUCT conformance remain unverified. Draft preparation is not a full
 integration gate. No merge or manual CI retry is performed.
