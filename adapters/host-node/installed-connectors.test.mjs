@@ -265,7 +265,7 @@ test('only the owner-issued table handle is accepted and no mutable Map is expos
 test('owned declarations preserve the closed identity profile and response-header rules', () => {
   const invalidProfiles = [null, {}, [], {...identityProfile(), extra: 'value'},
     {...identityProfile(), continuationBinding: 'arbitrary_field'},
-    {...identityProfile(), dispatch: 'actql-installed-example-effect-dispatch/0.2'},
+    {...identityProfile(), dispatch: ['actql-installed-example-effect-dispatch', '0.2'].join('/')},
     {...identityProfile(), unit: () => 'actql-installed-example-effect-unit/0.1'}];
   const {unit: _unit, ...missingUnit} = identityProfile();
   invalidProfiles.push(missingUnit);

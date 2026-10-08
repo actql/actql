@@ -455,6 +455,8 @@ pub fn client_program_effect_table_managed_input_finish(ClientEffectManagedInput
 
 pub fn client_program_effect_table_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
 
+pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, @run_publication_host.ClientEffectMemberDescriptorIssue]
+
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_export_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[@client_local_host.ClientSourceCaptureExport, @client_local_host.ClientSourceCaptureIssue]
@@ -669,7 +671,7 @@ pub fn client_program_open_multi_captured_local_host(@run_publication_host.Prepa
 
 pub fn client_program_open_multi_captured_local_retained_host(@run_publication_host.PreparedClientProgram, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
-pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, Int64, Int64, Int64, Int64) -> ClientLocalEffectHost?
+pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, Int64, Int64, Int64, Int64, String?, String?) -> ClientLocalEffectHost?
 
 pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
@@ -854,6 +856,8 @@ pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, S
 pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
+
+pub fn client_program_run_observation_key(String, Int64, Bool, Bool, Bool, Bool) -> String?
 
 pub fn client_program_salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@catalog.QueryRead, @catalog.QueryReadIssue]
 

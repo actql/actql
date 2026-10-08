@@ -168,9 +168,10 @@ fn client_source_context(
   declarations : String?,
 ) -> @query_program.Context raise ClientSourceStop {
   let root = source_publication_cursor(publication)
-  @decode.closed_object(root, ["environmentCid", "aliases"]).unwrap_or_else(() => {
-    raise ClientSourceStop(Publication)
-  })
+  @decode.closed_object(root, ["environmentCid", "aliases", "tableWrites"]).unwrap_or_else(() => {
+      raise ClientSourceStop(Publication)
+    },
+  )
   |> ignore
   let environment_cid = @program_check.checking_environment_cid(environment)
   if source_publication_text(root, "environmentCid") != environment_cid {
@@ -354,6 +355,7 @@ pub fn client_program_source_publication_valid(
 ) -> Bool {
   try {
     client_source_context(environment, publication, None) |> ignore
+    client_table_write_publication(environment, publication) |> ignore
     true
   } catch {
     _ => false
@@ -423,7 +425,11 @@ fn client_program_lower_source(
     Ok(Sql) => @source_frontend.Sql
     _ => return Err(InvalidFormat)
   }
-  match @source_frontend.lower(document, selected, Some(context)) {
+  let table_writes = client_table_write_publication(environment, publication) catch {
+    ClientSourceStop(issue) => return Err(SourcePreparation(issue))
+  }
+  match
+    @source_frontend.lower(document, selected, Some(context), table_writes~) {
     Ok(value) => Ok(value)
     Err(issue) => Err(SourcePreparation(Frontend(issue)))
   }

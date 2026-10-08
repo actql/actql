@@ -1896,7 +1896,7 @@ fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
       0,
       None,
     ),
-    protocol_object_rule([], [], 707, 1, None),
+    protocol_object_rule([], [], 707, 0, None),
     protocol_string_rule(None, [], 1, 0),
     protocol_object_rule(
       [
@@ -2316,7 +2316,7 @@ fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
       0,
       None,
     ),
-    protocol_object_rule([], [], 857, 1, None),
+    protocol_object_rule([], [], 857, 0, None),
     protocol_string_rule(None, [], 1, 0),
     protocol_object_rule(
       [
@@ -2743,7 +2743,7 @@ fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
       0,
       None,
     ),
-    protocol_object_rule([], [], 1012, 1, None),
+    protocol_object_rule([], [], 1012, 0, None),
     protocol_string_rule(None, [], 1, 0),
     protocol_object_rule(
       [
@@ -3603,7 +3603,7 @@ fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
       0,
       None,
     ),
-    protocol_object_rule([], [], 1309, 1, None),
+    protocol_object_rule([], [], 1309, 0, None),
     protocol_string_rule(None, [], 1, 0),
     protocol_object_rule(
       [

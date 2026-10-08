@@ -84,14 +84,44 @@ test "only guaranteed columns project from a conditional Relation schema" {
 ///|
 test "row-preserving consumers cannot silently erase conditional presence" {
   let input = presence_schema()
-  for
-    (op, body) in [
-      (@relation_typing.Drop, "[\"p\"]"),
-      (Rename, "{\"id\":\"key\"}"),
-    ] {
-    let issue = @relation_typing.check(op, cursor(body), input, None, limits()).unwrap_err()
-    assert_eq(issue.kind, ConditionalInputNotImplemented)
-  }
+  let issue = @relation_typing.check(
+    Rename,
+    cursor("{\"id\":\"key\"}"),
+    input,
+    None,
+    limits(),
+  ).unwrap_err()
+  assert_eq(issue.kind, ConditionalInputNotImplemented)
+}
+
+///|
+test "structural drop keeps retained Conditional presence without reading it" {
+  let input = presence_schema()
+  let retained = @relation_typing.check(
+    Drop,
+    cursor("[\"id\"]"),
+    input,
+    None,
+    limits(),
+  ).unwrap()
+  let output = @relation_typing.output_schema(retained)
+  assert_eq(@schema.field_count(output), 1)
+  assert_true(@schema.lookup_reference(output, "id") is None)
+  assert_eq(
+    @schema.lookup_reference(output, "p").unwrap().presence,
+    @schema.Conditional,
+  )
+  assert_true(@schema.lookup_reference(output, "p").unwrap().contract.nullable)
+  let removed = @relation_typing.check(
+    Drop,
+    cursor("[\"p\"]"),
+    input,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(
+    @schema.all_fields_required(@relation_typing.output_schema(removed)),
+  )
 }
 
 ///|

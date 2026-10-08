@@ -87,7 +87,7 @@ pub fn prepare_native_read_only_source_binding(@host.NativeHostConfiguration, St
 
 pub fn prepare_native_standard_policy_consultation(@standard_host.StrategyHostDispatch, @http_client.Client, @trusted_clock.NativeTrustedClock, String, String, String, String, String, Int64, Int, (@physical_strategy.PolicyRequest, @physical_strategy.PolicyCandidateSet) -> Bool) -> Result[NativeStandardPolicyConsultation?, NativeStandardPolicyIssue]
 
-pub fn rank_native_operational_estimate(@standard_host.StrategyHostDispatch, @physical_strategy.OperationalEstimateSidecar, Int, String, @trusted_clock.NativeTrustedClock) -> Result[@physical_strategy.EmpiricalRanking, NativeStandardPolicyIssue]
+pub fn rank_native_operational_estimate(@standard_host.StrategyHostDispatch, @physical_strategy.OperationalEstimateSidecar, Int, String, @trusted_clock.NativeTrustedClock, quantity? : String) -> Result[@physical_strategy.EmpiricalRanking, NativeStandardPolicyIssue]
 
 pub fn read_native_standard_task_output(NativeStandardStrategyRun, Int, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> Result[@execution_relation.CompletedOutput, NativeStandardRunPublicationIssue]
 
