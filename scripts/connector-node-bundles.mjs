@@ -6,9 +6,9 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {checkComputeAssembly} from './connector-compute-bundles.mjs';
 import {connectorManifestSelection} from './connector-manifest-selection.mjs';
+import {validInstalledEffectIdentityProfile, validInstalledResponseHeaders}
+  from '../adapters/host-common/installed-connector-declaration.mjs';
 import {adapterModuleGraph} from './adapter-module-graph.mjs';
-// The same reserved names the typed exchange refuses at run time.
-import {reservedHttpHeader} from '../adapters/host-common/http-exchange.mjs';
 
 export function checkNodeAssembly(root, write = false, options = {}) {
 const buildInputs = options.buildInputs;
@@ -412,17 +412,8 @@ const hostBundleKeys = ['installation'];
 const installationKeys = ['registration', 'responseHeaders', 'revision'];
 const optionalInstallationKeys = ['assets', 'effect', 'providerBundle', 'source'];
 const sourceKeys = ['exports', 'module', 'profileVersion'];
-// An Effect section may register the identity profile of its durable Effect
-// records: the version of each identity the common installed row Effect
-// issues, and the continuation's installation-binding field. Only these
-// fixed names exist; the common factory reads them from the generated table.
-const identityProfileKeys = ['continuation', 'continuationBinding', 'dispatch',
-  'recovery', 'source', 'targetCheck', 'unit'];
-const identityVersion = /^actql-[a-z0-9-]+\/0\.1$/;
-const continuationBindings = ['binding_cid', 'publication_generation_cid'];
 const sourceExports = ['check', 'identityParts', 'load', 'publish'];
 const requiredSourceExports = ['check', 'identityParts', 'load'];
-const headerName = /^[a-z0-9][a-z0-9-]*$/;
 
 const sameKeys = (value, keys) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join() === keys.join();
@@ -451,21 +442,14 @@ export function checkHostBundle(root, name, path) {
     if (!/^supported_targets = "js"$/m.test(bundleManifest) ||
         !/pkgtype\(kind: "foreign_library"\)/.test(bundleManifest)) throw invalid('providerBundle kind');
   }
-  if (!Array.isArray(responseHeaders) || responseHeaders.length > 16 ||
-      new Set(responseHeaders).size !== responseHeaders.length ||
-      responseHeaders.some(header => typeof header !== 'string' || !headerName.test(header) ||
-        reservedHttpHeader(header))) {
+  if (!validInstalledResponseHeaders(responseHeaders)) {
     throw invalid('responseHeaders');
   }
   const checkSection = (section, label) => {
     const prefix = label === 'source' ? '' : `${label} `;
     const {identityProfile, ...rest} = section ?? {};
     if (label === 'effect' && identityProfile !== undefined) {
-      if (!sameKeys(identityProfile, identityProfileKeys) ||
-          !continuationBindings.includes(identityProfile.continuationBinding) ||
-          identityProfileKeys.filter(key => key !== 'continuationBinding')
-            .some(key => typeof identityProfile[key] !== 'string' ||
-              !identityVersion.test(identityProfile[key]))) {
+      if (!validInstalledEffectIdentityProfile(identityProfile)) {
         throw invalid('effect identityProfile');
       }
       section = rest;
