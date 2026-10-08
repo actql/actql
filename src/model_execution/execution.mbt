@@ -189,6 +189,7 @@ struct ModelState {
   mut physical_cleanup_index : Int
   durable_calls : Bool
   mut enter_call : ((ModelCallEntry) -> Bool)?
+  mut physical_observer : ((ModelPhysicalObservation) -> Unit)?
   mut entering : ModelCallEntry?
   mut prepared_call_set : ModelPreparedCallSet?
   mut settlement_pending : Int?
@@ -547,6 +548,13 @@ fn advance_model(
     return @bounded.Stopped(@bounded.Cancelled, 1, 1)
   }
   state.observing_response = state.durable_calls
+  // No observation is issued for denied, cancelled, restored, or missing-plan
+  // calls. This is only the actual synchronous invocation interval.
+  if state.physical_preflight is Some(_) &&
+    state.physical_plans.get(state.next_slot) is None {
+    return @bounded.Failed(RequestIdentity, 1, 1)
+  }
+  observe_model_physical(state, InvokeStarted)
   let invoked = match state.physical_preflight {
     None => (provider.invoke)(request)
     Some(_) => {
@@ -556,6 +564,14 @@ fn advance_model(
       (plan.invoke)()
     }
   }
+  observe_model_physical(
+    state,
+    match invoked {
+      Ok(_) => InvokeReturned
+      Err(Cancelled) => InvokeCancelled
+      Err(_) => InvokeFailed
+    },
+  )
   let response = match invoked {
     Ok(value) => value
     Err(issue) => {
@@ -777,6 +793,7 @@ fn start_model_owned(
     physical_cleanup_index: 0,
     durable_calls,
     enter_call: None,
+    physical_observer: None,
     entering: None,
     prepared_call_set: None,
     settlement_pending: None,
@@ -958,6 +975,7 @@ pub fn cleanup_model_execution(
       execution.state.requests.clear()
       execution.state.physical_plans.clear()
       execution.state.physical_cursors.clear()
+      execution.state.physical_observer = None
       execution.state.outcomes.clear()
       for (_, saved) in execution.state.restored_calls {
         if saved.bundle is Some(bundle) {

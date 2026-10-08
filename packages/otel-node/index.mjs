@@ -102,7 +102,8 @@ export function createNodeHostObservability(options = {}) {
             const method = record.attributes['http.request.method'];
             const route = record.attributes['http.route'];
             const clientAttempt = ['source', 'infer'].includes(record.operation) &&
-              ['attempt_started', 'attempt_completed', 'attempt_observed'].includes(record.event);
+              ['attempt_started', 'attempt_completed', 'attempt_observed',
+                'transport_completed', 'acquisition_interval'].includes(record.event);
             const span = tracer.startSpan(method === undefined ? `actql.${record.operation}` :
               route === undefined ? method : `${method} ${route}`, {
               kind: method !== undefined ? SpanKind.SERVER :

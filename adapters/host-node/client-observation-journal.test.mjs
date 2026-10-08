@@ -79,3 +79,55 @@ test('Host custody capacity refuses only extra observations, never original requ
     assert.equal(storage.consume(charge), undefined, 'oversized custody is not parsed as context');
   } finally { db.close(); }
 });
+
+test('unchanged Owner facts survive reopen without spending another Run allowance', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-observation-facts-'));
+  let opened;
+  try {
+    const path = join(directory, 'journal.sqlite3');
+    opened = setup(path);
+    admit(opened.db);
+    opened.storage.initialize({...binding, requestId: 'original', context});
+    const first = {...charge, ownerFactKey: 'succeeded;7;1;?'};
+    assert.deepEqual(opened.storage.consume(first), {accepted: true, context});
+    assert.deepEqual(opened.storage.consume(first), {accepted: false, repeated: true});
+    opened.db.close();
+    opened = setup(path);
+    assert.deepEqual(opened.storage.consume(first), {accepted: false, repeated: true});
+    assert.deepEqual(opened.storage.consume({...first, ownerFactKey: 'succeeded;7;0;1'}),
+      {accepted: true, context});
+    assert.deepEqual(opened.storage.consume({...first, ownerFactKey: 'succeeded;7;0;1'}),
+      {accepted: false, repeated: true}, 'the same fact remains suppressed at the exact limit');
+    assert.deepEqual(opened.storage.consume({...first, ownerFactKey: 'succeeded;8;0;1'}),
+      {accepted: false}, 'a changed revision cannot bypass the exhausted allowance');
+    assert.deepEqual(opened.db.prepare('SELECT records, bytes FROM client_observation_runs').get(),
+      Object.assign(Object.create(null), {records: 2, bytes: 20}));
+  } finally {
+    opened?.db.close();
+    rmSync(directory, {recursive: true, force: true});
+  }
+});
+
+test('observation cursor is scoped and damaged custody cannot reset a budget', () => {
+  const {db, storage} = setup(':memory:');
+  try {
+    admit(db);
+    storage.initialize({...binding, requestId: 'original', context});
+    const next = {...ref, runDefinitionCid: `sha256:${'c'.repeat(64)}`};
+    db.prepare('INSERT INTO client_requests VALUES (?, ?, ?, ?)')
+      .run(next.namespaceId, next.authorityScopeCid, next.runDefinitionCid, 'next');
+    storage.initialize({...binding, ref: next, requestId: 'next', context});
+    const first = {...charge, ownerFactKey: 'running;1;?;?'};
+    assert.deepEqual(storage.consume(first), {accepted: true, context});
+    assert.deepEqual(storage.consume({...first, ref: next}), {accepted: true, context},
+      'equal facts on different Runs remain independent');
+    assert.equal(storage.consume({...first, scope: 'other'}), undefined);
+    assert.throws(() => storage.consume({...first, ownerFactKey: 'SECRET'.repeat(100)}),
+      {message: 'ObservationBudgetUnavailable'});
+    db.prepare('UPDATE client_observation_runs SET owner_fact_key = ? WHERE run_definition_cid = ?')
+      .run('x'.repeat(1024), ref.runDefinitionCid);
+    assert.equal(storage.consume(first), undefined);
+    assert.equal(db.prepare('SELECT sum(records) AS n FROM client_observation_runs').get().n, 2);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM client_requests').get().n, 2);
+  } finally { db.close(); }
+});

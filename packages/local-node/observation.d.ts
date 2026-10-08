@@ -8,7 +8,7 @@ export interface HostObservationConnection {
     attributes: Readonly<{exclude: readonly string[]}>;
     events: Readonly<{level: 'lifecycle' | 'diagnostic'}>}>;
   status(): Readonly<{dropped: number; budgetUnavailable: number;
-    queueOverflow: number; deliveryFailed: number; limited: number;
+    queueOverflow: number; deliveryFailed: number; limited: number; repeated: number;
     queued: number; queuedBytes: number; active: number; activeSegments: number; closed: boolean;
     cleanupPending: boolean;
     loss: Readonly<Record<string, number>>}> | undefined;

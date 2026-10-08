@@ -4,7 +4,8 @@
 
 Base: `db1bcddd793ad9a1e2e1d9fe452a984dc35254ac`.
 Initial verified implementation: `4b7cdbd83d92266afc73ff225e4d370c723cb2bc`.
-Current verified implementation: `8ae7f09b21555c2bc5266d0eb6723942fb23e1ab`.
+Sampling verification: `8ae7f09b21555c2bc5266d0eb6723942fb23e1ab`.
+Current production implementation: `52aac792323eeab3d6cf4670e2615ab2e123fb71`.
 Subsequent evidence-only documentation does not extend that execution claim.
 
 This is the initial single-scope Node Host O1/O2 unit, not all-Host
@@ -158,6 +159,89 @@ one case (`_build/focused-evidence/focused-test-EQJJgg`, dirty test/documentatio
 tree); it is not reattributed to a clean SHA. This case is part of the ordinary
 OTel selection. The final clean-source receipt and submitted SHA are recorded
 in PR #971 rather than guessed in this document.
+
+## Common projection, physical measurement and final scoped verification
+
+The implementation at `52aac792323eeab3d6cf4670e2615ab2e123fb71`
+move Run observation equivalence into `run_publication.run_observation_key`.
+The optional SQLite custody stores its bounded key with cumulative count/bytes;
+unchanged polling is suppressed without resetting consumption on restart.
+Independent revision, cleanup and physical-stop facts remain distinct.
+
+The same change adds a metadata-only physical observer to the existing
+MoonBit Model execution. It surrounds both provider invoke and the selected
+preflight invoke, after actual durable entry and cancellation checks. Node
+measures elapsed time and matches the Owner-issued attempt to its existing
+journal receipt. Approval waits, response saving and replay are not physical
+invocation durations. Source measurements cover the selected adapter's entire
+acquisition `open`, not an unobserved individual transport request.
+
+Regressions were added for saved duplicate suppression, exact exhausted
+allowance, foreign/damaged custody, public repeated Local/HTTPS status, actual
+Model CLIENT spans and absence of another interval during fresh-process replay.
+The scoped verification completed as follows. Pre-commit results are attributed
+to the tested source subsequently committed unchanged in the implementation
+SHA, not to older passing receipts. A later test-only addition uses public SQL
+checking with an invalid number parameter and creates no Run; its two Local/
+HTTPS cases passed separately. Evidence and that fixture addition do not change
+the production implementation or compiled runtime inputs.
+
+| Check | Result | Retained receipt |
+| --- | --- | --- |
+| Canonical interfaces for four changed packages | Passed | `run-xEKssK` |
+| New common Run key / physical metadata tests, JS | 2/2 and 1/1 | `run-wyzL8w`, `focused-test-5ZydYl`, `focused-test-BWQIZc` |
+| Projection, journal, configuration, SDK and bounded transport | 49/49 | `run-uAvplC`, `focused-test-a0GiGI` |
+| Public Local/HTTPS, Model approval/restart/replay and waiting cancellation | 11/11 | `run-lWvxck`, `focused-test-0HHhSW` |
+| Existing common preflight / replay callers, JS, at the implementation SHA | 5/5 and 4/4 | `run-C5oM5Q`, `focused-test-ObyGYY`, `focused-test-hMjp95` |
+| Public pre-Run type failure, Local/HTTPS | 2/2 | `run-CCl8Su`, `focused-test-eaVPuq` |
+| Public HTTPS Effect approval/restart/lost reply | 1/1 | `run-CCl8Su`, `focused-test-4ry93t` |
+| Selected public TypeScript declarations / generated adapter freshness | Passed | `run-CCl8Su` |
+| Preserved original timeout Run: same identity, expected Result, one total call | 1/1 | `run-c3eu4s`, `focused-test-vPkNZI` |
+
+Receipts named `run-*` are under `_build/local-checks/attempts`; detailed
+`focused-test-*` receipts are under `_build/focused-evidence`. The original-Run
+diagnostic is retained as `_build/resume-original-otel-run.test.mjs`. It uses the
+ordinary public fixture and preserves the original timeout report byte-for-byte.
+An earlier intermediate report with zero calls is not proof of no send: the
+saved provider wire has one call and the replay reads its successful Result.
+
+The successful commands use `scripts/local-checks.mjs test node` with the six
+component files, the two public Host/recovery files, and the representative
+Effect file. JS MoonBit selections are the two new files plus
+`src/client_infer_host/physical_preflight_wbtest.mbt` and
+`src/client_infer_host/replay_wbtest.mbt`. The existing bounded guard also
+recorded canonical `moon info`, selected declarations and adapter freshness.
+No full Core, all-target, packed or performance campaign was run.
+
+The first component run used stale assembled adapters: 48/49 passed. Normal
+runtime/adapter preparation (`run-CfLiIq`) corrected the copied source, not the
+expectation; the unchanged case then passed. An aggregate caller/public run
+exceeded 180 seconds (`run-C5oM5Q`); its two completed MoonBit selections remain
+valid individually, but the aggregate is not a pass. Public cases were then
+selected without compilation overhead. An initial type fixture used the
+unsupported JSON check format (`run-Ri3paC`); it was corrected to the existing
+public SQL parameter API, not a new Host interface. These failures remain intact.
+
+The original timeout receipt `run-WhcMPS` is also unchanged. User-authorized
+inspection found its wrapper, children, process group and worktree test
+processes stopped. Recovery rechecked the exact owner/token and file identity
+immediately before removing only that lock. Separate receipt:
+`_build/local-checks/recovery-emjKkc/receipt.json`. No other lock or process was
+removed. All subsequent completed guards released their own locks normally.
+
+The current source-bound public runtime payload digests are:
+
+- Local builtin Node runtime:
+  `c12075f9a2ebfcbe69d25ba2b3829a6150ac6947d43d8f08799969e277e74d1a`.
+- Run Host ABI runtime:
+  `40c65dba00a9161dc151f0f09806fa2e12c570a537dea7bd6e282e69455f87d6`.
+
+Unlike the initial historical unit above, this follow-up changes common
+MoonBit and generated public interfaces. There is no new semantic contract,
+pin, authority, replay decision or accounting rule. Source acquisition clock
+hooks are compiled, but this selection does not claim a dedicated real-Source
+latency acceptance or a pristine packed package campaign. Final submitted SHA
+and exact CI status belong in the PR; local success is not CI success.
 
 The existing 169-case Owner evidence is reused, not reattributed to a new run:
 `git diff 4b7cdbd83d92266afc73ff225e4d370c723cb2bc..8ae7f09b21555c2bc5266d0eb6723942fb23e1ab`
