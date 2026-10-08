@@ -1773,6 +1773,12 @@ pub fn strategy_effect_free_run_evidence_chain_valid(
 }
 
 ///|
+#export_name("strategyPublicationEvidenceWorkspace")
+pub fn strategy_publication_evidence_workspace(max_nodes : Int) -> Int {
+  @publication.publication_evidence_workspace(max_nodes)
+}
+
+///|
 #export_name("strategyBeginEffectFreeChainCheck")
 pub fn strategy_begin_effect_free_chain_check(
   run_definition : @publication.PublicationContract,

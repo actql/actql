@@ -1088,10 +1088,15 @@ pub fn seal_publication_contract(
   max_depth : Int,
 ) -> Result[PublicationContract, PublicationContractIssue] {
   if name == "captured_run" {
-    let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
-    let preparation = match start_publication_seal_preparation(
-      name, body_wire, max_wire_bytes, max_nodes, max_depth, workspace,
-    ) {
+    let workspace = if max_nodes > 268435455 {
+      2147483647
+    } else {
+      max_nodes * 8
+    }
+    let preparation = match
+      start_publication_seal_preparation(
+        name, body_wire, max_wire_bytes, max_nodes, max_depth, workspace,
+      ) {
       Ok(preparation) => preparation
       Err(issue) => return Err(issue)
     }
@@ -1103,7 +1108,9 @@ pub fn seal_publication_contract(
         Ok((true, _)) => return preparation.finish()
         Ok((false, _)) => ()
       }
-    } nobreak { return Err(Encoding) }
+    } nobreak {
+      return Err(Encoding)
+    }
   }
   let spec = match contract_spec(name) {
     Some(value) => value
@@ -1326,29 +1333,8 @@ fn canonical_value_wire(
 }
 
 ///|
-fn artifact_for_definition(
-  artifacts : Array[PublicationContract],
-  definition_cid : String,
-) -> PublicationContract? {
-  let found : Array[PublicationContract] = []
-  for artifact in artifacts {
-    if contract_string(artifact, "result_definition_cid") ==
-      Some(definition_cid) {
-      found.push(artifact)
-    }
-  }
-  if found.length() == 1 {
-    Some(found[0])
-  } else {
-    None
-  }
-}
-
-///|
-/// Validate the bounded acyclic root of one Run-bound publication chain.
-/// Reference-kind resolution for plan, observation, schema, ordering, policy,
-/// and provenance CIDs remains a separate typed admission step; this function
-/// makes no CID-shaped string stand in for those referenced contracts.
+/// Validate the bounded acyclic root using the same private preparation as
+/// the polled computation checker. Reference-kind admission remains separate.
 pub fn validate_run_publication_chain(
   run_definition : PublicationContract,
   invocation : PublicationContract,
@@ -1359,96 +1345,32 @@ pub fn validate_run_publication_chain(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, RunPublicationChainIssue] {
-  if run_definition.name != "run_definition" {
-    return Err(ChainWrongContract("run_definition"))
-  }
-  if invocation.name != "run_invocation" {
-    return Err(ChainWrongContract("run_invocation"))
-  }
-  if manifest.name != "result_manifest" {
-    return Err(ChainWrongContract("result_manifest"))
-  }
-  for definition in definitions {
-    if definition.name != "result_definition" {
-      return Err(ChainWrongContract("result_definition"))
-    }
-  }
-  for artifact in artifacts {
-    if artifact.name != "result_artifact" {
-      return Err(ChainWrongContract("result_artifact"))
-    }
-  }
-  if definitions.is_empty() || artifacts.is_empty() {
-    return Err(ChainEmptyInventory)
-  }
-  if contract_string(run_definition, "invocation_template_cid") !=
-    contract_string(invocation, "invocation_template_cid") {
-    return Err(ChainInvocationTemplateMismatch)
-  }
-  if contract_string(manifest, "run_definition_cid") !=
-    Some(run_definition.identity) {
-    return Err(ChainRunDefinitionMismatch)
-  }
-  if contract_string(manifest, "invocation_cid") != Some(invocation.identity) {
-    return Err(ChainInvocationMismatch)
-  }
-  guard @json.object_field(manifest.value, "results") is Some(results_value) else {
-    return Err(ChainEncoding)
-  }
-  guard object_fields(results_value) is Ok(results) else {
-    return Err(ChainEncoding)
-  }
-  let declared : Array[String] = []
-  for definition in definitions {
-    guard contract_string(definition, "result_name") is Some(name) else {
-      return Err(ChainEncoding)
-    }
-    if declared.contains(name) {
-      return Err(ChainDuplicateResult(name))
-    }
-    declared.push(name)
-  }
-  if results.length() != definitions.length() ||
-    artifacts.length() != definitions.length() {
-    for name in declared {
-      if field_value(results, name) is None {
-        return Err(ChainMissingResult(name))
+  let check = start_publication_root_preparation(
+    {
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    },
+    2147483647,
+  )
+  while true {
+    match check.advance(256) {
+      Err(EvidenceRoot(issue)) => return Err(issue)
+      Err(_) => return Err(ChainEncoding)
+      Ok((true, _)) => {
+        check.cancel()
+        return Ok(())
       }
+      Ok((false, _)) => ()
     }
-    return Err(ChainArtifactMismatch("inventory"))
+  } nobreak {
+    Err(ChainEncoding)
   }
-  for (name, _) in results {
-    if !declared.contains(name) {
-      return Err(ChainForeignResult(name))
-    }
-  }
-  for definition in definitions {
-    guard contract_string(definition, "result_name") is Some(name) else {
-      return Err(ChainEncoding)
-    }
-    let definition_cid = definition.identity
-    guard artifact_for_definition(artifacts, definition_cid) is Some(artifact) else {
-      return Err(ChainArtifactMismatch(name))
-    }
-    if contract_string(artifact, "invocation_cid") != Some(invocation.identity) {
-      return Err(ChainInvocationMismatch)
-    }
-    if contract_string(artifact, "result_definition_cid") !=
-      Some(definition_cid) {
-      return Err(ChainResultDefinitionMismatch(name))
-    }
-    guard field_value(results, name) is Some(nested) else {
-      return Err(ChainMissingResult(name))
-    }
-    guard canonical_value_wire(nested, max_wire_bytes, max_nodes, max_depth)
-      is Some(nested_wire) else {
-      return Err(ChainEncoding)
-    }
-    if nested_wire != artifact.wire {
-      return Err(ChainArtifactMismatch(name))
-    }
-  }
-  Ok(())
 }
 
 ///|

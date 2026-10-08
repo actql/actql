@@ -78,6 +78,17 @@ export interface RedeliveryContext {
  * not-seen reply may recover only an intent with no accepted Site history. */
 export function redeliveryEligible(record: IntentRecord, request: DispatchRequest,
   notSeenBody: string, context: Readonly<RedeliveryContext>): boolean;
+/** Resume a persisted initial intent before any outcome-unknown transition.
+ * Requires current trusted context, exact saved delivery bytes and a successful
+ * conditional unknown write before send. Recheck current context after that
+ * await. This does not authorize an uncertain send or acquire a start claim. */
+export interface InitialDeliveryContext extends RedeliveryContext {
+  /** Trusted transport invariant: every offer/send follows persisted unknown.
+   * False for transports that may have sent while the record stayed durable. */
+  outcomePersistedBeforeEverySend: boolean;
+}
+export function initialDeliveryEligible(record: IntentRecord, request: DispatchRequest,
+  context: Readonly<InitialDeliveryContext>): boolean;
 export function prepareIntent(journal: Journal,
   request: DispatchRequest): IntentAdmission;
 export function intentIsNew(admission: IntentAdmission): boolean;
