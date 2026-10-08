@@ -1,4 +1,53 @@
 ///|
+test "Effect-only computation Receipt retains an exact empty public Manifest" {
+  let program = ordering_test_cid("8")
+  let template = receipt_test_template(program)
+  let admission = receipt_test_admission(template, program)
+  let run = issue_run_definition(
+    admission,
+    "scope",
+    "run",
+    ordering_test_cid("0"),
+    "2026-09-18T00:00:00.000Z",
+    "2026-09-18T04:00:00.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let observation = receipt_test_observation(template)
+  let invocation = issue_run_invocation(template, observation, 65536, 4096, 32).unwrap()
+  let manifest = issue_result_manifest(run, invocation, [], [], 65536, 4096, 32).unwrap()
+  let outcome = issue_effect_free_run_receipt(
+    admission,
+    run,
+    invocation,
+    observation,
+    [],
+    [],
+    manifest,
+    receipt_test_journal(),
+    [],
+    [],
+    [],
+    [],
+    [],
+    65536,
+    4096,
+    32,
+  )
+  let receipt = match outcome {
+    Ok(value) => value
+    Err(issue) => {
+      debug_inspect(issue, content="No receipt issuance failure")
+      fail("Receipt issuance failed")
+    }
+  }
+  assert_true(
+    publication_contract_json(receipt).contains("\"result_artifacts\":{}"),
+  )
+}
+
+///|
 fn receipt_test_template(program : String) -> RunEvidenceValue {
   seal_run_evidence_value(
     "bound_invocation_template",

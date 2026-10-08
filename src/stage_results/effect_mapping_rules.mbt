@@ -361,6 +361,19 @@ pub fn bind_effect_mapping_rules(
       _ => return Err(effect_mapping_rule_issue(InvalidBody, header))
     }
     let mapping = effect_mapping_shape_contract(binding)
+    if @syntax.effect_header_table_write(header) is Some(table_write) {
+      if remaining.val == 0 {
+        return Err(effect_mapping_rule_issue(WorkLimit, header))
+      }
+      remaining.val -= 1
+      let declared = @decode.lookup(
+        @decode.open_object(table_write).unwrap(),
+        "mapping_cid",
+      ).unwrap()
+      if @decode.text(declared) != Ok(@environment.mapping_shape_cid(mapping)) {
+        return Err(effect_mapping_rule_issue(InvalidBody, header))
+      }
+    }
     let conversions = match
       checked_conversions.get(@environment.mapping_shape_cid(mapping)) {
       Some(value) => value

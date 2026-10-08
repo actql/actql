@@ -18,6 +18,7 @@ const fixtures = [
   'adapters/host-node/table-public-commit.test.mjs',
   'adapters/host-node/fixtures/table-physical-fixture.mjs',
   'adapters/host-node/fixtures/table-test-modules.mjs',
+  'adapters/host-node/fixtures/table-text-restart.mjs',
   'adapters/host-common/connector-manifest.fixture.mjs',
   'adapters/host-common/publication-contract-control.fixture.mjs',
   'adapters/connectors/local/iceberg/fixtures/presence-mapping.json',
@@ -82,14 +83,22 @@ test('packed Table commits preserve original operations and sparse inputs throug
     copied.push({path, sha256: digest(await readFile(destination))});
   }
   environment.ACTQL_TEST_TABLE_PACKED_APPLICATION = application;
-  // Reuse one exact package installation for two disjoint case groups. Keep
+  // Reuse one exact package installation for disjoint case groups. Keep
   // the existing per-child budget/nonzero guard; do not omit slow recovery
   // cases or turn a timed-out partial run into acceptance.
   const groups = [
-    {name: 'conflict and uncertain commit', expected: 4,
+    {name: 'text Effect-only create and fresh-process recovery', expected: 4,
+      pattern: '^Table text Effect-only CTAS through (Local|HTTPS)'},
+    {name: 'conflict and uncertain commit', expected: 7,
       pattern: '^Table public (concurrent replace|precommit crash|lost commit reply)'},
-    {name: 'typed input and durable read', expected: 5,
-      pattern: '^Table (sparse private input|installed HTTP Host|public (nonempty create and replace|empty create))'},
+    {name: 'sparse structured input', expected: 2,
+      pattern: '^Table sparse private input.*\\(json\\)'},
+    {name: 'sparse text input', expected: 2,
+      pattern: '^Table sparse private input.*\\(aql-text\\)'},
+    {name: 'text cleanup retry', expected: 2,
+      pattern: '^Table text Effect-only cleanup retry'},
+    {name: 'typed input and durable read', expected: 3,
+      pattern: '^Table (installed HTTP Host|public (nonempty create and replace|empty create))'},
   ];
   const executed = [];
   for (const group of groups) {
@@ -105,8 +114,8 @@ test('packed Table commits preserve original operations and sparse inputs throug
   }
   const counts = Object.fromEntries(Object.keys(executed[0].counts).map(field =>
     [field, executed.reduce((sum, group) => sum + group.counts[field], 0)]));
-  assert.equal(counts.passed, 9,
-    'All real create/replace, reply-loss, concurrent replace, and sparse Local/HTTPS cases must execute');
+  assert.equal(counts.passed, 20,
+    'All real create/replace, reply-loss, concurrent replace, cleanup retry, and sparse Local/HTTPS cases must execute');
   assert.deepEqual(checkoutState(repository), state, 'Source changed during packed acceptance');
   const local = join(application, 'node_modules/@actql/local-node');
   const artifacts = await Promise.all([

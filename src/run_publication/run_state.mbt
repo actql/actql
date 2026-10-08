@@ -54,7 +54,6 @@ pub(all) enum RunNextAction {
 
 ///|
 pub(all) enum RunStateIssue {
-  EmptyDeclaredResults
   InvalidResultName(String)
   DuplicateDeclaredResult(String)
   DuplicateAvailability(String)
@@ -162,9 +161,6 @@ pub fn validate_run_state(
   action : RunNextAction,
   has_checkpoint : Bool,
 ) -> Result[Unit, RunStateIssue] {
-  if declared_results.is_empty() {
-    return Err(EmptyDeclaredResults)
-  }
   let declared_seen : Array[String] = []
   for name in declared_results {
     if !canonical_result_name(name) {
@@ -193,9 +189,8 @@ pub fn validate_run_state(
       return Err(MissingAvailability(name))
     }
   }
-  let all_available = observations.all(observation => {
-    observation.state == Available
-  })
+  let all_available = !observations.is_empty() &&
+    observations.all(observation => observation.state == Available)
   if result_available != all_available {
     return Err(AggregateMismatch)
   }
@@ -335,7 +330,8 @@ pub fn issue_succeeded_run_state(
   let declared = declared_results.copy()
   declared.sort_by(@canonical.compare_utf16)
   let action = action_for_succeeded_run(ordered)
-  let all_available = ordered.all(item => item.state == Available)
+  let all_available = !ordered.is_empty() &&
+    ordered.all(item => item.state == Available)
   match
     validate_run_state(
       Succeeded,

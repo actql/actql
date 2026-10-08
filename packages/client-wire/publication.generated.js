@@ -282,11 +282,12 @@ function valid(value, schema) {
     (schema.maxItems === undefined || value.length <= schema.maxItems) &&
     value.every(item => valid(item, schema.items)) &&
     (!schema.uniqueItems || new Set(value).size === value.length);
+  if (value !== null && typeof value === 'object' && !Array.isArray(value) &&
+      ((schema.minProperties !== undefined && Object.keys(value).length < schema.minProperties) ||
+       (schema.maxProperties !== undefined && Object.keys(value).length > schema.maxProperties))) return false;
   if (schema.type === 'object' || schema.properties || schema.required) {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
     if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;
-    if (schema.minProperties !== undefined &&
-        Object.keys(value).length < schema.minProperties) return false;
     if (schema.propertyNames && Object.keys(value).some(key =>
         !valid(key, schema.propertyNames))) return false;
     if (schema.additionalProperties === false &&
