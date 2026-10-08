@@ -267,6 +267,40 @@ Focused integration evidence:
   `focused-test-x2JIvo`.
 
 The successful public cohort above remains evidence for its pre-integration
-clean source. Fresh Local/HTTPS execution of the merged ABS closure and required
-submitted-HEAD CI remain unverified. No full Core, all-target suite or manual
+clean source. Fresh merged-source execution is recorded below. Required
+submitted-HEAD CI remains unverified. No full Core, all-target suite or manual
 CI retry is added; the parent dependency and Draft status are retained.
+
+## Completed integrated-source public cohort
+
+Normal five-package production and the same selected Local/HTTPS consumer pass
+at clean merge source `28e7b26b5c9922d8b91fec2745823ce2afc77284`. Wrapper
+`run-FZbeuI` and receipt `public-query-evidence-HpY6yz` are passed/complete.
+All ten commands record that same clean source, complete stdout/stderr and
+raw/verification exit zero. There are no evidence errors; successful temporary
+installations are removed and the wrapper releases its locks.
+
+Both Embedded Local and real HTTPS complete 37 positives, 16 preparation
+refusals and one expected execution failure, retaining all original assertions
+and the ten new independent successes. Eleven exact-code refusals are logged
+per boundary; five original refusals use the unchanged completed common loop.
+Rows and full type/nullability/column-order contracts, NULL/fallback behavior,
+duplicates, private-column absence, Source-once, attach and unchanged-request
+replay pass. Refusals occur before admission and provider I/O.
+
+The normal producer directory is
+`/private/tmp/actql-b-computed-object-star-28e7b26b5-pack`; the exact bounded
+wrapper and stdout are adjacent
+`actql-b-computed-object-star-28e7b26b5-packed-20261009.mjs` / `.stdout.log`.
+Independent artifact/log audit is
+`/private/tmp/actql-b-computed-object-star-28e7b26b5-acceptance-audit-20261009.json`.
+The independently rehashed run-host-core and local-node tarballs are
+`41b5d6e6ecdb0ce8efc311766524225d9bb46f0fef3d21506194635c18c20d7f` and
+`c80a77458617d93b73d6a42a10a3236bca5b666394f539ddecb84199ae69d94b`;
+client-wire, sdk and node digests match the earlier package table.
+
+The following review update is documentation only; it does not claim newly
+packed documentation-HEAD bytes. The two earlier failed campaigns and the
+pre-integration success remain separate evidence. Required exact submitted-HEAD
+CI, Wasm/native and broader coverage are still unverified. #1060 remains the
+unmerged parent; no Ready transition, manual CI retry or merge is performed.
