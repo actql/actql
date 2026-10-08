@@ -26,7 +26,25 @@ const copiedShapeCases = kinds => ['status', 'wait', 'reconcile'].flatMap(operat
     name: `Local ${operation}: Effect custody refuses ${kind} clone failure or shape loss`,
     assertions: [{id: 'effect-copied-shape', operator: 'strictEqual'}],
   })));
+const ownerCases = ['local', 'https'].map(entrance => ({
+  name: `${entrance}: unresolved Effect keeps its identity after computation stops`,
+  assertions: [{id: 'effect-no-resend', operator: 'strictEqual'}],
+}));
+const physicalExchange = `    const response = await receive({
+      ...operation,
+      secret,
+      ca,
+      cert,
+      key,
+      signal,
+      maxResponseBytes,
+    });`;
 const mutations = [
+  ['a lost Effect reply automatically resends the authorized physical write',
+    physicalExchange,
+    `    const physicalOptions = { ...operation, secret, ca, cert, key, signal, maxResponseBytes };
+    const response = await receive(physicalOptions).catch(() => receive(physicalOptions));`,
+    boundary, ownerCases, false, 'adapters/site-node/https-credential-resource.mjs'],
   ['an unresolved Effect is presented as successful',
     "observation: 'effect_outcome_unknown',", "observation: 'succeeded',", boundary, publicCases],
   ['the retained Effect names are erased',
@@ -65,7 +83,8 @@ const accepted = (file, expected) => {
   {encoding: 'utf8', timeout: 130_000, maxBuffer: 16 * 1024 * 1024});
   return mutationAcceptance(result, expected, file);
 };
-const original = readFileSync(path, 'utf8');
+const originals = new Map(mutations.map(([, , , , , , mutationPath = path]) =>
+  [mutationPath, readFileSync(mutationPath, 'utf8')]));
 const results = [];
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
@@ -74,11 +93,13 @@ if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
 const selected = mutations.filter(([name]) => !args.length || name.includes(args[1]));
 if (!selected.length) throw new Error('No Effect uncertainty mutations selected');
 // Refuse stale anchors before starting any actual acceptance processes.
-for (const [name, from] of mutations) {
+for (const [name, from, , , , , mutationPath = path] of mutations) {
+  const original = originals.get(mutationPath);
   if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
 }
 try {
-  for (const [name, from, to, file, expected, bypassLaterCopy] of selected) {
+  for (const [name, from, to, file, expected, bypassLaterCopy, mutationPath = path] of selected) {
+    const original = originals.get(mutationPath);
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
     let altered = original.replace(from, to);
     if (bypassLaterCopy) {
@@ -86,10 +107,13 @@ try {
       if (altered.split(copy).length !== 2) throw new Error(`Copy fault anchor not unique: ${name}`);
       altered = altered.replace(copy, '        state = state;');
     }
-    writeFileSync(path, altered);
-    results.push({name, rejected: !accepted(file, expected)});
+    writeFileSync(mutationPath, altered);
+    try { results.push({name, rejected: !accepted(file, expected)}); }
+    finally { writeFileSync(mutationPath, original); }
   }
-} finally { writeFileSync(path, original); }
+} finally {
+  for (const [mutationPath, original] of originals) writeFileSync(mutationPath, original);
+}
 const restorations = new Map(selected.map(([, , , file, expected]) =>
   [JSON.stringify([file, expected]), {file, expected}]));
 const restoredAccepted = [...restorations.values()]
