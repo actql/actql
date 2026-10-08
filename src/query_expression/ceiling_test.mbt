@@ -15,14 +15,14 @@ test "ceiling uses existing numeric operators and one operand subtree" {
 }
 
 ///|
-test "ceiling arity is explicit and foreign or quoted function names stay rejected" {
+test "ceiling arity is explicit and foreign function names stay rejected" {
   for text in ["CEIL()", "CEILING(1, 2)"] {
     assert_true(
       lower(fixture(text), _ => None, limits())
       is Err({ issue: InvalidArguments, .. }),
     )
   }
-  for text in ["ACTQL.CEIL(1)", "`CEIL`(1)"] {
+  for text in ["ACTQL.CEIL(1)", "`ACTQL.CEIL`(1)"] {
     assert_true(
       lower(fixture(text), _ => None, limits())
       is Err({ issue: UnsupportedFunction, .. }),

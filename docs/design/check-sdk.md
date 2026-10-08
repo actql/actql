@@ -634,8 +634,8 @@ the reason connection, while its owned source-position connection remains open.
 Unresolved protected Source names cannot acquire an expression reason or span.
 Wrapped expression construction/admission budgets remain incomplete analysis;
 they never become expression violations. The lowerer's `UnsupportedFunction`
-also remains incomplete analysis: its existing type covers unknown names,
-quoted function names and unsupported qualified forms without distinguishing
+also remains incomplete analysis: its existing type covers unknown names and
+unsupported qualified forms without distinguishing
 a proven input violation from implementation support. It projects only the
 existing `implementation_limit` coverage, not an expression reason or location.
 That does not certify the construct as valid or allow a Program to be issued.
