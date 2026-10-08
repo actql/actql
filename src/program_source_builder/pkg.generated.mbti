@@ -23,6 +23,8 @@ pub fn import_cursor(Builder, @decode_core.Cursor, @frontend_source_map.Origin) 
 
 pub fn import_parsed(Builder, @source_value.ParsedSource) -> Result[Node, Issue]
 
+pub fn import_source(Builder, Source, @decode_core.Cursor, replace_text? : (@decode_core.Cursor) -> String?) -> Result[Node, Issue]
+
 pub fn key_origin(Source, @decode_core.Cursor) -> @frontend_source_map.Origin?
 
 pub fn origin(Source, @decode_core.Cursor) -> @frontend_source_map.Origin?
