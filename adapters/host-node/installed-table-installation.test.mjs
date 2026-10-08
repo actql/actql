@@ -87,10 +87,21 @@ test('explicit tables preserve real Local Table identity and generic loading', a
     const f = await installedProfile(t, make);
     assert.equal(await identity(f.path, {connectorTable}), await identity(f.path));
     const adapter = await load(f.path, {...f.options, connectorTable});
-    assert.equal(adapter.connectorRegistration, 'local');
-    assert.equal(adapter.connectorRevision, 'local/0.1');
-    await adapter.close();
-    await adapter.close();
+    try {
+      assert.equal(adapter.connectorBindings[0].connectorId, 'table');
+      assert.match(adapter.connectorBindings[0].bindingCid, /^sha256:[0-9a-f]{64}$/u);
+      if (load === loadInstalledSource) {
+        assert.equal(adapter.connectorRegistration, 'local');
+        assert.equal(adapter.connectorRevision, 'local/0.1');
+      } else {
+        assert.deepEqual(adapter.effectSelectors, [{kind: 'store',
+          target: 'connector://table/catalog', mappingRef: 'mapping:table.catalog.v1',
+          mappingCid: f.profile.targets[0].mappingCid, effectId: 'save'}]);
+      }
+    } finally {
+      await adapter.close();
+      await adapter.close();
+    }
   }
 });
 
