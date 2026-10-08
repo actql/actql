@@ -4594,7 +4594,10 @@ pub fn compile(
     context.parameter_declarations,
     limits.max_expression_work,
   ) catch {
-    Abort(issue) => return Err(issue)
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
   }
   let construction : Construction = {
     builder,
@@ -4850,7 +4853,10 @@ fn compile_cte_query(
     context.parameter_declarations,
     limits.max_expression_work,
   ) catch {
-    Abort(issue) => return Err(issue)
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
   }
   let construction : Construction = {
     builder,
@@ -5822,7 +5828,10 @@ fn compile_set_query(
     context.parameter_declarations,
     limits.max_expression_work,
   ) catch {
-    Abort(issue) => return Err(issue)
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
   }
   let construction : Construction = {
     builder,
@@ -7260,7 +7269,10 @@ fn compile_join_query(
     context.parameter_declarations,
     limits.max_expression_work,
   ) catch {
-    Abort(issue) => return Err(issue)
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
   }
   let construction : Construction = {
     builder,

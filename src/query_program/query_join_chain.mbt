@@ -475,7 +475,10 @@ fn compile_join_chain_query(
     context.parameter_declarations,
     limits.max_expression_work,
   ) catch {
-    Abort(issue) => return Err(issue)
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
   }
   let construction : Construction = {
     builder,
