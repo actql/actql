@@ -20,6 +20,19 @@ const capacity = bytes => ({max_analytic_frame_memberships: 10000,
   max_analytic_input_wire_bytes: bytes, max_analytic_output_wire_bytes: bytes,
   max_analytic_partition_wire_bytes: bytes});
 
+test('Source Graph member selection is narrow while the normal corpus retains its cases', async () => {
+  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const start = driver.indexOf('const narrowPublicQuery =');
+  const end = driver.indexOf('.includes(flag));', start);
+  assert.ok(start >= 0 && end > start);
+  assert.ok(driver.slice(start, end).includes("'--source-graph-member-only'"),
+    'the explicit selection must not start the independent Planner/Effect campaigns');
+  const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  assert.ok(corpus.includes('scopeInputs.successes.push(...sourceGraphMemberSuccesses)'));
+  assert.ok(corpus.includes('scopeInputs.refusals.push(...sourceGraphMemberRefusals)'));
+  assert.ok(driver.includes("['scripts/fixtures/source-graph-member-input.mjs', 'source-graph-member-input.mjs']"));
+});
+
 test('combined analytic corpora retain their independent installed ceilings', () => {
   const before = structuredClone(inputs);
   const groups = publicQueryProfiles(inputs);
