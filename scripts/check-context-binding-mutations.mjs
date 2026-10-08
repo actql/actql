@@ -12,7 +12,20 @@ const targets = [
     assertions: [{id: 'context-schema-public', operator: 'strictEqual'}],
   })),
 ];
+const sourceTargets = ['local', 'http'].map(entrance => ({
+  name: `${entrance}: authored syntax locations retain exact UTF-8 input revisions`,
+  assertions: [{id: 'syntax-original-binding', operator: 'notStrictEqual'},
+    {id: 'syntax-location', operator: 'deepStrictEqual'}],
+}));
 const mutations = [
+  {name: 'original source normalized before span calculation', path, file: acceptance,
+    targets: sourceTargets,
+    from: 'moon.clientProgramCheckSource(input.text,',
+    to: "moon.clientProgramCheckSource(input.text.normalize('NFC'),"},
+  {name: 'original source newlines converted before span calculation', path, file: acceptance,
+    targets: sourceTargets,
+    from: 'moon.clientProgramCheckSource(input.text,',
+    to: "moon.clientProgramCheckSource(input.text.replaceAll('\\r\\n', '\\n'),"},
   {name: 'outcome schema omitted', path, file: acceptance, targets,
     from: '      outcome_schema_cid: checkOutcomeSchemaCid,', to: ''},
   {name: 'fallback outcome schema omitted', path, file: acceptance, targets,
