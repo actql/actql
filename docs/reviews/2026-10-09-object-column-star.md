@@ -43,7 +43,9 @@ anonymous/duplicate STRUCT fields, or arbitrary computed star receivers.
   rather than the former generic unsupported-receiver diagnosis. The old range
   scope test fixes this exact cause.
 - No checker, execution owner, provider, physical strategy, wire/schema contract,
-  grammar, snapshot or identity-law implementation changes are introduced.
+  structural grammar, snapshot or identity-law implementation changes are introduced.
+  The documented query rules change their grammar-manifest pin and dependent
+  compilation/Run identities, as recorded below.
 
 ## Independent evidence
 
@@ -115,9 +117,11 @@ The initial subsequent review-record commit
 `17d6958678f2f09cc4d6bed3d0bc067adba74a27` changes only this document.
 The later main integration adds existing submission/read test fixtures,
 mutation validators, diagnostic fixtures and the parent's review record.
-The compiler, runtime implementation and this cohort's fixture/consumer files
-are unchanged from the packed source. This is not a new clean-HEAD packed
-campaign or a claim of independently rebuilt final-HEAD package bytes.
+At that integration revision, the compiler, runtime implementation and this
+cohort's fixture/consumer files were unchanged from the packed source. Subsequent
+grammar-pin repair changes compiled metadata and Run identity. The original
+package cohort remains evidence only for its recorded source SHA; it is not
+a fresh packed verification of the repaired revision.
 
 After integration, the same two focused Node files pass **15/15** at clean
 `ed441a86c4c864014001f26dea737ad7d156e923`, with pinned Node 22.22.0:
@@ -126,8 +130,58 @@ diagnostic also passed 15/15 (`run-Xe97Do` / `focused-test-2pZXOx`) but is not
 the pinned check. Two sandbox-limited pinned launches stopped before tests
 when the existing supervisor could not inspect its owned process group;
 they are not executed test failures or successes. The successful pinned check
-uses the unchanged supervisor. The final evidence update is documentation only.
+uses the unchanged supervisor. The evidence update at `595a822a4240681f4ed22c38df0dc76b724fd72e`
+was documentation only; the subsequent pin repair is not.
 
 Required submitted-HEAD CI, full Core, Wasm/native, broad packed campaigns and
 ordered STRUCT conformance remain unverified. Draft preparation is not a full
 integration gate. No merge or manual CI retry is performed.
+
+## Grammar-pin repair
+
+During the computed-receiver follow-up, read-only compilation-manifest validation
+exposed an omitted query-rule regeneration. This is a defect in this PR's generated
+contract closure, separate from its recorded packed row results. Initial selected
+Node evidence `run-XZLHqH` / `focused-test-ncmTMb` is 9/11: manifest freshness and
+the independently assembled current grammar preimage fail.
+
+The source generators update the grammar manifest, its CheckEnvironment constant,
+document imports and canonical vector. Query rules hash is
+`cf3c7ae714ecd006a8e350aa84d7ae4c322e7eb2d7a275db06078ffad0d9cee9`;
+structural query grammar stays
+`a9065e539f56e2d8d57bbd4b9e813abf1ad5340dcfaa846517bbd22371959538`.
+Grammar manifest CID changes from
+`sha256:4943caba75b011ab9aebfc07d4f30ea4a5aefa72c50bc2eab44724cc3e6aaff9`
+to `sha256:f403b42dd4a19e8a22629ba7f14f6bb6de754490194277e4f083ae0f08515bb5`.
+
+The independent Values preimage oracle derives the new Run CID
+`sha256:aa93f66a057c74f6f2749d69e9cb0cd580f766e89755e77adb4926779e8aa351`.
+The old `093170ff...` Run vector is retained with its old grammar input. Ordinary
+Values Unit, proof and ResultPlan identities are unchanged; grammar-dependent
+template, compiled body and Run identities change. No old Run is relabeled.
+The full independent before/after preimages are retained at
+`/private/tmp/actql-b-object-column-star-manifest-vector-audit-20261009.json`.
+Historical grammar vectors bind their complete original Program schema closure
+from `1402d256473b7c0facd17a1040291559db911b0a`, not the newly installed schema;
+their fixed expected CIDs are unchanged.
+
+Pin-repair preparation evidence:
+
+- The five selected Node files in `run-f4dKlz` / `focused-test-ixylSz` pass 28 cases;
+  the SGA test module fails to load because of a duplicate local variable introduced
+  during the fixture edit. After that naming fix, the selected SGA file passes 1/1
+  in `run-n5vFK1` / `focused-test-y99rkl`. The four other files were unchanged.
+- `node scripts/local-checks.mjs test moon -- --target js src/run_publication_host
+  --filter '*run materials rebuild exactly*'`: 1/1, `run-dpYCRv` /
+  `focused-test-sTm756`. This exercises the real issuer and independently pinned
+  Run identity, with existing mismatch refusals retained.
+- Read-only `compilation-manifests.mjs`, `update-document-metadata.mjs`,
+  `check-actql-spec-family.mjs` and `check-canonical-json.mjs` pass; metadata has no
+  pending writes, 380 canonical vectors match, and the specification validator
+  still reports `conformance:false`.
+- Read-only `workers-fixtures.mjs` and then `node-host-fixtures.mjs` pass with the
+  pinned formatter. These projected fixture sources require no generated edits.
+
+These are repair preparation results. Fresh five-package Local/HTTPS acceptance
+and required CI for the repaired submitted SHA remain unverified; the previous
+`09a47b6d...` package success is not transferred to the new pin.

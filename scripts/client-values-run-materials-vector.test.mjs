@@ -896,8 +896,13 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('17b95025f2fe4b83389c467ea0b35fb5fcfb571a146ee862ddcc91fea10cb131'),
     cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('bfeaee4389acbd2a5f74ff3b909fc1a1255abf4954b2a083ab2d4b8e2cc9ebf8'));
-  assert.equal(current.run.run_definition_cid,
+  // Retain the exact pre-object-star grammar closure. Only grammar-dependent
+  // compilation/Run identities change; the Values Unit/proof/Result Plan do not.
+  assert.equal(vector(pin('4943caba75b011ab9aebfc07d4f30ea4a5aefa72c50bc2eab44724cc3e6aaff9'),
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('093170ff7e898c3ef58a1fd5d3930222b06aafd64bda70ab62f311d1b9ac56df'));
+  assert.equal(current.run.run_definition_cid,
+    pin('aa93f66a057c74f6f2749d69e9cb0cd580f766e89755e77adb4926779e8aa351'));
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
