@@ -4485,7 +4485,8 @@ for (const entrance of ['local', 'http']) {
       const view = sdk.explainCheckFailure(failure);
       assert.deepEqual(view && {kind: view.kind, problem: view.problem}, {kind, problem},
         '[check-mutation:protocol-failure-public]');
-      assert.deepEqual(sdk.getCheckFailureInput(failure), {text, format: 'sql', parameterDeclarations, parameters},
+      assert.deepEqual(sdk.getCheckFailureInput(failure), {kind: 'text', scope: 'bound_input',
+        text, format: 'sql', parameterDeclarations, parameters},
         '[check-mutation:protocol-failure-public-input]');
       assert.equal(observations.analysis, before + 1);
       for (const field of ['verdict', 'report', 'scope', 'contextRef', 'correlationRef', 'next', 'ref']) {
