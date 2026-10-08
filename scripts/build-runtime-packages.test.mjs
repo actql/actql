@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -142,7 +142,9 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
     'result-access.mjs': ["export {value} from '../../packages/client-wire/index.mjs';\n",
       "export {value} from '@actql/client-wire';\n"],
     'result-delivery.mjs': ['export const delivery = 1;\n', 'export const delivery = 1;\n'],
-    'publication-action.mjs': ['export const action = 1;\n', 'export const action = 1;\n'],
+    'publication-action.mjs': [
+      'export const action = 1;\nexport const publicationAction = () => action;\n',
+      'export const action = 1;\nexport const publicationAction = () => action;\n'],
   };
   for (const [path, [source, tracked]] of Object.entries(wrappers)) {
     put(directory, `adapters/host-common/${path}`, source);
@@ -173,6 +175,8 @@ record({done: true});
   const result = spawnSync(process.execPath, ['driver.mjs'], {
     cwd: directory, encoding: 'utf8', timeout: 30000,
   });
+  assert.ok(existsSync(join(directory, 'calls.jsonl')),
+    result.error?.message ?? result.stderr);
   const calls = readFileSync(join(directory, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
   return {result, calls, directory};
 }
