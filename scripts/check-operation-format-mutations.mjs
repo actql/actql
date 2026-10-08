@@ -9,6 +9,19 @@ const unit = 'packages/sdk/operation-formats.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const facts = 'operation formats retain typed facts, original lookup references and unknown outcomes without I/O';
 const mutations = [
+  {name: 'expired retired identity is admitted as new work',
+    path: 'adapters/host-node/client-request-journal.mjs',
+    file: 'adapters/host-node/submission-epoch-public.test.mjs',
+    from: 'const validity = control.clientSubmissionEpochValidity(handle, clock.observed_at);',
+    to: "const validity = purpose === 'admit' ? 'admissible' : control.clientSubmissionEpochValidity(handle, clock.observed_at);",
+    // The retained-entry temporal check independently prevents an expired
+    // insertion. This one logical fault bypasses both temporal safeguards;
+    // authentication, scope, intent, custody and transaction checks remain.
+    also: [{from: 'row.accepted_at >= epoch.expiresAt || !Number.isSafeInteger(row.revision)',
+      to: '!Number.isSafeInteger(row.revision)'}],
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: expired retired submission cannot regain admission custody or create a Run`,
+      'expired-admission-custody', 'deepStrictEqual'))},
   {name: 'Source implementation refusal exposes unchecked private metadata',
     path: 'adapters/host-node/client-program-preparation.mjs', file: 'adapters/host-node/client-check.test.mjs',
     from: "source_unsupported: 'ClientProgramRejected'", to: "source_unsupported: 'ClientProgramUnsupported'",
