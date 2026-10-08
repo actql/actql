@@ -121,6 +121,7 @@ export function checkModelCaptureCorrespondence(job, values) {
       input.model_task_contract_cid !== original.modelTaskCid ||
       input.model_call_slot_cid !== original.modelCallSlotCid ||
       input.semantic_request_cid !== original.semanticRequestCid ||
+      (job.evidence.modelTaskCid !== undefined && job.evidence.modelTaskCid !== original.modelTaskCid) ||
       !input.input_contract || !input.output_contract || !Array.isArray(input.key) ||
       output.outcome !== 'ok' || canonicalJson(output.value) !== canonicalJson(captured.structured_response) ||
       output.validatedOutputCid !== evidence.validated_structured_output_cid ||
@@ -130,6 +131,8 @@ export function checkModelCaptureCorrespondence(job, values) {
   if (typeof rendered.instructions !== 'string' || rendered.text !== input.inputs?.text ||
       context.providerHiddenContext !== 'unknown' ||
       canonicalJson(context.selectedFields) !== '["text"]' || context.retrievalPolicy !== 'none' ||
+      (job.evidence.inputCid !== undefined && (!Array.isArray(input.key) || input.key.length !== 1 ||
+        contentCid(canonicalJson({id: input.key[0], text: input.inputs.text})) !== job.evidence.inputCid)) ||
       (job.evidence.instructionCid !== undefined && contentCid(canonicalJson(rendered.instructions)) !== job.evidence.instructionCid)) {
     fail('EvidenceSubjectMismatch');
   }

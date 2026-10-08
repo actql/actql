@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp, readFile, rm, unlink} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, unlink, writeFile} from 'node:fs/promises';
+import {DatabaseSync} from 'node:sqlite';
+import {createServer as httpServer} from 'node:http';
 import {createServer as httpsServer} from 'node:https';
 import {execFileSync} from 'node:child_process';
 import {once} from 'node:events';
@@ -8,16 +10,20 @@ import {generateKeyPairSync} from 'node:crypto';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {prepareSourceNodeClient} from './fixtures/source-node-client.mjs';
-import {program, configuration, canonical, cid} from '../../scripts/fixtures/installed-infer-fixture.mjs';
-import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {createCaptureSink} from '../../examples/infer-evaluation/capture-sink.mjs';
 import {compareInstructions, evaluationValueCid} from '../../examples/infer-evaluation/evaluate.mjs';
 import {runEvaluatorProcess} from '../../examples/infer-evaluation/evaluator-process.mjs';
 
-const {connect} = await prepareSourceNodeClient({assemble: true});
-const {openInstalledRemoteHttpHost} = await import('../../packages/local-node/http-host.mjs');
-const base = JSON.parse(await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+const runtime = process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS === undefined ? undefined :
+  JSON.parse(await readFile(process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS, 'utf8'));
+const {connect} = runtime === undefined
+  ? await (await import('./fixtures/source-node-client.mjs')).prepareSourceNodeClient({assemble: true, includeOtel: true, duckdb: false})
+  : await import(runtime.client);
+const {openInstalledRemoteHttpHost} = await import(runtime?.httpHost ?? '../../packages/local-node/http-host.mjs');
+const {createNodeHostObservability} = await import(runtime?.observation ?? '../../packages/otel-node/index.mjs');
+const {program, configuration, canonical, cid} = await import(runtime?.inferFixture ?? '../../scripts/fixtures/installed-infer-fixture.mjs');
+const {providerBindingOriginals} = await import(runtime?.providerFixture ?? '../../scripts/fixtures/model-provider-binding-fixture.mjs');
+const base = JSON.parse(await readFile(runtime?.environment ?? new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
 const target = 'captured';
 const candidates = [{id: 'A', target, instructions: 'Classify exact lowercase urgent.'},
   {id: 'B', target, instructions: 'Classify urgency without case sensitivity.'}];
@@ -33,11 +39,13 @@ const initialized = async action => {
 };
 const checked = result => {assert.equal(result.$tag, 1); return result._0;};
 
-for (const transport of ['local', 'https']) {
-  test(`public ${transport} named INFER hands complete Evidence to an independent evaluator with OTel disabled`, {timeout: 120000}, async t => {
+for (const [transport, observationMode] of [['local', 'disabled'], ['https', 'disabled'],
+  ['local', 'sampling-zero'], ['https', 'sampling-zero']]) {
+  test(`public ${transport} named INFER hands complete Evidence to an independent evaluator with OTel ${observationMode}`, {timeout: 120000}, async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-o3-public-'));
     let complete = false;
     const resources = [];
+    let collector, otlpRequests = 0;
     const initialCertificates = getCACertificates('default');
     t.after(async () => {
       try {
@@ -48,8 +56,10 @@ for (const transport of ['local', 'https']) {
             await new Promise(resolve => resource.server.close(resolve));
           }
           await resource.host?.close();
+          await resource.telemetry?.close();
         }
-        if (complete) await rm(root, {recursive: true, force: true});
+        if (collector) await new Promise(resolve => collector.close(resolve));
+        if (complete && !runtime?.preserveArtifacts) await rm(root, {recursive: true, force: true});
         else console.error(JSON.stringify({retainedSyntheticEvidence: root}));
       } finally {setDefaultCACertificates(initialCertificates);}
     });
@@ -67,7 +77,13 @@ for (const transport of ['local', 'https']) {
       certificate = await readFile(join(root, 'host.crt'));
       setDefaultCACertificates([...initialCertificates, certificate.toString()]);
     }
-    for (const candidate of candidates) {
+    if (observationMode === 'sampling-zero') {
+      collector = httpServer((request, response) => {
+        otlpRequests++; request.resume(); response.end();
+      }).listen(0, '127.0.0.1');
+      await once(collector, 'listening');
+    }
+    for (const candidate of [...candidates, {id: 'limited', target, instructions: candidates[0].instructions}]) {
       const installed = configuration(base, {instructions: candidate.instructions});
       let readAllowed = true, sendAllowed = true, at = Date.now();
       const sink = await createCaptureSink({directory: join(root, candidate.id, 'evidence'),
@@ -76,7 +92,13 @@ for (const transport of ['local', 'https']) {
         authorize: facts => readAllowed && facts.destination === 'local:independent-evaluator' &&
           (facts.purpose !== 'external_evaluation' || sendAllowed)});
       const submitted = [];
-      const installation = {directory: join(root, candidate.id, 'host'),
+      const telemetry = collector === undefined ? undefined : createNodeHostObservability({environment: false,
+        traces: {endpoint: `http://127.0.0.1:${collector.address().port}/v1/traces`, sampleRate: 0}});
+      if (telemetry) {
+        assert.equal(telemetry.configuration().signals.traces.enabled, true);
+        assert.equal(telemetry.configuration().signals.traces.sampleRate, 0);
+      }
+      const installation = {...(telemetry === undefined ? {} : {observation: telemetry.connection}), directory: join(root, candidate.id, 'host'),
         authorization: {leaseMs: 1000, reviewReaders: [owner],
           hostKey: {keyId: 'evidence-fixture-host', privateKey},
           reviewers: [{keyId: 'evidence-fixture-reviewer', reviewerId: 'evidence-fixture-reviewer',
@@ -85,7 +107,7 @@ for (const transport of ['local', 'https']) {
           entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true},
             connection: {all: true}, resource: {all: true}, operation: {all: true}, exclusions: []}],
         })}, modelInstallation: installed.installation,
-        inferEvidence: {target, destination: 'local:independent-evaluator', maxBytes: 65536,
+        inferEvidence: {target, destination: 'local:independent-evaluator', maxBytes: candidate.id === 'limited' ? 1 : 65536,
           authorize: binding => readAllowed && binding.policy.kind === 'data_policy' &&
             JSON.parse(binding.policy.wire).unknown_provenance === true, sink},
         registerModelProviders: moon => [{providerId: 'models/packed',
@@ -126,13 +148,13 @@ for (const transport of ['local', 'https']) {
         client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`,
           token: 'synthetic-evaluator-fixture', durability: 'durable'});
       } else client = await initialized(() => connect({mode: 'local', owner: 'local', durability: 'durable', installation}));
-      resources.push({client, server, host});
+      resources.push({client, server, host, telemetry});
       console.log(JSON.stringify({transport, candidate: candidate.id, boundary: 'connected'}));
-      contexts.set(candidate.id, {client, sink, installed, submitted,
+      contexts.set(candidate.id, {client, sink, installed, submitted, telemetry, hostDirectory: installation.directory,
         denyRead() {readAllowed = false;}, allowRead() {readAllowed = true;},
         denySend() {sendAllowed = false;}, allowSend() {sendAllowed = true;}, expire() {at += 300000;}});
     }
-    const result = await compareInstructions({target, candidates, selectionCases, finalCases, limits,
+    const experiment = {target, candidates, selectionCases, finalCases, limits,
       async executeTrial(trial) {
         const began = Date.now();
         console.log(JSON.stringify({transport, candidate: trial.candidate.id, caseId: trial.case.id, boundary: 'submit'}));
@@ -173,12 +195,52 @@ for (const transport of ['local', 'https']) {
           references: job.evidence.references}, resolvedEvidence => runEvaluatorProcess({job, resolvedEvidence,
           deadline: job.deadline, onProcess(pid) {pids.push(pid); assert.notEqual(pid, process.pid);}}));
       },
-    });
+    };
+    const result = await compareInstructions(experiment);
     assert.equal(result.status, 'scored', JSON.stringify(result));
     assert.equal(result.selectedCandidate, 'B');
     assert.deepEqual(result.records.map(record => record.score), [0, 1, 1]);
     assert.equal(physicalCalls, 3);
     assert.equal(new Set(pids).size, 3);
+    await assert.rejects(compareInstructions({...experiment, candidates: [{...candidates[0], authority: 'forbidden'}, candidates[1]]}),
+      {code: 'ForbiddenEvaluationEdit'});
+    assert.equal(physicalCalls, 3);
+    const exhausted = await compareInstructions({...experiment, limits: {...limits, trials: 1}});
+    assert.equal(exhausted.status, 'incomplete');
+    assert.equal(exhausted.reason, 'EvaluationBudgetExceeded');
+    assert.equal(physicalCalls, 3);
+    // A separately declared one-trial counterexample exercises optional
+    // capture exhaustion through the same normal public Program, not a retry.
+    const limited = contexts.get('limited');
+    const limitedRun = await limited.client.start(program, {submissionRef: limited.client.newSubmission({nonce: 'optional-capture-limit'})});
+    assert.equal((await limitedRun.wait()).status, 'succeeded');
+    assert.deepEqual(await limitedRun.result('answer').all(), [{assessment: {input_key: {id: 'a'}, outcome: 'ok', value: {reason: null, risk: 'high'}}}]);
+    const limitedSubject = {runDefinitionCid: limitedRun.ref.runDefinitionCid, authorityScopeCid: limitedRun.ref.authorityScopeCid};
+    const limitDeadline = Date.now() + 10000;
+    let limitReceipt;
+    for (;;) {
+      try {limitReceipt = await limited.sink.lookup(limitedSubject); break;}
+      catch (error) {if (error.code !== 'EvidenceOriginalMissing' || Date.now() >= limitDeadline) throw error;}
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    assert.equal(limitReceipt.manifest.status, 'incomplete');
+    assert.equal(limitReceipt.manifest.reason, 'EvaluationBudgetExceeded');
+    assert.equal(physicalCalls, 4);
+    let observedRecords = 0;
+    for (const context of contexts.values()) {
+      if (context.telemetry === undefined) continue;
+      const database = new DatabaseSync(join(context.hostDirectory, 'requests', 'client-requests.sqlite3'), {readOnly: true});
+      try {observedRecords += database.prepare('SELECT COALESCE(SUM(records), 0) AS n FROM client_observation_runs').get().n;}
+      finally {database.close();}
+      const drainDeadline = Date.now() + 5000;
+      while (context.telemetry.status().projection.queued || context.telemetry.status().projection.active) {
+        assert(Date.now() < drainDeadline, 'The configured observation adapter must settle');
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+      assert.equal(context.telemetry.status().signals.traces.sent, 0);
+    }
+    if (observationMode === 'sampling-zero') assert(observedRecords > 0, 'The actual Host observation connection must be active');
+    assert.equal(otlpRequests, 0);
     const item = runs.values().next().value;
     const receipt = await item.context.sink.lookup(item.subject);
     const request = {subject: item.subject, attemptCid: receipt.manifest.attemptCid, references: receipt.manifest.references};
@@ -193,7 +255,7 @@ for (const transport of ['local', 'https']) {
         () => assert.fail('refusal must precede external handoff')), {code});
       reset();
       assert.equal((await item.run.status()).status, 'succeeded');
-      assert.equal(physicalCalls, 3);
+      assert.equal(physicalCalls, 4);
     }
     await assert.rejects(item.context.sink.withEvaluatorEvidence({...request,
       subject: {...request.subject, runDefinitionCid: cid('other-run')}},
@@ -206,17 +268,23 @@ for (const transport of ['local', 'https']) {
     {code: 'EvaluatorInfrastructureFailure'});
     assert.equal(malformedEvaluatorStarts, 1);
     assert.equal((await item.run.status()).status, 'succeeded');
-    assert.equal(physicalCalls, 3);
+    assert.equal(physicalCalls, 4);
     await unlink(join(root, 'A', 'evidence', receipt.manifest.references.typedInput.evidenceRefCid.slice(7)));
     await assert.rejects(item.context.sink.withEvaluatorEvidence(request,
       () => assert.fail('missing original cannot be sent')), {code: 'EvidenceOriginalMissing'});
     assert.equal((await item.run.status()).status, 'succeeded');
-    assert.equal(physicalCalls, 3);
+    assert.equal(physicalCalls, 4);
     item.context.expire();
     await assert.rejects(item.context.sink.withEvaluatorEvidence(request,
       () => assert.fail('expired capture cannot be sent')), {code: 'EvidenceExpired'});
     assert.equal((await item.run.status()).status, 'succeeded');
-    assert.equal(physicalCalls, 3);
+    assert.equal(physicalCalls, 4);
+    if (runtime?.evidenceDirectory) await writeFile(join(runtime.evidenceDirectory, `evaluation-${transport}-${observationMode}.json`),
+      JSON.stringify({revision: runtime.revision, transport, observationMode, result, physicalCalls,
+        evaluatorProcessIds: pids, observationRecords: observedRecords, otlpRequests,
+        referencesRefused: ['read_revoked', 'external_send_denied', 'other_run', 'other_attempt', 'missing_original', 'expired'],
+        programs: [...runs.values()].map(({trial, subject}) => ({subject, caseId: trial.case.id, candidateId: trial.candidate.id})),
+        syntheticCustodyDirectory: root}, null, 2) + '\n');
     complete = true;
   });
 }

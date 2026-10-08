@@ -28,6 +28,7 @@ export type EmbeddedHostInstallation = Readonly<{
   registerModelProviders?: HostInstallation['registerModelProviders'];
   resultDataPolicy?: HostInstallation['resultDataPolicy'];
   inferEvidence?: HostInstallation['inferEvidence'];
+  observation?: HostInstallation['observation'];
 }>;
 
 export type EmbeddedLocalOptions = Readonly<{
