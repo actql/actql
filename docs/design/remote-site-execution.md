@@ -720,6 +720,62 @@ a new revision therefore drains the prior revision without invalidating an
 already admitted attempt. Reclamation is retryable and cannot remove an
 artifact still referenced by another bundle or owner.
 
+### Scoped bundle retention before a Run
+
+The opt-in Node HTTPS custody endpoint reuses the Site's mTLS Coordinator
+authentication. Its explicitly configured allowlist binds Coordinator authority,
+Workspace, authority scope, environment and one already registered runtime bundle.
+The registered capability fixes the Site generation and exact signed member tuple.
+Only querying that member's custody, retaining it, and releasing the caller's exact
+owned hold are exposed. Execution grants are not bundle-administration grants.
+Installation, activation, draining and reclamation remain separate existing
+operations. A Site without this extension refuses the endpoint; clients never
+substitute an older dispatch or treat an unsupported response as readiness.
+
+An immutable distribution is a canonical bounded list of existing bundle CIDs.
+It is membership metadata, not evidence of signature verification, installation,
+or authority. Each selected Site re-admits its stored signed manifest and checks
+the physical component before new retention. Its ordinary bundle capacity and
+owner limits still apply; the manifest's physical-component limit is not a
+Connector-count limit.
+
+The caller persists a unique flat preparation nonce and the exact Set/member
+scope. An initial nonmutating query returns a binding to the Store's catalog
+incarnation and observed bundle revision. This response does not hold anything.
+The caller must persist the returned canonical binding and CID before requesting
+retention, and recover uncertainty by querying that same binding. It must not
+refresh a nonce or revision to replace an unresolved request.
+
+Owned holds use the existing bundle record and `bundle_holds` transaction, under
+the reserved `set-retention:` identifier namespace. Legacy hold APIs refuse that
+namespace. An exact retained retry does not increment ownership again. A new
+retain requires the binding's original revision and ordinary active-bundle
+admission. If release arrives first, the common owner increments only the existing
+record revision; that fences the delayed retain without a tombstone or another
+journal. A missing row is conclusively fenced only in the same catalog at a higher
+revision. Equal revision remains unresolved; missing or inconsistent state is
+unavailable. Other owners can cause a legitimate revision conflict, which does
+not constitute a policy refusal.
+
+Fresh catalogs initialize their own random incarnation. Legacy catalogs retain
+their existing behavior and need explicit `initializeRetention(control)` opt-in
+before this interface is available. Invalid or partially missing initialized
+metadata fails closed. Replacing a catalog does not reuse old hold bindings.
+Restoring a historical backup under its old incarnation is outside this monotonic
+storage contract; recovery must establish a new incarnation rather than silently
+rewinding accepted revisions. No automatic recovery or migration performs that
+replacement. Release can dispose an exact owned hold even if its physical bytes
+are unavailable; corrupt binding or signed record state retains responsibility.
+
+The caller's existing accepted-preparation and Run records decide when a Set hold
+may be released. A custody response does not prove those references have ended,
+and this endpoint does not create a Set activation transaction or a second Run
+lifecycle. In the initial topology, different Set revisions name separately bound
+Sites; changing the Cloud active Set does not drain a Site still needed by old
+work. Its later dispatches continue to use ordinary active-bundle admission and
+current execution authority. The Node custody extension itself makes no claim
+that Native or outbound-poll transports already implement these new operations.
+
 ## Environment adapters and completion evidence
 
 Environment-specific code is justified for physical capabilities: TLS and

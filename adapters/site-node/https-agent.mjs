@@ -10,7 +10,7 @@ const fail = (code, cause) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 
-async function readBounded(request, maxBytes) {
+async function readBounded(request, maxBytes, strictUtf8 = false) {
   const announced = request.headers['content-length'];
   if (announced !== undefined &&
       (!/^(0|[1-9][0-9]*)$/.test(announced) ||
@@ -24,7 +24,9 @@ async function readBounded(request, maxBytes) {
     if (length > maxBytes) fail('RemoteControlBodyTooLarge');
     chunks.push(chunk);
   }
-  return Buffer.concat(chunks, length).toString('utf8');
+  const bytes = Buffer.concat(chunks, length);
+  return strictUtf8 ? new TextDecoder('utf-8', {fatal: true}).decode(bytes)
+    : bytes.toString('utf8');
 }
 
 function reply(response, status, body) {
@@ -61,6 +63,7 @@ export async function startHttpsRemoteSiteAgent({
   control,
   admitDispatchJson,
   dispatchRuntime,
+  bundleRetention,
   maxRequestBytes = 65_536,
 } = {}) {
   if (!text(host) || !Number.isSafeInteger(port) || port < 0 ||
@@ -83,11 +86,20 @@ export async function startHttpsRemoteSiteAgent({
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0) {
     fail('InvalidRemoteSiteAgentConfiguration');
   }
+  if (bundleRetention !== undefined &&
+      (bundleRetention === null || typeof bundleRetention !== 'object' ||
+        bundleRetention.siteKey !== siteKey || bundleRetention.siteGeneration !== siteGeneration ||
+        ['admitRequest', 'handle', 'responseJson', 'responseIdentity'].some(name =>
+          typeof bundleRetention[name] !== 'function'))) {
+    fail('InvalidRemoteSiteAgentConfiguration');
+  }
   const endpoint = `/v1/sites/${encodeURIComponent(siteKey)}/generations/` +
     `${siteGeneration}/dispatches`;
   const queryEndpoint = `${endpoint}/query`;
   const cancelEndpoint = `${endpoint}/cancel`;
   const releaseEndpoint = `${endpoint}/release`;
+  const retentionEndpoint = `/v1/sites/${encodeURIComponent(siteKey)}/generations/` +
+    `${siteGeneration}/bundle-retention`;
   let admissionClosed = false;
   let listenerClosed = false;
   let runtimeClosed = false;
@@ -105,6 +117,19 @@ export async function startHttpsRemoteSiteAgent({
       const authority = coordinatorAuthorities.get(peer.fingerprint256);
       if (!request.socket.authorized || !text(authority)) {
         reply(response, 404, {error: 'not_found'});
+        return;
+      }
+      if (request.method === 'POST' && request.url === retentionEndpoint &&
+          bundleRetention !== undefined && request.headers['content-type'] === 'application/json') {
+        const claimed = request.headers['actql-bundle-custody-cid'];
+        if (!text(claimed)) { reply(response, 400, {error: 'invalid_request'}); return; }
+        const ownedRequest = bundleRetention.admitRequest(
+          await readBounded(request, maxRequestBytes, true), claimed);
+        const observed = await bundleRetention.handle(authority, ownedRequest,
+          {admissionOpen: !admissionClosed});
+        response.setHeader('actql-bundle-custody-response-cid',
+          bundleRetention.responseIdentity(observed));
+        replyCanonical(response, bundleRetention.responseJson(observed));
         return;
       }
       const admissionRequest = request.method === 'POST' &&

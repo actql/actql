@@ -471,10 +471,20 @@ fn compile_join_chain_query(
     Ok(builder) => builder
     Err(issue) => return Err(Construction(issue))
   }
+  let parameter_names = query_parameter_names(
+    context.parameter_declarations,
+    limits.max_expression_work,
+  ) catch {
+    Abort(issue) => {
+      @builder.discard(builder)
+      return Err(issue)
+    }
+  }
   let construction : Construction = {
     builder,
     generated,
     model_tasks: context.model_tasks,
+    parameter_names,
   }
   try {
     let selected = [selected_input(query, context, limits)]

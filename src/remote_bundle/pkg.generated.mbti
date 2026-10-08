@@ -6,6 +6,16 @@ import {
 }
 
 // Values
+pub fn admit_bundle_custody_request_json(String, String) -> Result[RemoteBundleCustodyRequest, RemoteBundleIssue]
+
+pub fn admit_bundle_custody_response_json(RemoteBundleCustodyRequest, String, String) -> Result[RemoteBundleCustodyResponse, RemoteBundleIssue]
+
+pub fn admit_bundle_distribution_json(String, String) -> Result[RemoteBundleDistribution, RemoteBundleIssue]
+
+pub fn admit_bundle_hold_binding_json(RemoteBundleDistribution, String, String) -> Result[RemoteBundleHoldBinding, RemoteBundleIssue]
+
+pub fn admit_bundle_hold_scope_json(RemoteBundleDistribution, String, String) -> Result[RemoteBundleHoldScope, RemoteBundleIssue]
+
 pub fn admit_bundle_manifest_json(String, String) -> Result[RemoteBundleManifest, RemoteBundleIssue]
 
 pub fn admit_bundle_signature_envelope(String, String, String, String, String) -> Result[RemoteBundleSignatureEnvelope, RemoteBundleIssue]
@@ -15,6 +25,64 @@ pub fn bundle_activation_transition_at(RemoteBundleActivation, Int) -> Result[Re
 pub fn bundle_activation_transition_count(RemoteBundleActivation) -> Int
 
 pub fn bundle_component_projection(RemoteBundleComponent) -> Array[String]
+
+pub fn bundle_custody_request_binding(RemoteBundleCustodyRequest) -> RemoteBundleHoldBinding?
+
+pub fn bundle_custody_request_distribution(RemoteBundleCustodyRequest) -> RemoteBundleDistribution
+
+pub fn bundle_custody_request_identity(RemoteBundleCustodyRequest) -> String
+
+pub fn bundle_custody_request_json(RemoteBundleCustodyRequest) -> Result[String, RemoteBundleIssue]
+
+pub fn bundle_custody_request_operation(RemoteBundleCustodyRequest) -> String
+
+pub fn bundle_custody_request_scope(RemoteBundleCustodyRequest) -> RemoteBundleHoldScope
+
+pub fn bundle_custody_response_binding(RemoteBundleCustodyResponse) -> RemoteBundleHoldBinding
+
+pub fn bundle_custody_response_catalog_incarnation(RemoteBundleCustodyResponse) -> String?
+
+pub fn bundle_custody_response_catalog_incarnation_text(RemoteBundleCustodyResponse) -> String
+
+pub fn bundle_custody_response_identity(RemoteBundleCustodyResponse) -> String
+
+pub fn bundle_custody_response_json(RemoteBundleCustodyResponse) -> Result[String, RemoteBundleIssue]
+
+pub fn bundle_custody_response_kind(RemoteBundleCustodyResponse) -> String
+
+pub fn bundle_custody_response_observation(RemoteBundleCustodyResponse) -> RemoteBundleHoldObservation?
+
+pub fn bundle_custody_response_observation_text(RemoteBundleCustodyResponse) -> String
+
+pub fn bundle_custody_response_record_revision(RemoteBundleCustodyResponse) -> Int?
+
+pub fn bundle_custody_response_record_revision_text(RemoteBundleCustodyResponse) -> String
+
+pub fn bundle_distribution_contains(RemoteBundleDistribution, String) -> Bool
+
+pub fn bundle_distribution_identity(RemoteBundleDistribution) -> String
+
+pub fn bundle_distribution_json(RemoteBundleDistribution) -> Result[String, RemoteBundleIssue]
+
+pub fn bundle_distribution_projection(RemoteBundleDistribution) -> Array[String]
+
+pub fn bundle_hold_binding_identity(RemoteBundleHoldBinding) -> String
+
+pub fn bundle_hold_binding_json(RemoteBundleHoldBinding) -> Result[String, RemoteBundleIssue]
+
+pub fn bundle_hold_binding_matches_scope(RemoteBundleHoldBinding, RemoteBundleHoldScope) -> Bool
+
+pub fn bundle_hold_binding_projection(RemoteBundleHoldBinding) -> Array[String]
+
+pub fn bundle_hold_binding_scope(RemoteBundleHoldBinding) -> Result[RemoteBundleHoldScope, RemoteBundleIssue]
+
+pub fn bundle_hold_observation_projection(RemoteBundleHoldObservation) -> String
+
+pub fn bundle_hold_scope_identity(RemoteBundleHoldScope) -> String
+
+pub fn bundle_hold_scope_json(RemoteBundleHoldScope) -> Result[String, RemoteBundleIssue]
+
+pub fn bundle_hold_scope_projection(RemoteBundleHoldScope) -> Array[String]
 
 pub fn bundle_manifest_component(RemoteBundleManifest, String) -> RemoteBundleComponent?
 
@@ -44,6 +112,8 @@ pub fn commit_bundle_activation(RemoteBundleActivation, Bool) -> Result[RemoteBu
 
 pub fn commit_bundle_transition(RemoteBundleTransition, Bool) -> Result[RemoteBundleRecord, RemoteBundleIssue]
 
+pub fn observe_bundle_hold(String, RemoteBundleRecord?, RemoteBundleHoldBinding, Bool) -> RemoteBundleHoldObservation
+
 pub fn open_bundle_record(RemoteBundleManifest) -> RemoteBundleRecord
 
 pub fn prepare_active_bundle_drain(String?, RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
@@ -56,7 +126,29 @@ pub fn prepare_bundle_activation(RemoteBundleRecord?, RemoteBundleRecord) -> Res
 
 pub fn prepare_bundle_component(String, String, Int64) -> RemoteBundleComponent
 
+pub fn prepare_bundle_custody_context_query(RemoteBundleDistribution, RemoteBundleHoldScope) -> Result[RemoteBundleCustodyRequest, RemoteBundleIssue]
+
+pub fn prepare_bundle_custody_context_response(RemoteBundleCustodyRequest, RemoteBundleHoldBinding) -> Result[RemoteBundleCustodyResponse, RemoteBundleIssue]
+
+pub fn prepare_bundle_custody_request(RemoteBundleDistribution, RemoteBundleHoldBinding, String) -> Result[RemoteBundleCustodyRequest, RemoteBundleIssue]
+
+pub fn prepare_bundle_custody_response(RemoteBundleCustodyRequest, RemoteBundleHoldObservation, String?, Int?) -> Result[RemoteBundleCustodyResponse, RemoteBundleIssue]
+
+pub fn prepare_bundle_custody_response_fields(RemoteBundleCustodyRequest, String, String?, Int?) -> Result[RemoteBundleCustodyResponse, RemoteBundleIssue]
+
+pub fn prepare_bundle_distribution(Array[String]) -> Result[RemoteBundleDistribution, RemoteBundleIssue]
+
 pub fn prepare_bundle_drain(RemoteBundleRecord) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn prepare_bundle_hold_binding(RemoteBundleDistribution, String, String, String, String, String, String, String, String, Int, Int, String) -> Result[RemoteBundleHoldBinding, RemoteBundleIssue]
+
+pub fn prepare_bundle_hold_binding_from_scope(RemoteBundleHoldScope, String, Int) -> Result[RemoteBundleHoldBinding, RemoteBundleIssue]
+
+pub fn prepare_bundle_hold_fence(String, RemoteBundleRecord, RemoteBundleHoldBinding, Bool) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn prepare_bundle_hold_retain(String, String?, RemoteBundleRecord, RemoteBundleHoldBinding, Int) -> Result[RemoteBundleTransition, RemoteBundleIssue]
+
+pub fn prepare_bundle_hold_scope(RemoteBundleDistribution, String, String, String, String, String, String, String, Int, String) -> Result[RemoteBundleHoldScope, RemoteBundleIssue]
 
 pub fn prepare_bundle_manifest(String, String, String, String, String, Int64, String, String, String) -> Result[RemoteBundleManifest, RemoteBundleIssue]
 
@@ -74,6 +166,8 @@ pub fn prepare_inactive_bundle_reclaim(String?, RemoteBundleRecord) -> Result[Re
 
 pub fn restore_bundle_record(RemoteBundleManifest, Int, Int, Int) -> Result[RemoteBundleRecord, RemoteBundleIssue]
 
+pub fn valid_bundle_catalog_incarnation(String) -> Bool
+
 // Errors
 
 // Types and methods
@@ -84,6 +178,23 @@ pub(all) struct RemoteBundleComponent {
   cid : String
   bytes : Int64
 }
+
+type RemoteBundleCustodyRequest
+
+type RemoteBundleCustodyResponse
+
+type RemoteBundleDistribution
+
+type RemoteBundleHoldBinding
+
+pub(all) enum RemoteBundleHoldObservation {
+  BundleHoldRetained
+  BundleHoldFenced
+  BundleHoldUnresolved
+  BundleHoldUnavailable
+} derive(Eq, @debug.Debug)
+
+type RemoteBundleHoldScope
 
 pub(all) enum RemoteBundleIssue {
   InvalidBundle

@@ -42,6 +42,7 @@ fn append_grouped_expression_resolved(
         resolve,
         construction.builder,
         max_work,
+        resolve_parameter=construction.parameter_resolver(),
       ) {
       Ok(node) => node
       Err(error) => raise Abort(Expression(error))
@@ -110,6 +111,7 @@ fn append_grouped_expression_resolved(
       },
       construction.builder,
       max_work,
+      resolve_parameter=construction.parameter_resolver(),
     ) {
     Ok(node) => node
     Err(error) => raise Abort(Expression(error))
