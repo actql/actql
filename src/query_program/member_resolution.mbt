@@ -401,12 +401,14 @@ fn MemberResolution::relation_carrier(
 
 ///|
 // Graph construction needs admitted producer definitions to issue its domain.
-// Check the resolved closed prefix through the existing pipeline owner rather
+// Check the resolved prefix through the existing pipeline owner rather
 // than manufacturing a domain or extracting a property schema by hand.
-fn MemberResolution::closed_prefix_carrier(
+fn MemberResolution::prefix_carrier(
   self : MemberResolution,
   steps : Array[@wire.Cursor],
   declarations : @parameters.Declarations?,
+  inputs? : Array[(String, @carrier.Carrier)] = [],
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> @carrier.Carrier? raise Abort {
   if self.probe_refused {
     return None
@@ -450,14 +452,21 @@ fn MemberResolution::closed_prefix_carrier(
   let copy = member_construct(@builder.finish(builder, root))
   self.work = allowance - @builder.usage(copy).nodes
   match
-    @pipeline.check_carriers(@builder.cursor(copy), [], declarations, None, {
-      max_steps: self.limits.source.tree.max_nodes,
-      max_work: self.work,
-      max_nodes: self.limits.source.tree.max_nodes,
-      max_tokens: self.limits.source.tree.max_nodes,
-      max_text_bytes: self.limits.source.tree.max_total_string_bytes,
-      max_depth: self.limits.source.tree.max_depth,
-    }) {
+    @pipeline.check_carriers(
+      @builder.cursor(copy),
+      inputs,
+      declarations,
+      None,
+      {
+        max_steps: self.limits.source.tree.max_nodes,
+        max_work: self.work,
+        max_nodes: self.limits.source.tree.max_nodes,
+        max_tokens: self.limits.source.tree.max_nodes,
+        max_text_bytes: self.limits.source.tree.max_total_string_bytes,
+        max_depth: self.limits.source.tree.max_depth,
+      },
+      model_tasks~,
+    ) {
     Ok(checked) => {
       self.spend(at, @pipeline.usage(checked).work)
       @pipeline.output_carrier(checked)
@@ -849,6 +858,15 @@ fn resolve_query_members(
       }
       names[name] = rows
     }
+    // These schema Carriers supply type facts only. Key assertions in the
+    // resolved prefix are checked by the common pipeline, never inferred from
+    // ITEM KEY or copied from a differently bound value.
+    let prefix_inputs = []
+    for (name, carrier) in names {
+      if carrier is Some(carrier) {
+        prefix_inputs.push((name, carrier))
+      }
+    }
     let mut current = if names.length() == 1 {
       names.values().to_array()[0]
     } else {
@@ -877,7 +895,16 @@ fn resolve_query_members(
             context.parameter_declarations,
           )
         }
-        if @wire.object_length(inputs) == Some(0) &&
+        if tag == "infer" &&
+          context.model_tasks is Some(_) &&
+          prefix_inputs.length() == @wire.object_length(inputs).unwrap() {
+          output = resolution.prefix_carrier(
+            prefix,
+            context.parameter_declarations,
+            inputs=prefix_inputs,
+            model_tasks=context.model_tasks,
+          )
+        } else if @wire.object_length(inputs) == Some(0) &&
           (
             tag == "graph" ||
             (
@@ -885,9 +912,10 @@ fn resolve_query_members(
               @carrier.kind(value) == @carrier.GraphKind
             )
           ) {
-          output = resolution.closed_prefix_carrier(
+          output = resolution.prefix_carrier(
             prefix,
             context.parameter_declarations,
+            model_tasks=context.model_tasks,
           )
         } else {
           output = resolution.operation_carrier(

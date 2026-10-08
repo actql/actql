@@ -45,6 +45,8 @@ pub(all) struct Context {
   parameter_declarations : @parameters.Declarations?
   inputs : Array[Input]
   input_schemas : Array[(String, @schema.Schema)]
+  // Exact selected contract owner; this does not authorize model execution.
+  model_tasks : @environment.ModelTasks?
 }
 
 ///|
