@@ -12,6 +12,7 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {projectEffectApplication} from '../host-common/observation.mjs';
 import {isEffectApplyPreflightRejection} from './effect-run-apply.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {isEffectCaptureRecoveryRefusal} from './effect-run-recovery.mjs';
@@ -420,6 +421,7 @@ export function createInstalledEffectSite({environmentWire,
             throw completionError;
           }
         }
+        projectEffectApplication(facts.observation, facts.ref, result);
         if (result.status === 'needs_reconciliation') {
           await suspendCompletedEffectfulComputation({execution,
             store: facts.store, storedResults: stage.storedResults,
@@ -552,6 +554,7 @@ export function createInstalledEffectSite({environmentWire,
       if (settling) {
         const result = await settleRefusedEffectRun(
           completionOptions(stage, undefined, signal));
+        projectEffectApplication(facts.observation, facts.ref, result);
         if (result.status === 'needs_reconciliation') {
           const state = recordUnknown(facts, result, stage);
           checkpointJournal.completeResume(claimed.claim,
@@ -593,6 +596,7 @@ export function createInstalledEffectSite({environmentWire,
             throw completionError;
           }
         }
+        projectEffectApplication(facts.observation, facts.ref, result);
         if (result.status === 'waiting') {
           fail('InstalledEffectRepeatDeferralUnsupported');
         }

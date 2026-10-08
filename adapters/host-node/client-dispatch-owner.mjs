@@ -8,6 +8,7 @@ import {installedSourceFor} from './installed-source.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {installTaskObservation} from '../host-common/task-observation.mjs';
 
 // Terminal observation only, never a send or cancellation permission. The
 // physical owner calls this after confirmed stop and temporary reclamation;
@@ -97,6 +98,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, computeConfigurations = {},
+  observation,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
@@ -133,12 +135,15 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     entry.physicalStarted = true;
     entry.physicalWorkMayHaveStarted = true;
     const acquisition = acquisitionEndHandoff();
+    const measured = observation?.canMeasure('source') ? performance.now() : undefined;
+    let returned = false;
     try {
       entry.sourceCapture = await installedSource.open({preparedProgram,
         registry, values, fragment, ordered, sourceAccess,
         signal: entry.abort.signal, preparedSource,
         retainedRelationOutput,
         reportAcquisitionFailure: acquisition.retain});
+      returned = true;
     } catch (error) {
       const ended = acquisition.outcome(error);
       if (ended.outcome === 'not_started' || ended.outcome === 'stopped') {
@@ -149,6 +154,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.unresolvedCleanup = true;
       }
       throw error;
+    } finally {
+      if (measured !== undefined) observation.emit('source', 'acquisition_interval',
+        {ref: entry.ref, outcome: returned ? 'confirmed' : 'failed'},
+        {segment: 'source-acquisition', durationMs: performance.now() - measured});
     }
     const captureCompletedAt = now();
     await step('acquisition_completed', {ref: entry.ref,
@@ -270,6 +279,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.physicalWorkMayHaveStarted) {
       throw new Error('ClientDispatchStopUnknown');
     }
+    observation?.emit('cleanup', 'cleanup_completed', {ref: entry.ref,
+      physicalStop: entry.stopObserved ? 'confirmed' : undefined});
     if (entry.acquisitionLedger !== undefined) {
       diagnostic('dispatch_cleanup_completed', {ref: entry.ref,
         resourceUsage: resourceUsage(entry.acquisitionLedger)});
@@ -446,12 +457,15 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             resourceUsage: resourceUsage(ledger)});
           entry.physicalWorkMayHaveStarted = true;
           const acquisition = acquisitionEndHandoff();
+          const measured = observation?.canMeasure('source') ? performance.now() : undefined;
           let captured;
+          let returned = false;
           try {
             captured = await source.adapter.open({preparedProgram, registry, values,
               fragment, ordered, sourceAccess: access, signal: entry.abort.signal,
               preparedSource, occurrence: source.occurrence, ledger,
               reportAcquisitionFailure: acquisition.retain});
+            returned = true;
           } catch (error) {
             const ended = acquisition.outcome(error);
             if (ended.outcome === 'not_started' || ended.outcome === 'stopped') {
@@ -464,6 +478,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               entry.unresolvedCleanup = true;
             }
             throw error;
+          } finally {
+            if (measured !== undefined) observation.emit('source', 'acquisition_interval',
+              {ref: accepted.ref, task: source.occurrence.task,
+                outcome: returned ? 'confirmed' : 'failed'},
+              {segment: 'source-acquisition', durationMs: performance.now() - measured});
           }
           captures.push(captured);
           await step('acquisition_completed', {ref: accepted.ref, task: source.occurrence.task,
@@ -596,7 +615,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.abort.signal, undefined, execution => {
           entry.cleanupOwner = execution;
           entry.pendingSetup = undefined;
-        });
+        }, observation === undefined ? undefined : installTaskObservation(({event, task, durationMs}) =>
+          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs})));
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
       await step('computed', {ref: accepted.ref,

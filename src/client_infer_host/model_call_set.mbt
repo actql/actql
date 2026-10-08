@@ -127,6 +127,25 @@ pub fn call_settlement(active : Execution) -> @model.ModelCallSettlement? {
 }
 
 ///|
+/// Optional observation is bound to the existing live Run and Model owner.
+/// This does not grant physical entry or reconstruct any historical attempt.
+pub fn bind_model_observation(
+  active : Execution,
+  prepared : @model.ModelPreparedCallSet,
+  observe : (@model.ModelPhysicalObservation) -> Unit,
+) -> Bool {
+  guard !active.reclaimed &&
+    !active.cancelled &&
+    !active.advancing &&
+    active.run_binding is Some(_) &&
+    active.model is Some(model) &&
+    @model.prepared_model_matches(prepared, model) else {
+    return false
+  }
+  @model.bind_prepared_model_observation(prepared, observe)
+}
+
+///|
 pub fn unknown_calls(active : Execution) -> Bool {
   active.model.map(@model.model_execution_unknown_calls).unwrap_or(false)
 }

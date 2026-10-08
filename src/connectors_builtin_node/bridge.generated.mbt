@@ -7324,6 +7324,539 @@ pub fn strategy_remote_bundle_record_restore(
   }
 }
 
+// BUNDLE_RETENTION_OWNER_EXPORTS_BEGIN
+
+///|
+#export_name("strategyRemoteBundleDistributionPrepare")
+pub fn strategy_remote_bundle_distribution_prepare(
+  runtime_bundle_cids : Array[String],
+) -> @bundle.RemoteBundleDistribution raise NodeHostFailure {
+  match @bundle.prepare_bundle_distribution(runtime_bundle_cids) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleDistributionIdentity")
+pub fn strategy_remote_bundle_distribution_identity(
+  value : @bundle.RemoteBundleDistribution,
+) -> String {
+  @bundle.bundle_distribution_identity(value)
+}
+
+///|
+#export_name("strategyRemoteBundleDistributionJson")
+pub fn strategy_remote_bundle_distribution_json(
+  value : @bundle.RemoteBundleDistribution,
+) -> String raise NodeHostFailure {
+  match @bundle.bundle_distribution_json(value) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleDistributionProjection")
+pub fn strategy_remote_bundle_distribution_projection(
+  value : @bundle.RemoteBundleDistribution,
+) -> Array[String] {
+  @bundle.bundle_distribution_projection(value)
+}
+
+///|
+#export_name("strategyRemoteBundleDistributionContains")
+pub fn strategy_remote_bundle_distribution_contains(
+  value : @bundle.RemoteBundleDistribution,
+  runtime_bundle_cid : String,
+) -> Bool {
+  @bundle.bundle_distribution_contains(value, runtime_bundle_cid)
+}
+
+///|
+#export_name("strategyRemoteBundleDistributionAdmitJson")
+pub fn strategy_remote_bundle_distribution_admit_json(
+  body : String,
+  claimed_distribution_cid : String,
+) -> @bundle.RemoteBundleDistribution raise NodeHostFailure {
+  match @bundle.admit_bundle_distribution_json(body, claimed_distribution_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleHoldScopePrepare")
+pub fn strategy_remote_bundle_hold_scope_prepare(
+  distribution : @bundle.RemoteBundleDistribution,
+  coordinator_authority : String,
+  workspace_id : String,
+  authority_scope_cid : String,
+  environment : String,
+  set_revision_cid : String,
+  runtime_bundle_cid : String,
+  site_key : String,
+  site_generation : Int,
+  attempt_id : String,
+) -> @bundle.RemoteBundleHoldScope raise NodeHostFailure {
+  match
+    @bundle.prepare_bundle_hold_scope(
+      distribution, coordinator_authority, workspace_id, authority_scope_cid, environment,
+      set_revision_cid, runtime_bundle_cid, site_key, site_generation, attempt_id,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleHoldScopeIdentity")
+pub fn strategy_remote_bundle_hold_scope_identity(
+  value : @bundle.RemoteBundleHoldScope,
+) -> String {
+  @bundle.bundle_hold_scope_identity(value)
+}
+
+///|
+#export_name("strategyRemoteBundleHoldScopeJson")
+pub fn strategy_remote_bundle_hold_scope_json(
+  value : @bundle.RemoteBundleHoldScope,
+) -> String raise NodeHostFailure {
+  match @bundle.bundle_hold_scope_json(value) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleHoldScopeProjection")
+pub fn strategy_remote_bundle_hold_scope_projection(
+  value : @bundle.RemoteBundleHoldScope,
+) -> Array[String] {
+  @bundle.bundle_hold_scope_projection(value)
+}
+
+///|
+#export_name("strategyRemoteBundleHoldScopeAdmitJson")
+pub fn strategy_remote_bundle_hold_scope_admit_json(
+  distribution : @bundle.RemoteBundleDistribution,
+  body : String,
+  claimed_scope_cid : String,
+) -> @bundle.RemoteBundleHoldScope raise NodeHostFailure {
+  match
+    @bundle.admit_bundle_hold_scope_json(distribution, body, claimed_scope_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleHoldBindingFromScope")
+pub fn strategy_remote_bundle_hold_binding_from_scope(
+  scope : @bundle.RemoteBundleHoldScope,
+  catalog_incarnation : String,
+  initial_revision : Int,
+) -> @bundle.RemoteBundleHoldBinding raise NodeHostFailure {
+  match
+    @bundle.prepare_bundle_hold_binding_from_scope(
+      scope, catalog_incarnation, initial_revision,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleHoldBindingMatchesScope")
+pub fn strategy_remote_bundle_hold_binding_matches_scope(
+  binding : @bundle.RemoteBundleHoldBinding,
+  scope : @bundle.RemoteBundleHoldScope,
+) -> Bool {
+  @bundle.bundle_hold_binding_matches_scope(binding, scope)
+}
+
+///|
+#export_name("strategyRemoteBundleHoldBindingScope")
+pub fn strategy_remote_bundle_hold_binding_scope(
+  binding : @bundle.RemoteBundleHoldBinding,
+) -> @bundle.RemoteBundleHoldScope raise NodeHostFailure {
+  match @bundle.bundle_hold_binding_scope(binding) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCatalogIncarnationValid")
+pub fn strategy_remote_bundle_catalog_incarnation_valid(value : String) -> Bool {
+  @bundle.valid_bundle_catalog_incarnation(value)
+}
+
+///|
+#export_name("strategyRemoteBundleHoldBindingPrepare")
+pub fn strategy_remote_bundle_hold_binding_prepare(
+  distribution : @bundle.RemoteBundleDistribution,
+  catalog_incarnation : String,
+  coordinator_authority : String,
+  workspace_id : String,
+  authority_scope_cid : String,
+  environment : String,
+  set_revision_cid : String,
+  runtime_bundle_cid : String,
+  site_key : String,
+  site_generation : Int,
+  initial_revision : Int,
+  attempt_id : String,
+) -> @bundle.RemoteBundleHoldBinding raise NodeHostFailure {
+  match
+    @bundle.prepare_bundle_hold_binding(
+      distribution, catalog_incarnation, coordinator_authority, workspace_id, authority_scope_cid,
+      environment, set_revision_cid, runtime_bundle_cid, site_key, site_generation,
+      initial_revision, attempt_id,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleHoldBindingIdentity")
+pub fn strategy_remote_bundle_hold_binding_identity(
+  value : @bundle.RemoteBundleHoldBinding,
+) -> String {
+  @bundle.bundle_hold_binding_identity(value)
+}
+
+///|
+#export_name("strategyRemoteBundleHoldBindingJson")
+pub fn strategy_remote_bundle_hold_binding_json(
+  value : @bundle.RemoteBundleHoldBinding,
+) -> String raise NodeHostFailure {
+  match @bundle.bundle_hold_binding_json(value) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleHoldBindingProjection")
+pub fn strategy_remote_bundle_hold_binding_projection(
+  value : @bundle.RemoteBundleHoldBinding,
+) -> Array[String] {
+  @bundle.bundle_hold_binding_projection(value)
+}
+
+///|
+#export_name("strategyRemoteBundleHoldBindingAdmitJson")
+pub fn strategy_remote_bundle_hold_binding_admit_json(
+  distribution : @bundle.RemoteBundleDistribution,
+  body : String,
+  claimed_binding_cid : String,
+) -> @bundle.RemoteBundleHoldBinding raise NodeHostFailure {
+  match
+    @bundle.admit_bundle_hold_binding_json(
+      distribution, body, claimed_binding_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleHoldObserve")
+pub fn strategy_remote_bundle_hold_observe(
+  catalog_incarnation : String,
+  record : @bundle.RemoteBundleRecord?,
+  binding : @bundle.RemoteBundleHoldBinding,
+  exact_live_hold : Bool,
+) -> @bundle.RemoteBundleHoldObservation {
+  @bundle.observe_bundle_hold(
+    catalog_incarnation, record, binding, exact_live_hold,
+  )
+}
+
+///|
+#export_name("strategyRemoteBundleHoldObservationProjection")
+pub fn strategy_remote_bundle_hold_observation_projection(
+  value : @bundle.RemoteBundleHoldObservation,
+) -> String {
+  @bundle.bundle_hold_observation_projection(value)
+}
+
+///|
+#export_name("strategyRemoteBundleHoldRetainPrepare")
+pub fn strategy_remote_bundle_hold_retain_prepare(
+  catalog_incarnation : String,
+  active_bundle_cid : String?,
+  record : @bundle.RemoteBundleRecord,
+  binding : @bundle.RemoteBundleHoldBinding,
+  max_owners : Int,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match
+    @bundle.prepare_bundle_hold_retain(
+      catalog_incarnation, active_bundle_cid, record, binding, max_owners,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleHoldFencePrepare")
+pub fn strategy_remote_bundle_hold_fence_prepare(
+  catalog_incarnation : String,
+  record : @bundle.RemoteBundleRecord,
+  binding : @bundle.RemoteBundleHoldBinding,
+  exact_live_hold : Bool,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match
+    @bundle.prepare_bundle_hold_fence(
+      catalog_incarnation, record, binding, exact_live_hold,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyContextQueryPrepare")
+pub fn strategy_remote_bundle_custody_context_query_prepare(
+  distribution : @bundle.RemoteBundleDistribution,
+  scope : @bundle.RemoteBundleHoldScope,
+) -> @bundle.RemoteBundleCustodyRequest raise NodeHostFailure {
+  match @bundle.prepare_bundle_custody_context_query(distribution, scope) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyRequestPrepare")
+pub fn strategy_remote_bundle_custody_request_prepare(
+  distribution : @bundle.RemoteBundleDistribution,
+  binding : @bundle.RemoteBundleHoldBinding,
+  operation : String,
+) -> @bundle.RemoteBundleCustodyRequest raise NodeHostFailure {
+  match
+    @bundle.prepare_bundle_custody_request(distribution, binding, operation) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyRequestIdentity")
+pub fn strategy_remote_bundle_custody_request_identity(
+  value : @bundle.RemoteBundleCustodyRequest,
+) -> String {
+  @bundle.bundle_custody_request_identity(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyRequestJson")
+pub fn strategy_remote_bundle_custody_request_json(
+  value : @bundle.RemoteBundleCustodyRequest,
+) -> String raise NodeHostFailure {
+  match @bundle.bundle_custody_request_json(value) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyRequestOperation")
+pub fn strategy_remote_bundle_custody_request_operation(
+  value : @bundle.RemoteBundleCustodyRequest,
+) -> String {
+  @bundle.bundle_custody_request_operation(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyRequestDistribution")
+pub fn strategy_remote_bundle_custody_request_distribution(
+  value : @bundle.RemoteBundleCustodyRequest,
+) -> @bundle.RemoteBundleDistribution {
+  @bundle.bundle_custody_request_distribution(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyRequestScope")
+pub fn strategy_remote_bundle_custody_request_scope(
+  value : @bundle.RemoteBundleCustodyRequest,
+) -> @bundle.RemoteBundleHoldScope {
+  @bundle.bundle_custody_request_scope(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyRequestBinding")
+pub fn strategy_remote_bundle_custody_request_binding(
+  value : @bundle.RemoteBundleCustodyRequest,
+) -> @bundle.RemoteBundleHoldBinding? {
+  @bundle.bundle_custody_request_binding(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyRequestAdmitJson")
+pub fn strategy_remote_bundle_custody_request_admit_json(
+  body : String,
+  claimed_request_cid : String,
+) -> @bundle.RemoteBundleCustodyRequest raise NodeHostFailure {
+  match @bundle.admit_bundle_custody_request_json(body, claimed_request_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyContextResponsePrepare")
+pub fn strategy_remote_bundle_custody_context_response_prepare(
+  request : @bundle.RemoteBundleCustodyRequest,
+  binding : @bundle.RemoteBundleHoldBinding,
+) -> @bundle.RemoteBundleCustodyResponse raise NodeHostFailure {
+  match @bundle.prepare_bundle_custody_context_response(request, binding) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponsePrepare")
+pub fn strategy_remote_bundle_custody_response_prepare(
+  request : @bundle.RemoteBundleCustodyRequest,
+  observation : @bundle.RemoteBundleHoldObservation,
+  catalog_incarnation : String?,
+  record_revision : Int?,
+) -> @bundle.RemoteBundleCustodyResponse raise NodeHostFailure {
+  match
+    @bundle.prepare_bundle_custody_response(
+      request, observation, catalog_incarnation, record_revision,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseFieldsPrepare")
+pub fn strategy_remote_bundle_custody_response_fields_prepare(
+  request : @bundle.RemoteBundleCustodyRequest,
+  observation : String,
+  catalog_present : Bool,
+  catalog_incarnation : String,
+  revision_present : Bool,
+  record_revision : Int,
+) -> @bundle.RemoteBundleCustodyResponse raise NodeHostFailure {
+  let catalog = if catalog_present { Some(catalog_incarnation) } else { None }
+  let revision = if revision_present { Some(record_revision) } else { None }
+  match
+    @bundle.prepare_bundle_custody_response_fields(
+      request, observation, catalog, revision,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseIdentity")
+pub fn strategy_remote_bundle_custody_response_identity(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> String {
+  @bundle.bundle_custody_response_identity(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseJson")
+pub fn strategy_remote_bundle_custody_response_json(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> String raise NodeHostFailure {
+  match @bundle.bundle_custody_response_json(value) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseKind")
+pub fn strategy_remote_bundle_custody_response_kind(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> String {
+  @bundle.bundle_custody_response_kind(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseBinding")
+pub fn strategy_remote_bundle_custody_response_binding(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> @bundle.RemoteBundleHoldBinding {
+  @bundle.bundle_custody_response_binding(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseObservation")
+pub fn strategy_remote_bundle_custody_response_observation(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> @bundle.RemoteBundleHoldObservation? {
+  @bundle.bundle_custody_response_observation(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseObservationText")
+pub fn strategy_remote_bundle_custody_response_observation_text(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> String {
+  @bundle.bundle_custody_response_observation_text(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseCatalogIncarnation")
+pub fn strategy_remote_bundle_custody_response_catalog_incarnation(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> String? {
+  @bundle.bundle_custody_response_catalog_incarnation(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseCatalogIncarnationText")
+pub fn strategy_remote_bundle_custody_response_catalog_incarnation_text(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> String {
+  @bundle.bundle_custody_response_catalog_incarnation_text(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseRecordRevision")
+pub fn strategy_remote_bundle_custody_response_record_revision(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> Int? {
+  @bundle.bundle_custody_response_record_revision(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseRecordRevisionText")
+pub fn strategy_remote_bundle_custody_response_record_revision_text(
+  value : @bundle.RemoteBundleCustodyResponse,
+) -> String {
+  @bundle.bundle_custody_response_record_revision_text(value)
+}
+
+///|
+#export_name("strategyRemoteBundleCustodyResponseAdmitJson")
+pub fn strategy_remote_bundle_custody_response_admit_json(
+  request : @bundle.RemoteBundleCustodyRequest,
+  body : String,
+  claimed_response_cid : String,
+) -> @bundle.RemoteBundleCustodyResponse raise NodeHostFailure {
+  match
+    @bundle.admit_bundle_custody_response_json(
+      request, body, claimed_response_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+// BUNDLE_RETENTION_OWNER_EXPORTS_END
+
 ///|
 /// Portable physical-manifest admission. The string projection keeps the JS
 /// adapter independent from MoonBit object layout while retaining MoonBit as

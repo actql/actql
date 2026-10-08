@@ -135,8 +135,10 @@ function bindCheckObservation(outcome, body) {
   try {
     const report = outcome.report ?? outcome.partial_report;
     if (report) {
-      const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
-      if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
+      const received = body.kind === 'program'
+        ? new Map([['program', {kind: 'structured', value: body.input}]])
+        : new Map([['source', {kind: 'text', text: body.input.text}]]);
+      if (body.kind !== 'program' && body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
         {kind: 'structured', value: body.input.parameterDeclarations});
       if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
       if (report.inputs.length !== received.size) throw new TypeError('InvalidCheckInputBinding');
@@ -1182,13 +1184,13 @@ function inProcessOptions(options) {
 }
 
 function connectionStringOptions(input, options = {}) {
-  let keys, parsed, hasToken, token, durability, consentRefs;
+  let keys, parsed, hasToken, token, durability, consentRefs, traceContext;
   if (options === null || typeof options !== 'object' || Array.isArray(options)) {
     fail('InvalidConnectionOptions');
   }
   try { keys = Object.keys(options); }
   catch { fail('InvalidConnectionOptions'); }
-  if (keys.some(key => !['token', 'durability', 'consentRefs'].includes(key))) {
+  if (keys.some(key => !['token', 'durability', 'consentRefs', 'traceContext'].includes(key))) {
     fail('InvalidConnectionOptions');
   }
   try { parsed = parseConnectionString(input); }
@@ -1201,16 +1203,17 @@ function connectionStringOptions(input, options = {}) {
     token = embedded ?? options.token;
     durability = options.durability;
     consentRefs = options.consentRefs;
+    traceContext = options.traceContext;
   } catch { fail('InvalidConnectionOptions'); }
   return {mode: 'remote', endpoint: parsed.endpoint,
-    workspaceId: parsed.workspaceId, token, durability, consentRefs};
+    workspaceId: parsed.workspaceId, token, durability, consentRefs, traceContext};
 }
 
 function connectionOptions(options, parsedConnectionString = false) {
   if (options === null || typeof options !== 'object' ||
       Array.isArray(options)) fail('InvalidConnectionOptions');
   const {mode, owner, endpoint, token, durability, consentRefs, runners, workspaceId,
-    movementPolicyRef, cloudConnectionRef} = options;
+    movementPolicyRef, cloudConnectionRef, traceContext} = options;
   if (endpoint === undefined && (mode === 'local' ||
       mode === 'hybrid' && owner === 'local')) {
     throw new ClientError('LocalProviderNotInstalled', {
@@ -1222,6 +1225,7 @@ function connectionOptions(options, parsedConnectionString = false) {
         mode === 'hybrid' && ['local', 'cloud'].includes(owner)) ||
       typeof endpoint !== 'string' ||
       typeof token !== 'string' && typeof token !== 'function' ||
+      traceContext !== undefined && typeof traceContext !== 'function' ||
       durability !== undefined && !['volatile', 'durable'].includes(durability) ||
       !Array.isArray(consentRefs ?? []) ||
       (consentRefs ?? []).some(value => typeof value !== 'string' || !value) ||
@@ -1265,6 +1269,7 @@ function connectionOptions(options, parsedConnectionString = false) {
   });
   if (!validClientConnection(wire)) fail('InvalidConnectionOptions');
   return Object.freeze({endpoint: url.href, token, wire,
+    ...(traceContext === undefined ? {} : {traceContext}),
     ...(parsedConnectionString && loopback ? {directLoopbackHttp: true} : {})});
 }
 
@@ -1419,11 +1424,26 @@ async function connectSelected(selected, port) {
       dispatchedSubmissions.add(submitContext);
     }
     try {
+      let traceparent;
+      try {
+        // Correlation only: no baggage, tracestate, arbitrary header injection
+        // or changed authorization/semantic request identity.
+        const parent = selected.traceContext?.();
+        const {traceId, spanId, traceFlags} = parent ?? {};
+        if (typeof traceId === 'string' && /^[a-f0-9]{32}$/u.test(traceId) &&
+            !/^0+$/u.test(traceId) && typeof spanId === 'string' && /^[a-f0-9]{16}$/u.test(spanId) &&
+            !/^0+$/u.test(spanId) && Number.isInteger(traceFlags) &&
+            traceFlags >= 0 && traceFlags <= 255) {
+          traceparent = `00-${traceId}-${spanId}-${(traceFlags & 1)
+            .toString(16).padStart(2, '0')}`;
+        }
+      } catch { /* Optional correlation cannot reject the request. */ }
       response = await (directLoopback ?? fetch)(new URL(
         `actql/client/0.1/${operation}`, selected.endpoint,
       ), {
         method: 'POST',
         headers: {authorization: `Bearer ${credential}`,
+          ...(traceparent === undefined ? {} : {traceparent}),
           'content-type': 'application/json'},
         body: payload,
         signal,
@@ -2076,8 +2096,8 @@ async function connectSelected(selected, port) {
         }
         if (outcome.checkObservation !== undefined) {
           checkObservation = outcome.checkObservation;
-          if (body.kind !== 'aql' || !['sql', 'aql-text'].includes(body.input.format) ||
-              !bindCheckObservation(checkObservation, {input: body.input, parameters: body.parameters})) {
+          if (!(body.kind === 'program' || body.kind === 'aql' && ['sql', 'aql-text'].includes(body.input.format)) ||
+              !bindCheckObservation(checkObservation, {kind: body.kind, input: body.input, parameters: body.parameters})) {
             fail('InvalidHostSubmissionCheckObservation');
           }
           delete outcome.checkObservation;
