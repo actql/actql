@@ -143,8 +143,14 @@ export function admitNativeOwnerObservations(observations, taskHoldings, selecte
     'NativeExplanationTaskMismatch');
     assert.equal(selection.reason,
       {OfflineLatency: 'estimated_fastest', BoundedLatency: 'bounded_frontier',
-        HostProposal: 'host_preferred'}[choice.source],
+        HostProposal: 'host_preferred', ExternalPolicy: 'external_policy'}[choice.source],
     'NativeExplanationReasonMismatch');
+    if (choice.source === 'ExternalPolicy') {
+      assert(selection.policy && typeof selection.policy.policy_id === 'string' &&
+        typeof selection.policy.revision === 'string' && typeof selection.policy.request_id === 'string' &&
+        typeof selection.policy.explanation === 'string', 'NativePolicyExplanationMissing');
+      assert.deepEqual(selection.policy, choice.policy, 'NativePolicyExplanationMismatch');
+    }
     assert(BigInt(retainedChargeBytes) <= BigInt(offer[5]),
       'NativeHoldingExceedsSelectedBound');
     assert.equal(offer[9] !== null, choice.resident,
