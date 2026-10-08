@@ -84,7 +84,7 @@ async ({root, directory, run, recordTarball}) => {
   args[1] = '--test-reporter=' + pathToFileURL(join(root, 'scripts/test-execution-reporter.mjs')).href;
   const stdout = run(process.execPath, args, {cwd: root, env: runtimeEnv, timeout: 600000});
   const checked = assertTestExecution('node', process.execPath, args, {status: 0, stdout});
-  assert.equal(checked.counts.passed, 14, 'Single, Source-backed and interrupted original-Run INFER cases must execute through the declared public boundaries');
+  assert.equal(checked.counts.passed, 16, 'Single, Source-backed and interrupted original-Run INFER cases must execute through the declared public boundaries');
   console.log(stdout.trimEnd());
   const receipts = [];
   for (const transport of ['local', 'https']) for (const mode of ['disabled', 'sampling-zero']) {
@@ -98,7 +98,7 @@ async ({root, directory, run, recordTarball}) => {
     receipts.push(receipt);
   }
   const {expectedColumns} = await import(pathToFileURL(join(root, 'scripts/fixtures/source-multi-infer-evidence.mjs')));
-  const sourceReceipts = [], recoveryReceipts = [];
+  const sourceReceipts = [], recoveryReceipts = [], unknownReceipts = [];
   for (const transport of ['local', 'https']) {
     const restored = JSON.parse(await readFile(join(directory, `source-evidence-${transport}-disabled.json`), 'utf8'));
     assert.equal(restored.revision, before.revision); assert.equal(restored.complete, true);
@@ -127,9 +127,22 @@ async ({root, directory, run, recordTarball}) => {
       assert.equal(recovery.otlpRequests, 0);
       recoveryReceipts.push(recovery);
     }
+    const unknown = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-unknown.json`), 'utf8'));
+    assert.equal(unknown.revision, before.revision); assert.equal(unknown.complete, true);
+    assert.equal(unknown.transport, transport); assert.equal(unknown.boundary, 'unknown');
+    assert.equal(unknown.status, 'needs_reconciliation');
+    assert.equal(new Set([unknown.firstPid, unknown.restoredPid, unknown.againPid]).size, 3);
+    assert.equal(unknown.sourceCalls, 1); assert.equal(unknown.providerCalls, 4);
+    assert.equal(unknown.inventoryCount, 4); assert.equal(unknown.capturedItems.length, 3);
+    assert.equal(new Set(unknown.evaluatorPids).size, 3);
+    assert.equal(typeof unknown.unknownAttemptCid, 'string');
+    assert.deepEqual(unknown.trial, {status: 'incomplete', reason: 'RequiredEvidenceUnavailable', records: []});
+    assert.equal(unknown.observationMode, transport === 'https' ? 'sampling-zero' : 'disabled');
+    assert.equal(unknown.otlpRequests, 0);
+    unknownReceipts.push(unknown);
   }
   assert.deepEqual(checkoutState(repository), before);
   await writeFile(join(directory, 'evaluation-summary.json'), JSON.stringify({revision: before.revision,
     complete: true, receipts: receipts.map(({transport, observationMode, physicalCalls, observationRecords}) =>
-      ({transport, observationMode, physicalCalls, observationRecords})), sourceReceipts, recoveryReceipts}, null, 2) + '\n');
+      ({transport, observationMode, physicalCalls, observationRecords})), sourceReceipts, recoveryReceipts, unknownReceipts}, null, 2) + '\n');
 });

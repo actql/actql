@@ -229,7 +229,17 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     for (const child of children) {
       if (child.operation?.physicalStopped()) await child.capture.persistStoppedAttempts();
     }
-    if (modelController.unresolved(runId)) return Object.freeze({status: 'needs_reconciliation'});
+    if (modelController.unresolved(runId)) {
+      // A partial Run has no complete ObservationSet or Named Result. Reuse
+      // authenticated individual Store originals without inventing either.
+      for (const child of children) {
+        await projectInferEvidence({configuration: inferEvidence, moon, control, preparedProgram, plan,
+          selected: child.selection, operation: child.operation, captureOwner: child.capture,
+          continuation: child.continuation, authorityScopeCid, partial: true,
+          retainCopy(copy) {if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained'); child.copy = copy;}});
+      }
+      return Object.freeze({status: 'needs_reconciliation'});
+    }
     throw children.find(child => child.component.failure() !== undefined)?.component.failure() ??
       execution.failure ?? new Error('InstalledComposedInferComputationFailed');
   }

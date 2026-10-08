@@ -38,6 +38,103 @@ function preparedFixture(options) {
   return {...f, original};
 }
 
+function partialFixture(options = {}) {
+  const f = fixture(options);
+  const calls = ['saved', 'unknown'].map((name, slot) => ({slotCid: name,
+    callWire: JSON.stringify({model_call_slot_cid: name, model_task_cid: 'task',
+      input_key_cid: `key-${slot}`, fixed_request_cid: `request-${slot}`}),
+    state: slot === 0 ? 'SavedSuccess' : 'EnteredUnknown',
+    outcome: slot === 0 ? 'ok' : 'result_unknown',
+    entry: {slotCid: name, attemptCid: `attempt-${slot}`},
+    ...(slot === 0 ? {captureBundleCid: 'saved-bundle'} : {})}));
+  const inventory = {count: 2, calls, async readBundle(slot, beforeRead) {
+    assert.equal(slot, 0);
+    beforeRead(options.physicalBytes ?? 100);
+    f.trace.push('private decode');
+    return {count: 1, cid: 'saved-bundle', wire: JSON.stringify({captures: [{
+      model_call_slot_cid: 'saved', semantic_request_cid: 'request-0', structured_response: {risk: 'low'},
+      evidence: {model_call_slot_cid: 'saved', model_task_contract_cid: 'task', validated_structured_output_cid: 'output'},
+    }]})};
+  }};
+  f.facts.continuation = {evaluationInventory: () => inventory};
+  f.facts.partial = true;
+  return {...f, inventory};
+}
+
+test('partial Evidence reserves before private reading and retains the original unknown inventory', async () => {
+  const f = partialFixture();
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.trace, ['reserved', 'private decode', 'serialize', 'copy handed to sink', 'release']);
+  const manifest = f.manifests[0].manifest;
+  assert.equal(manifest.status, 'incomplete');
+  assert.deepEqual(manifest.items.map(item => [item.modelCallSlotCid, item.attemptCid,
+    item.inputKeyCid, item.callState, item.status]), [
+    ['saved', 'attempt-0', 'key-0', 'SavedSuccess', 'complete'],
+    ['unknown', 'attempt-1', 'key-1', 'EnteredUnknown', 'incomplete'],
+  ]);
+  assert.equal(manifest.items[1].reason, 'ModelResultUnknown');
+  assert.equal(Object.hasOwn(manifest.items[1], 'references'), false);
+});
+
+test('denied partial Evidence cannot decode private captures or disclose typed key identities', async () => {
+  const f = partialFixture({authorize: () => false});
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.trace, ['reserved', 'release']);
+  assert.equal(f.manifests[0].manifest.items.length, 2);
+  for (const item of f.manifests[0].manifest.items) {
+    assert.equal(item.reason, 'EvidenceReadDenied');
+    assert.equal(Object.hasOwn(item, 'inputKeyCid'), false);
+    assert.equal(Object.hasOwn(item, 'references'), false);
+  }
+});
+
+test('partial physical copy exhaustion refuses before decoding without dropping unknown items', async () => {
+  const f = partialFixture({physicalBytes: 1000});
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.trace, ['reserved', 'release']);
+  assert.deepEqual(f.manifests[0].manifest.items.map(item => [item.modelCallSlotCid, item.reason]), [
+    ['saved', 'EvaluationBudgetExceeded'], ['unknown', 'ModelResultUnknown'],
+  ]);
+});
+
+test('missing partial originals keep the complete required inventory without invented responses', async () => {
+  const f = partialFixture();
+  f.inventory.readBundle = async () => undefined;
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.manifests[0].manifest.items.map(item => [item.modelCallSlotCid, item.reason]), [
+    ['saved', 'RequiredEvidenceUnavailable'], ['unknown', 'ModelResultUnknown'],
+  ]);
+  assert.deepEqual(f.trace, ['reserved', 'release']);
+});
+
+test('a foreign original capture cannot be shifted into a partial saved slot', async () => {
+  const f = partialFixture();
+  f.inventory.readBundle = async () => ({count: 1, cid: 'foreign',
+    wire: JSON.stringify({captures: [{model_call_slot_cid: 'foreign'}]})});
+  await projectInferEvidence(f.facts);
+  assert.equal(f.manifests[0].manifest.items[0].reason, 'EvidenceSubjectMismatch');
+  assert.equal(f.manifests[0].manifest.items.length, 2);
+  assert.deepEqual(f.trace, ['reserved', 'release']);
+});
+
+test('partial copy cleanup failure preserves inventory and retries the same reservation once', async () => {
+  const f = partialFixture({releaseFails: true});
+  await projectInferEvidence(f.facts);
+  const manifest = f.manifests[0].manifest;
+  assert.equal(manifest.reason, 'EvidenceCopyCleanupPending');
+  assert.equal(manifest.cleanupPending, true);
+  assert.deepEqual(manifest.items.map(item => item.modelCallSlotCid), ['saved', 'unknown']);
+  assert.equal(f.retained[0].cleanupPending(), true);
+  assert.equal(await f.retained[0].cleanup(), false);
+  let retries = 0;
+  f.facts.moon.clientProgramReleaseInferEvidenceCopy = () => {retries++; return {$tag: 1};};
+  assert.equal(await f.retained[0].cleanup(), true);
+  assert.equal(await f.retained[0].cleanup(), true);
+  assert.equal(retries, 1);
+  assert.equal(f.retained[0].cleanupPending(), false);
+  assert.equal(f.trace.filter(value => value === 'reserved').length, 1);
+});
+
 test('prepared originals reserve copy custody before persistence and retain exact raw text', async () => {
   const f = preparedFixture();
   let saved;

@@ -119,7 +119,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       retryBinding: {owner: 'single_attempt_model_execution', maxAttempts: 1},
       slots: facts.slots.map(slot => ({...slot, maxAttempts: 1}))}));
   }
-  async function readSettled({originals, entry, attemptWire, authorityWire}, retainRecord) {
+  async function readSettled({originals, entry, attemptWire, authorityWire}, retainRecord, beforeRead) {
     const definition = control.admit('run_definition',
       JSON.parse(originals.originalRunWire).runDefinitionWire, limits);
     const bodies = {};
@@ -128,6 +128,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       const holdingCid = control.modelScopedPrivateHoldingCid(definition, storeAuthorityCid, entry, name);
       const holding = await store.inspectPhysicalHolding(holdingCid);
       if (holding === undefined) break;
+      // Optional Evidence reserves its copy envelope before private decoding.
+      // Normal execution restoration keeps its existing Store-owned limits.
+      beforeRead?.(holding.objects.reduce((sum, object) => sum + object.byte_count, 0));
       const wire = new TextDecoder('utf-8', {fatal: true}).decode(
         await store.readPrivateEvidence(name, holding.manifest_cid, holdingCid));
       if (await store.confirmPrivateEvidence({name, semanticCid: holding.manifest_cid, holdingCid, wire}) === undefined) {
@@ -432,6 +435,31 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       ...(journalPort === undefined ? {} : {journalPort})};
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
       hasResponseReconciliation: unreconciled.size > 0,
+      evaluationInventory() {
+        if (!owner.available || !token.available) fail('ModelContinuationClosed');
+        const current = cp.journal.readModelCalls(inventory);
+        const calls = current.slots.map(slot => {
+          const entry = slot.attempts.at(-1);
+          const bundle = entry?.settlement?.evidence?.model_capture_bundle;
+          return Object.freeze({slotCid: slot.slotCid, callWire: originals.slotWires[slot.ordinal],
+            state: slot.state, outcome: slot.state === 'SavedSuccess' ? 'ok' : 'result_unknown',
+            entry, captureBundleCid: bundle?.cid});
+        });
+        return Object.freeze({count: calls.length, calls: Object.freeze(calls),
+          async readBundle(slot, beforeRead) {
+            if (!owner.available || !token.available) fail('ModelContinuationClosed');
+            const call = calls[slot];
+            if (call?.state !== 'SavedSuccess' || call.captureBundleCid === undefined) return undefined;
+            const historical = cp.journal.readModelAttemptOriginals(call.entry);
+            let stored;
+            await readSettled({originals, entry: call.entry, ...historical},
+              value => {stored = value;}, beforeRead);
+            if (!owner.available || !token.available || stored?.state !== 'SavedSuccess' ||
+                stored.evidence.model_capture_bundle.cid !== call.captureBundleCid) fail('ModelSettlementCustodyLost');
+            return Object.freeze({wire: stored.bodies.model_capture_bundle,
+              cid: call.captureBundleCid, count: 1});
+          }});
+      },
       entry: slot => owner.entries.get(slot), observe,
       async authorize() {
         if (!owner.available) fail('ModelContinuationClosed');

@@ -14,7 +14,7 @@ import {instructionCandidate, evaluationValueCid} from '../../examples/infer-eva
 const runtime = process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS === undefined ? undefined :
   JSON.parse(await readFile(process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS, 'utf8'));
 if (runtime === undefined) await (await import('./fixtures/source-node-client.mjs')).prepareSourceNodeClient({assemble: true, includeOtel: true});
-const {expectedItems, instructionsA, instructionsB, unchangedInstructions} =
+const {expectedItems, expectedInputKeyCids, instructionsA, instructionsB, unchangedInstructions} =
   await import(runtime?.sourceInferFixture ?? '../../scripts/fixtures/source-multi-infer-evidence.mjs');
 const worker = fileURLToPath(new URL('./source-multi-infer-evidence-worker.fixture.mjs', import.meta.url));
 async function executeHost(root, transport, scenario = 'unicode', observationMode = 'disabled', phase = 'complete', expectedCode = 0) {
@@ -94,6 +94,108 @@ async function recordInterruptedAcceptance({transport, boundary, root, firstPid,
 }
 
 for (const transport of ['local', 'https']) {
+  test(`public ${transport} keeps an original unknown call and all required Evidence after process exit`, {timeout: 180000}, async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-unknown-'));
+    t.after(() => t.diagnostic(`Retained original unknown call: ${root}`));
+    const observationMode = transport === 'https' ? 'sampling-zero' : 'disabled';
+    const firstPid = await executeHost(root, transport, 'unicode', observationMode, 'stop-provider-unknown', 77);
+    const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+    assert.equal(stopped.pid, firstPid);
+    assert.equal(stopped.boundary, 'provider_sent_without_response');
+    assert.equal(stopped.calls.length, 3);
+    const restoredPid = await executeHost(root, transport, 'unicode', observationMode, 'resume-unknown');
+    assert.notEqual(restoredPid, firstPid);
+    const saved = JSON.parse(await readFile(join(root, 'unknown-recovery.json'), 'utf8'));
+    assert.deepEqual(saved.ref, JSON.parse(await readFile(join(root, 'run-ref.json'), 'utf8')));
+    assert.equal(saved.terminal.status, 'needs_reconciliation');
+    assert.equal(saved.terminal.result_available, false);
+    assert.equal(saved.sourceCalls, 1);
+    assert.equal(saved.calls.length, 4);
+    assert.equal(saved.observationMode, observationMode);
+    assert.equal(saved.otlpRequests, 0);
+    assert.deepEqual(saved.calls.slice(0, 3), stopped.calls);
+    const second = saved.manifests.find(item => item.target === 'second_assessment').manifest;
+    const unknown = second.items.find(item => item.modelCallSlotCid === stopped.calls[2].slotCid);
+    assert.equal(unknown.status, 'incomplete');
+    assert.equal(unknown.reason, 'ModelResultUnknown');
+    assert.equal(unknown.inputKeyCid, expectedInputKeyCids[1]);
+    const lookups = (await readFile(join(root, 'provider-lookups.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.equal(lookups.length, 1);
+    assert.equal(lookups[0].found, false);
+    assert.equal(unknown.attemptCid, lookups[0].entry.attemptCid);
+    const againPid = await executeHost(root, transport, 'unicode', observationMode, 'resume-unknown');
+    assert.notEqual(againPid, restoredPid);
+    assert.notEqual(againPid, firstPid);
+    const repeated = JSON.parse(await readFile(join(root, 'unknown-recovery.json'), 'utf8'));
+    assert.deepEqual(repeated.ref, saved.ref);
+    assert.equal(repeated.terminal.status, 'needs_reconciliation');
+    assert.equal(repeated.sourceCalls, 1);
+    assert.deepEqual(repeated.calls, saved.calls);
+    assert.equal(repeated.observationMode, observationMode);
+    assert.equal(repeated.otlpRequests, 0);
+    const repeatedLookups = (await readFile(join(root, 'provider-lookups.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    // A lookup or repeated public reconciliation is observation-only. The
+    // already stopped unknown Run cannot automatically start another owner.
+    assert.deepEqual(repeatedLookups, lookups);
+    assert.equal(repeated.reconciliations.length, 2);
+    assert(repeated.reconciliations.every(state => state.status === 'needs_reconciliation' &&
+      state.result_available === false && state.run_id === saved.terminal.run_id));
+    const sink = await createCaptureSink({directory: join(root, 'evidence'),
+      destination: 'local:source-multi-infer-evaluator', maxBytes: 131072,
+      maxPendingBytes: 1048576, retentionMs: 300000, authorize: () => true});
+    const associations = [], evaluationPids = new Set();
+    for (const receipt of [...saved.manifests].reverse()) {
+      assert.equal(JSON.parse(receipt.manifest.policy.wire).unknown_provenance, true);
+      for (const item of [...receipt.manifest.items].reverse()) {
+        const sent = saved.calls.find(call => call.slotCid === item.modelCallSlotCid);
+        assert(sent);
+        assert.equal(item.inputKeyCid, expectedInputKeyCids[sent.key[0]]);
+        if (item.status !== 'complete') continue;
+        const job = {subject: saved.subject, evidence: {...receipt.manifest, ...item},
+          caseId: `${receipt.target}-${item.modelCallSlotCid}`, expected: 'low', role: 'selection',
+          deadline: Date.now() + 10000};
+        const reply = await sink.withEvaluatorEvidence({subject: saved.subject,
+          attemptCid: item.attemptCid, references: item.references}, resolvedEvidence => {
+          const facts = checkModelCaptureCorrespondence(job, checkResolvedEvidence(job, resolvedEvidence));
+          associations.push({target: receipt.target, key: facts.typedInput.key,
+            keyContracts: facts.typedInput.key_contracts, text: facts.typedInput.inputs.text});
+          return runEvaluatorProcess({job, resolvedEvidence, deadline: job.deadline,
+            onProcess(pid) {assert.notEqual(pid, process.pid); evaluationPids.add(pid);}});
+        });
+        assert.equal(reply.score, 1);
+      }
+    }
+    associations.sort((a, b) => a.target.localeCompare(b.target) || a.key[0] - b.key[0]);
+    assert.deepEqual(associations, expectedItems.filter(item => item.target !== 'second_assessment' || item.key[0] !== 1));
+    assert.equal(evaluationPids.size, 3);
+    // Classification-only negative: the trial is the public Run above. This
+    // adapter receives saved metadata and cannot start/retry any ActQL work.
+    let trialReads = 0, evaluatorCalls = 0;
+    const trial = await compareSourceInstructions({
+      candidates: [{id: 'A', target: 'first_assessment', instructions: instructionsA},
+        {id: 'B', target: 'first_assessment', instructions: instructionsB}],
+      executeTrial: async () => {trialReads++; return {subject: saved.subject};},
+      collectEvidence: async () => saved.manifests.flatMap(receipt => receipt.manifest.items.map(item => ({
+        target: receipt.target, key: saved.calls.find(call => call.slotCid === item.modelCallSlotCid).key,
+        evidence: {...receipt.manifest, ...item}}))),
+      evaluate: async () => {evaluatorCalls++; assert.fail('incomplete Trial must not score a shortened batch');}});
+    assert.equal(trial.status, 'incomplete');
+    assert.equal(trial.reason, 'RequiredEvidenceUnavailable');
+    assert.deepEqual(trial.records, []);
+    assert.equal(trialReads, 1);
+    assert.equal(evaluatorCalls, 0);
+    assert.equal(sink.pendingBytes(), 0);
+    assert.equal(sink.cleanupPending(), false);
+    assert.equal((await readFile(join(root, 'provider-calls.jsonl'), 'utf8')).trim().split('\n').length, 4);
+    if (runtime !== undefined) await writeFile(join(runtime.evidenceDirectory, `source-recovery-${transport}-unknown.json`),
+      JSON.stringify({revision: runtime.revision, transport, boundary: 'unknown', root,
+        firstPid, restoredPid, againPid, ref: saved.ref, status: repeated.terminal.status,
+        sourceCalls: 1, providerCalls: 4, unknownAttemptCid: unknown.attemptCid,
+        inventoryCount: 4, capturedItems: associations, evaluatorPids: [...evaluationPids],
+        observationMode, otlpRequests: repeated.otlpRequests,
+        trial: {status: trial.status, reason: trial.reason, records: trial.records}, complete: true}, null, 2) + '\n');
+  });
+
   test(`public ${transport} recovers a provider-saved original response without resending its call`, {timeout: 180000}, async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-provider-recovery-'));
     let complete = false;

@@ -175,6 +175,15 @@ try {
             const response = {input, valueWire: canonical({risk: urgent ? 'high' : 'low', reason: text}),
               providerModel: 'packed-risk-model', providerRequestId: `source-evidence-${calls.length}`,
               inputTokens: '1', outputTokens: '2', observedAt: new Date().toISOString()};
+            if (phase === 'stop-provider-unknown' && !first) {
+              assert.equal(calls.length, 3);
+              // The actual provider callback has been entered after durable
+              // send-start, but neither side has a definitive original reply.
+              writeFileSync(join(root, 'stop.json'), JSON.stringify({pid: process.pid,
+                boundary: 'provider_sent_without_response',
+                calls, sourceCalls: readLines(sourcePath).length}));
+              process.exit(77);
+            }
             persistProviderResponse(response);
             if (phase === 'stop-provider-saved' && !first) {
               // This is the actual retained physical invocation, reached only
@@ -202,7 +211,7 @@ try {
     client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'synthetic-evidence', durability: 'durable'});
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
   let run;
-  if (['resume', 'approve-second', 'resume-provider-saved'].includes(phase)) {
+  if (['resume', 'approve-second', 'resume-provider-saved', 'resume-unknown'].includes(phase)) {
     const submissionRef = JSON.parse(await readFile(join(root, 'submission-ref.json'), 'utf8'));
     const found = await client.lookupSubmission(submissionRef);
     assert.equal(found.kind, 'ready', inspect(found));
@@ -243,6 +252,40 @@ try {
     await new Promise(resolve => setTimeout(resolve, 20));
     terminal = await run.wait();
   }
+  if (phase === 'resume-unknown') {
+    assert.equal(terminal.status, 'needs_reconciliation');
+    assert.equal(terminal.result_available, false);
+    assert.equal(calls.length, 4, 'only the remaining formally unsent slot may continue');
+    assert.equal(readLines(sourcePath).length, 1);
+    const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+    assert.deepEqual(calls.slice(0, 3), stopped.calls);
+    const reconciliations = [await run.reconcile(), await run.reconcile()];
+    assert(reconciliations.every(state => state.status === 'needs_reconciliation' &&
+      state.result_available === false && state.run_id === terminal.run_id));
+    assert.equal(calls.length, 4);
+    const subject = {runDefinitionCid: run.ref.runDefinitionCid, authorityScopeCid: run.ref.authorityScopeCid};
+    await writeFile(join(root, 'unknown-run.json'), JSON.stringify({subject, pid: process.pid,
+      ref: run.ref, terminal, calls, sourceCalls: readLines(sourcePath).length, observed}));
+    const manifests = [];
+    for (const target of ['first_assessment', 'second_assessment']) {
+      const receipt = await sink.lookup(subject, target);
+      assert.equal(receipt.manifest.items.length, 2, 'unknown calls remain required inventory entries');
+      assert.equal(receipt.manifest.status, target === 'first_assessment' ? 'complete' : 'incomplete');
+      manifests.push(receipt);
+    }
+    const unknown = manifests[1].manifest.items.find(item => item.modelCallSlotCid === stopped.calls[2].slotCid);
+    assert.equal(unknown.status, 'incomplete');
+    assert.equal(unknown.reason, 'ModelResultUnknown');
+    assert.equal(manifests[1].manifest.items.filter(item => item.status === 'complete').length, 1);
+    assert.equal(sink.pendingBytes(), 0);
+    assert.equal(sink.cleanupPending(), false);
+    await telemetry?.close(); telemetry = undefined;
+    assert.equal(otlpRequests, 0);
+    await writeFile(join(root, 'unknown-recovery.json'), JSON.stringify({subject, manifests,
+      pid: process.pid, ref: run.ref, terminal, reconciliations,
+      observationMode, otlpRequests, calls, sourceCalls: readLines(sourcePath).length}));
+    process.exitCode = 0;
+  } else {
   if (terminal.status !== 'succeeded') {
     await writeFile(join(root, 'failed-recovery.json'), JSON.stringify({pid: process.pid,
       phase, ref: run.ref, terminal, observed, calls, sourceCalls: readLines(sourcePath).length}));
@@ -288,6 +331,7 @@ try {
     scenario: scenarioName, observationMode, otlpRequests, originalSourcePolicy,
     modelTaskCids: installed.tasks.map(task => task.contract_cid),
     calls, sourceCalls: readLines(sourcePath).length, terminal, description, ref: run.ref, revision: runtime?.revision}));
+  }
 } finally {
   await client?.close();
   if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}

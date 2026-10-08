@@ -48,6 +48,12 @@ export const expectedItems = Object.freeze([
   {target: 'second_assessment', key: [2], keyContracts: [{type: 'number', nullable: false}], text: 'é\n'},
 ]);
 
+// Independent typed key preimages under actql-model-input-key/0.1. The same
+// number key has the same typed identity in both independent logical INFERs.
+export const expectedInputKeyCids = Object.freeze(Object.fromEntries([1, 2].map(value => [value,
+  cid({version: 'actql-model-input-key/0.1', components: [{field: 'id',
+    value_contract_cid: cid({nullable: false, type: 'number'}), value_cid: cid(value)}]})])));
+
 // Authored from the Source and Model contracts, including non-success NULL
 // output in the default outcomes mode. Never inferred from Result output.
 const assessmentContract = {type: 'object', nullable: true, additional_properties: false,

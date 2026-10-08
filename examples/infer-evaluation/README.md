@@ -140,14 +140,25 @@ does not invoke the provider again. The response's provider request ID,
 timestamp and original attempt survive into Evidence. The fixture provider's
 call slot has exactly one attempt; this is not a provider retry protocol.
 
-These cases do not establish response-less unknown Evidence, or all
-cleanup-restart refusal cases. Those remain separate requirements of the full
-interrupted-Run recovery unit.
+The response-less case exits after the third call's send starts, before the
+provider saves any response. The restored Run remains `needs_reconciliation`.
+Only the fourth, formally unsent call continues. Evidence retains all four
+required items: three have original captures and the unknown item remains
+explicitly incomplete with its original slot, attempt and typed key identity.
+Independent evaluation can score the three available originals, but the full
+Trial is incomplete and has no successful shortened score batch. A third Host
+process and repeated public reconciliation preserve the same Run without any
+additional Source or Model call. These operations observe the stopped Run;
+they do not automatically retry the provider response lookup. This case runs
+with OTel disabled on Local and trace sampling zero on HTTPS.
+
+These cases do not establish all cleanup-restart or authorization refusal
+cases. Those remain requirements of the full interrupted-Run recovery unit.
 
 Run only these public source cases with the existing process timeouts:
 
 ```sh
-node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-name-pattern '^public (local|https) (resumes the original|restores original approval|recovers a provider-saved)' adapters/host-node/source-multi-infer-evidence-public.test.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-name-pattern '^public (local|https) (resumes the original|restores original approval|recovers a provider-saved|keeps an original unknown call)' adapters/host-node/source-multi-infer-evidence-public.test.mjs
 ```
 
 Source checks are not evidence of clean fixed-SHA distribution acceptance;
