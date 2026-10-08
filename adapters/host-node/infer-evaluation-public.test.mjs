@@ -13,6 +13,7 @@ import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {createCaptureSink} from '../../examples/infer-evaluation/capture-sink.mjs';
 import {compareInstructions, evaluationValueCid} from '../../examples/infer-evaluation/evaluate.mjs';
 import {runEvaluatorProcess} from '../../examples/infer-evaluation/evaluator-process.mjs';
+import {checkResolvedEvidence, checkModelCaptureCorrespondence} from '../../examples/infer-evaluation/evidence-reference.mjs';
 
 const runtime = process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS === undefined ? undefined :
   JSON.parse(await readFile(process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS, 'utf8'));
@@ -190,10 +191,24 @@ for (const [transport, observationMode] of [['local', 'disabled'], ['https', 'di
           inputCid: evaluationValueCid(trial.case.input)};
       },
       async evaluate(job) {
-        const {context} = runs.get(job.subject.runDefinitionCid);
+        const {context, trial} = runs.get(job.subject.runDefinitionCid);
         return context.sink.withEvaluatorEvidence({subject: job.subject, attemptCid: job.evidence.attemptCid,
-          references: job.evidence.references}, resolvedEvidence => runEvaluatorProcess({job, resolvedEvidence,
-          deadline: job.deadline, onProcess(pid) {pids.push(pid); assert.notEqual(pid, process.pid);}}));
+          references: job.evidence.references}, resolvedEvidence => {
+          const originals = checkModelCaptureCorrespondence(job, checkResolvedEvidence(job, resolvedEvidence));
+          assert.deepEqual(originals.typedInput.input_contract, {additional_properties: false,
+            fields: {text: {nullable: true, type: 'string'}}, nullable: false, type: 'object'});
+          assert.deepEqual(originals.typedInput.output_contract, {additional_properties: false,
+            fields: {reason: {nullable: true, type: 'string'}, risk: {nullable: false, type: 'string'}},
+            nullable: false, type: 'object'});
+          assert.deepEqual(originals.typedInput.key, ['a']);
+          assert.deepEqual(originals.typedInput.inputs, {text: trial.case.input.text});
+          assert.deepEqual(originals.renderedInput, {instructions: trial.candidate.instructions, text: trial.case.input.text});
+          assert.deepEqual(originals.contextManifest, {promptTemplateCid: JSON.parse(context.installed.installation.environmentWire)
+            .model_task_contracts[0].prompt_template_cid, selectedFields: ['text'], retrievalPolicy: 'none',
+            knownExternalContext: [], providerHiddenContext: 'unknown'});
+          return runEvaluatorProcess({job, resolvedEvidence,
+            deadline: job.deadline, onProcess(pid) {pids.push(pid); assert.notEqual(pid, process.pid);}});
+        });
       },
     };
     const result = await compareInstructions(experiment);

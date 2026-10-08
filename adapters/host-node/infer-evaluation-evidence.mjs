@@ -29,7 +29,7 @@ export function configureInferEvidence(configuration) {
 }
 
 export async function projectInferEvidence({configuration, moon, control, preparedProgram,
-  plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainExecution}) {
+  plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainCopy}) {
   if (configuration === undefined) return;
   const configured = configurations.get(configuration);
   if (configured === undefined) throw new TypeError('ForeignInferEvidenceConfiguration');
@@ -55,7 +55,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
       copy = reserved._0; configured.pending = true;
       // The normal dispatch custody retains a failed release for retry. The
       // optional sink cannot make Model cleanup settle this live copy early.
-      retainExecution({cleanupPending: () => copy !== undefined,
+      retainCopy({cleanupPending: () => copy !== undefined,
         close: async () => releaseCopy(), cleanup: async () => releaseCopy()});
       const record = JSON.parse(bundle.wire).captures[0];
       const physical = operation.evaluationRequest(0);

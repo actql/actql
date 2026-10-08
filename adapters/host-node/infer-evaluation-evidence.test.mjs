@@ -16,7 +16,7 @@ function fixture({authorize = () => true, capture = async () => ({status: 'compl
     plan: {runDefinition: {identity: 'run'}, compiled: {}}, selected: {step: 0, providerBinding: {identity: 'provider'}},
     captureOwner: {evaluationBundle: () => ({count: 1, cid: 'bundle', wire: JSON.stringify({captures: [record]})})},
     operation: {evaluationRequest: () => ({_0: {}, _1: '{}', _2: '{}'})}, continuation: {entry: () => ({slotCid: 'slot', attemptCid: 'attempt'})},
-    authorityScopeCid: 'scope', retainExecution: value => retained.push(value)};
+    authorityScopeCid: 'scope', retainCopy: value => retained.push(value)};
   return {trace, retained, manifests, facts, config};
 }
 

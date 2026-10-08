@@ -35,12 +35,18 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           control.admitRunEvidence('source_evidence', source.source_evidence_wire,
             {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}));
     } catch (error) { modelController.release(token); throw error; }
-    let operation, captureOwner, continuation;
+    let operation, captureOwner, continuation, evidenceCopy;
     let captureCloseAttempted = false, captureReleased = false;
     let continuationCloseAttempted = false, continuationReleased = false;
-    const cleanupPending = () => !captureReleased ||
+    const cleanupPending = () => evidenceCopy?.cleanupPending() === true || !captureReleased ||
       continuation !== undefined && !continuationReleased;
     const cleanup = async () => {
+      // Optional projection is a child of this already-retained INFER custody.
+      // Keep its originals alive until the copy handoff and release settle.
+      if (evidenceCopy !== undefined) {
+        if (await evidenceCopy.cleanup() === false || evidenceCopy.cleanupPending()) return false;
+        evidenceCopy = undefined;
+      }
       let failure;
       if (!captureReleased) {
         const recover = captureCloseAttempted;
@@ -128,6 +134,10 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       binding: publication.binding, compiled: plan.compiled, preparedProgram});
     await publishCompletedEffectFreeRun({...publication.plan, execution, store, control, signal});
     await projectInferEvidence({configuration: inferEvidence, moon, control, preparedProgram,
-      plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainExecution});
+      plan, selected, operation, captureOwner, continuation, authorityScopeCid,
+      retainCopy(copy) {
+        if (evidenceCopy !== undefined) throw new TypeError('InferEvidenceCopyAlreadyRetained');
+        evidenceCopy = copy;
+      }});
   };
 }
