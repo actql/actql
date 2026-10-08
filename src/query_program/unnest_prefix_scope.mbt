@@ -3,7 +3,7 @@
 // owners. These are schema facts only, never key, presence, capacity or Source
 // admission evidence. In particular SET's current slot and its range snapshot
 // are separate fields in this prefix; the initial schema cannot replace it.
-fn unnest_prefix_element(
+fn relation_prefix_column(
   construction : Construction,
   nodes : Array[@builder.Node],
   column : String,
@@ -63,6 +63,26 @@ fn unnest_prefix_element(
   guard current
     .bind(member_rows)
     .bind(rows => @schema.lookup(rows, @schema.Unqualified(column)))
+    is Some(contract) else {
+    return None
+  }
+  Some(contract)
+}
+
+///|
+fn unnest_prefix_element(
+  construction : Construction,
+  nodes : Array[@builder.Node],
+  column : String,
+  expression : @query.Expression,
+  context : Context?,
+  declarations : @parameters.Declarations?,
+  limits : Limits,
+  max_work : Int,
+) -> @contract.Contract? raise Abort {
+  guard relation_prefix_column(
+      construction, nodes, column, expression, context, declarations, limits, max_work,
+    )
     is Some(contract) else {
     return None
   }

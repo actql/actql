@@ -164,3 +164,76 @@ export const parenthesizedSourceRangeRefusals = [
   format: 'aql-text', text, expectedCode: 'ClientProgramInvalidInput'}));
 computedObjectPropertySuccesses.push(...parenthesizedSourceRangeSuccesses);
 computedObjectPropertyRefusals.push(...parenthesizedSourceRangeRefusals);
+
+// Closed object field order comes from the admitted common contract. These
+// authored declarations intentionally list score before nested; star must expose
+// nested then score, including empty input, without consulting runtime rows.
+const starPayload = {...payload, fields: {...payload.fields, score: number}};
+const starOther = {...starPayload, nullable: false};
+const starDeclarations = Object.fromEntries(Object.keys(parameterDeclarations)
+  .map(name => [name, name.startsWith('p') ? starPayload : starOther]));
+const starParameters = {...parameters, p4: {...parameters.p4, score: 40}};
+const deliveredNested = {...nested, additional_properties: false};
+const starColumns = [column('id'), column('nested', deliveredNested),
+  column('score', nullableNumber)];
+const starRows = [{id: 1, nested: {score: 11}, score: 20},
+  {id: 2, nested: null, score: 10}, {id: 2, nested: null, score: 10},
+  {id: 3, nested: null, score: null}, {id: 4, nested: {score: null}, score: 40}];
+export const objectColumnStarProgram = {version: 'actql/0.1',
+  id: 'fixture.object_column_star', params: starDeclarations,
+  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {gt: [{field: 'id'}, {literal: 0}]}},
+      {select: ['id'], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['id']}}},
+  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{from: 'records', derive: {payload: parameterCase('p'), other: parameterCase('o')}},
+      {select: ['id', 'payload', 'other']},
+      {derive: {nested: {property: {name: 'nested', value: {field: 'payload'}}},
+        score: {property: {name: 'score', value: {field: 'payload'}}}}},
+      {select: ['id', 'nested', 'score']},
+      {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
+    results: {rows: {from: 'ordered', fields: ['id', 'nested', 'score']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const starSuccess = (name, tail, extra = {}) => ({
+  name: 'object-column-star-' + name, format: 'aql-text', text: data + tail,
+  parameterDeclarations: starDeclarations, parameters: starParameters,
+  sourceRows, sourceReadSessionCount: 1, expected: starRows, columns: starColumns, ...extra,
+});
+export const objectColumnStarSuccesses = [
+  starSuccess('independent-json', '', {format: 'json',
+    text: JSON.stringify(objectColumnStarProgram), parameterDeclarations: undefined}),
+  starSuccess('sql', 'SELECT id, payload.* FROM objects ORDER BY id'),
+  starSuccess('qualified-pipe', 'FROM objects AS o |> SELECT id, o.payload.* |> ORDER BY id'),
+  starSuccess('quoted', 'SELECT id, `o`.`PaYlOaD`.* FROM objects `o` ORDER BY id'),
+  starSuccess('empty', 'SELECT id, payload.* FROM objects ORDER BY id',
+    {sourceRows: [], expected: []}),
+  starSuccess('current-slot', 'FROM objects AS old |> SET payload = other '
+    + '|> SELECT id, payload.* |> ORDER BY id', {
+    expected: [{id: 1, nested: null, score: 5},
+      {id: 2, nested: {score: 22}, score: 30}, {id: 2, nested: {score: 22}, score: 30},
+      {id: 3, nested: {score: 33}, score: 15}, {id: 4, nested: null, score: 25}],
+    columns: [starColumns[0], starColumns[1], column('score')],
+  }),
+  starSuccess('retained-range', 'FROM objects AS old |> SET payload = other '
+    + '|> SELECT id, old.payload.* |> ORDER BY id'),
+  starSuccess('excluded-replaced', 'SELECT id, payload.* EXCEPT (nested) '
+    + 'REPLACE (payload.score + 1 AS score) FROM objects ORDER BY id', {
+    expected: [{id: 1, score: 21}, {id: 2, score: 11}, {id: 2, score: 11},
+      {id: 3, score: null}, {id: 4, score: 41}], columns: [starColumns[0], starColumns[2]],
+  }),
+  starSuccess('grouped', 'SELECT payload.* EXCEPT (nested), COUNT(*) AS n FROM objects '
+    + 'GROUP BY payload.score ORDER BY score NULLS LAST', {
+    expected: [{score: 10, n: 2}, {score: 20, n: 1}, {score: 40, n: 1}, {score: null, n: 1}],
+    columns: [starColumns[2], column('n')],
+  }),
+];
+export const objectColumnStarRefusals = [
+  ['scalar', 'SELECT id.* FROM objects'],
+  ['missing-exclusion', 'SELECT payload.* EXCEPT (missing) FROM objects'],
+  ['duplicate-replacement', 'SELECT payload.* REPLACE (1 AS score, 2 AS SCORE) FROM objects'],
+  ['removed-range', 'FROM objects old |> SELECT id |> SELECT old.payload.*'],
+].map(([name, tail]) => ({name: 'object-column-star-' + name, text: data + tail,
+  format: 'aql-text', parameterDeclarations: starDeclarations, parameters: starParameters,
+  sourceRows, expectedCode: 'ClientProgramInvalidInput'}));
+computedObjectPropertySuccesses.push(...objectColumnStarSuccesses);
+computedObjectPropertyRefusals.push(...objectColumnStarRefusals);

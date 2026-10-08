@@ -117,8 +117,19 @@ retained star column must be grouped. LEFT JOIN nullability belongs to the
 common joined schema. A missing or displaced range is refused, including a
 star that would otherwise appear to be an identity projection. The selected
 [GoogleSQL star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
-also permits expression/STRUCT receivers. Those broader receivers remain
-unconnected coverage; they are not reinterpreted as Relation ranges.
+also permits expression/STRUCT receivers. A named closed object column or
+qualified property path, for example `payload.*` or `o.payload.*`, now expands
+its admitted common fields through ordinary property projections. Its field
+order is the common object's canonical order, independently of authored JSON
+key order, as for closed object UNNEST below. A nullable receiver propagates
+NULL through the common property checker; fields are never inferred from rows.
+EXCEPT and REPLACE use the same input snapshot. SET's current column and a
+retained range's original column remain separate values; SELECT and AS still
+end or replace ranges. Type inspection follows the actual lowered prefix and
+never adds a runtime probe, acquisition, Result or schema evidence. Existing
+range stars retain their range resolution. Arbitrary computed star receivers
+and GoogleSQL's ordered STRUCT contract remain unconnected coverage; they are
+not reinterpreted as Relation ranges.
 Direct Graph star and FULL JOIN chains retain explicit implementation gaps,
 not restrictions of the selected reference. Supported INNER/LEFT/RIGHT/CROSS
 joins expand unqualified star from their complete current visible row.
