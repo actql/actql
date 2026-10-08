@@ -764,6 +764,8 @@ pub fn prepare_local_stage_contexts_from_inputs(@stage_results.PreparedLocalSour
 
 pub fn prepare_nest_value_envelope(NestItemLimit, Int, Int) -> Result[NestValueEnvelope, NestValueIssue]
 
+pub fn prepare_pipeline_orders(@relation_results.CheckedOrders, max_work~ : Int, max_text_bytes~ : Int) -> Result[PipelineOrderPreparation, Issue]
+
 pub fn prepare_program_analytic_numeric_slots(ProgramOperationRequirements, @numeric_reduction.Profile, Int, Int) -> Result[ProgramAnalyticNumericSlots, NumericSlotsIssue]
 
 pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int, graph? : Bool) -> Result[OperationProfileChecks, PrepareChecksIssue]
@@ -790,9 +792,21 @@ pub fn prepare_source_state_requirement(ProgramSourceIdentity, Int, Int, @local_
 
 pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, calendar? : @check_environment.SelectedCalendarProfile?, capacity_inputs? : ProgramCapacityInputs?, model_tasks? : @check_environment.ModelTasks?, derived_capacity_limits? : @capacity_witness.Limits?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
 
+pub fn prepare_sourceview_declarations(@stage_parameters.Source, @check_environment.SourceRequestContracts, SourceViewDeclarationLimits, calendar? : @check_environment.SelectedCalendarProfile?, model_tasks? : @check_environment.ModelTasks?) -> Result[SourceViewDeclarationPreparation, SourceViewDeclarationIssue]
+
 pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
 
 pub fn prepare_values_row_bound(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.Limits) -> Result[ValuesRowBound, ValuesRowLimitIssue]
+
+pub fn prepared_expression_requirement_at(PipelineOrderPreparation, Int) -> ExpressionRequirement?
+
+pub fn prepared_expression_requirement_count(PipelineOrderPreparation) -> Int
+
+pub fn prepared_pipeline_order_usage(PipelineOrderPreparation) -> (Int, Int)
+
+pub fn prepared_pipeline_orders(PipelineOrderPreparation) -> @relation_results.CheckedOrders
+
+pub fn prepared_pipeline_results(PipelineOrderPreparation) -> @relation_results.CheckedResults
 
 pub fn program_identity_capacity_metadata_usage(ProgramSourceIdentity) -> (Int, Int)
 
@@ -1051,6 +1065,16 @@ pub fn source_rows_requests(SourceRowContexts) -> SourceRequestContexts
 pub fn source_rows_stage(SourceRowContexts, Int) -> @sourceview_resolution.KeyedRowBounds?
 
 pub fn source_rows_work(SourceRowContexts) -> Int
+
+pub fn sourceview_declaration_catalog(SourceViewDeclarationPreparation) -> @check_environment.SourceRequestContracts
+
+pub fn sourceview_declaration_topology_usage(SourceViewDeclarationPreparation) -> @stage_results.LocalProgramUsage
+
+pub fn sourceview_declaration_usage(SourceViewDeclarationPreparation) -> @program_references.DeclarationUsage
+
+pub fn sourceview_declaration_wiring(SourceViewDeclarationPreparation) -> @stage_results.ResultWiring
+
+pub fn sourceview_declaration_work(SourceViewDeclarationPreparation) -> Int
 
 pub fn stage_context_at(StageContexts, Int) -> BoundParameters?
 
@@ -2615,6 +2639,8 @@ pub(all) enum PipelineOperationProfilesIssue {
   UnsupportedProfile(Int, @pipeline_typing.OperationProfile)
 } derive(Eq, @debug.Debug)
 
+type PipelineOrderPreparation
+
 pub struct PivotExecutionCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -3271,6 +3297,29 @@ pub enum SourceViewContextIssue {
   Binding(@stage_results.LocalSourceIssue)
   Context(LocalContextIssue)
 }
+
+pub enum SourceViewDeclarationIssue {
+  InvalidLimits
+  BudgetExceeded
+  Registration(SourceRegistrationIssue)
+  Program(SourceViewContextIssue)
+  Requests(PrepareSourcesIssue)
+  Identity(SourcePreparationIssue)
+}
+
+pub(all) struct SourceViewDeclarationLimits {
+  max_work : Int
+  max_bindings : Int
+  max_slots : Int
+  max_order_keys : Int
+  inputs : @stage_local_inputs.Limits
+  topology : @stage_results.LocalProgramLimits
+  body : @stage_source.Limits
+  uses : @pipeline_parameters.Limits
+  references : @program_references.Limits
+}
+
+type SourceViewDeclarationPreparation
 
 pub enum SourceViewProgramIssue {
   InvalidLimits

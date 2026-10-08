@@ -1405,6 +1405,28 @@ metadata retain their separate budgets. This pipeline evidence still does not
 close whole-Program incoming, publication, authority or other static obligations
 and cannot by itself produce a verified template report.
 
+The common scoped entry selects `TemplateOnly` or `BoundInput` before checking.
+Template-only rejects any submitted bindings, including an empty object or
+explicit null, as a check-request issue before Program preparation. The bound
+branch uses the existing full checker with actual supplied values.
+
+Prebinding declaration preparation retains the exact admitted Program,
+CheckEnvironment, Catalog, Source registrations, Stage/Result wiring and
+whole-Program declaration-use inventory. Default admission, pipeline typing and
+unused-declaration decisions come from their existing owners. Preparation work
+includes the Catalog, registration/topology and reference prefixes; no execution
+values are fabricated to advance a missing-value frontier. Definitive input
+violations preserve their original diagnostic cause. Unsupported, budget or
+incomplete static preparation remains an unresolved template frontier. The
+frontier exposes its retained phase evidence separately from complete template
+verification and does not grant execution or resubmission permission.
+
+Resolved producer/publication orders and their pending expression occurrences
+can also be prepared before execution-value binding. The bound context uses
+that same preparation and charges its exact prefix once. Repeated and unused
+producer visits retain distinct sites; neither resolved order nor an empty
+pending-expression inventory certifies complete Program template checking.
+
 ### Passive operation diagnostic formats
 
 Submission presentation follows admitted `SubmissionOutcome` and

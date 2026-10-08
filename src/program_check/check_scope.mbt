@@ -1,0 +1,121 @@
+///|
+pub(all) enum CheckScope {
+  TemplateOnly
+  BoundInput
+} derive(Eq, Debug)
+
+///|
+pub(all) enum CheckRequestIssue {
+  BindingsInTemplateScope
+} derive(Eq, Debug)
+
+///|
+pub enum ScopedCheckOutcome {
+  InvalidRequest(CheckRequestIssue)
+  BoundInput(CheckOutcome)
+  TemplateOnly(TemplateCheckOutcome)
+}
+
+///|
+pub enum TemplateCheckOutcome {
+  Rejected(CheckDiagnostic)
+  Unresolved(TemplateCheckFrontier)
+}
+
+///|
+priv enum TemplateCheckProgress {
+  Stopped(CheckDiagnostic)
+  Declarations(TemplateDeclarationPreparation)
+}
+
+///|
+/// A frontier under the original template scope. Prepared declarations and
+/// wiring are explicitly partial: no complete template witness exists here.
+struct TemplateCheckFrontier {
+  program : @syntax.Program
+  environment : CheckEnvironment
+  progress : TemplateCheckProgress
+}
+
+///|
+/// Select the requested scope before admission/preparation. A submitted binding
+/// object, including an empty object or null, is an invalid template request.
+/// The bound branch keeps the existing full checker and actual value binding.
+pub fn check_parsed_scoped(
+  program : @syntax.Program,
+  environment : CheckEnvironment,
+  scope : CheckScope,
+  supplied : @decode.Cursor?,
+  limits : CheckLimits,
+) -> ScopedCheckOutcome {
+  match scope {
+    BoundInput =>
+      BoundInput(check_parsed(program, environment, supplied, limits))
+    TemplateOnly => {
+      if supplied is Some(_) {
+        return InvalidRequest(BindingsInTemplateScope)
+      }
+      match prepare_template_declarations(program, environment, limits) {
+        Ok(prepared) =>
+          TemplateOnly(
+            Unresolved({
+              program,
+              environment,
+              progress: Declarations(prepared),
+            }),
+          )
+        Err(cause) => {
+          let diagnostic : CheckDiagnostic = {
+            cause,
+            category: classify_diagnostic_cause(cause),
+          }
+          if diagnostic.category == InvalidInput {
+            TemplateOnly(Rejected(diagnostic))
+          } else {
+            TemplateOnly(
+              Unresolved({
+                program,
+                environment,
+                progress: Stopped(diagnostic),
+              }),
+            )
+          }
+        }
+      }
+    }
+  }
+}
+
+///|
+pub fn template_frontier_program(
+  value : TemplateCheckFrontier,
+) -> @syntax.Program {
+  value.program
+}
+
+///|
+pub fn template_frontier_environment(
+  value : TemplateCheckFrontier,
+) -> CheckEnvironment {
+  value.environment
+}
+
+///|
+pub fn template_frontier_diagnostic(
+  value : TemplateCheckFrontier,
+) -> CheckDiagnostic? {
+  match value.progress {
+    Stopped(diagnostic) => Some(diagnostic)
+    Declarations(_) => None
+  }
+}
+
+///|
+pub fn template_frontier_declarations(
+  value : TemplateCheckFrontier,
+) -> TemplateDeclarationPreparation? {
+  match value.progress {
+    Stopped(_) => None
+    Declarations(prepared) => Some(prepared)
+  }
+}

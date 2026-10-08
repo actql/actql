@@ -132,3 +132,68 @@ test "prepared Result ports and contexts retain the same resolved order owner" {
   )
   assert_true(physical_equal(@results.ports_orders(ports), orders))
 }
+
+///|
+test "prebinding order preparation retains pending expressions in repeated producer occurrences" {
+  let declarations = @parameter.read_declarations(
+    Some(cursor("{\"p\":{\"type\":\"number\"}}")),
+    { max_parameters: 1, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  let producer = base(
+    true,
+    parameters=Some(declarations),
+    steps="[{\"derive\":{\"x\":\"$p\",\"pattern\":\"regex_match(NULL, 'a')\"}}]",
+  )
+  let input = @pipeline.ProducedInput(
+    @pipeline.produced_input(producer, Input(0)).unwrap(),
+  )
+  let root = pipeline([("a", input), ("unused", input)])
+  let result = results(root)
+  let orders = @results.resolve_all_orders(result, {
+    max_steps: 10,
+    max_results: 1,
+    max_work: 10000,
+    max_text_bytes: 10000,
+  }).unwrap()
+  let prepared = prepare_pipeline_orders(
+    orders,
+    max_work=20000,
+    max_text_bytes=20000,
+  ).unwrap()
+  assert_true(physical_equal(prepared_pipeline_orders(prepared), orders))
+  assert_true(physical_equal(prepared_pipeline_results(prepared), result))
+  // regex_match has profile, pattern and envelope obligations at each visit.
+  assert_eq(prepared_expression_requirement_count(prepared), 6)
+  for index in 0..<6 {
+    let requirement = prepared_expression_requirement_at(prepared, index).unwrap()
+    assert_eq(requirement.visit, if index < 3 { 1 } else { 2 })
+    assert_eq(requirement.step, 0)
+    // Derive fields use the existing canonical name order: pattern precedes x.
+    assert_eq(requirement.slot, 0)
+  }
+  assert_true(prepared_expression_requirement_at(prepared, -1) is None)
+  assert_true(prepared_expression_requirement_at(prepared, 6) is None)
+  let (work, text) = prepared_pipeline_order_usage(prepared)
+  assert_true(
+    prepare_pipeline_orders(orders, max_work=work, max_text_bytes=text) is Ok(_),
+  )
+  assert_true(
+    prepare_pipeline_orders(orders, max_work=work - 1, max_text_bytes=text)
+    is Err(Expressions(_)),
+  )
+  assert_true(
+    prepare_pipeline_orders(orders, max_work=-1, max_text_bytes=text)
+    is Err(InvalidIntegrationLimits),
+  )
+  let (prior_work, prior_text) = @results.checked_orders_usage(orders)
+  assert_true(work > prior_work)
+  assert_eq(text, prior_text)
+  assert_true(
+    prepare_pipeline_orders(
+      orders,
+      max_work=prior_work - 1,
+      max_text_bytes=text,
+    )
+    is Err(PriorOrderLimit),
+  )
+}
