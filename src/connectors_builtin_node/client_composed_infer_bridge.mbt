@@ -7,6 +7,139 @@ pub fn client_program_effect_infer_occurrence(
 }
 
 ///|
+#export_name("clientProgramComposedInferOccurrences")
+pub fn client_program_composed_infer_occurrences(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[Array[@publication_host.ClientInferOccurrence], @infer_host.Issue] {
+  match @publication_host.prepared_client_composed_infer_occurrences(prepared) {
+    Some(occurrences) => Ok(occurrences)
+    None => Err(@infer_host.InvalidAdvance)
+  }
+}
+
+///|
+#export_name("clientProgramPrepareComposedInferSegments")
+pub fn client_program_prepare_composed_infer_segments(
+  prepared : @publication_host.PreparedClientProgram,
+  occurrence : @publication_host.ClientInferOccurrence,
+  registry : String,
+  values : String,
+  fragment : String,
+  ordered : String,
+) -> Result[
+  (@execution.GeneratedSequence, @execution.GeneratedSequence?),
+  @infer_host.Issue,
+] {
+  guard @client_local_host.prepare_client_composed_infer_prefix(
+      prepared,
+      occurrence,
+      registry,
+      values,
+      fragment_body=Some(fragment),
+      ordered_body=Some(ordered),
+    )
+    is Some(prefix) else {
+    return Err(@infer_host.InvalidAdvance)
+  }
+  if @publication_host.client_infer_occurrence_terminal(occurrence) {
+    return Ok((prefix, None))
+  }
+  guard @client_local_host.prepare_client_composed_infer_suffix(
+      prepared,
+      occurrence,
+      registry,
+      values,
+      fragment_body=Some(fragment),
+      ordered_body=Some(ordered),
+    )
+    is Some(suffix) else {
+    return Err(@infer_host.InvalidAdvance)
+  }
+  Ok((prefix, Some(suffix)))
+}
+
+///|
+#export_name("clientProgramCompileLocalInfers")
+pub fn client_program_compile_local_infers(
+  prepared : @publication_host.PreparedClientProgram,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientProgramTaskCompilationBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(manifests) => manifests
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @publication_host.issue_prepared_client_multi_infer_compilation(
+    prepared,
+    graphs,
+    manifests,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).map_err(issue => Compilation(issue))
+}
+
+///|
+#export_name("clientProgramStartCompleteInferObservationIssuance")
+pub fn client_program_start_complete_infer_observation_issuance(
+  executions : Array[@infer_host.Execution],
+  ledger : @resources.Ledger,
+  max_slots : Int,
+  max_wire_bytes : Int,
+  max_work : Int,
+) -> Result[@infer_host.ObservationIssuance, @infer_host.Issue] {
+  @infer_host.start_complete_observation_issuance(executions, ledger, {
+    max_slots,
+    max_wire_bytes,
+    max_work,
+  })
+}
+
+///|
+#export_name("clientProgramOpenCapturedComposedInferHost")
+pub fn client_program_open_captured_composed_infer_host(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  providers : Array[@local.ManagedProvider],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  @client_local_host.open_captured_local_retained_host(
+    prepared,
+    source,
+    registry,
+    values,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=fragment,
+    ordered_body=ordered,
+    provider_factory=capacity => {
+      let families = installed_client_family_providers(capacity)
+      for provider in providers {
+        families.push(provider)
+      }
+      families
+    },
+  )
+}
+
+///|
 #export_name("clientProgramPrepareEffectInferSegments")
 pub fn client_program_prepare_effect_infer_segments(
   prepared : @publication_host.PreparedClientEffectComputation,
@@ -204,6 +337,22 @@ pub fn client_program_compiled_run_source_free_result_policy(
 }
 
 ///|
+#export_name("clientProgramCompiledRunEvaluationPolicy")
+pub fn client_program_compiled_run_evaluation_policy(
+  compiled : @publication_host.ClientCompiledRun,
+) -> (String, String, String)? {
+  @publication_host.client_compiled_run_evaluation_policy_body(compiled)
+}
+
+///|
+#export_name("clientProgramInferOccurrenceTargetName")
+pub fn client_program_infer_occurrence_target_name(
+  occurrence : @publication_host.ClientInferOccurrence,
+) -> String? {
+  @publication_host.client_infer_occurrence_target_name(occurrence)
+}
+
+///|
 #export_name("clientProgramCompiledRunEffectMatches")
 pub fn client_program_compiled_run_effect_matches(
   compiled : @publication_host.ClientCompiledRun,
@@ -306,12 +455,13 @@ pub fn client_program_admit_composed_infer_sources(
   @publication_host.ClientInferComposedSources,
   @publication_host.ClientInferCallScopeIssue,
 ] {
-  if logical_wires.length() != 2 || evidence_wires.length() != 2 {
+  let count = logical_wires.length()
+  if count < 1 || count > 2 || evidence_wires.length() != count {
     return Err(@publication_host.ForeignInput)
   }
   let logicals = []
   let evidence = []
-  for index in 0..<2 {
+  for index in 0..<count {
     let logical = match
       @publication.admit_run_evidence_value(
         "source_input_logical",

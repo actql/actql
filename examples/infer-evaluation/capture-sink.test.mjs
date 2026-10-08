@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, rm, unlink} from 'node:fs/promises';
+import fsPromises, {mkdtemp, rm, unlink} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -112,6 +113,53 @@ test('retained sink quota survives reopen and immutable captures are not overwri
   });
 });
 
+test('two logical INFER manifests in one Run remain distinct after reopening the sink', async t => {
+  const f = await fixture(t);
+  await f.sink.record({subject, target: 'first', manifest: {status: 'complete', marker: 'first-original'}});
+  await f.sink.record({subject, target: 'second', manifest: {status: 'incomplete', reason: 'SecondOriginalMissing'}});
+  const reopened = await createCaptureSink({directory: f.directory, destination: 'local:independent-evaluator',
+    maxBytes: 4096, maxPendingBytes: 1048576, retentionMs: 10000, authorize: () => true});
+  assert.deepEqual(await reopened.lookup(subject, 'first'), {
+    subject, target: 'first', manifest: {status: 'complete', marker: 'first-original'},
+  });
+  assert.deepEqual(await reopened.lookup(subject, 'second'), {
+    subject, target: 'second', manifest: {status: 'incomplete', reason: 'SecondOriginalMissing'},
+  });
+  await assert.rejects(reopened.lookup(subject, 'missing'), {code: 'EvidenceOriginalMissing'});
+  await assert.rejects(reopened.lookup(subject), {code: 'InvalidEvidenceManifest'});
+  assert.equal(reopened.pendingBytes(), 0);
+});
+
+test('an independent evaluator resolves one original slot from a multi-call bundle', async t => {
+  const f = await fixture(t);
+  const otherSlot = referenceCid('other-slot');
+  const other = {...body.captures[0], model_call_slot_cid: otherSlot,
+    evidence: {...evidence, model_call_slot_cid: otherSlot}};
+  const multi = {...body, captures: [other, body.captures[0]]};
+  const multiCid = referenceCid(multi);
+  const captured = await f.sink.capture({subject, attemptCid,
+    original: {...original, captureBundleCid: multiCid},
+    policy: {kind: 'data_policy', cid: contentCid(policyWire), wire: policyWire},
+    wires: {...wires, validation: JSON.stringify({outcome: 'accepted', evidence,
+      captureBundleWire: JSON.stringify({...multi, bundle_cid: multiCid})})}});
+  assert.equal(captured.status, 'complete');
+  const result = await f.sink.withEvaluatorEvidence({subject, attemptCid, references: captured.references},
+    resolvedEvidence => runEvaluatorProcess({job: {caseId: 'original-slot', expected: 'high', role: 'final_test',
+      subject, evidence: {...captured, attemptCid}}, resolvedEvidence, deadline: Date.now() + 10000}));
+  assert.equal(result.score, 1);
+  assert.equal(f.sink.pendingBytes(), 0);
+});
+
+test('manifest identities preserve decomposed/composed names and require the original scope', async t => {
+  const f = await fixture(t);
+  await f.sink.record({subject, target: 'e\u0301', manifest: {status: 'complete', marker: 'decomposed'}});
+  await f.sink.record({subject, target: 'é', manifest: {status: 'complete', marker: 'composed'}});
+  assert.equal((await f.sink.lookup(subject, 'e\u0301')).manifest.marker, 'decomposed');
+  assert.equal((await f.sink.lookup(subject, 'é')).manifest.marker, 'composed');
+  await assert.rejects(f.sink.lookup({...subject, authorityScopeCid: referenceCid('other-scope')}, 'é'),
+    {code: 'EvidenceOriginalMissing'});
+});
+
 test('altered captured output cannot be scored as the original common response', async t => {
   const f = await fixture(t);
   await f.sink.withEvaluatorEvidence(f.request, async copies => {
@@ -128,3 +176,49 @@ test('altered captured output cannot be scored as the original common response',
       deadline: Date.now() + 10000}), {code: 'RequiredEvidenceUnavailable'});
   });
 });
+
+for (const kind of ['original', 'manifest']) {
+  test(`failed ${kind} read close retains its actual handle until cleanup succeeds once`, async t => {
+    const f = await fixture(t);
+    await f.sink.record({subject, target: 'named', manifest: {status: 'complete'}});
+    const originalOpen = fsPromises.open;
+    const name = f.capture.references.typedInput.evidenceRefCid.slice(7);
+    // Match the manifest by its prefix; the product's canonical member order
+    // is irrelevant to this physical close failure.
+    let handle, actualClose, closeCalls = 0, handedOff = 0;
+    fsPromises.open = async (...args) => {
+      const opened = await originalOpen(...args);
+      if (kind === 'original' ? String(args[0]).endsWith(name) :
+          String(args[0]).includes('/manifest-')) {
+        handle = opened;
+        actualClose = opened.close.bind(opened);
+        opened.close = async () => {
+          closeCalls++;
+          if (closeCalls <= 2) throw Object.assign(new Error('read close failed'), {code: 'EIO'});
+          return actualClose();
+        };
+      }
+      return opened;
+    };
+    syncBuiltinESMExports();
+    try {
+      await assert.rejects(kind === 'original' ?
+        f.sink.withEvaluatorEvidence(f.request, () => {handedOff++;}) :
+        f.sink.lookup(subject, 'named'), {code: 'EIO'});
+      assert(handle);
+      assert.equal(handedOff, 0);
+      assert.equal(f.sink.pendingBytes(), 0);
+      assert.equal(f.sink.cleanupPending(), true);
+      await assert.rejects(f.sink.cleanup(), {code: 'EIO'});
+      assert.equal(f.sink.cleanupPending(), true);
+      assert.equal(await f.sink.cleanup(), true);
+      assert.equal(f.sink.cleanupPending(), false);
+      assert.equal(await f.sink.cleanup(), true);
+      assert.equal(closeCalls, 3);
+    } finally {
+      fsPromises.open = originalOpen;
+      syncBuiltinESMExports();
+      if (actualClose && closeCalls < 3) await actualClose().catch(() => {});
+    }
+  });
+}

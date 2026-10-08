@@ -49,7 +49,7 @@ pub fn inspect_client_remote_task_progress(
   let count = @strategy.graph_task_count(graph)
   if count == 0 ||
     authority.is_empty() ||
-    compilation.infer is Some(_) ||
+    !compilation.infers.is_empty() ||
     @strategy.graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
