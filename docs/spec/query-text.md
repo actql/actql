@@ -82,6 +82,14 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`ABS(expr)` in SQL and Pipe has exactly one finite binary64 `number` operand
+and lowers to the common `abs` node. It returns the exact magnitude, including
+subnormal and maximum finite values, and canonical positive zero. NULL
+propagates and result nullability follows the operand, including on empty
+input. The operand is evaluated once on demand under the common lazy-demand,
+first-failure, cancellation and logical-budget rules. The adopted subset has
+no implicit conversions, decimal overloads or non-finite numeric values.
+
 `SELECT * EXCEPT (name, ...)` uses the adopted
 [GoogleSQL column-exclusion syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except).
 It expands the current visible star columns, removes all matching named
@@ -109,8 +117,27 @@ retained star column must be grouped. LEFT JOIN nullability belongs to the
 common joined schema. A missing or displaced range is refused, including a
 star that would otherwise appear to be an identity projection. The selected
 [GoogleSQL star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
-also permits expression/STRUCT receivers. Those broader receivers remain
-unconnected coverage; they are not reinterpreted as Relation ranges.
+also permits expression/STRUCT receivers. A named closed object column or
+qualified property path, for example `payload.*` or `o.payload.*`, now expands
+its admitted common fields through ordinary property projections. Its field
+order is the common object's canonical order, independently of authored JSON
+key order, as for closed object UNNEST below. A nullable receiver propagates
+NULL through the common property checker; fields are never inferred from rows.
+EXCEPT and REPLACE use the same input snapshot. SET's current column and a
+retained range's original column remain separate values; SELECT and AS still
+end or replace ranges. Type inspection follows the actual lowered prefix and
+never adds a runtime probe, acquisition, Result or schema evidence. Existing
+range stars retain their range resolution. A computed scalar expression with a
+closed object contract, for example `COALESCE(payload, other).*` or
+`(CASE WHEN payload IS NULL THEN other ELSE payload END).*`, uses the same
+field expansion and common type checker. The receiver is evaluated in an ordinary
+private derive once before its retained field projections; those private columns
+are removed by SELECT and never exported. EXCEPT/REPLACE still see the SELECT
+input snapshot. Already evaluated GROUP/QUALIFY fields use their existing slots,
+and ORDER reuse retains the original receiver expression and resolved scope.
+A scalar or unknown-field receiver is refused through the existing typed boundary.
+GoogleSQL's ordered/anonymous STRUCT contract remains unconnected coverage; a
+computed closed object is not reinterpreted as a Relation range.
 Direct Graph star and FULL JOIN chains retain explicit implementation gaps,
 not restrictions of the selected reference. Supported INNER/LEFT/RIGHT/CROSS
 joins expand unqualified star from their complete current visible row.

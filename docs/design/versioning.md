@@ -103,6 +103,31 @@ Do not preserve reference-implementation CIDs after changing their preimages,
 silently accept aliases for former versions, or claim byte/CID equality with
 a differently versioned implementation. Align the comparison inputs explicitly.
 
+### Expression contract updates and stored Runs
+
+The expression contract is a complete closed body, not a liveness-selected
+set of operators. Adding a scalar such as `abs` changes its CID and the
+dependent grammar, registry, Stage, Program and compilation identities.
+Recompiling an existing Program can therefore produce a new identity even
+when that Program does not use the added scalar. Preserve earlier stored
+bytes and identities; a new implementation does not rewrite their meaning.
+
+Compatibility depends on the requested operation. Reading a completed Run's
+stored Result uses its original publication and still requires valid formats,
+integrity, authorization, retention and custody. It does not establish that
+the new compiler can admit the old executable. Explicit replay or unfinished
+execution restoration that needs compilation or registry admission must
+revalidate the exact original bindings; the current admission paths accept
+their installed pinned contracts. Changed request identity is a conflict,
+not permission to replace the original Run.
+
+Keep a coherent runtime/contract cohort for work that still needs execution.
+Recovery of an already completed private computation is a separate owner-checked
+operation and does not grant new Compute or Effect-send authority. Neither
+matching package version strings nor the initial contract label guarantees
+cross-cohort recovery. Production migration, replay and historical rewrites
+require their own explicit decision; adding a scalar supplies none of them.
+
 ### AoA dependency bodies
 
 The exact adopted law manifests are available locally:

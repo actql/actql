@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7",
+  "grammar_sha256": "636e7fc36702063f1320e108624c7b90ac93b1be61967fb25cf6f70651bbe0f9",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2329,6 +2329,18 @@
               ],
               "properties": {
                 "sqrt": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "abs"
+              ],
+              "properties": {
+                "abs": {
                   "$ref": "#/$defs/expression"
                 }
               }
@@ -7644,6 +7656,22 @@
               "properties": {
                 "op": {
                   "const": "sqrt"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "abs"
                 },
                 "body": {
                   "$ref": "#/$defs/expression"
@@ -18891,6 +18919,18 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "abs"
+              ],
+              "properties": {
+                "abs": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "floor"
               ],
               "properties": {
@@ -23300,6 +23340,22 @@
               "properties": {
                 "op": {
                   "const": "sqrt"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "abs"
                 },
                 "body": {
                   "$ref": "#/$defs/machine_expression"
@@ -30577,6 +30633,18 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "abs"
+              ],
+              "properties": {
+                "abs": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "floor"
               ],
               "properties": {
@@ -35001,6 +35069,22 @@
               ],
               "properties": {
                 "op": {
+                  "const": "abs"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "floor"
                 },
                 "body": {
@@ -38722,6 +38806,12 @@
       "admission": "Decode the envelope only in explicit typed-wire admission under a checked JSON contract. Raw authored JSON is not a wire envelope. An object payload containing $json is enclosed again. Reject old untagged JSON cells; no fallback.",
       "payload": "Retain JSON null, finite canonical numbers, booleans, exact Unicode strings, arrays in order and objects with exact data keys sorted by UTF-16. Typed references and other typed values are not JSON payloads.",
       "bounds": "Physical wire byte, node and depth accounting includes the envelope. Logical payload accounting counts the JSON payload once. Failure never truncates a value."
+    },
+    "abs": {
+      "signature": "Exactly one number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload or non-finite value is admitted.",
+      "value": "Return the exact binary64 magnitude, including subnormals and the largest finite value. Both zero signs produce canonical positive zero. NULL produces NULL.",
+      "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. ABS introduces no secondary evaluation or value-domain failure for an admitted finite number.",
+      "identity": "The closed source form is {abs: expression}; the closed machine node is {op: abs, body: expression_node}. Retain the ABS node and its child in canonical lowering. The changed expression contract has its own CID; earlier contract CIDs retain their earlier meaning."
     }
   },
   "regex_ast_contract": {
