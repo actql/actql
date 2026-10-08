@@ -150,6 +150,9 @@ test('computed object stars preserve receiver nullability, duplicate rows and on
   assert.deepEqual(sql.columns.map(item => item.name), ['id', 'nested', 'score']);
   assert.deepEqual(sql.expected.map(item => item.score), [20, 10, 10, 15, 40]);
   assert.equal(sql.columns[2].contract.nullable, false);
+  const conditional = computedObjectStarSuccesses.find(item => item.name.endsWith('pipe-case'));
+  assert.equal(conditional.columns[2].contract.nullable, true);
+  assert.deepEqual(conditional.expected, sql.expected);
   const nullable = computedObjectStarSuccesses.find(item => item.name.endsWith('nullable-case'));
   assert.equal(nullable.columns[2].contract.nullable, true);
   assert.deepEqual(nullable.expected[3], {id: 3, nested: null, score: null});

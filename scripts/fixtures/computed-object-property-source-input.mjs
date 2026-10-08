@@ -267,8 +267,12 @@ export const computedObjectStarSuccesses = [
   computedStarSuccess('independent-json', '', {format: 'json',
     text: JSON.stringify(computedObjectStarProgram), parameterDeclarations: undefined}),
   computedStarSuccess('sql-coalesce', 'SELECT id, COALESCE(payload, other).* FROM objects ORDER BY id'),
+  // CASE joins both result branch contracts. Its IS NULL condition does not
+  // grant a non-null type to the nullable payload branch; unlike COALESCE,
+  // this expression has no signature-level non-null refinement.
   computedStarSuccess('pipe-case', 'FROM objects |> SELECT id, '
-    + '(CASE WHEN payload IS NULL THEN other ELSE payload END).* |> ORDER BY id'),
+    + '(CASE WHEN payload IS NULL THEN other ELSE payload END).* |> ORDER BY id',
+    {columns: starColumns}),
   computedStarSuccess('empty', 'SELECT id, COALESCE(payload, other).* FROM objects ORDER BY id',
     {sourceRows: [], expected: []}),
   computedStarSuccess('nullable-case', 'SELECT id, (CASE WHEN id = 2 THEN other ELSE payload END).* '

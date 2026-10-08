@@ -110,7 +110,36 @@ must verify Named Result rows and describe columns, full nullability, canonical
 field/SELECT order, internal-column absence, one Source acquisition, attach and
 unchanged request replay, and refusal before admission/provider I/O.
 
-Fresh five-package Local/HTTPS execution for this unit is not yet performed.
+Initial clean five-package execution is recorded below; corrected-source
+Local/HTTPS completion remains unverified.
 The parent's source/package success does not prove computed-star execution.
 Required submitted-HEAD CI, Wasm/native, broad packed campaigns and ordered
 STRUCT support remain unverified. Draft is required; no merge is performed.
+
+## Initial clean packed attempt and CASE fixture correction
+
+Normal five-package production and independent digest verification pass at
+`4102d823a358bd9b736cf236c225c8f938b3d99a`. Selected consumer attempt `run-6E5NSP`
+stops during Local `computed-object-star-pipe-case` with a describe-column
+nullability mismatch; this is not a successful public campaign. Receipt
+`public-query-evidence-TLDK17` retains complete stdout/stderr for failed command
+010 and its clean source identity. The 27 original Local positives, new JSON
+control and SQL COALESCE star pass before that point. Remaining new positives,
+preparation refusals and HTTPS are unreached in this attempt.
+
+The fixture had treated `CASE WHEN payload IS NULL THEN other ELSE payload END`
+as statically non-null. The existing [value-contract join rule](../spec/language.md)
+uses nullable OR across conditional result branches; COALESCE separately refines
+nullability when one input is proven non-null. The common checker in
+`expression_typing/signatures.mbt` applies exactly those independent rules. CASE
+does not turn the nullable payload branch non-null from its condition.
+
+The fixture now expects the nullable CASE receiver's property contract while
+retaining all expected rows, names/order and the non-null COALESCE control.
+This corrects an independent type expectation; it does not weaken or change
+the implementation, common contract, limits, row expectations or acceptance
+assertions. Fresh corrected-source Local/HTTPS remains pending.
+
+After the fixture correction, the affected Node fixture file passes 7/7 in
+`run-K6KuHX` / `focused-test-owOxOq`. This is fixture preparation evidence,
+not completed public execution.
