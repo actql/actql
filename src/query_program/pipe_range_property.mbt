@@ -2,13 +2,12 @@
 // A parenthesized range receiver is qualification of its existing column,
 // whereas a receiver that resolves to a value remains ordinary property access.
 // Bind only the former through the source owner's span-preserving AST operation.
-fn append_pipe_range_expression(
-  construction : Construction,
+fn bind_range_property_expression(
   expression : @query.Expression,
-  visible : Array[(String, String)],
-  ranges : Array[(@query.NamePart, Array[(String, String)])],
+  resolve : (Array[@query.NamePart]) -> String?,
+  value_name_exists : (@query.NamePart) -> Bool,
   max_work : Int,
-) -> @builder.Node raise Abort {
+) -> (@query.Expression, Array[(String, String)], Int) raise Abort {
   let count = @query.expression_node_count(expression)
   let mut remaining = max_work
   let spend = fn(amount : Int, at : Int) -> Unit raise Abort {
@@ -47,12 +46,10 @@ fn append_pipe_range_expression(
     guard @query.expression_node(expression, receiver).unwrap().kind
       is Reference(path) &&
       path.length() == 1 &&
-      pipe_slot(path, visible, []) is None else {
+      !value_name_exists(path[0]) else {
       continue
     }
-    guard pipe_slot([path[0], property_name], visible, ranges) is Some(slot) else {
-      continue
-    }
+    guard resolve([path[0], property_name]) is Some(slot) else { continue }
     let mut serial = bindings.length()
     let mut name = "aql_pipe_range_property_" + serial.to_string()
     while true {
@@ -76,6 +73,23 @@ fn append_pipe_range_expression(
     }
     @query.expression_with_field_bindings(expression, bindings).unwrap()
   }
+  (lowered, slots, remaining)
+}
+
+///|
+fn append_pipe_range_expression(
+  construction : Construction,
+  expression : @query.Expression,
+  visible : Array[(String, String)],
+  ranges : Array[(@query.NamePart, Array[(String, String)])],
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  let (lowered, slots, remaining) = bind_range_property_expression(
+    expression,
+    path => pipe_slot(path, visible, ranges),
+    name => pipe_name_exists(visible, name),
+    max_work,
+  )
   match
     @expression.append_with_properties(
       lowered,
