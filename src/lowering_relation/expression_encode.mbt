@@ -162,6 +162,7 @@ fn emit_frames(
                 match op {
                   Negate => "negate"
                   Upper => "upper"
+                  Lower => "lower"
                   Floor => "floor"
                   Sqrt => "sqrt"
                   Not => "not"
