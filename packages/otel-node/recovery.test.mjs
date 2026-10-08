@@ -10,6 +10,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
+import {records, attributes, field} from './test/otlp-fixture.mjs';
 
 const url = path => new URL(path, import.meta.url).href;
 const runtime = {
@@ -86,6 +87,15 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
     assert.deepEqual(approved.rows, expectedRows);
     assert.ok(packets.some(packet => packet.body.includes(Buffer.from('actql.model.attempt_cid'))),
       'the physical Model attempt uses its Owner-issued identity');
+    if (sampled) {
+      const calls = records(packets, 'traces').filter(record =>
+        attributes(record, 9)['actql.event'] === 'transport_completed');
+      assert.equal(calls.length, 1, 'one actual invoke produces one measured interval');
+      assert.equal(field(calls[0], 6), 3n, 'Model physical invocation is CLIENT, not HTTPS ingress');
+      assert.equal(attributes(calls[0], 9)['actql.outcome'], 'confirmed',
+        'returned is a physical observation, not Run or capture success');
+      assert.match(attributes(calls[0], 9)['actql.model.attempt_cid'], /^sha256:[a-f0-9]{64}$/u);
+    }
     const approvedBudget = custody(root, db => db.prepare('SELECT records, bytes FROM client_observation_runs').get());
     assert.ok(approvedBudget.records > waitingBudget.records);
     assert.ok(approvedBudget.bytes > waitingBudget.bytes);
@@ -98,6 +108,9 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
     const replayed = await phase(root, transport, endpoint, 'resume-again', flags);
     assert.deepEqual(replayed.rows, expectedRows);
     assert.equal(replayed.calls, 1, 'observation/recovery never resends the Model call');
+    if (sampled) assert.equal(records(packets, 'traces').filter(record =>
+      attributes(record, 9)['actql.event'] === 'transport_completed').length, 1,
+    'a saved response replay cannot manufacture another physical interval');
     if (transport === 'local') {
       custody(root, db => db.exec('DELETE FROM client_observation_runs'));
       const withoutBudget = await phase(root, transport, endpoint, 'resume-again',

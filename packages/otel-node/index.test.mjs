@@ -203,6 +203,30 @@ test('measured Source and Model attempts use standard CLIENT span kind', async t
   for (const span of spans) assert.equal(field(span, 6), 3n);
 });
 
+test('physical intervals inside HTTPS retain CLIENT kind without duplicate logs', async t => {
+  const sink = await collector(t);
+  const adapter = createNodeHostObservability({endpoint: sink.endpoint,
+    logs: {endpoint: `${sink.endpoint}/v1/logs`}});
+  const observer = installHostObservation(adapter.connection);
+  t.after(async () => { await observer.close(); await adapter.close(); });
+  await observer.run('submit', parent, () => {
+    observer.emit('infer', 'transport_completed', {outcome: 'confirmed'},
+      {segment: 'physical', durationMs: 1});
+    observer.emit('source', 'acquisition_interval', {},
+      {segment: 'acquisition', durationMs: 1});
+  }, {http: {method: 'POST', response: {statusCode: 200}}});
+  await observer.close();
+  const spans = records(sink.packets, 'traces');
+  assert.equal(spans.length, 3);
+  for (const event of ['transport_completed', 'acquisition_interval']) {
+    const interval = spans.find(span => attributes(span, 9)['actql.event'] === event);
+    assert.ok(interval);
+    assert.equal(field(interval, 6), 3n);
+    assert.equal(attributes(interval, 9)['http.request.method'], undefined);
+  }
+  assert.equal(records(sink.packets, 'logs').length, 0);
+});
+
 test('execution intervals do not duplicate discrete Owner logs', async t => {
   const sink = await collector(t);
   const adapter = createNodeHostObservability({endpoint: sink.endpoint,

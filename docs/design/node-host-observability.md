@@ -12,7 +12,8 @@ Native, Workers and hosted multi-tenant export are not supported by this adapter
 | Pre-Run check verdict | Common checker through `prepareSource` | After check returns; no invented Run or valid Program CID |
 | Run admission | `client-request-journal.acceptDefinition` | After semantic admission commit; only a new admission initializes optional consumption |
 | Task activation/completion | `strategy` activation and checked completion | Bounded internal hook after the confirmed operation; no output handle passed to exporters |
-| Model physical attempt | `installed-model-continuation` / Checkpoint journal | After entry/observation receipt; actual task, slot, attempt and attempt CID |
+| Model physical attempt | MoonBit `model_execution` actual invoke / installed clock adapter | Paired physical facts around provider or preflight invoke; exact Owner attempt CID; no approval, capture, or replay time |
+| Source acquisition interval | Existing selected Source adapter `open` | Inclusive acquisition time, including its validation/retention; not an inferred HTTP/DB request count or transport-only latency |
 | Effect application | Common Set receipt / publication disposition through the installed Effect Site | Confirmed application fact with the original Run ref; interrupted adapters cannot supply a semantic outcome |
 | Approval waiting | Dispatch owner with retained Checkpoint | Waiting event, not inferred permission or a long-lived span |
 | Resolution | Installed Checkpoint owner | Committed resolution and original Run ref, not automatically resumed execution |
@@ -34,6 +35,11 @@ work/accounting is not inferred from these clocks.
 Measured Source/Model attempts use standard CLIENT span kind. Finite interval
 boundaries do not duplicate lifecycle logs or spend the discrete-log allowance
 merely because a caller polls status.
+The Model clock hook receives only the common Owner's slot, attempt CID and
+physical disposition. It is an installed internal adapter, not an application
+processor, and cannot issue authority or replace the durable entry callback.
+An observed returned response does not certify valid content, capture or
+publication. Elapsed time does not fill unknown billable duration or usage.
 
 The common projection copies fixed fields into a bounded queue and delivers
 after `setImmediate`. The Host does not import an OTel SDK. SDK/HTTP propagation
@@ -75,6 +81,15 @@ mandatory atomic commit. Only a newly inserted Run may initialize consumption.
 An idempotent submit, recovery or changed observation setting cannot replenish
 it. Unconfirmed telemetry consumption disables further Run projection; Run
 execution, capture, publication and cleanup continue under their existing Owners.
+MoonBit defines equivalence of the already verified Run outcome, revision,
+cleanup-pending and physical-stop facts. The optional SQLite custody keeps the
+last bounded key atomically with consumed observation count/bytes. An unchanged
+poll emits no new Owner event, including after restart or at an exhausted
+allowance. Independent changes remain observable. Finite public request spans
+still measure the actual requests. This diagnostic key is not a semantic CID.
+An unavailable older optional custody layout or damaged cursor disables extra
+observations; it is not migrated by resetting consumption. The semantic request
+and Run records remain unchanged.
 
 Caller SpanContext stores only fixed-size IDs and sampling flags. It is never
 authority and contains no baggage/tracestate. Recovery starts a new finite

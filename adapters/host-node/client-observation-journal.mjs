@@ -6,13 +6,16 @@ import {snapshotObservationContext} from '../host-common/observation.mjs';
 const version = 'actql-client-observation-custody/0.1';
 const columns = ['namespace_id', 'authority_scope_cid', 'run_definition_cid',
   'caller_request_id', 'scope', 'configuration_revision', 'context_json',
-  'records', 'bytes'].sort();
+  'records', 'bytes', 'owner_fact_key'].sort();
 const safe = value => Number.isSafeInteger(value) && value >= 0;
 const cid = value => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
 const label = value => typeof value === 'string' && /^[a-zA-Z0-9._/-]{1,64}$/u.test(value);
 const validRef = ref => typeof ref?.namespaceId === 'string' &&
   ref.namespaceId.length <= 256 && cid(ref.authorityScopeCid) && cid(ref.runDefinitionCid);
 const fail = () => { throw new Error('ObservationBudgetUnavailable'); };
+// A physical storage bound, not the Run outcome or equivalence classifier.
+const factKey = value => typeof value === 'string' && value.length <= 64 &&
+  /^[a-z_]{1,24};(?:0|[1-9][0-9]{0,15});[01?];[01?]$/u.test(value);
 
 export function openClientObservationStorage(database, transaction) {
   const tables = database.prepare(`SELECT name FROM sqlite_master WHERE
@@ -29,7 +32,7 @@ export function openClientObservationStorage(database, transaction) {
         run_definition_cid TEXT NOT NULL, caller_request_id TEXT NOT NULL,
         scope TEXT NOT NULL, configuration_revision TEXT NOT NULL,
         context_json TEXT, records INTEGER NOT NULL CHECK (records >= 0),
-        bytes INTEGER NOT NULL CHECK (bytes >= 0),
+        bytes INTEGER NOT NULL CHECK (bytes >= 0), owner_fact_key TEXT,
         PRIMARY KEY (namespace_id, authority_scope_cid, run_definition_cid)
       ) STRICT;
     `));
@@ -45,7 +48,9 @@ export function openClientObservationStorage(database, transaction) {
     run_definition_cid, caller_request_id, scope, configuration_revision,
     CASE WHEN length(context_json) <= 256 THEN context_json
       WHEN context_json IS NULL THEN NULL ELSE 'invalid' END AS context_json,
-    records, bytes FROM client_observation_runs
+    records, bytes, CASE WHEN length(owner_fact_key) <= 64 THEN owner_fact_key
+      WHEN owner_fact_key IS NULL THEN NULL ELSE 'invalid' END AS owner_fact_key
+    FROM client_observation_runs
     WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`);
   const args = ref => [ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid];
   return Object.freeze({
@@ -61,19 +66,21 @@ export function openClientObservationStorage(database, transaction) {
         if (database.prepare('SELECT count(*) AS n FROM client_observation_runs').get().n >= maxRuns) fail();
         const observed = snapshotObservationContext(context);
         database.prepare(`INSERT INTO client_observation_runs VALUES
-          (?, ?, ?, ?, ?, ?, ?, 0, 0)`).run(...args(ref), requestId, scope,
+          (?, ?, ?, ?, ?, ?, ?, 0, 0, NULL)`).run(...args(ref), requestId, scope,
           revision, observed === undefined ? null : JSON.stringify(observed));
       });
     },
-    consume({ref, scope, revision, bytes, maxRecords, maxBytes}) {
+    consume({ref, scope, revision, bytes, maxRecords, maxBytes, ownerFactKey}) {
       if (!validRef(ref) || !label(scope) || !label(revision) || !safe(bytes) ||
-        !safe(maxRecords) || !safe(maxBytes)) fail();
+        !safe(maxRecords) || !safe(maxBytes) ||
+        ownerFactKey !== undefined && !factKey(ownerFactKey)) fail();
       return transaction.run(() => {
         const row = select.get(...args(ref));
         const original = retained.get(...args(ref));
         if (!row || row.caller_request_id !== original?.caller_request_id ||
           row.scope !== scope || row.configuration_revision !== revision ||
-          !safe(row.records) || !safe(row.bytes)) return undefined;
+          !safe(row.records) || !safe(row.bytes) ||
+          row.owner_fact_key !== null && !factKey(row.owner_fact_key)) return undefined;
         let context;
         if (row.context_json !== null) {
           try {
@@ -82,12 +89,16 @@ export function openClientObservationStorage(database, transaction) {
             if (context === undefined || JSON.stringify(context) !== row.context_json) return undefined;
           } catch { return undefined; }
         }
+        if (ownerFactKey !== undefined && row.owner_fact_key === ownerFactKey) {
+          return Object.freeze({accepted: false, repeated: true});
+        }
         if (row.records >= maxRecords || bytes > maxBytes - row.bytes) {
           return Object.freeze({accepted: false});
         }
         database.prepare(`UPDATE client_observation_runs SET records = records + 1,
-          bytes = bytes + ? WHERE namespace_id = ? AND authority_scope_cid = ?
-          AND run_definition_cid = ?`).run(bytes, ...args(ref));
+          bytes = bytes + ?, owner_fact_key = COALESCE(?, owner_fact_key)
+          WHERE namespace_id = ? AND authority_scope_cid = ?
+          AND run_definition_cid = ?`).run(bytes, ownerFactKey ?? null, ...args(ref));
         return Object.freeze({accepted: true, context});
       });
     },

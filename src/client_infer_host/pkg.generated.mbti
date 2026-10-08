@@ -41,6 +41,8 @@ pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun
 
 pub fn bind_model_dispatch(Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> Bool) -> Result[Unit, InvocationBindingIssue]
 
+pub fn bind_model_observation(Execution, @model_execution.ModelPreparedCallSet, (@model_execution.ModelPhysicalObservation) -> Unit) -> Bool
+
 pub fn bind_model_scope(Execution, @model_execution.ModelPreparedCallSet, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, InvocationBindingIssue]
 
 pub fn bind_physical_preflight(Execution, (@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue]) -> Result[Unit, Issue]

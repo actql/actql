@@ -2284,6 +2284,24 @@ pub fn client_program_infer_call_entry_originals(
 }
 
 ///|
+#export_name("clientProgramBindInferModelObservation")
+pub fn client_program_bind_infer_model_observation(
+  active : @infer_host.Execution,
+  prepared : @model.ModelPreparedCallSet,
+  observe : (@model.ModelPhysicalObservation) -> Unit,
+) -> Bool {
+  @infer_host.bind_model_observation(active, prepared, observe)
+}
+
+///|
+#export_name("clientProgramInferPhysicalObservationFacts")
+pub fn client_program_infer_physical_observation_facts(
+  value : @model.ModelPhysicalObservation,
+) -> (Int, String, String, String) {
+  @model.model_physical_observation_facts(value)
+}
+
+///|
 #export_name("clientProgramInferCallEntryCurrent")
 pub fn client_program_infer_call_entry_current(
   value : @model.ModelCallEntry,
