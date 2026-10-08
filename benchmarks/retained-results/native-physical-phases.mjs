@@ -44,13 +44,14 @@ export function nativePreparationObservations(stdout, expectedReadOnly) {
 }
 
 export function admitNativePhysicalPhases({events, ownerCorrespondence, taskIntervals,
-  cleanupMicroseconds}) {
+  cleanupMicroseconds, cleanupRetry = false}) {
   assert(Array.isArray(events), 'MissingNativePhysicalPhaseEvents');
   const choices = ownerCorrespondence.observations.choices;
   const attempts = ownerCorrespondence.attempts;
   const durations = new Map(taskIntervals.map(item => [item.task, item.elapsedMicroseconds]));
   const intervals = [];
   const taskExecutionIntervals = [], taskReleaseIntervals = [], environmentCleanupIntervals = [];
+  const failedTaskReleaseIntervals = [];
   let previous = -1;
   const pending = [];
   let cleanup = false, cleanupRank = -1;
@@ -83,7 +84,10 @@ export function admitNativePhysicalPhases({events, ownerCorrespondence, taskInte
         else {
           cleanup = true;
           const rank = cleanupPhases.indexOf(event.phase);
-          assert(rank >= cleanupRank, 'NativeCleanupPhaseOrderMismatch');
+          assert(rank >= cleanupRank || (cleanupRetry && event.phase === 'task-release' &&
+            failedTaskReleaseIntervals.some(item => item.task === event.task) &&
+            !taskReleaseIntervals.some(item => item.task === event.task)),
+          'NativeCleanupPhaseOrderMismatch');
           cleanupRank = rank;
         }
       }
@@ -91,13 +95,17 @@ export function admitNativePhysicalPhases({events, ownerCorrespondence, taskInte
     } else {
       const begin = pending.pop();
       assert(begin && sameBoundary(begin, event), 'UnmatchedNativePhysicalPhaseEnd');
-      assert.equal(event.success, true, 'FailedNativePhysicalPhase');
+      assert(event.success === true || (cleanupRetry && event.phase === 'task-release' &&
+        event.success === false && !failedTaskReleaseIntervals.some(item => item.task === event.task)),
+      'FailedNativePhysicalPhase');
       const destination = event.phase === 'task' ? taskExecutionIntervals :
-        event.phase === 'task-release' ? taskReleaseIntervals :
+        event.phase === 'task-release' ? event.success === false ? failedTaskReleaseIntervals : taskReleaseIntervals :
           environmentCleanup ? environmentCleanupIntervals : intervals;
       destination.push({phase: event.phase, task: event.task, producer: event.producer,
         elapsedMicroseconds: event.elapsedMicroseconds - begin.elapsedMicroseconds,
-        clockObservationMicroseconds: begin.observerMicroseconds + event.observerMicroseconds});
+        clockObservationMicroseconds: begin.observerMicroseconds + event.observerMicroseconds,
+        ...(cleanupRetry && event.phase === 'task-release' ? {success:event.success,
+          beganAtMicroseconds:begin.elapsedMicroseconds,endedAtMicroseconds:event.elapsedMicroseconds} : {})});
     }
   }
   assert.equal(pending.length, 0, 'UnclosedNativePhysicalPhase');
@@ -105,6 +113,15 @@ export function admitNativePhysicalPhases({events, ownerCorrespondence, taskInte
     'NativeTaskExecutionPhaseCountMismatch');
   assert.deepEqual(taskReleaseIntervals.map(item => item.task).sort((a, b) => a - b),
     attempts.map(item => item.task).sort((a, b) => a - b), 'NativeTaskReleasePhaseCountMismatch');
+  if (cleanupRetry) {
+    assert.deepEqual(failedTaskReleaseIntervals.map(item => item.task).sort((a,b)=>a-b),
+      attempts.map(item => item.task).sort((a,b)=>a-b), 'NativeFailedReleasePhaseCountMismatch');
+    for (const failed of failedTaskReleaseIntervals) {
+      const retry=taskReleaseIntervals.find(item=>item.task===failed.task);
+      assert(retry && retry.beganAtMicroseconds >= failed.endedAtMicroseconds,
+        'NativeReleaseRetryWithoutPriorFailure');
+    }
+  }
   for (const attempt of attempts) {
     const phases = intervals.filter(item => item.task === attempt.task);
     const ranks = phases.map(item => ['environment', 'import', 'compute'].indexOf(item.phase));
@@ -129,11 +146,13 @@ export function admitNativePhysicalPhases({events, ownerCorrespondence, taskInte
   for (const phase of ['environment-close', 'environment-release']) assert.deepEqual(
     environmentCleanupIntervals.filter(item => item.phase === phase).map(item => item.producer),
     Array.from({length: environments}, (_, index) => index), 'NativeEnvironmentCleanupCountMismatch');
-  const cleanupSpan = [...taskReleaseIntervals, ...environmentCleanupIntervals]
+  const cleanupSpan = [...taskReleaseIntervals, ...failedTaskReleaseIntervals, ...environmentCleanupIntervals]
     .reduce((sum, item) => sum + item.elapsedMicroseconds, 0);
   assert(safe(cleanupMicroseconds) && safe(cleanupSpan) && cleanupSpan <= cleanupMicroseconds,
     'NativePhysicalPhasesExceedCleanupInterval');
   return Object.freeze({intervals, taskExecutionIntervals, taskReleaseIntervals, environmentCleanupIntervals,
+    ...(cleanupRetry ? {failedTaskReleaseIntervals,
+      cleanupStatus:'failed-task-releases-followed-by-confirmed-retries'} : {}),
     scope: 'selected physical task execution (nested preparation/import/Compute), task-owner release and resident environment close/release; excludes planner and common Run/acquisition cleanup',
     observerCostScope: 'clock observation only; buffering/callback overhead remains in process time and requires off/on measurement'});
 }
