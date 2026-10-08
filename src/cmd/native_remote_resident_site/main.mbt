@@ -3865,8 +3865,9 @@ fn restore_holder_attempt(
 ///|
 /// One explicitly selected saved dispatch; no poll, materials preparation,
 /// execution claim, or Output replay is reachable from this operation.
-/// Any outstanding publication custody refuses rather than reclaiming other
-/// attempts. An unconfirmed observation can be sent again on the next call.
+/// After the original Output ACK, recover only this dispatch's payloads through
+/// their existing cleanup Owner. Other attempts' custody still refuses release.
+/// An unconfirmed observation can be sent again on the next call.
 fn recover_release_command(
   matches : @argparse.Matches,
   child : @argparse.Matches,
@@ -3916,10 +3917,6 @@ fn recover_release_command(
   let owner = open_release_recovery(matches, slot, identity)
   owner.recorded_source = recorded_source
   owner.recorded_consumer = recorded_consumer
-  match owner.journal.pending_output_intents() {
-    Ok(values) if values.is_empty() => ()
-    _ => stop("release recovery Output custody pending")
-  }
   let mut cursor = ""
   while true {
     match owner.journal.output_report_after(cursor) {
@@ -3937,6 +3934,18 @@ fn recover_release_command(
       Err(_) => stop("release recovery Output acknowledgement unreadable")
     }
   }
+  match
+    @resident_host.begin_resident_output_release(
+      owner.journal,
+      delegation(matches, budget(matches)),
+      environment.site_generation,
+      request,
+    ) {
+    Ok(_) => ()
+    // Preserve the existing cancelled/unstarted cleanup dispositions.
+    Err(@resident_host.OutputUnavailable) => ()
+    Err(_) => stop("release recovery release persistence unconfirmed")
+  }
   let store = match
     @publication_store.open_store(
       environment.sqlite_library,
@@ -3949,12 +3958,21 @@ fn recover_release_command(
     Ok(value) => value
     Err(_) => stop("release recovery publication Store unavailable")
   }
+  let reclaimed = @resident_host.reclaim_resident_dispatch_output_intents(
+    owner.journal,
+    store,
+    request,
+  )
+  let intents_empty = match owner.journal.pending_output_intents() {
+    Ok(values) => values.is_empty()
+    Err(_) => false
+  }
   let empty = match store.capacity_usage() {
     Ok(value) => value.reserved_bytes == 0L && value.reserved_objects == 0L
     Err(_) => false
   }
   let closed = store.close()
-  if !empty || !(closed is Ok(true)) {
+  if !(reclaimed is Ok(0)) || !intents_empty || !empty || !(closed is Ok(true)) {
     stop("release recovery publication custody unconfirmed")
   }
   let retained : Ref[StoppedReleaseRecovery?] = { val: Some(owner), }
