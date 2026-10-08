@@ -891,8 +891,18 @@ fn append_expression(
   input : Input,
   fields : Array[String],
   max_work : Int,
+  private_columns? : Array[(String, String)] = [],
 ) -> @builder.Node raise Abort {
-  let resolve = path => resolve_column(path, query, input, fields)
+  let resolve = fn(path : Array[@query.NamePart]) -> String? {
+    if path.length() == 1 {
+      for (name, slot) in private_columns {
+        if path[0].value == name {
+          return Some(slot)
+        }
+      }
+    }
+    resolve_column(path, query, input, fields)
+  }
   let lowered = if input.graph_bindings.is_empty() {
     @expression.append_with_properties(
       expression,
@@ -1212,6 +1222,7 @@ fn lower_aggregate_resolved(
   max_collection_items : Int64,
   max_collection_bytes : Int64,
   order_fields? : Array[String]? = None,
+  analytic? : Bool = false,
 ) -> @builder.Node raise Abort {
   let name = match call.function_name {
     "COUNT" => "count"
@@ -1336,7 +1347,9 @@ fn lower_aggregate_resolved(
         ]),
       )
     }
-    entries.push(("order_by", construction.array(order)))
+    if !analytic {
+      entries.push(("order_by", construction.array(order)))
+    }
   }
   match call.delimiter {
     Some(delimiter) => entries.push(("delimiter", construction.text(delimiter)))
@@ -1408,6 +1421,7 @@ fn lower_analytic_call(
   call : @query.AnalyticCall,
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
+  max_collection_bytes : Int64,
 ) -> @builder.Node raise Abort {
   match call.aggregate {
     Some(aggregate) => {
@@ -1416,12 +1430,26 @@ fn lower_analytic_call(
       }
       if ![
           "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "VAR_POP", "VAR_SAMP",
-          "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
+          "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV", "STRING_AGG",
         ].contains(aggregate.function_name) {
         raise Abort(UnsupportedAnalytic)
       }
+      if aggregate.function_name == "STRING_AGG" &&
+        (
+          aggregate.distinct ||
+          aggregate.filter is Some(_) ||
+          !aggregate.order_by.is_empty()
+        ) {
+        raise Abort(UnsupportedAnalytic)
+      }
       lower_aggregate_resolved(
-        construction, aggregate, resolve, max_work, 0L, 0L,
+        construction,
+        aggregate,
+        resolve,
+        max_work,
+        0L,
+        max_collection_bytes,
+        analytic=true,
       )
     }
     None => {
@@ -1565,6 +1593,7 @@ fn lower_analytic(
   projections : Array[@query.Projection],
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
+  max_collection_bytes : Int64,
   reserved : Array[String],
   evaluated : Array[(@query.Expression, String)],
   derives : Array[(String, @builder.Node)],
@@ -1613,6 +1642,7 @@ fn lower_analytic(
           projection.analytic.unwrap(),
           resolve,
           max_work,
+          max_collection_bytes,
         ),
       ),
     )
@@ -1750,6 +1780,7 @@ fn compile_steps(
   let mut sql_group_selected_projections : Array[@query.Projection] = []
   let having_values : Array[(@query.Expression, String)] = []
   let analytic_outputs : Array[(String, String)] = []
+  let analytic_expression_bindings : Array[(String, String)] = []
   let mut analytic_input_fields : Array[String]? = None
   let mut analytic_input_scope : JoinChainScope? = None
   let qualify_values : Array[(@query.Expression, String)] = []
@@ -3329,7 +3360,7 @@ fn compile_steps(
                   append_pipe_expression(
                     construction,
                     expression,
-                    input_scope.visible,
+                    input_scope.visible + analytic_expression_bindings,
                     input_scope.ranges,
                     max_work,
                   ),
@@ -3388,7 +3419,12 @@ fn compile_steps(
         }
         entries.push(("filter", value))
       }
-      Analytic(projections) => {
+      Analytic(projections) | AnalyticExpressions(projections, _) => {
+        let private_names = match operation {
+          AnalyticExpressions(_, names) => names
+          _ => []
+        }
+        analytic_expression_bindings.clear()
         let projections = expanded_replacement_projections(
           query,
           projections,
@@ -3466,6 +3502,12 @@ fn compile_steps(
           }
           active_fields.push(slot)
         }
+        for name in private_names {
+          guard analytic_output_slot(name.value, analytic_outputs) is Some(slot) else {
+            raise Abort(UnsupportedAnalytic)
+          }
+          analytic_expression_bindings.push((name.value, slot))
+        }
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
           if pipe_changed || pipe_rebound {
             pipe_slot(
@@ -3484,7 +3526,8 @@ fn compile_steps(
         for group in groups {
           operations.push(
             lower_analytic(
-              construction, group, resolve, max_work, reserved, evaluated, derives,
+              construction, group, resolve, max_work, max_collection_bytes, reserved,
+              evaluated, derives,
             ),
           )
         }
@@ -3517,12 +3560,14 @@ fn compile_steps(
           )
         }
         let expression_scope = if sql_group_projection {
-          sql_group_select_scope.unwrap()
+          let scope = sql_group_select_scope.unwrap()
+          { ..scope, visible: scope.visible + analytic_expression_bindings, }
         } else {
           {
             visible: unnest_expression_columns(
               pipe_visible, value_table_receivers,
-            ),
+            ) +
+            analytic_expression_bindings,
             ranges: pipe_ranges,
           }
         }
@@ -3907,13 +3952,19 @@ fn compile_steps(
                             input_scope.ranges,
                           )
                         },
-                        scope.visible,
+                        scope.visible + analytic_expression_bindings,
                         scope.ranges,
                         max_work,
                       )
                     } else {
                       append_expression(
-                        construction, expression, query, input, select_fields, max_work,
+                        construction,
+                        expression,
+                        query,
+                        input,
+                        select_fields,
+                        max_work,
+                        private_columns=analytic_expression_bindings,
                       )
                     },
                   ),
@@ -4376,6 +4427,7 @@ fn compile_steps(
       analytic_input_scope = None
       qualify_values.clear()
       analytic_outputs.clear()
+      analytic_expression_bindings.clear()
       if pending_select is None {
         value_table_receivers = []
         // A projected table has its own columns. Input ranges are needed only

@@ -433,6 +433,7 @@ pub(all) enum QueryOperation {
   Having(Expression, Array[(NamePart, AggregateCall)])
   Qualify(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
+  AnalyticExpressions(Array[Projection], Array[NamePart])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
   Limit(QueryInteger, QueryInteger)

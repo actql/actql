@@ -77,9 +77,10 @@ fn create_values_wire_limit_metered(
   if limits.max_candidates < 1 {
     return Err(Admission(@wire.BudgetExceeded))
   }
-  let requirements = bound.cells.requirements
-  let policy = @environment.capacity_policy(requirements.capacity)
-  let subject = "values:checked-step:" + bound.site.step.to_string() + ":wire"
+  let policy = values_resource_policy(bound.owner)
+  let subject = "values:checked-step:" +
+    values_resource_step(bound.owner).to_string() +
+    ":wire"
   let claims = match
     @wire.check_arithmetic_claims([@wire.program_proof_witness(bound.proof)], {
       max_witnesses: 1,

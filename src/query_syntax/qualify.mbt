@@ -4,6 +4,17 @@
 fn QueryParser::qualify_expression(
   self : QueryParser,
 ) -> (Expression, Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
+  self.window_expression("aql_qualify_call_")
+}
+
+///|
+// SELECT and QUALIFY extract calls through one bounded primary callback.
+// Generated names avoid every authored identifier in the original token stream.
+fn QueryParser::window_expression(
+  self : QueryParser,
+  prefix : String,
+  aggregate_prefix? : String? = None,
+) -> (Expression, Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let windows : Array[Projection] = []
   let calls : Array[(NamePart, AggregateCall)] = []
   let serial = [self.synthetic_sources]
@@ -55,7 +66,13 @@ fn QueryParser::qualify_expression(
       } else {
         (Some(parser.expression()), None)
       }
-      let name = parser.fresh_producer("aql_qualify_call_")
+      let name = parser.fresh_producer(
+        if parser.has("OVER") {
+          prefix
+        } else {
+          aggregate_prefix.unwrap_or(prefix)
+        },
+      )
       if parser.has("OVER") {
         let window = parser.over()
         windows.push({
@@ -70,10 +87,7 @@ fn QueryParser::qualify_expression(
       } else if aggregate is Some(call) {
         calls.push((name, call))
       } else {
-        raise QueryAbort(
-          "QUALIFY window call requires OVER",
-          parser.peek().start,
-        )
+        raise QueryAbort("Window call requires OVER", parser.peek().start)
       }
       serial[0] = parser.synthetic_sources
       syntax_nodes[0] += parser.syntax_nodes
