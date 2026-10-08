@@ -46,7 +46,8 @@ function requestRows(path) {
 }
 
 for (const [transport, mode] of [['local', 'normal'], ['https', 'normal'],
-  ['local', 'export-failure'], ['local', 'overflow'], ['local', 'disabled']]) {
+  ['local', 'export-failure'], ['local', 'overflow'], ['local', 'disabled'],
+  ['https', 'unsampled-parent']]) {
 test(`public ${transport} Host: ${mode} observations preserve execution`, async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-otel-public-'));
   const sink = await collect(t, mode === 'export-failure');
@@ -75,7 +76,8 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
     await host?.close(); await adapter.close();
     await rm(root, {recursive: true, force: true});
   });
-  let current = trace.setSpanContext(ROOT_CONTEXT, parent);
+  const caller = {...parent, traceFlags: mode === 'unsampled-parent' ? 0 : 1};
+  let current = trace.setSpanContext(ROOT_CONTEXT, caller);
   current = propagation.setBaggage(current, propagation.createBaggage({secret: {value: sentinel}}));
   await context.with(current, async () => {
     if (transport === 'https') {
@@ -134,7 +136,8 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
   assert.equal(logs.includes(Buffer.from('actql.check.verdict')), true);
   assert.equal(logs.includes(Buffer.from('invalid')), true);
   assert.equal(sink.packets.some(packet => packet.path === '/v1/traces' &&
-    packet.body.includes(Buffer.from(parent.traceId, 'hex'))), true, 'caller trace reaches Host');
+    packet.body.includes(Buffer.from(parent.traceId, 'hex'))), mode !== 'unsampled-parent',
+    'caller sampling decision reaches Host without affecting execution');
   for (const packet of sink.packets) {
     assert.equal(packet.body.includes(Buffer.from(sentinel)), false, packet.path);
     if (packet.path === '/v1/metrics') assert.equal(packet.body.includes(Buffer.from('actql.run.id')), false);

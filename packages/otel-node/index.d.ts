@@ -35,7 +35,7 @@ export declare function createNodeHostObservability(options?: NodeHostObservatio
     disclosure: 'metadata-only'; scope: string; revision: string;
     schemaUrl: string; sdk: string; signals: Readonly<Record<string,
       Readonly<{enabled: boolean; destination?: 'explicit';
-        sampler?: 'traceidratio'; sampleRate?: number}>>>;
+        sampler?: 'parentbased_traceidratio'; sampleRate?: number}>>>;
     operations: readonly ObservationOperation[]; correlation: boolean;
     limits: Readonly<ObservationLimits>; transportLimits: Readonly<Record<string, number>>}>;
   status(): Readonly<{profile: 'managed' | 'application-owned';

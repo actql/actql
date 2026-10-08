@@ -53,6 +53,28 @@ function fields(input) {
 }
 const field = (input, number) => fields(input).find(item => item.number === number)?.value;
 
+function assertNoMetricExemplars(packets) {
+  let points = 0;
+  for (const packet of packets.filter(item => item.path === '/v1/metrics')) {
+    for (const resource of fields(packet.body).filter(item => item.number === 1)) {
+      for (const scope of fields(resource.value).filter(item => item.number === 2)) {
+        for (const metric of fields(scope.value).filter(item => item.number === 2)) {
+          // OTLP Gauge/Sum, Histogram and ExponentialHistogram data points.
+          for (const [kind, exemplar] of [[5, 5], [7, 5], [9, 10], [10, 11]]) {
+            const data = field(metric.value, kind);
+            if (data === undefined) continue;
+            for (const point of fields(data).filter(item => item.number === 1)) {
+              points++;
+              assert.equal(field(point.value, exemplar), undefined);
+            }
+          }
+        }
+      }
+    }
+  }
+  assert.ok(points > 0, 'inspect actual exported metric data points');
+}
+
 test('managed SDK exports real protobuf with caller correlation and no content in any signal', async t => {
   const sink = await collector(t);
   const adapter = createNodeHostObservability({endpoint: sink.endpoint,
@@ -86,6 +108,49 @@ test('managed SDK exports real protobuf with caller correlation and no content i
     assert.equal(metric.body.includes(Buffer.from('actql.run.definition_cid')), false);
   }
   assert.equal(adapter.status().projection.deliveryFailed, 0);
+  assertNoMetricExemplars(sink.packets);
+});
+
+for (const [traceFlags, sampleRate, sampled] of [[0, 0, false], [0, 1, false],
+  [1, 0, true], [1, 1, true]]) {
+  test(`parent sampled=${traceFlags} overrides root ratio=${sampleRate}`, async t => {
+    const sink = await collector(t);
+    const adapter = createNodeHostObservability({
+      traces: {endpoint: `${sink.endpoint}/v1/traces`, sampleRate},
+      metrics: {endpoint: `${sink.endpoint}/v1/metrics`},
+      logs: {endpoint: `${sink.endpoint}/v1/logs`},
+    });
+    const observer = installHostObservation(adapter.connection);
+    t.after(async () => { await observer.close(); await adapter.close(); });
+    await observer.run('check', {...parent, traceFlags}, () => 42);
+    await observer.close();
+    assert.equal(sink.packets.some(item => item.path === '/v1/traces'), sampled);
+    assert.ok(sink.packets.some(item => item.path === '/v1/logs'));
+    assertNoMetricExemplars(sink.packets);
+    assert.equal(adapter.configuration().signals.traces.sampler, 'parentbased_traceidratio');
+  });
+}
+
+test('HTTP server spans use fixed route names and status-specific standard errors', async t => {
+  const sink = await collector(t);
+  const adapter = createNodeHostObservability({endpoint: sink.endpoint});
+  const observer = installHostObservation(adapter.connection);
+  t.after(async () => { await observer.close(); await adapter.close(); });
+  for (const statusCode of [422, 503]) {
+    await observer.run('http', parent, () => 42,
+      {http: {method: 'POST', response: {statusCode}}});
+  }
+  await observer.close();
+  const spans = sink.packets.filter(item => item.path === '/v1/traces')
+    .map(packet => field(field(field(packet.body, 1), 2), 2));
+  assert.equal(spans.length, 2);
+  for (const span of spans) {
+    assert.equal(field(span, 5).toString(), 'POST /actql/client/0.1/{operation}');
+    assert.equal(field(span, 6), 2n);
+  }
+  const clientErrorStatus = field(spans[0], 15);
+  assert.equal(clientErrorStatus === undefined ? 0n : field(clientErrorStatus, 3) ?? 0n, 0n);
+  assert.equal(field(field(spans[1], 15), 3), 2n);
 });
 
 test('trace export failure does not disable logs or metrics or change execution', async t => {

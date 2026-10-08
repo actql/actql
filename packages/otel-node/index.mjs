@@ -1,6 +1,6 @@
 import {context, trace, ROOT_CONTEXT, SpanKind, SpanStatusCode} from '@opentelemetry/api';
 import {SeverityNumber} from '@opentelemetry/api-logs';
-import {TracerProvider, TraceIdRatioBasedSampler} from '@opentelemetry/sdk-trace';
+import {TracerProvider, ParentBasedSampler, TraceIdRatioBasedSampler} from '@opentelemetry/sdk-trace';
 import {LoggerProvider} from '@opentelemetry/sdk-logs';
 import {MeterProvider, MetricReader, AggregationTemporality} from '@opentelemetry/sdk-metrics';
 import {resourceFromAttributes} from '@opentelemetry/resources';
@@ -38,7 +38,9 @@ export function createNodeHostObservability(options = {}) {
   const logProcessor = {onEmit: log => { emittedLog = log; }, forceFlush: empty, shutdown: empty};
   const ownedTrace = config.signals.traces === undefined ? undefined : new TracerProvider({
     resource, spanProcessors: [traceProcessor],
-    sampler: new TraceIdRatioBasedSampler(config.signals.traces.sampleRate),
+    sampler: new ParentBasedSampler({
+      root: new TraceIdRatioBasedSampler(config.signals.traces.sampleRate),
+    }),
     spanLimits: {attributeCountLimit: 24, attributeValueLengthLimit: 128,
       eventCountLimit: 1, linkCountLimit: 1, attributePerLinkCountLimit: 0,
       attributePerEventCountLimit: 0},
@@ -62,7 +64,8 @@ export function createNodeHostObservability(options = {}) {
   const currentContext = () => trace.getSpanContext(context.active());
   const revision = createHash('sha256').update(JSON.stringify({profile: config.applicationOwned,
     signals: config.signals, limits: config.limits, schemaUrl,
-    sdk: '2.12.0/0.223.0', revision: options.revision ?? 'otel-metadata/0.1',
+    sdk: '2.12.0/0.223.0', sampler: 'parentbased_traceidratio',
+    revision: options.revision ?? 'otel-metadata/0.1',
     disabled: ['traces', 'metrics', 'logs'].filter(key => options[key] === false)})).digest('hex');
   const connection = createHostObservationConnection({
     scope: options.scope ?? 'node', revision,
@@ -154,7 +157,7 @@ export function createNodeHostObservability(options = {}) {
         [signal, Object.freeze({enabled: ({traces: tracer, metrics: meter, logs: logger})[signal] !== undefined,
           destination: senders[signal] === undefined ? undefined : 'explicit',
           sampler: signal === 'traces' && config.signals.traces !== undefined
-            ? 'traceidratio' : undefined,
+            ? 'parentbased_traceidratio' : undefined,
           sampleRate: config.signals[signal]?.sampleRate})]))),
       transportLimits: config.limits}),
     status: () => Object.freeze({profile: config.applicationOwned ? 'application-owned' : 'managed',

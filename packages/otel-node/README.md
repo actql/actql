@@ -45,8 +45,10 @@ authorization. Baggage and tracestate are neither propagated nor persisted.
 - `traces`, `metrics` and `logs` each accept an explicit endpoint or `false`.
   The generic `endpoint` enables traces only and appends `/v1/traces`.
   A specific endpoint is used exactly. Nothing implicitly sends to localhost.
-- Trace sampling is the standard trace-ID ratio sampler (`sampleRate`, default
-  1). It is not error-based or parent-based sampling. Metrics/logs and Evidence
+- Trace sampling is standard parent-based sampling with trace-ID ratio for roots
+  (`sampleRate`, default 1). A valid parent's sampled flag is preserved, including
+  when the root ratio is zero. Explicit `traces: false` disables all traces.
+  It is not error-based sampling. Metrics/logs and Evidence
   are independent of trace sampling. Tail sampling is a Collector concern.
 - Default disclosure is metadata-only. Names/bodies are fixed operation/event
   labels. Managed Resource is fixed `service.name=actql.node-host`. No Program text,
