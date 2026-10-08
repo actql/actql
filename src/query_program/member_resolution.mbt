@@ -101,18 +101,42 @@ fn MemberResolution::copy(
   self : MemberResolution,
   cursor : @wire.Cursor,
 ) -> @builder.Source raise Abort {
-  let builder = member_construct(
-    @builder.create(self.document, self.limits.source),
-  )
-  let root = member_construct(
+  // Lend only the remaining node allowance to the common importer. Its
+  // scheduling guard refuses before building an over-budget child tree.
+  let allowance = self.work
+  self.work = 0
+  let copy_limits : @builder.Limits = {
+    ..self.limits.source,
+    source: {
+      ..self.limits.source.source,
+      max_nodes: self.limits.source.source.max_nodes.min(allowance),
+    },
+    tree: {
+      ..self.limits.source.tree,
+      max_nodes: self.limits.source.tree.max_nodes.min(allowance),
+    },
+  }
+  let builder = member_construct(@builder.create(self.document, copy_limits))
+  let root = match
     @builder.import_source(builder, self.source, cursor, replace_text=at => {
       self.replacements.get(
         @wire.tree_index(@builder.cursor(self.source), at).unwrap(),
       )
-    }),
-  )
+    }) {
+    Ok(root) => root
+    Err(@builder.NodeLimit) if allowance <
+      self.limits.source.source.max_nodes.min(self.limits.source.tree.max_nodes) =>
+      raise Abort(
+        Expression({
+          issue: @expression.WorkLimit,
+          origin: @builder.origin(self.source, cursor),
+        }),
+      )
+    Err(issue) => raise Abort(Construction(issue))
+  }
   let result = member_construct(@builder.finish(builder, root))
-  self.spend(cursor, @builder.usage(result).nodes)
+  // Return only unused lent work; failed imports retain their reservation.
+  self.work = allowance - @builder.usage(result).nodes
   result
 }
 
@@ -129,7 +153,11 @@ fn member_is_literal(source : @builder.Source, cursor : @wire.Cursor) -> Bool {
 }
 
 ///|
-fn has_authored_member(source : @builder.Source) -> Bool {
+fn MemberResolution::has_authored_member(
+  self : MemberResolution,
+) -> Bool raise Abort {
+  let source = self.source
+  self.spend(@builder.cursor(source), 1)
   let pending = [@builder.cursor(source)]
   while pending.pop() is Some(cursor) {
     if member_is_literal(source, cursor) {
@@ -143,14 +171,18 @@ fn has_authored_member(source : @builder.Source) -> Bool {
       return true
     }
     match @wire.view(cursor) {
-      ArrayValue(items) =>
+      ArrayValue(items) => {
+        self.spend(cursor, items.length())
         for item in items {
           pending.push(item)
         }
-      ObjectValue(_) =>
+      }
+      ObjectValue(_) => {
+        self.spend(cursor, @wire.object_length(cursor).unwrap())
         for index in 0..<@wire.object_length(cursor).unwrap() {
           pending.push(@wire.field_at(cursor, index).unwrap().1)
         }
+      }
       _ => ()
     }
   }
@@ -158,14 +190,24 @@ fn has_authored_member(source : @builder.Source) -> Bool {
 }
 
 ///|
-fn member_environment(
+fn MemberResolution::environment(
+  self : MemberResolution,
+  at : @wire.Cursor,
   rows : @schema.Schema?,
   declarations : @parameters.Declarations?,
-) -> @typing.Environment {
+) -> @typing.Environment raise Abort {
   let left = []
   let right = []
   if rows is Some(rows) {
-    for field in @schema.fields(rows) {
+    // Account for every field before allocating the projection arrays, and
+    // for its admitted name before handing it to common construction.
+    self.spend(at, @schema.field_count(rows))
+    for index in 0..<@schema.field_count(rows) {
+      let field = @schema.field_at(rows, index).unwrap()
+      let name = match field.name {
+        @schema.Unqualified(name) | @schema.Qualified(_, name) => name
+      }
+      self.spend(at, name.length())
       match field.name {
         @schema.Qualified(@schema.Left, name) =>
           left.push((name, field.contract))
@@ -275,7 +317,7 @@ fn MemberResolution::expression(
       continue
     }
     let typed = match
-      @typing.check(admitted, member_environment(rows, declarations), {
+      @typing.check(admitted, self.environment(receiver, rows, declarations), {
         max_nodes: self.limits.source.tree.max_nodes,
         max_depth: self.limits.source.tree.max_depth,
         max_work: self.work,
@@ -352,13 +394,43 @@ fn MemberResolution::prefix_carrier(
   if self.probe_refused {
     return None
   }
-  let builder = member_construct(
-    @builder.create(self.document, self.limits.source),
-  )
+  let allowance = self.work
+  self.work = 0
+  let at = steps[steps.length() - 1]
+  let copy_limits : @builder.Limits = {
+    ..self.limits.source,
+    source: {
+      ..self.limits.source.source,
+      max_nodes: self.limits.source.source.max_nodes.min(allowance),
+    },
+    tree: {
+      ..self.limits.source.tree,
+      max_nodes: self.limits.source.tree.max_nodes.min(allowance),
+    },
+  }
+  let construct = fn(
+    result : Result[@builder.Node, @builder.Issue],
+  ) -> @builder.Node raise Abort {
+    match result {
+      Ok(node) => node
+      Err(@builder.NodeLimit) if allowance <
+        self.limits.source.source.max_nodes.min(
+          self.limits.source.tree.max_nodes,
+        ) =>
+        raise Abort(
+          Expression({
+            issue: @expression.WorkLimit,
+            origin: @builder.origin(self.source, at),
+          }),
+        )
+      Err(issue) => raise Abort(Construction(issue))
+    }
+  }
+  let builder = member_construct(@builder.create(self.document, copy_limits))
   let items = []
   for step in steps {
     items.push(
-      member_construct(
+      construct(
         @builder.import_source(builder, self.source, step, replace_text=at => {
           self.replacements.get(
             @wire.tree_index(@builder.cursor(self.source), at).unwrap(),
@@ -367,8 +439,7 @@ fn MemberResolution::prefix_carrier(
       ),
     )
   }
-  let at = steps[steps.length() - 1]
-  let root = member_construct(
+  let root = construct(
     @builder.add(
       builder,
       @builder.Array(items),
@@ -376,7 +447,7 @@ fn MemberResolution::prefix_carrier(
     ),
   )
   let copy = member_construct(@builder.finish(builder, root))
-  self.spend(at, @builder.usage(copy).nodes)
+  self.work = allowance - @builder.usage(copy).nodes
   match
     @pipeline.check_carriers(
       @builder.cursor(copy),
@@ -729,9 +800,6 @@ fn resolve_query_members(
   context : Context,
   limits : Limits,
 ) -> @builder.Source raise Abort {
-  if !has_authored_member(source) {
-    return source
-  }
   let resolution : MemberResolution = {
     source,
     document,
@@ -740,6 +808,9 @@ fn resolve_query_members(
     output_work: 0,
     probe_refused: false,
     replacements: Map([]),
+  }
+  if !resolution.has_authored_member() {
+    return source
   }
   let root = @builder.cursor(source)
   let stages = member_lookup(root, "stages")
