@@ -305,6 +305,13 @@ class TableCatalog(SqlCatalog):
         """Internal physical boundary, called only after the original send claim."""
         if self.context is not None:
             raise CatalogRefusal("ConcurrentAdapterUse")
+        carrier = request.get("input_carrier")
+        if not isinstance(carrier, dict) or set(carrier) != {"kind", "cid"} or \
+                not isinstance(carrier["cid"], str) or \
+                not re.fullmatch(r"sha256:[0-9a-f]{64}", carrier["cid"]):
+            raise CatalogRefusal("InvalidTableCarrierReference")
+        if carrier["kind"] != "relation" or request.get("action") not in {"create", "replace"}:
+            raise CatalogRefusal("UnsupportedTableCarrierOperation")
         if len(canonical_envelope(request).encode("utf-8")) > 65536:
             raise CatalogRefusal("OperationByteLimit")
         if request["catalog_identity_cid"] != self.catalog_cid or \

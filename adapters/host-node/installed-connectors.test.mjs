@@ -126,3 +126,28 @@ test('the Effect table selects declared Effect installations by their own versio
     'utf8');
   assert.doesNotMatch(host.replace(/\/\/[^\n]*/g, ''), /salesforce/i);
 });
+
+test('Local Table Source and Effect use declared roles and reject retired built-in profiles', async () => {
+  const {installedEffectTable, loadInstalledEffectModule} = await import('./installed-connectors.mjs');
+  const sources = installedConnectorTable(installedConnectors);
+  const effects = installedEffectTable(installedConnectors);
+  const source = installedConnectorFor(sources, {version: 'actql-installed-local-table-source/0.1'});
+  const effect = installedConnectorFor(effects, {version: 'actql-installed-local-table-effect/0.1'});
+  assert.equal(source, effect, 'both roles belong to the same declared Local Connector');
+  assert.equal(source.registration, 'local');
+  assert.equal(source.revision, 'local/0.1');
+  assert.equal(providerBundleUrl(source), undefined, 'physical I/O needs no dummy MoonBit bundle');
+  const sourceModule = await loadInstalledConnectorModule(source);
+  const effectModule = await loadInstalledEffectModule(effect);
+  assert.equal(typeof sourceModule.check, 'function');
+  assert.equal(typeof effectModule.check, 'function');
+  assert.throws(() => installedConnectorFor(sources, {version: 'actql-installed-table-source/0.1'}),
+    {code: 'InvalidInstalledSourceProfile'});
+  assert.throws(() => installedConnectorFor(effects, {version: 'actql-installed-table-effect/0.1'},
+    'InvalidInstalledEffectProfile'), {code: 'InvalidInstalledEffectProfile'});
+  const {readFile} = await import('node:fs/promises');
+  for (const name of ['installed-source', 'installed-effect']) {
+    const host = await readFile(new URL(`./${name}.mjs`, import.meta.url), 'utf8');
+    assert.doesNotMatch(host, /tableInstallation|installed-table-installation/);
+  }
+});
