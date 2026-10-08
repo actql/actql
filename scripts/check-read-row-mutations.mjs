@@ -50,6 +50,24 @@ const publishedPrefixes = (consumers, id, operator) => ['local', 'https'].flatMa
     assertions: [{id, operator}],
   })));
 const mutations = [
+  ['an explicit reread silently starts another physical Compute', [
+    ['const readExplanations = new WeakMap();',
+      'const readExplanations = new WeakMap();\nconst unsafeReadRecomputations = new WeakSet();'],
+    ['const readFailure = (cause, context, rowsYielded, prior) => {',
+      'const readFailure = (cause, context, rowsYielded, prior) => {\n' +
+      '  unsafeReadRecomputations.add(context.ref);'],
+    ["          try {\n            const response = await runRequest('read', {",
+      '          try {\n' +
+      '            if (unsafeReadRecomputations.delete(ref)) {\n' +
+      '              const original = submissionInputs.get(handle);\n' +
+      '              if (original !== undefined) await submit(original.kind, original.input,\n' +
+      '                {parameters: original.parameters});\n' +
+      '            }\n' +
+      "            const response = await runRequest('read', {"],
+  ], ['local', 'https'].flatMap(entrance => ['rows', 'all'].map(consumer => ({
+    name: `${entrance}: ${consumer} remains incomplete after all published rows when the terminator is lost`,
+    assertions: [{id: 'read-reread-no-compute', operator: 'deepStrictEqual'}],
+  }))), 'adapters/host-node/client-read-terminator.test.mjs'],
   ['a reordered reread skips the previous prefix without a resume contract', [
     ['const readExplanations = new WeakMap();',
       'const readExplanations = new WeakMap();\nconst unsafeReadOffsets = new WeakMap();'],
