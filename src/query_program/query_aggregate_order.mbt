@@ -9,12 +9,22 @@ fn aggregate_order_matches_argument(
 ) -> Bool {
   let identity = fn(
     expression : @query.Expression,
-  ) -> (String, Array[@query.NamePart])? {
+  ) -> (Array[String], String, Array[@query.NamePart])? {
     let mut index = @query.expression_root(expression)
+    let signs : Array[String] = []
     let suffix : Array[@query.NamePart] = []
     while true {
       match @query.expression_node(expression, index).unwrap().kind {
         Parenthesized(child) => index = child
+        Unary("+" | "-" as sign, child) => {
+          // Only peel outer numeric signs. A property of a signed receiver
+          // is a different expression and remains subject to common typing.
+          if !suffix.is_empty() {
+            return None
+          }
+          signs.push(sign)
+          index = child
+        }
         Property(child, name) => {
           suffix.push(name)
           index = child
@@ -29,7 +39,7 @@ fn aggregate_order_matches_argument(
           for i = suffix.length() - 1; i >= 0; i = i - 1 {
             members.push(suffix[i])
           }
-          return Some((slot, members))
+          return Some((signs, slot, members))
         }
         _ => return None
       }
@@ -38,8 +48,8 @@ fn aggregate_order_matches_argument(
     }
   }
   match (identity(argument), identity(order)) {
-    (Some((a, left)), Some((b, right))) => {
-      if a != b || left.length() != right.length() {
+    (Some((left_signs, a, left)), Some((right_signs, b, right))) => {
+      if a != b || left.length() != right.length() || left_signs != right_signs {
         return false
       }
       for index in 0..<left.length() {
