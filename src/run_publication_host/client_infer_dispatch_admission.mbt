@@ -8,6 +8,7 @@ pub struct ClientInferDispatchAdmission {
   evidence : @publication.RunEvidenceValue
   subject_cid : String
   activation_context_cid : String
+  plan : ClientInferPlanGraph
   current : () -> Result[
     (@authorization.AdmittedAccountConfiguration, String),
     ClientInferDispatchIssue,
@@ -37,7 +38,22 @@ pub fn issue_client_infer_dispatch_admission(
     ClientInferDispatchIssue,
   ],
 ) -> Result[ClientInferDispatchAdmission, ClientInferDispatchIssue] {
-  guard client_compiled_run_infer(compiled) is Some(plan) &&
+  let selected = match model_scope {
+    None => client_compiled_run_infer(compiled)
+    Some(scope) => {
+      let boundary = @publication.model_invocation_scope_boundary(scope)
+      let candidates = client_compiled_run_infers(compiled).filter(plan => {
+        plan.task.to_int64() == boundary.task_index &&
+        plan.barrier_cid == boundary.inference_barrier_cid
+      })
+      if candidates.length() == 1 {
+        candidates.get(0)
+      } else {
+        None
+      }
+    }
+  }
+  guard selected is Some(plan) &&
     check_client_compiled_run_definition(compiled, definition) is Ok(_) else {
     return Err(ForeignRun)
   }
@@ -166,6 +182,7 @@ pub fn issue_client_infer_dispatch_admission(
       evidence,
       subject_cid,
       activation_context_cid,
+      plan,
       current: observe_current,
     })
   } catch {
@@ -190,7 +207,7 @@ pub fn check_client_infer_dispatch_current(
     ) {
     return Err(Expired)
   }
-  guard client_compiled_run_infer(value.compiled) is Some(_) else {
+  if !client_compiled_run_has_infer(value.compiled, value.plan) {
     return Err(ForeignRun)
   }
   if !@authorization.dispatch_authorization_matches(
@@ -212,8 +229,8 @@ pub fn client_infer_dispatch_matches_scope(
   scope : ClientInferCallScope,
 ) -> Bool {
   physical_equal(value.compiled.owner, scope.owner) &&
-  client_compiled_run_infer(value.compiled) is Some(plan) &&
-  physical_equal(plan, scope.plan)
+  client_compiled_run_has_infer(value.compiled, scope.plan) &&
+  physical_equal(value.plan, scope.plan)
 }
 
 ///|

@@ -59,7 +59,7 @@ export type HostInstallation = Readonly<{
   registerModelProviders?: (...args: any[]) => any;
   resultDataPolicy?: Readonly<Record<string, unknown>>;
   inferEvidence?: Readonly<{
-    target: string; destination: string; maxBytes: number;
+    target: string | readonly string[]; destination: string; maxBytes: number;
     authorize: (binding: Readonly<Record<string, unknown>>) => boolean | Promise<boolean>;
     sink: Readonly<{
       capture: (originals: Readonly<Record<string, unknown>>) => Promise<Readonly<Record<string, unknown>>>;

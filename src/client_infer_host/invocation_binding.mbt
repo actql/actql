@@ -42,8 +42,7 @@ pub fn bind_run(
     return Err(ForeignRun)
   }
   guard active.plan is Some(plan) &&
-    @publication_host.client_compiled_run_infer(compiled) is Some(selected) &&
-    physical_equal(plan, selected) else {
+    @publication_host.client_compiled_run_has_infer(compiled, plan) else {
     return Err(ForeignRun)
   }
   if active.saved_call_scope is Some(saved) &&
@@ -154,8 +153,7 @@ pub fn bind_invocation(
     return Err(ForeignRun)
   }
   guard active.plan is Some(plan) &&
-    @publication_host.client_compiled_run_infer(compiled) is Some(selected) &&
-    physical_equal(plan, selected) else {
+    @publication_host.client_compiled_run_has_infer(compiled, plan) else {
     return Err(ForeignRun)
   }
   guard !active.reclaimed &&
