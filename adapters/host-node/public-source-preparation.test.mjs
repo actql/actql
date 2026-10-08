@@ -76,6 +76,28 @@ test('JSON Program keeps its existing preparation route', () => {
   }, parameters: null}), {code: 'ClientProgramInvalidInput'});
 });
 
+test('text preparation retains explicitly published write bindings under the common validator', () => {
+  const {moon, calls, prepared} = installation();
+  const writes = {...publication, tableWrites: [{name: 'analytics.report',
+    targetRef: 'connector://local/report', mappingRef: 'mapping:local.report.v1',
+    mappingCid: cid('d'), capabilityCid: cid('e'), installationBindingCid: cid('f'),
+    action: 'create', expectedTable: null}]};
+  const validated = [];
+  moon.clientProgramSourcePublicationValid = (owner, wire) => {
+    validated.push({owner, wire}); return true;
+  };
+  const prepare = installNodeClientProgramPreparation({moon, environment, sourcePublication: writes});
+  assert.equal(prepare({kind: 'aql', input: {
+    text: 'CREATE TABLE analytics.report AS SELECT 1 AS id', format: 'sql'}, parameters: null}), prepared);
+  assert.deepEqual(validated, [{owner: environment, wire: JSON.stringify(writes)}]);
+  assert.deepEqual(JSON.parse(calls[0].args[3]), writes);
+  moon.clientProgramSourcePublicationValid = () => false;
+  const refused = installNodeClientProgramPreparation({moon, environment, sourcePublication: writes});
+  assert.throws(() => refused({kind: 'aql', input: {text: 'SELECT 1', format: 'sql'}, parameters: null}),
+    {name: 'TypeError', message: 'InvalidPublicSourcePublication'});
+  assert.equal(calls.length, 1, 'Invalid write metadata never reaches lowering');
+});
+
 test('lowered text Effect goes directly to its existing owner without resubmitting text', () => {
   const {moon, calls} = installation();
   const preparedEffect = {};
