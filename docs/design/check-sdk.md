@@ -97,6 +97,14 @@ Partial declaration preparation, unavailable material, protected obligations,
 unsupported paths and budgets retain the original unresolved scope. Reporting
 truncation also prevents verification, even when static construction completed.
 
+Before returning a completed or partial report, the installed Node Host also
+compares its context reference, scope, document roles, kinds, opaque revisions
+and UTF-8 byte lengths with the exact metadata it passed to the common checker
+for this call. An otherwise well-formed earlier report is insufficient. A
+mismatch returns a reporting failure without a report or partial report; it
+does not blame the authored input or associate stale revisions with a new SDK
+snapshot. This validation adds no input retention, public hash or checking engine.
+
 The SDK captures the selection and immutable original input before yielding,
 rejects a response for a different scope, and binds locations to the submitted
 document revisions. Program pointers never become source-text spans. Template

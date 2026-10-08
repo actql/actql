@@ -20,6 +20,20 @@ const failed = (code, correlation_ref) => Object.freeze({outcome: 'failed', corr
   problem: Object.freeze({code}), reason_schema_cid: checkReasonSchemaCid,
   outcome_schema_cid: checkOutcomeSchemaCid, version});
 
+// Shape validation alone cannot bind an otherwise valid old Owner report to
+// this call. Compare the metadata issued to the existing checker before the
+// public SDK can associate its opaque revisions with the current snapshot.
+const validBoundOutcome = (outcome, context, scope, documents) => {
+  const report = outcome?.report ?? outcome?.partial_report;
+  return validCheckOutcome(outcome) && (!report ||
+    report.context_ref === context &&
+    report.scope.kind === scope &&
+    report.inputs.length === documents.length && documents.every(expected =>
+      report.inputs.some(actual => actual.document_id === expected.document_id &&
+        actual.kind === expected.kind && actual.revision === expected.revision &&
+        actual.byte_length === expected.byte_length)));
+};
+
 export function installNodeClientCheck({moon, environment, publication,
   sourceAccesses = [], tableWriteAccesses = [], contextKey = randomBytes(32)}) {
   if (moon === null || typeof moon !== 'object' ||
@@ -143,6 +157,9 @@ export function installNodeClientCheck({moon, environment, publication,
     .update('actql-check-input/0.1\0').update(documentId).update('\0')
     .update(bytes).digest('hex')}`;
 
+  const documentBinding = (documentId, kind, bytes) => ({document_id: documentId,
+    kind, revision: revision(documentId, bytes), byte_length: Buffer.byteLength(bytes, 'utf8')});
+
   const check = async request => {
     const {principalId, kind, input, parameters, signal, scope} = request;
     if (!['template_only', 'bound_input'].includes(scope) || !['text', 'program'].includes(kind) ||
@@ -158,30 +175,36 @@ export function installNodeClientCheck({moon, environment, publication,
     const visible = await visibleAliases(signal);
     const visibleWrites = await visibleTableWrites(signal);
     signal?.throwIfAborted();
+    const context = contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope);
     if (kind === 'program') {
       const document = JSON.stringify(input);
       const supplied = parameters == null ? undefined : JSON.stringify(parameters);
+      const original = documentBinding('program', 'structured', document);
+      const bindings = supplied === undefined ? undefined : documentBinding('parameters', 'structured', supplied);
       const outcome = JSON.parse(moon.clientProgramCheckProgram(document, environment,
         JSON.stringify({environmentCid, aliases: visible,
           ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}), supplied,
-        contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope), revision('program', document),
-        supplied === undefined ? undefined : revision('parameters', supplied), correlationRef, scope));
-      return validCheckOutcome(outcome) ? outcome : failed('check_internal', correlationRef);
+        context, original.revision, bindings?.revision, correlationRef, scope));
+      return validBoundOutcome(outcome, context, scope, [original, ...(bindings ? [bindings] : [])])
+        ? outcome : failed('check_internal', correlationRef);
     }
     const declarations = input.parameterDeclarations === undefined
       ? undefined : JSON.stringify(input.parameterDeclarations);
     const supplied = parameters === null ? undefined :
       JSON.stringify(parameters);
+    const original = documentBinding('source', 'text', input.text);
+    const declared = declarations === undefined ? undefined
+      : documentBinding('parameter_declarations', 'structured', declarations);
+    const bindings = supplied === undefined ? undefined : documentBinding('parameters', 'structured', supplied);
     const outcome = JSON.parse(moon.clientProgramCheckSource(input.text,
       input.format, environment,
       JSON.stringify({environmentCid, aliases: visible,
         ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}),
       declarations, supplied,
-      contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope),
-      revision('source', input.text),
-      declarations === undefined ? undefined : revision('parameter_declarations', declarations),
-      supplied === undefined ? undefined : revision('parameters', supplied), correlationRef, scope));
-    return validCheckOutcome(outcome) ? outcome : failed('check_internal', correlationRef);
+      context, original.revision, declared?.revision, bindings?.revision, correlationRef, scope));
+    return validBoundOutcome(outcome, context, scope,
+      [original, ...(declared ? [declared] : []), ...(bindings ? [bindings] : [])])
+      ? outcome : failed('check_internal', correlationRef);
   };
   // The ingress's existing connection authorization owner determines whether
   // any report binding can be disclosed. This projection touches neither the
