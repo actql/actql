@@ -4,6 +4,7 @@ package "actql/actql/query_program"
 import {
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/program_source_builder",
   "actql/actql/query_expression",
@@ -88,6 +89,7 @@ pub(all) enum Issue {
   UnsupportedEffect
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
+  ExpressionTyping(@expression_typing.Issue)
   Admission(@stage_syntax.SyntaxError)
 }
 

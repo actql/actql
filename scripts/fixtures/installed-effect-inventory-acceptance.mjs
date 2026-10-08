@@ -100,7 +100,11 @@ function program(mappings, rows) {
 }
 
 export async function runInstalledEffectInventoryAcceptance({connect,
-  openInstalledRemoteHttpHost, publishEffect}) {
+  openInstalledRemoteHttpHost, publishEffect, profile = 'inventory'}) {
+  assert.ok(['inventory', 'observability'].includes(profile));
+  // Telemetry acceptance reuses the real lifecycle without repeating the
+  // independent provider-position matrix or legacy installation control.
+  const selectedSuccesses = profile === 'observability' ? [successes[0]] : successes;
   for (const port of [connect, openInstalledRemoteHttpHost, publishEffect]) {
     assert.equal(typeof port, 'function');
   }
@@ -282,7 +286,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
 
     // Both owners occupy both positions, each through a separate public Run.
     // Reversing order while approval is durable must select the original owner.
-    for (const expected of successes) {
+    for (const expected of selectedSuccesses) {
       const selected = installations[expected.selected];
       const unselected = 1 - expected.selected;
       const untouched = observation(unselected);
@@ -384,7 +388,8 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     assert.deepEqual(commentSends(installations[1].api).slice(betaSends).map(request => request.variables),
       [{subjectId: 'I_BETA', body: 'beta lost reply'}]);
     assert.deepEqual(installations[1].state.comments.slice(betaSends),
-      [{subjectId: 'I_BETA', body: 'beta lost reply', databaseId: 1002}]);
+      [{subjectId: 'I_BETA', body: 'beta lost reply',
+        databaseId: profile === 'observability' ? 1000 : 1002}]);
     assert.equal(installations[1].api.remainingFaults(), 0);
     await lost.host.close();
     const betaAfterLost = observation(1);
@@ -394,28 +399,32 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     assert.deepEqual(observation(1), betaAfterLost, 'unknown outcomes never trigger another provider attempt');
     assert.deepEqual(observation(0), alphaBeforeLost);
 
-    // Legacy singular options use the same published profile and real owner.
-    const singularOptions = {singular: true, directory: join(root, 'singular-state')};
-    const betaBeforeSingular = observation(1);
-    const singularSends = commentSends(installations[0].api).length;
-    const singularFirst = await openHost([0], singularOptions);
-    const singularPath = await submit(singularFirst, 'singular-alpha-control',
-      program([installations[0].mapping], [{node_id: 'I_ALPHA', comment: 'alpha singular'}]));
-    await singularFirst.close();
-    const singularReview = await openHost([0], singularOptions);
-    await approve(singularReview, JSON.parse(await readFile(singularPath, 'utf8')));
-    await singularReview.close();
-    const singular = await finishAfterRestart(singularPath, [0], 'succeeded', singularOptions);
-    assert.deepEqual(await singular.execution.result('answer').all(),
-      [{node_id: 'I_ALPHA', comment: 'alpha singular'}]);
-    assert.deepEqual(commentSends(installations[0].api).slice(singularSends).map(request => request.variables),
-      [{subjectId: 'I_ALPHA', body: 'alpha singular'}]);
-    assert.deepEqual(installations[0].state.comments.slice(singularSends),
-      [{subjectId: 'I_ALPHA', body: 'alpha singular', databaseId: 1002}]);
-    await singular.host.close();
-    assert.deepEqual(observation(1), betaBeforeSingular);
-    return {successfulPluralRuns: 4, preparationRefusals: 2, cancelledWithoutSend: 1,
-      unknownAfterRestart: 1, singularControl: 1, distinctCredentialJournals: 2,
+    if (profile === 'inventory') {
+      // Legacy singular options use the same published profile and real owner.
+      const singularOptions = {singular: true, directory: join(root, 'singular-state')};
+      const betaBeforeSingular = observation(1);
+      const singularSends = commentSends(installations[0].api).length;
+      const singularFirst = await openHost([0], singularOptions);
+      const singularPath = await submit(singularFirst, 'singular-alpha-control',
+        program([installations[0].mapping], [{node_id: 'I_ALPHA', comment: 'alpha singular'}]));
+      await singularFirst.close();
+      const singularReview = await openHost([0], singularOptions);
+      await approve(singularReview, JSON.parse(await readFile(singularPath, 'utf8')));
+      await singularReview.close();
+      const singular = await finishAfterRestart(singularPath, [0], 'succeeded', singularOptions);
+      assert.deepEqual(await singular.execution.result('answer').all(),
+        [{node_id: 'I_ALPHA', comment: 'alpha singular'}]);
+      assert.deepEqual(commentSends(installations[0].api).slice(singularSends).map(request => request.variables),
+        [{subjectId: 'I_ALPHA', body: 'alpha singular'}]);
+      assert.deepEqual(installations[0].state.comments.slice(singularSends),
+        [{subjectId: 'I_ALPHA', body: 'alpha singular', databaseId: 1002}]);
+      await singular.host.close();
+      assert.deepEqual(observation(1), betaBeforeSingular);
+    }
+    return {successfulPluralRuns: selectedSuccesses.length,
+      preparationRefusals: 2, cancelledWithoutSend: 1,
+      unknownAfterRestart: 1, singularControl: profile === 'inventory' ? 1 : 0,
+      distinctCredentialJournals: 2,
       callbackCounts: {dispatch: counts.dispatch, secrets: [...counts.secrets]},
       providerSends: installations.map(item => commentSends(item.api).length)};
   } catch (error) {

@@ -70,6 +70,14 @@ their cleanup. `await using client = await connect(options)` uses the same
 asynchronous disposal where the language supports it. Returned rows and batches
 remain the application's values.
 
+A short `sql`/`aql` call after close rejects with `SubmissionNotSent` and an
+underlying `ClientClosed` cause; it does not reach the Host. Other direct Client
+operations can reject with `ClientClosed` itself. In a `ClientError` catch,
+inspect `error.code` first and, for this locally unsent case, inspect
+`error.cause` for the underlying Client error. `SubmissionNotSent` describes
+this dispatch attempt, not the durable outcome of a previously used submission
+identity; it is not permission to replay that identity.
+
 Embedded Local connections share one compatible Host installation per directory.
 Closing one Client does not close its siblings. The last Client waits for the
 existing Host's graceful shutdown, including already accepted computation and
@@ -160,6 +168,13 @@ The selected `~standard` receiver, validation method and all supported read
 options are captured when the view/shortcut is called, before waiting for a
 query. Inherited and non-enumerable options are preserved. The AbortSignal stays
 live. Capturing a function does not freeze its closure or library internals.
+
+Within a read, the SDK does not retry a row's Standard Schema validation.
+A schema library can perform additional work inside that call, including
+invoking an application transform more than once. Prefer validators and
+transforms without side effects; do not use callback invocation counts to
+trigger external writes or other business actions. Such library behavior does
+not represent another SDK read, submission or Compute.
 
 All wire, raw-row and collection ceilings still apply. Raw decoded-value bytes
 and collected-row count are charged before application validation, so mutation
