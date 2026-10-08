@@ -1519,9 +1519,6 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
   if argument is None && function_name != "COUNT" {
     raise QueryAbort("Aggregate argument required", token.start)
   }
-  if distinct && function_name == "COUNTIF" {
-    raise QueryAbort("DISTINCT is not valid for this aggregate", token.start)
-  }
   { function_name, argument, filter, distinct, order_by, delimiter, }
 }
 
