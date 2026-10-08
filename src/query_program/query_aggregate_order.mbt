@@ -1,4 +1,60 @@
 ///|
+// DISTINCT collection ordering must name its input argument. Qualification,
+// quotation and static property syntax do not change an admitted receiver.
+// Resolve against the same immutable aggregate input scope for both sides.
+fn aggregate_order_matches_argument(
+  argument : @query.Expression,
+  order : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+) -> Bool {
+  let path = fn(expression : @query.Expression) -> Array[@query.NamePart]? {
+    let mut index = @query.expression_root(expression)
+    let suffix : Array[@query.NamePart] = []
+    while true {
+      match @query.expression_node(expression, index).unwrap().kind {
+        Parenthesized(child) => index = child
+        Property(child, name) => {
+          suffix.push(name)
+          index = child
+        }
+        Reference(parts) => {
+          let result = parts.copy()
+          for i = suffix.length() - 1; i >= 0; i = i - 1 {
+            result.push(suffix[i])
+          }
+          return Some(result)
+        }
+        _ => return None
+      }
+    } nobreak {
+      None
+    }
+  }
+  match (path(argument), path(order)) {
+    (Some(left), Some(right)) =>
+      match
+        (
+          order_reference_identity(left, resolve),
+          order_reference_identity(right, resolve),
+        ) {
+        (Some((a, n)), Some((b, m))) => {
+          if a != b || left.length() - n != right.length() - m {
+            return false
+          }
+          for index in 0..<(left.length() - n) {
+            if !same_name(left[n + index], right[m + index]) {
+              return false
+            }
+          }
+          true
+        }
+        _ => false
+      }
+    _ => same_expression(argument, order)
+  }
+}
+
+///|
 // Aggregate-local order keys use the input scope, never SELECT siblings. A
 // static typed property path is a total projection of an admitted row: NULL
 // receivers propagate NULL and missing/non-object members fail common checking.

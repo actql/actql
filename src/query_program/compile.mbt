@@ -1346,6 +1346,12 @@ fn lower_aggregate_resolved(
           ("nulls", construction.text(term.nulls)),
         ]),
       )
+      if call.distinct {
+        guard call.argument is Some(argument) &&
+          aggregate_order_matches_argument(argument, term.expression, resolve) else {
+          raise Abort(UnsupportedAggregate)
+        }
+      }
     }
     if !analytic {
       entries.push(("order_by", construction.array(order)))
