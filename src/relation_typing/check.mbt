@@ -131,6 +131,7 @@ fn check_impl(
   // Only implemented preservation kernels may consume conditional rows.
   if !@schema.all_fields_required(input) &&
     !(operation is Select ||
+    operation is Drop ||
     operation is Filter ||
     operation is Derive ||
     operation is Sort ||
@@ -717,14 +718,31 @@ fn check_impl(
       if projection.is_empty() && (operation is Select || count > 0) {
         fail(body, EmptyBody)
       }
-      let fields : Array[(@schema.FieldName, @contract.Contract)] = []
+      let fields : Array[
+        (@schema.FieldName, @contract.Contract, @schema.Presence),
+      ] = []
       spend(b, body, count=projection.length())
       for p in projection {
-        fields.push(
-          (p.output, visible.get(@schema.reference_name(p.input)).unwrap().0),
-        )
+        let field = @schema.lookup_reference(
+          input_schema,
+          @schema.reference_name(p.input),
+        ).unwrap()
+        fields.push((p.output, field.contract, field.presence))
       }
-      output = schema_type(b, body, fields)
+      let bytes = b.text
+      spend(b, body, count=fields.length())
+      for (name, _, _) in fields {
+        charge(b, body, @schema.reference_name(name))
+      }
+      output = match
+        @schema.from_presence_fields(
+          fields,
+          max_fields=fields.length(),
+          max_name_bytes=bytes,
+        ) {
+        Ok(schema) => schema
+        Err(_) => fail(body, InvalidBody)
+      }
       Projection
     }
   }

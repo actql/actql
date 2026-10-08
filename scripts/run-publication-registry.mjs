@@ -40,7 +40,6 @@ function schema(name, version, required, properties, allOf) {
 function inventory() {
   return {
     type: 'array',
-    minItems: 1,
     items: {
       type: 'object',
       additionalProperties: false,
@@ -423,7 +422,6 @@ export function publicationSchemas() {
       captured_run_cid: clone(cid),
       durable_result_binding_cids: {
         type: 'array',
-        minItems: 1,
         uniqueItems: true,
         items: clone(cid),
       },

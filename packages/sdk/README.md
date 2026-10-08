@@ -209,6 +209,15 @@ Results yield `ResultSelectionRequired`; an absent selected name yields
 A succeeded Run whose selected storage is unavailable or unknown yields
 `ResultUnavailable`, not a new execution.
 
+An Effect-only Program can declare `results: {}` when its Effects pass the
+common input, Mapping and Capability checks. Use `client.start(program)` or
+`client.startSource(text, {format: 'sql'})` to obtain its Execution; the
+`sql()`/`aql()` Result shortcuts do not invent a public Result for a write.
+Inspect its status and resolve its ordinary approval Checkpoint. Empty Result
+availability does not mean success: unapproved or unresolved Effects remain
+blocked, and an unknown commit is reconciled without automatic resend.
+Releasing the origin Run does not delete a committed persistent Table.
+
 `result.execution` is the original low-level Execution, and `result.ref` is the
 frozen recovery locator `{run, resultName}` using the existing Run reference and
 authored Result name. Explicit recovery can `attach(result.ref.run)` and select

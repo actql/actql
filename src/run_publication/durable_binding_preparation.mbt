@@ -68,8 +68,7 @@ fn DurableBindingPreparation::step(
       if self.max_workspace is Some(limit) && limit < self.live {
         return Err(CommitEncoding)
       }
-      if inputs.bindings.length() != inputs.definitions.length() ||
-        inputs.bindings.is_empty() {
+      if inputs.bindings.length() != inputs.definitions.length() {
         return Err(CommitInventoryMismatch)
       }
       self.phase = Binding(0)

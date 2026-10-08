@@ -288,8 +288,13 @@ fn check_source_findings(
         }
     }
   }
+  let table_writes = client_table_write_publication(
+    environment, visible_publication,
+  ) catch {
+    _ => return Failed("check_context_invalid")
+  }
   let lowered = match
-    @source_frontend.lower(document, selected, Some(context)) {
+    @source_frontend.lower(document, selected, Some(context), table_writes~) {
     Ok(value) => value
     Err(issue) => {
       match issue {
@@ -304,6 +309,16 @@ fn check_source_findings(
         // audience-visible publication; neither is a proven violation.
         QueryLowering(UnknownRelation) =>
           findings.push(Unresolved("source_resolution"))
+        QueryLowering(TableWriteBinding(UnknownTable)) =>
+          findings.push(Unresolved("source_resolution"))
+        QueryLowering(TableWriteBinding(AmbiguousTable)) =>
+          findings.push(Violation("query_invalid"))
+        QueryLowering(TableWriteBinding(ActionMismatch)) =>
+          findings.push(Violation("query_invalid"))
+        QueryLowering(TableWriteBinding(WorkLimit)) =>
+          findings.push(Limit("analysis_budget_exhausted"))
+        QueryLowering(TableWriteBinding(InvalidBinding)) =>
+          return Failed("check_context_invalid")
         QueryLowering(
           UnsupportedProjection
           | UnsupportedGrouping
@@ -492,7 +507,27 @@ fn check_source_findings(
         findings.push(Limit("bound_values_missing"))
       }
     }
-    Bound(Rejected(diagnostic)) | TemplateDiagnostic(diagnostic) =>
+    Bound(Rejected(diagnostic)) | TemplateDiagnostic(diagnostic) => {
+      // The pure computation checker deliberately refuses Effects. Close that
+      // exact admitted Program with the existing static Effect owner instead;
+      // SQL spelling, target provider and public Result count are irrelevant.
+      if scope == BoundInput &&
+        @program_check.diagnostic_cause(diagnostic)
+        is Source(UnsupportedEffects(_)) {
+        match
+          @publication_host.prepare_parsed_client_effect_computation(
+            program,
+            environment,
+            supplied,
+            [],
+            client_program_effect_limits(),
+          ) {
+          Ok(_) => return Report
+          // A failed closure never becomes a verified advisory check. Retain
+          // the implementation limit until its typed diagnostic is projected.
+          Err(_) => ()
+        }
+      }
       match @program_check.diagnostic_category(diagnostic) {
         InvalidInput =>
           if @program_check.diagnostic_undeclared_parameter(diagnostic)
@@ -528,6 +563,7 @@ fn check_source_findings(
         UnclassifiedFailure => findings.push(Limit("check_unclassified"))
         InvalidConfiguration => return Failed("check_context_invalid")
       }
+    }
   }
   Report
 }

@@ -58,7 +58,7 @@ pub fn check(
       ),
     )
     let checked = match
-      @results.check(
+      @results.check_inventory(
         pipeline,
         @decode.required(body, "results").unwrap(),
         remaining,

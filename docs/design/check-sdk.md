@@ -607,7 +607,9 @@ Workers support and durable capture are not implied by this checking boundary.
 
 ## Public authored-input reports
 
-The public Client `check(text, {format, parameterDeclarations, parameters})`
+The public Client `check(text, {kind: "text", scope, format,
+parameterDeclarations, parameters})` and `check(program, {kind: "program",
+scope, parameters})`
 returns the registered `actql-check-outcome/0.1` envelope. Checking completion,
 its scope-bound verdict and eventual execution outcomes are separate facts.
 The public report is projected by the existing MoonBit check bridge before
@@ -1904,8 +1906,8 @@ does not certify complete template checking or narrow the original bound scope.
 
 `client.start(program)` may expose the same transient observation on
 `not_accepted` and `preparation_failed`. It uses the admitted Program parser,
-parameter binding, Source inventory and common checker. It does not expose a
-standalone Program check API or structured editing fixes.
+parameter binding, Source inventory and common checker. The separately scoped authoring `client.check(program, {kind: "program",
+scope})` is read-only; neither entry exposes structured editing fixes.
 
 The original Program is an input document with `document_id: "program"` and
 `kind: "structured"`. A reason or Requirement identifies that document's
