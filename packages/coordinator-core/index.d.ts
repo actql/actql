@@ -364,3 +364,22 @@ export function exactRetransmissionEligible(record: IntentRecord,
 /** Cancel delivery custody only, after durable observation admission. Success
  * may win a cancellation race; this does not confirm Run cancellation. */
 export function canRetireCancellationDelivery(record: IntentRecord): boolean;
+/** Pure common Site planning; caller-owned facts are not execution authority. */
+export const sitePlanning: Readonly<{
+  plan(input: Readonly<{
+    durationMilliseconds: bigint | null;
+    startupMilliseconds: bigint | null;
+    capacitySupported: boolean;
+    acceptsTransfer: boolean;
+    transferProviderAvailable: boolean;
+    transferMilliseconds: bigint | null;
+    transferRequired: readonly boolean[];
+    sharedTransfer: readonly boolean[];
+    sourceRevoked: readonly boolean[];
+    estimateAvailable: readonly boolean[];
+    transferBytes: readonly bigint[];
+    retainedBytes: readonly bigint[];
+    executionBytes: readonly bigint[];
+  }>): Readonly<{code: number; durationMilliseconds: bigint | null}>;
+  select(durations: readonly bigint[], keys: readonly string[]): number;
+}>;

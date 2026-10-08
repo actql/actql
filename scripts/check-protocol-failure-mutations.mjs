@@ -12,6 +12,55 @@ const publicTargets = ['local', 'http'].map(entrance => target(
   `${entrance}: check protocol failures retain original input without verdict or retry authority`,
   'protocol-failure-public-rejection'));
 const mutations = [
+  {name: 'an unsupported epoch-bound preparation persists a wait',
+    path: 'adapters/host-node/client-checkpoints.mjs',
+    file: 'adapters/host-node/submission-epoch-public.test.mjs',
+    from: '        deferral: captured.submission === undefined\n' +
+      '          ? deferralFor({prepareAttemptId, request, requestCid,\n' +
+      '            captured, answering}) : undefined});',
+    to: '        deferral: deferralFor({prepareAttemptId, request, requestCid,\n' +
+      '          captured, answering})});',
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: an accepted unsupported pre-Run wait remains a preparation failure after reconnect`,
+      'unsupported-preparation-wait', 'deepStrictEqual'))},
+  {name: 'a durable submission identity silently rebinds a changed Program',
+    path: 'adapters/host-node/client-request-journal.mjs',
+    file: 'adapters/host-node/client-submission-intent-immutability.test.mjs',
+    from: '        const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);\n' +
+      "        if (requestId === undefined) fail('InvalidClientSubmittedIntent');\n" +
+      '        const existing = intentSelect.get(requestId);',
+    to: '        const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);\n' +
+      "        if (requestId === undefined) fail('InvalidClientSubmittedIntent');\n" +
+      '        let existing = intentSelect.get(requestId);\n' +
+      '        if (existing !== undefined && existing.intent_cid !== original.identity) {\n' +
+      "          const ready = existing.phase === 'ready';\n" +
+      '          const outcome = ready ? {...JSON.parse(existing.outcome_wire), intentCid: original.identity} : null;\n' +
+      "          database.prepare('UPDATE client_submitted_intents SET intent_cid = ?, intent_wire = ?, phase = ?, outcome_wire = ? WHERE submission_id = ?')\n" +
+      "            .run(original.identity, original.wire, ready ? 'ready' : 'preparing',\n" +
+      '              outcome === null ? null : canonicalValueJson(outcome, {dataKeys: true}), requestId);\n' +
+      '          existing = intentSelect.get(requestId);\n' +
+      '        }',
+    additionalEdits: [{path: 'adapters/host-node/client-submission.mjs',
+      from: "      if (result.kind === 'ready') return await replayReady(value, retained, fields, result);",
+      to: "      if (result.kind === 'ready') return result;"}],
+    targets: ['local', 'https'].flatMap(entrance => ['ready', 'not_accepted'].map(phase => target(
+      `${entrance}: changed Program cannot rebind a ${phase} submission identity`,
+      'submission-intent-immutable', 'deepStrictEqual')))},
+  ...['local', 'https'].map(entrance => ({
+    name: `${entrance}: unexposed preparation write misroutes to ordinary admission`,
+    path: entrance === 'local' ? 'adapters/host-node/in-process-client.mjs' : 'adapters/host-node/client-http.mjs',
+    file: 'adapters/host-node/client-unsupported-preparation-write.test.mjs',
+    from: entrance === 'local' ? '  return Object.freeze({async perform(operation, body, signal) {'
+      : "      const operation = request.url.slice('/actql/client/0.1/'.length);",
+    to: entrance === 'local'
+      ? '  return Object.freeze({async perform(operation, body, signal) {\n' +
+        "    if (['supplement-submission', 'respond-submission-checkpoint'].includes(operation)) operation = 'submit-intent';"
+      : "      let operation = request.url.slice('/actql/client/0.1/'.length);\n" +
+        "      if (['supplement-submission', 'respond-submission-checkpoint'].includes(operation)) operation = 'submit-intent';",
+    targets: ['supplement-submission', 'respond-submission-checkpoint'].map(operation => target(
+      `${entrance}: unexposed ${operation} cannot admit a submission or Compute`,
+      'unsupported-preparation-no-write', 'deepStrictEqual')),
+  })),
   {name: 'unknown outcome classified as a known failure', path, file: unit,
     from: "kind: problem === 'unknown_outcome' ? 'uninterpretable' : 'protocol_failure',",
     to: "kind: 'protocol_failure',",
@@ -61,15 +110,21 @@ const run = item => {
 };
 const results = [];
 for (const item of selected) {
-  const original = readFileSync(item.path, 'utf8');
-  if (original.split(item.from).length !== (item.occurrences ?? 1) + 1) throw new Error(`Mutation anchor not unique: ${item.name}`);
+  const edits = [item, ...(item.additionalEdits ?? [])];
+  const originals = new Map(edits.map(edit => [edit.path, readFileSync(edit.path, 'utf8')]));
+  for (const edit of edits) {
+    if (originals.get(edit.path).split(edit.from).length !== (edit.occurrences ?? 1) + 1) {
+      throw new Error(`Mutation anchor not unique: ${item.name}`);
+    }
+  }
   if (!run(item)) throw new Error(`Baseline failed: ${item.name}`);
   let rejected;
   try {
-    writeFileSync(item.path, original.replaceAll(item.from, item.to));
+    for (const edit of edits) writeFileSync(edit.path,
+      originals.get(edit.path).replaceAll(edit.from, edit.to));
     rejected = !run(item);
   } finally {
-    writeFileSync(item.path, original);
+    for (const [path, original] of originals) writeFileSync(path, original);
   }
   const restoredAccepted = run(item);
   results.push({name: item.name, rejected, restoredAccepted, targets: item.targets});
