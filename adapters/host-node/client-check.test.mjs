@@ -4519,6 +4519,76 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check migration rejects legacy diagnostics and planning labels`, async t => {
+    const legacy = JSON.parse(await readFile(join(repository,
+      'scripts/fixtures/pre-public-check-diagnostic-contract.json'), 'utf8'));
+    let alter = value => value;
+    const transport = [];
+    const observations = {authorization: 0, analysis: 0, unavailable: 0,
+      sourceDecisions: 0, wireOutcomes: [], statuses: []};
+    const client = await contextClient(t, entrance, absentEnvironment,
+      {observations, mutateCheckTransportReply: value => {
+        const changed = alter(value);
+        transport.push({original: structuredClone(value), received: structuredClone(changed)});
+        return changed;
+      }});
+    const text = '/*e\u0301😀*/\r\nSELECT (';
+    const parameterDeclarations = {x: {type: 'string'}};
+    const parameters = {x: 'private-migration-binding'};
+    const options = {kind: 'text', scope: 'bound_input', format: 'sql', parameterDeclarations, parameters};
+    const first = await client.check(text, options);
+    assert.equal(first.version, 'actql-check-outcome/0.1');
+    assert.equal(first.report.verdict, 'invalid');
+    assert.equal(getCheckInput(first, 'source').text, text);
+    for (const change of [
+      value => ({...value, version: 'actql-diagnostics/0.1'}),
+      value => ({...value, version: 'actql-plan-result/0.1'}),
+      value => ({...value, outcome_schema_cid: legacy.plan_result_schema_cid}),
+    ]) {
+      alter = change;
+      let failure;
+      try { await client.check(text, options); } catch (error) { failure = error; }
+      assert.equal(failure?.code, 'InvalidHostCheckOutcome',
+        '[check-mutation:legacy-diagnostic-public-rejection]');
+      const view = sdk.explainCheckFailure(failure);
+      assert.deepEqual({kind: view.kind, problem: view.problem},
+        {kind: 'protocol_failure', problem: 'contract_mismatch'});
+      assert.deepEqual(sdk.getCheckFailureInput(failure),
+        {kind: 'text', scope: 'bound_input', text, format: 'sql', parameterDeclarations, parameters});
+      assert.equal(getCheckInput(failure, 'source'), undefined);
+      assert.equal(sdk.explainCheckOutcome(failure), undefined);
+      assert.equal(resolveCheckLocation(failure, first.report.reasons[0].location), undefined);
+      assert.equal(sdk.getCheckFailureInput(structuredClone(failure)), undefined);
+      for (const field of ['verdict', 'report', 'scope', 'contextRef', 'next', 'ref']) {
+        assert.equal(Object.hasOwn(view, field), false);
+      }
+      assert.doesNotMatch(JSON.stringify({failure, view}), /private-migration-binding|SELECT|diagnostics\/0.1/u);
+      assert.equal(getCheckInput(first, 'source').text, text);
+    }
+    alter = value => value;
+    const restored = await client.check(text, options);
+    assert.equal(restored.report.verdict, 'invalid');
+    assert.equal(getCheckInput(restored, 'source').text, text);
+    assert.notEqual(restored, first);
+    assert.notEqual(getCheckInput(restored, 'source'), getCheckInput(first, 'source'));
+    assert.equal(getCheckInput(restored, 'source').revision, getCheckInput(first, 'source').revision);
+    assert.deepEqual({analysis: observations.analysis, authorization: observations.authorization,
+      unavailable: observations.unavailable, sourceDecisions: observations.sourceDecisions},
+    {analysis: 5, authorization: 5, unavailable: 0, sourceDecisions: 0});
+    assert.equal(transport.every(({original}) => original.version === 'actql-check-outcome/0.1'), true);
+    assert.deepEqual(transport.map(({received}) => received.version),
+      ['actql-check-outcome/0.1', 'actql-diagnostics/0.1', 'actql-plan-result/0.1',
+        'actql-check-outcome/0.1', 'actql-check-outcome/0.1']);
+    assert.equal(transport[3].received.outcome_schema_cid, legacy.plan_result_schema_cid);
+    // The Local observer precedes alteration; the HTTPS observer sees the
+    // altered response bytes. Keep both facts explicit rather than relabeling.
+    assert.deepEqual(observations.wireOutcomes,
+      transport.map(pair => entrance === 'http' ? pair.received : pair.original));
+    assert.deepEqual(observations.statuses, entrance === 'http' ? [200, 200, 200, 200, 200] : []);
+  });
+}
+
 
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: lexical fixes retain original EOF edits and require review`, async t => {

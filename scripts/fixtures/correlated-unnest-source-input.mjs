@@ -2,6 +2,8 @@
 // No compiler output is patched; parent identity alone is not a match key.
 import {correlatedUnnestStarSuccesses, correlatedUnnestStarRefusals}
   from './correlated-unnest-star-source-input.mjs';
+import {joinedUnnestStarSuccesses, joinedUnnestStarRefusals}
+  from './joined-unnest-star-source-input.mjs';
 const number = {type: 'number', nullable: false};
 const element = {type: 'number', nullable: true};
 const items = {type: 'array', nullable: true, max_items: 3, items: element};
@@ -110,3 +112,5 @@ export const correlatedUnnestRefusals = [
 ];
 correlatedUnnestSuccesses.push(...correlatedUnnestStarSuccesses);
 correlatedUnnestRefusals.push(...correlatedUnnestStarRefusals);
+correlatedUnnestSuccesses.push(...joinedUnnestStarSuccesses);
+correlatedUnnestRefusals.push(...joinedUnnestStarRefusals);

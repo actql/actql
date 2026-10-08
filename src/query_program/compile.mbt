@@ -777,17 +777,9 @@ fn append_pipe_expression(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
 ) -> @builder.Node raise Abort {
-  match
-    @expression.append_with_properties(
-      expression,
-      path => pipe_slot(path, visible, ranges),
-      construction.builder,
-      max_work,
-      resolve_parameter=construction.parameter_resolver(),
-    ) {
-    Ok(node) => node
-    Err(error) => raise Abort(Expression(error))
-  }
+  append_pipe_range_expression(
+    construction, expression, visible, ranges, max_work,
+  )
 }
 
 ///|
@@ -903,23 +895,42 @@ fn append_expression(
     }
     resolve_column(path, query, input, fields)
   }
+  let (bound, slots, remaining) = bind_range_property_expression(
+    expression,
+    resolve,
+    name => {
+      resolve([name]) is Some(_) ||
+      ambiguous_column([name], query, input, fields)
+    },
+    max_work,
+  )
+  let bound_resolve = fn(path : Array[@query.NamePart]) -> String? {
+    if path.length() == 1 {
+      for (name, slot) in slots {
+        if path[0].value == name {
+          return Some(slot)
+        }
+      }
+    }
+    resolve(path)
+  }
   let lowered = if input.graph_bindings.is_empty() {
     @expression.append_with_properties(
-      expression,
-      resolve,
+      bound,
+      bound_resolve,
       construction.builder,
-      max_work,
+      remaining,
       resolve_parameter=construction.parameter_resolver(),
     )
   } else {
     @expression.append_with_macros(
-      expression,
-      resolve,
+      bound,
+      bound_resolve,
       (path, argument) => {
         graph_macro_value(path, argument, input.graph_bindings)
       },
       construction.builder,
-      max_work,
+      remaining,
       resolve_properties=true,
       resolve_parameter=construction.parameter_resolver(),
     )
