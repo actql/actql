@@ -1,3 +1,4 @@
+import {retirementModelExecution, retirementFixture, retirementBindings, executedRetirementCoverage} from './retirement-evidence.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
@@ -209,4 +210,56 @@ test('chain model count comes from one complete observed typed/axiom summary', (
     [`${summary}\n${summary}`, 0], [`sorryAx\n${summary}`, 0],
   ]) assert.throws(() => modelObservationUnits(output, exit), /typed model observation/);
   assert.equal(modelExecution.count, 54);
+});
+
+
+function retirementEvidence(target = 'js') {
+  const e = evidence(target);
+  e.nodes = graph([...bindings(), ...retirementBindings()], target);
+  e.report.runs['retirement-lean'] = {command: [...retirementModelExecution.command],
+    target: 'model', count: retirementModelExecution.count, passed: true, exit: 0, sourceDigest: e.current.digest};
+  e.report.runs[`retirement-connection-${target}`] = {...clone(e.report.runs[`connection-${target}`]),
+    command: ['moon', 'test', retirementFixture, '--target', target, '--deny-warn'], count: 8,
+    coverage: executedRetirementCoverage()};
+  return e;
+}
+test('existing lifetime scope composes the additional model without widening prompt or stop claims', () => {
+  checkBindings(root, [...bindings(), ...retirementBindings()]);
+  for (const target of ['js', 'wasm', 'native']) {
+    const e = retirementEvidence(target);
+    assert.equal(validate(e.nodes, e.report, e.current, target).length, 4);
+    assert.deepEqual(e.nodes.at(-1).dependencies,
+      ['session', 'retirement-model', 'builtin-chain/early-retirement:connection']);
+  }
+});
+for (const [label, change] of [
+  ['original model substituted', e => { e.report.runs['retirement-lean'] = clone(e.report.runs.lean); }],
+  ['missing additional model', e => { delete e.report.runs['retirement-lean']; }],
+  ['required case absent', e => { e.report.runs['retirement-connection-js'].count = 7; }],
+  ['string count', e => { e.report.runs['retirement-connection-js'].count = '8'; }],
+  ['ordinary fixture substituted', e => { e.report.runs['retirement-connection-js'].command[2] = fixture; }],
+  ['missing execution coverage', e => { delete e.report.runs['retirement-connection-js'].coverage; }],
+  ['missing cleanup premise', e => { e.nodes.at(-1).premises.splice(1, 1); }],
+  ['missing capacity residual', e => { e.nodes.at(-1).residual.splice(1, 1); }],
+  ['physical memory claim added', e => { e.nodes.at(-1).guarantees.push('peak physical memory bounded by maximum child'); }],
+  ['missing model dependency', e => { e.nodes.at(-1).dependencies.splice(1, 1); }],
+  ['scope widened on both sides', e => {
+    e.nodes.at(-1).scope.profile = '*';
+    e.report.runs['retirement-connection-js'].coverage.scopes[0].profile = '*';
+  }],
+]) test(`controlled retirement admission rejects ${label}`, () => {
+  const e = retirementEvidence(); change(e);
+  assert.throws(() => validate(e.nodes, e.report, e.current, 'js'));
+});
+for (const [label, from, to] of [
+  ['physical stop guard omitted', 'state.current is Some(active) && managed_provider_stopped(active)', 'state.current is Some(active)'],
+  ['execution retained after successful cleanup', 'state.children = []\n      state.reclaiming = false', 'state.reclaiming = false'],
+  ['parent cleanup pending custody lost', 'Ok(false) => return Ok(false)', 'Ok(false) => ()'],
+]) test(`reviewed retirement source rejects ${label}`, () => {
+  const requested = retirementBindings(), path = requested[0].provider;
+  const source = readFileSync(root + path, 'utf8');
+  assert.equal(source.split(from).length, 2, 'Missing uniquely reviewed route');
+  assert.throws(() => checkBindings(root, requested, {
+    read: p => p === path ? source.replace(from, to) : readFileSync(root + p, 'utf8'),
+  }), /guard|retirement|custody/);
 });

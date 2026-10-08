@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { clone, generate, oracle } from './engine.mjs';
-import {corpusBaseline} from './registry.mjs';
+import {corpusFoundations} from './registry.mjs';
 
 const methods = ['enabled', 'admits', 'generate', 'contract', 'syntax', 'oracle', 'shrinks'];
 export function checkRegistration(registry, registrations) {
@@ -56,21 +56,31 @@ function completeCorpus(registry, registrations) {
   return cases;
 }
 
-export function fixedCorpus(registry, registrations) {
-  const current = completeCorpus(registry, registrations);
-  if (registry.length <= corpusBaseline.length || !corpusBaseline.every((descriptor, index) =>
-    registry[index] === descriptor)) return current;
-  const retained = completeCorpus(corpusBaseline, registrations);
-  const originalNames = new Set(corpusBaseline.map(descriptor => descriptor.name));
-  const sameCase = value => JSON.stringify({rows: value.rows, steps: value.steps});
-  const contents = new Set(retained.map(sameCase)), ids = new Set(retained.map(value => value.id));
-  for (const candidate of current) {
-    if (candidate.steps.every(step => originalNames.has(step.op))) continue;
-    if (contents.has(sameCase(candidate))) continue;
-    const value = clone(candidate);
-    while (ids.has(value.id)) value.id = `extension:${value.id}`;
-    retained.push(value); ids.add(value.id); contents.add(sameCase(value));
+const extendsRegistry = (before, after) => before.length < after.length &&
+  before.every((descriptor, index) => after[index] === descriptor);
+export function fixedCorpus(registry, registrations, foundations = corpusFoundations) {
+  assert(Array.isArray(foundations) && foundations.every((foundation, index) =>
+    Array.isArray(foundation) && foundation.length > 0 &&
+    (index === 0 || extendsRegistry(foundations[index - 1], foundation))),
+  'Corpus foundations must be ordered strict registry prefixes');
+  const prior = foundations.filter(foundation => extendsRegistry(foundation, registry));
+  if (!prior.length) return completeCorpus(registry, registrations);
+  let previous = prior[0];
+  const retained = completeCorpus(previous, registrations);
+  for (const next of [...prior.slice(1), registry]) {
+    const current = completeCorpus(next, registrations);
+    const previousNames = new Set(previous.map(descriptor => descriptor.name));
+    const sameCase = value => JSON.stringify({rows: value.rows, steps: value.steps});
+    const contents = new Set(retained.map(sameCase)), ids = new Set(retained.map(value => value.id));
+    for (const candidate of current) {
+      if (candidate.steps.every(step => previousNames.has(step.op))) continue;
+      if (contents.has(sameCase(candidate))) continue;
+      const value = clone(candidate);
+      while (ids.has(value.id)) value.id = `extension:${value.id}`;
+      retained.push(value); ids.add(value.id); contents.add(sameCase(value));
+    }
+    coverage(retained, next, registrations);
+    previous = next;
   }
-  coverage(retained, registry, registrations);
   return retained;
 }

@@ -36,6 +36,7 @@ import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {readSourceProfileJson} from './source-profile-json.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
@@ -270,9 +271,7 @@ export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {
   fallback = process.env.ACTQL_LOCAL_SOURCE_PROFILE) {
   if (sourceProfilePaths !== undefined) {
     if (sourceProfilePath !== undefined || fallback !== undefined ||
-        !Array.isArray(sourceProfilePaths) || sourceProfilePaths.length !== 2 ||
-        sourceProfilePaths.some(path => typeof path !== 'string' || !isAbsolute(path)) ||
-        new Set(sourceProfilePaths).size !== sourceProfilePaths.length) {
+        !validPluralSourcePaths(sourceProfilePaths)) {
       throw new TypeError('InvalidInstalledSourceProfiles');
     }
     return Object.freeze([...sourceProfilePaths]);
@@ -281,8 +280,18 @@ export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {
   return path === undefined ? Object.freeze([]) : Object.freeze([path]);
 }
 
+function validPluralSourcePaths(paths) {
+  return Array.isArray(paths) && paths.length >= 2 &&
+    paths.length <= MAX_INSTALLED_SOURCE_AUTHORITIES &&
+    Array.from(paths).every(path => typeof path === 'string' && isAbsolute(path)) &&
+    new Set(paths).size === paths.length;
+}
+
 export async function loadInstalledSources(paths, options) {
   if (paths.length < 2) return loadInstalledSource(paths[0], options);
+  if (!validPluralSourcePaths(paths)) {
+    throw new TypeError('InvalidInstalledSourceProfiles');
+  }
   const sources = [];
   const closed = new Set();
   const close = async () => {
@@ -295,27 +304,48 @@ export async function loadInstalledSources(paths, options) {
     if (failures.length) throw new AggregateError(failures, 'InstalledSourceCleanupPending');
   };
   try {
-    const refs = [];
+    const refs = new Set();
     for (const path of paths) {
       const source = await loadInstalledSource(path, options);
       sources.push(source);
       // Each independently installed source must have an exact checked
-      // occurrence and an owned capacity before either read may start.
-      refs.push(...installedSourceReadBindings(source));
+      // occurrence and an owned capacity before any read may start.
+      for (const ref of installedSourceReadBindings(source)) {
+        if (refs.has(ref)) throw new TypeError('InstalledSourceBindingAmbiguous');
+        refs.add(ref);
+      }
+      if (refs.size > MAX_INSTALLED_SOURCE_AUTHORITIES) {
+        throw new TypeError('InvalidInstalledSourceReadAccesses');
+      }
     }
-    verifyInstalledConnectorBindings(sources[0], sources[1]);
-    const environmentWire = composeInstalledCheckEnvironment(options.moon,
-      options.baseEnvironmentWire, sources[0].environmentWire, sources[1].environmentWire);
-    if (new Set(refs).size !== refs.length) {
-      throw new TypeError('InstalledSourceBindingAmbiguous');
+    let environmentWire;
+    const bindings = new Map();
+    for (const source of sources) {
+      const combined = composeInstalledCheckEnvironment(options.moon,
+        options.baseEnvironmentWire, environmentWire, source.environmentWire);
+      verifyInstalledConnectorBindings(environmentWire === undefined ? undefined
+        : {environmentWire, connectorBindings: [...bindings.values()]}, source);
+      environmentWire = combined;
+      // Validate a member's own duplicates before coalescing matching physical
+      // bindings across members. Preserve the original declaration order.
+      for (const binding of source.connectorBindings ?? []) {
+        if (!bindings.has(binding.connectorId)) {
+          bindings.set(binding.connectorId, binding);
+        }
+      }
+    }
+    const {queryAliases} = splitSourceAliasProfile({queryAliases:
+      sources.flatMap(source => source.queryAliases ?? [])});
+    if (new Set(queryAliases.map(alias => alias.name)).size !== queryAliases.length) {
+      throw new TypeError('InvalidPublicSourcePublication');
     }
     return Object.freeze({
       realizationKey: sources.every(source =>
         source.realizationKey === 'duckdb-acquired')
         ? 'duckdb-acquired' : 'installed-multi-acquired', environmentWire,
       sources: Object.freeze(sources),
-      connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
-      queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases ?? [])),
+      connectorBindings: Object.freeze([...bindings.values()]),
+      queryAliases,
       admitsSource: ref => sources.some(source => source.admitsSource(ref)),
       close,
     });
