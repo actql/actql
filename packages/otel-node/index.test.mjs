@@ -70,7 +70,10 @@ for (const [traceFlags, sampleRate, sampled] of [[0, 0, false], [0, 1, false],
     });
     const observer = installHostObservation(adapter.connection);
     t.after(async () => { await observer.close(); await adapter.close(); });
-    await observer.run('check', {...parent, traceFlags}, () => 42);
+    await observer.run('check', {...parent, traceFlags}, () => {
+      observer.emit('check', 'check_completed', {checkVerdict: 'verified'});
+      return 42;
+    });
     await observer.close();
     assert.equal(sink.packets.some(item => item.path === '/v1/traces'), sampled);
     assert.ok(sink.packets.some(item => item.path === '/v1/logs'));
@@ -192,7 +195,23 @@ test('actual Source and Model attempt facts use standard CLIENT span kind', asyn
   await observer.close();
   const spans = records(sink.packets, 'traces');
   assert.equal(spans.length, 2);
-  for (const span of spans) assert.equal(field(span, 6), 3);
+  for (const span of spans) assert.equal(field(span, 6), 3n);
+});
+
+test('execution intervals do not duplicate discrete Owner logs', async t => {
+  const sink = await collector(t);
+  const adapter = createNodeHostObservability({endpoint: sink.endpoint,
+    logs: {endpoint: `${sink.endpoint}/v1/logs`}});
+  const observer = installHostObservation(adapter.connection);
+  t.after(async () => { await observer.close(); await adapter.close(); });
+  await observer.run('check', parent, () => {
+    observer.emit('check', 'check_completed', {checkVerdict: 'verified'});
+  });
+  await observer.close();
+  const logs = records(sink.packets, 'logs');
+  assert.equal(logs.length, 1);
+  assert.equal(attributes(logs[0], 6)['actql.event'], 'check_completed');
+  assert.equal(records(sink.packets, 'traces').length, 2);
 });
 
 test('effective inspection is finite and does not disclose destination credentials or probe', async () => {

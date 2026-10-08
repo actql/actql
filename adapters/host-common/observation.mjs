@@ -169,6 +169,17 @@ export function createHostObservationConnection(options = {}) {
 
 export const isHostObservationProjection = value => projections.has(value);
 
+// Copy only the common receipt/publication Owner's returned disposition. This
+// does not interpret transport errors or call an arbitrary completion hook.
+export function projectEffectApplication(projection, ref, result) {
+  if (!projections.has(projection)) return;
+  try {
+    const outcome = {published: 'committed', waiting: 'waiting_checkpoint',
+      needs_reconciliation: 'needs_reconciliation', failed: 'failed'}[result.status];
+    if (outcome !== undefined) projection.diagnostic('effect_application_observed', {ref, outcome});
+  } catch { /* Optional metadata cannot change receipt or cleanup custody. */ }
+}
+
 export function installHostObservation(connection, {journal, runId} = {}) {
   if (connection === undefined) return undefined;
   const config = connections.get(connection);

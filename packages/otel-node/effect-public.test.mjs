@@ -55,7 +55,9 @@ test('public HTTPS Effect approval, restart and lost reply retain Owner outcomes
   const logs = records(packets, 'logs').map(record => attributes(record, 6));
   const applications = logs.filter(value => value['actql.operation'] === 'effect' &&
     value['actql.event'] === 'application_observed');
-  assert.ok(applications.some(value => value['actql.outcome'] === 'committed'));
+  assert.ok(applications.some(value => value['actql.outcome'] === 'committed'),
+    JSON.stringify({applications, events: [...new Set(logs.map(value => value['actql.event']))],
+      status: adapters.map(adapter => adapter.status())}));
   assert.ok(applications.some(value => value['actql.outcome'] === 'needs_reconciliation'),
     'a lost reply retains the common receipt Owner uncertainty');
   assert.ok(logs.some(value => value['actql.outcome'] === 'waiting_checkpoint'));

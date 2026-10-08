@@ -3,6 +3,7 @@
 import './prepare-otel-node-tests.mjs';
 import {runFocusedTests} from './test-execution.mjs';
 process.exitCode = runFocusedTests('node', [
+  '--test-concurrency=1',
   'packages/sdk/trace-context.test.mjs',
   'adapters/host-common/observation.test.mjs',
   'adapters/host-node/client-observation-journal.test.mjs',
@@ -13,4 +14,4 @@ process.exitCode = runFocusedTests('node', [
   'packages/otel-node/public-host.test.mjs',
   'packages/otel-node/recovery.test.mjs',
   'packages/otel-node/effect-public.test.mjs',
-], {timeout: 240000});
+], {timeout: 360000});

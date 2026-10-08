@@ -146,7 +146,9 @@ export function createNodeHostObservability(options = {}) {
               ProtobufMetricsSerializer);
           });
         }
-        if (logger !== undefined) {
+        // Finite interval boundaries belong to spans, not discrete lifecycle
+        // logs. Polling cannot consume the log allowance for an Owner outcome.
+        if (logger !== undefined && record.segment === undefined) {
           await attempt(async () => {
             emittedLog = undefined;
             logger.emit({body: record.event, attributes: record.attributes,

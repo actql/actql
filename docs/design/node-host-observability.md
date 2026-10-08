@@ -31,6 +31,9 @@ Other instant fact spans do not claim a physical duration, including Model
 attempt receipts. Source/Model attempt facts use standard CLIENT span kind;
 application/receipt facts remain INTERNAL, never inferred physical sends.
 Logical work/accounting is not inferred from these clocks.
+Finite interval boundaries are exported as spans, not duplicate lifecycle logs.
+Discrete logs describe verified Owner facts; status polling cannot exhaust
+their allowance merely by starting and ending ingress intervals.
 
 The common projection copies fixed fields into a bounded queue and delivers
 after `setImmediate`. The Host does not import an OTel SDK. SDK/HTTP propagation

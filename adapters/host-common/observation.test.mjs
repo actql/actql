@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHostObservationConnection, installHostObservation,
-  observationTraceParent, snapshotObservationContext} from './observation.mjs';
+  observationTraceParent, snapshotObservationContext,
+  projectEffectApplication} from './observation.mjs';
 
 const trace = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
 const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -12,9 +13,11 @@ test('internal Effect projection uses the active scope and defers delivery', asy
   const records = [];
   const observer = installHostObservation(createHostObservationConnection({
     deliver: record => records.push(record)}));
+  projectEffectApplication({diagnostic() { throw new Error('must not call a foreign hook'); }},
+    undefined, {status: 'published'});
   await observer.run('submit', trace, () => {
-    observer.diagnostic('effect_application_observed',
-      {outcome: 'needs_reconciliation', receipt: 'SECRET_SENTINEL'});
+    projectEffectApplication(observer, undefined,
+      {status: 'needs_reconciliation', receipt: 'SECRET_SENTINEL'});
     assert.equal(records.length, 0, 'no processor runs inside completion');
   });
   await observer.close();

@@ -240,6 +240,15 @@ approval, independent Results and unknown non-resend had passed before that
 assertion. This caught a projection defect: recovered background dispatch is
 not guaranteed to inherit an ingress AsyncLocalStorage context.
 
+The first explicit-ref correction was insufficient (`run-e9u1Dw`,
+`focused-test-gFYJUn`: 40 passed, 2 failed). The wire-kind assertion also
+compared a protobuf integer decoded as BigInt with Number; it now uses `3n`.
+A later diagnostic (`run-tSev6n`, `focused-test-N6BTXG`: 29 passed, 2 failed)
+confirmed waiting/unknown facts on the explicit Owner hook but showed the
+log export window exhausted by polling interval records before publication.
+It also exposed a managed export deadline under concurrently running public
+and unit fixtures. Neither run is a successful acceptance claim.
+
 The correction projects the common receipt/publication Owner result through
 the installed Host's explicit original Run reference. It adds no outcome
 inference, replay authority or execution state machine. Rejected adapters do
@@ -248,6 +257,9 @@ CLIENT span kind; Effect disposition remains an INTERNAL fact without an
 invented transport interval. Logs replace duplicate span events when enabled.
 Managed close aborts in-flight delivery and suppresses remaining signals and
 queued records; external data already sent cannot be recalled.
+Interval boundaries now use spans only, leaving discrete lifecycle logs for
+Owner facts without increasing the finite export caps. The OTel selection runs
+test files sequentially, including public fixtures, under a finite total budget.
 
 Selected public declarations passed strict TypeScript checking, and Node
 adapter assembly/freshness and whitespace checks passed after the correction.
