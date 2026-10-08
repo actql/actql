@@ -1,3 +1,6 @@
+import {aggregateMemberCallSuccesses, aggregateMemberCallRefusals}
+  from './aggregate-member-call-reuse-source-input.mjs';
+
 // Independent expectations from grouped SELECT/HAVING scope and Language's
 // nullable closed-object property contract. No compiler emits these fixtures.
 const number = {type: 'number', nullable: false};
@@ -87,3 +90,8 @@ export const havingObjectPropertyExecutionFailures = [
     parameterDeclarations: declarations, parameters, sourceRows: rows, sourceReadSessionCount: 1,
     resultNames: ['answer']},
 ];
+
+// The existing normal and focused Host paths also cover clause-aware aggregate
+// receiver reuse; the grouped alias and failure obligations above are retained.
+havingObjectPropertySuccesses.push(...aggregateMemberCallSuccesses);
+havingObjectPropertyRefusals.push(...aggregateMemberCallRefusals);

@@ -10,6 +10,7 @@ import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import {connect as connectRemote, getSubmissionInput, getSubmissionOutcome,
   explainSubmission, formatSubmission} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
@@ -367,6 +368,72 @@ for (const entrance of ['local', 'https']) {
     assert.deepEqual(replay.execution.ref, original.admission.ref);
     assert.deepEqual(await replay.all(), [{n: 1}]);
     assert.equal(f.computes, 1, 'expiry/restart observation and replay never create a second Compute');
+  });
+}
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: expired retired submission cannot regain admission custody or create a Run`, async t => {
+    let now = 1_800_000_000_000;
+    const f = await installedFixture(t, entrance, {epochClock: () => now});
+    const originalRef = f.client.newSubmission({nonce: 'expired-retired-admission'});
+    await assert.rejects(f.client.startSource('SELECT missing AS n',
+      {format: 'sql', submissionRef: originalRef}), {code: 'SubmissionNotAccepted'});
+    assert.equal(f.computes, 0);
+    await f.close(); now = originalRef.epoch.expiresAt;
+    const journal = openClientRequestJournal(join(f.root, 'host/requests'), {
+      submissionEpochTtlMs: 1000, submissionEpochNow: () => now,
+    });
+    try {
+      assert.deepEqual(journal.retireSubmittedIntent(originalRef, {
+        authorityScopeCid: originalRef.epoch.authorityScopeCid,
+        currentAuthorization: true, expectedRevision: 0,
+      }, moon), {retired: true});
+    } finally {journal.close();}
+    await f.open();
+    const counts = () => {
+      const database = new DatabaseSync(join(f.root, 'host/requests/client-requests.sqlite3'),
+        {readOnly: true});
+      try {
+        const row = database.prepare(`SELECT
+          (SELECT COUNT(*) FROM client_submitted_intents) AS intents,
+          (SELECT issued_count FROM client_submitted_intent_custody WHERE singleton = 1) AS issued,
+          (SELECT retired_count FROM client_submitted_intent_retirement WHERE singleton = 1) AS retired,
+          (SELECT COUNT(*) FROM client_requests) AS requests`).get();
+        return Object.fromEntries(Object.entries(row).map(([key, value]) => [key, Number(value)]));
+      } finally {database.close();}
+    };
+    const expectedCounts = {intents: 0, issued: 1, retired: 1, requests: 0};
+    assert.deepEqual(counts(), expectedCounts);
+    // Corrected text cannot reactivate an expired original identity, even
+    // after its per-submission record has been retired by the same Owner.
+    let returned, errorCode;
+    try {
+      returned = await f.client.startSource('SELECT 1 AS n',
+        {format: 'sql', submissionRef: originalRef});
+    } catch (cause) {
+      if (cause?.code !== 'SubmissionUnknown') throw cause;
+      errorCode = cause.code;
+    }
+    const observed = counts();
+    await writeFile(join(f.root, 'expired-admission-observation.json'), JSON.stringify({
+      originalRef, now, expectedCounts, observed, errorCode,
+      returnedRef: returned?.ref, computes: f.computes,
+    }), {mode: 0o600});
+    assert.deepEqual(observed, expectedCounts, '[check-mutation:expired-admission-custody]');
+    assert.equal(returned, undefined, '[check-mutation:expired-admission-run]');
+    assert.equal(f.computes, 0, '[check-mutation:expired-admission-compute]');
+    const expectedLookup = {kind: 'unresolvable', submissionRef: originalRef,
+      problem: {code: 'submission_history_unresolvable'}};
+    assert.deepEqual(await f.client.lookupSubmission(originalRef), expectedLookup);
+    assert.deepEqual(await f.client.lookupSubmission(originalRef), expectedLookup);
+    assert.deepEqual(counts(), expectedCounts);
+    await f.close(); now = originalRef.epoch.notBefore;
+    await f.open();
+    await assert.rejects(f.client.startSource('SELECT 1 AS n',
+      {format: 'sql', submissionRef: originalRef}), {code: 'SubmissionUnknown'});
+    assert.deepEqual(await f.client.lookupSubmission(originalRef), expectedLookup);
+    assert.deepEqual(counts(), expectedCounts);
+    assert.equal(f.computes, 0);
   });
 }
 

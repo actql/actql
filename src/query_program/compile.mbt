@@ -1125,36 +1125,11 @@ fn same_aggregate_call(
     left.order_by.length() != right.order_by.length() {
     return false
   }
-  let prefix = fn(
-    path : Array[@query.NamePart],
-    resolve : (Array[@query.NamePart]) -> String?,
-  ) -> (String, Int)? {
-    let mut length = path.length()
-    while length > 0 {
-      if resolve(path[:length].to_owned()) is Some(slot) {
-        return Some((slot, length))
-      }
-      length -= 1
-    }
-    None
-  }
   let same = (a, b) => {
-    same_expression(a, b, references=(x, y) => {
-      match (prefix(x, left_resolve), prefix(y, right_resolve)) {
-        (Some((left, n)), Some((right, m))) => {
-          if left != right || x.length() - n != y.length() - m {
-            return false
-          }
-          for index in 0..<(x.length() - n) {
-            if x[n + index].value != y[m + index].value {
-              return false
-            }
-          }
-          true
-        }
-        _ => false
-      }
-    })
+    // Clause scopes resolve the receiver before comparing static members.
+    // Equivalent Property/Reference AST spellings may reuse one aggregate;
+    // an output alias and the original input remain different value slots.
+    same_group_expression_in_scopes(a, b, left_resolve, right_resolve)
   }
   match (left.argument, right.argument) {
     (None, None) => ()
