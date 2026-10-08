@@ -6,5 +6,6 @@ import {
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/remote_transfer" @transfer,
   "actql/actql/publication_payload" @payload,
+  "actql/actql/remote_bundle" @bundle,
   "moonbitlang/core/encoding/utf8",
 }
