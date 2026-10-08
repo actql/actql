@@ -1,7 +1,7 @@
 # NEAREST candidates through existing Script input binding
 
-Date: 2026-10-08. B's Frontend connection unit. Final target: main after the
-unmerged NEAREST member-binding parent. This is separate from INFER acceptance
+Date: 2026-10-08. B's Frontend connection unit. Target: main; the NEAREST
+member-binding parent has now merged. This is separate from INFER acceptance
 and D's CTE/predicate/Effect implementation.
 
 ## Fixed counterexample
@@ -75,6 +75,13 @@ changes. The unpublished merge title was corrected to Conventional Commits.
 
 These are working-revision checks, not clean submitted-HEAD execution or CI.
 No full Core, target matrix, proof, performance or repeated packed suite ran.
+
+The parent #942/#952 revisions subsequently merged into main
+`f299df8092021f3f8fe5d3072a57a512c9dd7872`. The normal merge into this branch is
+`fa702123f2b89e28832bcd1d3c8e11de710cbdfa`, with no conflict. `run-yvx6cR`
+passed the same 15/15 selected JS tests on that clean integration SHA; this is
+local evidence only. The subsequent delivery-record update changes no executable
+input and does not convert this result into CI or public execution evidence.
 
 The existing `nearest-public-input.mjs` inventory adds the complete DATA source
 with the unchanged independent rows/contracts and a forward-candidate refusal.
