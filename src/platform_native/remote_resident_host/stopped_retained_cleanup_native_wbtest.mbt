@@ -1245,7 +1245,7 @@ test "selected stopped release retries exact Output without reclaiming another r
     let payload = @payload.prepare_publication_payload_request(
       authority,
       cleanup_cid(tag),
-      cleanup_cid("3"),
+      cleanup_cid(tag),
       cleanup_cid("4"),
       cleanup_cid("5"),
       cleanup_cid("6"),
