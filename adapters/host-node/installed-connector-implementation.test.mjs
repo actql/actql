@@ -85,7 +85,8 @@ test('changed installed implementation cannot prepare, dispatch or reconcile wit
     catalog: {database: join(f.root, 'absent.db'), warehouse: join(f.root, 'absent-warehouse'),
       catalogCid: hash('catalog'), limits: {bytes: 1048576, files: 16, operations: 16}}});
   const schemaWire = '{}';
-  const operation = {request_cid: hash('request'), schema_cid: hash(schemaWire)};
+  const operation = {action: 'create', input_carrier: {kind: 'relation', cid: hash('input')},
+    request_cid: hash('request'), schema_cid: hash(schemaWire)};
   const material = {operation, mapping: {}, rows: [], reservation: {bytes: 1, files: 1}, schemaWire};
   const prepared = bridge.prepareWrite(material);
   await writeFile(f.file, 'changed worker\n');

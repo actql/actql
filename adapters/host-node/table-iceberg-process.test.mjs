@@ -250,7 +250,8 @@ test('whole transport and unsupported configuration are refused before any proce
   assert.throws(() => createIcebergPhysicalBridge({python: new URL('https://example.invalid/python'),
     run: 'run', catalog}), {code: 'InvalidTablePhysicalConfiguration'});
   const bridge = createIcebergPhysicalBridge({python, run: 'run', catalog});
-  assert.throws(() => bridge.prepareWrite({operation: {request_cid: cid('1'), schema_cid: cid('2')},
+  assert.throws(() => bridge.prepareWrite({operation: {action: 'create',
+    input_carrier: {kind: 'relation', cid: cid('5')}, request_cid: cid('1'), schema_cid: cid('2')},
     mapping: {}, rows: [], reservation: {bytes: 1048576, files: 16}, schemaWire: '{}'}),
   {code: 'InvalidTableLogicalSchema'});
   assert.throws(() => bridge.prepareWrite({operation: {request_cid: cid('1')}, mapping: {}, schemaWire: '{}',
