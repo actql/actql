@@ -8,6 +8,7 @@ test "Infer compilation reaches the shared Run owner with the checked barrier" {
         "[\"id\",\"outcome\",\"value\"]"
       },
     )
+    assert_eq(prepared_client_infer_target_name(prepared, 2), Some("captured"))
     let graph = client_infer_material_test_graph(prepared)
     let compilation = issue_prepared_client_infer_compilation(
       prepared,
@@ -74,13 +75,42 @@ test "Infer compilation reaches the shared Run owner with the checked barrier" {
       "2099-01-01T00:00:00.000Z",
     ).unwrap()
     assert_true(client_compiled_run_matches(admitted, prepared))
+    // An egress contract alone cannot authorize Result retention.
+    assert_eq(client_compiled_run_infer_observation_policy(admitted), None)
+    let policy_wire = "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+    let policy_cid = "sha256:" + @sha.hex(@utf8.encode(policy_wire))
+    assert_true(
+      with_client_infer_result_policy(
+        admitted,
+        "sha256:" + "0".repeat(64),
+        policy_wire,
+        10000,
+        1000,
+        20,
+      )
+      is Err(InvalidResultPolicy),
+    )
+    assert_true(
+      with_client_infer_result_policy(
+        admitted, policy_cid, "{}", 10000, 1000, 20,
+      )
+      is Err(InvalidResultPolicy),
+    )
+    assert_true(
+      with_client_infer_result_policy(
+        admitted, policy_cid, policy_wire, 1, 1000, 20,
+      )
+      is Err(InvalidResultPolicy),
+    )
+    let admitted = with_client_infer_result_policy(
+      admitted, policy_cid, policy_wire, 10000, 1000, 20,
+    ).unwrap()
     assert_eq(
       client_compiled_run_infer_observation_policy(admitted),
-      Some(
-        @environment.model_task_data_handling_cid(
-          @environment.model_execution_task(graph.execution),
-        ),
-      ),
+      Some(policy_cid),
+    )
+    assert_true(
+      client_compiled_run_source_free_result_policy_body(admitted) is Some(_),
     )
     assert_true(
       client_compiled_run_infer(admitted) is Some(selected) &&

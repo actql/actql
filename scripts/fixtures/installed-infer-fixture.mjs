@@ -33,7 +33,7 @@ export const program = {
 export const expected = [{assessment: {input_key: {id: 'a'}, outcome: 'ok',
   value: {reason: null, risk: 'high'}}}];
 
-export function configuration(base) {
+export function configuration(base, {instructions = 'Classify urgency.'} = {}) {
   const input = {additional_properties: false,
     fields: {text: {nullable: true, type: 'string'}},
     nullable: false, type: 'object'};
@@ -42,7 +42,7 @@ export function configuration(base) {
     risk: {nullable: false, type: 'string'}}, nullable: false, type: 'object'};
   const bodies = [
     {version: 'actql-model-prompt/0.1',
-      payload: {format: 'packed-risk/0.1', instructions: 'Classify urgency.'}},
+      payload: {format: 'packed-risk/0.1', instructions}},
     {version: 'actql-model-retry-policy/0.1', retryable_failures: []},
     {version: 'actql-model-backoff/0.1', delays_ms: []},
   ].map(body => ({cid: cid(body),

@@ -76,7 +76,7 @@ pub fn client_compiled_run_matches_effect(
 pub fn client_compiled_run_infer_observation_policy(
   value : ClientCompiledRun,
 ) -> String? {
-  guard client_compiled_run_infer(value) is Some(plan) else { return None }
+  guard client_compiled_run_infer(value) is Some(_) else { return None }
   match value.compilation {
     Effects(allowed) =>
       if @strategy.graph_source_free_inputs_complete(
@@ -93,13 +93,48 @@ pub fn client_compiled_run_infer_observation_policy(
         )
       }
     Tasks(_) =>
-      Some(
-        @environment.model_task_data_handling_cid(
-          @environment.model_execution_task(plan.execution),
-        ),
-      )
+      if prepared_client_acquisition_count(value.owner) == 0 {
+        value.source_free_result_policy.map(
+          @publication.captured_effect_dependency_body_cid,
+        )
+      } else {
+        prepared_client_publication_data_policy_cid(value.owner)
+      }
     Values(_) => None
   }
+}
+
+///|
+/// The installed Host binds its real source-free Result Policy original
+/// before defining this Run. Model egress is not a substitute for that policy.
+/// Source-backed publication always retains its checked contributing policy.
+pub fn with_client_infer_result_policy(
+  value : ClientCompiledRun,
+  cid : String,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  guard value.compilation is Tasks(_) &&
+    client_compiled_run_infer(value) is Some(_) else {
+    return Err(ForeignOwner)
+  }
+  if prepared_client_acquisition_count(value.owner) != 0 {
+    return Ok(value)
+  }
+  let original = match
+    admit_source_free_result_policy_body(
+      cid, wire, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(original) => original
+    Err(issue) => return Err(issue)
+  }
+  if value.source_free_result_policy is Some(saved) &&
+    @publication.captured_effect_dependency_body_cid(saved) != cid {
+    return Err(InvalidResultPolicy)
+  }
+  Ok({ ..value, source_free_result_policy: Some(original), })
 }
 
 ///|

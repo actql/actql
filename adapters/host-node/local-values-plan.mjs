@@ -27,6 +27,12 @@ const cid = value => `sha256:${createHash('sha256')
 const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
   name});
 const valuesAdmissions = new WeakMap();
+// The ordinary Effect-free INFER Host profile explicitly binds unknown
+// provenance. It never relabels synthetic values or Model output as public.
+// Effect-bearing profiles retain their separate required installation policy.
+const inferResultPolicyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
+const inferResultPolicy = Object.freeze({kind: 'data_policy', wire: inferResultPolicyWire,
+  cid: `sha256:${createHash('sha256').update(inferResultPolicyWire).digest('hex')}`});
 
 // Preserve the closed publication-plan shape. The request journal retains
 // this original configuration with the admission it actually authorized.
@@ -478,7 +484,7 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
 }
 
 function checkedTaskRunAdmission({control, preparedProgram, inferGraph,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire}, kind) {
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy}, kind) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
@@ -491,7 +497,8 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph,
   const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
     kind, {executionContextCid: contextCid,
       hostPolicyCid: policyCid(kind === 'infer' ? 'checked-infer' : 'checked-tasks'),
-      expiresAt: validUntil}, inferGraph);
+      expiresAt: validUntil,
+      ...(kind === 'infer' ? {resultDataPolicy: resultDataPolicy ?? inferResultPolicy} : {})}, inferGraph);
   const {admission, compiledPlan} = compiled;
   const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
     namespaceId, runId: randomUUID(), createdAt, validUntil,
