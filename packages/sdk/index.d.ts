@@ -137,6 +137,8 @@ export declare function getSubmissionInput(result: unknown): SubmissionInput | u
 export type RequestLookupTarget = RequestObservationTarget;
 /** Exact, schema-admitted Owner response only; error codes alone provide no facts. */
 export declare function getSubmissionOutcome(result: unknown): SubmissionOutcome | undefined;
+/** Newly bound checking of this original source submission; never changes acceptance or grants execution. */
+export declare function getSubmissionCheckObservation(result: unknown): CheckOutcome | undefined;
 type RequestObservationTarget = Readonly<{lookupContext: Readonly<{endpoint: string; scopeRef: string}>}> & (
   Readonly<{operation: 'lookupRequest'; requestId: string}> |
   Readonly<{operation: 'lookupSubmission'; submissionRef: SubmissionReference}>);

@@ -1720,3 +1720,60 @@ This connection uses the request journal's existing bounded intent custody.
 It adds no stored field, public input hash, retention period or input retrieval
 endpoint. The installed checker handles original text and supplied values
 transiently under its existing input and analysis limits.
+
+
+### Original submission checking observations
+
+A negative `submission_outcome` may include an optional `checkObservation`
+using the existing `actql-check-outcome/0.1` contract. This changes the closed
+Client–Host submission response schema, its generated JS/Native validators and
+wire types, and the receiving SDK together. It does not change the check reason
+or outcome schema CIDs, or the separate `actql-diagnostics/0.1` contract. An
+older closed response validator rejects the additional field; no compatibility
+adapter converts that rejection into success or empty diagnostics.
+
+The Source submit/replay call must supply its exact original intent. The Host
+uses its existing disclosure-aware checker and reauthorizes after the awaited
+check. A reference-only `submission_lookup` does not expose this observation:
+original-input inspection is distinct from authority to inspect acceptance.
+The journal stores only the original acceptance outcome, never this transient
+report. Existing journal limits and cleanup conditions continue to govern the
+original intent; this connection adds no persistence or retention period.
+
+Received observations use the Client–Host registry's `check_report_rules` in
+both generated JS and Native consumers. These preserve the existing document
+uniqueness/kind, location document/revision/range, and exact-EOF fix-target
+relationships in addition to schema shapes and current pins. The JS public
+validator delegates to that generated guard; Native applies it inside the
+referenced check-outcome predicate before accepting a submission reply. This
+registers existing received-report constraints without changing payload fields,
+check schema CIDs or the separate diagnostics contract. A malformed observation
+cannot be converted to an admitted negative submission or empty diagnostics.
+
+`getSubmissionCheckObservation(error)` returns the observation only for the
+original SDK submission error. The SDK validates and detaches the response,
+then binds its documents to the immutable input snapshot for that call using
+the same binding path as `client.check`. Existing `getCheckInput`,
+`resolveCheckLocation`, `resolveCheckTextRange` and check formatters consume
+that owned result without another parser or I/O. Copies acquire no input
+custody. A missing input or mismatched revision cannot produce an editor range
+or apply a correction. The getter is separate from `getSubmissionOutcome`:
+verified checking can coexist with an accepted preparation failure and never
+establishes execution success, cancellation or release.
+
+When a declared runtime value is absent and no disclosable violation has been
+established, the bound-input observation remains undetermined and retains its
+known typed `parameter_value_required` Requirement and `bound_values_missing`
+coverage limit. A definite public violation still establishes invalidity;
+missing values do not hide it. The Requirement's structured location identifies
+the original declaration; it does not invent a supplied-value document. The
+acceptance phase remains the preparation Owner's decision, independently of
+the checking verdict. Editing caller-owned declarations while awaiting the
+reply cannot change the declaration snapshot used to interpret that reply.
+
+Supplying a value requires a new check with the caller's original source,
+format and declarations plus the new supplied bindings. The new observation
+has its own context binding; the old report and its locations retain their
+original inputs. A successful new check does not automatically resubmit the
+failed request or grant execution permission. The known Requirement frontier
+does not certify complete template checking or narrow the original bound scope.

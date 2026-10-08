@@ -31,9 +31,10 @@ export function project(schema) {
   const result = {};
   if (schema.$ref !== undefined) {
     if (!['#/$defs/value_contract',
-      'actql-protocol-schemas.json#/schemas/canonical_value_contract']
+      'actql-protocol-schemas.json#/schemas/canonical_value_contract',
+      'actql-protocol-schemas.json#/artifact_schemas/check_outcome']
       .includes(schema.$ref)) throw new Error('UnsupportedPublicationReference');
-    result.$ref = 'value_contract';
+    result.$ref = schema.$ref.endsWith('/check_outcome') ? 'check_outcome' : 'value_contract';
   }
   for (const key of ['type', 'required',
     'uniqueItems', 'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum',
@@ -60,6 +61,7 @@ export function project(schema) {
 
 export function typeOf(schema) {
   if (schema.$ref === 'value_contract') return 'WireValueContractShape';
+  if (schema.$ref === 'check_outcome') return 'WireCheckOutcomeShape';
   if (schema.oneOf) return schema.oneOf.map(typeOf).join(' | ');
   if (Object.hasOwn(schema, 'const')) return JSON.stringify(schema.const);
   if (schema.enum) return schema.enum.map(JSON.stringify).join(' | ');
