@@ -3,6 +3,24 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {statisticalAggregateProgram, statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures} from './fixtures/statistical-aggregate-source-input.mjs';
 
+test('default analytic frames retain the explicit implementation-limit refusal', () => {
+  const text = 'SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM records';
+  const defaultFrame = statisticalAggregateRefusals.filter(x => x.text === text);
+  assert.equal(defaultFrame.length, 1);
+  assert.equal(defaultFrame[0].expectedCode, 'ClientProgramImplementationLimit');
+  assert.deepEqual(statisticalAggregateRefusals.filter(x => x.expectedCode !== undefined)
+    .map(x => x.text), [text]);
+  assert.ok(statisticalAggregateRefusals.some(x =>
+    x.text === 'SELECT VAR_SAMP(DISTINCT amount) AS v FROM records' &&
+    x.expectedCode === undefined));
+  assert.equal(statisticalAggregateRefusals.length, 8);
+  assert.equal(statisticalAggregateSuccesses.length, 14);
+  assert.equal(statisticalAggregateExecutionFailures.length, 1);
+  assert.deepEqual(statisticalAggregateSuccesses.find(x =>
+    x.name === 'statistical-aggregate-analytic-prefix').expected,
+  [{id: 1, v: null}, {id: 2, v: 0}, {id: 3, v: 1}]);
+});
+
 test('independent statistics retain NULL, duplicate occurrences and sample cardinality', () => {
   const byName = new Map(statisticalAggregateSuccesses.map(x => [x.name, x]));
   assert.deepEqual(byName.get('statistical-aggregate-sql-null-exclusion').expected, [{population: 1, sample: 2, population_sd: 1, sample_sd: Math.SQRT2}]);
