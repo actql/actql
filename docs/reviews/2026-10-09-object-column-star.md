@@ -182,6 +182,40 @@ Pin-repair preparation evidence:
 - Read-only `workers-fixtures.mjs` and then `node-host-fixtures.mjs` pass with the
   pinned formatter. These projected fixture sources require no generated edits.
 
-These are repair preparation results. Fresh five-package Local/HTTPS acceptance
-and required CI for the repaired submitted SHA remain unverified; the previous
-`09a47b6d...` package success is not transferred to the new pin.
+These are repair preparation results. The prior `09a47b6d...` package evidence
+is retained separately from the fresh repaired-pin campaign below.
+
+## Fresh repaired-pin packed acceptance
+
+The existing selected cohort now passes from clean source
+`4952f42c9293ec7636c0d7b240ee9be4a3bc1a54`, using normal production of all five
+packages and independently rehashed tarballs. Wrapper `run-tESgYy` is
+passed/complete, exit zero. Receipt `public-query-evidence-BSWIlF` records all ten
+commands complete with raw/verification statuses zero, the same clean source,
+no evidence errors, and successful installation cleanup.
+
+Embedded Local and real HTTPS each pass the unchanged **27 positives, 12
+preparation refusals and one expected execution failure**. The original five
+unlogged refusals remain verified by the completed common loop; seven exact
+refusals are individually logged per boundary. Independent Named Result rows,
+full descriptions/nullability, canonical/SELECT column order, empty results,
+duplicates, private-column non-disclosure and Source-once/request-replay
+assertions remain unchanged.
+
+Independent artifact/log audit:
+`/private/tmp/actql-b-object-column-star-4952f42c9-acceptance-audit-20261009.json`.
+
+| Package | Repaired source SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `5e28c1fabbf8acbb5a00ea2d77a8ce8e3b5aefc04ed849d767b25ac477e29acf` |
+| run-host-core | `69fbc2393a054d981a7317af6f77577fec868a54236159df276de97a72b4b226` |
+| local-node | `23ca25e07e245e87cbabdb3e0c5345840ebf2973b4f17934c676b6702f3842d0` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+This subsequent evidence-record commit changes only this document. The package
+campaign is attributed to `4952f42c...`, not relabeled as freshly built bytes
+from the documentation HEAD. Required submitted-HEAD CI remains unverified:
+the exact `4952f42c...` workflow lookup returned no runs. The PR remains Draft;
+no manual retry, Ready transition or merge is performed. Full Core,
+Wasm/native, broad packed suites and ordered STRUCT remain outside this evidence.
