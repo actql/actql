@@ -1995,6 +1995,14 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
       Ok(Some(@remote.Release(request))) => {
         backoff_ms = 0
+        if @resident.check_resident_dispatch_delegation(
+            site_delegation, request, generation,
+          )
+          is Err(_) {
+          report("release-failed", [("reason", "scope-mismatch")])
+          ignore(journal.close())
+          continue
+        }
         // A live holder owns this output: it releases it and then ends.
         let identity = @remote.dispatch_request_identity(request)
         if holder is Some(current) &&
@@ -2006,6 +2014,31 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           }
           ignore(journal.close())
           continue
+        }
+        // Save the authenticated release before waiting for orphan payload
+        // cleanup. Reclaim requires Releasing, so waiting for intents to vanish
+        // first would leave a completed holder's Output custody permanently stuck.
+        match
+          @resident_host.begin_resident_output_release(
+            journal, site_delegation, generation, request,
+          ) {
+          Ok(_) =>
+            match journal.pending_output_intents() {
+              Ok(values) => if !values.is_empty() { reclaim_due = true }
+              Err(_) => {
+                report("release-failed", [("reason", "journal")])
+                ignore(journal.close())
+                continue
+              }
+            }
+          // Non-completed dispositions keep the existing cancellation and
+          // unstarted cleanup paths; this helper never guesses execution status.
+          Err(@resident_host.OutputUnavailable) => ()
+          Err(issue) => {
+            report("release-failed", [("reason", output_code(issue))])
+            ignore(journal.close())
+            continue
+          }
         }
         if orphan_store is None &&
           !reclaim_due &&
