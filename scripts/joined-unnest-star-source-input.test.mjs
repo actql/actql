@@ -45,6 +45,13 @@ test('current and original JOIN columns remain separate with acquired source lif
   }
   assert.equal(acquired.sourceReadCount, 1);
   assert.equal(acquired.sourceReadSessionCount, 1);
+  const value = successes.find(item => item.name === 'joined-unnest-star-value-receiver-contrast');
+  const valueControl = successes.find(item => item.name === 'joined-unnest-star-value-receiver-json-control');
+  assert.deepEqual(value.expected, [{value: 10}]);
+  assert.deepEqual(value.expected, valueControl.expected);
+  assert.deepEqual(value.columns, valueControl.columns);
+  assert.equal(value.parameters.objects[0].score, 90);
+  assert.equal(value.parameters.objects[0].payload.score, 10);
 });
 
 test('joined star cases use the normal correlated cohort and precise pre-admission refusals', () => {

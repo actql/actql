@@ -193,3 +193,30 @@ test "joined correlated star obtains the child scope from actual JOIN output" {
     )
   }
 }
+
+///|
+test "joined ordinary range accepts quoted parenthesized property correlation" {
+  let text = "SELECT `p`.id, e.*, position FROM parents `p` JOIN keys k ON `p`.id = k.key MAX_OUTPUT_ROWS 4 CROSS JOIN UNNEST((`p`).`ITEMS`) e WITH OFFSET position ORDER BY `p`.id, position"
+  let script = match @query.parse_query_script(text, syntax_limits()) {
+    Ok(script) => script
+    Err(diagnostic) => fail(@debug.to_string(diagnostic))
+  }
+  let actual = match
+    compile_query_script(
+      script,
+      joined_unnest_star_context(),
+      construction_limits(),
+    ) {
+    Ok(program) => program
+    Err(Expression({ issue: UnknownReference, .. })) =>
+      fail("parenthesized range receiver is unresolved")
+    Err(UnknownColumn) => fail("parenthesized range: UnknownColumn")
+    Err(UnsupportedProjection) =>
+      fail("parenthesized range: UnsupportedProjection")
+    Err(_) => fail("unexpected parenthesized range refusal")
+  }
+  assert_true(
+    @check.check_parsed(actual, check_environment(), None, check_limits())
+    is Checked(_),
+  )
+}

@@ -50,6 +50,22 @@ failed published Run.
 - D's CTE/predicate/assert/Effect logic, C's Graph/snapshot and A's common runtime
   are not edited. The change remains the JOIN-specific call boundary.
 
+The first exact-HEAD packed attempt exposed two further Frontend connections in
+the authored quoted/parenthesized case. The existing grammar already specifies
+`source_alias = [ "AS" ], identifier`, including quoted identifiers. The
+optional-source-alias parser now consumes quoted names as well as ordinary
+non-clause words. Unquoted clause starters retain their original behavior.
+
+For scoped Pipe expressions, a parenthesized receiver naming a range without
+also naming a visible value binds the existing range column. The existing
+`expression_with_field_bindings` owner preserves source locations and removes
+only the syntactic qualification subtree. If the receiver names an object
+column, it remains ordinary property access; it is not flattened into a range
+column. Private binding names cannot capture authored references. Inspection,
+receiver traversal, collision checks and AST remapping consume the existing
+expression work allowance. Unknown/dropped ranges remain exact refusals.
+No temporary row object or evaluator is constructed.
+
 The complete expected lowered Program is written independently in
 `joined_unnest_star_test.mbt`; both SQL and Pipe are compared against it, including
 JOIN predicate, ceiling, private projection, property, sort and public fields.
@@ -58,7 +74,7 @@ names and is used for public execution comparison.
 
 ## Independent public obligations
 
-`joined-unnest-star-source-input.mjs` adds nine successes and three preparation
+`joined-unnest-star-source-input.mjs` adds eleven successes and three preparation
 refusals to the existing normal and selected correlated cohort. No new acceptance
 harness, Program patching or Host profile is introduced.
 
@@ -78,6 +94,9 @@ harness, Program patching or Host profile is introduced.
 - Non-array expression, removed range and zero JOIN ceiling must reject before
   Run admission/Source I/O. Public refusal is `ClientProgramInvalidInput`;
   focused core tests retain exact expression and syntax causes/positions.
+- An object-column/range collision contrasts a row `score=90` with the nested
+  object `score=10`. Independent JSON control and text both expect 10. This
+  prevents fixing range qualification by changing value-receiver semantics.
 
 ## Limited verification and remaining coverage
 
@@ -86,10 +105,25 @@ harness, Program patching or Host profile is introduced.
 - Selected fixture/correlated/public-profile Node tests: **18/18**,
   `run-nn4na2`, `focused-test-Alx11n`.
 - Earlier **2/2** complete-Program comparison: `run-2WnHpg`.
+- After quoted-range repair: **35/35 JS**, `run-pfVVM5`,
+  `focused-test-7vu68i`; **18/18 Node**, `run-zPUe3q`,
+  `focused-test-ncaKwA`. These include ordinary nullable/computed property and
+  ORDER reuse consumers, private-looking name collisions and exact scope errors.
 - Intermediate test setup mistakes (ordinary JOIN without Pipe separator;
   expecting zero ceiling to reach lowering rather than syntax admission) were
   corrected without changing product semantics or public expected values. Their
   failed receipts remain distinct from the red product counterexample above.
+
+The first normal five-package campaign at
+`c53b51c8a46b741160d4c97ec0ebaeb99e0dbb08` (`run-to2xeR`,
+`public-query-evidence-2aMkwD`) passed 30 Local successes, including new JSON
+control/SQL/Pipe, then rejected quoted/parenthesized source. Later cases,
+refusals and HTTPS were not reached. The failed receipt and Store are retained.
+Parser diagnosis (`run-E3LeIK`) fixes the exact `Syntax("Expected end of one
+query")` location, byte 42; after quoted alias admission, `run-ta44Ky` isolates
+the unresolved parenthesized receiver. After binding the existing range column,
+that focused case succeeds (`run-6IkOQP`). An intermediate missing closure
+error-type declaration is a compilation/setup failure, not runtime evidence.
 
 Exact clean-HEAD five-package production and the existing
 `test-packed-public-query.mjs --correlated-unnest-only` remain required before

@@ -59,6 +59,21 @@ const acquired = head + 'DATA expanded = FROM parents p |> JOIN records r ON p.i
 const success = (name, text, extra = {}) => ({name: 'joined-unnest-star-' + name, format: 'aql-text',
   text, parameterDeclarations, parameters, columns, expected,
   sourceReadCount: 0, sourceReadSessionCount: 0, ...extra});
+const objectColumnDeclarations = {objects: {type: 'array', max_items: 1,
+  items: {type: 'object', fields: {score: number,
+    payload: {type: 'object', fields: {score: number}}}}}};
+export const joinedStarValueReceiverProgram = {version: 'actql/0.1', id: 'fixture.range_value_contrast',
+  params: objectColumnDeclarations, stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}, as: 'seed'},
+    {from: 'seed', derive: {objects: {$param: 'objects'}}},
+    {unnest: {column: 'objects', as: 'object'}},
+    {derive: {payload: {property: {value: {field: 'object'}, name: 'payload'}}}},
+    {derive: {value: {property: {value: {field: 'payload'}, name: 'score'}}}},
+    {select: ['value'], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['value']}}}], results: exports};
+const objectColumn = {parameterDeclarations: objectColumnDeclarations,
+  parameters: {objects: [{score: 90, payload: {score: 10}}]},
+  columns: [{name: 'value', contract: number}], expected: [{value: 10}]};
 export const joinedUnnestStarSuccesses = [
   success('json-control', JSON.stringify(joinedUnnestStarProgram), {format: 'json', parameterDeclarations: undefined}),
   success('sql', sql), success('pipe', pipe),
@@ -80,6 +95,11 @@ export const joinedUnnestStarSuccesses = [
   }),
   success('acquired-data', acquired, {sourceReadCount: 1, sourceReadSessionCount: 1,
     sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}]}),
+  success('value-receiver-json-control', JSON.stringify(joinedStarValueReceiverProgram), {
+    ...objectColumn, format: 'json', parameterDeclarations: undefined,
+  }),
+  success('value-receiver-contrast', 'FROM UNNEST(@objects) o |> SELECT score, payload '
+    + '|> AS payload |> SELECT (payload).score AS value', objectColumn),
 ];
 export const joinedUnnestStarRefusals = [
   sql.replace('UNNEST(p.items)', 'UNNEST(p.id)'),
