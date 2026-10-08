@@ -1,6 +1,8 @@
 # Inline window expressions in ORDER BY
 
-Owner: B. Parent dependency: PR #1002, `ec00b6308f019f44e0b196e1a4ce1843f66f3df2`.
+Owner: B. PR #1002 is merged into main. The implementation initially integrates
+`97a98b27edaee19786217093aacb3e1768c35892`, including analytic STRING_AGG;
+the submission adopts main `f99616395156a296342185b50f668d03ab37511f`.
 This unit connects already selected window-expression placement to existing
 Program analytic/derive/sort/select operations. No execution Owner is added.
 
@@ -95,7 +97,7 @@ independent Values Run oracle, frontend profile and normative import checks.
 Affected package interface generation and read-only manifest/import checks:
 `run-EuSOlQ`.
 
-`scripts/fixtures/order-window-source-input.mjs` independently specifies 13
+`scripts/fixtures/order-window-source-input.mjs` independently specifies 14
 normal cases and 7 preparation refusals. They include JSON control, SQL/Pipe,
 alias-versus-qualified input, nullable LAG alias, pre-QUALIFY LAG, grouped
 scalar/aggregate alias, Pipe DISTINCT, combined set duplicates, declared
@@ -106,9 +108,21 @@ Refusals require zero durable admission and provider I/O. Both groups are
 registered in ordinary packed acceptance, with `--order-window-only` selecting
 only this cohort for bounded verification.
 
+The integration obligation additionally checks ORDER STRING_AGG with a bounded
+ROWS frame. SQL, Pipe and post-set lowering preserve the common collection byte
+ceiling; invalid bounds retain `UnsupportedAggregate`. The public counterexample
+has a shorter first aggregate and sorts the remaining tied values by descending
+ID. It uses the existing common analytic operation without changing its limits.
+
+Before adopting the now-merged parent main, the integrated working-tree checks
+passed 34/34 JS (`run-0Sq4hz` / `focused-test-JGXC3G`) and 29/29 Node
+(`run-c3Eb3t` / `focused-test-ScLX4e`). The JS selection adds analytic STRING_AGG
+parser/lowerer callers; the Node selection adds its ordinary corpus registration.
+
 At this record's initial commit, pristine five-package Local/HTTPS execution
 has not run. Working-tree focused checks are not submitted-SHA packed or CI
 evidence. Full Core, whole packed corpus, Wasm/Native execution, Cloud and a
 live Google-service differential have not run. Broader window signatures and
-frames remain separate coverage gaps. The parent dependency is retained until
-#1002 reaches main; the eventual merge target is main. No merge is performed.
+frames remain separate coverage gaps. The merge target is main; PR #1002 is
+already integrated, so no unmerged parent dependency is retained. No PR merge
+is performed by B.

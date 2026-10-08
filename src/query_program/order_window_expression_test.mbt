@@ -59,6 +59,47 @@ fn checked_order_window(text : String) -> String raise {
 }
 
 ///|
+test "ORDER STRING_AGG preserves common collection ceiling in SQL Pipe and set scopes" {
+  let call = "STRING_AGG('x', '|') OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) DESC, id DESC"
+  for
+    source in [
+      "SELECT id FROM orders ORDER BY " + call,
+      "FROM orders |> SELECT id |> ORDER BY " + call,
+      "SELECT id FROM orders UNION ALL SELECT id FROM orders ORDER BY " + call,
+    ] {
+    let query = @query.parse_query(source, syntax_limits()).unwrap()
+    let actual = compile(query, values_context(), {
+      ..construction_limits(),
+      max_collection_bytes: 17L,
+    }).unwrap()
+    let wire = semantic(actual)
+    assert_true(wire.contains("\"max_bytes\":17"), msg=wire)
+    assert_true(wire.contains("\"delimiter\":\"|\""), msg=wire)
+    match
+      @check.check_parsed(
+        actual,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(error) => raise @check.diagnostic_cause(error)
+      _ => fail(source)
+    }
+    for bound in [0L, -1L, 9007199254740992L] {
+      assert_true(
+        compile(query, values_context(), {
+          ..construction_limits(),
+          max_collection_bytes: bound,
+        })
+        is Err(UnsupportedAggregate),
+        msg=source,
+      )
+    }
+  }
+}
+
+///|
 test "ORDER windows consume evaluated SELECT aliases in arguments and OVER keys" {
   let text = checked_order_window(
     "SELECT id, -amount AS amount FROM orders ORDER BY ROW_NUMBER() OVER (ORDER BY amount, id) DESC",

@@ -30,6 +30,9 @@ const aliasRows = [{id: 5, amount: null}, {id: 1, amount: null},
 export const orderWindowSuccesses = [
   success('independent-json', JSON.stringify(orderWindowProgram), {format: 'json'}),
   success('sql-hidden-call', sql),
+  success('string-agg-bounded-frame', "SELECT id FROM records WHERE id > 0 "
+    + "ORDER BY STRING_AGG('x', '|') OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) DESC, id DESC",
+  {expected: [{id: 5}, {id: 4}, {id: 3}, {id: 2}, {id: 1}]}),
   success('pipe-current-input', `FROM records |> WHERE id > 0 |> ORDER BY ROW_NUMBER() OVER (${window}) DESC |> SELECT id`, {format: 'aql-text'}),
   success('select-alias-collision', 'SELECT id, -amount AS amount FROM records WHERE id > 0 '
     + 'ORDER BY ROW_NUMBER() OVER (ORDER BY amount NULLS LAST, id) DESC',
