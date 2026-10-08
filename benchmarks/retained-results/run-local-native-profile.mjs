@@ -79,7 +79,7 @@ const report = {version: 'actql-local-native-profile-experiment/0.1', revision,
   localEligibility: eligibility, controls, sourcePreparationMs,
   freshnessPolicy: {maxAgeMs: 86400000, minimumSamples: 3,
     scope: 'explicit local analysis window, not a scientifically calibrated expiry'},
-  empiricalPlan: empiricalStage ? {objective:'first-task-processing-median',intervention:'first position only; later tasks use current common offline choice',conditionsScope:'same offered profile; selected realization/position are interventions in mapping',fallback:'preconfigured-offline-on-incomplete-reference',ties:'lowest-position',profileOriginal:comparison?.profileRevision??null,phase:empiricalStage,calibrated:false} : null,
+  empiricalPlan: empiricalStage ? {objective:'first-task-processing-median',intervention:'first position only; later tasks use current common offline choice',conditionsScope:'same offered profile; selected realization/position are interventions in mapping',fallback:'preconfigured-offline-on-incomplete-reference',ties:'lowest-position',profileOriginal:comparison?.profileRevision??null,profileReadbackAndAggregationMs:comparison?.admitted.readbackAndAggregationMs??null,phase:empiricalStage,calibrated:false} : null,
   observationLimit: schedule.length, perCaptureLimitBytes: captureLimitBytes, checkpointWritesMs: [],
   measurementScopes: {processCycleMs: 'parent preparation through child exit; excludes subsequent local capture/admission',
     coldMs: 'same process cycle minus child cleanup; existing coldMs boundary',
@@ -87,6 +87,7 @@ const report = {version: 'actql-local-native-profile-experiment/0.1', revision,
     observedEndToEndMs: 'parent preparation, child, Owner admission, local capture and recording; not customer application/Run latency',
     commonSourcePreparation: 'separate cost before all executions',
     aggregate: 'separate parent basic aggregation cost; not an operator interval',
+    empiricalCosts: 'raw stream persistence/digests and template derivation/persistence measured separately; overlap end-to-end/process-cycle, not task processing',
     overlapping: true, osCache: 'uncontrolled'}, observations};
 const checkpoint = async () => {
   const started = performance.now();
@@ -111,6 +112,7 @@ for (const step of schedule) {
   const started = performance.now();
   let rawExecution;
   try {
+    let templatePreparationMs = 0;
     let invocation = await prepareNativeDirectProduct({root, fixture, database, directory,
       ...controls[step.realization], phaseObserver: step.mode !== 'off'});
     if (empiricalStage) {
@@ -118,6 +120,7 @@ for (const step of schedule) {
         '--empirical-fallback','offline','--sqlite-library','/usr/lib/libsqlite3.dylib'];
       if (empiricalStage === 'comparison') extra.push('--empirical-position',step.arm.slice('position-'.length));
       if (empiricalStage === 'evaluation') {
+        const templateStarted=performance.now();
         const first = comparison.report.observations[0].mapping.candidateProjections.find(p=>p.task===1);
         const candidates={canonical_json:JSON.stringify(first.body),cid:profileDigest(JSON.stringify(first.body))};
         const template=localOperationalTemplate({profile:comparison,
@@ -132,6 +135,7 @@ for (const step of schedule) {
         const bytes=JSON.stringify(template);await writeFile(join(directory,'task-1.json'),bytes,{flag:'wx',mode:0o600});
         extra.push('--empirical-profile-root',directory,'--empirical-profile-revision',comparison.profileRevision,
           '--empirical-template-pin',profileDigest(bytes));
+        templatePreparationMs=performance.now()-templateStarted;
       }
       invocation={...invocation,arguments:[...invocation.arguments,...extra]};
     }
@@ -181,9 +185,13 @@ for (const step of schedule) {
         sidecars:lines('empirical-sidecar:').map(JSON.parse),fallbacks:lines('empirical-fallback:'),
         revokedRequests:lines('empirical-old-request-refused:'),oldStateRefusals:lines('empirical-old-state-refused:'),
         consultationMicroseconds:lines('empirical-consult-us:').map(Number)};
+      const rawRecordingStarted=performance.now();
       await writeFile(join(directory,'native-stdout.log'),execution.stdout,{flag:'wx',mode:0o600});
       await writeFile(join(directory,'native-stderr.log'),execution.stderr,{flag:'wx',mode:0o600});
-      item.rawEvidence={stdoutDigest:profileDigest(execution.stdout),stderrDigest:profileDigest(execution.stderr)};
+      item.rawEvidence={stdoutDigest:profileDigest(execution.stdout),stderrDigest:profileDigest(execution.stderr),
+        stdoutBytes:Buffer.byteLength(execution.stdout),stderrBytes:Buffer.byteLength(execution.stderr),
+        recordingAndDigestMs:performance.now()-rawRecordingStarted};
+      item.empirical.templatePreparationMs=templatePreparationMs;
     }
     item.capture = await captureLocalExecution({mode: step.mode, directory, metadata,
       stdout: execution.stdout, stderr: execution.stderr});

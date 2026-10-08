@@ -60,6 +60,8 @@ export async function compareNativeEmpiricalRuns(comparisonDirectory,evaluationD
       processCycleMs:describe(items.map(o=>o.metrics.processCycleMs)),coldMs:describe(items.map(o=>o.metrics.coldMs)),
       warmMs:describe(items.map(o=>o.metrics.warmMs)),cleanupMs:describe(items.map(o=>o.metrics.cleanupMs)),
       recordingMs:describe(items.map(o=>o.metrics.recordingMs)),captureMs:describe(items.map(o=>o.metrics.captureMs)),
+      rawStreamRecordingAndDigestMs:describe(items.map(o=>o.rawEvidence.recordingAndDigestMs)),
+      templatePreparationMs:describe(items.map(o=>o.empirical.templatePreparationMs)),
       observedEndToEndMs:describe(items.map(o=>o.metrics.observedEndToEndMs)),
       consultationMs:describe(items.map(o=>o.empirical.consultationMicroseconds.reduce((a,b)=>a+b,0)/1000)),
       attempts:items.map(o=>o.mapping.attempts),physicalPhases:items.map(o=>o.operatorMeasurements.physicalPhases),
@@ -73,5 +75,8 @@ export async function compareNativeEmpiricalRuns(comparisonDirectory,evaluationD
     heldOutProcessingMedianDifferenceMs:byArm['offline-fallback'].taskProcessingMs.median-byArm.empirical.taskProcessingMs.median,
     reductionClaim:'descriptive held-out first-task processing only; no causal confidence, whole-cycle fastest or ETA claim',
     baselineScope:'controlled declared estimates prefer position 0; explicit offline fallback with unknown-profile diagnostics, not an uninstrumented default',
-    referenceReadbackAndAggregationMs:performance.now()-started,offComparisonOverhead:'unknown',eta:null,p90:null};
+    referenceReadbackAndAggregationMs:performance.now()-started,
+    evaluationProfileReadbackAndAggregationMs:evaluation.report.empiricalPlan.profileReadbackAndAggregationMs,
+    directCostScope:'individual original/raw recording, template construction, capture, consultation and aggregation overlap enclosing intervals; not additive operator costs',
+    offComparisonOverhead:'unknown',eta:null,p90:null};
 }

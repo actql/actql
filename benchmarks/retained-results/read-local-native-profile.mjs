@@ -45,6 +45,9 @@ export async function readLocalNativeProfile(directory, {now = Date.now(), maxAg
       const stderr=await boundedRead(join(child,'native-stderr.log'),captureLimitBytes);
       assert.equal(profileDigest(stdout),item.rawEvidence.stdoutDigest,'EmpiricalOriginalStreamMismatch');
       assert.equal(profileDigest(stderr),item.rawEvidence.stderrDigest,'EmpiricalOriginalStreamMismatch');
+      assert.equal(stdout.length,item.rawEvidence.stdoutBytes);assert.equal(stderr.length,item.rawEvidence.stderrBytes);
+      assert(Number.isFinite(item.rawEvidence.recordingAndDigestMs)&&item.rawEvidence.recordingAndDigestMs>=0,'MissingEmpiricalRecordingCost');
+      assert(Number.isFinite(item.empirical.templatePreparationMs)&&item.empirical.templatePreparationMs>=0,'MissingEmpiricalTemplateCost');
       const terminal=JSON.parse(stdout.toString('utf8').trim().split('\n').at(-1));
       assert.equal(terminal.rows_cid,fixture.identity().rowsCid);assert.deepEqual(terminal.usage,item.mapping.finalUsage);
       const owner=admitNativeOwnerObservations(nativeOwnerObservations(stdout.toString('utf8')),

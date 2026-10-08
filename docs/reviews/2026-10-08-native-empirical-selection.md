@@ -38,7 +38,10 @@ candidate bytes. Old profile originals are retained and never relabelled.
   cost; this is not an uninstrumented normal-default baseline.
 - Keep whole process cold/warm/cycle, acquisition/preparation, resident import,
   identity/holding, task release/cleanup, record/capture/aggregate/consultation
-  expenses separately. Nested intervals are not added to claim whole-Run ETA.
+  expenses separately. Raw stream persistence/digests and template derivation/
+  persistence are directly timed, as is profile readback/aggregation. These
+  intervals overlap the enclosing cycle/end-to-end observations; they are not
+  summed to claim whole-Run ETA.
 - Two separate functional negatives (not performance slots): actual durable-clock
   expiry with zero Compute, and selected resident dispatch stop after task 1.
   Verify retained responsibility until confirmed close, duplicate close and no
