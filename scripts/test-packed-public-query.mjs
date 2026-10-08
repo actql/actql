@@ -102,6 +102,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+  ['scripts/fixtures/distinct-order-member-source-input.mjs', 'distinct-order-member-source-input.mjs'],
   ['scripts/fixtures/sqrt-source-input.mjs', 'sqrt-source-input.mjs'],
   ['scripts/fixtures/ceiling-source-input.mjs', 'ceiling-source-input.mjs'],
   ['scripts/fixtures/unary-plus-source-input.mjs', 'unary-plus-source-input.mjs'],

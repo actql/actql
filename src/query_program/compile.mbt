@@ -464,19 +464,6 @@ fn same_expression(
 }
 
 ///|
-// GROUP expressions resolve against one input snapshot. A range-qualified
-// receiver and its unqualified spelling may denote the same physical value.
-// Unknown receivers never prove equality. Member spelling follows Frontend
-// lookup; common typing must still establish a unique declared field.
-fn same_group_reference(
-  left : Array[@query.NamePart],
-  right : Array[@query.NamePart],
-  resolve : (Array[@query.NamePart]) -> String?,
-) -> Bool {
-  same_group_reference_in_scopes(left, right, resolve, resolve)
-}
-
-///|
 // Compare receivers in their own clause scopes before matching property members.
 fn same_group_reference_in_scopes(
   left : Array[@query.NamePart],
@@ -1007,12 +994,12 @@ fn reusable_order_expression(
     }
   }
   for (value, slot) in selected {
-    if same_expression(expression, value, references=(left, right) => {
-        // The preceding check proves ORDER's alias-first meaning. Compare
-        // both expressions' input receivers and remaining property paths,
-        // including qualified columns and parser-owned aggregate slots.
-        same_group_reference(left, right, input_slot)
-      }) {
+    // Keep explicit properties separate until their receivers resolve, just
+    // as the expression lowerer does. Different AST spellings can denote
+    // the same evaluated value; a range column and an object member cannot.
+    if same_group_expression_in_scopes(
+        expression, value, input_slot, input_slot,
+      ) {
       return Some(slot)
     }
   }
@@ -4464,6 +4451,17 @@ fn compile_steps(
                         selected_output_slots,
                         pending_select is None,
                         distinct_order_scope,
+                        max_work,
+                      )
+                    } else if distinct_order_scope {
+                      append_distinct_order_member_expression(
+                        construction,
+                        expression,
+                        selected_expressions,
+                        selected_input_scope,
+                        order_aggregate_slots + selected_output_slots,
+                        resolve,
+                        active_fields,
                         max_work,
                       )
                     } else {
