@@ -1268,6 +1268,14 @@ for (const [entrance, open] of Object.entries(entrances)) {
         ? {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'}
         : {code: 'ClientProgramRejected', classification: 'operation_failed'},
         '[check-mutation:submission-budget-public]');
+      const observed = sdk.getSubmissionCheckObservation(error);
+      assert.equal(observed?.outcome, 'completed', '[check-mutation:submission-budget-observation]');
+      assert.equal(observed.report.verdict, 'undetermined');
+      assert.deepEqual(observed.report.coverage, publicBudget
+        ? {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []}
+        : {limits: [], unresolved: protectedSource});
+      assert.equal(sdk.getCheckInput(observed, 'source').text, text);
+      assert.equal(sdk.getSubmissionCheckObservation({...error}), undefined);
       problems.push(outcome.problem);
       const explanation = sdk.explainSubmission(error);
       assert.equal(explanation.observation, 'not_accepted');
@@ -1311,6 +1319,17 @@ for (const [entrance, open] of Object.entries(entrances)) {
           ? {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'}
           : {code: 'ClientProgramRejected', classification: 'operation_failed'},
           '[check-mutation:submission-implementation-public]');
+        const observed = sdk.getSubmissionCheckObservation(error);
+        assert.equal(observed?.outcome, 'completed', '[check-mutation:submission-implementation-observation]');
+        assert.equal(observed.report.verdict, 'undetermined');
+        assert.deepEqual(observed.report.coverage.limits.map(limit => limit.code), publicLimit
+          ? ['implementation_limit'] : []);
+        assert.deepEqual(observed.report.coverage.unresolved, publicLimit ? [] : protectedSource);
+        assert.equal(sdk.getCheckInput(observed, 'source').text, text);
+        if (!sourceDependent) {
+          assert.deepEqual(sdk.resolveCheckTextRange(observed, observed.report.coverage.limits[0].location).range,
+            {start: {line: 0, character: 7}, end: {line: 0, character: 26}});
+        }
         const explanation = sdk.explainSubmission(error);
         assert.equal(explanation.observation, 'not_accepted');
         assert.equal(explanation.preparationIssue?.kind, publicLimit ? 'implementation_limit' : undefined);
