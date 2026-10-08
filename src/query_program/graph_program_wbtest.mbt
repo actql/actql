@@ -44,6 +44,7 @@ fn mapping_context() -> Context {
     program_id: "fixture.query_pair",
     stage_id: "main",
     stage_result: "rows",
+    input_schemas: [],
     result_name: "answer",
     captured_stage: None,
     parameter_declarations: None,

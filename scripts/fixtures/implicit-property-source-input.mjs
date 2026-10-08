@@ -46,9 +46,16 @@ export const implicitPropertySuccesses = [
   {name: 'implicit-property-independent-json', format: 'json',
     text: JSON.stringify(program), expected, columns, sourceReadCount: 0},
   textCase('sql', 'SELECT payload.score, id FROM objects ORDER BY score NULLS LAST, id'),
+  textCase('member-case', 'SELECT payload.SCORE AS score, id FROM objects ORDER BY score NULLS LAST, id'),
+  textCase('member-case-quoted', 'SELECT `objects`.`payload`.`SCORE` AS score, id FROM objects ORDER BY score NULLS LAST, id'),
+  textCase('member-case-computed', 'SELECT COALESCE(payload, payload).SCORE AS score, id FROM objects ORDER BY score NULLS LAST, id'),
   textCase('pipe', 'FROM objects |> SELECT payload.score, id |> ORDER BY score NULLS LAST, id'),
   textCase('qualified-quoted', 'SELECT `objects`.`payload`.`score`, id FROM objects ORDER BY score NULLS LAST, id'),
   textCase('nested-nullable', 'SELECT payload.inner.risk, id FROM objects ORDER BY id', {
+    expected: [{risk: null, id: 1}, {risk: 'high', id: 2}, {risk: null, id: 3}, {risk: null, id: 4}],
+    columns: [{name: 'risk', contract: risk}, {name: 'id', contract: number}],
+  }),
+  textCase('member-case-nested', 'SELECT payload.INNER.RISK AS risk, id FROM objects ORDER BY id', {
     expected: [{risk: null, id: 1}, {risk: 'high', id: 2}, {risk: null, id: 3}, {risk: null, id: 4}],
     columns: [{name: 'risk', contract: risk}, {name: 'id', contract: number}],
   }),

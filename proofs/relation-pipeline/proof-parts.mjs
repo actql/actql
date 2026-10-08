@@ -17,7 +17,7 @@ export const capacityObligationsByPart = freeze({
     boundaries: { values: [-1, 0, 1], caseCount: 28, targets: ['js', 'wasm', 'native'] },
     backingCore: ['js', 'wasm', 'native'], backingModel: true, structuralModel: true,
     custody: { healthy: 9, negative: 2 }, nativeParentStartup: true,
-    finalNormal: { caseCount: 86, targets: ['js', 'wasm', 'native'] },
+    finalNormal: { caseCount: 114, targets: ['js', 'wasm', 'native'] },
   },
   'L-C1': {
     mutations: ['missing-index-reservation', 'premature-keep-release', 'duplicate-index-release',

@@ -1857,6 +1857,27 @@ function publicationControl(moon) {
       if (!finished) moon.strategyCapturedRunCancel(preparation);
     }
   };
+  const finishPublicationValidation = async (
+    preparation, advance, finish, cancel, signal,
+  ) => {
+    try {
+      while (true) {
+        signal?.throwIfAborted();
+        const progress = advance(preparation, 256);
+        if (progress === -1) return false;
+        if (progress === 1) {
+          signal?.throwIfAborted();
+          return finish(preparation);
+        }
+        if (progress !== 0) {
+          throw new TypeError('Invalid publication validation progress');
+        }
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    } finally {
+      cancel(preparation);
+    }
+  };
   control = Object.freeze({
     seal(name, bodyWire, limits) {
       return inspect(checked(moon.strategyPublicationSeal(
@@ -2956,7 +2977,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-        Math.min(2147483647, limits.maxNodes * 8),
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       );
       return finishCapturedPreparation(preparation, signal);
     },
@@ -3187,7 +3208,7 @@ function publicationControl(moon) {
         plans.map(value => value.name), plans.map(value => value.wire),
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
         evidence.dependencyInventoryWire,
-        Math.min(2147483647, limits.maxNodes * 8),
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       ));
       return finishCapturedPreparation(preparation, signal);
     },
@@ -3636,9 +3657,11 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
-    effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
-      manifest, receipt, capturedRun, limits) {
-      return moon.strategyEffectFreeRunEvidenceChainValid(
+    async effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
+      manifest, receipt, capturedRun, limits, signal) {
+      issuanceLimits(limits, 'Effect-free chain validation');
+      signal?.throwIfAborted();
+      const preparation = moon.strategyBeginEffectFreeChainCheck(
         token(runDefinition),
         token(invocation),
         definitions.map(token),
@@ -3649,12 +3672,18 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       );
+      return finishPublicationValidation(preparation,
+        moon.strategyEffectFreeChainCheckAdvance,
+        moon.strategyEffectFreeChainCheckFinish,
+        moon.strategyEffectFreeChainCheckCancel, signal);
     },
-    effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
+    async effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
       derivations, orderings, retentions, durableBindings, manifest, receipt,
       capturedRun, request, attempt, indexEntry, limits) {
-      return moon.strategyEffectFreePublicationCommitValid(
+      issuanceLimits(limits, 'Effect-free commit validation');
+      const preparation = moon.strategyBeginEffectFreeCommitCheck(
         token(runDefinition),
         token(invocation),
         definitions.map(token),
@@ -3672,7 +3701,13 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
+        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
       );
+      // A committed outcome is authoritative even after request cancellation.
+      return finishPublicationValidation(preparation,
+        moon.strategyEffectFreeCommitCheckAdvance,
+        moon.strategyEffectFreeCommitCheckFinish,
+        moon.strategyEffectFreeCommitCheckCancel);
     },
     effectfulCommitValid(chain, preview, receipts, request, attempt,
       indexEntry, limits) {

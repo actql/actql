@@ -189,7 +189,7 @@ async function validateExistingCommit(
   if (storedRequest.identity !== request.identity) {
     fail('RunPublicationCommitConflict');
   }
-  const valid = effectful === undefined
+  const valid = await (effectful === undefined
     ? control.effectFreeCommitValid(
         evidence.runDefinition,
         evidence.invocation,
@@ -210,7 +210,7 @@ async function validateExistingCommit(
     : control.effectfulCommitValid(
       effectful.chain, effectful.preview, effectful.receipts,
       storedRequest, storedAttempt, index, limits,
-    );
+    ));
   if (valid !== true) {
     fail('RunPublicationCommitConflict');
   }
@@ -248,9 +248,13 @@ async function finishCommittedAttempt(
     );
   } catch (error) {
     const current = await store.latestRecordContract(attempt.identity);
-    if (error?.code !== 'PublicationRecordConflict' ||
+    // A competing append can win before the Store checks the transition,
+    // rather than at its final link/CAS. Adopt only the same durable success.
+    if (!['PublicationRecordConflict', 'InvalidPublicationRecordTransition']
+      .includes(error?.code) ||
         control.committedPublicationFinalizationAction(current) !==
-          'finished') {
+          'finished' ||
+        JSON.parse(current.wire).public_index_entry_cid !== index.identity) {
       throw error;
     }
   }
@@ -437,18 +441,6 @@ async function publishRun(options, effectful) {
   validateRequest(request);
   validateAttempt(attempt);
   const now = validateClock(options.now);
-  if (effectful === undefined && control.effectFreeChainValid(
-    evidence.runDefinition,
-    evidence.invocation,
-    evidence.definitions,
-    evidence.artifacts,
-    evidence.manifest,
-    evidence.receipt,
-    evidence.capturedRun,
-    limits,
-  ) !== true) {
-    fail('InvalidEffectFreeRunPublicationChain');
-  }
   const publicationRequest = control.issuePublicationRequest(
     evidence.runDefinition, evidence.definitions, request, limits,
   );
@@ -509,6 +501,20 @@ async function publishRun(options, effectful) {
       });
     }
     if (action === 'check_initial_active') {
+      signal?.throwIfAborted();
+      if (effectful === undefined && await control.effectFreeChainValid(
+        evidence.runDefinition,
+        evidence.invocation,
+        evidence.definitions,
+        evidence.artifacts,
+        evidence.manifest,
+        evidence.receipt,
+        evidence.capturedRun,
+        limits,
+        signal,
+      ) !== true) {
+        fail('InvalidEffectFreeRunPublicationChain');
+      }
       signal?.throwIfAborted();
       initialActiveChecked = true;
       continue;

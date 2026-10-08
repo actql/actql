@@ -1,14 +1,15 @@
+import {retirementModelExecution, retirementFixture, retirementBindings, executedRetirementCoverage} from './retirement-evidence.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import { bindings, pauseBindings, pauseFixture, pausePremises, pauseGuarantees, executedPauseCoverage, stopBindings, stopFixture, stopPremises, stopGuarantees, executedStopCoverage, checkBindings, executedCoverage, fixture, graph, premises, snapshot, validate } from './evidence.mjs';
+import { modelExecution, modelObservationUnits, bindings, pauseBindings, pauseFixture, pausePremises, pauseGuarantees, executedPauseCoverage, stopBindings, stopFixture, stopPremises, stopGuarantees, executedStopCoverage, checkBindings, executedCoverage, fixture, graph, premises, snapshot, validate } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const clone = value => structuredClone(value);
 function evidence(target = 'js') {
   const source = snapshot(root), artifact = { 'test.js': 'digest' };
   const runs = { lean: { command: [process.execPath, 'proofs/relation-chain/check.mjs'],
-    passed: true, exit: 0, sourceDigest: source.digest } };
+    passed: true, exit: 0, target: 'model', count: 54, sourceDigest: source.digest } };
   for (const [id, suite] of [['session', 'src/bounded_execution'], ['connection', fixture]]) {
     runs[`${id}-${target}`] = { command: ['moon', 'test', suite, '--target', target, '--deny-warn'],
       target, passed: true, exit: 0, count: 4, sourceDigest: source.digest,
@@ -182,4 +183,83 @@ test('chain common premises cannot be satisfied by a concatenated string', () =>
   assert.throws(() => checkBindings(root, [{...b, premises: b.premises.join('; ')}]), /Missing child premise/);
   const e = evidence(); e.nodes.find(node => node.kind === 'derived').premises = b.premises.join('; ');
   assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /Missing or unsupported obligations/);
+});
+
+for (const [label, change] of [
+  ['zero laws', r => { r.count = 0; }],
+  ['missing count', r => { delete r.count; }],
+  ['null count', r => { r.count = null; }],
+  ['partial legacy inventory', r => { r.count = 36; }],
+  ['extra laws', r => { r.count = 55; }],
+  ['string count', r => { r.count = '54'; }],
+  ['runtime target', r => { r.target = 'js'; }],
+  ['missing target', r => { delete r.target; }],
+]) test(`chain refuses ${label} across prompt, delayed-stop and pause scopes`, () => {
+  for (const make of [evidence, stoppingEvidence, pauseEvidence]) {
+    const e = make(); change(e.report.runs.lean);
+    assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /model target or theorem count/);
+  }
+});
+test('chain model count comes from one complete observed typed/axiom summary', () => {
+  const summary = 'Checked 54 theorems, expected claim types and axiom dependencies';
+  assert.equal(modelObservationUnits(`audit lines\n${summary}\n`, 0), 54);
+  assert.equal(modelObservationUnits(`${summary}\r\n`, 0), 54);
+  for (const [output, exit] of [
+    ['', 0], [summary.replace('54', '36'), 0], [summary.replace('54', '55'), 0],
+    [summary, 1], [summary, null], [`quoted: ${summary}`, 0],
+    [`${summary}\n${summary}`, 0], [`sorryAx\n${summary}`, 0],
+  ]) assert.throws(() => modelObservationUnits(output, exit), /typed model observation/);
+  assert.equal(modelExecution.count, 54);
+});
+
+
+function retirementEvidence(target = 'js') {
+  const e = evidence(target);
+  e.nodes = graph([...bindings(), ...retirementBindings()], target);
+  e.report.runs['retirement-lean'] = {command: [...retirementModelExecution.command],
+    target: 'model', count: retirementModelExecution.count, passed: true, exit: 0, sourceDigest: e.current.digest};
+  e.report.runs[`retirement-connection-${target}`] = {...clone(e.report.runs[`connection-${target}`]),
+    command: ['moon', 'test', retirementFixture, '--target', target, '--deny-warn'], count: 8,
+    coverage: executedRetirementCoverage()};
+  return e;
+}
+test('existing lifetime scope composes the additional model without widening prompt or stop claims', () => {
+  checkBindings(root, [...bindings(), ...retirementBindings()]);
+  for (const target of ['js', 'wasm', 'native']) {
+    const e = retirementEvidence(target);
+    assert.equal(validate(e.nodes, e.report, e.current, target).length, 4);
+    assert.deepEqual(e.nodes.at(-1).dependencies,
+      ['session', 'retirement-model', 'builtin-chain/early-retirement:connection']);
+  }
+});
+for (const [label, change] of [
+  ['original model substituted', e => { e.report.runs['retirement-lean'] = clone(e.report.runs.lean); }],
+  ['missing additional model', e => { delete e.report.runs['retirement-lean']; }],
+  ['required case absent', e => { e.report.runs['retirement-connection-js'].count = 7; }],
+  ['string count', e => { e.report.runs['retirement-connection-js'].count = '8'; }],
+  ['ordinary fixture substituted', e => { e.report.runs['retirement-connection-js'].command[2] = fixture; }],
+  ['missing execution coverage', e => { delete e.report.runs['retirement-connection-js'].coverage; }],
+  ['missing cleanup premise', e => { e.nodes.at(-1).premises.splice(1, 1); }],
+  ['missing capacity residual', e => { e.nodes.at(-1).residual.splice(1, 1); }],
+  ['physical memory claim added', e => { e.nodes.at(-1).guarantees.push('peak physical memory bounded by maximum child'); }],
+  ['missing model dependency', e => { e.nodes.at(-1).dependencies.splice(1, 1); }],
+  ['scope widened on both sides', e => {
+    e.nodes.at(-1).scope.profile = '*';
+    e.report.runs['retirement-connection-js'].coverage.scopes[0].profile = '*';
+  }],
+]) test(`controlled retirement admission rejects ${label}`, () => {
+  const e = retirementEvidence(); change(e);
+  assert.throws(() => validate(e.nodes, e.report, e.current, 'js'));
+});
+for (const [label, from, to] of [
+  ['physical stop guard omitted', 'state.current is Some(active) && managed_provider_stopped(active)', 'state.current is Some(active)'],
+  ['execution retained after successful cleanup', 'state.children = []\n      state.reclaiming = false', 'state.reclaiming = false'],
+  ['parent cleanup pending custody lost', 'Ok(false) => return Ok(false)', 'Ok(false) => ()'],
+]) test(`reviewed retirement source rejects ${label}`, () => {
+  const requested = retirementBindings(), path = requested[0].provider;
+  const source = readFileSync(root + path, 'utf8');
+  assert.equal(source.split(from).length, 2, 'Missing uniquely reviewed route');
+  assert.throws(() => checkBindings(root, requested, {
+    read: p => p === path ? source.replace(from, to) : readFileSync(root + p, 'utf8'),
+  }), /guard|retirement|custody/);
 });

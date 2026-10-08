@@ -22,7 +22,7 @@ async function invoke(directory, facts, phase) {
 
 for (const entrance of ['local', 'https']) {
   for (const loss of ['before-commit', 'after-commit']) {
-    test(`${entrance}: original cancellation lookup after ${loss} loss and process restart uses a successful Run`,
+    test(`${entrance}: original cancellation lookup after ${loss} loss preserves publication before physical stop and process restart`,
       {timeout: 40000}, async () => {
         const scratch = await createOwnedScratch({parent: tmpdir(),
           prefix: 'actql-installed-cancel-', label: `${entrance} original cancellation ${loss}`});
@@ -33,7 +33,21 @@ for (const entrance of ['local', 'https']) {
         const initialOutput = join(directory, 'initial.json');
         await invoke(directory, {directory, entrance, loss, output: initialOutput, phase: 'initial'}, 'initial');
         const initial = JSON.parse(await readFile(initialOutput, 'utf8'));
+        assert.deepEqual(JSON.parse(await readFile(join(directory, 'submission-ref.json'), 'utf8')),
+          initial.submissionRef);
+        assert.deepEqual(JSON.parse(await readFile(join(directory, 'cancel-ref.json'), 'utf8')),
+          initial.cancelRef);
         assert.equal(initial.status.status, 'succeeded');
+        assert.equal(initial.publishedBeforeStop.result_available, true);
+        assert.equal(initial.publishedBeforeStop.control.physical_stop, 'unknown');
+        assert.equal(initial.afterCancellationBeforeStop.status, 'succeeded');
+        assert.equal(initial.afterCancellationBeforeStop.control.cancellation_requested, false);
+        assert.equal(initial.afterCancellationBeforeStop.control.physical_stop, 'unknown');
+        assert.equal(initial.stopped.status, 'succeeded');
+        assert.equal(initial.stopped.control.physical_stop, 'confirmed');
+        assert.equal(initial.snapshot.requests[0].physical_close_confirmed, 1);
+        assert.equal(initial.snapshot.requests[0].observed_terminal_outcome, null,
+          'the physical-stop receipt must not seal a cancelled outcome over publication');
         assert.deepEqual(initial.rows, [{id: 1}, {id: 2}]);
         assert.equal(initial.computes, 1);
         assert.equal(initial.snapshot.issued, 1);
@@ -62,6 +76,8 @@ for (const entrance of ['local', 'https']) {
             kind: 'already_terminal', revision: initial.cancelRef.expectedRevision}}
           : {kind: 'unknown', cancelRef: initial.cancelRef});
         assert.deepEqual(restored.repeated, restored.lookup);
+        assert.deepEqual(restored.lookup, initial.originalLookup,
+          'physical stop and restart preserve the original operation outcome');
         const expectedExplanation = loss === 'after-commit' ? {
           observation: 'already_terminal', revision: initial.cancelRef.expectedRevision,
           summary: 'The Host reports the Run is already terminal for cancellation. Refresh Run state for Effect and release details.',

@@ -9,12 +9,13 @@ import {
   "actql/actql/program_check",
   "actql/actql/query_program",
   "actql/actql/query_syntax",
+  "actql/actql/relation_schema",
   "actql/actql/stage_syntax",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn bind_query_context(Array[PublishedAlias], String, program_id? : String, parameter_declarations? : @parameter_binding.Declarations?) -> Result[@query_program.Context, AliasIssue]
+pub fn bind_query_context(Array[PublishedAlias], String, program_id? : String, parameter_declarations? : @parameter_binding.Declarations?, input_schemas? : Array[(String, @relation_schema.Schema)]) -> Result[@query_program.Context, AliasIssue]
 
 pub fn check_array_profile(@program_check.CheckedProgram, max_work~ : Int, max_slots~ : Int) -> Result[Unit, ArrayProfileIssue]
 
@@ -38,6 +39,7 @@ pub(all) enum AliasIssue {
   EmptySourceRef
   EnvironmentMismatch
   InputNameMismatch
+  InvalidInputSchema
   ConflictingName
   TooManyAliases
   InvalidProgramId
