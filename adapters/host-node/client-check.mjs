@@ -15,7 +15,6 @@ const version = 'actql-check-outcome/0.1';
 // may see, or to the projection, must never reuse an earlier reference.
 const disclosurePolicy = 'actql-check-disclosure/0.1';
 const contextVersion = 'actql-check-context/0.1';
-const scope = 'bound_input';
 
 const failed = (code, correlation_ref) => Object.freeze({outcome: 'failed', correlation_ref,
   problem: Object.freeze({code}), reason_schema_cid: checkReasonSchemaCid,
@@ -117,7 +116,7 @@ export function installNodeClientCheck({moon, environment, publication,
   // the visible names and supplied
   // bindings. Equal requests give an equal reference here; the reference is
   // not a public hash of supplied values.
-  const contextRef = (principalId, input, parameters, visible, visibleWrites, kind) => {
+  const contextRef = (principalId, input, parameters, visible, visibleWrites, kind, scope) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
       compiler, reason_schema_cid: checkReasonSchemaCid,
@@ -144,7 +143,14 @@ export function installNodeClientCheck({moon, environment, publication,
     .update('actql-check-input/0.1\0').update(documentId).update('\0')
     .update(bytes).digest('hex')}`;
 
-  const check = async ({principalId, kind, input, parameters, signal}) => {
+  const check = async request => {
+    const {principalId, kind, input, parameters, signal, scope} = request;
+    if (!['template_only', 'bound_input'].includes(scope) || !['text', 'program'].includes(kind) ||
+        scope === 'template_only' && Object.hasOwn(request, 'parameters')) {
+      const error = new TypeError('InvalidCheckRequest');
+      error.code = 'InvalidCheckRequest';
+      throw error;
+    }
     // One opaque reference for this reporting attempt, independent of source,
     // context, authorization and the presence of any protected Source.
     const correlationRef = `corr:${randomBytes(16).toString('hex')}`;
@@ -158,8 +164,8 @@ export function installNodeClientCheck({moon, environment, publication,
       const outcome = JSON.parse(moon.clientProgramCheckProgram(document, environment,
         JSON.stringify({environmentCid, aliases: visible,
           ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}), supplied,
-        contextRef(principalId, input, parameters, visible, visibleWrites, kind), revision('program', document),
-        supplied === undefined ? undefined : revision('parameters', supplied), correlationRef));
+        contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope), revision('program', document),
+        supplied === undefined ? undefined : revision('parameters', supplied), correlationRef, scope));
       return validCheckOutcome(outcome) ? outcome : failed('check_internal', correlationRef);
     }
     const declarations = input.parameterDeclarations === undefined
@@ -171,10 +177,10 @@ export function installNodeClientCheck({moon, environment, publication,
       JSON.stringify({environmentCid, aliases: visible,
         ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}),
       declarations, supplied,
-      contextRef(principalId, input, parameters, visible, visibleWrites, kind),
+      contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope),
       revision('source', input.text),
       declarations === undefined ? undefined : revision('parameter_declarations', declarations),
-      supplied === undefined ? undefined : revision('parameters', supplied), correlationRef));
+      supplied === undefined ? undefined : revision('parameters', supplied), correlationRef, scope));
     return validCheckOutcome(outcome) ? outcome : failed('check_internal', correlationRef);
   };
   // The ingress's existing connection authorization owner determines whether

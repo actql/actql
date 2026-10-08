@@ -205,7 +205,7 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
       mode, directory, sourceProfilePaths, tls, authorization: observedAuthorization});
     try {
       const checker = await running.connect();
-      const check = await checker.check('SELECT 1 AS value', {format: 'sql'});
+      const check = await checker.check('SELECT 1 AS value', {kind: 'text', scope: 'bound_input', format: 'sql'});
       assert.equal(check.outcome, 'completed');
       assert.match(check.report.context_ref, /^ctx:[0-9a-f]{64}$/u);
       assert.match(check.report.inputs[0].revision, /^rev:[0-9a-f]{64}$/u);
@@ -213,7 +213,7 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
         inputs: check.report.inputs.map(input => ({...input, revision: '<revision>'}))}},
         {version: 'actql-check-outcome/0.1', outcome: 'completed',
           reason_schema_cid: 'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a',
-          outcome_schema_cid: 'sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f',
+          outcome_schema_cid: 'sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9',
           report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
             inputs: [{document_id: 'source', kind: 'text', revision: '<revision>', byte_length: 17}],
             verdict: 'verified', reasons: [], requirements: [],

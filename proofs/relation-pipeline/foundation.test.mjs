@@ -1217,3 +1217,118 @@ test('single-base normalization cannot excuse multiple maximal bases', t => {
   repo.commit('Attempt multi-base normalization');
   assert.throws(() => compose(repo), /Non-singleton foundation normalization target/);
 });
+
+function irrelevantResolutionInput(t, {alias = false, omitRequired = false, late = false,
+  downstream = false} = {}) {
+  const repo = new FoundationRepository(t);
+  const unrelated = repo.source({[DISTINCT]: 'export const distinct = "independent source";\n'});
+  const extra = repo.declaration('unrelated-source', unrelated, [DISTINCT]);
+  repo.record(extra);
+  const extraAlias = {...extra, id: 'unrelated-source-alias'};
+  if (alias) repo.record(extraAlias);
+  repo.branch('right');
+  const leftSource = repo.source({[PACKAGE]: packageBytes({left: 'node left.mjs'})});
+  const left = repo.declaration('left-source', leftSource, [PACKAGE]);
+  repo.record(left);
+  repo.checkout('right');
+  const rightSource = repo.source({[PACKAGE]: packageBytes({right: 'node right.mjs'})});
+  const right = repo.declaration('right-source', rightSource, [PACKAGE]);
+  if (!late) repo.record(right);
+  repo.checkout('main');
+  const merge = repo.merge('right', {[PACKAGE]: packageBytes({left: 'node left.mjs', right: 'node right.mjs'})});
+  const resolution = repo.declaration('overbroad-resolution', merge, [PACKAGE], {kind: 'resolution',
+    inputs: [...(omitRequired ? [] : [left.id]), ...(late ? [] : [right.id]),
+      downstream ? 'downstream-source' : extra.id, ...(alias ? [extraAlias.id] : [])].sort()});
+  const originalIntroduction = repo.record(resolution);
+  const original = readFileSync(join(repo.root, repo.declarationPath(resolution.id)));
+  if (late) repo.record(right);
+  if (downstream) {
+    const source = repo.source({[DISTINCT]: 'export const distinct = "later source";\n'});
+    repo.record(repo.declaration('downstream-source', source, [DISTINCT]));
+  }
+  const supplement = {version: 'actql-foundation-irrelevant-input-normalization/0.1',
+    id: 'normalize-unrelated-inputs', target: {id: resolution.id, digest: sha256(original)},
+    removeInputs: [downstream ? 'downstream-source' : extra.id, ...(alias ? [extraAlias.id] : [])].sort(),
+    reason: 'Retain raw provenance and remove only independently verified unrelated ancestral source groups'};
+  const record = (value = supplement) => {
+    repo.write(`${DECLARATION_DIRECTORY}-supplements/${value.id}.json`, `${JSON.stringify(value, null, 2)}\n`);
+    return repo.commit('Append exact irrelevant-input correction');
+  };
+  return {repo, left, right, extra, extraAlias, resolution, original, originalIntroduction, supplement, record};
+}
+
+test('irrelevant-input normalization preserves immutable original and exact source closure', t => {
+  const f = irrelevantResolutionInput(t, {alias: true});
+  assert.throws(() => compose(f.repo), /Incomplete or ambiguous foundation resolution inputs/);
+  const introduction = f.record();
+  const aggregate = compose(f.repo);
+  const original = declaration(aggregate, f.resolution.id);
+  assert.deepEqual(original.inputs, f.resolution.inputs);
+  assert.equal(original.digest, sha256(f.original));
+  assert.deepEqual(original.introductions, [f.originalIntroduction]);
+  assert.deepEqual(readFileSync(join(f.repo.root, original.path)), f.original);
+  assert.deepEqual(aggregate.integrations[0].inputNormalizations, [f.supplement.id]);
+  assert.deepEqual(aggregate.supplements[0].introductions, [introduction]);
+  assert.deepEqual(aggregate.supplements[0].removeInputs, [f.extra.id, f.extraAlias.id].sort());
+  f.repo.source({'unrelated.txt': 'Later documentation\n'});
+  assert.deepEqual(compose(f.repo).integrations, aggregate.integrations);
+});
+
+for (const [name, edit, pattern] of [
+  ['relevant source', (s, f) => {s.removeInputs = [f.left.id];}, /Relevant foundation input/],
+  ['missing required source', () => {}, /Incomplete or ambiguous foundation resolution inputs/],
+  ['wrong digest', s => {s.target.digest = '0'.repeat(64);}, /Changed foundation supplement original/],
+  ['unknown target', s => {s.target.id = 'absent';}, /supplement target/],
+  ['non-resolution target', (s, f) => {s.target.id = f.extra.id;}, /supplement target/],
+  ['unknown input', s => {s.removeInputs = ['absent'];}, /Unknown or empty foundation input normalization/],
+  ['input absent from original', s => {s.removeInputs = ['overbroad-resolution'];}, /must name original inputs/],
+  ['duplicate input', s => {s.removeInputs.push(s.removeInputs[0]);}, /Noncanonical foundation input normalization/],
+  ['empty inputs', s => {s.removeInputs = [];}, /Unknown or empty foundation input normalization/],
+  ['undeclared field', s => {s.inputs = [];}, /foundation supplement fields/],
+  ['non-ancestral source', () => {}, /Non-ancestral foundation input normalization/],
+  ['partial source group', s => {s.removeInputs = ['unrelated-source'];}, /Ambiguous partial foundation input normalization/],
+]) test(`irrelevant-input normalization rejects ${name}`, t => {
+  const f = irrelevantResolutionInput(t, {omitRequired: name === 'missing required source',
+    downstream: name === 'non-ancestral source', alias: name === 'partial source group'});
+  edit(f.supplement, f);
+  f.record();
+  assert.throws(() => compose(f.repo), pattern);
+});
+
+test('irrelevant-input correction composes with independently checked late receipt completion', t => {
+  const f = irrelevantResolutionInput(t, {late: true});
+  f.record();
+  const addition = {version: 'actql-foundation-resolution-supplement/0.1', id: 'complete-required-late-input',
+    target: f.supplement.target, inputs: [f.right.id], reason: 'Bind the separately introduced required source receipt'};
+  f.repo.write(`${DECLARATION_DIRECTORY}-supplements/${addition.id}.json`, `${JSON.stringify(addition, null, 2)}\n`);
+  f.repo.commit('Append late required input');
+  const aggregate = compose(f.repo);
+  assert.deepEqual(aggregate.integrations[0].supplements, [addition.id]);
+  assert.deepEqual(aggregate.integrations[0].inputNormalizations, [f.supplement.id]);
+  assert.deepEqual(declaration(aggregate, f.resolution.id).inputs, f.resolution.inputs);
+});
+
+test('irrelevant-input correction cannot excuse an originally visible required omission with a supplement', t => {
+  const f = irrelevantResolutionInput(t, {omitRequired: true});
+  f.record();
+  const addition = {version: 'actql-foundation-resolution-supplement/0.1', id: 'excuse-visible-omission',
+    target: f.supplement.target, inputs: [f.left.id], reason: 'Invalid repair of originally visible dependency'};
+  f.repo.write(`${DECLARATION_DIRECTORY}-supplements/${addition.id}.json`, `${JSON.stringify(addition, null, 2)}\n`);
+  f.repo.commit('Attempt visible omission repair');
+  assert.throws(() => compose(f.repo), /Incomplete original foundation resolution inputs/);
+});
+
+test('irrelevant-input correction rejects ambiguous duplicate repairs', t => {
+  const f = irrelevantResolutionInput(t);
+  f.record();
+  f.record({...f.supplement, id: 'second-correction'});
+  assert.throws(() => compose(f.repo), /Duplicate foundation input normalization/);
+});
+
+test('irrelevant-input correction cannot overwrite its original receipt', t => {
+  const f = irrelevantResolutionInput(t);
+  f.record();
+  f.resolution.inputs = [f.left.id, f.right.id].sort();
+  f.repo.record(f.resolution);
+  assert.throws(() => compose(f.repo), /Changed or removed foundation declaration/);
+});

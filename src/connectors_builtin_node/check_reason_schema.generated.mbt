@@ -4,7 +4,7 @@
 let check_reason_schema_cid = "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
 
 ///|
-let check_outcome_schema_cid = "sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f"
+let check_outcome_schema_cid = "sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9"
 
 ///|
 let check_parameter_contract_schema_cid = "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"

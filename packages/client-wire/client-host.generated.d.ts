@@ -184,7 +184,18 @@ export type WireSubmissionOutcomeShape = Readonly<{
   nonce: string;
 }>;
   intentCid: string;
-  checkObservation?: WireCheckOutcomeShape;
+  checkObservation?: (WireCheckOutcomeShape) & (Readonly<{
+  report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+  partial_report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+}>);
   problem: Readonly<{
   code: string;
   classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
@@ -217,7 +228,18 @@ export type WireSubmissionOutcomeShape = Readonly<{
   nonce: string;
 }>;
   intentCid: string;
-  checkObservation?: WireCheckOutcomeShape;
+  checkObservation?: (WireCheckOutcomeShape) & (Readonly<{
+  report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+  partial_report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+}>);
   problem: Readonly<{
   code: string;
   classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
@@ -1035,7 +1057,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
 }>[];
   scope: Readonly<{
-  kind: "bound_input";
+  kind: "template_only" | "bound_input";
 }>;
   verdict: "invalid" | "undetermined" | "verified";
 }>;
@@ -1294,7 +1316,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
 }>[];
   scope: Readonly<{
-  kind: "bound_input";
+  kind: "template_only" | "bound_input";
 }>;
   verdict: "invalid" | "undetermined";
 }>;
