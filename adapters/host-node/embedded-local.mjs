@@ -485,12 +485,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       .flatMap(installedSourceReadAccesses)});
   // Checking dispatches nothing and reads no source rows; the audience is
   // the authenticated caller this connection admits.
-  const check = async ({principalId: actual, connection, input, parameters,
+  const check = async ({principalId: actual, connection, kind, input, parameters,
     signal}) => {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
-    const result = await checkSource({principalId: actual, input, parameters, signal});
+    const result = await checkSource({principalId: actual, kind, input, parameters, signal});
     // The verdict belongs to the common checker. No diagnostic text, source
     // location, authored name, source bytes or hypothetical Run is projected.
     observation?.emit('check', 'check_completed', {checkVerdict: result.report?.verdict,

@@ -1563,6 +1563,84 @@ function remoteBundleControl(moon) {
   let control = remoteBundleControls.get(moon);
   if (control !== undefined) return control;
   control = Object.freeze({
+    catalogIncarnationValid: moon.strategyRemoteBundleCatalogIncarnationValid,
+    prepareDistribution: members => checked(moon.strategyRemoteBundleDistributionPrepare(members)),
+    distributionIdentity: moon.strategyRemoteBundleDistributionIdentity,
+    distributionJson: value => checked(moon.strategyRemoteBundleDistributionJson(value)),
+    distributionProjection: moon.strategyRemoteBundleDistributionProjection,
+    distributionContains: moon.strategyRemoteBundleDistributionContains,
+    admitDistributionJson: (body, cid) => checked(
+      moon.strategyRemoteBundleDistributionAdmitJson(body, cid)),
+    prepareHoldScope: value => checked(moon.strategyRemoteBundleHoldScopePrepare(
+      value.distribution, value.coordinatorAuthority, value.workspaceId,
+      value.authorityScopeCid, value.environment, value.setRevisionCid,
+      value.runtimeBundleCid, value.siteKey, value.siteGeneration, value.attemptId)),
+    holdScopeIdentity: moon.strategyRemoteBundleHoldScopeIdentity,
+    holdScopeJson: value => checked(moon.strategyRemoteBundleHoldScopeJson(value)),
+    holdScopeProjection: moon.strategyRemoteBundleHoldScopeProjection,
+    admitHoldScopeJson: (distribution, body, cid) => checked(
+      moon.strategyRemoteBundleHoldScopeAdmitJson(distribution, body, cid)),
+    prepareHoldBinding: value => checked(moon.strategyRemoteBundleHoldBindingPrepare(
+      value.distribution, value.catalogIncarnation, value.coordinatorAuthority,
+      value.workspaceId, value.authorityScopeCid, value.environment,
+      value.setRevisionCid, value.runtimeBundleCid, value.siteKey,
+      value.siteGeneration, value.initialRevision, value.attemptId)),
+    prepareHoldBindingFromScope: (scope, catalog, revision) => checked(
+      moon.strategyRemoteBundleHoldBindingFromScope(scope, catalog, revision)),
+    holdBindingIdentity: moon.strategyRemoteBundleHoldBindingIdentity,
+    holdBindingJson: value => checked(moon.strategyRemoteBundleHoldBindingJson(value)),
+    holdBindingProjection: moon.strategyRemoteBundleHoldBindingProjection,
+    holdBindingMatchesScope: moon.strategyRemoteBundleHoldBindingMatchesScope,
+    holdBindingScope: value => checked(moon.strategyRemoteBundleHoldBindingScope(value)),
+    admitHoldBindingJson: (distribution, body, cid) => checked(
+      moon.strategyRemoteBundleHoldBindingAdmitJson(distribution, body, cid)),
+    observeHold: value => moon.strategyRemoteBundleHoldObservationProjection(
+      moon.strategyRemoteBundleHoldObserve(value.catalogIncarnation,
+        value.record, value.binding, value.exactLiveHold)),
+    prepareHoldFence: value => checked(moon.strategyRemoteBundleHoldFencePrepare(
+      value.catalogIncarnation, value.record, value.binding, value.exactLiveHold)),
+    prepareHoldRetain: value => checked(moon.strategyRemoteBundleHoldRetainPrepare(
+      value.catalogIncarnation, value.activeBundleCid, value.record,
+      value.binding, value.maxOwners)),
+    prepareCustodyContextQuery: (distribution, scope) => checked(
+      moon.strategyRemoteBundleCustodyContextQueryPrepare(distribution, scope)),
+    prepareCustodyRequest: (distribution, binding, operation) => checked(
+      moon.strategyRemoteBundleCustodyRequestPrepare(distribution, binding, operation)),
+    admitCustodyRequestJson: (body, cid) => checked(
+      moon.strategyRemoteBundleCustodyRequestAdmitJson(body, cid)),
+    custodyRequestIdentity: moon.strategyRemoteBundleCustodyRequestIdentity,
+    custodyRequestJson: value => checked(moon.strategyRemoteBundleCustodyRequestJson(value)),
+    custodyRequestOperation: moon.strategyRemoteBundleCustodyRequestOperation,
+    custodyRequestDistribution: moon.strategyRemoteBundleCustodyRequestDistribution,
+    custodyRequestScope: moon.strategyRemoteBundleCustodyRequestScope,
+    custodyRequestBinding: moon.strategyRemoteBundleCustodyRequestBinding,
+    prepareCustodyContextResponse: (request, binding) => checked(
+      moon.strategyRemoteBundleCustodyContextResponsePrepare(request, binding)),
+    prepareCustodyResponse: (request, value) => {
+      const catalogPresent = value.catalogIncarnation !== undefined;
+      const revisionPresent = value.revision !== undefined;
+      if (catalogPresent && typeof value.catalogIncarnation !== 'string' ||
+          revisionPresent && (!Number.isInteger(value.revision) ||
+            value.revision < 0 || value.revision > 2147483647)) {
+        throw new TypeError('InvalidRemoteBundleRetentionObservation');
+      }
+      return checked(moon.strategyRemoteBundleCustodyResponseFieldsPrepare(
+        request, value.status, catalogPresent, value.catalogIncarnation ?? '',
+        revisionPresent, value.revision ?? 0));
+    },
+    admitCustodyResponseJson: (request, body, cid) => checked(
+      moon.strategyRemoteBundleCustodyResponseAdmitJson(request, body, cid)),
+    custodyResponseIdentity: moon.strategyRemoteBundleCustodyResponseIdentity,
+    custodyResponseJson: value => checked(moon.strategyRemoteBundleCustodyResponseJson(value)),
+    custodyResponseKind: moon.strategyRemoteBundleCustodyResponseKind,
+    custodyResponseBinding: moon.strategyRemoteBundleCustodyResponseBinding,
+    custodyResponseObservation: moon.strategyRemoteBundleCustodyResponseObservationText,
+    custodyResponseCatalog: value =>
+      moon.strategyRemoteBundleCustodyResponseCatalogIncarnationText(value) || undefined,
+    custodyResponseRevision: value => {
+      const revision = moon.strategyRemoteBundleCustodyResponseRecordRevisionText(value);
+      return revision === '' ? undefined : Number(revision);
+    },
     prepare: manifest => Array.isArray(manifest.components) ? checked(
       moon.strategyRemoteBundleManifestPrepareComponents(
         manifest.issuerAuthority,

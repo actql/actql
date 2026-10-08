@@ -7,23 +7,29 @@ fn unnest_source_element(
   declarations : @parameters.Declarations?,
   source_limits : @builder.Limits,
   max_work : Int,
+  resolve_parameter : ((String) -> Result[String, @expression.Issue])?,
 ) -> @contract.Contract? raise Abort {
   let origin = @query.expression_origin(
     expression,
     @query.expression_root(expression),
   )
   let lowered = match
-    @expression.lower(expression, _ => None, {
-      construction: source_limits,
-      expression: {
-        max_nodes: source_limits.tree.max_nodes,
-        max_depth: source_limits.tree.max_depth,
-        max_text_bytes: source_limits.tree.max_total_string_bytes,
-        max_tokens: source_limits.tree.max_nodes,
-        tree: source_limits.tree,
+    @expression.lower(
+      expression,
+      _ => None,
+      {
+        construction: source_limits,
+        expression: {
+          max_nodes: source_limits.tree.max_nodes,
+          max_depth: source_limits.tree.max_depth,
+          max_text_bytes: source_limits.tree.max_total_string_bytes,
+          max_tokens: source_limits.tree.max_nodes,
+          tree: source_limits.tree,
+        },
+        max_work,
       },
-      max_work,
-    }) {
+      resolve_parameter~,
+    ) {
     Ok(lowered) => lowered
     // Relation-bound correlation has no field schema in this scope probe.
     // The caller lowers it against the actual row/ranges below; explicit
@@ -48,13 +54,18 @@ fn unnest_source_element(
       raise Abort(Expression({ issue: @expression.WorkLimit, origin, }))
     Err({ kind: InvalidLimits, .. }) =>
       raise Abort(Expression({ issue: @expression.InvalidLimits, origin, }))
-    // No guessed scope for an unresolved, unknown or inadmissible type. The
-    // completed Program still undergoes its normal common admission checks.
-    Err(_) => return None
+    // Without an inferred element contract, untyped empty/NULL arrays keep
+    // their existing unsupported scope. Proven input violations are different:
+    // a star requires this probe to succeed before any Program can be checked.
+    Err({ kind: NullTypeUnresolved, .. }) => return None
+    Err(issue) => raise Abort(ExpressionTyping(issue))
   }
   match @typing.result_type(typed).shape {
     @contract.Array(element, ..) => Some(element)
-    _ => None
+    // The checked receiver is known not to be an ARRAY. Missing star fields
+    // must not hide that input violation behind an implementation limit.
+    _ =>
+      raise Abort(Expression({ issue: @expression.InvalidArguments, origin, }))
   }
 }
 

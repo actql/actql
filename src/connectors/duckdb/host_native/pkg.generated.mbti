@@ -35,6 +35,8 @@ pub fn close_native_strategy_compute_run(NativeStrategyComputeRun, observe_phase
 
 pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, NativeStrategyComputeCleanupIssue]
 
+pub fn commit_native_local_policy_response(@standard_host.StrategyHostDispatch, @physical_strategy.PolicyRequest, String, String, @trusted_clock.NativeTrustedClock) -> Result[Unit, NativeStandardPolicyIssue]
+
 pub fn consult_native_standard_policy(NativeStandardPolicyConsultation) -> Result[Unit, NativeStandardPolicyIssue]
 
 pub fn execute_and_publish_native_standard_strategy_run(NativeStandardStrategyRun, @actql/actql/platform_native/run_publication.NativeRunPublicationService, @actql/actql/platform_native/run_publication.NativeEffectFreeRunContext, Array[@actql/actql/platform_native/run_publication.NativeCapturedResultPublicationContext], @actql/actql/platform_native/run_publication.NativeRunPublicationIntent, @actql/actql/platform_native/run_publication.NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits) -> Result[@actql/actql/platform_native/run_publication.NativeRunPublicationResult, NativeStandardRunPublicationIssue]
@@ -84,6 +86,8 @@ pub fn open_native_strategy_compute_run() -> NativeStrategyComputeRun
 pub fn prepare_native_read_only_source_binding(@host.NativeHostConfiguration, String, Int64) -> Result[NativeReadOnlySourceBinding, NativeReadOnlySourceIssue]
 
 pub fn prepare_native_standard_policy_consultation(@standard_host.StrategyHostDispatch, @http_client.Client, @trusted_clock.NativeTrustedClock, String, String, String, String, String, Int64, Int, (@physical_strategy.PolicyRequest, @physical_strategy.PolicyCandidateSet) -> Bool) -> Result[NativeStandardPolicyConsultation?, NativeStandardPolicyIssue]
+
+pub fn rank_native_operational_estimate(@standard_host.StrategyHostDispatch, @physical_strategy.OperationalEstimateSidecar, Int, String, @trusted_clock.NativeTrustedClock) -> Result[@physical_strategy.EmpiricalRanking, NativeStandardPolicyIssue]
 
 pub fn read_native_standard_task_output(NativeStandardStrategyRun, Int, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> Result[@execution_relation.CompletedOutput, NativeStandardRunPublicationIssue]
 

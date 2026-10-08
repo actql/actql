@@ -15,7 +15,8 @@ import {AsyncLocalStorageContextManager} from '@opentelemetry/context-async-hook
 import {createNodeHostObservability} from './index.mjs';
 import {connect as localConnect} from '../local-node/index.mjs';
 import {openInstalledRemoteHttpHost} from '../local-node/http-host.mjs';
-import {connect as remoteConnect} from '../sdk/index.mjs';
+import {connect as remoteConnect, getSubmissionCheckObservation,
+  getCheckInput, resolveCheckLocation} from '../sdk/index.mjs';
 import {records, attributes, field, assertNoMetricExemplars} from './test/otlp-fixture.mjs';
 
 const sentinel = 'SECRET_SENTINEL';
@@ -108,6 +109,22 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
         parameters: {id: 'not-a-number'}});
       assert.equal(typed.report.verdict, 'invalid');
       assert.equal(requestRows(journal), 0, 'a value/schema mismatch creates no Run');
+      const original = {version: 'actql/0.1', id: sentinel};
+      let rejected;
+      try { await client.start(original); }
+      catch (error) { rejected = error; }
+      const checked = getSubmissionCheckObservation(rejected);
+      assert.equal(checked?.report.verdict, 'invalid',
+        'structured submission diagnostics survive observation wiring');
+      const reason = checked.report.reasons.find(reason =>
+        reason.code === 'program_structure_invalid');
+      assert.equal(reason?.facts.issue, 'missing_field');
+      assert.equal(reason.location.kind, 'structured');
+      assert.equal(reason.location.pointer, '');
+      assert.deepEqual(getCheckInput(checked, 'program').value, original);
+      assert.equal(resolveCheckLocation(checked, reason.location).pointer, '');
+      assert.equal(requestRows(journal), 0,
+        'a rejected structured submission creates no Run');
     }
     const run = await client.startSource(program, {format: 'json',
       submissionRef: client.newSubmission({nonce: 'first-observed-run'})});
