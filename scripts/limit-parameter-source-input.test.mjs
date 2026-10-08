@@ -22,8 +22,20 @@ test('LIMIT fixture keeps NULL duplicates column order and empty schemas', () =>
 test('LIMIT public cases have distinct names and ordinary refusal inputs', () => {
   const cases = [...limitParameterSuccesses, ...limitParameterRefusals];
   assert.equal(new Set(cases.map(item => item.name)).size, cases.length);
-  assert.equal(limitParameterSuccesses.length, 11);
-  assert.equal(limitParameterRefusals.length, 11);
+  assert.equal(limitParameterSuccesses.length, 14);
+  assert.equal(limitParameterRefusals.length, 13);
   assert.ok(limitParameterRefusals.some(item => item.parameters?.count === 0));
   assert.ok(limitParameterRefusals.some(item => item.parameters?.skip === null));
+});
+
+test('source parameter lookup does not rewrite machine declaration or value keys', () => {
+  const cases = new Map(limitParameterSuccesses.map(item => [item.name, item]));
+  const quoted = cases.get('limit-parameter-quoted-parameter-names');
+  assert.ok(quoted.text.includes('@`COUNT`'));
+  assert.ok(quoted.text.includes('@`\\x53kip`'));
+  const exact = cases.get('limit-parameter-exact-declaration-spelling');
+  assert.deepEqual(Object.keys(exact.parameterDeclarations), ['COUNT', 'SKIP']);
+  assert.deepEqual(exact.parameters, {COUNT: 2, SKIP: 1});
+  assert.deepEqual(exact.expected, [{amount: 20, id: 2}, {amount: 30, id: 3}]);
+  assert.ok(limitParameterRefusals.some(item => item.name.endsWith('wrong-machine-value-case')));
 });
