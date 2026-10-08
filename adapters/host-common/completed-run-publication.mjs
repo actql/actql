@@ -45,7 +45,6 @@ function validateExecution(execution) {
   if (execution === null || typeof execution !== 'object' ||
       execution.status !== 'host-tasks-completed' ||
       !Array.isArray(execution.resultInventory) ||
-      execution.resultInventory.length === 0 ||
       execution.publicationInventory === undefined ||
       !Array.isArray(execution.publicationInventory.occurrences) ||
       execution.publicationInventory.occurrences.length !==
@@ -87,6 +86,11 @@ function validateOptions(options) {
     fail('InvalidCompletedRunPublicationOptions');
   }
   validateExecution(options.execution);
+  // Pure publication still needs a public root. The shared Result inventory
+  // may be empty while an independently checked Effect owns the execution.
+  if (options.execution.resultInventory.length === 0) {
+    fail('InvalidCompletedRunPublicationOptions');
+  }
   validateControl(options.control);
   if (![options.runDefinition, options.invocation].every(contract) ||
       options.results.length !== options.execution.resultInventory.length) {
@@ -1004,7 +1008,7 @@ export async function recoverCompletedEffectfulComputation(options) {
   const durableBindings = captured.durable_bindings.map(wire =>
     admit('durable_result_binding', wire));
   const count = definitions.length;
-  if (count === 0 || [artifacts, derivations, orderings, durableBindings,
+  if ([artifacts, derivations, orderings, durableBindings,
     captured.result_schemas].some(values => values.length !== count)) {
     fail('InvalidCompletedEffectfulCaptureInventory');
   }

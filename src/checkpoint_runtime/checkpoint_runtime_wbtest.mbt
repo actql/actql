@@ -438,10 +438,17 @@ test "waiting is projected only from a persisted checkpoint" {
     ),
     Err(RunStateInvalidField("status")),
   )
-  assert_eq(
-    issue_waiting_run_state(persisted, "2026-09-25T10:00:00.000Z", [], limits()),
-    Err(RunStateRelation(EmptyDeclaredResults)),
-  )
+  let effect_only = issue_waiting_run_state(
+    persisted,
+    "2026-09-25T10:00:00.000Z",
+    [],
+    limits(),
+  ).unwrap()
+  let effect_only_view = admit_run_state_wire(effect_only, limits()).unwrap()
+  assert_eq(effect_only_view.status, WaitingCheckpoint)
+  assert_eq(effect_only_view.checkpoint_cid, Some(checkpoint.checkpoint_cid))
+  assert_true(effect_only.contains("\"result_availability\":{}"))
+  assert_true(effect_only.contains("\"result_available\":false"))
 }
 
 ///|

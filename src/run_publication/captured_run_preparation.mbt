@@ -192,6 +192,9 @@ fn CapturedRunIssuancePreparation::step(
   let inputs = self.inputs.unwrap()
   match self.phase {
     Prepare => {
+      if inputs.definitions.is_empty() && inputs.preview is None {
+        return Err(CaptureIssuanceChain(EvidenceRoot(ChainEmptyInventory)))
+      }
       if self.max_workspace < self.live {
         return Err(CaptureIssuanceEncoding)
       }

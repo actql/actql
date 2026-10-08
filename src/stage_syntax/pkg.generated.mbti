@@ -39,6 +39,8 @@ pub fn effect_header_source_table_input(EffectHeader) -> String?
 
 pub fn effect_header_stage(EffectHeader) -> Int
 
+pub fn effect_header_table_write(EffectHeader) -> @decode_core.Cursor?
+
 pub fn effect_headers_owner(EffectHeaders) -> Program
 
 pub fn effect_headers_work(EffectHeaders) -> Int

@@ -1002,7 +1002,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ```text
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/hydration_evidence sha256:3ec3d5b17ddd5464544349529d9a1590ebe4ad8922e8da3fd805e28cc1e78660
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_availability_evidence sha256:28b21024a3d5291871e346b8f646d13c606e217ddc81d9fe1756f32816bcd59e
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_manifest sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_manifest sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_delivery_receipt sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21
 ../../../spec/contracts/actql-run-publication.json#/schemas/result_definition sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973
 ../../../spec/contracts/actql-run-publication.json#/schemas/run_invocation sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81

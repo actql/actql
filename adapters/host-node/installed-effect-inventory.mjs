@@ -11,7 +11,7 @@ const fail = code => { throw Object.assign(new TypeError(code), {code}); };
 const text = value => typeof value === 'string' && value.length > 0;
 const cid = value => /^sha256:[0-9a-f]{64}$/u.test(value ?? '');
 const kinds = new Set(['create', 'update', 'upsert', 'store']);
-const selectorKeys = new Set(['kind', 'target', 'mappingRef', 'mappingCid', 'effectId']);
+const selectorKeys = new Set(['kind', 'target', 'mappingRef', 'mappingCid', 'effectId', 'capabilityCid']);
 
 export function validPluralEffectPaths(paths) {
   return Array.isArray(paths) && paths.length >= 2 &&
@@ -25,7 +25,8 @@ function validSelector(selector) {
     Object.keys(selector).every(key => selectorKeys.has(key)) &&
     kinds.has(selector.kind) && text(selector.target) && text(selector.mappingRef) &&
     cid(selector.mappingCid) &&
-    (selector.effectId === undefined || text(selector.effectId));
+    (selector.effectId === undefined || text(selector.effectId)) &&
+    (selector.capabilityCid === undefined || cid(selector.capabilityCid));
 }
 
 function ownedMappings(effect) {
@@ -52,7 +53,7 @@ function ownedMappings(effect) {
     }
     // Exact strings retain their published meanings, including Unicode form.
     const key = JSON.stringify([selector.kind, selector.target, selector.mappingRef,
-      selector.mappingCid, selector.effectId ?? null]);
+      selector.mappingCid, selector.effectId ?? null, selector.capabilityCid ?? null]);
     if (exact.has(key)) fail('InvalidInstalledEffectSelectors');
     exact.add(key);
     owned.set(selector.mappingRef, selector.mappingCid);
@@ -132,6 +133,8 @@ export async function composeInstalledEffects(paths, options, load) {
       effects.push(effect);
     }
     return Object.freeze({effects: Object.freeze(effects), environmentWire,
+      queryTableBindings: Object.freeze(effects.flatMap(effect => effect.queryTableBindings ?? [])),
+      queryTableWriteAccesses: Object.freeze(effects.flatMap(effect => effect.queryTableWriteAccesses ?? [])),
       connectorBindings: Object.freeze([...bindings.values()]), close: cleanup.close});
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cleanup.retainFailure(cause),
@@ -153,7 +156,9 @@ export function installedEffectFor(inventory, descriptors) {
     const matches = inventory.effects.filter(effect => effect.effectSelectors.some(selector =>
       selector.kind === descriptor.kind && selector.target === descriptor.target &&
       selector.mappingRef === descriptor.mappingRef && selector.mappingCid === descriptor.mappingCid &&
-      (selector.effectId === undefined || selector.effectId === descriptor.effectId)));
+      (descriptor.capabilityCid === undefined
+        ? selector.effectId === undefined || selector.effectId === descriptor.effectId
+        : selector.capabilityCid === descriptor.capabilityCid)));
     if (matches.length !== 1) fail('InstalledEffectProgramMismatch');
     if (owner !== undefined && owner !== matches[0]) fail('InstalledEffectSetOwnerMismatch');
     owner = matches[0];

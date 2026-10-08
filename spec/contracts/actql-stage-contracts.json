@@ -141,7 +141,123 @@
         "expression-child"
       ]
     },
-    "unregistered_evaluation_operation": "project"
+    "unregistered_evaluation_operation": "project",
+    "effect_only": {
+      "public_results": "empty_only_with_common_checker_validated_effects",
+      "stage_results": "empty_only_with_effect_declarations_validated_by_common_checker",
+      "execution_roots": "checked_effects_and_public_results",
+      "no_roots": "reject",
+      "hidden_public_results": false,
+      "unresolved_effect_success": false,
+      "unknown_operation_resend": false,
+      "authority": "existing_input_mapping_capability_approval_and_effect_owners"
+    },
+    "table_write_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent",
+        "action",
+        "expected_table",
+        "mapping_cid",
+        "capability_cid",
+        "installation_binding_cid"
+      ],
+      "properties": {
+        "intent": {
+          "enum": [
+            "create",
+            "create_or_replace"
+          ]
+        },
+        "action": {
+          "enum": [
+            "create",
+            "replace"
+          ]
+        },
+        "expected_table": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "table_uuid",
+                "generation_cid"
+              ],
+              "properties": {
+                "table_uuid": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "generation_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            }
+          ]
+        },
+        "mapping_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "capability_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "installation_binding_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "const": "create"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected_table": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "const": "replace"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "intent": {
+                "const": "create_or_replace"
+              },
+              "expected_table": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      ]
+    }
   },
   "schemas": {
     "local_contracts": {
