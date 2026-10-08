@@ -1,3 +1,4 @@
+import {minMaxDistinctSuccesses, minMaxDistinctRefusals} from './min-max-distinct-source-input.mjs';
 import {groupByAllSuccesses, groupByAllRefusals} from './group-by-all-source-input.mjs';
 import {correlatedUnnestSuccesses, correlatedUnnestRefusals} from './correlated-unnest-source-input.mjs';
 import {unnestCheckedArraySuccesses, unnestCheckedArrayRefusals} from './unnest-checked-array-source-input.mjs';
@@ -379,6 +380,8 @@ const scopeInputs = minMaxDistinctOnly ? {successes: minMaxDistinctSuccesses, re
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...graphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...graphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...minMaxDistinctSuccesses);
+  scopeInputs.refusals.push(...minMaxDistinctRefusals);
   scopeInputs.successes.push(...groupByAllSuccesses);
   scopeInputs.refusals.push(...groupByAllRefusals);
   scopeInputs.successes.push(...correlatedUnnestSuccesses);
