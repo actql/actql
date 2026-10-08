@@ -1487,8 +1487,14 @@ fn main {
     if empirical is Some(_) {
       let held = @resources.ledger_usage(ledger)
       @standard_host.stop_strategy_dispatch(dispatch)
+      // The existing Owner drains a stopped dispatch with no next task.
+      // That closes admission, while cleanup still owns the held resources.
       operational_require(
-        @host.execute_next_native_standard_strategy_task(run) is Err(_),
+        @host.execute_next_native_standard_strategy_task(run) is Ok(None),
+      )
+      operational_require(
+        @host.execute_next_native_standard_strategy_task(run)
+        is Err(@host.Closed),
       )
       operational_require(@resources.ledger_usage(ledger) == held)
       operational_require(held.held_bytes > 0L)

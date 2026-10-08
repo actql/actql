@@ -74,6 +74,24 @@ six/six protocol and uses no measurement from the failed source. Candidate
 position parsing now admits zero and rejects malformed/negative forced input
 before Source/resource initialization. Positive fixture counts stay positive.
 
+## Preserved completed positive campaign and failed boundary
+
+At `bbba06a9818e00f192b7f96e023ce761ac1f44ce`, the fixed six comparison and
+six evaluation executions all succeeded through the independent Result and
+formal cleanup. Their originals are retained unchanged. The separate stop
+boundary then exposed a fixture expectation error: the Native Owner drains a
+stopped dispatch as `Ok(None)`, closes admission, then returns `Closed` on a
+subsequent call. The fixture incorrectly required its first call to be an error
+and aborted before cleanup. This does not establish a product cancellation bug.
+The expiry boundary/readback were not reached in that guarded invocation.
+
+The fixture now requires the exact drain/Closed contract, unchanged full Ledger,
+held material until close, and the same confirmed/double-close checks. Product
+stop/admission behavior is unchanged. Because this fix changes Native binary
+bytes, a newly pinned source/binary campaign repeats the same predeclared finite
+six/six protocol. It does not relabel, pool or substitute the completed old
+observations; no slow result or unsuccessful slot is selectively replenished.
+
 ## Execution evidence
 
 Pending exact-source release acceptance. Limited diagnostic results do not
