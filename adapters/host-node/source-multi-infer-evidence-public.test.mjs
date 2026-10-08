@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp, mkdir, readFile, rm, unlink, writeFile} from 'node:fs/promises';
+import {chmod, mkdtemp, mkdir, readFile, readdir, rm, unlink, writeFile} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {tmpdir} from 'node:os';
@@ -94,6 +94,105 @@ async function recordInterruptedAcceptance({transport, boundary, root, firstPid,
 }
 
 for (const transport of ['local', 'https']) {
+  test(`public ${transport} refuses modified original Model input custody after Host process exit`, {timeout: 180000}, async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-corrupt-'));
+    t.after(() => t.diagnostic(`Retained modified-custody refusal: ${root}`));
+    const firstPid = await executeHost(root, transport, 'unicode', 'disabled', 'stop-first-saved', 77);
+    const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+    assert.equal(stopped.calls.length, 2);
+    const directory = join(root, 'host/checkpoints/attempts');
+    const names = (await readdir(directory)).filter(name => name.startsWith('model-') && name.endsWith('.json'));
+    assert.equal(names.length, 1);
+    const ledger = JSON.parse(await readFile(join(directory, names[0]), 'utf8'));
+    const inputs = ledger.holdings.filter(item => item.name === 'captured_input' && item.state === 'held');
+    assert.equal(inputs.length, 1);
+    const store = join(root, 'host/checkpoints/private-store');
+    const holding = JSON.parse(await readFile(join(store, 'physical-holdings', `${inputs[0].holding_cid.slice(7)}.json`), 'utf8'));
+    assert.equal(holding.objects.length, 1);
+    const object = join(store, 'objects', holding.objects[0].cid.slice(7));
+    const original = await readFile(object);
+    // Preserve the authentic fixture bytes outside the Store inventory. Do
+    // not change any receipt, identity, holding or declared object digest.
+    await writeFile(join(root, 'original-model-input-custody.bin'), original, {mode: 0o600});
+    const altered = Buffer.from(original); altered[altered.length - 1] ^= 1;
+    await writeFile(object, altered);
+    const restoredPid = await executeHost(root, transport, 'unicode', 'disabled', 'resume-corrupt');
+    assert.notEqual(restoredPid, firstPid);
+    const saved = JSON.parse(await readFile(join(root, 'corrupt-recovery.json'), 'utf8'));
+    assert.deepEqual(saved.ref, JSON.parse(await readFile(join(root, 'run-ref.json'), 'utf8')));
+    assert.equal(saved.terminal.status, 'needs_reconciliation');
+    assert.equal(saved.terminal.result_available, false);
+    assert.deepEqual(saved.calls, stopped.calls);
+    assert.equal(saved.sourceCalls, 1);
+    if (runtime !== undefined) await writeFile(join(runtime.evidenceDirectory, `source-recovery-${transport}-corrupt.json`),
+      JSON.stringify({revision: runtime.revision, transport, boundary: 'modified-custody', root,
+        firstPid, restoredPid, ref: saved.ref, status: saved.terminal.status,
+        originalPhysicalCid: holding.objects[0].cid, sourceCalls: 1, providerCalls: 2,
+        refusalCode: 'PublicationObjectCorrupt', complete: true}, null, 2) + '\n');
+  });
+
+  test(`public ${transport} retries failed continuation cleanup after original Run recovery and another process exit`, {timeout: 180000}, async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-cleanup-'));
+    const directory = join(root, 'host/checkpoints/private-store/physical-holdings');
+    t.after(async () => {
+      await chmod(directory, 0o700).catch(() => {});
+      t.diagnostic(`Retained cleanup recovery: ${root}`);
+    });
+    const firstPid = await executeHost(root, transport, 'unicode', 'disabled', 'stop-first-saved', 77);
+    const pendingPid = await executeHost(root, transport, 'unicode', 'disabled', 'resume-cleanup-pending');
+    assert.notEqual(firstPid, pendingPid);
+    const pending = JSON.parse(await readFile(join(root, 'resume-cleanup-pending.json'), 'utf8'));
+    assert(pending.holdings.some(item => item.state === 'retiring' && item.cleanup_error === 'EACCES'));
+    assert.equal(pending.sourceCalls, 1); assert.equal(pending.calls.length, 4);
+    // Removing this test-owned filesystem refusal permits the durable Store
+    // deletion Owner to retry after reopening, without any execution replay.
+    await chmod(directory, 0o700);
+    const retryPid = await executeHost(root, transport, 'unicode', 'disabled', 'resume-cleanup-retry');
+    assert.equal(new Set([firstPid, pendingPid, retryPid]).size, 3);
+    const recovered = JSON.parse(await readFile(join(root, 'resume-cleanup-retry.json'), 'utf8'));
+    assert.deepEqual(recovered.ref, pending.ref);
+    assert.deepEqual(recovered.calls, pending.calls);
+    assert.equal(recovered.sourceCalls, 1);
+    assert(recovered.holdings.every(item => item.state === 'retired'));
+    assert.deepEqual(recovered.holdings.map(item => item.holding_cid).sort(), pending.holdings.map(item => item.holding_cid).sort());
+    assert.equal(recovered.retainedRequestCount, pending.retainedRequestCount);
+    const saved = JSON.parse(await readFile(join(root, 'recovery.json'), 'utf8'));
+    assert.equal(saved.terminal.status, 'succeeded');
+    const sink = await createCaptureSink({directory: join(root, 'evidence'),
+      destination: 'local:source-multi-infer-evaluator', maxBytes: 131072,
+      maxPendingBytes: 1048576, retentionMs: 300000, authorize: () => true});
+    const evaluated = await evaluateOriginalInventory(sink, saved);
+    if (runtime !== undefined) await writeFile(join(runtime.evidenceDirectory, `source-recovery-${transport}-cleanup.json`),
+      JSON.stringify({revision: runtime.revision, transport, boundary: 'cleanup-retry', root,
+        firstPid, pendingPid, retryPid, ref: recovered.ref, sourceCalls: 1, providerCalls: 4,
+        retiredHoldings: recovered.holdings, retainedRequestCount: recovered.retainedRequestCount,
+        evaluatorPids: evaluated.evaluatorPids, complete: true}, null, 2) + '\n');
+  });
+
+  test(`public ${transport} refuses restored unsent calls after current infer permission is rejected`, {timeout: 180000}, async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-denied-'));
+    t.after(() => t.diagnostic(`Retained denied original Run: ${root}`));
+    const firstPid = await executeHost(root, transport, 'unicode', 'disabled', 'stop-first-delegated', 77);
+    const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+    assert.equal(stopped.pid, firstPid);
+    assert.equal(stopped.boundary, 'infer_model_settlement_committed');
+    assert.equal(stopped.calls.length, 2);
+    const restoredPid = await executeHost(root, transport, 'unicode', 'disabled', 'resume-denied');
+    assert.notEqual(restoredPid, firstPid);
+    const saved = JSON.parse(await readFile(join(root, 'denied-recovery.json'), 'utf8'));
+    assert.deepEqual(saved.ref, JSON.parse(await readFile(join(root, 'run-ref.json'), 'utf8')));
+    assert.equal(saved.terminal.status, 'needs_reconciliation');
+    assert.equal(saved.refusalCode, 'ExecutionAuthorizationDenied');
+    assert.equal(saved.terminal.result_available, false);
+    assert.deepEqual(saved.calls, stopped.calls);
+    assert.equal(saved.sourceCalls, 1);
+    assert.equal((await readFile(join(root, 'provider-calls.jsonl'), 'utf8')).trim().split('\n').length, 2);
+    if (runtime !== undefined) await writeFile(join(runtime.evidenceDirectory, `source-recovery-${transport}-denied.json`),
+      JSON.stringify({revision: runtime.revision, transport, boundary: 'infer-rejected', root,
+        firstPid, restoredPid, ref: saved.ref, status: saved.terminal.status,
+        sourceCalls: 1, providerCalls: 2, refusalCode: saved.refusalCode, complete: true}, null, 2) + '\n');
+  });
+
   test(`public ${transport} keeps an original unknown call and all required Evidence after process exit`, {timeout: 180000}, async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-source-multi-infer-unknown-'));
     t.after(() => t.diagnostic(`Retained original unknown call: ${root}`));

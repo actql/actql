@@ -152,8 +152,32 @@ additional Source or Model call. These operations observe the stopped Run;
 they do not automatically retry the provider response lookup. This case runs
 with OTel disabled on Local and trace sampling zero on HTTPS.
 
-These cases do not establish all cleanup-restart or authorization refusal
-cases. Those remain requirements of the full interrupted-Run recovery unit.
+These cases do not establish every possible authorization refusal or physical
+cleanup fault. They cover the following declared connection boundaries.
+
+The current-authorization refusal case stops after the first INFER's saved
+responses while the second INFER requires delegated permission. On restoration
+the installed authority explicitly rejects that original second-INFER scope.
+The existing Owner reports `ExecutionAuthorizationDenied`; Source acquisition
+stays at one and Model sends stay at two. The interrupted Run remains
+`needs_reconciliation`, without a fabricated terminal failure or Result.
+
+The cleanup-restart case recovers the interrupted Run, then denies unlink in
+its test-owned continuation Store before terminal retirement. The real Store
+records `EACCES` and keeps those holdings `retiring`; successful publication
+does not imply successful cleanup. After that Host exits, a third process
+retries the durable deletion records under the existing Store Owner. The same
+holding identities become `retired`, while request identity and Named Result
+retention remain separate. Result retrieval and external evaluation still use
+the original four captures, with one Source acquisition and four Model sends
+in total. This does not claim that every transient holder is observable.
+
+The modified-custody case preserves the authentic encrypted fixture original,
+then changes one byte of the saved Model input object while leaving its receipt,
+holding and declared digest intact. After process exit, the public recovery
+reports the existing Store's `PublicationObjectCorrupt` refusal and keeps the
+same Run unresolved. No Source acquisition, saved Model call or unsent call
+is executed to reconstruct the missing original.
 
 Run only these public source cases with the existing process timeouts:
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFile, writeFile} from 'node:fs/promises';
+import {chmod, readFile, readdir, writeFile} from 'node:fs/promises';
 import {appendFileSync, closeSync, existsSync, fsyncSync, openSync, readFileSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {generateKeyPairSync, sign} from 'node:crypto';
@@ -29,7 +29,7 @@ const checked = result => {assert.equal(result.$tag, 1); return result._0;};
 const [root, transport, scenarioName = 'unicode', observationMode = 'disabled', phase = 'complete'] = process.argv.slice(2);
 assert(root && ['local', 'https'].includes(transport) && scenarios[scenarioName]);
 const scenario = scenarios[scenarioName];
-const approval = ['stop-second-waiting', 'approve-second'].includes(phase);
+const approval = ['stop-second-waiting', 'approve-second', 'stop-first-delegated', 'resume-denied'].includes(phase);
 let client, host, server, collector, telemetry, otlpRequests = 0;
 try {
   const base = JSON.parse(await readFile(runtime?.environment ?? new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
@@ -75,6 +75,7 @@ try {
   const sourcePath = join(root, 'source-calls.jsonl');
   const readLines = path => existsSync(path) ? readFileSync(path, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : [];
   const observed = [], calls = readLines(callPath);
+  let cleanupRefusalInstalled = false;
   const persistProviderResponse = response => {
     const path = join(root, 'provider-responses.jsonl');
     const descriptor = openSync(path, 'a', 0o600);
@@ -101,6 +102,10 @@ try {
       maxBytes: 262144, sink, authorize: binding =>
         JSON.parse(binding.policy.wire).unknown_provenance === true},
     authorization: {accountConfiguration,
+      ...(phase === 'resume-denied' ? {decide: view => {
+        observed.push({name: 'current_infer_rejected', detail: view.subject});
+        return {decision: 'reject', subject: view.subject, authority: 'fixture-reviewer'};
+      }} : {}),
       hostKey: {keyId: 'fixture-host', privateKey: keys.privateKey},
       reviewers: [{keyId: 'fixture-reviewer', reviewerId: 'fixture-reviewer', principalId: userInfo().username,
         publicKey: keys.publicKey}],
@@ -110,7 +115,15 @@ try {
         if (name === 'acquisition_started') appendFileSync(sourcePath, JSON.stringify({pid: process.pid, detail}) + '\n');
       },
       async faultInjection(name, detail) {
-        if (phase === 'stop-first-saved' && name === 'infer_model_settlement_committed' && ++settlements === 2) {
+        if (phase === 'resume-cleanup-pending' && name === 'infer_private_holding_commit' &&
+            detail.role === 'model_capture_bundle' && calls.length === 4 && !cleanupRefusalInstalled) {
+          // Deny physical unlink in this fixture's actual continuation Store.
+          // Model settlement uses the separate publication Store, and the
+          // already retained inputs remain readable until terminal cleanup.
+          await chmod(join(root, 'host/checkpoints/private-store/physical-holdings'), 0o500);
+          cleanupRefusalInstalled = true;
+        }
+        if (['stop-first-saved', 'stop-first-delegated'].includes(phase) && name === 'infer_model_settlement_committed' && ++settlements === 2) {
           writeFileSync(join(root, 'stop.json'), JSON.stringify({pid: process.pid, boundary: name, detail,
             calls, sourceCalls: readLines(sourcePath).length}));
           process.exit(77);
@@ -211,7 +224,8 @@ try {
     client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'synthetic-evidence', durability: 'durable'});
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
   let run;
-  if (['resume', 'approve-second', 'resume-provider-saved', 'resume-unknown'].includes(phase)) {
+  if (['resume', 'approve-second', 'resume-provider-saved', 'resume-unknown', 'resume-denied',
+    'resume-cleanup-pending', 'resume-cleanup-retry', 'resume-corrupt'].includes(phase)) {
     const submissionRef = JSON.parse(await readFile(join(root, 'submission-ref.json'), 'utf8'));
     const found = await client.lookupSubmission(submissionRef);
     assert.equal(found.kind, 'ready', inspect(found));
@@ -252,7 +266,35 @@ try {
     await new Promise(resolve => setTimeout(resolve, 20));
     terminal = await run.wait();
   }
-  if (phase === 'resume-unknown') {
+  if (phase === 'resume-corrupt') {
+    assert.equal(terminal.status, 'needs_reconciliation');
+    assert.equal(terminal.result_available, false);
+    assert(observed.some(event => event.name === 'model_recovery_failed' &&
+      event.detail.code === 'PublicationObjectCorrupt'));
+    assert.equal(calls.length, 2);
+    assert.equal(readLines(sourcePath).length, 1);
+    await writeFile(join(root, 'corrupt-recovery.json'), JSON.stringify({pid: process.pid,
+      ref: run.ref, terminal, calls, observed, sourceCalls: readLines(sourcePath).length}));
+  } else if (phase === 'resume-denied') {
+    await writeFile(join(root, 'denied-run-diagnostic.json'), JSON.stringify({pid: process.pid,
+      ref: run.ref, terminal, calls, observed, sourceCalls: readLines(sourcePath).length}));
+    // The existing restoration Owner refuses this new authorization without
+    // inventing a terminal outcome for the previously interrupted execution.
+    assert.equal(terminal.status, 'needs_reconciliation');
+    assert.equal(terminal.result_available, false);
+    assert(observed.some(event => event.name === 'model_resume_failed' &&
+      event.detail.code === 'ExecutionAuthorizationDenied'));
+    const rejected = observed.filter(event => event.name === 'current_infer_rejected');
+    assert.equal(rejected.length, 1);
+    assert.equal(rejected[0].detail.operation, 'infer');
+    assert.equal(rejected[0].detail.resource, installed.tasks[1].contract_cid);
+    assert.equal(calls.length, 2, 'restoration cannot send after current infer permission is rejected');
+    assert.equal(readLines(sourcePath).length, 1);
+    const stopped = JSON.parse(await readFile(join(root, 'stop.json'), 'utf8'));
+    assert.deepEqual(calls, stopped.calls);
+    await writeFile(join(root, 'denied-recovery.json'), JSON.stringify({pid: process.pid, ref: run.ref,
+      terminal, calls, observed, refusalCode: 'ExecutionAuthorizationDenied', sourceCalls: readLines(sourcePath).length}));
+  } else if (phase === 'resume-unknown') {
     assert.equal(terminal.status, 'needs_reconciliation');
     assert.equal(terminal.result_available, false);
     assert.equal(calls.length, 4, 'only the remaining formally unsent slot may continue');
@@ -331,6 +373,24 @@ try {
     scenario: scenarioName, observationMode, otlpRequests, originalSourcePolicy,
     modelTaskCids: installed.tasks.map(task => task.contract_cid),
     calls, sourceCalls: readLines(sourcePath).length, terminal, description, ref: run.ref, revision: runtime?.revision}));
+  }
+  if (['resume-cleanup-pending', 'resume-cleanup-retry'].includes(phase)) {
+    await client.close(); client = undefined;
+    if (host !== undefined) {await host.close(); host = undefined;}
+    const directory = join(root, 'host/checkpoints/attempts');
+    const ledgers = [];
+    for (const name of await readdir(directory)) {
+      if (name.endsWith('.json')) ledgers.push(JSON.parse(await readFile(join(directory, name), 'utf8')));
+    }
+    const holdings = ledgers.flatMap(ledger => ledger.holdings.filter(item => item.name !== 'invocation_request'));
+    assert(holdings.length > 0);
+    if (phase === 'resume-cleanup-pending') {
+      assert.equal(cleanupRefusalInstalled, true);
+      assert(holdings.some(item => item.state === 'retiring' && item.cleanup_error === 'EACCES'));
+    } else assert(holdings.every(item => item.state === 'retired'));
+    await writeFile(join(root, `${phase}.json`), JSON.stringify({pid: process.pid,
+      ref: run.ref, sourceCalls: readLines(sourcePath).length, calls, holdings,
+      retainedRequestCount: ledgers.flatMap(ledger => ledger.holdings).filter(item => item.name === 'invocation_request').length}));
   }
 } finally {
   await client?.close();

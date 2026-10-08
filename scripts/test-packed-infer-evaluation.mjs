@@ -84,7 +84,7 @@ async ({root, directory, run, recordTarball}) => {
   args[1] = '--test-reporter=' + pathToFileURL(join(root, 'scripts/test-execution-reporter.mjs')).href;
   const stdout = run(process.execPath, args, {cwd: root, env: runtimeEnv, timeout: 600000});
   const checked = assertTestExecution('node', process.execPath, args, {status: 0, stdout});
-  assert.equal(checked.counts.passed, 16, 'Single, Source-backed and interrupted original-Run INFER cases must execute through the declared public boundaries');
+  assert.equal(checked.counts.passed, 22, 'Single, Source-backed and interrupted original-Run INFER cases must execute through the declared public boundaries');
   console.log(stdout.trimEnd());
   const receipts = [];
   for (const transport of ['local', 'https']) for (const mode of ['disabled', 'sampling-zero']) {
@@ -98,7 +98,7 @@ async ({root, directory, run, recordTarball}) => {
     receipts.push(receipt);
   }
   const {expectedColumns} = await import(pathToFileURL(join(root, 'scripts/fixtures/source-multi-infer-evidence.mjs')));
-  const sourceReceipts = [], recoveryReceipts = [], unknownReceipts = [];
+  const sourceReceipts = [], recoveryReceipts = [], unknownReceipts = [], deniedReceipts = [], cleanupReceipts = [], corruptReceipts = [];
   for (const transport of ['local', 'https']) {
     const restored = JSON.parse(await readFile(join(directory, `source-evidence-${transport}-disabled.json`), 'utf8'));
     assert.equal(restored.revision, before.revision); assert.equal(restored.complete, true);
@@ -140,9 +140,33 @@ async ({root, directory, run, recordTarball}) => {
     assert.equal(unknown.observationMode, transport === 'https' ? 'sampling-zero' : 'disabled');
     assert.equal(unknown.otlpRequests, 0);
     unknownReceipts.push(unknown);
+    const denied = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-denied.json`), 'utf8'));
+    assert.equal(denied.revision, before.revision); assert.equal(denied.complete, true);
+    assert.equal(denied.transport, transport); assert.equal(denied.boundary, 'infer-rejected');
+    assert.equal(denied.status, 'needs_reconciliation');
+    assert.equal(denied.refusalCode, 'ExecutionAuthorizationDenied');
+    assert.notEqual(denied.firstPid, denied.restoredPid);
+    assert.equal(denied.sourceCalls, 1); assert.equal(denied.providerCalls, 2);
+    deniedReceipts.push(denied);
+    const cleanup = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-cleanup.json`), 'utf8'));
+    assert.equal(cleanup.revision, before.revision); assert.equal(cleanup.complete, true);
+    assert.equal(cleanup.transport, transport); assert.equal(cleanup.boundary, 'cleanup-retry');
+    assert.equal(new Set([cleanup.firstPid, cleanup.pendingPid, cleanup.retryPid]).size, 3);
+    assert.equal(cleanup.sourceCalls, 1); assert.equal(cleanup.providerCalls, 4);
+    assert(cleanup.retiredHoldings.length > 0 && cleanup.retiredHoldings.every(item => item.state === 'retired'));
+    assert.equal(new Set(cleanup.evaluatorPids).size, 4);
+    cleanupReceipts.push(cleanup);
+    const corrupt = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-corrupt.json`), 'utf8'));
+    assert.equal(corrupt.revision, before.revision); assert.equal(corrupt.complete, true);
+    assert.equal(corrupt.transport, transport); assert.equal(corrupt.boundary, 'modified-custody');
+    assert.equal(corrupt.status, 'needs_reconciliation');
+    assert.equal(corrupt.refusalCode, 'PublicationObjectCorrupt');
+    assert.notEqual(corrupt.firstPid, corrupt.restoredPid);
+    assert.equal(corrupt.sourceCalls, 1); assert.equal(corrupt.providerCalls, 2);
+    corruptReceipts.push(corrupt);
   }
   assert.deepEqual(checkoutState(repository), before);
   await writeFile(join(directory, 'evaluation-summary.json'), JSON.stringify({revision: before.revision,
     complete: true, receipts: receipts.map(({transport, observationMode, physicalCalls, observationRecords}) =>
-      ({transport, observationMode, physicalCalls, observationRecords})), sourceReceipts, recoveryReceipts, unknownReceipts}, null, 2) + '\n');
+      ({transport, observationMode, physicalCalls, observationRecords})), sourceReceipts, recoveryReceipts, unknownReceipts, deniedReceipts, cleanupReceipts, corruptReceipts}, null, 2) + '\n');
 });
