@@ -259,6 +259,7 @@ priv struct ExpressionParser {
   mut offset : Int
   mut work : Int
   mut embedded_nodes : Int
+  stop_before_star : Bool
   primary : ((Int, ExpressionLimits) -> Result[
     (NamePart, Int, Int, Int)?,
     Diagnostic,
@@ -436,7 +437,11 @@ fn ExpressionParser::path(
       QuotedName(value) => names.push({ value, quoted: true, })
       _ => raise ExpressionAbort("Expected identifier", part.start)
     }
-    if self.peek().value != Symbol(46) {
+    if self.peek().value != Symbol(46) ||
+      (
+        self.stop_before_star &&
+        self.source.tokens[self.offset + 1].value == Symbol(42)
+      ) {
       break
     }
     ignore(self.advance())
@@ -662,6 +667,11 @@ fn ExpressionParser::expression(
         let left = if left < 0 { result } else { left }
         let token = self.peek()
         if token.value == Symbol(46) {
+          if self.stop_before_star &&
+            self.source.tokens[self.offset + 1].value == Symbol(42) {
+            result = left
+            continue
+          }
           ignore(self.advance())
           let property_token = self.advance()
           let name = match property_token.value {
@@ -1019,8 +1029,10 @@ fn parse_fragment(
   source : Tokens,
   offset : Int,
   limits : ExpressionLimits,
+  stop_before_star? : Bool = false,
 ) -> Result[(Expression, Int), Diagnostic] {
-  match parse_fragment_resolved(source, offset, limits, None) {
+  match
+    parse_fragment_resolved(source, offset, limits, None, stop_before_star~) {
     Ok((expression, next, _)) => Ok((expression, next))
     Err(error) => Err(error)
   }
@@ -1035,6 +1047,7 @@ fn parse_fragment_resolved(
     (NamePart, Int, Int, Int)?,
     Diagnostic,
   ])?,
+  stop_before_star? : Bool = false,
 ) -> Result[(Expression, Int, Int), Diagnostic] {
   let parser : ExpressionParser = {
     source,
@@ -1044,6 +1057,7 @@ fn parse_fragment_resolved(
     offset,
     work: 0,
     embedded_nodes: 0,
+    stop_before_star,
     primary,
   }
   try {
