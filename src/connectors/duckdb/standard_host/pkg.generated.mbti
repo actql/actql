@@ -72,6 +72,8 @@ pub fn take_local_dispatch(TaskDispatch) -> Result[@actql/actql/connectors/local
 
 pub fn take_native_dispatch(TaskDispatch) -> Result[@actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration, DispatchIssue]
 
+pub fn validate_dispatch_policy_request(StrategyHostDispatch, @physical_strategy.PolicyRequest, Int64) -> Result[Unit, DispatchIssue]
+
 // Errors
 
 // Types and methods

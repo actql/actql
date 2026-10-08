@@ -64,10 +64,15 @@ fn lower_infer_steps(
       retained.push(entry)
     }
   }
+  let input_names = infer_input_names(
+    clause,
+    construction.model_tasks,
+    max_work,
+  )
   let reserved = physical.copy()
   let input_fields : Array[(String, @builder.Node)] = []
   let mappings : Array[(String, @builder.Node)] = []
-  for argument in clause.inputs {
+  for argument_index, argument in clause.inputs {
     if mappings.any(entry => {
         ascii_upper(entry.0) == ascii_upper(argument.0.value)
       }) {
@@ -97,7 +102,7 @@ fn lower_infer_steps(
     }
     mappings.push(
       (
-        argument.0.value,
+        input_names[argument_index],
         construction.object([("field", construction.text(slot))]),
       ),
     )
@@ -230,6 +235,68 @@ fn infer_field(
   field : String,
 ) -> @builder.Node raise Abort {
   construction.object([("field", construction.text(field))])
+}
+
+///|
+// INPUT names select fields of the admitted ModelTask input contract. They are
+// identifiers, unlike literal object keys or the opaque contract selector.
+// Missing owners/selectors retain the ordinary checker's existing refusal.
+fn infer_input_names(
+  clause : @query.InferClause,
+  model_tasks : @environment.ModelTasks?,
+  max_work : Int,
+) -> Array[String] raise Abort {
+  let authored = clause.inputs.map(argument => argument.0.value)
+  guard model_tasks is Some(tasks) else { return authored }
+  let task = match
+    @environment.resolve_model_task(tasks, clause.contract.value) {
+    Ok(task) => task
+    Err(_) => return authored
+  }
+  guard @environment.model_task_input(task).shape is @contract.Object(fields) else {
+    return authored
+  }
+  resolve_infer_input_names(clause, fields, max_work)
+}
+
+///|
+fn resolve_infer_input_names(
+  clause : @query.InferClause,
+  fields : @contract.Fields,
+  max_work : Int,
+) -> Array[String] raise Abort {
+  let authored = clause.inputs.map(argument => argument.0.value)
+  let mut remaining = max_work
+  let resolved : Array[String] = []
+  for argument_index, name in authored {
+    let mut found : String? = None
+    for index in 0..<@contract.field_count(fields) {
+      let field = @contract.field_at(fields, index).unwrap()
+      let cost = 1L + name.length().to_int64() + field.name.length().to_int64()
+      if cost > remaining.to_int64() {
+        let expression = clause.inputs[argument_index].1
+        raise Abort(
+          Expression({
+            issue: @expression.WorkLimit,
+            origin: @query.expression_origin(
+              expression,
+              @query.expression_root(expression),
+            ),
+          }),
+        )
+      }
+      remaining -= cost.to_int()
+      if ascii_upper(name) == ascii_upper(field.name) {
+        if found is Some(_) {
+          raise Abort(AmbiguousColumn)
+        }
+        found = Some(field.name)
+      }
+    }
+    // An unknown field stays unknown to common input-contract checking.
+    resolved.push(found.unwrap_or(name))
+  }
+  resolved
 }
 
 ///|
