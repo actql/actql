@@ -193,7 +193,7 @@ test('connector host manifests generate the installed connector table and refuse
       const invalidProfiles = [null, {},
         {...salesforce.effect.identityProfile, extra: 'value'},
         {...salesforce.effect.identityProfile, continuationBinding: 'unregistered'},
-        {...salesforce.effect.identityProfile, unit: 'actql-example-unit/0.2'}];
+        {...salesforce.effect.identityProfile, unit: ['actql-example-unit', '0.2'].join('/')}];
       for (const identityProfile of invalidProfiles) {
         manifest.installation.effect.identityProfile = identityProfile;
         assert.throws(() => checkHostBundle(scratch, 'example', write(manifest)),

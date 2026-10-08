@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {checkRegistration, operation, pointer} from './graph-registration.mjs';
+import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const aoa = read('spec/contracts/actql-aoa.json');
@@ -26,11 +27,12 @@ test('current Graph law is owned locally, not by an external AoA checkout', () =
   const owner = read('spec/contracts/actql-aoa.json');
   assert.deepEqual(owner.execution_contracts['BRIDGE.rows.to_graph'].dependencies.graph_law,
     {file: 'spec/dependencies/actql-graph-laws.json', pointer: '', cid: cid(law)});
-  for (const file of ['scripts/build-local-node-adapters.mjs', 'adapters/host-node/embedded-local.mjs']) {
-    const source = readFileSync(file, 'utf8');
-    assert.ok(source.includes('spec/dependencies/actql-graph-laws.json'));
-    assert.ok(!source.includes('spec/dependencies/aoa-graph-laws.json'));
-  }
+  const {dataFiles} = localNodePackageInputs(process.cwd());
+  assert.equal(dataFiles.filter(path => path === 'spec/dependencies/actql-graph-laws.json').length, 1);
+  assert.ok(!dataFiles.includes('spec/dependencies/aoa-graph-laws.json'));
+  const source = readFileSync('adapters/host-node/embedded-local.mjs', 'utf8');
+  assert.ok(source.includes('spec/dependencies/actql-graph-laws.json'));
+  assert.ok(!source.includes('spec/dependencies/aoa-graph-laws.json'));
 });
 
 test('independent complete snapshot preserves parallel edge keys, scoped identities and labels', () => {
