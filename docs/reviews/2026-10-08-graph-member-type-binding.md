@@ -85,3 +85,22 @@ rows are IDs 1,2,3,4 with scores 20,10,NULL,NULL; the null-filter case retains 3
 and the empty case retains its schema. No internal column may appear publicly.
 Until that consumer completes, these are prepared obligations, not execution
 evidence. The parent NEAREST change and full Frontend objective remain open.
+
+## Integration and unfinished execution
+
+Implementation commit: `3bf8fa350` over the NEAREST parent
+`a6014b5ed15ac40d029fa4459ab5478f869a31c3`. Latest main
+`f2ceac7e0c673780b053b9a323e76a03c152e09a` was normally merged as
+`6e0f8d503feaf0d890b3336d37b1dded02aceed9`, without conflicts or changes to
+this query-program/pipeline/wire implementation. No published history was rewritten.
+The local counts above remain evidence of their working revision, not execution
+of the merge SHA.
+
+The bounded normal five-package producer followed by the selected public
+consumer was requested for that clean merge SHA. `run-YZU68D` refused before
+starting either command because the shared heavy guard belonged to
+`actql-c-local-table-capability/run-5ip7c2`. No package, digest, public case or
+product failure is claimed for that attempt. That guard observation is not proof
+of another process's completion; no competing gate, automatic retry, lock removal
+or unguarded pack was started. Resume the same selected consumer when the heavy
+slot is available, using packages attributed to the actual submitted clean SHA.
