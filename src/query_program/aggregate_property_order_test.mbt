@@ -103,6 +103,19 @@ test "aggregate property ORDER preserves qualified quoted and parenthesized rece
 }
 
 ///|
+test "aggregate property ORDER projects an explicitly parenthesized receiver" {
+  let expected = semantic(aggregate_property_order_expected())
+  for
+    text in [
+      "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects",
+      "SELECT STRING_AGG(name, '|' ORDER BY ((objects.payload)).`score` NULLS LAST, id) AS names FROM objects",
+      "FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY (before.payload).score NULLS LAST, id) AS names",
+    ] {
+    assert_eq(semantic(checked_aggregate_property_order(text)), expected)
+  }
+}
+
+///|
 test "aggregate property ORDER preserves ARRAY item keys through an explicit existing assertion" {
   let body = semantic(
     checked_aggregate_property_order(
