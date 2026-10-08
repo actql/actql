@@ -170,6 +170,7 @@ test('computed object stars preserve receiver nullability, duplicate rows and on
   }
   for (const item of computedObjectStarRefusals) {
     assert.equal(refusals.filter(candidate => candidate === item).length, 1);
-    assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+    assert.equal(item.expectedCode, item.name === 'computed-object-star-scalar'
+      ? 'ClientProgramImplementationLimit' : 'ClientProgramInvalidInput');
   }
 });

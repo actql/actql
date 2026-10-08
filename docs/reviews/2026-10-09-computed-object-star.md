@@ -143,3 +143,29 @@ assertions. Fresh corrected-source Local/HTTPS remains pending.
 After the fixture correction, the affected Node fixture file passes 7/7 in
 `run-K6KuHX` / `focused-test-owOxOq`. This is fixture preparation evidence,
 not completed public execution.
+
+## Corrected CASE campaign and scalar refusal classification
+
+Fresh normal five-package production at
+`a513d4f606d851452f30e2fd22bb4e4541ec4574` passes, and all 37 selected Local
+positive cases reach their expected Named Results. Attempt `run-JumZfj`, receipt
+`public-query-evidence-O8QTxB`, then stops at the computed scalar-star refusal:
+the public code is `ClientProgramImplementationLimit`, while the fixture had
+incorrectly required `ClientProgramInvalidInput`. HTTPS and later refusals are
+not established by this failed campaign.
+
+The exact lowering regression already requires `UnsupportedProjection` for a
+computed scalar receiver. `client_source_preparation.mbt` maps that cause to
+`source_unsupported`, separately from invalid names/replacements; its existing
+white-box test fixes that distinction. The audience-visible check then exposes
+an implementation limit through `client-program-preparation.mjs`. The scalar
+fixture now requires that existing exact public classification. The other three
+computed-star refusals continue to require invalid input. No diagnostic owner,
+lowerer, limits or row/type expectation changes, and every refusal still checks
+zero admission and Source I/O. A complete corrected Local/HTTPS campaign remains
+pending.
+
+The corrected exact-code fixture file passes 7/7 through
+`node scripts/local-checks.mjs test node -- scripts/computed-object-property-source-input.test.mjs`,
+attempt `run-0jREiQ` / `focused-test-8oRfrQ`. This does not substitute for the
+remaining public campaign.

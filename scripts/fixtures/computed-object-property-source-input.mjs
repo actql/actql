@@ -307,12 +307,14 @@ export const computedObjectStarSuccesses = [
   }),
 ];
 export const computedObjectStarRefusals = [
-  ['scalar', 'SELECT COALESCE(id, id).* FROM objects'],
+  // The existing lowerer reports UnsupportedProjection for a computed scalar
+  // receiver; the audience-visible check discloses an implementation limit.
+  ['scalar', 'SELECT COALESCE(id, id).* FROM objects', 'ClientProgramImplementationLimit'],
   ['missing-exclusion', 'SELECT COALESCE(payload, other).* EXCEPT (missing) FROM objects'],
   ['duplicate-replacement', 'SELECT COALESCE(payload, other).* REPLACE (1 AS score, 2 AS SCORE) FROM objects'],
   ['removed-range', 'FROM objects old |> AS current |> SELECT COALESCE(old.payload, other).*'],
-].map(([name, tail]) => ({name: 'computed-object-star-' + name, text: data + tail,
+].map(([name, tail, expectedCode = 'ClientProgramInvalidInput']) => ({name: 'computed-object-star-' + name, text: data + tail,
   format: 'aql-text', parameterDeclarations: starDeclarations, parameters: starParameters,
-  sourceRows, expectedCode: 'ClientProgramInvalidInput'}));
+  sourceRows, expectedCode}));
 computedObjectPropertySuccesses.push(...computedObjectStarSuccesses);
 computedObjectPropertyRefusals.push(...computedObjectStarRefusals);
