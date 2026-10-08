@@ -1847,6 +1847,7 @@ pub(all) enum UnaryOperator {
   IsUnknown
   Length
   Upper
+  Lower
   Floor
   Sqrt
 } derive(Eq, @debug.Debug)

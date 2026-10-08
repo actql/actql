@@ -965,7 +965,7 @@ fn advance_expression_frame_impl(
             if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
-            if op == @lower.Length || op == @lower.Upper {
+            if op == @lower.Length || op == @lower.Upper || op == @lower.Lower {
               let state = match
                 start_text_function(
                   expr,
@@ -973,8 +973,10 @@ fn advance_expression_frame_impl(
                   [frame.current_root],
                   if op == @lower.Length {
                     TextLength
-                  } else {
+                  } else if op == @lower.Upper {
                     TextUpper
+                  } else {
+                    TextLower
                   },
                   scope,
                   workspace,
