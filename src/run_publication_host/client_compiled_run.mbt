@@ -54,6 +54,28 @@ pub fn client_compiled_run_infer(
 }
 
 ///|
+/// Return exact compiler-retained components, never reconstructed graphs.
+pub fn client_compiled_run_infers(
+  value : ClientCompiledRun,
+) -> Array[ClientInferPlanGraph] {
+  match value.compilation {
+    Values(_) => []
+    Tasks(compilation) => compilation.infers.copy()
+    Effects(allowed) => allowed.compilation.compiled.infers.copy()
+  }
+}
+
+///|
+pub fn client_compiled_run_has_infer(
+  value : ClientCompiledRun,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  client_compiled_run_infers(value).any(selected => {
+    physical_equal(selected, plan)
+  })
+}
+
+///|
 /// Model execution may share an admitted Effect Run without adopting an
 /// Effect-free publication owner. Retain the exact original compilation.
 pub fn client_compiled_run_matches_effect(
@@ -76,7 +98,9 @@ pub fn client_compiled_run_matches_effect(
 pub fn client_compiled_run_infer_observation_policy(
   value : ClientCompiledRun,
 ) -> String? {
-  guard client_compiled_run_infer(value) is Some(_) else { return None }
+  if client_compiled_run_infers(value).is_empty() {
+    return None
+  }
   match value.compilation {
     Effects(allowed) =>
       if @strategy.graph_source_free_inputs_complete(
@@ -117,7 +141,7 @@ pub fn with_client_infer_result_policy(
   max_depth : Int,
 ) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
   guard value.compilation is Tasks(_) &&
-    client_compiled_run_infer(value) is Some(_) else {
+    !client_compiled_run_infers(value).is_empty() else {
     return Err(ForeignOwner)
   }
   if prepared_client_acquisition_count(value.owner) != 0 {
@@ -144,6 +168,63 @@ pub fn client_compiled_run_source_free_result_policy_body(
   value : ClientCompiledRun,
 ) -> @publication.CapturedEffectDependencyBody? {
   value.source_free_result_policy
+}
+
+///|
+/// Optional Evidence copies retain the actual Result policy, including Source
+/// restrictions and unknown Model provenance. An input egress contract is not
+/// an authority to publish the output. No new policy is issued here.
+pub fn client_compiled_run_evaluation_policy_body(
+  value : ClientCompiledRun,
+) -> (String, String, String)? {
+  guard client_compiled_run_infer_observation_policy(value) is Some(cid) else {
+    return None
+  }
+  if value.source_free_result_policy is Some(body) &&
+    @publication.captured_effect_dependency_body_cid(body) == cid {
+    return Some(
+      (
+        @publication.captured_effect_dependency_body_kind(body),
+        cid,
+        @publication.captured_effect_dependency_body_json(body),
+      ),
+    )
+  }
+  let program = @strategy.graph_program(value.owner.graph)
+  let count = @checked.unit_count(program)
+  let mut remaining = 4096
+  if count > remaining {
+    return None
+  }
+  remaining -= count
+  for unit in 0..<count {
+    let publications = @checked.unit_publication_count(program, unit).unwrap_or(
+      0,
+    )
+    if publications > remaining {
+      return None
+    }
+    remaining -= publications
+    for index in 0..<publications {
+      guard @checked.unit_publication_at(program, unit, index)
+        is Some(publication) else {
+        return None
+      }
+      if @checked.publication_source_policy(publication) is Some(policy) &&
+        policy.cid == cid {
+        let writer = @encode.writer(16384, 1024, 20) catch { _ => return None }
+        @checked.emit_publication_source_policy(policy, writer) catch {
+          _ => return None
+        }
+        let wire = @encode.finish(writer) catch { _ => return None }
+        if "sha256:" + @sha.hex(@utf8.encode(wire)) != cid {
+          return None
+        }
+        return Some(("data_policy", cid, wire))
+      }
+    }
+  }
+  None
 }
 
 ///|

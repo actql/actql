@@ -24,7 +24,7 @@ test('GROUP BY ALL is included in ordinary and focused public acceptance', () =>
   const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...groupByAllSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...groupByAllRefusals)'));
-  assert.ok(fixture.includes('groupByAllOnly ? {successes: groupByAllSuccesses'));
+  assert.ok(fixture.includes('groupByAllOnly ? {successes: [...groupByAllSuccesses, ...groupPropertyReceiverSuccesses]'));
   assert.match(fixture, /const scopeOnly = [^;]*groupByAllOnly/u);
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GROUP_BY_ALL_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/group-by-all-source-input.mjs', 'group-by-all-source-input.mjs']"));

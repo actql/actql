@@ -237,7 +237,11 @@ export const snapshotCheckRequest = value =>
 
 export function validClientBody(operation, body) {
   const bodyKeys = clientHostRequestKeys(operation);
-  if (bodyKeys === undefined || !exact(body, bodyKeys) ||
+  // Template requests contain no submitted bindings. The scope is selected
+  // before input admission; even null or an empty binding object is refused.
+  const selectedKeys = operation === 'check' && body?.scope === 'template_only'
+    ? bodyKeys?.filter(key => key !== 'parameters') : bodyKeys;
+  if (selectedKeys === undefined || !exact(body, selectedKeys) ||
       !validClientConnection(body.connection)) return false;
   if (operation === 'connect') return true;
   if (operation === 'submit-intent' || operation === 'restart-intent') {
@@ -267,9 +271,16 @@ export function validClientBody(operation, body) {
         body.kind === 'program' && body.input !== null &&
         typeof body.input === 'object' && !Array.isArray(body.input));
   }
-  // Checking reads authored source only; Program documents are not checked
-  // through this operation.
+  // This validates the closed request envelope only. Program/language meaning
+  // belongs to the same common checker selected by the Host.
   if (operation === 'check') {
+    if (!['template_only', 'bound_input'].includes(body.scope) ||
+        !['text', 'program'].includes(body.kind) ||
+        body.scope === 'bound_input' && !(body.parameters === null ||
+          body.parameters !== null && typeof body.parameters === 'object' &&
+          !Array.isArray(body.parameters))) return false;
+    if (body.kind === 'program') return body.input !== null &&
+      typeof body.input === 'object' && !Array.isArray(body.input);
     return (exact(body.input, ['text', 'format']) ||
         exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
       typeof body.input.text === 'string' &&
@@ -280,9 +291,7 @@ export function validClientBody(operation, body) {
       (body.input.parameterDeclarations === undefined ||
         body.input.parameterDeclarations !== null &&
         typeof body.input.parameterDeclarations === 'object' &&
-        !Array.isArray(body.input.parameterDeclarations)) &&
-      (body.parameters === null || typeof body.parameters === 'object' &&
-        !Array.isArray(body.parameters));
+        !Array.isArray(body.input.parameterDeclarations));
   }
   if (operation === 'lookup-request' || operation === 'cancel-request') {
     return boundedText(body.requestId);

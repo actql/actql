@@ -237,7 +237,16 @@ pub fn check_client_infer_saved_observation_scope(
   admission : @publication.RunPublicationAdmission,
   definition : @publication.PublicationContract,
   observation : @publication.RunEvidenceValue,
+  compiled : ClientCompiledRun,
 ) -> Result[Unit, @publication.RunEvidenceValueIssue] {
+  guard physical_equal(scope.owner, compiled.owner) &&
+    client_compiled_run_has_infer(compiled, scope.plan) &&
+    check_client_compiled_run_definition(compiled, definition) is Ok(_) &&
+    client_compiled_run_infer_observation_policy(compiled) is Some(policy_cid) else {
+    return Err(
+      @publication.RunEvidenceReferenceMismatch("observation.data_policy_cid"),
+    )
+  }
   @publication.check_saved_model_observation(
     admission,
     definition,
@@ -246,9 +255,7 @@ pub fn check_client_infer_saved_observation_scope(
     prepared_client_identity(scope.owner).program_definition_cid,
     prepared_client_program_semantics_cid(scope.owner),
     prepared_client_check_environment_cid(scope.owner),
-    @environment.model_task_data_handling_cid(
-      @environment.model_execution_task(scope.plan.execution),
-    ),
+    policy_cid,
     source=scope.source,
     sources=scope.sources,
   )
@@ -527,8 +534,7 @@ pub fn read_client_infer_saved_call_scope(
     !client_infer_occurrence_matches_compiled_run(occurrence, compiled) ||
     check_client_compiled_run_definition(compiled, definition) is Err(_) ||
     !client_infer_occurrence_matches_plan(occurrence, plan) ||
-    client_compiled_run_infer(compiled) is None ||
-    !physical_equal(client_compiled_run_infer(compiled).unwrap(), plan) {
+    !client_compiled_run_has_infer(compiled, plan) {
     return Err(ForeignOwner)
   }
   guard parse_plan_identity_value(snapshot_wire, 1000000, 100000, 100)

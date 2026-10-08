@@ -6,6 +6,7 @@ pub struct ClientTaskCompilation {
   compiled_plan : @publication.PublicationContract
   result_names : Array[String]
   infer : ClientInferPlanGraph?
+  infers : Array[ClientInferPlanGraph]
 }
 
 ///|
@@ -110,6 +111,7 @@ fn finish_client_task_compilation(
   max_nodes : Int,
   max_depth : Int,
   infer? : ClientInferPlanGraph? = None,
+  infers? : Array[ClientInferPlanGraph] = [],
 ) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue] {
   guard parse_plan_identity_value(
       graph.wire,
@@ -125,6 +127,38 @@ fn finish_client_task_compilation(
     // graph, Result transformations and barrier are bound by the Executable
     // Plan; the pure input computation retains its own AoA identity.
     Some(value) => value.input_fragment_cid
+    None if !infers.is_empty() => {
+      // A Model barrier is outside AoA. Bind every pure input prefix in the
+      // checked task order; the complete mixed graph remains in the executable
+      // Plan. Do not select one prefix as the identity of all components.
+      let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+        _ => return Err(Encoding)
+      }
+      try {
+        @encode.begin_array(writer)
+        for component in infers {
+          @encode.begin_object(writer)
+          @encode.key(writer, "node_id")
+          @encode.string_value(writer, component.input.node_id)
+          @encode.key(writer, "logical_cid")
+          @encode.string_value(writer, component.input_fragment_cid)
+          @encode.end_object(writer)
+        }
+        @encode.end_array(writer)
+        guard parse_plan_identity_value(
+            @encode.finish(writer),
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          )
+          is Some(prefixes) else {
+          return Err(Encoding)
+        }
+        @canonical.cid_value(prefixes, max_wire_bytes, max_nodes, max_depth)
+      } catch {
+        _ => return Err(Encoding)
+      }
+    }
     None =>
       @canonical.cid_value(graph_value, max_wire_bytes, max_nodes, max_depth) catch {
         _ => return Err(Encoding)
@@ -161,7 +195,26 @@ fn finish_client_task_compilation(
     }
     result_names.push(name)
   }
-  Ok({ owner: value, plan, template, compiled_plan, result_names, infer, })
+  let retained = match infer {
+    Some(component) => [component]
+    None => infers.copy()
+  }
+  Ok({
+    owner: value,
+    plan,
+    template,
+    compiled_plan,
+    result_names,
+    infer,
+    infers: retained,
+  })
+}
+
+///|
+pub fn client_task_compilation_infers(
+  value : ClientTaskCompilation,
+) -> Array[ClientInferPlanGraph] {
+  value.infers.copy()
 }
 
 ///|

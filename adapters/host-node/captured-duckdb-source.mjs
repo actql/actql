@@ -270,20 +270,23 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     // cannot mint that owner or begin its computation as a read-only Run.
     const inferStep = owner.effectful || ledger !== undefined ? undefined :
       moon.clientProgramSelectedInferStep(owner.checkedOwner);
+    const inferInventory = owner.effectful || ledger !== undefined ? undefined :
+      moon.clientProgramComposedInferOccurrences(owner.checkedOwner);
+    const composedInfer = inferInventory?.$tag === 1 && inferInventory._0.length > 1;
     const open = retainedRelationOutput
       ? moon.clientProgramOpenCapturedLocalRetainedHost
       : moon.clientProgramOpenCapturedLocalHost;
     const setup = owner.effectful || ledger !== undefined ||
-      inferStep !== undefined ? undefined :
+      inferStep !== undefined || composedInfer ? undefined :
       open(owner.checkedOwner,
         capturedSource, registry, values, 1n, 0n, 0n, 0n,
         fragment, ordered);
     if (!owner.effectful && ledger === undefined &&
-        inferStep === undefined && setup === undefined) {
+        inferStep === undefined && !composedInfer && setup === undefined) {
       throw new Error('InstalledSourceHostUnavailable');
     }
     return Object.freeze({capture, identity, logicalInput, requirement,
-      checkedSource, setup, inferStep, capturedSource,
+      checkedSource, setup, inferStep, composedInfer, capturedSource,
       occurrence: owner.occurrence,
       acquisition: selection === undefined ? undefined : freezeAcquisitionDiagnostic({
         selection, observation: JSON.parse(capture.document())}),

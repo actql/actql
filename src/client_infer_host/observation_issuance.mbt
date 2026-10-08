@@ -18,13 +18,14 @@ priv enum ObservationIssuancePhase {
 
 ///|
 struct ObservationIssuanceState {
-  owner : Execution
-  output_use : OutputUse
-  capture : @model.VerifiedModelCapture
+  owners : Array[Execution]
+  output_uses : Array[OutputUse]
+  captures : Array[@model.VerifiedModelCapture]
+  slots : Array[(@model.VerifiedModelCapture, Int)]
   compiled : @publication_host.ClientCompiledRun
   definition : @publication.PublicationContract
   template : @publication.RunEvidenceValue
-  artifact : @publication.RunEvidenceValue
+  artifacts : Array[@publication.RunEvidenceValue]
   policy_cid : String
   sources : Array[@publication.ModelSourceObservation]
   ledger : @resources.Ledger
@@ -61,6 +62,18 @@ pub fn start_observation_issuance(
   ledger : @resources.Ledger,
   limits : ObservationIssuanceLimits,
 ) -> Result[ObservationIssuance, Issue] {
+  start_complete_observation_issuance([active], ledger, limits)
+}
+
+///|
+/// All compiler-retained Model components must have adopted their original
+/// evidence under the same Run. A partial component list cannot issue a Run
+/// Invocation, even when every supplied component finished successfully.
+pub fn start_complete_observation_issuance(
+  owners : Array[Execution],
+  ledger : @resources.Ledger,
+  limits : ObservationIssuanceLimits,
+) -> Result[ObservationIssuance, Issue] {
   if limits.max_slots < 0 ||
     limits.max_slots > 128 ||
     limits.max_wire_bytes < 1 ||
@@ -68,74 +81,134 @@ pub fn start_observation_issuance(
     limits.max_work < 1 {
     return Err(InvalidAdvance)
   }
-  guard active.run_binding is Some(bound) &&
-    active.call_scope is Some(scope) &&
-    active.plan is Some(_) &&
-    active.model is Some(model) &&
-    !active.reclaimed &&
-    !active.cancelled &&
-    active.phase is Terminal &&
-    active.completed is Some(_) else {
+  guard owners.length() > 0 &&
+    owners.length() <= 128 &&
+    owners[0].run_binding is Some(bound) else {
     return Err(Model(@model.OutputIdentity))
   }
-  // An accepted physical owner or verified stored replay, never a structural
-  // test read. This remains mandatory for zero keys, where no slot is visited.
-  if !@model.model_execution_has_adopted_evidence(model) {
+  let plans = @publication_host.client_compiled_run_infers(bound.compiled)
+  if plans.length() != owners.length() {
     return Err(Model(@model.OutputIdentity))
   }
-  guard acquire_capture(active) is Some(capture) else {
-    return Err(Model(@model.OutputIdentity))
+  for index in 0..<owners.length() {
+    let active = owners[index]
+    guard active.run_binding is Some(current) &&
+      physical_equal(current.compiled, bound.compiled) &&
+      @publication.publication_contract_identity(current.definition) ==
+      @publication.publication_contract_identity(bound.definition) &&
+      active.plan is Some(plan) &&
+      physical_equal(plan, plans[index]) &&
+      active.call_scope is Some(_) &&
+      active.model is Some(model) &&
+      !active.reclaimed &&
+      !active.cancelled &&
+      active.phase is Terminal &&
+      active.completed is Some(_) &&
+      @model.model_execution_has_adopted_evidence(model) else {
+      return Err(Model(@model.OutputIdentity))
+    }
   }
-  let count = @model.verified_model_capture_call_count(capture).unwrap()
   guard @publication_host.client_compiled_run_infer_observation_policy(
       bound.compiled,
     )
     is Some(policy_cid) else {
-    @model.release_verified_model_capture(capture) |> ignore
     return Err(Model(@model.OutputIdentity))
   }
-  if count > limits.max_slots {
-    @model.release_verified_model_capture(capture) |> ignore
-    return Err(Model(@model.ItemLimit))
+  let captures : Array[@model.VerifiedModelCapture] = []
+  let output_uses : Array[OutputUse] = []
+  let release = () => {
+    for capture in captures {
+      @model.release_verified_model_capture(capture) |> ignore
+    }
+    for output in output_uses {
+      release_output(output) |> ignore
+    }
   }
-  guard acquire_output(active) is Some(output_use) else {
-    @model.release_verified_model_capture(capture) |> ignore
-    return Err(Model(@model.OutputIdentity))
+  let mut count = 0
+  for active in owners {
+    guard acquire_capture(active) is Some(capture) else {
+      release()
+      return Err(Model(@model.OutputIdentity))
+    }
+    captures.push(capture)
+    let calls = @model.verified_model_capture_call_count(capture).unwrap()
+    if calls > limits.max_slots - count {
+      release()
+      return Err(Model(@model.ItemLimit))
+    }
+    count += calls
+    guard acquire_output(active) is Some(output) else {
+      release()
+      return Err(Model(@model.OutputIdentity))
+    }
+    output_uses.push(output)
   }
   // Writers, sealed wire, bounded parser scratch, observation, invocation and
   // the per-slot binding table coexist. Reserve before any of those allocations.
   // The fixed multiplier is an installed workspace allowance, not measured
   // payload bytes or a fabricated model usage observation.
   let workspace = limits.max_wire_bytes.to_int64() * 16L +
-    count.to_int64() * 128L
+    count.to_int64() * 128L +
+    (owners.length() - 1).to_int64() * 256L
   let reservation = match
     @resources.reserve_attempt(ledger, 0L, workspace, 0L) {
     Ok(value) => value
     Err(issue) => {
-      release_output(output_use) |> ignore
-      @model.release_verified_model_capture(capture) |> ignore
+      release()
       return Err(Model(@model.Ledger(issue)))
     }
   }
   let writer = @encode.writer(limits.max_wire_bytes, 1024, 20) catch {
     _ => {
       @resources.settle_reservation(ledger, reservation) |> ignore
-      release_output(output_use) |> ignore
-      @model.release_verified_model_capture(capture) |> ignore
+      release()
       return Err(InvalidAdvance)
     }
   }
+  let artifacts : Array[@publication.RunEvidenceValue] = []
+  let sources : Array[@publication.ModelSourceObservation] = []
+  let slots : Array[(@model.VerifiedModelCapture, Int)] = []
+  for index in 0..<owners.length() {
+    let scope = owners[index].call_scope.unwrap()
+    artifacts.push(@publication_host.client_infer_call_scope_artifact(scope))
+    for
+      source in @publication_host.client_infer_call_scope_source_observations(
+        scope,
+      ) {
+      let fields = @publication.model_source_observation_fields(source)
+      let previous = sources
+        .filter(candidate => {
+          @publication.model_source_observation_fields(candidate).0 == fields.0
+        })
+        .get(0)
+      match previous {
+        None => sources.push(source)
+        Some(candidate) =>
+          if @publication.model_source_observation_fields(candidate) != fields ||
+            @publication.model_source_observation_interval([candidate]) !=
+            @publication.model_source_observation_interval([source]) {
+            @resources.settle_reservation(ledger, reservation) |> ignore
+            @encode.cancel_writer(writer)
+            release()
+            return Err(Model(@model.OutputIdentity))
+          }
+      }
+    }
+    let capture = captures[index]
+    for slot in 0..<@model.verified_model_capture_call_count(capture).unwrap() {
+      slots.push((capture, slot))
+    }
+  }
   let state : ObservationIssuanceState = {
-    owner: active,
-    output_use,
-    capture,
+    owners: owners.copy(),
+    output_uses,
+    captures,
+    slots,
     compiled: bound.compiled,
     definition: bound.definition,
     template: @publication_host.client_compiled_run_template(bound.compiled),
-    artifact: @publication_host.client_infer_call_scope_artifact(scope),
-    sources: @publication_host.client_infer_call_scope_source_observations(
-      scope,
-    ),
+    artifacts,
+    sources,
     policy_cid,
     ledger,
     reservation,
@@ -198,10 +271,12 @@ fn emit_observation_issuance_step(
       }
       @encode.key(writer, "captured_input_artifact_cids")
       @encode.begin_array(writer)
-      @encode.string_value(
-        writer,
-        @publication.run_evidence_value_identity(state.artifact),
-      )
+      for artifact in state.artifacts {
+        @encode.string_value(
+          writer,
+          @publication.run_evidence_value_identity(artifact),
+        )
+      }
       @encode.end_array(writer)
       @encode.key(writer, "source_evidence_cids")
       @encode.begin_array(writer)
@@ -246,17 +321,14 @@ fn emit_observation_issuance_step(
       state.phase = if state.count == 0 { Finalize } else { Slot }
     }
     Slot => {
+      let (capture, slot) = state.slots[state.index]
       let record = match
-        @model.verified_model_capture_owned_slot(state.capture, state.index) {
+        @model.verified_model_capture_owned_slot(capture, slot) {
         Ok(value) => value
         Err(issue) => return Err(Model(issue))
       }
       let binding = match
-        @model.bind_verified_model_slot_capture(
-          state.capture,
-          state.index,
-          record,
-        ) {
+        @model.bind_verified_model_slot_capture(capture, slot, record) {
         Ok(value) => value
         Err(issue) => return Err(Model(issue))
       }
@@ -402,8 +474,12 @@ pub fn cleanup_observation_issuance(
   active.state.bindings = []
   active.state.observation = None
   active.state.invocation = None
-  @model.release_verified_model_capture(active.state.capture) |> ignore
-  release_output(active.state.output_use) |> ignore
+  for capture in active.state.captures {
+    @model.release_verified_model_capture(capture) |> ignore
+  }
+  for output in active.state.output_uses {
+    release_output(output) |> ignore
+  }
   active.reclaimed = true
   Ok(true)
 }
@@ -419,7 +495,7 @@ pub fn bind_issued_invocation(
 ) -> Result[InvocationBinding, InvocationBindingIssue] {
   guard !issued.reclaimed &&
     issued.accepted &&
-    physical_equal(issued.state.owner, execution) &&
+    issued.state.owners.any(owner => physical_equal(owner, execution)) &&
     physical_equal(issued.state.compiled, compiled) &&
     @publication.publication_contract_identity(issued.state.definition) ==
     @publication.publication_contract_identity(definition) &&

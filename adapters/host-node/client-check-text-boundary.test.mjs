@@ -9,13 +9,15 @@ import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import test, {after} from 'node:test';
 import {ClientError, connect, getCheckInput, resolveCheckLocation,
-  resolveCheckTextRange} from '../../packages/sdk/index.mjs';
+  resolveCheckTextRange, explainCheckReason, getCheckContextRequirements,
+  getCheckFixes, createCheckSupplementationSession} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
+import {createNodeAuthorizationGate} from './authorization.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const scratch = join(root, '_build', 'client-check-text-boundary');
@@ -41,14 +43,37 @@ const wire = JSON.parse(await readFile(join(root,
 const environment = moon.clientProgramCheckEnvironment(canonicalText(wire),
   wire.evidence_bundle_cid, false, false, true, true, false, false, false);
 
-async function publicCheck(t, entrance) {
+async function publicCheck(t, entrance, {program = false, environmentWire = wire,
+  visibility, contextKey} = {}) {
+  const selected = environmentWire === wire ? environment
+    : moon.clientProgramCheckEnvironment(canonicalText(environmentWire),
+      environmentWire.evidence_bundle_cid, false, false, true, true, false, false, false);
   const counts = {exchanges: 0, authorization: 0, analysis: 0};
+  const sourceRef = 'connector://crm/main/r#v';
+  const aliases = visibility && visibility !== 'absent' ? [{name: 'records', sourceRef,
+    sourceViewContractCid: wire.source_views[0].contract_cid,
+    schemaContractCid: wire.source_views[0].output.schema.cid}] : [];
+  const authorization = aliases.length ? await createNodeAuthorizationGate({
+    configuration: canonicalText({version: 'actql-execution-account-config/0.1',
+      account_id: 'authoring-source', entries: [{entry_id: 'source-read',
+        outcome: visibility === 'denied' ? 'deny' : 'allow', principal: {all: true},
+        connection: {all: true}, resource: {all: true}, operation: {any_of: ['read']}, exclusions: []}]}),
+    context: {principal: 'reader', contextCid: `sha256:${'3'.repeat(64)}`}}) : undefined;
+  if (authorization) t.after(() => authorization.close());
+  if (visibility === 'unpublished') authorization.close();
   const check = installNodeClientCheck({moon: {...moon,
-    clientProgramCheckProgram: () => assert.fail('Text fixture must not check a structured Program'),
+    clientProgramCheckProgram: (...args) => {
+      assert.equal(program, true, 'Text fixture must not check a structured Program');
+      counts.analysis++;
+      return moon.clientProgramCheckProgram(...args);
+    },
     clientProgramCheckSource: (...args) => {
       counts.analysis++;
       return moon.clientProgramCheckSource(...args);
-    }}, environment, publication: sourceAliasPublication(moon, environment, [])});
+    }}, environment: selected, publication: sourceAliasPublication(moon, selected, aliases),
+    ...(contextKey === undefined ? {} : {contextKey}),
+    sourceAccesses: authorization ? [{authorization, connection: 'local-database',
+      resource: '/records.duckdb', sourceRef}] : []});
   const connection = {mode: entrance === 'local' ? 'local' : 'remote',
     owner: entrance === 'local' ? 'local' : 'remote', runners: [], consentRefs: []};
   const configuration = {authenticate: () => 'reader',
@@ -62,7 +87,7 @@ async function publicCheck(t, entrance) {
         maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
         maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}}),
     check, maxRowBytes: 1024, maxRequestBytes: 65536};
-  const body = text => ({connection, input: {text, format: 'sql'}, parameters: null});
+  const body = text => ({connection, kind: 'text', scope: 'bound_input', input: {text, format: 'sql'}, parameters: null});
   if (entrance === 'local') {
     const host = createNodeInProcessClientHost(configuration);
     const client = await connectInProcess({mode: 'local', owner: 'local'}, {
@@ -135,9 +160,16 @@ async function publicCheck(t, entrance) {
     post: text => send([Buffer.from(JSON.stringify(body(text)))]), connection};
 }
 
+const authoringProgram = () => ({version: 'actql/0.1', id: 'scoped-authoring',
+  params: {x: {type: 'number'}}, stages: [{id: 'first', inputs: {}, steps: [
+    {values: {schema: {id: {type: 'number', nullable: false}}, rows: [{id: 1}]}, as: 'seed'},
+    {derive: {n: 'id + $x'}}, {select: ['n'], as: 'output'}],
+  results: {out: {from: 'output', fields: ['n']}}}],
+  results: {out: {from: {stage: 'first', result: 'out'}}}});
+
 test('HTTPS: malformed UTF-8 check bytes never enter analysis', async t => {
   const {client, counts, send} = await publicCheck(t, 'http');
-  const prefix = Buffer.from('{"connection":{"mode":"remote","owner":"remote","runners":[],"consentRefs":[]},"input":{"text":"SELECT \'');
+  const prefix = Buffer.from('{"connection":{"mode":"remote","owner":"remote","runners":[],"consentRefs":[]},"kind":"text","scope":"bound_input","input":{"text":"SELECT \'');
   const suffix = Buffer.from('\' AS label","format":"sql"},"parameters":null}');
   // Isolated continuation, overlong scalar, truncated scalar, surrogate,
   // out-of-range scalar and truncated non-BMP scalar, inside a JSON string.
@@ -159,7 +191,7 @@ test('HTTPS: malformed UTF-8 check bytes never enter analysis', async t => {
   assert.deepEqual(split.body.report.inputs.map(({document_id, byte_length}) =>
     ({document_id, byte_length})), [{document_id: 'source', byte_length: 22}]);
   // U+FFFD supplied as a real scalar is valid data, unlike replacement decoding.
-  const admitted = await client.check("SELECT '\ufffd' AS label", {format: 'sql'});
+  const admitted = await client.check("SELECT '\ufffd' AS label", {kind: 'text', scope: 'bound_input', format: 'sql'});
   assert.equal(admitted.report.verdict, 'verified');
   assert.equal(getCheckInput(admitted, 'source').text, "SELECT '\ufffd' AS label");
   assert.equal(counts.authorization, 2);
@@ -184,7 +216,7 @@ for (const entrance of ['local', 'http']) {
     const {client, counts} = await publicCheck(t, entrance);
     for (const text of ["SELECT '\ud800' AS label", "SELECT '\udfff' AS label",
       "SELECT '\ud800x\udfff' AS label"]) {
-      const result = await client.check(text, {format: 'sql'}).then(() => ({}), error => {
+      const result = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'}).then(() => ({}), error => {
         if (!(error instanceof ClientError)) throw error;
         return {code: error.code};
       });
@@ -197,7 +229,7 @@ for (const entrance of ['local', 'http']) {
     const {client, counts} = await publicCheck(t, entrance);
     // BOM: 3, emoji comment: 8, CRLF: 2, SELECT plus open paren: 8 bytes.
     const text = '\ufeff/*😀*/\r\nSELECT (';
-    const outcome = await client.check(text, {format: 'sql'});
+    const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
     assert.equal(outcome.report.verdict, 'invalid');
     const input = getCheckInput(outcome, 'source');
     assert.equal(input.text, text, '[check-mutation:original-source-encoding]');
@@ -209,5 +241,327 @@ for (const entrance of ['local', 'http']) {
       {start: {line: 1, character: 8}, end: {line: 1, character: 8}});
     assert.equal(counts.authorization, 1);
     assert.equal(counts.analysis, 1);
+  });
+}
+
+// Independent authored inputs and expected classifications, not producer output.
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: scoped SQL and AQL templates close complete obligations and retain runtime Requirements`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      const declarations = {x: {type: 'number'}};
+      const template = {kind: 'text', scope: 'template_only', format, parameterDeclarations: declarations};
+      const unused = await client.check('SELECT 1 AS n', template);
+      assert.equal(unused.report.verdict, 'invalid');
+      assert.equal(unused.report.scope.kind, 'template_only');
+      assert.equal(unused.report.reasons.some(reason => reason.code === 'parameter_unused'), true);
+      const checked = await client.check('SELECT @x AS n', template);
+      assert.equal(checked.outcome, 'completed');
+      assert.equal(checked.report.verdict, 'verified', '[check-mutation:template-public-proof]');
+      assert.equal(checked.report.scope.kind, 'template_only');
+      assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+      assert.equal(checked.report.requirements.length, 1);
+      assert.equal(checked.report.requirements[0].code, 'parameter_value_required');
+      assert.equal(checked.report.requirements[0].facts.parameter, 'x');
+      const location = checked.report.requirements[0].location;
+      assert.equal(location.document_id, 'parameter_declarations');
+      assert.equal(location.pointer, '/x');
+      assert.ok(resolveCheckLocation(checked, location));
+      const bound = await client.check('SELECT @x AS n', {...template, scope: 'bound_input'});
+      assert.equal(bound.report.verdict, 'undetermined');
+      assert.equal(bound.report.scope.kind, 'bound_input');
+      assert.notEqual(bound.report.context_ref, checked.report.context_ref);
+      assert.equal(bound.report.inputs[0].revision, checked.report.inputs[0].revision);
+      assert.equal(getCheckInput(structuredClone(checked), 'source'), undefined);
+      assert.equal(resolveCheckLocation(structuredClone(checked), location), undefined);
+    }
+  });
+
+  test(`${entrance}: scoped structured Program checks retain original pointers without submission`, async t => {
+    const {client} = await publicCheck(t, entrance, {program: true});
+    const program = {version: 'actql/0.1', id: 'scoped-authoring', params: {x: {type: 'number'}},
+      stages: [{id: 'first', inputs: {}, steps: [
+        {values: {schema: {id: {type: 'number', nullable: false}}, rows: [{id: 1}]}, as: 'seed'},
+        {derive: {n: 'id + $x'}}, {select: ['n'], as: 'output'}],
+        results: {out: {from: 'output', fields: ['n']}}}],
+      results: {out: {from: {stage: 'first', result: 'out'}}}};
+    const template = await client.check(program, {kind: 'program', scope: 'template_only'});
+    assert.equal(template.outcome, 'completed');
+    assert.equal(template.report.verdict, 'verified', '[check-mutation:program-template-public-proof]');
+    assert.equal(template.report.scope.kind, 'template_only');
+    assert.equal(template.report.inputs[0].document_id, 'program');
+    const requirement = template.report.requirements[0];
+    assert.equal(requirement.code, 'parameter_value_required');
+    assert.equal(requirement.location.pointer, '/params/x');
+    assert.equal(requirement.location.kind, 'structured');
+    assert.ok(resolveCheckLocation(template, requirement.location));
+    const original = getCheckInput(template, 'program');
+    program.params.x.type = 'string';
+    assert.equal(original.value.params.x.type, 'number');
+    const wrong = await client.check(original.value, {kind: 'program', scope: 'bound_input', parameters: {x: 'wrong'}});
+    assert.equal(wrong.report.verdict, 'invalid');
+    assert.equal(wrong.report.reasons.some(reason => reason.code === 'supplied_value_type_mismatch'), true);
+    assert.equal(getCheckInput(template, 'program'), original);
+    assert.equal(getCheckInput(structuredClone(template), 'program'), undefined);
+  });
+
+  test(`${entrance}: scoped supplementation uses fresh bindings and preserves older source custody`, async t => {
+    const {client, counts} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      const text = '/*e\u0301😀*/\r\nSELECT @x AS n';
+      const options = {kind: 'text', scope: 'template_only', format,
+        parameterDeclarations: {x: {type: 'number'}}};
+      const session = createCheckSupplementationSession(client, {maxAttempts: 3});
+      const template = await session.check(text, options);
+      assert.equal(template.outcome.report.verdict, 'verified');
+      assert.deepEqual(template.decision, {kind: 'more_checks'});
+      const requirement = template.outcome.report.requirements[0];
+      assert.equal(explainCheckReason(requirement).kind, 'known');
+      assert.ok(explainCheckReason(requirement).hint);
+      const original = getCheckInput(template.outcome, 'source');
+      const completed = await session.check(text, {...options, scope: 'bound_input', parameters: {x: 7}});
+      assert.equal(completed.outcome.report.verdict, 'verified', '[check-mutation:scoped-bound-recheck]');
+      assert.deepEqual(completed.outcome.report.requirements, []);
+      assert.deepEqual(completed.decision, {kind: 'stop', reason: 'no_known_supplement'});
+      assert.notEqual(completed.outcome.report.context_ref, template.outcome.report.context_ref);
+      assert.equal(getCheckInput(completed.outcome, 'source').revision, original.revision);
+      const wrong = await client.check(text, {...options, scope: 'bound_input', parameters: {x: null}});
+      assert.equal(wrong.report.verdict, 'invalid');
+      assert.deepEqual(wrong.report.reasons[0].facts,
+        {parameter: 'x', expected_type: 'number', actual_type: 'null'});
+      assert.equal(resolveCheckLocation(wrong, wrong.report.reasons[0].location).pointer, '/x');
+      const changed = await client.check(text + ' +', options);
+      assert.equal(changed.report.verdict, 'invalid');
+      assert.equal(changed.report.reasons.some(reason => reason.code === 'query_syntax_invalid'), true);
+      assert.notEqual(getCheckInput(changed, 'source').revision, original.revision);
+      assert.equal(getCheckInput(template.outcome, 'source'), original);
+      const newDeclaration = await client.check(text, {...options,
+        parameterDeclarations: {x: {type: 'number', minimum: 1}}});
+      assert.equal(newDeclaration.report.verdict, 'verified');
+      assert.notEqual(newDeclaration.report.context_ref, template.outcome.report.context_ref);
+      assert.equal(resolveCheckLocation(template.outcome, requirement.location,
+        getCheckInput(newDeclaration, 'parameter_declarations')), undefined);
+      assert.equal(getCheckInput({...template.outcome}, 'source'), undefined);
+      assert.equal(getCheckInput(template.outcome, 'source', getCheckInput(changed, 'source').revision), undefined);
+    }
+    assert.equal(counts.analysis, 10, 'Retrieving diagnostic advice starts no new check');
+  });
+
+  test(`${entrance}: scoped mixed missing and invalid inputs retain independent reasons and Requirements`, async t => {
+    const {client} = await publicCheck(t, entrance, {program: true});
+    const declarations = {a: {type: 'number'}, b: {type: 'number'}, unused: {type: 'number'}};
+    for (const format of ['sql', 'aql-text']) {
+      const options = {kind: 'text', format, parameterDeclarations: declarations};
+      const mixed = await client.check('SELECT @a + @b AS n',
+        {...options, scope: 'bound_input', parameters: {b: 'private-wrong-value'}});
+      assert.equal(mixed.report.verdict, 'invalid', '[check-mutation:scoped-mixed-verdict]');
+      assert.deepEqual(mixed.report.reasons.map(({code, facts}) => ({code, facts})),
+        [{code: 'supplied_value_type_mismatch', facts: {parameter: 'b', expected_type: 'number', actual_type: 'string'}}]);
+      assert.equal(resolveCheckLocation(mixed, mixed.report.reasons[0].location).pointer, '/b');
+      assert.deepEqual(mixed.report.requirements.map(reason => reason.facts.parameter), ['a', 'unused'],
+        '[check-mutation:scoped-mixed-requirements]');
+      for (const requirement of mixed.report.requirements) {
+        assert.equal(resolveCheckLocation(mixed, requirement.location).pointer, '/' + requirement.facts.parameter);
+      }
+      assert.doesNotMatch(JSON.stringify(mixed), /private-wrong-value/);
+      const unused = await client.check('SELECT @a + @b AS n', {...options, scope: 'template_only'});
+      assert.equal(unused.report.verdict, 'invalid');
+      assert.equal(unused.report.reasons.some(reason => reason.code === 'parameter_unused'), true);
+      const reference = await client.check('SELECT @a + missing AS n', {...options, scope: 'template_only'});
+      assert.equal(reference.report.verdict, 'invalid');
+      assert.equal(reference.report.reasons.some(reason =>
+        ['query_expression_invalid', 'program_invalid'].includes(reason.code)), true);
+    }
+    const program = authoringProgram();
+    program.params = declarations;
+    program.stages[0].steps[1].derive.n = 'id + $a + $b';
+    const mixed = await client.check(program, {kind: 'program', scope: 'bound_input',
+      parameters: {b: 'private-wrong-value'}});
+    assert.equal(mixed.report.verdict, 'invalid');
+    assert.deepEqual(mixed.report.requirements.map(reason => reason.location.pointer), ['/params/a', '/params/unused']);
+    assert.equal(resolveCheckLocation(mixed, mixed.report.reasons[0].location).pointer, '/b');
+    const unused = await client.check(program, {kind: 'program', scope: 'template_only'});
+    assert.equal(unused.report.verdict, 'invalid');
+    assert.equal(unused.report.reasons[0].code, 'parameter_unused');
+    assert.equal(resolveCheckLocation(unused, unused.report.reasons[0].location).pointer, '/params/unused');
+  });
+
+  test(`${entrance}: scoped static type violations cannot become template verification`, async t => {
+    const {client} = await publicCheck(t, entrance, {program: true});
+    for (const format of ['sql', 'aql-text']) {
+      const invalid = await client.check('SELECT @x + TRUE AS n', {kind: 'text', scope: 'template_only',
+        format, parameterDeclarations: {x: {type: 'number'}}});
+      assert.equal(invalid.report.verdict, 'invalid', '[check-mutation:scoped-static-type]');
+      assert.equal(invalid.report.reasons.length > 0, true);
+      assert.equal(invalid.report.requirements[0].facts.parameter, 'x');
+    }
+    const program = authoringProgram(); program.stages[0].steps[1].derive.n = '$x + true';
+    const invalid = await client.check(program, {kind: 'program', scope: 'template_only'});
+    assert.equal(invalid.report.verdict, 'invalid');
+    assert.equal(invalid.report.requirements[0].facts.parameter, 'x');
+  });
+
+  test(`${entrance}: scoped protected Sources preserve equivalent public reasons, pointers and Requirements`, async t => {
+    const clients = [];
+    for (const visibility of ['absent', 'denied', 'unpublished']) {
+      clients.push((await publicCheck(t, entrance, {program: true, visibility,
+        contextKey: Buffer.alloc(32, 0x31)})).client);
+    }
+    const parameterDeclarations = {x: {type: 'number'}, y: {type: 'number'}};
+    const text = 'SELECT private_field + @x AS n FROM records';
+    const program = authoringProgram(); program.params = parameterDeclarations;
+    program.stages[0].inputs = {rows: {connector: 'crm/main', resource: 'r', view: 'v'}};
+    program.stages[0].steps.shift();
+    program.stages[0].steps[0].derive.n = 'private_field + $x';
+    for (const scope of ['template_only', 'bound_input']) {
+      for (const [input, kind, other] of [[text, 'text', {format: 'sql', parameterDeclarations}],
+        [program, 'program', {}]]) {
+        const outcomes = [];
+        for (const client of clients) {
+          const checked = await client.check(input, {kind, scope, ...other,
+            ...(scope === 'template_only' ? {} : {parameters: {x: 'private-wrong-value'}})});
+          assert.equal(checked.report.verdict, scope === 'template_only' ? 'undetermined' : 'invalid',
+            '[check-mutation:scoped-source-verdict]');
+          assert.deepEqual(checked.report.coverage.unresolved,
+            [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+          assert.deepEqual(checked.report.reasons.map(({code, facts}) => ({code, facts})),
+            scope === 'template_only' ? [] : [{code: 'supplied_value_type_mismatch',
+              facts: {parameter: 'x', expected_type: 'number', actual_type: 'string'}}]);
+          assert.deepEqual(checked.report.requirements.map(reason => reason.facts.parameter),
+            scope === 'template_only' ? ['x', 'y'] : ['y']);
+          assert.doesNotMatch(JSON.stringify(checked), /private_field|private-wrong-value|crm\/main/);
+          for (const requirement of checked.report.requirements) assert.ok(resolveCheckLocation(checked, requirement.location));
+          if (scope === 'bound_input') assert.equal(resolveCheckLocation(checked,
+            checked.report.reasons[0].location).pointer, '/x');
+          outcomes.push(checked);
+        }
+        assert.deepEqual(outcomes[0], outcomes[1], '[check-mutation:scoped-source-disclosure]');
+        assert.deepEqual(outcomes[0], outcomes[2], '[check-mutation:scoped-source-disclosure]');
+      }
+    }
+  });
+
+  test(`${entrance}: scoped Program locations distinguish missing nodes, null and original Unicode keys`, async t => {
+    const {client} = await publicCheck(t, entrance, {program: true});
+    for (const scope of ['template_only', 'bound_input']) {
+      const missing = authoringProgram(); delete missing.stages[0].steps;
+      const nullSteps = authoringProgram(); nullSteps.stages[0].steps = null;
+      for (const [program, issue, pointer] of [[missing, 'missing_field', '/stages/0'],
+        [nullSteps, 'unexpected_null', '/stages/0/steps']]) {
+        const outcome = await client.check(program, {kind: 'program', scope});
+        assert.equal(outcome.report.verdict, 'invalid');
+        assert.deepEqual(outcome.report.reasons[0].facts, {issue});
+        const location = outcome.report.reasons[0].location;
+        assert.equal(location.kind, 'structured');
+        assert.equal(location.document_id, 'program');
+        assert.equal(location.pointer, pointer, '[check-mutation:scoped-program-parent]');
+        assert.equal(resolveCheckLocation(outcome, location).pointer, pointer,
+          '[check-mutation:scoped-program-parent]');
+        assert.equal(resolveCheckTextRange(outcome, location), undefined);
+        assert.deepEqual(getCheckFixes(outcome), []);
+      }
+    }
+    const key = 'e\u0301/~😀';
+    const program = authoringProgram();
+    program.params = {payload: {type: 'object', fields: {[key]: {type: 'number'}}}};
+    program.stages[0].steps[1].derive.n = '$payload';
+    for (const [value, actual_type] of [['private-leaf', 'string'], [null, 'null']]) {
+      const outcome = await client.check(program, {kind: 'program', scope: 'bound_input',
+        parameters: {payload: {[key]: value}}});
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.deepEqual(outcome.report.reasons[0].facts,
+        {parameter: 'payload', expected_type: 'number', actual_type});
+      assert.equal(outcome.report.reasons[0].location.pointer, '/payload/e\u0301~1~0😀',
+        '[check-mutation:scoped-program-unicode]');
+      const owned = getCheckInput(outcome, 'parameters');
+      assert.equal(Object.hasOwn(owned.value.payload, key), true);
+      assert.equal(owned.value.payload[key], value);
+      assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, owned);
+      assert.doesNotMatch(JSON.stringify(outcome), /private-leaf/);
+    }
+    const absent = await client.check(program, {kind: 'program', scope: 'bound_input', parameters: {}});
+    assert.equal(absent.report.verdict, 'undetermined');
+    assert.equal(absent.report.requirements[0].location.pointer, '/params/payload');
+    assert.equal(Object.hasOwn(getCheckInput(absent, 'parameters').value, 'payload'), false);
+  });
+
+  test(`${entrance}: scoped declaration defaults use actual admission rather than fabricated values`, async t => {
+    const {client} = await publicCheck(t, entrance, {program: true});
+    const options = {kind: 'text', scope: 'template_only', format: 'sql'};
+    const wrong = await client.check('SELECT @x AS n', {...options,
+      parameterDeclarations: {x: {type: 'number', default: 'private-default'}}});
+    assert.equal(wrong.report.verdict, 'invalid');
+    assert.equal(wrong.report.reasons[0].code, 'parameter_default_type_mismatch');
+    assert.equal(wrong.report.reasons[0].location.pointer, '/x/default');
+    const right = await client.check('SELECT @x AS n', {...options,
+      parameterDeclarations: {x: {type: 'number', default: 7}}});
+    assert.equal(right.report.verdict, 'verified');
+    assert.deepEqual(right.report.requirements, []);
+    const program = authoringProgram(); program.params.x.default = 'private-default';
+    const rejected = await client.check(program, {kind: 'program', scope: 'template_only'});
+    assert.equal(rejected.report.verdict, 'invalid');
+    assert.equal(rejected.report.reasons[0].code, 'parameter_default_type_mismatch');
+    assert.equal(rejected.report.reasons[0].location.pointer, '/params/x/default');
+    assert.doesNotMatch(JSON.stringify([wrong, rejected]), /private-default/);
+  });
+
+  test(`${entrance}: scoped unsupported paths and parser budgets cannot verify an incomplete template`, async t => {
+    const {client} = await publicCheck(t, entrance, {program: true});
+    const unsupported = await client.check('SELECT UNKNOWN_FUNCTION(1) AS n',
+      {kind: 'text', scope: 'template_only', format: 'sql'});
+    assert.equal(unsupported.report.verdict, 'undetermined');
+    assert.equal(unsupported.report.coverage.limits[0].code, 'implementation_limit');
+    assert.deepEqual(unsupported.report.scope, {kind: 'template_only'});
+    let nested = 'leaf'; for (let i = 0; i < 40; i++) nested = [nested];
+    const exhausted = await client.check('SELECT @payload AS n',
+      {kind: 'text', scope: 'template_only', format: 'sql',
+        parameterDeclarations: {payload: {type: 'number', default: nested}}});
+    assert.equal(exhausted.report.verdict, 'undetermined');
+    assert.deepEqual(exhausted.report.reasons, []);
+    assert.deepEqual(exhausted.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
+    const program = authoringProgram(); program.stages[0].steps.splice(2, 0, {take: 1});
+    const incomplete = await client.check(program, {kind: 'program', scope: 'template_only'});
+    assert.equal(incomplete.report.verdict, 'undetermined');
+    assert.equal(incomplete.report.coverage.limits[0].code, 'implementation_limit');
+    assert.deepEqual(incomplete.report.scope, {kind: 'template_only'});
+  });
+
+  test(`${entrance}: scoped missing Host capacity retains known context Requirements without input blame`, async t => {
+    const environmentWire = JSON.parse(await readFile(join(root,
+      'adapters/host-node/fixtures/check-missing-capacity.environment.json'), 'utf8'));
+    const {client} = await publicCheck(t, entrance, {program: true, environmentWire});
+    for (const [input, options] of [
+      ['SELECT 1 AS n', {kind: 'text', scope: 'template_only', format: 'sql'}],
+      [authoringProgram(), {kind: 'program', scope: 'template_only'}],
+    ]) {
+      const outcome = await client.check(input, options);
+      assert.equal(outcome.report.verdict, 'undetermined');
+      assert.deepEqual(outcome.report.scope, {kind: 'template_only'});
+      const expected = {code: 'host_capacity_policy_required', facts: {
+        contract_cid: 'sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164',
+        schema_cid: 'sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3',
+        schema_pointer: '/schema', supplier: 'checking_context_owner', stage: 'checking'}};
+      assert.deepEqual(getCheckContextRequirements(outcome), [expected]);
+      assert.deepEqual(outcome.report.reasons, []);
+      assert.equal(Object.hasOwn(expected, 'location'), false);
+      assert.deepEqual(outcome.report.coverage.limits, [{code: 'checking_context_missing'}]);
+      assert.equal(getCheckContextRequirements(structuredClone(outcome)), undefined);
+    }
+  });
+
+  test(`${entrance}: scoped reporting truncation cannot publish template verification`, async t => {
+    const {client, counts} = await publicCheck(t, entrance);
+    const names = Array.from({length: 129}, (_, i) => `p${String(i).padStart(3, '0')}`);
+    const parameterDeclarations = Object.fromEntries(names.map(name => [name, {type: 'number'}]));
+    const text = 'SELECT ' + names.map((name, i) => `@${name} AS n${i}`).join(', ');
+    const checked = await client.check(text,
+      {kind: 'text', scope: 'template_only', format: 'sql', parameterDeclarations});
+    assert.equal(checked.outcome, 'completed', '[check-mutation:scoped-report-truncation]');
+    assert.equal(checked.report.verdict, 'undetermined', '[check-mutation:scoped-report-truncation]');
+    assert.deepEqual(checked.report.scope, {kind: 'template_only'});
+    assert.deepEqual(checked.report.omissions, {requirements: true});
+    assert.equal(checked.report.coverage.limits.some(limit => limit.code === 'reporting_budget_exhausted'), true);
+    assert.deepEqual(checked.report.requirements.map(reason => reason.facts.parameter), names.slice(0, 64));
+    assert.equal(counts.analysis, 1, 'Encoding retries do not repeat analysis');
   });
 }

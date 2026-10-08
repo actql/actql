@@ -12,7 +12,7 @@ const aliases = ['A', 'B'].map(name => Object.freeze({name,
   sourceViewContractCid: `sha256:${'2'.repeat(64)}`,
   schemaContractCid: `sha256:${'3'.repeat(64)}`}));
 const request = (principalId = 'owner', text = 'SELECT 1 AS n') => ({
-  principalId, input: {text, format: 'sql'}, parameters: null});
+  principalId, kind: 'text', scope: 'bound_input', input: {text, format: 'sql'}, parameters: null});
 
 function fixture(states = [], publication = aliases) {
   const calls = [], checked = [];
@@ -32,7 +32,7 @@ function fixture(states = [], publication = aliases) {
       checked.push(args);
       return JSON.stringify({version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
         outcome: 'completed', report: {context_ref: args[6], inputs: [{document_id: 'source', revision: args[7], kind: 'text', byte_length: Buffer.byteLength(args[0])}],
-          requirements: [], scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [],
+          requirements: [], scope: {kind: args[11]}, verdict: 'verified', reasons: [],
           coverage: {limits: [], unresolved: []}}});
     },
     clientProgramCheckProgram: () => assert.fail('Text fixture must not check a structured Program'),
@@ -56,6 +56,27 @@ function fixture(states = [], publication = aliases) {
   return {check, moon, calls, checked, visible: () =>
     JSON.parse(checked.at(-1)[3]).aliases};
 }
+
+test('composition: scope is selected before Source authorization and bound into context', async () => {
+  const f = fixture([{index: 0, action: 'dispatch'}]);
+  const template = {...request(), scope: 'template_only'};
+  delete template.parameters;
+  for (const parameters of [undefined, null, {}, {x: 1}]) {
+    await assert.rejects(f.check({...template, parameters}), {code: 'InvalidCheckRequest'});
+  }
+  const omitted = request(); delete omitted.scope;
+  await assert.rejects(f.check(omitted), {code: 'InvalidCheckRequest'});
+  assert.equal(f.calls.length, 0);
+  assert.equal(f.checked.length, 0);
+  const unbound = await f.check(template);
+  const bound = await f.check(request());
+  assert.equal(unbound.report.scope.kind, 'template_only');
+  assert.equal(bound.report.scope.kind, 'bound_input');
+  assert.notEqual(unbound.report.context_ref, bound.report.context_ref);
+  assert.equal(unbound.report.inputs[0].revision, bound.report.inputs[0].revision);
+  assert.equal(f.checked[0][11], 'template_only');
+  assert.equal(f.checked[1][11], 'bound_input');
+});
 
 test('composition: rejected producer replies retain the original attempt reference', async () => {
   for (const corrupt of [
@@ -192,19 +213,19 @@ test('composition: exact Unicode source and received-input fallback have fixed r
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:e253dec29f7608a4d55b39a44e6604b971ca798b51b456ced639635a1301a1ac',
-      'ctx:793e011aa5396fa63f71ccdad893ad6d1ec9e9185979ecea2cd570101e1a6999',
+      'ctx:e1fe2957876c91a71df6d68a36a15ce567ef29f55f18861b547c5b26c18b4b25',
+      'ctx:854a2a2f8e1ed51917dc2e13048ce0ab51d2e2a16b37b1b943bf63b1c2743948',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:be19f688e387012ab6d19df30a39911ee94ba1b9c6f0f8b033d6f9404bff94a4',
-        'ctx:940f9d88e8e4a16e9c4dd3bb8bd3e0a05783e473b0a38f425a41641e5d51997d',
+        'ctx:a3adfdb67e02669c52f7d4fbce763f683151636a8482070b9b556e8e7fa30542',
+        'ctx:16ca46d5b9547ae8a730f901d663c259cfffe0d47062b8cc79296edecc547c4c',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {
       for (const [index, text] of texts.entries()) {
         const input = {text, format: 'sql',
           ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})};
-        const call = {principalId: 'owner', input, parameters: null};
+        const call = {principalId: 'owner', kind: 'text', scope: 'bound_input', input, parameters: null};
         const outcome = await f.check(call);
         assert.equal(outcome.report.context_ref, refs[index], '[check-mutation:context-schema-vector]');
         assert.deepEqual(await f.check(call), outcome);
@@ -225,7 +246,7 @@ test('composition: Program contexts bind original Unicode keys and supplied null
         ...(parameters === undefined ? [] : [{document_id: 'parameters', kind: 'structured',
           revision: suppliedRevision, byte_length: Buffer.byteLength(parameters)}])],
       coverage: {limits: [], unresolved: []}}});
-  const request = (input, parameters = null) => ({kind: 'program', principalId: 'owner', input, parameters});
+  const request = (input, parameters = null) => ({kind: 'program', scope: 'bound_input', principalId: 'owner', input, parameters});
   const composed = await f.check(request({'é': null}));
   const original = await f.check(request({'e\u0301': null}));
   assert.notEqual(original.report.context_ref, composed.report.context_ref);

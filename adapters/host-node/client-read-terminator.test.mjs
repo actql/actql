@@ -22,7 +22,8 @@ for (const entrance of ['local', 'https']) {
         const fixture = await openReadOpeningFixture(scratch.path);
         const host = await connectOpeningHost(fixture, entrance, scratch.path, {loseReadTerminator: true});
         try {
-          const run = await host.client.start(openingProgram, {requestId: 'terminator-run'});
+          const submissionRef = host.client.newSubmission({nonce: 'terminator-run'});
+          const run = await host.client.start(openingProgram, {submissionRef});
           const result = run.result('answer');
           assert.equal((await run.status()).status, 'succeeded');
           const reader = consumer === 'rows' ? result.rows() : undefined;

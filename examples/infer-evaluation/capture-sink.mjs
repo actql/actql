@@ -12,6 +12,14 @@ const canonicalJson = value => sdkCanonicalJson(value, {dataKeys: true});
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const incomplete = reason => Object.freeze({status: 'incomplete', reason});
 const positive = value => Number.isSafeInteger(value) && value > 0;
+const manifestName = (subject, target) => {
+  if (!/^sha256:[a-f0-9]{64}$/u.test(subject?.runDefinitionCid) ||
+      !/^sha256:[a-f0-9]{64}$/u.test(subject?.authorityScopeCid) ||
+      typeof target !== 'string' || !target || target.length > 256) fail('InvalidEvidenceManifest');
+  // The logical target and original scope are part of custody identity. A
+  // second INFER in the same Run must never overwrite the first receipt.
+  return `manifest-${contentCid(canonicalJson({subject, target})).slice(7)}`;
+};
 
 export async function createCaptureSink({directory, destination, authorize,
   maxBytes, maxPendingBytes, maxRetainedBytes = maxPendingBytes, retentionMs, now = Date.now}) {
@@ -51,7 +59,9 @@ export async function createCaptureSink({directory, destination, authorize,
     catch (error) {if (error.code === 'ENOENT') {pendingRemoval.delete(path); forgetStored(path);} else throw error;}
   }
   async function boundedRead(path, ceiling) {
+    if (pendingHandles.size >= 256) fail('EvaluationBudgetExceeded');
     const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    pendingHandles.add(file);
     try {
       const stat = await file.stat();
       if (!stat.isFile() || stat.size > ceiling) fail('RequiredEvidenceUnavailable');
@@ -64,7 +74,7 @@ export async function createCaptureSink({directory, destination, authorize,
         if (bytesRead === 0) break;
       }
       return new TextDecoder('utf-8', {fatal: true}).decode(bytes.subarray(0, length));
-    } finally {await file.close();}
+    } finally {await file.close(); pendingHandles.delete(file);}
   }
   async function persistImmutable(path, wire, revalidate = async () => {}) {
     const temporary = join(root, `pending-${randomUUID()}`), size = Buffer.byteLength(wire);
@@ -168,28 +178,26 @@ export async function createCaptureSink({directory, destination, authorize,
       } finally {release?.();}
     },
     async record({subject, target, manifest}) {
-      if (!/^sha256:[a-f0-9]{64}$/u.test(subject?.runDefinitionCid) ||
-        !/^sha256:[a-f0-9]{64}$/u.test(subject?.authorityScopeCid) ||
-        typeof target !== 'string' || target.length > 256 || !manifest ||
+      const name = manifestName(subject, target);
+      if (!manifest ||
         !['complete', 'incomplete'].includes(manifest.status)) fail('InvalidEvidenceManifest');
       const release = reserve(131072);
       try {
         const wire = canonicalJson({subject, target, manifest});
         if (Buffer.byteLength(wire) > 65536) fail('EvaluationBudgetExceeded');
-        await persistImmutable(join(root, `manifest-${subject.runDefinitionCid.slice(7)}`), wire);
+        await persistImmutable(join(root, name), wire);
       } finally {release();}
     },
-    async lookup(subject) {
-      if (!/^sha256:[a-f0-9]{64}$/u.test(subject?.runDefinitionCid) ||
-        !/^sha256:[a-f0-9]{64}$/u.test(subject?.authorityScopeCid)) fail('EvidenceSubjectMismatch');
-      if (await authorize({purpose: 'read_manifest', destination, subject}) !== true) fail('EvidenceReadDenied');
+    async lookup(subject, target) {
+      const name = manifestName(subject, target);
+      if (await authorize({purpose: 'read_manifest', destination, subject, target}) !== true) fail('EvidenceReadDenied');
       const release = reserve(131072);
       try {
         let saved;
-        try {saved = JSON.parse(await boundedRead(join(root, `manifest-${subject.runDefinitionCid.slice(7)}`), 65536));}
+        try {saved = JSON.parse(await boundedRead(join(root, name), 65536));}
         catch (error) {if (error.code === 'ENOENT') fail('EvidenceOriginalMissing'); throw error;}
-        if (canonicalJson(saved.subject) !== canonicalJson(subject)) fail('EvidenceSubjectMismatch');
-        if (await authorize({purpose: 'read_manifest', destination, subject}) !== true) fail('EvidenceReadDenied');
+        if (canonicalJson(saved.subject) !== canonicalJson(subject) || saved.target !== target) fail('EvidenceSubjectMismatch');
+        if (await authorize({purpose: 'read_manifest', destination, subject, target}) !== true) fail('EvidenceReadDenied');
         return saved;
       } finally {release();}
     },
