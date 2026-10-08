@@ -283,3 +283,104 @@ test "an unattached published Source View is not a local Relation declaration" {
   assert_false(resolution.probe_refused)
   assert_eq(resolution.work, 10000)
 }
+
+///|
+fn member_vector_probe_source() -> (@builder.Source, @origin.Document) {
+  let text =
+    #|[{"id":"id","vector":"embedding"},{"id":"missing","vector":"embedding"},{"queries":"vectors","metric":"dot","k":2}]
+  let limits = mapping_limits()
+  let document = @origin.document(text, 10000).unwrap()
+  let parsed = @source.parse_json_measured(
+    text,
+    limits.source.source,
+    source_path="<generated>",
+  ).unwrap()
+  let builder = @builder.create(document, limits.source).unwrap()
+  let root = @builder.import_parsed(builder, parsed).unwrap()
+  (@builder.finish(builder, root).unwrap(), document)
+}
+
+///|
+fn member_vector_probe_input() -> @carrier.Carrier {
+  let schema = @schema.from_fields(
+    [
+      (
+        @schema.Unqualified("id"),
+        @contract.primitive(@contract.StringType, nullable=false),
+      ),
+      (
+        @schema.Unqualified("embedding"),
+        @contract.vector_contract(2, nullable=false).unwrap(),
+      ),
+    ],
+    max_fields=10,
+    max_name_bytes=100,
+  ).unwrap()
+  @carrier.relation(@carrier.typed_rows(schema))
+}
+
+///|
+test "member Carrier probes retain NEAREST types without discharging validation" {
+  let (source, document) = member_vector_probe_source()
+  let state = probe_budget_state(source, document)
+  let root = @builder.cursor(source)
+  let names : Map[String, @carrier.Carrier?] = Map([])
+  let vectors = state
+    .operation_carrier(
+      "to_vectors",
+      @wire.element_at(root, 0).unwrap(),
+      Some(member_vector_probe_input()),
+      names,
+      None,
+    )
+    .unwrap()
+  assert_eq(@carrier.kind(vectors), @carrier.VectorsKind)
+  names["vectors"] = Some(vectors)
+  let result = state
+    .operation_carrier(
+      "nearest",
+      @wire.element_at(root, 2).unwrap(),
+      Some(vectors),
+      names,
+      None,
+    )
+    .unwrap()
+  let rows = member_rows(result).unwrap()
+  assert_eq(@schema.field_count(rows), 4)
+  let score = @schema.lookup_reference(rows, "score").unwrap().contract
+  assert_true(score.shape is @contract.Number)
+  assert_false(score.nullable)
+  assert_false(state.probe_refused)
+  assert_true(state.work < 10000 && state.work > 0)
+}
+
+///|
+test "refused vector role probe retains allowance and stops member continuation" {
+  let (source, document) = member_vector_probe_source()
+  let state = probe_budget_state(source, document)
+  let root = @builder.cursor(source)
+  let names : Map[String, @carrier.Carrier?] = Map([])
+  assert_true(
+    state.operation_carrier(
+      "to_vectors",
+      @wire.element_at(root, 1).unwrap(),
+      Some(member_vector_probe_input()),
+      names,
+      None,
+    )
+    is None,
+  )
+  assert_true(state.probe_refused)
+  assert_eq(state.work, 0)
+  assert_true(
+    state.operation_carrier(
+      "to_vectors",
+      @wire.element_at(root, 0).unwrap(),
+      Some(member_vector_probe_input()),
+      names,
+      None,
+    )
+    is None,
+  )
+  assert_eq(state.work, 0)
+}
