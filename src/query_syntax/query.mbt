@@ -1317,9 +1317,18 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
   }
   let order_by = if function_name == "ARRAY_AGG" ||
     function_name == "STRING_AGG" {
-    self.keyword("ORDER")
-    self.keyword("BY")
-    self.order()
+    // Window aggregates take their ordering from OVER. Ordinary collection
+    // aggregates retain the existing explicit input-order profile.
+    if self.peek().value == Symbol(41) &&
+      token_at(self.source, self.index + 1)
+      .map(token => keyword(token, "OVER"))
+      .unwrap_or(false) {
+      []
+    } else {
+      self.keyword("ORDER")
+      self.keyword("BY")
+      self.order()
+    }
   } else {
     []
   }
