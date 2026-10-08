@@ -102,6 +102,13 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
     const check = await client.check(`SELECT ${sentinel} FROM`, {format: 'sql'});
     assert.equal(check.report.verdict, 'invalid');
     assert.equal(requestRows(journal), 0, 'checking creates no Run');
+    if (mode === 'normal') {
+      const typed = await client.check('SELECT @id AS id', {format: 'sql',
+        parameterDeclarations: {id: {type: 'number'}},
+        parameters: {id: 'not-a-number'}});
+      assert.equal(typed.report.verdict, 'invalid');
+      assert.equal(requestRows(journal), 0, 'a value/schema mismatch creates no Run');
+    }
     const run = await client.startSource(program, {format: 'json',
       submissionRef: client.newSubmission({nonce: 'first-observed-run'})});
     assert.equal((await run.wait()).status, 'succeeded');
