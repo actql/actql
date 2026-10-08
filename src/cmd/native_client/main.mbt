@@ -443,6 +443,31 @@ fn valid_submission_reply(
   if !lookup && fields.get("intentCid") != request_fields.get("intentCid") {
     return false
   }
+  let history = fields.get("unresolvedHistory")
+  // A submit reply cannot introduce an acknowledgement the caller never sent.
+  // Readonly lookup may return the original saved link, bound to this epoch.
+  if !lookup && history != request_fields.get("unresolvedHistory") {
+    return false
+  }
+  if history is Some(value) {
+    guard wire_submission_restart_shape(value) &&
+      value is Object(restart) &&
+      restart.get("submissionRef") is Some(original) &&
+      valid_submission_ref(original) &&
+      original is Object(old_reference) &&
+      old_reference.get("epoch") is Some(Object(old_epoch)) &&
+      expected is Object(fresh_reference) &&
+      fresh_reference.get("epoch") is Some(Object(fresh_epoch)) &&
+      old_epoch.get("expiresAt") is Some(Number(old_expiry, ..)) &&
+      fresh_epoch.get("expiresAt") is Some(Number(fresh_expiry, ..)) else {
+      return false
+    }
+    if old_epoch.get("authorityScopeCid") !=
+      fresh_epoch.get("authorityScopeCid") ||
+      old_expiry >= fresh_expiry {
+      return false
+    }
+  }
   match json_text(fields, "kind") {
     Some("ready") => {
       guard fields.get("admission") is Some(admission) &&

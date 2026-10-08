@@ -52,12 +52,14 @@ await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.typecheck
   join(root, 'short-queries.typecheck.mts'));
 await copyFile(join(repository, 'packages/local-node/source-inventory.typecheck.mts'),
   join(root, 'source-inventory.typecheck.mts'));
+await copyFile(join(repository, 'packages/local-node/effect-inventory.typecheck.mts'),
+  join(root, 'effect-inventory.typecheck.mts'));
 // Reuse the pinned compiler, but resolve public imports from the isolated
 // consumer. No schema dependency is installed just to make declarations work.
 console.log(run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
   '--strict', '--target', 'ES2022', '--module', 'NodeNext',
   '--moduleResolution', 'NodeNext', '--noEmit', 'short-queries.typecheck.mts',
-  'source-inventory.typecheck.mts']).trimEnd());
+  'source-inventory.typecheck.mts', 'effect-inventory.typecheck.mts']).trimEnd());
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1']);

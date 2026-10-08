@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {installedConnectorFor, installedConnectorTable,
-  loadInstalledConnectorModule, providerBundleUrl,
+import {assertInstalledConnectorTable, createInstalledConnectorTable,
+  installedConnectorFor, installedConnectorForTable, installedConnectorTable,
+  loadInstalledConnectorModule, loadInstalledEffectModule, providerBundleUrl,
   verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -125,4 +126,223 @@ test('the Effect table selects declared Effect installations by their own versio
   const host = await readFile(new URL('./installed-effect.mjs', import.meta.url),
     'utf8');
   assert.doesNotMatch(host.replace(/\/\/[^\n]*/g, ''), /salesforce/i);
+});
+
+const identityProfile = () => ({
+  continuation: 'actql-installed-example-effect-continuation/0.1',
+  continuationBinding: 'publication_generation_cid',
+  dispatch: 'actql-installed-example-effect-dispatch/0.1',
+  recovery: 'actql-installed-example-effect-recovery/0.1',
+  source: 'actql-installed-example-effect-source/0.1',
+  targetCheck: 'actql-installed-example-effect-check/0.1',
+  unit: 'actql-installed-example-effect-unit/0.1',
+});
+const effectEntry = (overrides = {}) => entry({source: undefined,
+  effect: {profileVersion: 'actql-installed-example-effect/0.1',
+    identityProfile: identityProfile(), load() { assert.fail('Unused loader'); }},
+  ...overrides});
+
+test('owned tables admit independent roles and empty tables without default entries', () => {
+  const source = entry({source: {
+    profileVersion: 'actql-installed-shared-schema/0.1',
+    load() { assert.fail('Unused loader'); }}});
+  const effect = effectEntry({effect: {
+    profileVersion: source.source.profileVersion,
+    load() { assert.fail('Unused loader'); }}});
+  const table = createInstalledConnectorTable([source, effect]);
+  const profile = {version: source.source.profileVersion};
+  assert.equal(installedConnectorForTable(table, 'source', profile).source.load,
+    source.source.load);
+  assert.equal(installedConnectorForTable(table, 'effect', profile).effect.load,
+    effect.effect.load);
+  for (const [entries, role, version] of [
+    [[], 'source', 'actql-installed-github-source/0.1'],
+    [[], 'effect', 'actql-installed-github-effect/0.1'],
+    [[source], 'effect', profile.version],
+    [[effect], 'source', profile.version],
+  ]) {
+    assert.throws(() => installedConnectorForTable(
+      createInstalledConnectorTable(entries), role, {version}),
+    {code: role === 'source' ? 'InvalidInstalledSourceProfile' :
+      'InvalidInstalledEffectProfile'});
+  }
+  assert.throws(() => installedConnectorForTable(table, 'source', {}, 'Missing'),
+    {code: 'Missing'});
+});
+
+test('owned tables refuse duplicate versions per role before any loader call', () => {
+  const unused = () => { assert.fail('No loader may run during admission'); };
+  for (const role of ['source', 'effect']) {
+    const first = {name: 'one', [role]: {
+      profileVersion: 'actql-installed-shared-schema/0.1', load: unused}};
+    const second = {name: 'two', [role]: {...first[role]}};
+    assert.throws(() => createInstalledConnectorTable([first, second]),
+      {code: 'InstalledConnectorVersionAmbiguous'});
+  }
+  for (const entries of [null, {}, new Map(), [undefined], [{}]]) {
+    assert.throws(() => createInstalledConnectorTable(entries),
+      {code: 'InvalidInstalledConnectorEntry'});
+  }
+});
+
+test('two owned tables select their exact implementations of the same schemas', async () => {
+  const module = name => ({name, check: value => value,
+    identityParts: value => [value], load: async () => ({})});
+  const firstSource = module('first-source'), secondSource = module('second-source');
+  const firstEffect = module('first-effect'), secondEffect = module('second-effect');
+  const make = (source, effect) => createInstalledConnectorTable([entry({
+    source: {profileVersion: 'actql-installed-example-source/0.1',
+      load: () => source},
+    effect: {profileVersion: 'actql-installed-example-effect/0.1',
+      load: () => effect},
+  })]);
+  const first = make(firstSource, firstEffect);
+  const second = make(secondSource, secondEffect);
+  for (const [table, source, effect] of [[first, firstSource, firstEffect],
+    [second, secondSource, secondEffect]]) {
+    assert.equal(await loadInstalledConnectorModule(installedConnectorForTable(
+      table, 'source', {version: 'actql-installed-example-source/0.1'})), source);
+    assert.equal(await loadInstalledEffectModule(installedConnectorForTable(
+      table, 'effect', {version: 'actql-installed-example-effect/0.1'})), effect);
+  }
+});
+
+test('table admission snapshots every declared field and lazy reference synchronously', () => {
+  const raw = entry({effect: effectEntry().effect});
+  const sourceLoad = raw.source.load, effectLoad = raw.effect.load;
+  const originalIdentity = {...raw.effect.identityProfile};
+  const inputs = [raw];
+  const table = createInstalledConnectorTable(inputs);
+  const selected = installedConnectorForTable(table, 'source',
+    {version: raw.source.profileVersion});
+  raw.name = 'changed';
+  raw.registration = 'changed';
+  raw.revision = 'changed/0.2';
+  raw.providerBundle = 'connectors/changed/host_node';
+  raw.responseHeaders.push('retry-after');
+  raw.source.profileVersion = 'actql-installed-changed-source/0.1';
+  raw.source.load = () => { assert.fail('Replaced source loader'); };
+  raw.effect.profileVersion = 'actql-installed-changed-effect/0.1';
+  raw.effect.load = () => { assert.fail('Replaced Effect loader'); };
+  for (const key of Object.keys(raw.effect.identityProfile)) {
+    raw.effect.identityProfile[key] = 'changed';
+  }
+  inputs.splice(0, 1);
+  assert.deepEqual(selected, {name: 'example', registration: 'example',
+    revision: 'example/0.1', providerBundle: 'connectors/example/host_node',
+    responseHeaders: ['link'],
+    source: {profileVersion: 'actql-installed-example-source/0.1', load: sourceLoad},
+    effect: {profileVersion: 'actql-installed-example-effect/0.1',
+      load: effectLoad, identityProfile: originalIdentity}});
+  assert.equal(installedConnectorForTable(table, 'effect',
+    {version: 'actql-installed-example-effect/0.1'}), selected);
+  for (const value of [table, selected, selected.responseHeaders, selected.source,
+    selected.effect, selected.effect.identityProfile]) assert.ok(Object.isFrozen(value));
+  assert.notEqual(selected, raw);
+  assert.notEqual(selected.source, raw.source);
+  assert.notEqual(selected.effect, raw.effect);
+  assert.notEqual(selected.effect.identityProfile, raw.effect.identityProfile);
+  assert.throws(() => { selected.source.load = raw.source.load; }, TypeError);
+  assert.throws(() => { selected.effect.identityProfile.unit = 'changed'; }, TypeError);
+});
+
+test('only the owner-issued table handle is accepted and no mutable Map is exposed', () => {
+  const table = createInstalledConnectorTable([entry()]);
+  assert.equal(assertInstalledConnectorTable(table), table);
+  assert.deepEqual(Reflect.ownKeys(table), []);
+  assert.equal(table instanceof Map, false);
+  for (const forged of [undefined, null, {}, Object.freeze({}), {...table},
+    structuredClone(table), Object.create(table), new Proxy(table, {}), new Map()]) {
+    assert.throws(() => assertInstalledConnectorTable(forged),
+      {code: 'InvalidInstalledConnectorTable'});
+    assert.throws(() => installedConnectorForTable(forged, 'source', {}),
+      {code: 'InvalidInstalledConnectorTable'});
+  }
+  assert.throws(() => installedConnectorForTable(table, 'other', {}),
+    {code: 'InvalidInstalledConnectorRole'});
+});
+
+test('owned declarations preserve the closed identity profile and response-header rules', () => {
+  const invalidProfiles = [null, {}, [], {...identityProfile(), extra: 'value'},
+    {...identityProfile(), continuationBinding: 'arbitrary_field'},
+    {...identityProfile(), dispatch: 'actql-installed-example-effect-dispatch/0.2'},
+    {...identityProfile(), unit: () => 'actql-installed-example-effect-unit/0.1'}];
+  const {unit: _unit, ...missingUnit} = identityProfile();
+  invalidProfiles.push(missingUnit);
+  for (const profile of invalidProfiles) {
+    const raw = effectEntry();
+    raw.effect.identityProfile = profile;
+    assert.throws(() => createInstalledConnectorTable([raw]),
+      {code: 'InvalidInstalledConnectorEntry'});
+  }
+  for (const responseHeaders of ['link', ['Link'], ['link', 'link'],
+    ['authorization'], ['set-cookie'], Array.from({length: 17}, (_, i) => `x-${i}`)]) {
+    assert.throws(() => createInstalledConnectorTable([entry({responseHeaders})]),
+      {code: 'InvalidInstalledConnectorEntry'});
+  }
+  for (const providerBundle of ['../example', '/connectors/example/host_node',
+    'connectors/example/../host_node', 'https://example.test/runtime.js']) {
+    assert.throws(() => createInstalledConnectorTable([entry({providerBundle})]),
+      {code: 'InvalidInstalledConnectorEntry'});
+  }
+});
+
+test('Local Table Source and Effect use declared roles and reject retired built-in profiles', async () => {
+  const {installedEffectTable, loadInstalledEffectModule} = await import('./installed-connectors.mjs');
+  const sources = installedConnectorTable(installedConnectors);
+  const effects = installedEffectTable(installedConnectors);
+  const source = installedConnectorFor(sources, {version: 'actql-installed-local-table-source/0.1'});
+  const effect = installedConnectorFor(effects, {version: 'actql-installed-local-table-effect/0.1'});
+  assert.equal(source, effect, 'both roles belong to the same declared Local Connector');
+  assert.equal(source.registration, 'local');
+  assert.equal(source.revision, 'local/0.1');
+  assert.equal(providerBundleUrl(source), undefined, 'physical I/O needs no dummy MoonBit bundle');
+  const sourceModule = await loadInstalledConnectorModule(source);
+  const effectModule = await loadInstalledEffectModule(effect);
+  assert.equal(typeof sourceModule.check, 'function');
+  assert.equal(typeof effectModule.check, 'function');
+  assert.throws(() => installedConnectorFor(sources, {version: 'actql-installed-table-source/0.1'}),
+    {code: 'InvalidInstalledSourceProfile'});
+  assert.throws(() => installedConnectorFor(effects, {version: 'actql-installed-table-effect/0.1'},
+    'InvalidInstalledEffectProfile'), {code: 'InvalidInstalledEffectProfile'});
+  const {readFile} = await import('node:fs/promises');
+  for (const name of ['installed-source', 'installed-effect']) {
+    const host = await readFile(new URL(`./${name}.mjs`, import.meta.url), 'utf8');
+    assert.doesNotMatch(host, /tableInstallation|installed-table-installation/);
+  }
+});
+
+test('explicit tables retain a detached immutable implementation inventory', () => {
+  const raw = entry({implementationFiles: [
+    {path: 'adapters/connectors/example/host/source.mjs', href: 'file:///unused/source.mjs'},
+  ]});
+  const expected = raw.implementationFiles.map(file => ({...file}));
+  const handle = createInstalledConnectorTable([raw]);
+  const selected = installedConnectorForTable(handle, 'source',
+    {version: raw.source.profileVersion});
+  raw.implementationFiles[0].href = 'file:///changed/source.mjs';
+  raw.implementationFiles.push({path: 'later', href: 'file:///later'});
+  assert.deepEqual(selected.implementationFiles, expected);
+  assert.ok(Object.isFrozen(selected.implementationFiles));
+  assert.ok(Object.isFrozen(selected.implementationFiles[0]));
+  assert.throws(() => { selected.implementationFiles[0].path = 'changed'; }, TypeError);
+  assert.throws(() => selected.implementationFiles.push({}), TypeError);
+  for (const implementationFiles of [null, {}, [], [null], [[]], [{}],
+    [{path: 'same', href: 'file:///first'}, {path: 'same', href: 'file:///second'}],
+    Array.from({length: 129}, (_, index) => ({path: `file-${index}`, href: `file:///file-${index}`}))]) {
+    assert.throws(() => createInstalledConnectorTable([entry({implementationFiles})]),
+      {code: 'InvalidInstalledConnectorEntry'});
+  }
+});
+
+test('explicit tables preserve the declared Local Table implementation files', () => {
+  const declared = installedConnectors.find(value => value.registration === 'local');
+  assert.ok(declared?.implementationFiles.length > 0);
+  const handle = createInstalledConnectorTable(installedConnectors);
+  const selected = installedConnectorForTable(handle, 'source',
+    {version: declared.source.profileVersion});
+  assert.deepEqual(selected.implementationFiles, declared.implementationFiles);
+  assert.notEqual(selected.implementationFiles, declared.implementationFiles);
+  assert.equal(installedConnectorForTable(handle, 'effect',
+    {version: declared.effect.profileVersion}), selected);
 });

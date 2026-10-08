@@ -358,3 +358,171 @@ for (const afterCommit of [false, true]) {
       {...fields, expectedRevision: 1}, moon), {retired: !afterCommit});
   });
 }
+
+test('explicit unresolved-history decision binds original and fresh intent atomically across restart', async t => {
+  const f = await fixture(t);
+  const input = intent();
+  f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
+  f.complete(input, 'preparation_failed');
+  f.now(start + 1000);
+  f.journal.retireSubmittedIntent(f.ref, {...fields, expectedRevision: 1}, moon);
+  const fresh = {epoch: f.journal.issueSubmissionEpoch(fields, moon), nonce: 'explicit-new-work'};
+  const unresolvedHistory = {submissionRef: f.ref,
+    acknowledgement: 'possible_prior_execution_and_effects'};
+  const decisionFields = {...fields, actorId: 'authenticated-actor', unresolvedHistory};
+  const admitted = f.journal.recordSubmittedIntent(fresh, input, decisionFields, moon);
+  const expected = {submissionRef: f.ref, acknowledgement: 'possible_prior_execution_and_effects',
+    freshSubmissionRef: fresh, intentCid: 'sha256:' + createHash('sha256').update(JSON.stringify({
+      intent: {input: {format: 'aql-text', text: "SELECT 'e\u0301\r\n' AS value"}, kind: 'aql', parameters: null},
+      version: 'actql-submitted-intent/0.1',
+    })).digest('hex'), actorId: 'authenticated-actor'};
+  assert.deepEqual(admitted.unresolvedHistory, expected);
+  f.restart();
+  assert.equal(f.lookup(), undefined, 'the original outcome stays unknown');
+  assert.deepEqual(f.journal.lookupSubmittedIntent(fresh, fields, moon).unresolvedHistory, expected);
+  assert.deepEqual(f.journal.recordSubmittedIntent(fresh, input, decisionFields, moon).unresolvedHistory, expected);
+  assert.throws(() => f.journal.recordSubmittedIntent(fresh, input, fields, moon),
+    {code: 'ClientSubmissionRestartConflict'});
+  assert.throws(() => f.journal.recordSubmittedIntent(fresh, input,
+    {...decisionFields, actorId: 'another-actor'}, moon), {code: 'ClientSubmissionRestartConflict'});
+  assert.throws(() => f.journal.recordSubmittedIntent(fresh, intent('SELECT 2 AS value'), decisionFields, moon),
+    {code: 'ClientSubmittedIntentConflict'});
+});
+
+async function restartFixture(t) {
+  const f = await fixture(t);
+  const input = intent();
+  const original = f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
+  f.complete(input, 'preparation_failed');
+  f.now(start + 1000);
+  f.journal.retireSubmittedIntent(f.ref, {...fields, expectedRevision: 1}, moon);
+  const fresh = {epoch: f.journal.issueSubmissionEpoch(fields, moon), nonce: 'explicit-new-work'};
+  const decision = {...fields, actorId: 'authenticated-actor', unresolvedHistory: {
+    submissionRef: f.ref, acknowledgement: 'possible_prior_execution_and_effects'}};
+  return {f, input, original, fresh, decision};
+}
+
+for (const missing of ['acknowledgement', 'actor', 'authorization', 'authentic original']) {
+  test(`explicit new work cannot omit ${missing}`, async t => {
+    const {f, input, fresh, decision} = await restartFixture(t);
+    const candidate = structuredClone(decision);
+    if (missing === 'acknowledgement') candidate.unresolvedHistory.acknowledgement = 'retry';
+    if (missing === 'actor') delete candidate.actorId;
+    if (missing === 'authorization') candidate.currentAuthorization = false;
+    if (missing === 'authentic original') candidate.unresolvedHistory.submissionRef.epoch.authenticator = '0'.repeat(64);
+    assert.throws(() => f.journal.recordSubmittedIntent(fresh, input, candidate, moon), {
+      code: missing === 'authorization' ? 'ClientSubmissionEpochUnauthorized'
+        : missing === 'authentic original' ? 'ClientSubmissionEpochUnverifiable' : 'InvalidClientSubmissionRestart',
+    });
+    f.restart();
+    assert.equal(f.journal.lookupSubmittedIntent(fresh, fields, moon), undefined);
+  });
+}
+
+test('an admissible original may not be replaced under a risk acknowledgement', async t => {
+  const f = await fixture(t);
+  const input = intent();
+  const fresh = {epoch: f.ref.epoch, nonce: 'new-while-original-admissible'};
+  assert.throws(() => f.journal.recordSubmittedIntent(fresh, input, {
+    ...fields, actorId: 'authenticated-actor', unresolvedHistory: {
+      submissionRef: f.ref, acknowledgement: 'possible_prior_execution_and_effects'},
+  }, moon), {code: 'ClientSubmissionRestartOriginalResolvable'});
+  assert.equal(f.journal.lookupSubmittedIntent(fresh, fields, moon), undefined);
+});
+
+test('existing original Run responsibility prevents new-work permission', async t => {
+  const {f, input, fresh, decision, original} = await restartFixture(t);
+  f.journal.acceptDefinition(request(original.requestId), {namespaceId: 'namespace-a',
+    runDefinition: definition(), lookupExpiresAt: '2099-01-01T00:00:00.000Z'}, moon, publication);
+  assert.throws(() => f.journal.recordSubmittedIntent(fresh, input, decision, moon),
+    {code: 'ClientSubmissionRestartRequiresReconciliation'});
+  assert.equal(f.journal.lookupSubmittedIntent(fresh, fields, moon), undefined);
+});
+
+test('each deliberately distinct fresh identity retains its own explicit decision', async t => {
+  const {f, input, fresh, decision} = await restartFixture(t);
+  f.journal.recordSubmittedIntent(fresh, input, decision, moon);
+  const secondRef = {...fresh, nonce: 'second-new-work'};
+  const second = f.journal.recordSubmittedIntent(secondRef, input, decision, moon);
+  assert.deepEqual(second.unresolvedHistory.freshSubmissionRef, secondRef);
+  f.restart();
+  assert.deepEqual(f.journal.lookupSubmittedIntent(secondRef, fields, moon).unresolvedHistory,
+    second.unresolvedHistory);
+  assert.deepEqual(f.journal.lookupSubmittedIntent(fresh, fields, moon).unresolvedHistory.freshSubmissionRef, fresh);
+});
+
+test('a lost decision link cannot be reinterpreted as an ordinary fresh submission', async t => {
+  const {f, input, fresh, decision} = await restartFixture(t);
+  f.journal.recordSubmittedIntent(fresh, input, decision, moon);
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {db.exec('DELETE FROM client_submission_restarts');} finally {db.close();}
+  f.restart();
+  assert.throws(() => f.journal.lookupSubmittedIntent(fresh, fields, moon),
+    {code: 'ClientSubmissionRestartCustodyLost'});
+  assert.throws(() => f.journal.recordSubmittedIntent(fresh, input, fields, moon),
+    {code: 'ClientSubmissionRestartCustodyLost'});
+});
+
+for (const afterCommit of [false, true]) {
+  test(`restart decision COMMIT reply loss ${afterCommit ? 'after' : 'before'} commit keeps intent and link atomic`, async t => {
+    const {f, input, fresh, decision} = await restartFixture(t);
+    const exec = DatabaseSync.prototype.exec;
+    let lost = false;
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql === 'COMMIT' && !lost &&
+          this.prepare('SELECT issued_count FROM client_submission_restart_custody').get().issued_count === 1) {
+        lost = true;
+        if (afterCommit) exec.call(this, sql);
+        throw new Error('FixtureRestartCommitReplyLost');
+      }
+      return exec.call(this, sql);
+    });
+    try {
+      assert.throws(() => f.journal.recordSubmittedIntent(fresh, input, decision, moon),
+        {code: 'ClientRequestJournalCommitOutcomeUnknown'});
+      assert.equal(lost, true);
+    } finally {t.mock.restoreAll();}
+    f.restart();
+    const retained = f.journal.lookupSubmittedIntent(fresh, fields, moon);
+    assert.equal(retained !== undefined, afterCommit);
+    if (afterCommit) assert.deepEqual(retained.unresolvedHistory.submissionRef, f.ref);
+    const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
+    try {
+      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submitted_intents').get().n, afterCommit ? 1 : 0);
+      assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count, afterCommit ? 2 : 1);
+      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submission_restarts').get().n, afterCommit ? 1 : 0);
+      assert.equal(db.prepare('SELECT issued_count FROM client_submission_restart_custody').get().issued_count, afterCommit ? 1 : 0);
+    } finally {db.close();}
+    assert.equal(f.lookup(), undefined, 'neither COMMIT result settles the original history');
+  });
+}
+
+test('a failed decision insertion rolls back intent acceptance and both issuance counters', async t => {
+  const {f, input, fresh, decision} = await restartFixture(t);
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {db.exec(`CREATE TRIGGER fixture_restart_failure BEFORE INSERT ON client_submission_restarts
+    BEGIN SELECT RAISE(ABORT, 'FixtureRestartInsertionFailed'); END`);} finally {db.close();}
+  assert.throws(() => f.journal.recordSubmittedIntent(fresh, input, decision, moon),
+    /FixtureRestartInsertionFailed/u);
+  f.restart();
+  assert.equal(f.journal.lookupSubmittedIntent(fresh, fields, moon), undefined);
+  const check = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
+  try {
+    assert.equal(check.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count, 1);
+    assert.equal(check.prepare('SELECT issued_count FROM client_submission_restart_custody').get().issued_count, 0);
+  } finally {check.close();}
+});
+
+for (const loss of ['marker', 'table', 'counter']) {
+  test(`restart ${loss} loss refuses journal reopening without repairing history`, async t => {
+    const {f, input, fresh, decision} = await restartFixture(t);
+    f.journal.recordSubmittedIntent(fresh, input, decision, moon);
+    if (loss === 'marker') await rm(join(f.path, 'submission-restart-format.json'));
+    else {
+      const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+      try {db.exec(loss === 'table' ? 'DROP TABLE client_submission_restarts'
+        : 'DELETE FROM client_submission_restart_custody');} finally {db.close();}
+    }
+    assert.throws(() => f.restart(), {code: 'UnknownClientRequestJournalFormat'});
+  });
+}

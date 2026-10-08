@@ -11,6 +11,80 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
   limits: {maxReadWireBytes: 1024, maxRowWireBytes: 256, maxRowRetainedValueBytes: 512,
     maxRetainedValueBytes: 2048, maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
 
+test('explicit restart saves its original history link before first send and never retries a lost reply', async () => {
+  let sends = 0;
+  const freshEpoch = {...epoch, epochNonce: 'd'.repeat(64), notBefore: epoch.expiresAt,
+    expiresAt: epoch.expiresAt + 1000};
+  const original = {epoch, nonce: 'unresolvable-original'};
+  const unresolvedHistory = {submissionRef: original, acknowledgement: 'possible_prior_execution_and_effects'};
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    async perform(operation, body) {
+      if (operation === 'connect') return {...profile, submissionEpoch: freshEpoch};
+      assert.equal(operation, 'restart-intent');
+      sends++;
+      assert.deepEqual(body.unresolvedHistory.submissionRef, original);
+      throw new Error('FixtureRestartReplyLost');
+    },
+  });
+  const submissionRef = client.newSubmission({nonce: 'explicit-new-work'});
+  const pending = client.start({}, {submissionRef, unresolvedHistory});
+  assert.deepEqual(getSubmissionInput(pending).unresolvedHistory, unresolvedHistory);
+  unresolvedHistory.acknowledgement = 'caller mutation after submission';
+  await assert.rejects(pending, error => {
+    assert.equal(getSubmissionInput(error).unresolvedHistory.acknowledgement, 'possible_prior_execution_and_effects');
+    assert.deepEqual(error.submissionRef, submissionRef);
+    return error.code === 'SubmissionUnknown';
+  });
+  assert.equal(sends, 1);
+  await client.close();
+});
+
+test('explicit restart rejects missing or changed acknowledgement in the Host reply', async () => {
+  for (const change of ['missing', 'original', 'acknowledgement']) {
+    let sends = 0;
+    const original = {epoch, nonce: 'unresolvable-original'};
+    const unresolvedHistory = {submissionRef: original, acknowledgement: 'possible_prior_execution_and_effects'};
+    const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+      async perform(operation, body) {
+        if (operation === 'connect') return {...profile, submissionEpoch: {...epoch,
+          epochNonce: 'd'.repeat(64), notBefore: epoch.expiresAt, expiresAt: epoch.expiresAt + 1000}};
+        assert.equal(operation, 'restart-intent'); sends++;
+        // The intent CID remains the registered independent vector: history
+        // acknowledgement is separately bound, not inserted in its preimage.
+        assert.equal(body.intentCid, 'sha256:5ad281d9145e26cfb0bf5b7b0fa37c11cb2b065687350ae53a36f714bca0fe44');
+        const response = {kind: 'preparing', submissionRef: body.submissionRef, intentCid: body.intentCid};
+        if (change !== 'missing') response.unresolvedHistory = change === 'original'
+          ? {...unresolvedHistory, submissionRef: {...original, nonce: 'different-original'}}
+          : {...unresolvedHistory, acknowledgement: 'retry'};
+        return response;
+      },
+    });
+    await assert.rejects(client.start({}, {submissionRef: client.newSubmission(), unresolvedHistory}),
+      {code: 'SubmissionUnknown'});
+    assert.equal(sends, 1);
+    await client.close();
+  }
+});
+
+test('risk acknowledgement requires caller-retained fresh identity and rejects invalid scope before send', async () => {
+  let sends = 0;
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    async perform(operation) {
+      if (operation === 'connect') return {...profile, submissionEpoch: {...epoch,
+        epochNonce: 'd'.repeat(64), notBefore: epoch.expiresAt, expiresAt: epoch.expiresAt + 1000}};
+      sends++; throw new Error('MustNotSend');
+    },
+  });
+  const original = {epoch, nonce: 'old'};
+  const unresolvedHistory = {submissionRef: original, acknowledgement: 'possible_prior_execution_and_effects'};
+  await assert.rejects(client.start({}, {unresolvedHistory}), {code: 'SubmissionReferenceRequired'});
+  await assert.rejects(client.start({}, {submissionRef: client.newSubmission(), unresolvedHistory: {
+    ...unresolvedHistory, submissionRef: {...original, epoch: {...epoch, authorityScopeCid: cid('0')}}},
+  }), {code: 'InvalidSubmissionRestart'});
+  assert.equal(sends, 0);
+  await client.close();
+});
+
 test('SDK saves exact submission ref and original source before a lost response', async () => {
   let body;
   const client = await connectInProcess({mode: 'local', owner: 'local', durability: 'durable'}, {

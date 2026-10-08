@@ -19,6 +19,7 @@ import {
   "actql/actql/relation_append" @append_shape,
   "actql/actql/expression_syntax" @expression_syntax,
   "actql/actql/local_relation_input" @local_input,
+  "actql/actql/vector_typing" @vector,
 }
 
 import {

@@ -1,0 +1,195 @@
+{
+  "version": "actql-local-table-iceberg-contract/0.1",
+  "operations": {
+    "create": [
+      "relation"
+    ],
+    "replace": [
+      "relation"
+    ],
+    "snapshot_read": [
+      "relation"
+    ]
+  },
+  "identity": {
+    "generation": "sha256_of_exact_published_iceberg_metadata_file_bytes",
+    "table": "immutable_iceberg_table_uuid_projected_to_logical_table_identity"
+  },
+  "presence": {
+    "binding": "sealed_logical_column_to_value_and_companion_iceberg_field_ids",
+    "false_null": "missing_logical_column",
+    "true_null": "present_null_requires_logical_nullable",
+    "true_value": "present_value_requires_checked_type",
+    "false_value": "reject",
+    "missing_or_null_companion": "reject_before_default_projection",
+    "missing_value_field": "reject_before_default_projection",
+    "required_column": "value_field_physically_present_without_companion_nullable_independent",
+    "physical_namespace": "__actql_presence_",
+    "ordinary_reader": "physical_companions_visible_no_implicit_actql_presence_semantics"
+  },
+  "schemas": {
+    "receipt": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "urn:actql:table-iceberg-physical-receipt:0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "request_cid",
+        "effect_identity_cid",
+        "catalog_identity_cid",
+        "table_uuid",
+        "generation_cid",
+        "metadata_location",
+        "snapshot_id",
+        "schema_cid",
+        "storage_mapping_cid",
+        "row_count",
+        "receipt_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-table-receipt/0.1"
+        },
+        "request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_identity_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "catalog_identity_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "table_uuid": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "generation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "metadata_location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "snapshot_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "storage_mapping_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "storage_mapping": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "urn:actql:table-iceberg-storage-mapping:0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "schema_cid",
+        "iceberg_format_version",
+        "columns",
+        "mapping_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-table-storage-mapping/0.1"
+        },
+        "schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "iceberg_format_version": {
+          "const": 2
+        },
+        "columns": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "value_field_id",
+              "presence_field_id",
+              "physical_type",
+              "nullable",
+              "presence"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "value_field_id": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2147483647
+              },
+              "presence_field_id": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "physical_type": {
+                "enum": [
+                  "boolean",
+                  "double",
+                  "string"
+                ]
+              },
+              "nullable": {
+                "type": "boolean"
+              },
+              "presence": {
+                "enum": [
+                  "required",
+                  "conditional"
+                ]
+              }
+            }
+          }
+        },
+        "mapping_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

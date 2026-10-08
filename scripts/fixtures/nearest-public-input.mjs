@@ -41,7 +41,53 @@ export async function nearestPublicInputFixtures(directory) {
         KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank`,
       results: result([], columns)},
   ];
+  // Author ordinary post-NEAREST projections from the independent machine
+  // input. Do not obtain either expression names or expected rows from lowering.
+  const scalar = type => ({type, nullable: false});
+  const memberRows = [{label: 'first', score: 1}, {label: 'second', score: 0}];
+  const memberColumns = [{name: 'label', contract: scalar('string')},
+    {name: 'score', contract: scalar('number')}];
+  const keyRows = [{request_id: 'q1', item_id: 'a', rank: 1},
+    {request_id: 'q1', item_id: 'b', rank: 2}];
+  const keyColumns = [{name: 'request_id', contract: scalar('string')},
+    {name: 'item_id', contract: scalar('string')},
+    {name: 'rank', contract: scalar('number')}];
+  const property = (value, name) => ({property: {value, name}});
+  const field = name => ({field: name});
+  const member = name => property(field('neighbor'), name);
+  const projection = (id, expressions, ordering) => {
+    const control = structuredClone(program);
+    control.id += id;
+    const stage = control.stages[0];
+    stage.steps.push({from: 'out', derive: expressions},
+      {select: Object.keys(expressions)}, {sort: ordering, as: 'projected'});
+    stage.results.rows = {from: 'projected', fields: Object.keys(expressions)};
+    return JSON.stringify(control);
+  };
+  successes.push(
+    {name: 'nearest-json-member-control', format: 'json', text: projection('.member',
+      {label: field('label'), score: member('score')},
+      [{field: 'score', dir: 'desc', nulls: 'last'},
+        {field: 'label', dir: 'asc', nulls: 'first'}]),
+    results: result(memberRows, memberColumns)},
+    {name: 'nearest-source-member-case', format: 'aql-text',
+      text: `FROM queries AS q |> ${nearest} KEEP (q.note, c.label) AS neighbor
+        |> SELECT label, neighbor.SCORE AS score |> ORDER BY score DESC, label`,
+      results: result(memberRows, memberColumns)},
+    {name: 'nearest-json-key-member-control', format: 'json', text: projection('.key_members',
+      {request_id: property(member('query_key'), 'request_id'),
+        item_id: property(member('candidate_key'), 'item_id'), rank: member('rank')},
+      [{field: 'rank', dir: 'asc', nulls: 'first'}]),
+    results: result(keyRows, keyColumns)},
+    {name: 'nearest-source-key-member-case', format: 'aql-text',
+      text: `FROM queries AS q |> ${nearest} KEEP (q.note, c.label) AS neighbor
+        |> SELECT neighbor.QUERY_KEY.REQUEST_ID AS request_id,
+          neighbor.\`CaNdIdAtE_KeY\`.\`ItEm_Id\` AS item_id, neighbor.RANK AS rank
+        |> ORDER BY rank`, results: result(keyRows, keyColumns)},
+  );
   const refusals = [
+    {name: 'nearest-unknown-result-member', format: 'aql-text',
+      text: `FROM queries AS q |> ${nearest} AS neighbor |> SELECT neighbor.MISSING`},
     {name: 'nearest-dropped-input', format: 'aql-text',
       text: `FROM queries AS q |> ${nearest} AS neighbor |> SELECT q.note`},
     {name: 'nearest-result-name-collision', format: 'aql-text',
