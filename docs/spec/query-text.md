@@ -203,6 +203,26 @@ explicit physical-row frame, not an implicit RANGE frame or an added order
 guarantee. Interval and bound-value validation remain in the common checker;
 a start after the implicit upper boundary is rejected before Run admission.
 
+Grouped `MIN(DISTINCT expression)` and `MAX(DISTINCT expression)` retain the
+authored modifier in query syntax and lower to ordinary common MIN/MAX calls.
+Removing duplicate observations does not change these extrema in the admitted
+value domains. The common operation forbids a `distinct: true` modifier on
+MIN/MAX; the Frontend therefore omits that redundant modifier without adding a
+deduplication step or evaluating the operand again. Other aggregates in the
+same group still observe every input occurrence unless their own modifier
+requests DISTINCT. Arguments, per-call filters, grouping, HAVING, parameters,
+order and LIMIT/OFFSET retain their authored meaning. NULL observations are
+excluded, and empty/all-NULL groups produce nullable typed NULL.
+
+This selected behavior is anchored by the pinned GoogleSQL
+[`aggregation_12` and `aggregation_14` compliance cases](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/compliance/testdata/aggregation_queries.test).
+It applies to SQL grouped SELECT and Pipe AGGREGATE, including scalar aggregate
+expressions. It does not add new comparable domains, collation, NaN/infinity or
+NUMERIC/BIGNUMERIC behavior. DISTINCT analytic MIN/MAX remains an explicit
+unsupported profile: the existing explicit-frame implementation is not the
+separate default/unordered DISTINCT analytic contract. This connection also
+does not close the pre-existing COUNTIF DISTINCT or statistical DISTINCT gaps.
+
 The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
 `STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
 `STDDEV_SAMP`) lower to the existing common aggregate functions. They work in

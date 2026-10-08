@@ -854,8 +854,16 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('527460015f7b5021f104bddf356d629de4da58036886e1e28c03df78a52fddbf'),
     cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('73b3565c96d7cee01a72fcbb0a7ab76f876dd0745661df556a01f449660a9abe'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the original MIN MAX DISTINCT vector with its fixed dependency generation.
+  assert.equal(vector(pin('63ff6bfc27444dcfefa9b2eac663907c405a58042d681e8afe458f69ddd9356e'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('e40cd007bd1358901d5b312c0f8a9eb2ed3c16667aad81aeeeaa50b88a7d5d91'));
+  // Preserve the independently reviewed adopted main grammar and Run preimage.
+  assert.equal(vector(pin('a527c53f87782e495ab4e9e53bd4e32c9bb287eecae3887978ece9b908597736'),
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('1ab3973704c07a95422f01944bff0786c119e082a5a534f4854dcc20c286043f'));
+  assert.equal(current.run.run_definition_cid,
+    pin('eae3c3079613858817d49619cc7b72e87990e39995ab6373b3140125ffd2c6b6'));
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));

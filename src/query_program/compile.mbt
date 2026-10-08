@@ -1299,7 +1299,10 @@ fn lower_aggregate_resolved(
       )
     None => ()
   }
-  if call.distinct {
+  // Grouped extrema are unchanged by duplicate observations, including NULL
+  // exclusion and empty input. The common MIN/MAX operation therefore needs
+  // no distinct modifier or separate deduplication/evaluation pass.
+  if call.distinct && !(!analytic && (name == "min" || name == "max")) {
     entries.push(("distinct", construction.add(Bool(true))))
   }
   if name == "array_agg" || name == "string_agg" {
@@ -1426,6 +1429,12 @@ fn lower_analytic_call(
 ) -> @builder.Node raise Abort {
   match call.aggregate {
     Some(aggregate) => {
+      // DISTINCT analytic extrema require the separate default/unordered
+      // window profile; do not discard the modifier on an authored frame.
+      if aggregate.distinct &&
+        (aggregate.function_name == "MIN" || aggregate.function_name == "MAX") {
+        raise Abort(UnsupportedAnalytic)
+      }
       if call.window.frame is None {
         raise Abort(UnsupportedAnalytic)
       }
