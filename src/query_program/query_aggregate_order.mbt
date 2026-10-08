@@ -54,10 +54,12 @@ fn aggregate_order_matches_argument(
 }
 
 ///|
-// Aggregate-local order keys use the input scope, never SELECT siblings. A
-// static typed property path is a total projection of an admitted row: NULL
-// receivers propagate NULL and missing/non-object members fail common checking.
-// Do not hoist arbitrary calls or arithmetic out of aggregate demand here.
+// Aggregate-local order keys use the input scope, never SELECT siblings.
+// Typed parameters, static properties and numeric unary signs are total after
+// admission. The common checker validates receivers and numeric signatures;
+// the expression owner preserves NULL propagation and evaluates each operand
+// once. Do not hoist potentially failing calls or binary arithmetic out of
+// aggregate demand here.
 fn aggregate_order_fields(
   construction : Construction,
   call : @query.AggregateCall,
@@ -74,38 +76,41 @@ fn aggregate_order_fields(
       expression,
       @query.expression_root(expression),
     ).unwrap()
-    let mut explicit_property = false
+    let mut transformed = false
     while true {
       match root.kind {
         Parenthesized(child) =>
           root = @query.expression_node(expression, child).unwrap()
-        Property(child, _) => {
-          explicit_property = true
+        Property(child, _) | Unary("+" | "-", child) => {
+          transformed = true
           root = @query.expression_node(expression, child).unwrap()
         }
         _ => break
       }
     }
-    guard root.kind is Reference(path) else {
-      raise Abort(UnsupportedAggregate)
-    }
-    if !explicit_property {
-      if resolve(path) is Some(field) {
-        fields.push(field)
-        continue
+    match root.kind {
+      Reference(path) => {
+        if !transformed {
+          if resolve(path) is Some(field) {
+            fields.push(field)
+            continue
+          }
+        }
+        // Keep the original Property/unary AST. Do not concatenate members
+        // into a range path or substitute a signed key with its input column.
+        let mut receiver = transformed && resolve(path) is Some(_)
+        for length = 1; length < path.length(); length = length + 1 {
+          if resolve(path[:length].to_owned()) is Some(_) {
+            receiver = true
+            break
+          }
+        }
+        if !receiver {
+          raise Abort(UnknownColumn)
+        }
       }
-    }
-    // Explicit Property nodes keep their receiver AST. Do not concatenate
-    // members into a path that could instead resolve as a range qualifier.
-    let mut receiver = explicit_property && resolve(path) is Some(_)
-    for length = 1; length < path.length(); length = length + 1 {
-      if resolve(path[:length].to_owned()) is Some(_) {
-        receiver = true
-        break
-      }
-    }
-    if !receiver {
-      raise Abort(UnknownColumn)
+      ParameterReference(_) => ()
+      _ => raise Abort(UnsupportedAggregate)
     }
     let mut reused : String? = None
     for (previous, field) in evaluated {
