@@ -537,7 +537,8 @@ fn execute_timed_native_strategy_run(
         // The existing bounded consultation owns the immutable projection.
         // Its planning charge is part of this instrumented experiment.
         let normal = @env.get_env_var("ACTQL_NATIVE_HOST_PROFILE_SETTINGS")
-          is Some(_)
+          is Some(_) &&
+          empirical is None
         let now = match operational {
           Some((_, _, _, clock)) => clock.observe().unwrap()
           None =>
