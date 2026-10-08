@@ -119,9 +119,17 @@ EXCEPT and REPLACE use the same input snapshot. SET's current column and a
 retained range's original column remain separate values; SELECT and AS still
 end or replace ranges. Type inspection follows the actual lowered prefix and
 never adds a runtime probe, acquisition, Result or schema evidence. Existing
-range stars retain their range resolution. Arbitrary computed star receivers
-and GoogleSQL's ordered STRUCT contract remain unconnected coverage; they are
-not reinterpreted as Relation ranges.
+range stars retain their range resolution. A computed scalar expression with a
+closed object contract, for example `COALESCE(payload, other).*` or
+`(CASE WHEN payload IS NULL THEN other ELSE payload END).*`, uses the same
+field expansion and common type checker. The receiver is evaluated in an ordinary
+private derive once before its retained field projections; those private columns
+are removed by SELECT and never exported. EXCEPT/REPLACE still see the SELECT
+input snapshot. Already evaluated GROUP/QUALIFY fields use their existing slots,
+and ORDER reuse retains the original receiver expression and resolved scope.
+A scalar or unknown-field receiver is refused through the existing typed boundary.
+GoogleSQL's ordered/anonymous STRUCT contract remains unconnected coverage; a
+computed closed object is not reinterpreted as a Relation range.
 Direct Graph star and FULL JOIN chains retain explicit implementation gaps,
 not restrictions of the selected reference. Supported INNER/LEFT/RIGHT/CROSS
 joins expand unqualified star from their complete current visible row.

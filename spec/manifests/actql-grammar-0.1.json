@@ -80,7 +80,7 @@
   "expression_text_rules_sha256": "997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2",
   "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
   "structural_text_rules_sha256": "209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762",
-  "query_text_grammar_sha256": "a9065e539f56e2d8d57bbd4b9e813abf1ad5340dcfaa846517bbd22371959538",
-  "query_text_rules_sha256": "cf3c7ae714ecd006a8e350aa84d7ae4c322e7eb2d7a275db06078ffad0d9cee9",
-  "grammar_manifest_cid": "sha256:f403b42dd4a19e8a22629ba7f14f6bb6de754490194277e4f083ae0f08515bb5"
+  "query_text_grammar_sha256": "1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db",
+  "query_text_rules_sha256": "aadc03925405e78e008a50e3c84b66e8735e11f851b2e3a15ac1146a85e7b35e",
+  "grammar_manifest_cid": "sha256:5e830a0888c0b5d8f3d1d65dbfb84825c50da8071bb697f97df667c27cadc979"
 }
