@@ -1,3 +1,4 @@
+import {groupPropertyReceiverSuccesses, groupPropertyReceiverRefusals} from './group-property-receiver-source-input.mjs';
 import {distinctSignedOrderSuccesses, distinctSignedOrderRefusals} from './distinct-signed-order-source-input.mjs';
 import {distinctAggregateOrderSuccesses, distinctAggregateOrderRefusals} from './distinct-aggregate-order-source-input.mjs';
 import {analyticDistinctFrameSuccesses, analyticDistinctFrameRefusals} from './analytic-distinct-frame-source-input.mjs';
@@ -358,7 +359,7 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   : sqlGroupedSubexpressionOnly ? {successes: sqlGroupedSubexpressionSuccesses, refusals: sqlGroupedSubexpressionRefusals}
   : pipeAggregateExpressionOnly ? {successes: pipeAggregateExpressionSuccesses, refusals: pipeAggregateExpressionRefusals}
   : pipeAggregateOrderOnly ? {successes: pipeAggregateOrderSuccesses, refusals: pipeAggregateOrderRefusals}
-  : groupByAllOnly ? {successes: groupByAllSuccesses, refusals: groupByAllRefusals}
+  : groupByAllOnly ? {successes: [...groupByAllSuccesses, ...groupPropertyReceiverSuccesses], refusals: [...groupByAllRefusals, ...groupPropertyReceiverRefusals]}
   : groupPropertyOnly ? {successes: groupPropertySuccesses, refusals: groupPropertyRefusals}
   : havingProjectionOnly ? {successes: havingProjectionSuccesses, refusals: havingProjectionRefusals}
   : groupSelectScopeOnly ? {successes: groupSelectScopeSuccesses, refusals: groupSelectScopeRefusals}
@@ -402,6 +403,8 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...minMaxDistinctSuccesses);
   scopeInputs.refusals.push(...minMaxDistinctRefusals);
   scopeInputs.successes.push(...groupByAllSuccesses);
+  scopeInputs.successes.push(...groupPropertyReceiverSuccesses);
+  scopeInputs.refusals.push(...groupPropertyReceiverRefusals);
   scopeInputs.refusals.push(...groupByAllRefusals);
   scopeInputs.successes.push(...correlatedUnnestSuccesses);
   scopeInputs.refusals.push(...correlatedUnnestRefusals);
