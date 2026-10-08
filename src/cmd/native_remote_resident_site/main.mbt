@@ -972,6 +972,7 @@ priv struct StoppedReleaseRecovery {
   mut retained_input : Bool
   mut recorded_source : @publication.RecordedRunPublication?
   mut recorded_consumer : (String, String)?
+  mut completed_input_producer : (String, String)?
 }
 
 ///|
@@ -1043,6 +1044,7 @@ fn open_release_recovery(
     retained_input: false,
     recorded_source: None,
     recorded_consumer: None,
+    completed_input_producer: None,
   }
 }
 
@@ -1168,14 +1170,22 @@ fn recover_stopped_release(
         Ok(value) => value
         Err(_) => return false
       }
-      match
+      let process_hold = if owner.completed_input_producer is Some(_) &&
+        owner.retained_input {
+        // The completed-input cleanup Owner already admitted both original
+        // occurrences and the exact accepted consumer binding. No current
+        // compilation or executable input is needed to discharge this hold.
+        Ok(consumer_process_hold_identity(request))
+      } else {
         @resident_host.resident_holder_process_hold_identity(
           owner.journal,
           run_admission(matches),
           attempt,
           value,
           recorded_source=owner.recorded_source,
-        ) {
+        )
+      }
+      match process_hold {
         Ok(hold) => holds.push(hold)
         Err(_) => return false
       }
@@ -3917,6 +3927,12 @@ fn recover_release_command(
   let owner = open_release_recovery(matches, slot, identity)
   owner.recorded_source = recorded_source
   owner.recorded_consumer = recorded_consumer
+  owner.completed_input_producer = optional(
+    child, "completed-input-producer-attempt",
+  ).map(attempt => (attempt, required(child, "expect-input-producer-dispatch")))
+  if owner.completed_input_producer is Some(_) && recorded_source is Some(_) {
+    stop("release recovery conflicting cleanup roles")
+  }
   let mut cursor = ""
   while true {
     match owner.journal.output_report_after(cursor) {
@@ -4343,6 +4359,8 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("publication-custody-root"),
         @argparse.OptionArg("consumer-attempt"),
         @argparse.OptionArg("expect-consumer-dispatch"),
+        @argparse.OptionArg("completed-input-producer-attempt"),
+        @argparse.OptionArg("expect-input-producer-dispatch"),
       ]),
       @argparse.Command("retry-output-report", options=[
         @argparse.OptionArg("intent-cid", required=true),
