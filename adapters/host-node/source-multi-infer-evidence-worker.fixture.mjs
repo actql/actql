@@ -23,7 +23,7 @@ const {openInstalledRemoteHttpHost} = await import(runtime?.httpHost ?? '../../p
 const {createNodeHostObservability} = await import(runtime?.observation ?? '../../packages/otel-node/index.mjs');
 const {providerBindingOriginals} = await import(runtime?.providerFixture ?? '../../scripts/fixtures/model-provider-binding-fixture.mjs');
 const {canonical} = await import(runtime?.inferFixture ?? '../../scripts/fixtures/installed-infer-fixture.mjs');
-const {program, modelConfiguration, sourceEnvironment, scenarios, instructionsA} =
+const {program, modelConfiguration, sourceEnvironment, scenarios, instructionsA, expectedColumns} =
   await import(runtime?.sourceInferFixture ?? '../../scripts/fixtures/source-multi-infer-evidence.mjs');
 const checked = result => {assert.equal(result.$tag, 1); return result._0;};
 const [root, transport, scenarioName = 'unicode', observationMode = 'disabled', phase = 'complete'] = process.argv.slice(2);
@@ -208,7 +208,10 @@ try {
   }
   if (terminal.status !== 'succeeded') console.error(inspect({terminal, observed, calls}, {depth: 8}));
   assert.equal(terminal.status, 'succeeded');
-  assert.deepEqual(await run.result('answer').all(), scenario.expected);
+  const result = run.result('answer');
+  const description = await result.describe();
+  assert.deepEqual(description.columns, expectedColumns);
+  assert.deepEqual(await result.all(), scenario.expected);
   assert.equal(calls.length, 4);
   assert.equal(readLines(sourcePath).length, 1);
   if (scenarioName === 'unicode' && phase === 'complete') {
@@ -243,7 +246,7 @@ try {
   await writeFile(join(root, 'recovery.json'), JSON.stringify({subject, manifests, pid: process.pid,
     scenario: scenarioName, observationMode, otlpRequests, originalSourcePolicy,
     modelTaskCids: installed.tasks.map(task => task.contract_cid),
-    calls, sourceCalls: readLines(sourcePath).length, terminal, ref: run.ref, revision: runtime?.revision}));
+    calls, sourceCalls: readLines(sourcePath).length, terminal, description, ref: run.ref, revision: runtime?.revision}));
 } finally {
   await client?.close();
   if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}

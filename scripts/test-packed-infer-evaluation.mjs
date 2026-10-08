@@ -84,7 +84,7 @@ async ({root, directory, run, recordTarball}) => {
   args[1] = '--test-reporter=' + pathToFileURL(join(root, 'scripts/test-execution-reporter.mjs')).href;
   const stdout = run(process.execPath, args, {cwd: root, env: runtimeEnv, timeout: 600000});
   const checked = assertTestExecution('node', process.execPath, args, {status: 0, stdout});
-  assert.equal(checked.counts.passed, 8, 'Single and Source-backed multiple INFER must execute through both transports and actual observability modes');
+  assert.equal(checked.counts.passed, 12, 'Single, Source-backed and interrupted original-Run INFER cases must execute through the declared public boundaries');
   console.log(stdout.trimEnd());
   const receipts = [];
   for (const transport of ['local', 'https']) for (const mode of ['disabled', 'sampling-zero']) {
@@ -97,7 +97,8 @@ async ({root, directory, run, recordTarball}) => {
     assert.equal(new Set(receipt.evaluatorProcessIds).size, 3);
     receipts.push(receipt);
   }
-  const sourceReceipts = [];
+  const {expectedColumns} = await import(pathToFileURL(join(root, 'scripts/fixtures/source-multi-infer-evidence.mjs')));
+  const sourceReceipts = [], recoveryReceipts = [];
   for (const transport of ['local', 'https']) {
     const restored = JSON.parse(await readFile(join(directory, `source-evidence-${transport}-disabled.json`), 'utf8'));
     assert.equal(restored.revision, before.revision); assert.equal(restored.complete, true);
@@ -111,9 +112,24 @@ async ({root, directory, run, recordTarball}) => {
     assert(comparison.runs.every(run => run.revision === before.revision && run.sourceCalls === 1 &&
       run.calls.length === 4 && run.otlpRequests === 0 && run.terminal.status === 'succeeded'));
     sourceReceipts.push({transport, restored, comparison});
+    for (const boundary of ['first-saved', 'second-approval']) {
+      const recovery = JSON.parse(await readFile(join(directory, `source-recovery-${transport}-${boundary}.json`), 'utf8'));
+      assert.equal(recovery.revision, before.revision);
+      assert.equal(recovery.complete, true);
+      assert.equal(recovery.transport, transport); assert.equal(recovery.boundary, boundary);
+      assert.equal(recovery.status, 'succeeded');
+      assert.notEqual(recovery.firstPid, recovery.restoredPid);
+      assert.equal(recovery.sourceCalls, 1); assert.equal(recovery.providerCalls, 4);
+      assert.equal(new Set(recovery.originalSlots).size, 2);
+      assert.deepEqual(recovery.columns, expectedColumns);
+      assert.equal(recovery.restoredItems.length, 4);
+      assert.equal(new Set(recovery.evaluatorPids).size, 4);
+      assert.equal(recovery.otlpRequests, 0);
+      recoveryReceipts.push(recovery);
+    }
   }
   assert.deepEqual(checkoutState(repository), before);
   await writeFile(join(directory, 'evaluation-summary.json'), JSON.stringify({revision: before.revision,
     complete: true, receipts: receipts.map(({transport, observationMode, physicalCalls, observationRecords}) =>
-      ({transport, observationMode, physicalCalls, observationRecords})), sourceReceipts}, null, 2) + '\n');
+      ({transport, observationMode, physicalCalls, observationRecords})), sourceReceipts, recoveryReceipts}, null, 2) + '\n');
 });

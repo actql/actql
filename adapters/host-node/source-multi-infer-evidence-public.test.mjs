@@ -42,7 +42,7 @@ async function executeHost(root, transport, scenario = 'unicode', observationMod
 }
 
 async function evaluateOriginalInventory(sink, saved) {
-  const associations = [], attempts = new Set();
+  const associations = [], attempts = new Set(), evaluatorPids = new Set();
   for (const target of ['second_assessment', 'first_assessment']) {
     const receipt = await sink.lookup(saved.subject, target);
     assert.equal(receipt.manifest.status, 'complete');
@@ -67,7 +67,7 @@ async function evaluateOriginalInventory(sink, saved) {
         assert.deepEqual(JSON.parse(item.references.typedInput.policy.wire).source_data_policy_cids,
           [saved.originalSourcePolicy]);
         return runEvaluatorProcess({job, resolvedEvidence, deadline: job.deadline,
-          onProcess(pid) {assert.notEqual(pid, process.pid);}});
+          onProcess(pid) {assert.notEqual(pid, process.pid); evaluatorPids.add(pid);}});
       });
       assert.equal(reply.score, 1);
     }
@@ -77,7 +77,20 @@ async function evaluateOriginalInventory(sink, saved) {
   assert.equal(attempts.size, 4);
   assert.equal(sink.pendingBytes(), 0);
   assert.equal(sink.cleanupPending(), false);
-  return associations;
+  assert.equal(evaluatorPids.size, 4);
+  return {associations, evaluatorPids: [...evaluatorPids]};
+}
+
+async function recordInterruptedAcceptance({transport, boundary, root, firstPid, restoredPid, saved, evaluated}) {
+  if (runtime === undefined) return;
+  assert.equal(saved.revision, runtime.revision);
+  await writeFile(join(runtime.evidenceDirectory, `source-recovery-${transport}-${boundary}.json`),
+    JSON.stringify({revision: runtime.revision, transport, boundary, root, firstPid, restoredPid,
+      ref: saved.ref, status: saved.terminal.status, sourceCalls: saved.sourceCalls,
+      providerCalls: saved.calls.length, originalSlots: saved.calls.slice(0, 2).map(call => call.slotCid),
+      columns: saved.description.columns,
+      restoredItems: evaluated.associations, evaluatorPids: evaluated.evaluatorPids,
+      observationMode: saved.observationMode, otlpRequests: saved.otlpRequests, complete: true}, null, 2) + '\n');
 }
 
 for (const transport of ['local', 'https']) {
@@ -107,7 +120,9 @@ for (const transport of ['local', 'https']) {
     const sink = await createCaptureSink({directory: join(root, 'evidence'),
       destination: 'local:source-multi-infer-evaluator', maxBytes: 131072,
       maxPendingBytes: 1048576, retentionMs: 300000, authorize: () => true});
-    await evaluateOriginalInventory(sink, saved);
+    const evaluated = await evaluateOriginalInventory(sink, saved);
+    await recordInterruptedAcceptance({transport, boundary: 'second-approval', root,
+      firstPid, restoredPid, saved, evaluated});
     complete = true;
   });
 
@@ -140,9 +155,11 @@ for (const transport of ['local', 'https']) {
     const sink = await createCaptureSink({directory: join(root, 'evidence'),
       destination: 'local:source-multi-infer-evaluator', maxBytes: 131072,
       maxPendingBytes: 1048576, retentionMs: 300000, authorize: () => true});
-    await evaluateOriginalInventory(sink, restored);
+    const evaluated = await evaluateOriginalInventory(sink, restored);
     assert.equal((await readFile(join(root, 'provider-calls.jsonl'), 'utf8')).trim().split('\n').length, 4);
     assert.equal((await readFile(join(root, 'source-calls.jsonl'), 'utf8')).trim().split('\n').length, 1);
+    await recordInterruptedAcceptance({transport, boundary: 'first-saved', root,
+      firstPid, restoredPid, saved: restored, evaluated});
     complete = true;
   });
 }
@@ -174,7 +191,7 @@ for (const transport of ['local', 'https']) {
         (facts.purpose !== 'external_evaluation' || sendAllowed)});
     // Reuse the same identity and reversed-delivery checks after either
     // completed-Run restoration or interrupted original-Run continuation.
-    const associations = await evaluateOriginalInventory(sink, saved);
+    const {associations} = await evaluateOriginalInventory(sink, saved);
     const receipt = await sink.lookup(subject, 'first_assessment');
     const item = receipt.manifest.items[0];
     const request = {subject, attemptCid: item.attemptCid, references: item.references};
