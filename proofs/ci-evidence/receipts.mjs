@@ -74,6 +74,7 @@ export function observationUnits(action, output, status) {
     const result = parseTestExecution('moon', output);
     assert(result.success && result.counts.failed === 0 && result.counts.tests === result.counts.passed);
     assert(result.counts.passed >= action.minimumUnits, 'Zero/incomplete executed action');
+    if (action.id.startsWith('events-connection-')) observeBridgeCases(output, status);
     return result.counts.passed;
   }
   if (action.id === 'model' || action.id === 'events-model') {
@@ -249,3 +250,4 @@ export async function readOriginReceipts({archive, artifactId, actions, expected
 export async function readOriginReceipt({action, ...options}) {
   return (await readOriginReceipts({...options, actions: [action]})).get(action.id);
 }
+import {observeBridgeCases} from '../events-bridge/observations.mjs';

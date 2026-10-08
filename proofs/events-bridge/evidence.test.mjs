@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {graph} from '../bounded-session/evidence.mjs';
 import {bridgeClaim, bridgeModelAction, bridgeSnapshot, bridgeSuite, checkBridgeRoute, validateBridgeEvidence} from './evidence.mjs';
+import {bridgeCases, observeBridgeCases} from './observations.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 test('Bridge source membership includes additions and rejects missing/symlink inputs, excluding ignored build outputs', () => {
@@ -41,7 +42,7 @@ function fixture() {
       'adapter-js': {...base, command: ['moon', 'test', 'src/connectors/local', '--target', 'js', '--deny-warn']},
       'events-model': {...base, target: 'model', artifacts: {}, count: 16,
         command: bridgeModelAction.command, bridgeSourceDigest: proofSource.digest},
-      'events-connection-js': {...base, command: ['moon', 'test', bridgeSuite.fixture, '--target', 'js', '--deny-warn']},
+      'events-connection-js': {...base, cases: structuredClone(bridgeCases), command: ['moon', 'test', bridgeSuite.fixture, '--target', 'js', '--deny-warn']},
     }};
   return {report: structuredClone(report), current, proofSource};
 }
@@ -60,6 +61,9 @@ test('reviewed real Bridge route and conditional scope retain direct Session and
 for (const [name, change] of [
   ['missing model', f => {delete f.report.runs['events-model'];}],
   ['missing actual connection', f => {delete f.report.runs['events-connection-js'];}],
+  ['missing case observations', f => {delete f.report.runs['events-connection-js'].cases;}],
+  ['partial case observations', f => {f.report.runs['events-connection-js'].cases.pop();}],
+  ['widened case observations', f => {f.report.runs['events-connection-js'].cases[0].rows = 1;}],
   ['zero execution', f => {f.report.runs['events-connection-js'].count = 0;}],
   ['failed execution', f => {f.report.runs['events-connection-js'].exit = 1;}],
   ['wrong target', f => {f.report.runs['events-connection-js'].target = 'native';}],
@@ -97,4 +101,28 @@ for (const [label, change] of [
   const {report, current, proofSource} = fixture();
   change(report.runs.lean);
   assert.throws(() => validateBridgeEvidence(report, current, proofSource, 'js'), /Wrong proof artifact/);
+});
+
+const observedCases = [
+  {case: 'empty-number', clock: 'number', rows: 0},
+  {case: 'nullable-number', clock: 'number', rows: 2},
+  {case: 'duplicate-payload-number', clock: 'number', rows: 2},
+  {case: 'timestamp-original-text', clock: 'timestamp', rows: 1},
+];
+const observationLog = cases => cases.map(value => 'ACTQL_EVENTS_BRIDGE:' + JSON.stringify(value)).join('\n');
+test('actual Bridge scopes require four distinct fully observed authored cases', () => {
+  const output = observationLog(observedCases);
+  assert.deepEqual(observeBridgeCases(output, 0), observedCases);
+  assert.deepEqual(observeBridgeCases(output.replaceAll('\n', '\r\n'), 0), observedCases);
+  assert.throws(() => observeBridgeCases(output, 1), /Failed Bridge observation/u);
+  assert.throws(() => observeBridgeCases('Total tests: 1, passed: 1, failed: 0.', 0));
+  for (let i = 0; i < observedCases.length; i++) {
+    assert.throws(() => observeBridgeCases(observationLog(observedCases.filter((_, j) => i !== j)), 0));
+  }
+  for (const change of [
+    cases => cases.push(cases[0]), cases => cases.reverse(),
+    cases => { cases[1].rows = 0; }, cases => { cases[3].clock = 'number'; },
+    cases => { cases[0].case = 'arbitrary'; }, cases => { cases[0].unchecked = true; },
+  ]) { const cases = structuredClone(observedCases); change(cases); assert.throws(() => observeBridgeCases(observationLog(cases), 0)); }
+  assert.throws(() => observeBridgeCases(output + '\nACTQL_EVENTS_BRIDGE:invalid', 0));
 });
