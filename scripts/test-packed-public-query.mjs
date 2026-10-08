@@ -108,6 +108,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/implicit-property-source-input.mjs', 'implicit-property-source-input.mjs'],
   ['scripts/fixtures/computed-object-property-source-input.mjs', 'computed-object-property-source-input.mjs'],
   ['scripts/fixtures/group-property-source-input.mjs', 'group-property-source-input.mjs'],
+  ['scripts/fixtures/group-by-all-source-input.mjs', 'group-by-all-source-input.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/graph-source-input.mjs', 'graph-source-input.mjs'],
   ['scripts/fixtures/graph-row-source-input.mjs', 'graph-row-source-input.mjs'],
@@ -385,6 +386,9 @@ if (process.argv.includes('--pipe-aggregate-expression-only')) {
 if (process.argv.includes('--pipe-aggregate-order-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_AGGREGATE_ORDER_ONLY = '1';
 }
+if (process.argv.includes('--group-by-all-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUP_BY_ALL_ONLY = '1';
+}
 if (process.argv.includes('--group-property-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_PROPERTY_ONLY = '1';
 }
@@ -567,7 +571,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--set-by-name-list-only', 
   '--graph-any-direction-only',
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
-  '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
+  '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
@@ -628,6 +632,7 @@ if (process.argv.includes('--pipe-join-ranges-only')) return;
 if (process.argv.includes('--star-replace-only')) return;
 if (process.argv.includes('--qualify-only')) return;
 if (process.argv.includes('--named-window-only')) return;
+if (process.argv.includes('--group-by-all-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (process.argv.includes('--select-all-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--set-by-name-list-only') || process.argv.includes('--short-rows-only') || process.argv.includes('--order-window-only') || process.argv.includes('--window-scalar-only') || process.argv.includes('--analytic-string-agg-only') || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
@@ -645,7 +650,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-any-direction-only',
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
-  '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
+  '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
@@ -670,6 +675,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--graph-any-direction-only') ||
     process.argv.includes('--graph-abbreviated-only') ||
     process.argv.includes('--graph-quantifier-forms-only') ||
+    process.argv.includes('--group-by-all-only') ||
     process.argv.includes('--group-property-only') ||
     process.argv.includes('--pipe-aggregate-order-only') ||
     process.argv.includes('--pipe-aggregate-expression-only') ||
