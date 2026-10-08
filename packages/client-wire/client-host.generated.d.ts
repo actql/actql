@@ -184,6 +184,7 @@ export type WireSubmissionOutcomeShape = Readonly<{
   nonce: string;
 }>;
   intentCid: string;
+  checkObservation?: WireCheckOutcomeShape;
   problem: Readonly<{
   code: string;
   classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
@@ -216,6 +217,7 @@ export type WireSubmissionOutcomeShape = Readonly<{
   nonce: string;
 }>;
   intentCid: string;
+  checkObservation?: WireCheckOutcomeShape;
   problem: Readonly<{
   code: string;
   classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
