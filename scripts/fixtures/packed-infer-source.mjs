@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
-import {appendFileSync, readFileSync} from 'node:fs';
+import {appendFileSync, readFileSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -94,6 +94,16 @@ try {
       installation: {directory: root, authorization,
         modelInstallation: installation, registerModelProviders}});
   }
+  // Persist the original epoch-bound identity before submit/capture. Replay
+  // must use this reference, never create new work under a reconnect's epoch.
+  const referenceFile = join(root, 'submission-ref.json');
+  const submissionRef = phase === 'replay'
+    ? JSON.parse(readFileSync(referenceFile, 'utf8'))
+    : client.newSubmission({nonce: requestId});
+  if (phase !== 'replay') {
+    writeFileSync(referenceFile, JSON.stringify(submissionRef) + '\n',
+      {mode: 0o600, flag: 'wx'});
+  }
   const journalCount = () => {
     const journal = new DatabaseSync(join(root, 'requests', 'client-requests.sqlite3'),
       {readOnly: true});
@@ -102,17 +112,22 @@ try {
   };
   if (phase === 'refusal') {
     const before = journalCount();
-    await assert.rejects(client.startSource(source, {format: 'aql-text', requestId}), error => {
+    let outcome;
+    await assert.rejects(client.startSource(source, {format: 'aql-text', submissionRef}), error => {
+      assert.equal(error.code, 'SubmissionNotAccepted');
+      outcome = error.outcome;
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.deepEqual(outcome.submissionRef, submissionRef);
       assert.ok(['ClientProgramInvalidInput', 'ClientProgramRejected',
-        'ClientProgramUnsupported'].includes(error.code), error.code);
+        'ClientProgramUnsupported'].includes(outcome.problem.code), outcome.problem.code);
       return true;
     });
     assert.equal(calls, 0);
     assert.equal(journalCount(), before, 'refusal must not accept a Run');
-    assert.deepEqual(await client.lookupRequest(requestId), {kind: 'not_found'});
+    assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
     console.log(JSON.stringify({transport, phase, caseName, calls, admittedRuns: 0}));
   } else {
-    const run = await client.startSource(source, {format: 'aql-text', requestId});
+    const run = await client.startSource(source, {format: 'aql-text', submissionRef});
     const signal = AbortSignal.timeout(60_000);
     const terminal = await run.wait({signal});
     console.log(JSON.stringify({transport, phase, caseName, observation: 'first-wait',
@@ -135,8 +150,12 @@ try {
     const attached = await client.attach(run.ref);
     assert.deepEqual(await attached.result('answer').describe({signal}), description);
     assert.deepEqual(await attached.result('answer').all({signal}), fixture.rows);
-    const resent = await client.startSource(source, {format: 'aql-text', requestId});
+    const resent = await client.startSource(source, {format: 'aql-text', submissionRef});
     assert.deepEqual(resent.ref, run.ref);
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, run.ref);
     assert.deepEqual(await resent.result('answer').all({signal}), fixture.rows);
     assert.equal(calls, phase === 'replay' ? 0 : fixture.calls);
     const journal = new DatabaseSync(join(root, 'requests', 'client-requests.sqlite3'),

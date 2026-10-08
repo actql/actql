@@ -100,3 +100,32 @@ I/O. External paid model calls are unnecessary. This selected public execution
 is pending; prepared fixtures and successful lowering are not execution proof.
 Graph public acceptance, external Graph provenance and the genuine typed
 NEAREST Source installation remain separate unfinished obligations.
+
+## First clean-head public attempt and integration
+
+`run-0P1JeG` normally generated all five packages from clean
+`29d09ec2028cfd3eac08733bf1205c60b55ae1fc`. Its external manifest retains that
+revision and all five SHA-256 digests. The consumer completed its 12 preliminary
+profile tests, then the first Local minimal source failed before Host submit:
+the old fixture supplied a bare `requestId`, which the current SDK refuses with
+`SubmissionReferenceRequired`. No INFER execution or public rows were observed.
+The exact stderr is retained in `public-query-evidence-H48Qzo/006.stderr.log`.
+
+The fixture now uses existing `newSubmission`/`lookupSubmission` only. It saves
+the original epoch-bound reference before submission, reuses it for resends, and
+reads the same retained identity in the new-process capture replay. Confirmed
+input refusal checks the common not_accepted outcome/problem, zero accepted Run
+records and zero Model calls. No old request-ID fallback is retained.
+
+Main `f299df8092021f3f8fe5d3072a57a512c9dd7872` is adopted through the updated
+Graph parent `8ef34a5de5568cbd45cc586900b7af91f4e0ca7f`, merged as
+`bd1fadfb26f1dec8c9892517594e4e6d8e633c85`. The conflict combined the INFER
+owner/input arguments with the bounded prefix importer; it preserved main's
+member scan, copy and receiver work tests. Old package evidence remains tied to
+its source revision. Fresh integrated-source public execution is still required.
+
+`run-rLnSRG` passed 36/36 selected JS tests after this integration: INFER member,
+existing INFER/binder callers and all retained member-budget controls. RelA Node
+source freshness and the updated public fixture's Node syntax check also passed.
+This is evidence of the integrated working revision; it does not relabel the
+earlier package failure or establish Local/HTTPS rows.
