@@ -1,5 +1,7 @@
 // Independent Programs, contracts and rows authored from typed-access and
 // per-call collection ordering. No runtime output generates these expectations.
+import {aggregateOrderParameterSuccesses, aggregateOrderParameterRefusals}
+  from './aggregate-order-parameter-source-input.mjs';
 const number = {type: 'number', nullable: false};
 const nullableNumber = {...number, nullable: true};
 const string = {type: 'string', nullable: true};
@@ -155,3 +157,5 @@ export const aggregatePropertyOrderExecutionFailures = [{
   text: data + "SELECT STRING_AGG(IF(id / (id - id) = 0, name, name), '|' ORDER BY payload.score, id) AS names FROM objects",
   parameterDeclarations, parameters, sourceReadSessionCount: 1, resultNames: ['answer'],
 }];
+aggregatePropertyOrderSuccesses.push(...aggregateOrderParameterSuccesses);
+aggregatePropertyOrderRefusals.push(...aggregateOrderParameterRefusals);

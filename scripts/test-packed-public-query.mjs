@@ -94,6 +94,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-union-source-input.mjs', 'graph-union-source-input.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
+  ['scripts/fixtures/aggregate-order-parameter-source-input.mjs', 'aggregate-order-parameter-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-source-input.mjs', 'aggregate-property-source-input.mjs'],
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
