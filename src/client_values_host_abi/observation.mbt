@@ -43,7 +43,7 @@ pub fn client_values_host_observation_budget(
   saved_max_bytes : Int,
   saved_records : Int,
   saved_bytes : Int,
-  saved_fact : String?,
+  saved_fact_hashes : Array[String],
 ) -> Result[@observation.ObservationBudget, @observation.ObservationIssue] {
   let saved = saved_scope_key.map(scope_key => @observation.ObservationBudgetSnapshot::{
     scope_key,
@@ -52,7 +52,7 @@ pub fn client_values_host_observation_budget(
     max_bytes: saved_max_bytes,
     records: saved_records,
     bytes: saved_bytes,
-    last_fact: saved_fact,
+    fact_hashes: saved_fact_hashes,
   })
   @observation.open_observation_budget(
     scope, request_key, max_records, max_bytes, fresh_request, saved,
@@ -77,7 +77,7 @@ pub fn client_values_host_charge_observation(
 #export_name("clientValuesHostObservationBudgetSnapshot")
 pub fn client_values_host_observation_budget_snapshot(
   budget : @observation.ObservationBudget,
-) -> (String, String, Int, Int, Int, Int, String?) {
+) -> (String, String, Int, Int, Int, Int, Array[String]) {
   let saved = @observation.observation_budget_snapshot(budget)
   (
     saved.scope_key,
@@ -86,6 +86,6 @@ pub fn client_values_host_observation_budget_snapshot(
     saved.max_bytes,
     saved.records,
     saved.bytes,
-    saved.last_fact,
+    saved.fact_hashes,
   )
 }

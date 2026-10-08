@@ -23,7 +23,7 @@ pub(all) struct ObservationBudgetSnapshot {
   max_bytes : Int
   records : Int
   bytes : Int
-  last_fact : String?
+  fact_hashes : Array[String]
 } derive(Eq, Debug)
 
 ///|
@@ -34,7 +34,21 @@ struct ObservationBudget {
   max_bytes : Int
   mut records : Int
   mut bytes : Int
-  mut last_fact : String?
+  fact_hashes : Array[String]
+}
+
+///|
+fn valid_fact_hash(text : String) -> Bool {
+  if text.length() != 64 {
+    return false
+  }
+  for index in 0..<64 {
+    let char = text[index]
+    if !(char >= '0' && char <= '9') && !(char >= 'a' && char <= 'f') {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -74,12 +88,12 @@ pub fn open_observation_budget(
     max_bytes > 1048576 {
     return Err(InvalidObservationBudget)
   }
-  let (records, bytes, last_fact) = match saved {
+  let (records, bytes, fact_hashes) = match saved {
     None => {
       if !fresh_request {
         return Err(ObservationBudgetUnavailable)
       }
-      (0, 0, None)
+      (0, 0, [])
     }
     Some(saved) => {
       if fresh_request ||
@@ -95,14 +109,28 @@ pub fn open_observation_budget(
         saved.bytes > max_bytes ||
         (saved.records == 0 && saved.bytes != 0) ||
         (saved.records > 0 && saved.bytes < saved.records) ||
-        (saved.records == 0 && saved.last_fact != None) ||
-        !valid_fact(saved.last_fact) {
+        saved.fact_hashes.length() > saved.records {
         return Err(ObservationBudgetUnavailable)
       }
-      (saved.records, saved.bytes, saved.last_fact)
+      let hashes : Array[String] = []
+      for hash in saved.fact_hashes {
+        if !valid_fact_hash(hash) || hashes.contains(hash) {
+          return Err(ObservationBudgetUnavailable)
+        }
+        hashes.push(hash)
+      }
+      (saved.records, saved.bytes, hashes)
     }
   }
-  Ok({ scope, request_key, max_records, max_bytes, records, bytes, last_fact, })
+  Ok({
+    scope,
+    request_key,
+    max_records,
+    max_bytes,
+    records,
+    bytes,
+    fact_hashes,
+  })
 }
 
 ///|
@@ -122,7 +150,17 @@ pub fn charge_observation(
   if record_bytes < 1 || record_bytes > 4096 || !valid_fact(fact) {
     return Err(ObservationRecordLimit)
   }
-  if fact != None && fact == budget.last_fact {
+  // At most max_records fixed-width digests are retained. Raw diagnostic
+  // identities are not persisted; fact-free records remain individually charged.
+  let hash = match fact {
+    None => None
+    Some(text) =>
+      match @sha256.text_hex(text) {
+        Ok(hash) => Some(hash)
+        Err(_) => return Err(ObservationRecordLimit)
+      }
+  }
+  if hash is Some(value) && budget.fact_hashes.contains(value) {
     return Ok(ObservationRepeated)
   }
   if budget.records >= budget.max_records ||
@@ -131,8 +169,8 @@ pub fn charge_observation(
   }
   budget.records = budget.records + 1
   budget.bytes = budget.bytes + record_bytes
-  if fact != None {
-    budget.last_fact = fact
+  if hash is Some(value) {
+    budget.fact_hashes.push(value)
   }
   Ok(ObservationCharged)
 }
@@ -148,6 +186,6 @@ pub fn observation_budget_snapshot(
     max_bytes: budget.max_bytes,
     records: budget.records,
     bytes: budget.bytes,
-    last_fact: budget.last_fact,
+    fact_hashes: budget.fact_hashes.copy(),
   }
 }
