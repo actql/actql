@@ -138,5 +138,5 @@ for (const [index, query] of [
   'SELECT DISTINCT payload.score AS score FROM objects ORDER BY objects.id',
 ].entries()) {
   distinctOrderRefusals.push({...receiverCase('unselected-' + index, query),
-    expectedCode: 'ClientProgramInvalidInput'});
+    expectedCode: 'ClientProgramImplementationLimit'});
 }

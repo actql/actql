@@ -108,3 +108,23 @@ body, without assigning earlier evidence to that run. CI, other targets, full
 Core and other public cohorts remain unverified. Broader STRUCT star and other
 Frontend coverage gaps remain separate; this repair does not close the overall
 Frontend objective.
+
+## Public attempt and refusal-code correction
+
+The clean `48ef9e99dce686562ecacca0b9ee0640cab355e3` normal five-package run
+`run-0nYfZT` reached all **20 Local positive cases** (11 existing and nine new).
+It then failed the new refusal-code assertion; HTTPS and completed refusal
+acceptance were not reached. Preserve the original failed evidence at
+`worktrees/.codex-scratch/public-query-evidence-iid0zb`, including
+`010.stdout.log`, `010.stderr.log` and the failed summary. The successful
+positive lines do not establish a completed campaign.
+
+The fixture incorrectly expected `ClientProgramInvalidInput`. The exact
+MoonBit lowerer diagnostic is `UnsupportedOrdering`. The existing Check owner
+projects it as `Limit("implementation_limit")` in `client_check.mbt`, and the
+preparation adapter projects that check failure to
+`ClientProgramImplementationLimit`. Correct all four expectations to that
+existing public contract. This correction is based on the owner mapping, not a
+weakened refusal or changed row expectation. Product code, ceilings, Source
+inputs and independent expected results remain unchanged. The next clean-SHA
+normal-pack campaign must verify all refusals and both transports.
