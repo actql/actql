@@ -38,6 +38,7 @@ priv enum ComputationEvidencePhase {
   )
   Rows(Int, CapturedResultSnapshotPreparation)
   Suffix
+  SuffixCheck(ComputationSuffixPreparation)
   Done
 }
 
@@ -258,11 +259,37 @@ fn ComputationEvidenceCheck::step(
           }
         }
       }
-    Suffix =>
-      match computation_evidence_suffix(inputs, self.prelude.unwrap()) {
-        Ok(_) => self.phase = Done
+    Suffix => {
+      if self.max_workspace - self.live < 16 {
+        return Err(EvidenceEncoding)
+      }
+      let prelude = self.prelude.unwrap()
+      self.phase = SuffixCheck(
+        start_computation_suffix(
+          {
+            context: prelude.effect_context,
+            program: prelude.program,
+            external_model_cids: prelude.external_model_cids,
+            preview: inputs.preview,
+            max_wire_bytes: inputs.max_wire_bytes,
+            max_nodes: inputs.max_nodes,
+            max_depth: inputs.max_depth,
+          },
+          self.max_workspace - self.live,
+        ),
+      )
+    }
+    SuffixCheck(child) => {
+      let (done, _) = match child.advance(1) {
+        Ok(result) => result
         Err(issue) => return Err(issue)
       }
+      self.peak = Int::max(self.peak, self.live + child.peak)
+      if done {
+        child.finish().unwrap()
+        self.phase = Done
+      }
+    }
     Done => ()
   }
   Ok(())
@@ -310,6 +337,7 @@ pub fn ComputationEvidenceCheck::cancel(
   self.closed = true
   match self.phase {
     PreludeCheck(child) => child.cancel()
+    SuffixCheck(child) => child.cancel()
     ContextHash(cursor, _) => @json.cancel_emit(cursor)
     Rows(_, child) => child.cancel()
     _ => ()

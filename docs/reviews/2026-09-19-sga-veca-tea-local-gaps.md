@@ -7107,3 +7107,36 @@ normalization and allocation latency remain distinct synchronous boundaries.
 Blocking convenience callers share the algorithm but remain blocking.
 Effectful asynchronous commit, Native/direct, all-target and packed/HTTPS
 acceptance are not established here. This is not whole-Local completion.
+
+### Resumed authoring and Model evidence suffix (2026-10-08)
+
+The computation validation owner now polls authoring identity and each Model
+identity/listed reference, then uses the existing deferred bounded tuple sorter
+for external observation multiset reconciliation. Exact position, multiplicity
+and typed refusal rules remain unchanged. Tuple and sort-index capacity is
+reserved before append. Cancellation retires private hash/sort state without
+mutating borrowed inventories or releasing Store custody.
+
+The [suffix evidence record](2026-10-08-local-bounded-evidence-suffix.md)
+binds common JS 274/274, selected runtime build and Node 11/11 to
+`88e5751b81aba21b29e170679a735cf29c1bd2e5`. The strengthened actual Host
+suffix cancellation case passed 1/1 at
+`a89c992774229434d7e988cb62c71db4dcab1a36`; compiled inputs are identical.
+The normal producer and both consumers retain exact Named Result content and
+order. Positive suffix hash progress precedes abort; no publication, no extra
+Compute and final resource reclamation remain asserted.
+
+Independent private accounting fixes 98 control transitions at quantum 1, 7
+and 64, and 48/47 exact/one-short slots for four Model/External entries.
+Empty evidence, changed identities, reference order, multiplicity and partial
+hash/sort/compare cancellation have separate typed expectations. These are
+not generic physical latency or whole-Compute work guarantees.
+
+The child depends on unmerged #948 and normally adopts main
+`5f8937a511da19648f63b99cf406390019966de0` without overlapping production
+changes. Capture-inventory comparison, issuance preflight/inventories, scalar
+schema checks and normalization remain synchronous boundaries. Blocking APIs
+remain blocking; Effectful asynchronous commit, all-target and packed/HTTPS
+acceptance remain unverified. Historical suffix descriptions are not current
+claims about the newly connected continuation. Whole-Local completion remains
+unproven.

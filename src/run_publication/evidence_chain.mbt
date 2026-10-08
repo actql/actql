@@ -179,31 +179,6 @@ fn evidence_string_array(value : @json.CanonicalValue) -> Array[String]? {
 }
 
 ///|
-fn evidence_embedded_identity_array(
-  value : @json.CanonicalValue,
-  identity_field : String,
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> Array[String]? {
-  guard value is @json.Array(frozen) else { return None }
-  let output : Array[String] = []
-  for item in @json.array_values(frozen) {
-    if !evidence_identity_valid(
-        item, identity_field, max_wire_bytes, max_nodes, max_depth,
-      ) {
-      return None
-    }
-    guard optional_string(@json.object_field(item, identity_field))
-      is Some(identity) else {
-      return None
-    }
-    output.push(identity)
-  }
-  Some(output)
-}
-
-///|
 fn evidence_empty_object(value : @json.CanonicalValue?) -> Bool {
   match value {
     Some(child) =>
@@ -422,52 +397,6 @@ fn computation_evidence_capture_inventory(
     return Err(EvidenceMissingField("captured_results"))
   }
   Ok((values, field_inventory))
-}
-
-///|
-fn computation_evidence_suffix(
-  inputs : ComputationEvidenceInputs,
-  prelude : ComputationEvidencePrelude,
-) -> Result[Unit, RunEvidenceChainIssue] {
-  let { preview, max_wire_bytes, max_nodes, max_depth, .. } = inputs
-  let { effect_context, program, external_model_cids, .. } = prelude
-  let authoring = match evidence_object(effect_context, "authoring_context") {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if !evidence_identity_valid(
-      authoring, "authoring_context_cid", max_wire_bytes, max_nodes, max_depth,
-    ) ||
-    evidence_string(authoring, "program_definition_cid") != program {
-    return Err(EvidenceEmbeddedIdentity("authoring_context_cid"))
-  }
-  if preview is Some(effect_preview) &&
-    evidence_string(authoring, "authoring_context_cid") !=
-    Some(effect_preview.authoring_context_cid) {
-    return Err(EvidenceReferenceMismatch("preview.authoring_context_cid"))
-  }
-  guard @json.object_field(effect_context, "model_invocation_evidence")
-    is Some(model_evidence) else {
-    return Err(EvidenceMissingField("model_invocation_evidence"))
-  }
-  guard @json.object_field(effect_context, "model_invocation_evidence_cids")
-    is Some(model_evidence_cids) else {
-    return Err(EvidenceMissingField("model_invocation_evidence_cids"))
-  }
-  let embedded_model_cids = evidence_embedded_identity_array(
-    model_evidence, "model_invocation_evidence_cid", max_wire_bytes, max_nodes, max_depth,
-  )
-  let listed_model_cids = evidence_string_array(model_evidence_cids)
-  if embedded_model_cids is None || embedded_model_cids != listed_model_cids {
-    return Err(EvidenceReferenceMismatch("model_invocation_evidence_cids"))
-  }
-  let captured_model_cids = embedded_model_cids.unwrap()
-  captured_model_cids.sort_by(@canonical.compare_utf16)
-  external_model_cids.sort_by(@canonical.compare_utf16)
-  if captured_model_cids != external_model_cids {
-    return Err(EvidenceReferenceMismatch("external_model_evidence"))
-  }
-  Ok(())
 }
 
 ///|

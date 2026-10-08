@@ -360,6 +360,7 @@ pub fn computation_evidence_check_fixture_phase(
         _ => "metadata-check"
       }
     ContextHash(_, _) => "context-check"
+    SuffixCheck(_) => "suffix-check"
     Fields(_, _, _, _, _) | Rows(_, _) => "rows-check"
     Done => "done"
     _ => "metadata-check"
