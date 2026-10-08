@@ -34,8 +34,10 @@ async function phase(root, transport, endpoint, name, changes = {}) {
   const timeout = setTimeout(() => child.kill('SIGKILL'), 45000);
   let error = '';
   child.stderr.on('data', bytes => { if (error.length < 65536) error += bytes.toString(); });
+  const caller = name === 'wait' ? parent : recoveredParent;
   child.stdin.end(JSON.stringify({root, transport, phase: name, runtime,
-    observation: {endpoint, parent: name === 'wait' ? parent : recoveredParent}, ...changes}));
+    observation: {endpoint, parent: {...caller,
+      traceFlags: changes.unsampled ? 0 : caller.traceFlags}}, ...changes}));
   try { assert.equal((await once(child, 'exit'))[0], 0, error); }
   finally { clearTimeout(timeout); }
   const report = JSON.parse(await readFile(join(root, `${name}-result.json`), 'utf8'));
@@ -49,7 +51,8 @@ function custody(root, action) {
   const database = new DatabaseSync(join(root, 'host/requests/client-requests.sqlite3'));
   try { return action(database); } finally { database.close(); }
 }
-for (const transport of ['local', 'https']) test(`public ${transport}: approval restart retains correlation and observation consumption`, async () => {
+for (const [transport, sampled] of [['local', true], ['https', true], ['local', false]]) {
+test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart retains capture and consumption`, async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-otel-recovery-'));
   const packets = [];
   const server = createServer(async (request, response) => {
@@ -65,13 +68,14 @@ for (const transport of ['local', 'https']) test(`public ${transport}: approval 
       '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
     {cwd: root, stdio: 'ignore'});
     const endpoint = `http://127.0.0.1:${server.address().port}`;
-    const waiting = await phase(root, transport, endpoint, 'wait');
+    const flags = {unsampled: !sampled};
+    const waiting = await phase(root, transport, endpoint, 'wait', flags);
     assert.equal(waiting.status, 'waiting_checkpoint');
     assert.equal(waiting.calls, 0);
     const waitingPackets = packets.splice(0);
     const waitingBudget = custody(root, db => db.prepare('SELECT records, bytes FROM client_observation_runs').get());
     assert.ok(waitingPackets.some(packet => packet.body.includes(Buffer.from('waiting_checkpoint'))));
-    const approved = await phase(root, transport, endpoint, 'approve');
+    const approved = await phase(root, transport, endpoint, 'approve', flags);
     assert.deepEqual(approved.ref, waiting.ref);
     assert.equal(approved.calls, 1);
     assert.equal(approved.status, 'succeeded');
@@ -82,25 +86,32 @@ for (const transport of ['local', 'https']) test(`public ${transport}: approval 
     assert.ok(approvedBudget.records > waitingBudget.records);
     assert.ok(approvedBudget.bytes > waitingBudget.bytes);
     assert.ok(packets.some(packet => packet.body.includes(Buffer.from('checkpoint_resolved'))));
-    assert.ok(packets.some(packet => packet.path === '/v1/traces' &&
-      packet.body.includes(Buffer.from(parent.traceId, 'hex')) &&
-      packet.body.includes(Buffer.from(recoveredParent.traceId, 'hex'))), 'recovery links the saved caller');
-    const replayed = await phase(root, transport, endpoint, 'resume-again');
+    if (sampled) {
+      assert.ok(packets.some(packet => packet.path === '/v1/traces' &&
+        packet.body.includes(Buffer.from(parent.traceId, 'hex')) &&
+        packet.body.includes(Buffer.from(recoveredParent.traceId, 'hex'))), 'recovery links the saved caller');
+    } else assert.equal(packets.some(packet => packet.path === '/v1/traces'), false);
+    const replayed = await phase(root, transport, endpoint, 'resume-again', flags);
     assert.deepEqual(replayed.rows, expectedRows);
     assert.equal(replayed.calls, 1, 'observation/recovery never resends the Model call');
     if (transport === 'local') {
       custody(root, db => db.exec('DELETE FROM client_observation_runs'));
-      const withoutBudget = await phase(root, transport, endpoint, 'resume-again', {expectBudgetLoss: true});
+      const withoutBudget = await phase(root, transport, endpoint, 'resume-again',
+        {...flags, expectBudgetLoss: true});
       assert.deepEqual(withoutBudget.rows, expectedRows);
       assert.equal(withoutBudget.calls, 1);
       assert.equal(custody(root, db => db.prepare('SELECT count(*) AS n FROM client_observation_runs').get().n), 0,
         'lost consumption never mints a fresh observation budget');
     }
+    if (!sampled) assert.equal([...waitingPackets, ...packets]
+      .some(packet => packet.path === '/v1/traces'), false,
+    'capture and replay never require sampled telemetry');
   } finally {
     await new Promise(resolve => server.close(resolve));
     await rm(root, {recursive: true, force: true});
   }
 });
+}
 test('public Local: cancellation while waiting preserves Owner-confirmed outcome without dispatch', async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-otel-cancel-'));
   const packets = [];

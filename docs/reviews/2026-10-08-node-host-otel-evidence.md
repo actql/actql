@@ -3,7 +3,8 @@
 ## Source and completion unit
 
 Base: `db1bcddd793ad9a1e2e1d9fe452a984dc35254ac`.
-Verified implementation: `4b7cdbd83d92266afc73ff225e4d370c723cb2bc`.
+Initial verified implementation: `4b7cdbd83d92266afc73ff225e4d370c723cb2bc`.
+Current verified implementation: `8ae7f09b21555c2bc5266d0eb6723942fb23e1ab`.
 Subsequent evidence-only documentation does not extend that execution claim.
 
 This is the initial single-scope Node Host O1/O2 unit, not all-Host
@@ -40,7 +41,7 @@ No new terminal-state inference or authority is implemented by OTel.
 
 ## Local commands and retained receipts
 
-At the verified implementation SHA:
+At the initial verified implementation SHA:
 
 - Focused Node selection: **46/46 passed**. Receipt:
   `_build/local-checks/attempts/run-7dT8wD/summary.json`;
@@ -117,3 +118,73 @@ No benchmark was executed. The existing benchmark contract informs only the
 finite cold/warm proposal in the design document. Sidecar applicability is
 design-only. Evaluation Evidence remains independent of OTel sampling/export;
 O3 needs its own authorized capture-to-evaluator acceptance unit.
+
+## Completion audit and sampling correction
+
+The completion audit found that the initial adapter used root ratio sampling
+without preserving a parent's decision, contrary to the adopted parent-based
+profile. The correction uses the pinned SDK's `ParentBasedSampler` with a
+`TraceIdRatioBasedSampler` root. Its profile name is included in the optional
+configuration revision. Existing custody cannot silently adopt the changed
+profile; a mismatch stops additional observations rather than resetting usage.
+
+On an isolated copy of the original adapter, the new four-case matrix failed:
+root ratio 1 incorrectly exported an unsampled parent, and root ratio 0 dropped a
+sampled parent. The other two cases rejected its inaccurate effective sampler
+description. Original failure evidence:
+`_build/focused-evidence/focused-test-yVBWey`.
+
+At `8ae7f09b21555c2bc5266d0eb6723942fb23e1ab`, the nine-file focused command
+above (without the nonexistent extra path) passed **52/52**:
+`_build/local-checks/attempts/run-SOKHch/summary.json` and
+`_build/focused-evidence/focused-test-LfIsaX`. Strict selected declarations
+also compiled successfully. Added assertions cover:
+
+- Both parent flags against root ratios zero and one, with logs/metrics
+  independent of the trace decision.
+- A real public HTTPS request from an unsampled caller still produces the
+  independently expected Named Result without trace export.
+- Every actual exported Gauge/Sum/Histogram data point is inspected for absence
+  of Exemplar fields, not merely absence of one trace ID.
+- Fixed HTTP route span names, SERVER kind, unset error status for 422 and ERROR
+  status for 503.
+
+The same fresh-process Model fixture also has a dedicated unsampled-caller
+acceptance: approval wait has zero dispatches, approval stores a successful
+capture with one dispatch, and subsequent process replay reads the identical
+independent Result with no extra call and no trace packets. Missing optional
+custody still does not prevent replay. The initial targeted diagnostic passed
+one case (`_build/focused-evidence/focused-test-EQJJgg`, dirty test/documentation
+tree); it is not reattributed to a clean SHA. This case is part of the ordinary
+OTel selection. The final clean-source receipt and submitted SHA are recorded
+in PR #971 rather than guessed in this document.
+
+The existing 169-case Owner evidence is reused, not reattributed to a new run:
+`git diff 4b7cdbd83d92266afc73ff225e4d370c723cb2bc..8ae7f09b21555c2bc5266d0eb6723942fb23e1ab`
+has no changes in adapters, SDK, Local declarations, process fixtures, MoonBit
+sources or contracts. Only the optional adapter and its sampling acceptance
+changed. No runtime rebuild or performance measurement was needed.
+
+| Required boundary | Completion evidence |
+| --- | --- |
+| Owner facts, distinct outcomes | Owner mapping, bounded projection, task hooks, actual approval/cancellation/recovery/publication/cleanup assertions; no new execution state machine |
+| Caller linkage and finite restart segments | Local/HTTPS trace bytes, saved context links, current Run ref across fresh processes |
+| Pre-Run check failure | Actual checker failure with zero journal Runs and no invented identity field |
+| Pinned standard conventions | Exact SDK lock, parent-based matrix, independent HTTP protobuf assertions |
+| Metadata-only disclosure | No content getter reads, fixed names/bodies/Resource, final sentinel checks, explicit no-Exemplar data-point checks and no dynamic metric IDs |
+| Independent signals and disable | Configuration matrix, no implicit destination, sampling/export failure independence, no custody on disable |
+| Managed resource isolation | Finite record/queue/Run/segment/transport limits, physical-close sender accounting, deadline/loss tests, real journal capacity and reopen tests |
+| Optional journal failure | Original request/Run/scope/revision binding; failed/missing/corrupt custody never resets consumption or prevents Result retrieval |
+| Application provider ownership | Deferred callback, no global replacement or application shutdown; downstream additions/time explicitly excluded |
+| Semantic-boundary isolation | Queue-only internal hooks; delivery after a later event-loop turn; existing activation/completion/cleanup Owner evidence |
+| Evidence independence | Capture/replay dispatch counts remain one across restart with telemetry present or missing; no sampler condition in capture authority |
+| Measurement/sidecar limits | Existing benchmark contract, finite cold/warm proposal and design-only sidecar applicability; no measured-performance claim |
+| Delivery | Dedicated branch, conventional commits, fixed-SHA evidence, public Draft PR and repository-accessible usage/mapping documents |
+
+Integration is separate from this implementation handoff. PR #971 targets
+`main`. A read-only merge simulation against
+`9ac1f5520135f640794dc76d0ed05bb6d56486a4` found one conflict in
+`packages/local-node/package.json`: preserve both the new
+`connector-installation` exports/files from main and `observation` exports/files
+from this branch. Integration-owner conflict resolution, final Ready coverage
+and user merge remain outside this handoff. No CI success is claimed.
