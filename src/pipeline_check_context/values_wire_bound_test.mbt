@@ -92,7 +92,7 @@ test "values wire application recomputes the fixed proof under its exact owner" 
     "sha256:15622500b68d7891fc269aca0d7cb37561307a912578cd88f3d2dadcc54fb56e",
   )
   let applied = check_values_wire_bound(cells, 0, proof, 25, 7, 2).unwrap()
-  assert_true(physical_equal(applied.cells, cells))
+  assert_true(physical_equal(values_wire_bound_cells(applied).unwrap(), cells))
   assert_true(physical_equal(applied.proof, proof))
   assert_eq((applied.bytes, applied.nodes, applied.depth), (25, 7, 2))
   assert_eq(
@@ -108,8 +108,18 @@ test "values wire application recomputes the fixed proof under its exact owner" 
   let other_bound = check_values_wire_bound(other, 0, proof, 25, 7, 2).unwrap()
   // Equal measurements may both validate a claim; their applied owners remain
   // distinct and cannot be substituted by comparing the proof CID alone.
-  assert_false(physical_equal(other_bound.cells, applied.cells))
-  assert_false(physical_equal(other_bound.site, applied.site))
+  assert_false(
+    physical_equal(
+      values_wire_bound_cells(other_bound).unwrap(),
+      values_wire_bound_cells(applied).unwrap(),
+    ),
+  )
+  assert_false(
+    physical_equal(
+      values_wire_bound_site(other_bound).unwrap(),
+      values_wire_bound_site(applied).unwrap(),
+    ),
+  )
 }
 
 ///|

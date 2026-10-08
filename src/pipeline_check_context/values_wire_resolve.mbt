@@ -106,6 +106,20 @@ fn resolve_values_wire_limit_metered(
   metadata : @wire.LimitLimits,
   meter : ValuesMetadataBudget?,
 ) -> Result[ValuesWireLimit, ValuesWireResolutionIssue] {
+  let owner = match bound_values_resource_owner(cells, requirement_index) {
+    Ok(value) => value
+    Err(issue) => return Err(Measurement(issue))
+  }
+  resolve_values_resource_wire_limit(owner, payload, metadata, meter)
+}
+
+///|
+fn resolve_values_resource_wire_limit(
+  owner : ValuesResourceOwner,
+  payload : @wire.Limits,
+  metadata : @wire.LimitLimits,
+  meter : ValuesMetadataBudget?,
+) -> Result[ValuesWireLimit, ValuesWireResolutionIssue] {
   if metadata.max_bytes < 0 ||
     metadata.max_nodes < 0 ||
     metadata.max_depth < 0 ||
@@ -116,9 +130,8 @@ fn resolve_values_wire_limit_metered(
     return Err(Limit(Admission(@wire.BudgetExceeded)))
   }
   let (bytes, nodes, depth) = match
-    measure_operation_values_rows(
-      cells,
-      requirement_index,
+    measure_values_resource_rows(
+      owner,
       payload.max_bytes,
       payload.max_nodes,
       payload.max_depth,
@@ -133,10 +146,8 @@ fn resolve_values_wire_limit_metered(
     meter.bytes -= bytes
     meter.nodes -= nodes
   }
-  // The measurement validates the exact resource occurrence before indexing.
-  let requirements = cells.requirements
-  let site = requirements.entries[requirement_index]
-  let subject = "checked-step:" + site.step.to_string()
+  // The measurement retains the exact resource occurrence before proof emission.
+  let subject = "checked-step:" + values_resource_step(owner).to_string()
   let limits : @wire.Limits = {
     max_bytes: metadata.max_bytes,
     max_nodes: metadata.max_nodes,
@@ -193,15 +204,7 @@ fn resolve_values_wire_limit_metered(
     }
     // The claim was derived from this measurement, rather than supplied by a
     // caller; retain that exact ownership without measuring the payload twice.
-    let bound : ValuesWireBound = {
-      cells,
-      requirement_index,
-      site,
-      proof,
-      bytes,
-      nodes,
-      depth,
-    }
+    let bound : ValuesWireBound = { owner, proof, bytes, nodes, depth, }
     match create_values_wire_limit_metered(bound, metadata, meter) {
       Ok(v) => Ok(v)
       Err(e) => Err(Limit(e))
