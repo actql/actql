@@ -3,9 +3,10 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
-import {checkTableEffectContract, checkTableOperation} from
+import {checkTableEffectContract, checkTableOperation, localTablePhysicalContract} from
   './table-effect-contract.mjs';
-import {authoredTableVectors, tableMoonVectors} from './table-effect-vectors.mjs';
+import {authoredTableVectors, tableMoonVectors, authoredLocalTableReceiptVectors,
+  localTableMoonVectors} from './table-effect-vectors.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const corpus = read('portability/corpus/table-effect.json');
@@ -17,6 +18,22 @@ const reseal = body => {
 
 test('Table provider envelopes retain their exact narrow contract', () => {
   checkTableEffectContract(read('spec/contracts/actql-table-effect.json'));
+  assert.deepEqual(read('spec/contracts/actql-local-table-iceberg.json'), localTablePhysicalContract());
+  assert.equal(read('spec/contracts/actql-table-effect.json').schemas.receipt.properties.metadata_location, undefined);
+  assert.equal(read('spec/contracts/actql-table-effect.json').schemas.receipt.properties.snapshot_id, undefined);
+});
+
+test('Local physical evidence and logical receipts have separate independently sealed identities', () => {
+  assert.equal(readFileSync('src/connectors/local/table/receipt_vectors.generated_wbtest.mbt', 'utf8'),
+    localTableMoonVectors());
+  for (const {physical, logical} of authoredLocalTableReceiptVectors()) {
+    for (const body of [physical, logical]) {
+      const {receipt_cid, ...preimage} = body;
+      verifyIdentity(preimage, receipt_cid);
+    }
+    assert.notEqual(physical.receipt_cid, logical.receipt_cid);
+    assert.equal(logical.physical_receipt_cid, physical.receipt_cid);
+  }
 });
 
 test('Table request/receipt vectors use independently authored preimages', () => {
@@ -38,7 +55,7 @@ test('create and guarded replace refuse changed binding and mixed preconditions'
   const replace = corpus.cases.find(entry => entry.id === 'replace').body;
   checkTableOperation(replace);
   for (const key of ['effect_identity_cid', 'input_artifact_cid',
-    'input_relation_cid', 'schema_cid', 'storage_mapping_cid', 'data_policy_cid']) {
+    'input_carrier', 'schema_cid', 'storage_mapping_cid', 'data_policy_cid']) {
     assert.throws(() => checkTableOperation({...request,
       [key]: `sha256:${'f'.repeat(64)}`}));
   }
@@ -65,6 +82,27 @@ test('original operation binding does not collapse into name or current head', (
   const contract = read('spec/contracts/actql-table-effect.json');
   assert.equal(contract.semantics.unknown,
     'reconcile_original_operation_no_resend_no_potentially_published_file_cleanup');
+});
+
+test('logical Carrier kinds are identity-bound while Local declares only Relation operations', () => {
+  const identities = new Set();
+  for (const kind of ['relation', 'graph', 'vectors', 'events']) {
+    const operation = reseal({...request, input_carrier: {kind, cid: request.input_carrier.cid}});
+    checkTableOperation(operation);
+    identities.add(operation.request_cid);
+    if (kind !== 'relation') assert.throws(() => checkTableOperation({...operation,
+      input_carrier: request.input_carrier}));
+  }
+  assert.equal(identities.size, 4, 'A CID without its Carrier kind cannot alias another input');
+  for (const input_carrier of [{kind: 'unknown', cid: request.input_carrier.cid},
+    {kind: 'graph'}, {...request.input_carrier, extra: true}]) {
+    assert.throws(() => checkTableOperation(reseal({...request, input_carrier})));
+  }
+  const {input_carrier, ...legacy} = request;
+  assert.throws(() => checkTableOperation(reseal({...legacy, input_relation_cid: input_carrier.cid})),
+    'Actual retired operation shape is refused, not implicitly converted');
+  assert.deepEqual(localTablePhysicalContract().operations,
+    {create: ['relation'], replace: ['relation'], snapshot_read: ['relation']});
 });
 
 // JSON Schema maxLength and common admission count Unicode scalar values.

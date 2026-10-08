@@ -2259,7 +2259,7 @@
     },
     {
       "requirement_id": "actql.execution/table-actions.binding",
-      "statement_sha256": "919b1612d9fbaeb54950fc31cc3b25b8fdf0a20e04bb15c2845cadb2663b0770",
+      "statement_sha256": "bbc59c99aac6b00efbc35c92adc2764b0e9ef01864a1537adbfa11186f5fe79c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

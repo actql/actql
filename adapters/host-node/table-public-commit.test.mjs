@@ -170,7 +170,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
   const opened = [];
   const open = async (name, rows, expectedTable = null) => {
     const effectProfilePath = join(f.root, `${name}-effect.json`);
-    await writeFile(effectProfilePath, JSON.stringify({version: 'actql-installed-table-effect/0.1',
+    await writeFile(effectProfilePath, JSON.stringify({version: 'actql-installed-local-table-effect/0.1',
       connectorId: 'table', connection, python: launcher, catalog: f.catalog,
       accountConfigurationWire: account(), environmentWire: declared.wire,
       targets: [{effectId: 'save', resource, targetRef, mappingRef,
@@ -334,7 +334,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     serve(channel, factory)
 `, {mode: 0o700});
   const effectProfilePath = join(f.root, 'table-effect.json');
-  const profile = {version: 'actql-installed-table-effect/0.1',
+  const profile = {version: 'actql-installed-local-table-effect/0.1',
     connectorId: 'table', connection, python: launcher, catalog: f.catalog,
     accountConfigurationWire: account(), environmentWire: declared.wire,
     targets: [{effectId: 'save', resource, targetRef, mappingRef,
@@ -510,7 +510,7 @@ test(`Table sparse private input commits through ${transport} after approval whi
   const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
   const effectProfilePath = join(f.root, 'sparse-effect.json');
   await writeFile(effectProfilePath, JSON.stringify({
-    version: 'actql-installed-table-effect/0.1', connectorId: 'table', connection,
+    version: 'actql-installed-local-table-effect/0.1', connectorId: 'table', connection,
     python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
     catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
     targets: [{effectId: 'save', resource, targetRef, mappingRef,
@@ -665,7 +665,7 @@ test(`Table sparse private input commits through ${transport} after approval whi
     [{person_key: 1, p: 7}, {person_key: 2, p: null}, {person_key: 3}],
     'Iceberg preserves value, explicit NULL and omission after the origin Host closes');
   const sourceProfilePath = join(f.root, 'sparse-source.json');
-  await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-table-source/0.1',
+  await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-local-table-source/0.1',
     connectorId: 'table', connection,
     python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
     catalog: f.catalog, accountConfigurationWire: account(),
@@ -702,7 +702,7 @@ test('Table installed HTTP Host retires capture custody before completing close'
   const f = await tablePhysicalFixture(t), declared = declaration();
   const effectProfilePath = join(f.root, 'table-effect-close.json');
   await writeFile(effectProfilePath, JSON.stringify({
-    version: 'actql-installed-table-effect/0.1', connectorId: 'table', connection,
+    version: 'actql-installed-local-table-effect/0.1', connectorId: 'table', connection,
     python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
     catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
     targets: [{effectId: 'save', resource, targetRef, mappingRef,
@@ -735,7 +735,7 @@ for (const rows of [expectedRows, []]) {
 test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create'} resume approval and survive Host close`, async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
   const effectProfilePath = join(f.root, 'table-effect.json');
-  const profile = {version: 'actql-installed-table-effect/0.1', connectorId: 'table', connection,
+  const profile = {version: 'actql-installed-local-table-effect/0.1', connectorId: 'table', connection,
     python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
     catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
     targets: [{effectId: 'save', resource, targetRef, mappingRef,
@@ -821,7 +821,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
   assert.deepEqual(JSON.parse(JSON.stringify((await f.bridge.read(frozen.result.receipt,
     frozen.result.mapping)).result)), rows, 'Actual Iceberg values survive origin Host shutdown');
   const sourceProfilePath = join(f.root, 'table-source.json');
-  await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-table-source/0.1',
+  await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-local-table-source/0.1',
     connectorId: 'table', connection, python: profile.python, catalog: f.catalog,
     accountConfigurationWire: account(), targets: [{resource, selector, schemaWire: frozen.result.schema_wire}],
     limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}}));
@@ -913,7 +913,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
       assert.deepEqual(JSON.parse(current.result.schema_wire), schema);
       assert.deepEqual(plain((await f.bridge.read(current.result.receipt, current.result.mapping)).result), replacement);
       const currentSourceProfilePath = join(f.root, `replacement-source-${index}.json`);
-      await writeFile(currentSourceProfilePath, JSON.stringify({version: 'actql-installed-table-source/0.1',
+      await writeFile(currentSourceProfilePath, JSON.stringify({version: 'actql-installed-local-table-source/0.1',
         connectorId: 'table', connection, python: profile.python, catalog: f.catalog,
         accountConfigurationWire: account(), targets: [{resource, selector, schemaWire: current.result.schema_wire}],
         limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}}));

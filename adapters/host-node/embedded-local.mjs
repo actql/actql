@@ -47,6 +47,7 @@ import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
   './installed-effect.mjs';
 import {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedRowEffectDescriptors} from './installed-row-effect.mjs';
+import {assertInstalledConnectorTable} from './installed-connectors.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey} from
@@ -104,13 +105,18 @@ const publicKeyCid = value => bytesCid(createPublicKey(value).export({
   type: 'spki', format: 'der'}));
 
 async function embeddedInstallationIdentity(root, installation) {
+  const connectorTable = installation?.connectorTable;
+  if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   const sourcePaths = installedSourcePaths(installation);
   const effectPaths = installedEffectPaths(installation);
-  const identities = await Promise.all(sourcePaths.map(installedSourceIdentity));
+  const identities = await Promise.all(sourcePaths.map(path =>
+    installedSourceIdentity(path, {connectorTable})));
   const source = identities.length === 0 ? null : identities.length === 1
     ? identities[0] : {version: 'actql-installed-source-inventory/0.1', identities};
   const effectIdentities = [];
-  for (const path of effectPaths) effectIdentities.push(await installedEffectIdentity(path));
+  for (const path of effectPaths) {
+    effectIdentities.push(await installedEffectIdentity(path, {connectorTable}));
+  }
   const effect = effectIdentities.length === 0 ? null : effectIdentities.length === 1
     ? effectIdentities[0] : {version: 'actql-installed-effect-inventory/0.1',
       identities: effectIdentities};
@@ -145,7 +151,7 @@ async function embeddedInstallationIdentity(root, installation) {
       keyId: reviewer.keyId, reviewerId: reviewer.reviewerId,
       principalId: reviewer.principalId,
       publicKeyCid: publicKeyCid(reviewer.publicKey)})) ?? null}));
-  return Object.freeze({identity, callbacks: Object.freeze({
+  return Object.freeze({identity, connectorTable, callbacks: Object.freeze({
     resolveSourceSecret: installation?.resolveSourceSecret,
     resolveEffectSecret: installation?.resolveEffectSecret,
     registerModelProviders: installation?.registerModelProviders,
@@ -154,7 +160,7 @@ async function embeddedInstallationIdentity(root, installation) {
 }
 
 function sameEmbeddedInstallation(left, right) {
-  return left.identity === right.identity &&
+  return left.identity === right.identity && left.connectorTable === right.connectorTable &&
     Object.keys(left.callbacks).every(key =>
       left.callbacks[key] === right.callbacks[key]);
 }
@@ -179,11 +185,12 @@ function validateValuesMaxRows(value) {
 }
 
 async function openInstalledHost({root, mode = 'local', beforeDispatch, workspaceId,
-  authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
+  authorization, connectorTable, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, hostCapacityPolicy,
   retainedRelationOutput = false, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
+  if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   validateValuesMaxRows(valuesMaxRows);
   if (workspaceId !== undefined && !validClientConnection({mode, owner: mode,
     consentRefs: [], runners: [], workspaceId})) {
@@ -247,9 +254,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   try {
     sourceProfile = await loadInstalledSources(selectedSourcePaths,
       {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
-        resolveSecret: resolveSourceSecret});
+        resolveSecret: resolveSourceSecret, connectorTable});
     installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
-        runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret});
+        runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable});
     if (installedEffect !== undefined) {
       if (authorization === undefined) {
         throw new TypeError('InstalledEffectAuthorizationRequired');
@@ -2485,7 +2492,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
 // `beforeDispatch` remains a required execution barrier. Without a
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch, authorization, workspaceId, sourceProfilePath, sourceProfilePaths,
+  authenticate, beforeDispatch, authorization, workspaceId, connectorTable,
+  sourceProfilePath, sourceProfilePaths,
   loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
@@ -2499,7 +2507,7 @@ export async function openInstalledRemoteHttpHost({directory,
   }
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
     workspaceId,
-    beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
+    beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy,
     retainedRelationOutput, hostCapacityPolicy, valuesMaxRows});
@@ -2550,14 +2558,15 @@ export async function openInstalledRemoteHttpHost({directory,
 // (`ACTQL_LOCAL_SOURCE_PROFILE` by default). This is the explicit step a Host
 // start restores without provider I/O.
 export async function publishInstalledSource({sourceProfilePath, directory,
-  resolveSourceSecret, signal} = {}) {
+  resolveSourceSecret, signal, connectorTable} = {}) {
+  if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
   await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
   return publishInstalledSourceProfile(
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE, {root,
       principalId: userInfo().username, moon, runtimeUrl,
-      resolveSecret: resolveSourceSecret, signal});
+      resolveSecret: resolveSourceSecret, signal, connectorTable});
 }
 
 // Publish the installed Effect's generation (its declaration, execution
@@ -2566,7 +2575,8 @@ export async function publishInstalledSource({sourceProfilePath, directory,
 // (`ACTQL_LOCAL_EFFECT_PROFILE` by default). This is the explicit step a Host
 // start restores without provider I/O.
 export async function publishInstalledEffect({effectProfilePath, directory,
-  resolveEffectSecret, signal, hostCapacityPolicy} = {}) {
+  resolveEffectSecret, signal, hostCapacityPolicy, connectorTable} = {}) {
+  if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
   await admitHostRootFormat(root);
@@ -2576,7 +2586,7 @@ export async function publishInstalledEffect({effectProfilePath, directory,
   return publishInstalledEffectProfile(
     effectProfilePath ?? process.env.ACTQL_LOCAL_EFFECT_PROFILE, {root,
       principalId: userInfo().username, moon, runtimeUrl,
-      baseEnvironmentWire, resolveSecret: resolveEffectSecret, signal});
+      baseEnvironmentWire, resolveSecret: resolveEffectSecret, signal, connectorTable});
 }
 
 export async function connectEmbeddedLocal(options) {
@@ -2604,6 +2614,7 @@ export async function connectEmbeddedLocal(options) {
   const {installation: _installation, ...clientOptions} = options;
   return profiles.connect(root, identity,
     () => openInstalledHost({root, authorization: installation?.authorization,
+        connectorTable: installation?.connectorTable,
         sourceProfilePath: installation?.sourceProfilePath,
         sourceProfilePaths: installation?.sourceProfilePaths,
         resolveSourceSecret: installation?.resolveSourceSecret,

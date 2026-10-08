@@ -20,8 +20,8 @@ const fixtures = [
   'adapters/host-node/fixtures/table-test-modules.mjs',
   'adapters/host-common/connector-manifest.fixture.mjs',
   'adapters/host-common/publication-contract-control.fixture.mjs',
-  'adapters/table-iceberg/fixtures/presence-mapping.json',
-  'adapters/table-iceberg/fixtures/presence-schema.json',
+  'adapters/connectors/local/iceberg/fixtures/presence-mapping.json',
+  'adapters/connectors/local/iceberg/fixtures/presence-schema.json',
   'scripts/check-canonical-json.mjs', 'scripts/actql-spec-family.mjs',
   'scripts/actql-requirement-extraction.mjs',
   'scripts/fixtures/graph-presence.program.json',
@@ -82,25 +82,41 @@ test('packed Table commits preserve original operations and sparse inputs throug
     copied.push({path, sha256: digest(await readFile(destination))});
   }
   environment.ACTQL_TEST_TABLE_PACKED_APPLICATION = application;
-  const args = nodeTestArguments(['--test-concurrency=1',
-    'adapters/host-node/table-public-commit.test.mjs']);
-  const result = spawnSync(process.execPath, args, {cwd: application, env: environment,
-    encoding: 'utf8', timeout: 360000, maxBuffer: 64 * 1024 * 1024});
-  process.stdout.write(result.stdout ?? '');
-  process.stderr.write(result.stderr ?? '');
-  const checked = assertTestExecution('node', process.execPath, args, result);
-  assert.equal(checked.counts.passed, 9,
+  // Reuse one exact package installation for two disjoint case groups. Keep
+  // the existing per-child budget/nonzero guard; do not omit slow recovery
+  // cases or turn a timed-out partial run into acceptance.
+  const groups = [
+    {name: 'conflict and uncertain commit', expected: 4,
+      pattern: '^Table public (concurrent replace|precommit crash|lost commit reply)'},
+    {name: 'typed input and durable read', expected: 5,
+      pattern: '^Table (sparse private input|installed HTTP Host|public (nonempty create and replace|empty create))'},
+  ];
+  const executed = [];
+  for (const group of groups) {
+    const args = nodeTestArguments(['--test-concurrency=1',
+      '--test-name-pattern', group.pattern, 'adapters/host-node/table-public-commit.test.mjs']);
+    const result = spawnSync(process.execPath, args, {cwd: application, env: environment,
+      encoding: 'utf8', timeout: 360000, maxBuffer: 64 * 1024 * 1024});
+    process.stdout.write(result.stdout ?? '');
+    process.stderr.write(result.stderr ?? '');
+    const checked = assertTestExecution('node', process.execPath, args, result);
+    assert.equal(checked.counts.passed, group.expected, `${group.name}: all selected cases must execute`);
+    executed.push({name: group.name, pattern: group.pattern, counts: checked.counts});
+  }
+  const counts = Object.fromEntries(Object.keys(executed[0].counts).map(field =>
+    [field, executed.reduce((sum, group) => sum + group.counts[field], 0)]));
+  assert.equal(counts.passed, 9,
     'All real create/replace, reply-loss, concurrent replace, and sparse Local/HTTPS cases must execute');
   assert.deepEqual(checkoutState(repository), state, 'Source changed during packed acceptance');
   const local = join(application, 'node_modules/@actql/local-node');
   const artifacts = await Promise.all([
     '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
-    'adapters/table-iceberg/process_worker.py', 'adapters/table-iceberg/catalog.py',
-    'adapters/table-iceberg/physical.py', 'adapters/table-iceberg/requirements.lock',
+    'adapters/connectors/local/iceberg/process_worker.py', 'adapters/connectors/local/iceberg/catalog.py',
+    'adapters/connectors/local/iceberg/physical.py', 'adapters/connectors/local/iceberg/requirements.lock',
   ].map(async path => ({path, sha256: digest(await readFile(join(local, path)))})));
   const provenance = {sourceRevision: state.revision, python,
     packages: packages.map(({name, sha256}) => ({name, sha256})),
-    installedArtifacts: artifacts, authoredFixtures: copied, counts: checked.counts};
+    installedArtifacts: artifacts, authoredFixtures: copied, counts, groups: executed};
   console.log('PACKED_TABLE_PRIVATE_INPUT', JSON.stringify(provenance));
   // Child tests await the real Host's cleanup, and spawnSync has reaped every
   // command before this owner permits removal of its disposable installation.

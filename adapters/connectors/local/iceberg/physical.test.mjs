@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-const root = fileURLToPath(new URL('../../', import.meta.url));
+const root = fileURLToPath(new URL('../../../../', import.meta.url));
 
 test('pinned Iceberg physical I/O preserves and rejects presence states', () => {
   const run = spawnSync(process.env.ACTQL_TABLE_PYTHON ?? `${root}.venv-table/bin/python`,
@@ -25,7 +25,7 @@ test('pinned Catalog publication binds original receipt atomically', () => {
       encoding: 'utf8', timeout: 60000, maxBuffer: 1024 * 1024,
     });
   assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}${run.stderr}`);
-  assert.match(run.stderr, /Ran 11 tests/u);
+  assert.match(run.stderr, /Ran 12 tests/u);
   assert.match(run.stderr, /\nOK\n/u);
 });
 

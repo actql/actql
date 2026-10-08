@@ -1,0 +1,42 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/local/table"
+
+import {
+  "actql/actql/effect_application",
+  "actql/actql/execution_relation",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_table_storage_mapping(String, Int, Int, Int) -> Result[IcebergStorageMapping, IcebergStorageMappingIssue]
+
+pub fn issue_table_storage_mapping(@execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> Result[IcebergStorageMapping, IcebergStorageMappingIssue]
+
+pub fn project_iceberg_commit_response(String, Int, Int, Int, Int) -> Result[String, @effect_application.TableCommitIssue]
+
+pub fn storage_mapping_reference(IcebergStorageMapping, Int, Int, Int) -> Result[@effect_application.StorageMappingReference, @effect_application.TableContractIssue]
+
+pub fn table_storage_mapping_cid(IcebergStorageMapping) -> String
+
+pub fn table_storage_mapping_json(IcebergStorageMapping) -> String
+
+pub fn table_storage_mapping_schema_cid(IcebergStorageMapping) -> String
+
+// Errors
+
+// Types and methods
+type IcebergStorageMapping
+
+pub(all) enum IcebergStorageMappingIssue {
+  InvalidLimits
+  UnsupportedColumnCount
+  InvalidColumnName(String)
+  ColumnCollision(String)
+  UnsupportedType(String)
+  SavedMapping(@effect_application.TableContractIssue)
+  Encoding
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
