@@ -165,3 +165,29 @@ Store were produced. Local/HTTPS execution of the sixteen normal and six refusal
 cases is still unverified. Do not count the guard refusal as the six public
 preparation rejections or as any product failure. This evidence-only follow-up
 changes no package build inputs; no historical package manifest is relabeled.
+
+
+## Current-main integration and selected recheck
+
+Integration commit `4743484b7004ed8704310c663383c68e02596ad9` normally merges
+main `62ebd828c4731d7b78d54241a63a532996630c2a`; no conflicts or additional
+compiler changes are introduced. On that clean source, `run-q5vsG4` executes
+the current seven GROUP/HAVING implicit-alias tests: 7/7 passed, retained in
+`focused-test-6s4Agz`. The readonly compilation-manifest check passes with the
+same grammar and barrier CIDs. Earlier caller-matrix results remain attributed
+to their earlier integration revision; they are not a new full-matrix run.
+
+The selected normal producer/consumer attempt at the same clean source is
+`run-JPHlkd`. Its shared guard refuses before any steps because another owner's
+heavy slot is occupied. The observed owner evidence is
+`worktrees/actql-d-cancel-operation-identity/_build/local-checks/attempts/run-4vMs16`.
+No package, private installation or Store was created. No other owner's lock
+or process is changed. A lock observation is not a verified wait on that
+process and does not establish any product acceptance or failure.
+
+Planned package directory: `/private/tmp/actql-b-group-having-4743484b7004-pack`.
+The guarded commands were normal `scripts/packed-client-packages.mjs` followed
+by `scripts/test-packed-public-query.mjs --group-having-implicit-aliases-only`,
+with `ACTQL_PACKED_CLIENT_PACKAGES` selecting that exact directory. Both
+commands remain unexecuted. Packed Local/HTTPS, exact submitted-HEAD hosted
+CI and the broader Frontend objective remain unverified.
