@@ -101,7 +101,7 @@ fn property_mapping_program(
   let document = @origin.document(text, 10000).unwrap()
   let generated = @origin.range(document, mapping.start, mapping.end).unwrap()
   let builder = @builder.create(document, mapping_limits().source).unwrap()
-  let construction : Construction = { builder, generated, }
+  let construction : Construction = { builder, generated, model_tasks: None, }
   try {
     let steps : Array[@builder.Node] = []
     for input in known {

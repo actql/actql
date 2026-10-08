@@ -450,8 +450,10 @@ for (const name of ['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME', 'ACTQL_LOCAL_SOURC
   delete runtimeEnvironment[name];
 }
 const exerciseInferSource = () => exercisePackedInferSource({root, directory,
-  run, environment: runtimeEnvironment, sourceSha: revision.stdout.trim()});
-if (process.argv.includes('--infer-source-only')) {
+  run, environment: runtimeEnvironment, sourceSha: revision.stdout.trim(),
+  inputFieldsOnly: process.argv.includes('--infer-input-fields-only')});
+if (process.argv.includes('--infer-source-only') ||
+  process.argv.includes('--infer-input-fields-only')) {
   await exerciseInferSource();
   return;
 }
