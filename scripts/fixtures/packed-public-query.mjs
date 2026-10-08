@@ -44,6 +44,8 @@ import {analyticPartitionPropertySuccesses, analyticPartitionPropertyRefusals}
   from './analytic-partition-property-source-input.mjs';
 import {aggregatePropertyOrderSuccesses, aggregatePropertyOrderRefusals, aggregatePropertyOrderExecutionFailures}
   from './aggregate-property-order-source-input.mjs';
+import {aggregateSignedOrderSuccesses, aggregateSignedOrderRefusals}
+  from './aggregate-signed-order-source-input.mjs';
 import {orderAggregateExpressionSuccesses, orderAggregateExpressionRefusals, orderAggregateExpressionExecutionFailures}
   from './order-aggregate-expression-source-input.mjs';
 import {selectAggregateExpressionSuccesses, selectAggregateExpressionRefusals, selectAggregateExpressionExecutionFailures}
@@ -320,7 +322,8 @@ const scopeInputs = inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArrayS
   : analyticPropertyOnly ? {successes: analyticPropertySuccesses, refusals: analyticPropertyRefusals}
   : subgraphOnly ? {successes: subgraphSourceSuccesses, refusals: subgraphSourceRefusals, executionFailures: subgraphSourceExecutionFailures}
   : graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSuccesses, refusals: graphDiagnosticSourceRefusals, executionFailures: graphDiagnosticSourceExecutionFailures}
-  : aggregatePropertyOrderOnly ? {successes: aggregatePropertyOrderSuccesses, refusals: aggregatePropertyOrderRefusals, executionFailures: aggregatePropertyOrderExecutionFailures}
+  : aggregatePropertyOrderOnly ? {successes: [...aggregatePropertyOrderSuccesses, ...aggregateSignedOrderSuccesses],
+    refusals: [...aggregatePropertyOrderRefusals, ...aggregateSignedOrderRefusals], executionFailures: aggregatePropertyOrderExecutionFailures}
   : orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
   : sourceGraphMemberOnly ? {successes: sourceGraphMemberSuccesses, refusals: sourceGraphMemberRefusals}
   : graphProjectionPropertyOnly ? {successes: graphProjectionPropertySuccesses, refusals: graphProjectionPropertyRefusals}
@@ -464,6 +467,8 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...aggregatePropertyOrderSuccesses);
   scopeInputs.refusals.push(...aggregatePropertyOrderRefusals);
   scopeInputs.executionFailures.push(...aggregatePropertyOrderExecutionFailures);
+  scopeInputs.successes.push(...aggregateSignedOrderSuccesses);
+  scopeInputs.refusals.push(...aggregateSignedOrderRefusals);
   scopeInputs.successes.push(...setByNameListSuccesses);
   scopeInputs.refusals.push(...setByNameListRefusals);
   scopeInputs.successes.push(...shortRowsSuccesses);
