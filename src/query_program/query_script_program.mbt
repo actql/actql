@@ -164,6 +164,9 @@ fn lower_script_relation_term(
     reserved,
     predicate~,
   )
+  let nearest_inputs = bind_script_nearest_inputs(
+    construction, query, known, selected, input, context, sources, steps, reserved,
+  )
   let (body, output_fields) = compile_steps(
     construction,
     query,
@@ -176,6 +179,7 @@ fn lower_script_relation_term(
     start_at,
     false,
     output,
+    nearest_inputs~,
     retained~,
     parameter_declarations=context.parameter_declarations,
     initial_scope=sources.ranges.get(input.name),

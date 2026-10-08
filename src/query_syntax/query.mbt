@@ -1249,7 +1249,7 @@ fn QueryParser::over(self : QueryParser) -> AnalyticWindow raise QueryAbort {
 ///|
 fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
   match self.peek().value {
-    Word(name) =>
+    Word(name) | QuotedName(name) =>
       [
         "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG",
         "VAR_POP", "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
@@ -1264,7 +1264,7 @@ fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
 fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort {
   let token = self.advance()
   let function_name = match token.value {
-    Word(name) => upper_ascii(name)
+    Word(name) | QuotedName(name) => upper_ascii(name)
     _ => raise QueryAbort("Expected aggregate function", token.start)
   }
   if self.advance().value != Symbol(40) {

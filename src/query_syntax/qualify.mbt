@@ -38,7 +38,7 @@ fn QueryParser::qualify_expression(
       cte_scopes: [],
     }
     let window_head = match parser.peek().value {
-      Word(name) =>
+      Word(name) | QuotedName(name) =>
         [
           "ROW_NUMBER", "RANK", "DENSE_RANK", "LAG", "LEAD", "FIRST_VALUE", "LAST_VALUE",
         ].contains(ascii_upper(name)) &&
