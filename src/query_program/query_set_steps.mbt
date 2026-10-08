@@ -4,7 +4,11 @@
 fn set_output_fields(
   left_fields : Array[String],
   part : @query.SetPart,
+  right_fields? : Array[String] = [],
 ) -> Array[String] raise Abort {
+  if part.inner_by_name {
+    return set_inner_fields(left_fields, [right_fields], part)
+  }
   match part.by_name_columns {
     None => left_fields
     Some(columns) => {
@@ -48,11 +52,13 @@ fn set_alignment_fields(
   left_fields : Array[String],
   right_fields : Array[String],
   by_name : Bool,
+  allow_subset? : Bool = false,
 ) -> (Array[String], Bool) raise Abort {
-  if right_fields.length() != left_fields.length() {
+  if right_fields.length() < left_fields.length() ||
+    (!allow_subset && right_fields.length() != left_fields.length()) {
     raise Abort(UnsupportedSet)
   }
-  let mut alignment_needed = false
+  let mut alignment_needed = right_fields.length() != left_fields.length()
   let matched : Array[String] = []
   for field in left_fields {
     let index = matched.length()
@@ -81,7 +87,7 @@ fn set_alignment_fields(
       alignment_needed = true
     }
   }
-  if matched.length() != right_fields.length() {
+  if !allow_subset && matched.length() != right_fields.length() {
     raise Abort(UnsupportedSet)
   }
   (matched, alignment_needed)
@@ -371,6 +377,122 @@ fn set_alignment_stage(
           name,
           construction.object([
             ("from", construction.text("aligned_rows")),
+            (
+              "fields",
+              construction.array(fields.map(field => construction.text(field))),
+            ),
+          ]),
+        ),
+      ]),
+    ),
+  ])
+}
+
+///|
+fn set_inner_chain_length(query : @query.Query) -> Int {
+  let mut count = 0
+  for index in 0..<@query.set_part_count(query) {
+    let part = @query.set_part_at(query, index).unwrap()
+    if !part.sql_chain || !part.inner_by_name {
+      break
+    }
+    count = count + 1
+  }
+  count
+}
+
+///|
+// SQL chains choose their complete output-name intersection before type
+// checking intermediate sets. Pipe operators consume their current row scope.
+fn set_inner_fields(
+  left : Array[String],
+  rights : Array[Array[String]],
+  part : @query.SetPart,
+) -> Array[String] raise Abort {
+  let inputs = [left] + rights
+  for fields in inputs {
+    for index in 0..<fields.length() {
+      for other in (index + 1)..<fields.length() {
+        if same_name({ value: fields[index], quoted: false, }, {
+            value: fields[other],
+            quoted: false,
+          }) {
+          raise Abort(UnsupportedSet)
+        }
+      }
+    }
+  }
+  let fields = match part.by_name_columns {
+    Some(columns) => columns.map(name => name.value)
+    None =>
+      left.filter(field => {
+        rights.all(right => {
+          right.any(candidate => {
+            same_name({ value: field, quoted: false, }, {
+              value: candidate,
+              quoted: false,
+            })
+          })
+        })
+      })
+  }
+  if fields.is_empty() {
+    raise Abort(UnsupportedSet)
+  }
+  for index in 0..<fields.length() {
+    for other in (index + 1)..<fields.length() {
+      if same_name({ value: fields[index], quoted: false, }, {
+          value: fields[other],
+          quoted: false,
+        }) {
+        raise Abort(UnsupportedSet)
+      }
+    }
+  }
+  for input in inputs {
+    ignore(set_alignment_fields(fields, input, true, allow_subset=true))
+  }
+  fields
+}
+
+///|
+fn set_term_stage(
+  construction : Construction,
+  name : String,
+  input : String,
+  seed_stage : String,
+  seed_result : String,
+  steps : Array[@builder.Node],
+  result : String,
+  fields : Array[String],
+) -> @builder.Node raise Abort {
+  construction.object([
+    ("id", construction.text(name)),
+    (
+      "inputs",
+      construction.object([
+        (
+          input,
+          construction.object([
+            (
+              "result",
+              construction.object([
+                ("stage", construction.text(seed_stage)),
+                ("result", construction.text(seed_result)),
+              ]),
+            ),
+          ]),
+        ),
+      ]),
+    ),
+    ("steps", construction.array(steps)),
+    (
+      "results",
+      construction.object([
+        (
+          name,
+          construction.object([
+            ("from", construction.text(result)),
             (
               "fields",
               construction.array(fields.map(field => construction.text(field))),

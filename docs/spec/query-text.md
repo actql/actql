@@ -194,6 +194,18 @@ profile, including its floating-point partition exclusion. Optional ordering,
 default frames and nested window calls remain outside this implemented inline
 profile. Named-window resolution is described separately below.
 
+DISTINCT aggregate calls are not admitted to the implemented explicit-ROWS
+analytic path. The selected GoogleSQL resolver forbids a DISTINCT window call
+with window ORDER BY or an authored frame, including inherited clauses. The
+Frontend rejects these combinations instead of dropping DISTINCT, discarding
+the frame or executing a different window. Default/unordered DISTINCT analytic
+calls remain a separate unimplemented connection; their refusal is a coverage
+gap, not a claim that GoogleSQL prohibits every DISTINCT window. SQL, Pipe,
+QUALIFY and query ORDER window calls share this lowering boundary. Ordinary
+non-DISTINCT analytic and grouped DISTINCT calls retain their common contracts.
+See the pinned [analytic resolver](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/analyzer/analytic_function_resolver.cc)
+and its independent ORDER/frame refusal cases.
+
 In the implemented inline `OVER` profile, numeric `ROWS` boundaries
 accept an integer literal or a whole named parameter, for example
 `ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
@@ -214,6 +226,46 @@ The authored lower boundary and parameter remain unchanged. This is an
 explicit physical-row frame, not an implicit RANGE frame or an added order
 guarantee. Interval and bound-value validation remain in the common checker;
 a start after the implicit upper boundary is rejected before Run admission.
+
+Grouped `COUNTIF(DISTINCT predicate)` accepts the ordinary nullable Boolean
+predicate and counts distinct TRUE observations: the result is one when any
+qualifying observation is TRUE, otherwise zero, including empty/all-NULL input.
+The syntax AST retains DISTINCT. The common COUNT_IF operation has no DISTINCT
+modifier, so this call lowers to common COUNT with DISTINCT on
+`IF(predicate, TRUE, NULL)`. The existing conditional owner preserves Boolean
+type checking and evaluates the authored predicate once per demanded
+observation; FALSE/NULL do not contribute a non-NULL count argument. No input
+DISTINCT step, predicate duplication or new aggregate evaluator is introduced.
+
+Per-call WHERE stays in the common aggregate filter and retains its demand
+boundary. Ordinary COUNTIF, COUNT/SUM in the same group, input scope, parameters,
+HAVING, ORDER and LIMIT/OFFSET remain independent. The output is a non-NULL
+number under the current numeric profile. The pinned GoogleSQL
+[`aggregation_distinct_countif_1` through `_4` and grouping examples](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/compliance/testdata/aggregation_distinct_queries.test)
+anchor the one/zero behavior. This connection covers grouped SQL SELECT and
+Pipe AGGREGATE. DISTINCT analytic COUNTIF remains an unsupported profile;
+do not infer default/unordered window support from the existing explicit ROWS
+frame implementation or discard DISTINCT on an authored frame.
+
+Grouped `MIN(DISTINCT expression)` and `MAX(DISTINCT expression)` retain the
+authored modifier in query syntax and lower to ordinary common MIN/MAX calls.
+Removing duplicate observations does not change these extrema in the admitted
+value domains. The common operation forbids a `distinct: true` modifier on
+MIN/MAX; the Frontend therefore omits that redundant modifier without adding a
+deduplication step or evaluating the operand again. Other aggregates in the
+same group still observe every input occurrence unless their own modifier
+requests DISTINCT. Arguments, per-call filters, grouping, HAVING, parameters,
+order and LIMIT/OFFSET retain their authored meaning. NULL observations are
+excluded, and empty/all-NULL groups produce nullable typed NULL.
+
+This selected behavior is anchored by the pinned GoogleSQL
+[`aggregation_12` and `aggregation_14` compliance cases](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/compliance/testdata/aggregation_queries.test).
+It applies to SQL grouped SELECT and Pipe AGGREGATE, including scalar aggregate
+expressions. It does not add new comparable domains, collation, NaN/infinity or
+NUMERIC/BIGNUMERIC behavior. DISTINCT analytic MIN/MAX remains an explicit
+unsupported profile: the existing explicit-frame implementation is not the
+separate default/unordered DISTINCT analytic contract. This connection also
+does not close the statistical DISTINCT gap.
 
 The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
 `STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
@@ -382,13 +434,46 @@ successive Pipe set operator can declare its own list against the current
 Relation. ORDER BY and downstream Pipe operators see only the combined output.
 Normal type compatibility, NULL, duplicate and equality contracts remain with
 the common checker and operations. DATA and CTE sets use the same rules without
-additional acquisition. INNER/FULL/LEFT name propagation and CORRESPONDING
-spelling remain separate unimplemented surfaces; omitting those modes does not
+additional acquisition. FULL/LEFT name propagation remains a separate unimplemented surface; omitting those modes does not
 implicitly drop unlisted columns or add NULL-filled columns.
 The selected [GoogleSQL set modifier](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#by_name_or_corresponding)
 defines that equivalence. The pinned resolver and pipe-set fixtures corroborate
 strict matching and ON-list spelling; parser acceptance does not establish
 backend execution coverage.
+
+`INNER UNION ALL BY NAME`, `INNER UNION DISTINCT BY NAME`,
+`INNER INTERSECT DISTINCT BY NAME` and `INNER EXCEPT DISTINCT BY NAME`
+retain only common column names. Without ON, output order and spelling follow
+those common names in the first input. With `BY NAME ON (column_list)`, only
+the listed common names remain, in authored list order/spelling. At least one
+column must remain. Duplicate names in any input or list, and listed names
+missing from any input, are refused under the same case-insensitive lookup.
+The INNER prefix requires BY NAME; it never means positional matching.
+
+A SQL chain resolves the common output names across all its operands before
+checking set compatibility. A column absent from a later operand is excluded
+from every set input, even if its types differ in earlier operands. Sequential
+Pipe set operators instead consume their current intermediate Relation; a
+column retained by the first Pipe set must meet that intermediate type contract.
+Projection drops unmatched names using evaluated input slots, and the existing
+checker and set operations still determine types, NULL and duplicate behavior.
+ORDER BY and later operators cannot recover dropped names or input ranges.
+No source acquisition, execution owner or placement boundary is introduced.
+FULL/LEFT name propagation remains unimplemented.
+This subset follows the same pinned GoogleSQL reference above; selected local
+checks and packed acceptance establish only their recorded execution scope.
+
+`CORRESPONDING` uses the same common-name alignment as `INNER ... BY NAME`;
+`INNER ... CORRESPONDING` has the same meaning. `STRICT CORRESPONDING`
+uses the exact-name-set rule of unprefixed `BY NAME`. The optional
+`CORRESPONDING BY (column_list)` corresponds to `BY NAME ON (column_list)`:
+default CORRESPONDING selects listed common names, while STRICT requires the
+list to match each input's complete field set. List order and authored spelling,
+case-insensitive lookup, duplicate-name rejection and evaluated-slot reuse are
+unchanged. SQL chains and sequential Pipe sets keep their existing scope and
+common typing rules. These are selected GoogleSQL spellings of the existing
+set semantics, not a new execution or acquisition mechanism. FULL/LEFT variants
+remain unsupported pending common nullable-padding evidence.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
 body, named FROM/JOIN subquery and parenthesized query operand use the same
@@ -467,6 +552,25 @@ No suffix and no AND ORDER means no implicit ordering. Empty global grouping has
 no grouping output to sort; an explicit aggregate suffix still orders its output.
 These forms do not extend SQL GROUP BY's grammar. See the pinned reference
 [shorthand ordering](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#shorthand_order_pipe_syntax).
+
+Pipe `|> DISTINCT` compares the complete current visible row using the common
+keyed `distinct: [visible slots]` operation. It preserves column order, types, NULL
+equality and surviving range bindings without reevaluating expressions. Private
+slots and values displaced by SET or removed by DROP are projected away before distinct;
+range columns survive only when their evaluated slots remain visible. Thus a
+current `t.y` may remain usable while a removed `t.x` does not. RENAME preserves
+the evaluated value slot. Closed value-table receivers are explicitly unsupported rather than expanded
+into fields with different equality.
+Unlike `SELECT DISTINCT *`, this operator does not reset every table alias.
+Empty input remains empty; no ordering, representative-row choice or new
+execution owner is invented. Existing common type and publication checks still
+apply. The selected rules follow the pinned GoogleSQL
+[DISTINCT pipe operator](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#distinct_pipe_operator)
+and its resolver's mapping of surviving range columns. This does not establish
+support for all GoogleSQL value-table types or their grouping rules. Explicit
+keys use the existing common KeyComparable domains; broader object/array
+groupability remains a separate conformance dependency. Complete-row Program
+distinct is not substituted to admit non-groupable GoogleSQL JSON values.
 
 Pipe `AGGREGATE GROUP BY` may omit the aggregate expression list. It lowers
 to the ordinary group operation with an empty aggregate map: each distinct

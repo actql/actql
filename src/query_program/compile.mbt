@@ -1225,9 +1225,12 @@ fn lower_aggregate_resolved(
   order_fields? : Array[String]? = None,
   analytic? : Bool = false,
 ) -> @builder.Node raise Abort {
+  let conditional_count = call.function_name == "COUNTIF" &&
+    call.distinct &&
+    !analytic
   let name = match call.function_name {
     "COUNT" => "count"
-    "COUNTIF" => "count_if"
+    "COUNTIF" => if conditional_count { "count" } else { "count_if" }
     "SUM" => "sum"
     "AVG" => "avg"
     "MIN" => "min"
@@ -1249,9 +1252,13 @@ fn lower_aggregate_resolved(
         argument,
         @query.expression_root(argument),
       ).unwrap()
-      let field = match root.kind {
-        Reference(path) => resolve(path)
-        _ => None
+      let field = if conditional_count {
+        None
+      } else {
+        match root.kind {
+          Reference(path) => resolve(path)
+          _ => None
+        }
       }
       match field {
         Some(field) => entries.push(("field", construction.text(field)))
@@ -1259,16 +1266,39 @@ fn lower_aggregate_resolved(
           entries.push(
             (
               "expr",
-              match
-                @expression.append_with_properties(
-                  argument,
-                  resolve,
-                  construction.builder,
-                  max_work,
-                  resolve_parameter=construction.parameter_resolver(),
-                ) {
-                Ok(value) => value
-                Err(error) => raise Abort(Expression(error))
+              {
+                let argument = match
+                  @expression.append_with_properties(
+                    argument,
+                    resolve,
+                    construction.builder,
+                    max_work,
+                    resolve_parameter=construction.parameter_resolver(),
+                  ) {
+                  Ok(value) => value
+                  Err(error) => raise Abort(Expression(error))
+                }
+                // TRUE is the only qualifying distinct Boolean observation.
+                // The existing conditional and COUNT owners exclude FALSE/NULL
+                // without evaluating the authored predicate a second time.
+                if conditional_count {
+                  construction.object([
+                    (
+                      "if",
+                      construction.array([
+                        argument,
+                        construction.object([
+                          ("literal", construction.add(Bool(true))),
+                        ]),
+                        construction.object([
+                          ("literal", construction.add(Null)),
+                        ]),
+                      ]),
+                    ),
+                  ])
+                } else {
+                  argument
+                }
               },
             ),
           )
@@ -1299,7 +1329,10 @@ fn lower_aggregate_resolved(
       )
     None => ()
   }
-  if call.distinct {
+  // Grouped extrema are unchanged by duplicate observations, including NULL
+  // exclusion and empty input. The common MIN/MAX operation therefore needs
+  // no distinct modifier or separate deduplication/evaluation pass.
+  if call.distinct && !(!analytic && (name == "min" || name == "max")) {
     entries.push(("distinct", construction.add(Bool(true))))
   }
   if name == "array_agg" || name == "string_agg" {
@@ -1432,6 +1465,12 @@ fn lower_analytic_call(
 ) -> @builder.Node raise Abort {
   match call.aggregate {
     Some(aggregate) => {
+      // The selected SQL analytic contract forbids DISTINCT with window ORDER
+      // BY or an authored frame. Default/unordered DISTINCT needs a separate
+      // common window connection; never turn it into this explicit ROWS path.
+      if aggregate.distinct {
+        raise Abort(UnsupportedAnalytic)
+      }
       if call.window.frame is None {
         raise Abort(UnsupportedAnalytic)
       }
@@ -3732,6 +3771,39 @@ fn compile_steps(
           output = active_fields.copy()
         }
         deferred = true
+      }
+      Distinct => {
+        if requires_graph_projection {
+          raise Abort(UnsupportedProjection)
+        }
+        // Compare only current visible values. Displaced range slots are not
+        // representative-row payload and cannot survive this projection.
+        let slots : Array[String] = []
+        for field in pipe_visible {
+          if !slots.contains(field.1) {
+            slots.push(field.1)
+          }
+        }
+        // The current keyed distinct contract does not compare closed value
+        // tables. Do not expand them into nullable fields and change equality.
+        if !value_table_receivers.is_empty() {
+          raise Abort(UnsupportedProjection)
+        }
+        entries.push(
+          (
+            "distinct",
+            construction.array(slots.map(slot => construction.text(slot))),
+          ),
+        )
+        active_fields = slots
+        pipe_ranges = pipe_ranges.map(range => {
+          (range.0, range.1.filter(field => slots.contains(field.1)))
+        })
+        pipe_rebound = true
+        pipe_selected = false
+        distinct_order_scope = false
+        selected_expressions = []
+        selected_output_slots = []
       }
       Select(projections, distinct) if pipe_changed || pipe_rebound => {
         let projections = if sql_group_projection {
@@ -6168,6 +6240,14 @@ fn compile_set_stages(
   let stages : Array[@builder.Node] = []
   let sources : Array[String] = []
   let outputs : Array[Array[String]] = []
+  let mut first_term : (
+    Int,
+    String,
+    String,
+    String,
+    String,
+    Array[@builder.Node],
+  )? = None
   let captured : Array[(String, String, Bool)] = []
   for index in 0..<terms.length() {
     let term = terms[index]
@@ -6382,7 +6462,7 @@ fn compile_set_stages(
     }
     let mut output = compiled_output
     let mut term_result = term_name
-    if index == 0 {
+    if index == 0 && !@query.set_part_at(query, 0).unwrap().inner_by_name {
       let part = @query.set_part_at(query, 0).unwrap()
       let ordered = set_output_fields(output, part)
       let (matched, needed) = set_alignment_fields(ordered, output, true)
@@ -6398,57 +6478,100 @@ fn compile_set_stages(
       }
       output = ordered
     }
+    if index == 0 {
+      first_term = Some(
+        (
+          stages.length(),
+          input.name,
+          seed_stage,
+          seed_result,
+          term_name,
+          term_steps,
+        ),
+      )
+    }
     stages.push(
-      construction.object([
-        ("id", construction.text(term_stage)),
-        (
-          "inputs",
-          construction.object([
-            (
-              input.name,
-              construction.object([
-                (
-                  "result",
-                  construction.object([
-                    ("stage", construction.text(seed_stage)),
-                    ("result", construction.text(seed_result)),
-                  ]),
-                ),
-              ]),
-            ),
-          ]),
-        ),
-        ("steps", construction.array(term_steps)),
-        (
-          "results",
-          construction.object([
-            (
-              term_stage,
-              construction.object([
-                ("from", construction.text(term_result)),
-                (
-                  "fields",
-                  construction.array(
-                    output.map(name => construction.text(name)),
-                  ),
-                ),
-              ]),
-            ),
-          ]),
-        ),
-      ]),
+      set_term_stage(
+        construction,
+        term_stage,
+        input.name,
+        seed_stage,
+        seed_result,
+        term_steps,
+        term_result,
+        output,
+      ),
     )
     sources.push(term_stage)
     outputs.push(output)
+  }
+  let sql_inner_count = set_inner_chain_length(query)
+  let sql_inner_fields = if sql_inner_count > 0 {
+    let rights : Array[Array[String]] = []
+    for index in 1..<(sql_inner_count + 1) {
+      rights.push(outputs[index])
+    }
+    Some(
+      set_inner_fields(
+        outputs[0],
+        rights,
+        @query.set_part_at(query, 0).unwrap(),
+      ),
+    )
+  } else {
+    None
+  }
+  let first_part = @query.set_part_at(query, 0).unwrap()
+  if first_part.inner_by_name {
+    let ordered = match sql_inner_fields {
+      Some(fields) => fields
+      None => set_output_fields(outputs[0], first_part, right_fields=outputs[1])
+    }
+    let (matched, needed) = set_alignment_fields(
+      ordered,
+      outputs[0],
+      true,
+      allow_subset=true,
+    )
+    if needed {
+      let (index, input, seed_stage, seed_result, term_name, steps) = first_term.unwrap()
+      let steps = steps.copy()
+      let result = term_name + "_ordered"
+      steps.push(
+        construction.object([
+          ("from", construction.text(term_name)),
+          ("select", set_select_fields(construction, ordered, matched)),
+          ("as", construction.text(result)),
+        ]),
+      )
+      stages[index] = set_term_stage(
+        construction,
+        sources[0],
+        input,
+        seed_stage,
+        seed_result,
+        steps,
+        result,
+        ordered,
+      )
+    }
+    outputs[0] = ordered
   }
   let mut left_fields = outputs[0]
   let mut current_stage = sources[0]
   for index in 0..<@query.set_part_count(query) {
     let part = @query.set_part_at(query, index).unwrap()
     let right_fields = outputs[index + 1]
-    let ordered = set_output_fields(left_fields, part)
+    let ordered = if index < sql_inner_count {
+      sql_inner_fields.unwrap()
+    } else {
+      set_output_fields(left_fields, part, right_fields~)
+    }
     let (left_matched, left_needed) = set_alignment_fields(
-      ordered, left_fields, true,
+      ordered,
+      left_fields,
+      true,
+      allow_subset=part.inner_by_name,
     )
     if left_needed {
       let aligned_name = prefix + "aql_set_left_" + index.to_string()
@@ -6464,6 +6587,7 @@ fn compile_set_stages(
       left_fields,
       right_fields,
       part.by_name,
+      allow_subset=part.inner_by_name,
     )
     let aligned = left_fields.mapi((index, field) => {
       (field, construction.text(matched[index]))

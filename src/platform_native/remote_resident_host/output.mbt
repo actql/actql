@@ -484,6 +484,31 @@ pub fn reclaim_resident_output_intents(
   journal : @journal.Journal,
   store : @publication_store.Store,
 ) -> Result[Int, ResidentOutputIssue] {
+  reclaim_resident_output_intents_selected(journal, store, None)
+}
+
+///|
+/// Recover only one exact saved dispatch's Output custody. The caller holds
+/// the exclusive executor slot and has authenticated the original release.
+/// Other attempts remain owned even when their own release has begun.
+pub fn reclaim_resident_dispatch_output_intents(
+  journal : @journal.Journal,
+  store : @publication_store.Store,
+  request : @remote.DispatchRequest,
+) -> Result[Int, ResidentOutputIssue] {
+  match journal.require(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(OutputJournal(issue))
+  }
+  reclaim_resident_output_intents_selected(journal, store, Some(request))
+}
+
+///|
+fn reclaim_resident_output_intents_selected(
+  journal : @journal.Journal,
+  store : @publication_store.Store,
+  selected : @remote.DispatchRequest?,
+) -> Result[Int, ResidentOutputIssue] {
   let pending = match journal.pending_output_intents() {
     Ok(value) => value
     Err(issue) => return Err(OutputIntent(issue))
@@ -498,6 +523,10 @@ pub fn reclaim_resident_output_intents(
       if failure is None {
         failure = Some(OutputIntentInvalid)
       }
+      continue
+    }
+    if selected is Some(request) &&
+      !output_intent_matches_dispatch(body, request) {
       continue
     }
     match output_intent_release_started(journal, body) {
