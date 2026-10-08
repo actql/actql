@@ -141,7 +141,7 @@ const groups = [
   {name: 'effect-cancellation', file: 'client-effect-cancellation-public.test.mjs', count: 2},
   {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 2},
   {name: 'submission-input-refusal', file: 'submission-epoch-public.test.mjs',
-    pattern: 'durable known-input category', count: 2},
+    pattern: 'durable known-input category|retired pre-Run history', count: 4},
   {name: 'effect-reconciliation', file: 'client-effect-uncertainty.test.mjs', count: 3},
 ];
 const selectedGroups = cancellationOnly
@@ -168,8 +168,8 @@ for (const group of selectedGroups) {
   assert.equal(checked.counts.passed, group.count);
   passed += checked.counts.passed;
 }
-assert.equal(passed, cancellationOnly ? 6 : submissionCustodyOnly || submissionRefusalOnly ? 2
-  : effectReconciliationOnly ? 3 : 30);
+assert.equal(passed, cancellationOnly ? 6 : submissionCustodyOnly ? 2 : submissionRefusalOnly ? 4
+  : effectReconciliationOnly ? 3 : 32);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -181,12 +181,12 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
     : effectReconciliationOnly ? 'effect-reconciliation' : 'read-cancellation-submission-and-effect',
   cases: cancellationOnly ? {originalCancellationRecovery: 4, unknownEffectCancellationRecovery: 2}
     : submissionCustodyOnly ? {submissionCustodyLoss: 2}
-    : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2}
+    : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2}
     : effectReconciliationOnly ? {originalEffectReconciliation: 3}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
       installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
       unknownEffectCancellationRecovery: 2,
-      submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2,
+      submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
       originalEffectReconciliation: 3},
   passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
