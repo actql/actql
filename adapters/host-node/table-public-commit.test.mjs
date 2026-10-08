@@ -606,9 +606,9 @@ test(`Table text Effect-only CTAS through ${transport} (${empty ? 'empty' : 'non
     // Only synthetic fixture keys enter this owned directory. Observers are
     // process-local diagnostics, not persisted authorization or Run facts.
     const {observe: _observe, ...restartAuthorization} = authorization;
-    await writeFile(restartInput, JSON.stringify({ref, options: {...options,
-      installation: {...options.installation, authorization: restartAuthorization}}}),
-    {mode: 0o600});
+    const restartRequest = {ref, options: {...options,
+      installation: {...options.installation, authorization: restartAuthorization}}};
+    await writeFile(restartInput, JSON.stringify(restartRequest), {mode: 0o600});
     const restarted = await promisify(execFile)(process.execPath,
       [fileURLToPath(new URL('./fixtures/table-text-restart.mjs', import.meta.url)), restartInput],
       {timeout: 30000, killSignal: 'SIGKILL', maxBuffer: 1048576});
@@ -616,12 +616,24 @@ test(`Table text Effect-only CTAS through ${transport} (${empty ? 'empty' : 'non
       {status: 'waiting_checkpoint', result_availability: {}});
     assert.deepEqual(commits(f.catalog), [], 'A separate process cannot approve or write implicitly');
     client = await openClient(options);
-    const restored = await client.attach(ref);
+    let restored = await client.attach(ref);
     assert.equal((await restored.status()).status, 'waiting_checkpoint');
     assert.deepEqual(commits(f.catalog), [], 'Restart neither approves nor resends');
-    await client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {signer: {
-      keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: ref.authorityScopeCid,
-      sign: bytes => sign(null, bytes, keys.privateKey)}});
+    await client.close();
+    // Approval, restored private capture and commit must occur in a genuinely
+    // fresh process, not merely a second in-process Host object.
+    await writeFile(restartInput, JSON.stringify({...restartRequest, approval: {
+      checkpointCid: checkpoint.checkpointCid, keyId: 'reviewer', reviewerId: 'reviewer',
+      privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'}),
+    }}), {mode: 0o600});
+    const resumed = await promisify(execFile)(process.execPath,
+      [fileURLToPath(new URL('./fixtures/table-text-restart.mjs', import.meta.url)), restartInput],
+      {timeout: 30000, killSignal: 'SIGKILL', maxBuffer: 1048576});
+    assert.deepEqual(JSON.parse(resumed.stdout),
+      {status: 'succeeded', result_availability: {}});
+    assert.equal(commits(f.catalog).length, 1, 'The fresh process commits the original operation once');
+    client = await openClient(options);
+    restored = await client.attach(ref);
     const finished = await terminal(restored, observations, t);
     assert.equal(finished.status, 'succeeded', JSON.stringify(finished));
     assert.deepEqual(finished.result_availability, {});
