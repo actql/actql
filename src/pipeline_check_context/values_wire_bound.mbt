@@ -8,16 +8,46 @@ pub(all) enum ValuesWireBoundIssue {
 } derive(Debug)
 
 ///|
-/// An applied wire-payload proof with its exact Program/binding owner retained.
+/// An applied wire-payload proof with its exact Values occurrence retained.
 /// It is neither a selected limit nor successful publication enforcement.
 pub struct ValuesWireBound {
-  cells : ProgramOperationCells
-  requirement_index : Int
-  site : OperationRequirementSite
+  owner : ValuesResourceOwner
   proof : @wire.ProgramProofClaim
   bytes : Int
   nodes : Int
   depth : Int
+}
+
+///|
+pub fn values_wire_bound_pipeline(
+  value : ValuesWireBound,
+) -> @pipeline.CheckedPipeline {
+  values_resource_pipeline(value.owner)
+}
+
+///|
+pub fn values_wire_bound_step(value : ValuesWireBound) -> Int {
+  values_resource_step(value.owner)
+}
+
+///|
+pub fn values_wire_bound_cells(
+  value : ValuesWireBound,
+) -> ProgramOperationCells? {
+  match value.owner.source {
+    BoundCells(cells, _, _) => Some(cells)
+    Authored(_, _, _) => None
+  }
+}
+
+///|
+pub fn values_wire_bound_site(
+  value : ValuesWireBound,
+) -> OperationRequirementSite? {
+  match value.owner.source {
+    BoundCells(_, _, site) => Some(site)
+    Authored(_, _, _) => None
+  }
 }
 
 ///|
@@ -36,19 +66,19 @@ pub fn check_values_wire_bound(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ValuesWireBound, ValuesWireBoundIssue] {
-  let requirements = cells.requirements
-  guard requirements.entries.get(requirement_index) is Some(site) else {
-    return Err(Measurement(InvalidRequirement))
-  }
-  guard site.requirement
-    is @pipeline.ValuesRequirement(@values.ResolvePublicationResources) else {
-    return Err(Measurement(InvalidRequirement))
+  let owner = match bound_values_resource_owner(cells, requirement_index) {
+    Ok(value) => value
+    Err(issue) => return Err(Measurement(issue))
   }
   let witness = @wire.program_proof_witness(proof)
   guard @wire.source(witness) is @wire.Program(subject, _) else {
     return Err(InvalidProof)
   }
-  if @step_bounds.subject_ref(site.pipeline, site.step) != Some(subject) {
+  if @step_bounds.subject_ref(
+      values_resource_pipeline(owner),
+      values_resource_step(owner),
+    ) !=
+    Some(subject) {
     return Err(SubjectMismatch)
   }
   if @law.name(@wire.law(witness)) != "actql.bound.values-wire" ||
@@ -73,5 +103,5 @@ pub fn check_values_wire_bound(
   if @wire.value(witness) != bytes.to_int64() {
     return Err(ValueMismatch)
   }
-  Ok({ cells, requirement_index, site, proof, bytes, nodes, depth, })
+  Ok({ owner, proof, bytes, nodes, depth, })
 }

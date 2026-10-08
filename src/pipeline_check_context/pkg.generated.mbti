@@ -106,6 +106,22 @@ pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work
 
 pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.Checked, Array[BoundParameters], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int) -> Result[StageContexts, StageIssue]
 
+pub fn authoring_values_capacity(AuthoringValuesPublicationCheck) -> @check_environment.Capacity
+
+pub fn authoring_values_metadata_usage(AuthoringValuesPublicationCheck) -> (Int, Int)
+
+pub fn authoring_values_payload_usage(AuthoringValuesPublicationCheck) -> (Int, Int)
+
+pub fn authoring_values_profiles(AuthoringValuesPublicationCheck) -> PipelineOperationProfileChecks
+
+pub fn authoring_values_recursive(AuthoringValuesPublicationCheck) -> ValuesRecursiveAdmission
+
+pub fn authoring_values_recursive_limit(AuthoringValuesPublicationCheck) -> @capacity_witness.LimitClaim?
+
+pub fn authoring_values_step(AuthoringValuesPublicationCheck) -> Int
+
+pub fn authoring_values_work(AuthoringValuesPublicationCheck) -> Int
+
 pub fn bind_capacity_inputs(@stage_syntax.Program, Array[StageCapacityInput], Int) -> Result[ProgramCapacityInputs, CapacityInputsIssue]
 
 pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
@@ -180,7 +196,7 @@ pub fn checked_orders(PipelineContext) -> @relation_results.CheckedOrders
 
 pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
-pub fn close_pipeline_authoring(PipelineOperationProfileChecks, Int, Int, Int) -> Result[PipelineAuthoringClosure, PipelineAuthoringIssue]
+pub fn close_pipeline_authoring(PipelineOperationProfileChecks, @check_environment.Capacity, Array[AuthoringValuesPublicationCheck], Int, Int, Int) -> Result[PipelineAuthoringClosure, PipelineAuthoringIssue]
 
 pub fn close_program_expressions(ProgramSourceIdentity, Int, Int) -> Result[ProgramExpressionClosure, ExpressionClosureIssue]
 
@@ -678,6 +694,8 @@ pub fn pattern_site(PatternResolution) -> ExpressionValidationSite
 
 pub fn pattern_usage(PatternChecks) -> PatternUsage
 
+pub fn pipeline_authoring_capacity(PipelineAuthoringClosure) -> @check_environment.Capacity
+
 pub fn pipeline_authoring_expressions(PipelineAuthoringClosure) -> @pipeline_typing.ExpressionSlots
 
 pub fn pipeline_authoring_profiles(PipelineAuthoringClosure) -> PipelineOperationProfileChecks
@@ -685,6 +703,10 @@ pub fn pipeline_authoring_profiles(PipelineAuthoringClosure) -> PipelineOperatio
 pub fn pipeline_authoring_runtime_at(PipelineAuthoringClosure, Int) -> AuthoringRuntimeRequirement?
 
 pub fn pipeline_authoring_runtime_count(PipelineAuthoringClosure) -> Int
+
+pub fn pipeline_authoring_values_at(PipelineAuthoringClosure, Int) -> AuthoringValuesPublicationCheck?
+
+pub fn pipeline_authoring_values_count(PipelineAuthoringClosure) -> Int
 
 pub fn pipeline_authoring_work(PipelineAuthoringClosure) -> Int
 
@@ -914,6 +936,8 @@ pub fn regex_pattern_site(RegexPatternResolution) -> ExpressionValidationSite
 
 pub fn regex_pattern_usage(RegexPatternChecks) -> RegexPatternUsage
 
+pub fn resolve_authoring_values_resources(PipelineOperationProfileChecks, Int, @check_environment.Capacity, ValuesPublicationLimits, total_limits? : @capacity_witness.Limits?) -> Result[AuthoringValuesPublicationCheck, ValuesPublicationIssue]
+
 pub fn resolve_program_operations(ProgramSourceIdentity, OperationResolutionLimits, text_rank? : @check_environment.SelectedTextRankProfile?, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[ProgramOperationResolutionIndex, ProgramOperationResolutionIssue]
 
 pub fn resolve_program_values_resources(ProgramOperationResolutionIndex, ValuesPublicationLimits, total_limits? : @capacity_witness.Limits?) -> Result[ProgramOperationResolutionIndex, ValuesPublicationIssue]
@@ -1124,7 +1148,15 @@ pub fn validation_site_requirement(ExpressionValidationSite) -> ExpressionRequir
 
 pub fn values_recursive_field_at(ValuesRecursiveAdmission, Int) -> Int?
 
+pub fn values_wire_bound_cells(ValuesWireBound) -> ProgramOperationCells?
+
 pub fn values_wire_bound_contract(ValuesWireBound) -> String
+
+pub fn values_wire_bound_pipeline(ValuesWireBound) -> @pipeline_typing.CheckedPipeline
+
+pub fn values_wire_bound_site(ValuesWireBound) -> OperationRequirementSite?
+
+pub fn values_wire_bound_step(ValuesWireBound) -> Int
 
 pub fn vector_resource_at(VectorCheck, Int) -> VectorResource?
 
@@ -1282,6 +1314,8 @@ pub struct AuthoringRuntimeRequirement {
   owner : @pipeline_typing.OperationObligations
   index : Int
 }
+
+type AuthoringValuesPublicationCheck
 
 type BoundParameters
 
@@ -2566,6 +2600,7 @@ pub enum PipelineAuthoringIssue {
   BudgetExceeded
   ExpressionSlots(@pipeline_typing.ExpressionSlotIssue)
   UnsupportedOperation(Int)
+  ForeignValues(Int)
   PendingExpression(Int, @expression_typing.Obligation)
   PendingOperation(Int, @pipeline_typing.OperationObligations, Int)
 }
@@ -3456,6 +3491,7 @@ pub enum ValuesCapacityIssue {
 pub(all) enum ValuesMeasurementIssue {
   InvalidRequirement
   ForeignOwner
+  NeedsBinding(Int, Int)
   Encoding(@encode_core.EncodeFailure)
 } derive(@debug.Debug)
 
@@ -3512,6 +3548,8 @@ pub(all) enum ValuesRecursiveIssue {
   BytesExceeded
 } derive(@debug.Debug)
 
+type ValuesResourceOwner
+
 pub struct ValuesRowBound {
   bound : @capacity_program_step.StepBound
   metadata_bytes : Int
@@ -3538,9 +3576,7 @@ pub(all) enum ValuesRowLimitIssue {
 } derive(@debug.Debug)
 
 pub struct ValuesWireBound {
-  cells : ProgramOperationCells
-  requirement_index : Int
-  site : OperationRequirementSite
+  owner : ValuesResourceOwner
   proof : @capacity_witness.ProgramProofClaim
   bytes : Int
   nodes : Int

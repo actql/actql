@@ -11,67 +11,104 @@ fn authoring_profile_proof(
 }
 
 ///|
-test "pipeline authoring retains exact pending execution owners without binding values" {
-  for cell in [false, true] {
-    let pipeline = unbound_profile_pipeline(true, value_cell=cell)
-    let profiles = authoring_profile_proof(pipeline)
-    let closure = close_pipeline_authoring(profiles, 100000, 100, 100).unwrap()
-    assert_true(physical_equal(pipeline_authoring_profiles(closure), profiles))
-    assert_true(
-      physical_equal(
-        @pipeline.expression_slots_pipeline(
-          pipeline_authoring_expressions(closure),
-        ),
-        pipeline,
+test "pipeline authoring requires completed static resource selection from the exact owner" {
+  let pipeline = unbound_profile_pipeline(true)
+  let profiles = authoring_profile_proof(pipeline)
+  let capacity = authoring_capacity()
+  let resource = resolve_authoring_values_resources(
+    profiles,
+    0,
+    capacity,
+    values_publication_limits(),
+  ).unwrap()
+  let resources = [resource]
+  let closure = close_pipeline_authoring(
+    profiles, capacity, resources, 100000, 100, 100,
+  ).unwrap()
+  assert_true(physical_equal(pipeline_authoring_profiles(closure), profiles))
+  assert_true(
+    physical_equal(
+      @pipeline.expression_slots_pipeline(
+        pipeline_authoring_expressions(closure),
       ),
+      pipeline,
+    ),
+  )
+  assert_eq(pipeline_authoring_runtime_count(closure), 0)
+  assert_eq(pipeline_authoring_values_count(closure), 1)
+  assert_true(
+    physical_equal(pipeline_authoring_values_at(closure, 0).unwrap(), resource),
+  )
+  let exact = pipeline_authoring_work(closure)
+  assert_true(
+    close_pipeline_authoring(profiles, capacity, resources, exact, 100, 100)
+    is Ok(_),
+  )
+  assert_true(
+    close_pipeline_authoring(profiles, capacity, resources, exact - 1, 100, 100)
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    close_pipeline_authoring(profiles, capacity, resources, 0, 100, 100)
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    close_pipeline_authoring(profiles, capacity, resources, -1, 100, 100)
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    close_pipeline_authoring(profiles, capacity, resources, 100000, 0, 100)
+    is Err(ExpressionSlots(SlotLimit)),
+  )
+  // A raw resource obligation is not an already selected future check.
+  assert_true(
+    close_pipeline_authoring(profiles, capacity, [], 100000, 100, 100)
+    is Err(PendingOperation(0, _, 0)),
+  )
+  assert_true(
+    close_pipeline_authoring(
+      profiles,
+      capacity,
+      [resource, resource],
+      100000,
+      100,
+      100,
     )
-    assert_eq(
-      pipeline_authoring_runtime_count(closure),
-      if cell {
-        2
-      } else {
-        1
-      },
+    is Err(ForeignValues(0)),
+  )
+  let foreign_profiles = authoring_profile_proof(pipeline)
+  assert_true(
+    close_pipeline_authoring(
+      foreign_profiles, capacity, resources, 100000, 100, 100,
     )
-    let resource = pipeline_authoring_runtime_at(closure, 0).unwrap()
-    assert_eq(resource.step, 0)
-    assert_true(
-      @pipeline.operation_obligations_at(resource.owner, resource.index)
-      is Some(@pipeline.ValuesRequirement(@values.ResolvePublicationResources)),
+    is Err(ForeignValues(0)),
+  )
+  let foreign_pipeline = unbound_profile_pipeline(true)
+  assert_true(
+    close_pipeline_authoring(
+      authoring_profile_proof(foreign_pipeline),
+      capacity,
+      resources,
+      100000,
+      100,
+      100,
     )
-    if cell {
-      let binding = pipeline_authoring_runtime_at(closure, 1).unwrap()
-      assert_eq(binding.step, 0)
-      assert_true(
-        @pipeline.operation_obligations_at(binding.owner, binding.index)
-        is Some(@pipeline.ValuesRequirement(@values.BindCell("x"))),
-      )
-    }
-    let exact = pipeline_authoring_work(closure)
-    assert_eq(
-      pipeline_authoring_work(
-        close_pipeline_authoring(profiles, exact, 100, 100).unwrap(),
-      ),
-      exact,
+    is Err(ForeignValues(0)),
+  )
+  assert_true(
+    close_pipeline_authoring(
+      profiles,
+      authoring_capacity(),
+      resources,
+      100000,
+      100,
+      100,
     )
-    assert_true(
-      close_pipeline_authoring(profiles, exact - 1, 100, 100)
-      is Err(BudgetExceeded),
-    )
-    assert_true(
-      close_pipeline_authoring(profiles, 0, 100, 100) is Err(BudgetExceeded),
-    )
-    assert_true(
-      close_pipeline_authoring(profiles, -1, 100, 100) is Err(InvalidLimits),
-    )
-    assert_true(
-      close_pipeline_authoring(profiles, 100000, 100, 0) is Err(BudgetExceeded),
-    )
-    assert_true(
-      close_pipeline_authoring(profiles, 100000, 0, 100)
-      is Err(ExpressionSlots(SlotLimit)),
-    )
-  }
+    is Err(ForeignValues(0)),
+  )
+  assert_true(physical_equal(pipeline_authoring_capacity(closure), capacity))
+  resources.clear()
+  assert_eq(pipeline_authoring_values_count(closure), 1)
 }
 
 ///|
@@ -80,18 +117,41 @@ test "pipeline authoring cannot certify unresolved expressions or unconnected op
     false,
     expression=Some("regex_match(NULL, 'a')"),
   )
+  let profiles = authoring_profile_proof(pattern)
+  let capacity = authoring_capacity()
+  let resource = resolve_authoring_values_resources(
+    profiles,
+    0,
+    capacity,
+    values_publication_limits(),
+  ).unwrap()
   assert_true(
-    close_pipeline_authoring(authoring_profile_proof(pattern), 100000, 100, 100)
+    close_pipeline_authoring(profiles, capacity, [resource], 100000, 100, 100)
     is Err(PendingExpression(1, _)),
   )
   let unconnected = unbound_profile_pipeline(true, suffix=",{\"take\":1}")
+  let profiles = authoring_profile_proof(unconnected)
+  let capacity = authoring_capacity()
+  let resource = resolve_authoring_values_resources(
+    profiles,
+    0,
+    capacity,
+    values_publication_limits(),
+  ).unwrap()
+  assert_true(
+    close_pipeline_authoring(profiles, capacity, [resource], 100000, 100, 100)
+    is Err(UnsupportedOperation(3)),
+  )
+  let cell = unbound_profile_pipeline(true, value_cell=true)
   assert_true(
     close_pipeline_authoring(
-      authoring_profile_proof(unconnected),
+      authoring_profile_proof(cell),
+      capacity,
+      [],
       100000,
       100,
       100,
     )
-    is Err(UnsupportedOperation(3)),
+    is Err(PendingOperation(0, _, 0)),
   )
 }

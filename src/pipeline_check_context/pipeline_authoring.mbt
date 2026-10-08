@@ -4,6 +4,7 @@ pub enum PipelineAuthoringIssue {
   BudgetExceeded
   ExpressionSlots(@pipeline.ExpressionSlotIssue)
   UnsupportedOperation(Int)
+  ForeignValues(Int)
   PendingExpression(Int, @typing.Obligation)
   PendingOperation(Int, @pipeline.OperationObligations, Int)
 }
@@ -18,19 +19,24 @@ pub struct AuthoringRuntimeRequirement {
 ///|
 struct PipelineAuthoringClosure {
   profiles : PipelineOperationProfileChecks
+  capacity : @environment.Capacity
   expressions : @pipeline.ExpressionSlots
   runtime : Array[AuthoringRuntimeRequirement]
+  resources : Array[AuthoringValuesPublicationCheck]
   work : Int
 }
 
 ///|
-/// Close the static obligations of the currently connected Values/Derive/Select
-/// path using its actual checked operation, expression and profile owners.
-/// Recognized value/resource obligations retain their later execution owners.
+/// Close connected pipeline obligations using actual expression/profile owners
+/// and completed static Values resource selection. An unresolved resource site
+/// cannot become a runtime-only requirement. Bound-value obligations retain
+/// their later execution owners.
 /// Other operation or pending-expression paths remain unresolved, never a
 /// smaller successful scope. This is not a whole-Program template certificate.
 pub fn close_pipeline_authoring(
   profiles : PipelineOperationProfileChecks,
+  capacity : @environment.Capacity,
+  resources : Array[AuthoringValuesPublicationCheck],
   max_work : Int,
   max_slots : Int,
   max_requirements : Int,
@@ -44,6 +50,25 @@ pub fn close_pipeline_authoring(
     return Err(BudgetExceeded)
   }
   work += 1
+  let by_step : Map[Int, AuthoringValuesPublicationCheck] = Map([])
+  if resources.length() > max_work - work {
+    return Err(BudgetExceeded)
+  }
+  work += resources.length()
+  for resource in resources {
+    let step = authoring_values_step(resource)
+    if !physical_equal(authoring_values_profiles(resource), profiles) ||
+      !physical_equal(authoring_values_capacity(resource), capacity) ||
+      by_step.contains(step) {
+      return Err(ForeignValues(step))
+    }
+    let used = resource.work - profiles.work
+    if used > max_work - work {
+      return Err(BudgetExceeded)
+    }
+    work += used
+    by_step[step] = resource
+  }
   let expressions = match
     @pipeline.collect_expression_slots(
       pipeline,
@@ -76,7 +101,7 @@ pub fn close_pipeline_authoring(
       @pipeline.Values(_) => ()
       @pipeline.Unary(value) =>
         match @relation.operation(value) {
-          Derive | Select => ()
+          Derive | Select | Filter | Rename | Drop => ()
           _ => return Err(UnsupportedOperation(step))
         }
       _ => return Err(UnsupportedOperation(step))
@@ -95,15 +120,25 @@ pub fn close_pipeline_authoring(
       work += n
       for index in 0..<n {
         match @pipeline.operation_obligations_at(owner, index).unwrap() {
-          @pipeline.ValuesRequirement(@values.BindCell(_))
-          | @pipeline.ValuesRequirement(@values.ResolvePublicationResources) =>
+          @pipeline.ValuesRequirement(@values.BindCell(_)) =>
             runtime.push({ step, owner, index, })
+          @pipeline.ValuesRequirement(@values.ResolvePublicationResources) =>
+            if !by_step.contains(step) {
+              return Err(PendingOperation(step, owner, index))
+            }
           _ => return Err(PendingOperation(step, owner, index))
         }
       }
     }
   }
-  Ok({ profiles, expressions, runtime, work, })
+  Ok({
+    profiles,
+    capacity,
+    expressions,
+    runtime,
+    resources: resources.copy(),
+    work,
+  })
 }
 
 ///|
@@ -138,4 +173,24 @@ pub fn pipeline_authoring_runtime_at(
 ///|
 pub fn pipeline_authoring_work(value : PipelineAuthoringClosure) -> Int {
   value.work
+}
+
+///|
+pub fn pipeline_authoring_values_count(value : PipelineAuthoringClosure) -> Int {
+  value.resources.length()
+}
+
+///|
+pub fn pipeline_authoring_values_at(
+  value : PipelineAuthoringClosure,
+  index : Int,
+) -> AuthoringValuesPublicationCheck? {
+  value.resources.get(index)
+}
+
+///|
+pub fn pipeline_authoring_capacity(
+  value : PipelineAuthoringClosure,
+) -> @environment.Capacity {
+  value.capacity
 }
