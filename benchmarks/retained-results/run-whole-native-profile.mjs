@@ -10,7 +10,7 @@ import {retainedCase} from './fixtures.mjs';
 import {profileDigest} from './local-performance-profile.mjs';
 import {sha256File} from './release-artifacts.mjs';
 import {prepareNativeDirectProduct,executeNativeDirectProduct,admitNativeDirectProduct} from './native-direct-product.mjs';
-import {wholeRunScope,wholeRunLimits,loadWholeRunProfile,wholeRunTemplate,admitWholeRunTrajectory} from './whole-run-profile.mjs';
+import {wholeRunScope,wholeRunLimits,loadWholeRunProfile,loadWholeRunCreationCost,wholeRunTemplate,admitWholeRunTrajectory} from './whole-run-profile.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const [destinationArg,stage,planArg,profileArg]=process.argv.slice(2),destination=resolve(destinationArg??'');
@@ -68,7 +68,7 @@ const report={version:'actql-local-whole-run-profile/0.1',revision,binaryDigest,
 const encode=value=>JSON.stringify(value,(_key,value)=>typeof value==='bigint'?String(value):value);
 const checkpoint=()=>writeFile(join(destination,'whole-run.json'),encode(report)+'\n',{mode:0o600});
 await checkpoint();
-const campaignStarted=performance.now();let cache=null;
+const campaignStarted=performance.now();let cache=null,creationCost=null;
 for(const [index,step] of schedule.entries()) {
   const trial=join(destination,'trial-'+index);
   const item={index,step,conditions,observedAt:Date.now(),outcome:'unobserved',ownerAccepted:false,
@@ -122,11 +122,12 @@ for(const [index,step] of schedule.entries()) {
         await writeFile(join(trial,'normal-template.json'),templateBytes,{flag:'wx',mode:0o600});
         item.templateMs=performance.now()-templateStart;
       }
+      if(templateBytes&&creationCost===null) creationCost=await loadWholeRunCreationCost(resolve(profileArg),cache);
       const settings={...plan.normalHost.settings,mode,
         profile_file:templateBytes?'normal-template.json':'-',
         profile_digest:templateBytes?profileDigest(templateBytes).slice(7):'-',
         profile_revision:templateBytes?cache.profileRevision:'-',
-        profile_creation_ms:plan.normalHost.profileCreationMs??null};
+        profile_creation_ms:templateBytes?creationCost.profileCreationMs:null};
       await writeFile(join(trial,'normal-settings.json'),JSON.stringify(settings),{flag:'wx',mode:0o600});
       // Offline is genuinely unconfigured: no profile or input identity work.
       // Its Source/profile input identity is separately pinned by this producer.
@@ -145,7 +146,8 @@ for(const [index,step] of schedule.entries()) {
       expectedResult:fixture.identity(),result:product.record.rows_cid};
     const normalDecisions=execution.stdout.split('\n').filter(l=>l.startsWith('normal-host-decision:')).map(l=>JSON.parse(l.slice('normal-host-decision:'.length)));
     item.normalDecisions=normalDecisions;
-    item.normalProfileCosts={decisions:normalDecisions.map(d=>d.costs),
+    item.normalProfileCosts={decisions:normalDecisions.map(d=>d.costs),creationCost,
+      creationScope:'comparison campaign and final original validation once; not added to first-use latency',
       nativeReuse:'same immutable template across requests in this Run; process restart loads anew',
       additionalTelemetryOverhead:'unknown-no-off-comparison'};
     item.fallback=normalDecisions.length?normalDecisions[0].mode==='select-reference'&&normalDecisions[0].selected_position===null:

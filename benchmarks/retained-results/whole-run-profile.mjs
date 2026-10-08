@@ -127,6 +127,20 @@ export async function loadWholeRunProfile(directory,expectedDigest) {
   return freeze({report:reportValue,profileRevision:digest,readbackMs:performance.now()-started});
 }
 
+// Separate creation receipt; validation/readback time is current caller work.
+// The original remains immutable and no creation cost is inferred from samples.
+export async function loadWholeRunCreationCost(directory, profile) {
+  const started=performance.now();
+  const receipt=JSON.parse(await boundedRead(join(directory,'cost-receipt.json'),8192));
+  assert.deepEqual(Object.keys(receipt).sort(),['originalAdmissionMs','originalDigest','profileCreationMs','scope'].sort());
+  assert.equal(receipt.originalDigest,profile.profileRevision,'WholeRunCreationOriginChanged');
+  assert.equal(profile.report.stage,'comparison');
+  assert(finite(receipt.originalAdmissionMs)&&finite(receipt.profileCreationMs)&&finite(profile.report.creationMs));
+  assert.equal(receipt.profileCreationMs,profile.report.creationMs+receipt.originalAdmissionMs,'WholeRunCreationOverlap');
+  assert.equal(typeof receipt.scope,'string');
+  return freeze({...receipt,readbackMs:performance.now()-started});
+}
+
 export function wholeRunTemplate({profile,conditions,candidates,now,maxAgeMs=86400000}) {
   assert(Number.isSafeInteger(now)&&now>=0&&maxAgeMs>0&&maxAgeMs<=wholeRunLimits.maxAgeMs);
   const body=JSON.parse(candidates.canonical_json);
