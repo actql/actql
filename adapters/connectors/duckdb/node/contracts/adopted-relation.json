@@ -1,8 +1,8 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:52042d6f2ebd7423a6dd297141f4d1358ac3c81f5974a659508dc359738cc136",
+  "registry_cid": "sha256:bad5b4562a4e6cbb056ab2dea31cd9a20366190353b14e0be3125454177519b8",
   "values_cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
-  "fragment_cid": "sha256:a1ee4878ec4b3895834fde8e95320bbca28c5347247094d7b28fe079de33bb35",
+  "fragment_cid": "sha256:01b5deb12652eaff90dbf16c4595b7806a71266a65859fd12ffe3a5941045459",
   "graph_cid": "sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210",
   "registry": {
     "REL.select": {
@@ -38,7 +38,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:2e29b27ce6d75b190ab34926bdc4fe4127b654da86f41f027470b3144082919a"
+          "cid": "sha256:cd7053dd97ed3f80fd5435f2fb20e91a06c99469120f0a2db637c5a1508d4d83"
         }
       }
     },
@@ -488,7 +488,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:a1ee4878ec4b3895834fde8e95320bbca28c5347247094d7b28fe079de33bb35"
+        "cid": "sha256:01b5deb12652eaff90dbf16c4595b7806a71266a65859fd12ffe3a5941045459"
       }
     }
   },
@@ -1504,12 +1504,12 @@
       "expression_contract": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67"
+        "cid": "sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d"
       },
       "fragment_schema": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "/schemas/fragment",
-        "cid": "sha256:736ddd89183ed162dd755e68858e1c4f7347c6d6ee03fec46c843f072c5e19d1"
+        "cid": "sha256:22d6810c6ef8de4ef16fc9f8e49a3f5b43a15e0637c6817c7ccb930c04afd33c"
       }
     },
     "params_schema": {

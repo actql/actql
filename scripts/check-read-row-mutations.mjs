@@ -50,6 +50,52 @@ const publishedPrefixes = (consumers, id, operator) => ['local', 'https'].flatMa
     assertions: [{id, operator}],
   })));
 const mutations = [
+  ['an explicit reread silently starts another physical Compute', [
+    ['const readExplanations = new WeakMap();',
+      'const readExplanations = new WeakMap();\nconst unsafeReadRecomputations = new WeakSet();'],
+    ['const readFailure = (cause, context, rowsYielded, prior) => {',
+      'const readFailure = (cause, context, rowsYielded, prior) => {\n' +
+      '  unsafeReadRecomputations.add(context.ref);'],
+    ["          try {\n            const response = await runRequest('read', {",
+      '          try {\n' +
+      '            if (unsafeReadRecomputations.delete(ref)) {\n' +
+      '              const original = submissionInputs.get(handle);\n' +
+      '              if (original !== undefined) await submit(original.kind, original.input,\n' +
+      '                {parameters: original.parameters});\n' +
+      '            }\n' +
+      "            const response = await runRequest('read', {"],
+  ], ['local', 'https'].flatMap(entrance => ['rows', 'all'].map(consumer => ({
+    name: `${entrance}: ${consumer} remains incomplete after all published rows when the terminator is lost`,
+    assertions: [{id: 'read-reread-no-compute', operator: 'deepStrictEqual'}],
+  }))), 'adapters/host-node/client-read-terminator.test.mjs'],
+  ['a reordered reread skips the previous prefix without a resume contract', [
+    ['const readExplanations = new WeakMap();',
+      'const readExplanations = new WeakMap();\nconst unsafeReadOffsets = new WeakMap();'],
+    ['const readFailure = (cause, context, rowsYielded, prior) => {',
+      'const readFailure = (cause, context, rowsYielded, prior) => {\n' +
+      '  const offsets = unsafeReadOffsets.get(context.ref) ?? new Map();\n' +
+      '  offsets.set(context.resultName, Math.max(offsets.get(context.resultName) ?? 0, rowsYielded));\n' +
+      '  unsafeReadOffsets.set(context.ref, offsets);'],
+    ['        let rowsYielded = 0, rawRows = 0, retainedBytes = 0;',
+      '        const unsafeOffset = unsafeReadOffsets.get(ref)?.get(name) ?? 0;\n' +
+      '        let rowsYielded = 0, rawRows = 0, retainedBytes = 0;'],
+    ['                const output = await acceptRow(row, size);\n' +
+      '                controller.signal.throwIfAborted();\n' +
+      '                rowsYielded++;\n                yield output;',
+      '                const output = await acceptRow(row, size);\n' +
+      '                controller.signal.throwIfAborted();\n' +
+      '                if (rawRows <= unsafeOffset) continue;\n' +
+      '                rowsYielded++;\n                yield output;'],
+    ['                    rowsYielded++;\n                    yield output;',
+      '                    if (rawRows <= unsafeOffset) continue;\n' +
+      '                    rowsYielded++;\n                    yield output;'],
+    ['                rowsYielded++;\n                yield output;\n              }\n              if (line',
+      '                if (rawRows <= unsafeOffset) continue;\n' +
+      '                rowsYielded++;\n                yield output;\n              }\n              if (line'],
+  ], ['local', 'https'].flatMap(entrance => ['rows', 'all'].map(consumer => ({
+    name: `${entrance}: explicit reordered ${consumer} reread never skips the previous prefix`,
+    assertions: [{id: 'read-reordered-whole-value', operator: 'deepStrictEqual'}],
+  }))), 'adapters/host-node/client-read-reorder.test.mjs'],
   ['an uncertain read opening silently creates another charged attempt', [
     ['    createDigest: installed.createDigest,\n    authorize,\n    signal,\n  });\n}',
       '    createDigest: installed.createDigest,\n    authorize,\n    signal,\n' +

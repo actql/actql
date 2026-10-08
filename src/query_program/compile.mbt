@@ -777,17 +777,9 @@ fn append_pipe_expression(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
 ) -> @builder.Node raise Abort {
-  match
-    @expression.append_with_properties(
-      expression,
-      path => pipe_slot(path, visible, ranges),
-      construction.builder,
-      max_work,
-      resolve_parameter=construction.parameter_resolver(),
-    ) {
-    Ok(node) => node
-    Err(error) => raise Abort(Expression(error))
-  }
+  append_pipe_range_expression(
+    construction, expression, visible, ranges, max_work,
+  )
 }
 
 ///|
@@ -903,23 +895,42 @@ fn append_expression(
     }
     resolve_column(path, query, input, fields)
   }
+  let (bound, slots, remaining) = bind_range_property_expression(
+    expression,
+    resolve,
+    name => {
+      resolve([name]) is Some(_) ||
+      ambiguous_column([name], query, input, fields)
+    },
+    max_work,
+  )
+  let bound_resolve = fn(path : Array[@query.NamePart]) -> String? {
+    if path.length() == 1 {
+      for (name, slot) in slots {
+        if path[0].value == name {
+          return Some(slot)
+        }
+      }
+    }
+    resolve(path)
+  }
   let lowered = if input.graph_bindings.is_empty() {
     @expression.append_with_properties(
-      expression,
-      resolve,
+      bound,
+      bound_resolve,
       construction.builder,
-      max_work,
+      remaining,
       resolve_parameter=construction.parameter_resolver(),
     )
   } else {
     @expression.append_with_macros(
-      expression,
-      resolve,
+      bound,
+      bound_resolve,
       (path, argument) => {
         graph_macro_value(path, argument, input.graph_bindings)
       },
       construction.builder,
-      max_work,
+      remaining,
       resolve_properties=true,
       resolve_parameter=construction.parameter_resolver(),
     )
@@ -1843,6 +1854,84 @@ fn compile_steps(
   let mut pipe_selected = false
   let mut value_table_receivers : Array[(@query.NamePart, String)] = []
   let mut distinct_order_scope = false
+  let expand_projections = fn(
+    selected_query : @query.Query,
+    projections : Array[@query.Projection],
+    visible : Array[(String, String)],
+    ranges : Array[(@query.NamePart, Array[(String, String)])],
+    expression_work : Int,
+  ) -> Array[@query.Projection] raise Abort {
+    expanded_replacement_projections(
+      selected_query,
+      projections,
+      visible,
+      ranges,
+      expression_work,
+      object_columns=Some(receiver => {
+        let prefix = if prefix_steps.is_empty() &&
+          input.source is GeneratedValues(seed) {
+          [import_query_cursor(construction, seed)]
+        } else {
+          prefix_steps.copy()
+        }
+        prefix.append(step_entries.map(entries => construction.object(entries)))
+        let probe = pipe_physical_name(active_fields, "aql_object_star_probe_")
+        let entries : Array[(String, @builder.Node)] = []
+        if step_entries.is_empty() {
+          entries.push(("from", construction.text(input_from)))
+        }
+        entries.push(
+          (
+            "derive",
+            construction.object([
+              (
+                probe,
+                append_pipe_expression(
+                  construction,
+                  receiver,
+                  unnest_expression_columns(visible, value_table_receivers),
+                  ranges,
+                  expression_work,
+                ),
+              ),
+            ]),
+          ),
+        )
+        prefix.push(construction.object(entries))
+        guard relation_prefix_column(
+            construction, prefix, probe, receiver, prefix_context, parameter_declarations,
+            query_limits, expression_work,
+          )
+          is Some(contract) else {
+          raise Abort(UnsupportedProjection)
+        }
+        guard contract.shape is @contract.Object(fields) else {
+          // Keep the existing scalar-qualified-star diagnostic; a scalar
+          // value does not become a row or an object through star syntax.
+          if @query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
+            is Reference(path) &&
+            path.length() == 1 {
+            raise Abort(UnknownColumn)
+          }
+          raise Abort(UnsupportedProjection)
+        }
+        // Read declared fields; do not inspect rows or create presence/key
+        // evidence. Ordinary property projection retains receiver nullability.
+        if @contract.field_count(fields) > expression_work {
+          raise Abort(
+            Expression({
+              issue: @expression.WorkLimit,
+              origin: @query.expression_origin(
+                receiver,
+                @query.expression_root(receiver),
+              ),
+            }),
+          )
+        }
+        @contract.fields(fields).map(field => field.name)
+      }),
+    )
+  }
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
     if sql_group_projection &&
@@ -2446,7 +2535,7 @@ fn compile_steps(
         let input_visible = pipe_visible.copy()
         let input_ranges = pipe_ranges.copy()
         let input_fields = active_fields.copy()
-        let projections = expanded_replacement_projections(
+        let projections = expand_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
         sql_group_projection = grouping_scope == @query.SqlSelect ||
@@ -2487,7 +2576,7 @@ fn compile_steps(
           })
           sql_group_input_columns = input_visible.copy()
           sql_group_input_ranges = input_ranges.copy()
-          sql_group_selected_projections = expanded_replacement_projections(
+          sql_group_selected_projections = expand_projections(
             query,
             selected_projections(query),
             input_visible,
@@ -3404,7 +3493,7 @@ fn compile_steps(
         let projections = if sql_group_projection {
           sql_group_selected_projections
         } else {
-          expanded_replacement_projections(
+          expand_projections(
             query,
             selected_projections(query),
             input_scope.visible,
@@ -3507,7 +3596,7 @@ fn compile_steps(
         if !order_window {
           analytic_expression_bindings.clear()
         }
-        let projections = expanded_replacement_projections(
+        let projections = expand_projections(
           query,
           projections,
           if sql_group_projection {
@@ -3561,7 +3650,7 @@ fn compile_steps(
           let selected = if sql_group_projection {
             sql_group_selected_projections
           } else {
-            expanded_replacement_projections(
+            expand_projections(
               query,
               selected_projections(query),
               order_scope.visible,
@@ -3796,7 +3885,7 @@ fn compile_steps(
         let projections = if sql_group_projection {
           sql_group_selected_projections
         } else {
-          expanded_replacement_projections(
+          expand_projections(
             query, projections, pipe_visible, pipe_ranges, max_work,
           )
         }
@@ -4056,7 +4145,7 @@ fn compile_steps(
         let projections = if sql_group_projection {
           sql_group_selected_projections
         } else {
-          expanded_replacement_projections(
+          expand_projections(
             query,
             projections,
             select_fields.map(field => (field, field)),

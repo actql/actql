@@ -537,7 +537,7 @@ fn infer(
         source,
       )
     }
-    "sqrt" | "floor" | "safe_div" => {
+    "sqrt" | "floor" | "abs" | "safe_div" => {
       let nullable = arguments(t, nodes, node, "number")
       primitive(t, NumberType, nullable || tag == "safe_div", source)
     }

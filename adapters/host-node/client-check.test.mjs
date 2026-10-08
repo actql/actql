@@ -3666,6 +3666,8 @@ for (const entrance of ['local', 'http']) {
     const cases = [
       ["SELECT SQRT('private-expression-text') AS n", 'number'],
       ['SELECT SQRT(TRUE) AS n', 'number'],
+      ["SELECT ABS('private-expression-text') AS n", 'number'],
+      ['SELECT ABS(TRUE) AS n', 'number'],
       ['SELECT LOWER(1) AS n', 'string'],
       ['SELECT NOT 1 AS n', 'boolean'],
       ['SELECT IF(1, 2, 3) AS n', 'boolean'],
@@ -3686,7 +3688,7 @@ for (const entrance of ['local', 'http']) {
         hint: `Use an expression with ${expected} type for the rejected argument.`},
       '[check-mutation:expression-type-explanation]');
     }
-    for (const text of ['SELECT SQRT(1) AS n', "SELECT LOWER('X') AS n",
+    for (const text of ['SELECT ABS(-1) AS n', 'SELECT SQRT(1) AS n', "SELECT LOWER('X') AS n",
       'SELECT NOT FALSE AS n', 'SELECT IF(TRUE, 2, 3) AS n']) {
       const result = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
       assert.equal(result.report.verdict, 'verified');
@@ -3698,11 +3700,14 @@ for (const entrance of ['local', 'http']) {
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: unsupported expression functions remain limits beside type diagnostics`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
-    for (const text of ['SELECT ABS(TRUE) AS n', 'SELECT ABS(1) AS n']) {
+    for (const text of ['SELECT FUTURE_SCALAR(TRUE) AS n', 'SELECT FUTURE_SCALAR(1) AS n']) {
       const result = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
       assert.equal(result.report.verdict, 'undetermined');
       assert.deepEqual(result.report.reasons, []);
-      assert.deepEqual(result.report.coverage, {limits: [{code: 'implementation_limit'}], unresolved: []});
+      assert.deepEqual(result.report.coverage, {limits: [{code: 'implementation_limit',
+        facts: {issue: 'function_lowering_unresolved'}, location: {kind: 'text',
+          document_id: 'source', revision: getCheckInput(result, 'source').revision,
+          precision: 'exact', start_byte: 7, end_byte: text.length - 5}}], unresolved: []});
     }
   });
 }
@@ -4516,6 +4521,76 @@ for (const entrance of ['local', 'http']) {
     assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'unknown');
     assert.equal(sdk.explainCheckFailure(outcome), undefined);
     assert.equal(observations.analysis, 6);
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check migration rejects legacy diagnostics and planning labels`, async t => {
+    const legacy = JSON.parse(await readFile(join(repository,
+      'scripts/fixtures/pre-public-check-diagnostic-contract.json'), 'utf8'));
+    let alter = value => value;
+    const transport = [];
+    const observations = {authorization: 0, analysis: 0, unavailable: 0,
+      sourceDecisions: 0, wireOutcomes: [], statuses: []};
+    const client = await contextClient(t, entrance, absentEnvironment,
+      {observations, mutateCheckTransportReply: value => {
+        const changed = alter(value);
+        transport.push({original: structuredClone(value), received: structuredClone(changed)});
+        return changed;
+      }});
+    const text = '/*e\u0301😀*/\r\nSELECT (';
+    const parameterDeclarations = {x: {type: 'string'}};
+    const parameters = {x: 'private-migration-binding'};
+    const options = {kind: 'text', scope: 'bound_input', format: 'sql', parameterDeclarations, parameters};
+    const first = await client.check(text, options);
+    assert.equal(first.version, 'actql-check-outcome/0.1');
+    assert.equal(first.report.verdict, 'invalid');
+    assert.equal(getCheckInput(first, 'source').text, text);
+    for (const change of [
+      value => ({...value, version: 'actql-diagnostics/0.1'}),
+      value => ({...value, version: 'actql-plan-result/0.1'}),
+      value => ({...value, outcome_schema_cid: legacy.plan_result_schema_cid}),
+    ]) {
+      alter = change;
+      let failure;
+      try { await client.check(text, options); } catch (error) { failure = error; }
+      assert.equal(failure?.code, 'InvalidHostCheckOutcome',
+        '[check-mutation:legacy-diagnostic-public-rejection]');
+      const view = sdk.explainCheckFailure(failure);
+      assert.deepEqual({kind: view.kind, problem: view.problem},
+        {kind: 'protocol_failure', problem: 'contract_mismatch'});
+      assert.deepEqual(sdk.getCheckFailureInput(failure),
+        {kind: 'text', scope: 'bound_input', text, format: 'sql', parameterDeclarations, parameters});
+      assert.equal(getCheckInput(failure, 'source'), undefined);
+      assert.equal(sdk.explainCheckOutcome(failure), undefined);
+      assert.equal(resolveCheckLocation(failure, first.report.reasons[0].location), undefined);
+      assert.equal(sdk.getCheckFailureInput(structuredClone(failure)), undefined);
+      for (const field of ['verdict', 'report', 'scope', 'contextRef', 'next', 'ref']) {
+        assert.equal(Object.hasOwn(view, field), false);
+      }
+      assert.doesNotMatch(JSON.stringify({failure, view}), /private-migration-binding|SELECT|diagnostics\/0.1/u);
+      assert.equal(getCheckInput(first, 'source').text, text);
+    }
+    alter = value => value;
+    const restored = await client.check(text, options);
+    assert.equal(restored.report.verdict, 'invalid');
+    assert.equal(getCheckInput(restored, 'source').text, text);
+    assert.notEqual(restored, first);
+    assert.notEqual(getCheckInput(restored, 'source'), getCheckInput(first, 'source'));
+    assert.equal(getCheckInput(restored, 'source').revision, getCheckInput(first, 'source').revision);
+    assert.deepEqual({analysis: observations.analysis, authorization: observations.authorization,
+      unavailable: observations.unavailable, sourceDecisions: observations.sourceDecisions},
+    {analysis: 5, authorization: 5, unavailable: 0, sourceDecisions: 0});
+    assert.equal(transport.every(({original}) => original.version === 'actql-check-outcome/0.1'), true);
+    assert.deepEqual(transport.map(({received}) => received.version),
+      ['actql-check-outcome/0.1', 'actql-diagnostics/0.1', 'actql-plan-result/0.1',
+        'actql-check-outcome/0.1', 'actql-check-outcome/0.1']);
+    assert.equal(transport[3].received.outcome_schema_cid, legacy.plan_result_schema_cid);
+    // The Local observer precedes alteration; the HTTPS observer sees the
+    // altered response bytes. Keep both facts explicit rather than relabeling.
+    assert.deepEqual(observations.wireOutcomes,
+      transport.map(pair => entrance === 'http' ? pair.received : pair.original));
+    assert.deepEqual(observations.statuses, entrance === 'http' ? [200, 200, 200, 200, 200] : []);
   });
 }
 

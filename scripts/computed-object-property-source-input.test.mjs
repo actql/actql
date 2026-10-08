@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {computedObjectPropertyProgram, computedObjectPropertySuccesses as successes,
-  computedObjectPropertyRefusals as refusals, computedObjectPropertyExecutionFailures as failures}
+  computedObjectPropertyRefusals as refusals, computedObjectPropertyExecutionFailures as failures,
+  objectColumnStarProgram, objectColumnStarSuccesses, objectColumnStarRefusals,
+  parenthesizedSourceRangeProgram, parenthesizedSourceRangeSuccesses, parenthesizedSourceRangeRefusals}
   from './fixtures/computed-object-property-source-input.mjs';
 import {publicQueryProfiles} from './fixtures/public-query-profiles.mjs';
 
@@ -60,9 +62,14 @@ test('independent machine control uses existing typed property and checked param
     'order-receiver-alias', 'member-case-order-alias', 'order-qualified-control',
     'member-case-qualified-reuse', 'current-and-snapshot', 'join-receiver-inputs',
     'empty-typed', 'lazy-case-receiver',
-  ].map(name => 'computed-object-property-' + name));
+  ].map(name => 'computed-object-property-' + name).concat([
+    'parenthesized-source-range-json-control', 'parenthesized-source-range-sql',
+    'parenthesized-source-range-pipe', 'parenthesized-source-range-quoted',
+    'parenthesized-source-range-empty', 'computed-object-property-parenthesized-range-nested',
+    'computed-object-property-parenthesized-value-range-collision',
+  ]).concat(objectColumnStarSuccesses.map(item => item.name)));
   assert.deepEqual(['refusals', 'executionFailures']
-    .map(kind => groups[0].inputs[kind].length), [5, 1]);
+    .map(kind => groups[0].inputs[kind].length), [12, 1]);
   const lazy = successes.find(item => item.name.endsWith('lazy-case-receiver'));
   assert.deepEqual(Object.keys(lazy.parameterDeclarations).sort(), ['o1', 'p1', 'p2']);
   assert.deepEqual(Object.keys(lazy.parameters).sort(), ['o1', 'p1', 'p2']);
@@ -80,4 +87,54 @@ test('computed receiver corpus runs in the ordinary packed route as well as a fo
   assert.ok(app.includes('ACTQL_TEST_COMPUTED_OBJECT_PROPERTY_ONLY'));
   assert.ok(driver.includes('computed-object-property-source-input.mjs'));
   assert.ok(driver.includes('--computed-object-property-only'));
+});
+
+
+test('parenthesized source ranges retain independent predicates, NULL, duplicates and complete columns', () => {
+  const control = parenthesizedSourceRangeSuccesses[0];
+  assert.deepEqual(JSON.parse(control.text), parenthesizedSourceRangeProgram);
+  assert.deepEqual(parenthesizedSourceRangeProgram.stages[0].steps[0].filter,
+    {gt: [{field: 'id'}, {literal: 0}]});
+  assert.deepEqual(parenthesizedSourceRangeProgram.stages[1].steps[0].derive,
+    {value: {add: [{field: 'amount'}, {literal: 0}]}});
+  assert.deepEqual(control.expected, [{id: 2, value: 10}, {id: 2, value: 10},
+    {id: 1, value: 20}, {id: 4, value: 40}, {id: 3, value: null}]);
+  assert.deepEqual(control.columns, [{name: 'id', contract: {type: 'number', nullable: false}},
+    {name: 'value', contract: {type: 'number', nullable: true}}]);
+  assert.deepEqual(parenthesizedSourceRangeSuccesses[4].columns, control.columns);
+  assert.deepEqual(parenthesizedSourceRangeSuccesses[4].expected, []);
+  for (const fixture of parenthesizedSourceRangeSuccesses) {
+    assert.equal(successes.filter(item => item === fixture).length, 1);
+    assert.equal(fixture.sourceReadSessionCount, 1);
+  }
+  assert.deepEqual(parenthesizedSourceRangeRefusals.map(item => item.expectedCode),
+    Array(3).fill('ClientProgramInvalidInput'));
+  for (const fixture of parenthesizedSourceRangeRefusals) {
+    assert.equal(refusals.filter(item => item === fixture).length, 1);
+  }
+});
+
+
+test('object column stars retain authored nullable values, canonical fields and original range slots', () => {
+  const [control, sql] = objectColumnStarSuccesses;
+  assert.deepEqual(JSON.parse(control.text), objectColumnStarProgram);
+  assert.equal(control.parameterDeclarations, undefined);
+  assert.deepEqual(Object.keys(sql.parameterDeclarations.p1.fields), ['score', 'nested']);
+  assert.deepEqual(sql.columns.map(value => value.name), ['id', 'nested', 'score']);
+  assert.equal(sql.parameterDeclarations.p1.fields.score.nullable, false);
+  assert.equal(sql.columns[2].contract.nullable, true);
+  assert.deepEqual(sql.expected.map(row => row.id), [1, 2, 2, 3, 4]);
+  assert.deepEqual(sql.expected[3], {id: 3, nested: null, score: null});
+  const current = objectColumnStarSuccesses.find(item => item.name.endsWith('current-slot'));
+  const retained = objectColumnStarSuccesses.find(item => item.name.endsWith('retained-range'));
+  assert.deepEqual(current.expected.map(row => row.score), [5, 30, 30, 15, 25]);
+  assert.deepEqual(retained.expected.map(row => row.score), [20, 10, 10, null, 40]);
+  assert.equal(current.columns[2].contract.nullable, false);
+  assert.deepEqual(objectColumnStarSuccesses.find(item => item.name.endsWith('empty')).expected, []);
+  assert.deepEqual(objectColumnStarProgram.stages[1].steps[2], {derive: {
+    nested: {property: {name: 'nested', value: {field: 'payload'}}},
+    score: {property: {name: 'score', value: {field: 'payload'}}},
+  }});
+  for (const item of objectColumnStarSuccesses) assert.equal(item.sourceReadSessionCount, 1);
+  for (const item of objectColumnStarRefusals) assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
 });

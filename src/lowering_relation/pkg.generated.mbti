@@ -1850,6 +1850,7 @@ pub(all) enum UnaryOperator {
   Lower
   Floor
   Sqrt
+  Abs
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {
