@@ -103,6 +103,7 @@ const checkFrontiers = new WeakMap();
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
 const submissionOutcomes = new WeakMap();
+const submissionCheckObservations = new WeakMap();
 const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
 const submissionExplanations = new WeakMap();
@@ -127,6 +128,49 @@ const freezeInput = value => {
   }
   return value;
 };
+
+// Bind an admitted observation to one immutable original call's inputs.
+// This is shared by check and submission responses; no parser is reconstructed.
+function bindCheckObservation(outcome, body) {
+  try {
+    const report = outcome.report ?? outcome.partial_report;
+    if (report) {
+      const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
+      if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
+        {kind: 'structured', value: body.input.parameterDeclarations});
+      if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
+      if (report.inputs.length !== received.size) throw new TypeError('InvalidCheckInputBinding');
+      const snapshots = new Map();
+      for (const document of report.inputs) {
+        const original = received.get(document.document_id);
+        if (!original || document.kind !== original.kind || document.byte_length !==
+            utf8.encode(original.kind === 'text' ? original.text : JSON.stringify(original.value)).length) {
+          throw new TypeError('InvalidCheckInputBinding');
+        }
+        snapshots.set(document.document_id, Object.freeze({...original,
+          documentId: document.document_id, revision: document.revision}));
+      }
+      checkInputs.set(outcome, snapshots);
+      for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits]) {
+        if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
+          checkInputs.delete(outcome);
+          throw new TypeError('InvalidCheckInputBinding');
+        }
+      }
+    }
+    checkRequests.set(outcome, body);
+    return true;
+  } catch {
+    checkInputs.delete(outcome);
+    checkRequests.delete(outcome);
+    return false;
+  }
+}
+
+/** Return only the original SDK submission's transient checking observation. */
+export function getSubmissionCheckObservation(result) {
+  return submissionCheckObservations.get(result);
+}
 
 export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
@@ -2022,12 +2066,21 @@ async function connectSelected(selected, port) {
         version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));}
       catch (cause) {throw submissionNotSent(context, cause);}
       let outcome;
+      let checkObservation;
       try {
         const response = await exchange(body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent',
           {...body, intentCid}, options.signal, context);
         outcome = detachResponse(captureResponse(await controlValue(response)));
         if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid, body.unresolvedHistory)) {
           fail('InvalidHostSubmissionOutcome');
+        }
+        if (outcome.checkObservation !== undefined) {
+          checkObservation = outcome.checkObservation;
+          if (body.kind !== 'aql' || !['sql', 'aql-text'].includes(body.input.format) ||
+              !bindCheckObservation(checkObservation, {input: body.input, parameters: body.parameters})) {
+            fail('InvalidHostSubmissionCheckObservation');
+          }
+          delete outcome.checkObservation;
         }
       } catch (cause) {
         if (cause?.code === 'SubmissionUnknown' || cause?.code === 'SubmissionNotSent') throw cause;
@@ -2050,6 +2103,7 @@ async function connectSelected(selected, port) {
         {requestId, submissionRef: body.submissionRef, outcome});
       submissionInputs.set(error, snapshot);
       submissionOutcomes.set(error, outcome);
+      if (checkObservation !== undefined) submissionCheckObservations.set(error, freezeInput(checkObservation));
       retainSubmissionExplanation(error, outcome, snapshot);
       throw error;
     })();
@@ -2170,31 +2224,7 @@ async function connectSelected(selected, port) {
         if (structuralKey(outcome) !== observedKey) reject();
         if (structuralKey(observation) !== observedKey) reject();
         outcome = observation;
-        const report = outcome.report ?? outcome.partial_report;
-        if (report) {
-          const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
-          if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
-            {kind: 'structured', value: body.input.parameterDeclarations});
-          if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
-          if (report.inputs.length !== received.size) reject();
-          const snapshots = new Map();
-          for (const document of report.inputs) {
-            const original = received.get(document.document_id);
-            if (!original || document.kind !== original.kind || document.byte_length !==
-                utf8.encode(original.kind === 'text' ? original.text : JSON.stringify(original.value)).length) {
-              reject();
-            }
-            snapshots.set(document.document_id, Object.freeze({...original,
-              documentId: document.document_id, revision: document.revision}));
-          }
-          checkInputs.set(outcome, snapshots);
-          for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits]) {
-            if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
-              checkInputs.delete(outcome);
-              reject();
-            }
-          }
-        }
+        if (!bindCheckObservation(outcome, body)) reject();
       } catch (cause) {
         checkInputs.delete(outcome);
         if (checkFailures.has(cause)) throw cause;
