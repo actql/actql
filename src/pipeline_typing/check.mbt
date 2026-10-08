@@ -608,6 +608,7 @@ fn check_impl(
     // This checked boundary also covers consumers using Knowledge directly,
     // rather than letting them infer dense rows from known field types.
     if key != "select" &&
+      key != "drop" &&
       key != "filter" &&
       key != "derive" &&
       key != "sort" &&
@@ -1964,6 +1965,7 @@ fn check_impl(
           inputs,
           steps,
           allow_conditional=key == "select" ||
+            key == "drop" ||
             key == "filter" ||
             key == "derive" ||
             key == "sort" ||

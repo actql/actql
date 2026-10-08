@@ -83,6 +83,7 @@ pub(all) enum Issue {
   UnsupportedNearest
   UnsupportedResult
   UnsupportedEffect
+  TableWriteBinding(TableWriteBindingIssue)
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   // Retain the common checker's cause and authored cursor from scope probes.
@@ -1786,6 +1787,7 @@ fn compile_steps(
   let qualify_values : Array[(@query.Expression, String)] = []
   let having_aggregate_slots : Array[(String, String)] = []
   let order_aggregate_slots : Array[(String, String)] = []
+  let order_analytic_slots : Array[(String, String)] = []
   let mut first = true
   let mut input_from = input.name
   let mut terminal_result = false
@@ -2292,6 +2294,43 @@ fn compile_steps(
         pipe_changed = true
       }
       Drop(names) => {
+        // A structural DROP does not read values from retained columns. When
+        // the current visible names already are the physical row slots, use
+        // the existing operation rather than manufacturing a final SELECT
+        // that would require presence for every retained Conditional column.
+        let mut structural_tail = true
+        for next_index in (i + 1)..<@query.operation_count(query) {
+          match @query.operation_at(query, next_index) {
+            Some(Order(terms)) =>
+              if !terms.all(term => {
+                  match
+                    @query.expression_node(
+                      term.expression,
+                      @query.expression_root(term.expression),
+                    ).unwrap().kind {
+                    Reference(path) => path.length() == 1
+                    _ => false
+                  }
+                }) {
+                structural_tail = false
+              }
+            Some(Limit(_, _)) => ()
+            _ => structural_tail = false
+          }
+        }
+        // A later projection/expression may still use a retained input range.
+        // Do not discard those physical slots while that scope is observable.
+        let direct = preserved_scope is None &&
+          structural_tail &&
+          active_fields.length() == pipe_visible.length() &&
+          pipe_visible.all(pair => {
+            pair.0 == pair.1 && active_fields.contains(pair.1)
+          })
+        let dropped = pipe_visible.filter(current => {
+          names.any(name => {
+            same_name(name, { value: current.0, quoted: false, })
+          })
+        })
         let next : Array[(String, String)] = []
         for name in names {
           if !pipe_name_exists(pipe_visible, name) ||
@@ -2311,8 +2350,22 @@ fn compile_steps(
         if next.is_empty() {
           raise Abort(UnsupportedProjection)
         }
-        pipe_changed = true
-        deferred = true
+        if direct {
+          entries.push(
+            (
+              "drop",
+              construction.array(dropped.map(pair => construction.text(pair.1))),
+            ),
+          )
+          active_fields = next.map(pair => pair.1)
+          pipe_changed = false
+          pipe_ranges = []
+          value_table_receivers = []
+          pipe_rebound = true
+        } else {
+          pipe_changed = true
+          deferred = true
+        }
       }
       Rename(names) => {
         let next : Array[(String, String)] = []
@@ -3277,19 +3330,21 @@ fn compile_steps(
             max_work,
           )
         }
-        let references = join_reference_paths(predicate)
-        let aliases : Array[(@query.NamePart, String)] = []
         let physical = active_fields.copy()
         let derives : Array[(String, @builder.Node)] = []
-        for projection in projections {
-          if projection.star is Some(_) {
-            continue
-          }
-          let name = projection.name.unwrap_or({
-            // Derive only the authored leaf name here. The scoped value
-            // lowerer below owns prefix resolution; flattening the JOIN's
-            // inputs would falsely make a qualified receiver ambiguous.
-            value: if sql_group_projection || pipe_rebound {
+        let aliases = materialize_clause_aliases(
+          projections,
+          input_scope,
+          join_reference_paths(predicate),
+          active_fields,
+          analytic_outputs,
+          analytic_expression_bindings,
+          grouped_keys + having_values,
+          qualify_values,
+          physical,
+          derives,
+          projection => {
+            if sql_group_projection || pipe_rebound {
               projection_output_name(projection)
             } else {
               output_name(
@@ -3298,81 +3353,20 @@ fn compile_steps(
                 input,
                 input_scope.visible.map(entry => entry.0),
               )
-            },
-            quoted: false,
-          })
-          if aliases.any(binding => same_name(binding.0, name)) {
-            raise Abort(DuplicateOutput)
-          }
-          if projection.analytic is Some(_) {
-            guard analytic_output_slot(name.value, analytic_outputs)
-              is Some(slot) else {
-              raise Abort(UnsupportedAnalytic)
             }
-            aliases.push((name, slot))
-            continue
-          }
-          if projection.aggregate is Some(_) {
-            aliases.push((name, name.value))
-            continue
-          }
-          let expression = projection.expression.unwrap()
-          if !references.any(path => {
-              // A qualified input receiver keeps its range meaning even
-              // when followed by nested property access. The common lowerer
-              // resolves that two-part prefix before a one-part alias.
-              !(path.length() > 1 &&
-              pipe_slot(
-                path[:2].to_owned(),
-                input_scope.visible,
-                input_scope.ranges,
-              )
-              is Some(_)) &&
-              same_name(path[0], name)
-            }) {
-            continue
-          }
-          let cached = qualify_cached_slot(
-            expression,
-            grouped_keys + having_values + qualify_values,
-          )
-          let direct = match
-            @query.expression_node(
+          },
+          expression => {
+            append_pipe_expression(
+              construction,
               expression,
-              @query.expression_root(expression),
-            ).unwrap().kind {
-            Reference(path) =>
-              pipe_slot(path, input_scope.visible, input_scope.ranges)
-            _ => None
-          }
-          let slot = match
-            (match cached {
-              Some(_) => cached
-              None => direct
-            }) {
-            Some(slot) => slot
-            None => {
-              let slot = pipe_physical_name(physical, "aql_qualify_expr_")
-              physical.push(slot)
-              derives.push(
-                (
-                  slot,
-                  append_pipe_expression(
-                    construction,
-                    expression,
-                    input_scope.visible + analytic_expression_bindings,
-                    input_scope.ranges,
-                    max_work,
-                  ),
-                ),
-              )
-              qualify_values.push((expression, slot))
-              active_fields.push(slot)
-              slot
-            }
-          }
-          aliases.push((name, slot))
-        }
+              input_scope.visible + analytic_expression_bindings,
+              input_scope.ranges,
+              max_work,
+            )
+          },
+          "aql_qualify_expr_",
+          false,
+        )
         if !derives.is_empty() {
           let fields : Array[(String, @builder.Node)] = []
           if entries.length() == 1 {
@@ -3419,12 +3413,18 @@ fn compile_steps(
         }
         entries.push(("filter", value))
       }
-      Analytic(projections) | AnalyticExpressions(projections, _) => {
+      Analytic(projections)
+      | AnalyticExpressions(projections, _)
+      | OrderAnalytic(projections, _) => {
         let private_names = match operation {
           AnalyticExpressions(_, names) => names
           _ => []
         }
-        analytic_expression_bindings.clear()
+        let order_window = operation is OrderAnalytic(_, _)
+        let select_order_window = operation is OrderAnalytic(_, true)
+        if !order_window {
+          analytic_expression_bindings.clear()
+        }
         let projections = expanded_replacement_projections(
           query,
           projections,
@@ -3445,15 +3445,126 @@ fn compile_steps(
         }
         let snapshot = active_fields.copy()
         let analytic_visible = pipe_visible.copy()
-        analytic_input_scope = Some({
-          visible: unnest_expression_columns(
-            analytic_visible, value_table_receivers,
-          ).copy(),
-          ranges: pipe_ranges.copy(),
-        })
-        analytic_input_fields = Some(snapshot)
-        analytic_outputs.clear()
+        if !order_window ||
+          (select_order_window && analytic_input_scope is None) {
+          analytic_input_scope = Some({
+            visible: unnest_expression_columns(
+              analytic_visible, value_table_receivers,
+            ).copy(),
+            ranges: pipe_ranges.copy(),
+          })
+          analytic_input_fields = Some(snapshot)
+        }
+        if !order_window {
+          analytic_outputs.clear()
+        }
+        let outputs = if order_window {
+          order_analytic_slots
+        } else {
+          analytic_outputs
+        }
         let physical = snapshot.copy()
+        let alias_derives : Array[(String, @builder.Node)] = []
+        let order_scope = if sql_group_projection {
+          sql_group_select_scope.unwrap()
+        } else {
+          analytic_input_scope.unwrap_or({
+            visible: unnest_expression_columns(
+              analytic_visible, value_table_receivers,
+            ),
+            ranges: pipe_ranges.copy(),
+          })
+        }
+        let order_aliases = if select_order_window {
+          let selected = if sql_group_projection {
+            sql_group_selected_projections
+          } else {
+            expanded_replacement_projections(
+              query,
+              selected_projections(query),
+              order_scope.visible,
+              order_scope.ranges,
+              max_work,
+            )
+          }
+          let references : Array[Array[@query.NamePart]] = []
+          for projection in projections {
+            let call = projection.analytic.unwrap()
+            for expression in call.window.partition_by {
+              references.append(join_reference_paths(expression))
+            }
+            for term in call.window.order_by {
+              references.append(join_reference_paths(term.expression))
+            }
+            if call.expression is Some(expression) {
+              references.append(join_reference_paths(expression))
+            }
+            if call.aggregate is Some(aggregate) &&
+              aggregate.argument is Some(expression) {
+              references.append(join_reference_paths(expression))
+            }
+          }
+          materialize_clause_aliases(
+            selected,
+            order_scope,
+            references,
+            active_fields,
+            analytic_outputs,
+            analytic_expression_bindings,
+            grouped_keys + having_values,
+            qualify_values,
+            physical,
+            alias_derives,
+            projection => {
+              if sql_group_projection || pipe_rebound {
+                projection_output_name(projection)
+              } else {
+                output_name(
+                  projection,
+                  query,
+                  input,
+                  order_scope.visible.map(entry => entry.0),
+                )
+              }
+            },
+            expression => {
+              if sql_group_projection {
+                let source_scope = sql_group_expression_input_scope.unwrap()
+                append_grouped_expression(
+                  construction,
+                  expression,
+                  grouped_keys,
+                  path => {
+                    pipe_slot(path, source_scope.visible, source_scope.ranges)
+                  },
+                  order_scope.visible,
+                  order_scope.ranges,
+                  max_work,
+                )
+              } else {
+                append_pipe_expression(
+                  construction,
+                  expression,
+                  order_scope.visible + analytic_expression_bindings,
+                  order_scope.ranges,
+                  max_work,
+                )
+              }
+            },
+            "aql_order_alias_",
+            true,
+          )
+        } else {
+          []
+        }
+        if !alias_derives.is_empty() {
+          let fields : Array[(String, @builder.Node)] = []
+          if !entries.is_empty() {
+            fields.push(entries.remove(0))
+          }
+          fields.push(("derive", construction.object(alias_derives)))
+          step_entries.push(fields)
+        }
         for projection in projections {
           if projection.name is Some(name) &&
             !physical.any(field => ascii_upper(field) == ascii_upper(name.value)) {
@@ -3466,9 +3577,7 @@ fn compile_steps(
             continue
           }
           let name = projection.name.unwrap().value
-          if analytic_outputs.any(output => {
-              ascii_upper(output.0) == ascii_upper(name)
-            }) {
+          if outputs.any(output => ascii_upper(output.0) == ascii_upper(name)) {
             raise Abort(DuplicateOutput)
           }
           // Analytic results are evaluated slots, not new SELECT input names.
@@ -3481,7 +3590,7 @@ fn compile_steps(
             name
           }
           physical.push(slot)
-          analytic_outputs.push((name, slot))
+          outputs.push((name, slot))
           let projection = {
             ..projection,
             name: Some({ value: slot, quoted: false, }),
@@ -3509,6 +3618,21 @@ fn compile_steps(
           analytic_expression_bindings.push((name.value, slot))
         }
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
+          if select_order_window {
+            if path.length() > 1 &&
+              pipe_slot(path, order_scope.visible, order_scope.ranges)
+              is Some(slot) {
+              return Some(slot)
+            }
+            if path.length() == 1 {
+              for (name, slot) in order_aliases {
+                if same_name(name, path[0]) {
+                  return Some(slot)
+                }
+              }
+            }
+            return pipe_slot(path, order_scope.visible, order_scope.ranges)
+          }
           if pipe_changed || pipe_rebound {
             pipe_slot(
               path,
@@ -3548,7 +3672,9 @@ fn compile_steps(
           }
           step_entries.push(operation)
         }
-        output = active_fields.copy()
+        if !order_window {
+          output = active_fields.copy()
+        }
         deferred = true
       }
       Select(projections, distinct) if pipe_changed || pipe_rebound => {
@@ -4069,7 +4195,7 @@ fn compile_steps(
         // references use only the current Pipe scope, never the FROM scope.
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
           if path.length() == 1 {
-            for (logical, slot) in order_aggregate_slots {
+            for (logical, slot) in order_analytic_slots + order_aggregate_slots {
               if path[0].value == logical {
                 if active_fields.contains(slot) {
                   return Some(slot)
@@ -4243,7 +4369,8 @@ fn compile_steps(
           step_entries.push(derive_step)
         }
         entries.push(("sort", construction.array(sort)))
-        if !derives.is_empty() && pending_select is None {
+        if (!derives.is_empty() || !order_analytic_slots.is_empty()) &&
+          pending_select is None {
           // With no deferred SELECT, remove sort-only slots immediately.
           // Retain demanded original slots for the existing range snapshots.
           step_entries.push(entries)
@@ -4259,7 +4386,11 @@ fn compile_steps(
               (
                 "select",
                 construction.array(
-                  active_fields.map(field => construction.text(field)),
+                  active_fields
+                  .filter(field => {
+                    !order_analytic_slots.any(pair => pair.1 == field)
+                  })
+                  .map(field => construction.text(field)),
                 ),
               ),
             ])
@@ -4278,6 +4409,12 @@ fn compile_steps(
               @query.expression_root(term.expression),
             ).unwrap().kind
           let mut selected = order_ordinal_column(term.expression, output)
+          if kind is Reference(path) && path.length() == 1 {
+            if analytic_output_slot(path[0].value, order_analytic_slots)
+              is Some(slot) {
+              selected = Some(slot)
+            }
+          }
           match kind {
             Reference(path) if path.length() == 1 =>
               for field in output {
@@ -4291,7 +4428,7 @@ fn compile_steps(
             selected = reusable_order_expression(
               term.expression,
               selected_expressions,
-              selected_output_slots,
+              order_analytic_slots + selected_output_slots,
               path => resolve_column(path, query, input, selected_input_fields),
             )
           }
@@ -4313,7 +4450,9 @@ fn compile_steps(
               }
               let direct = match kind {
                 Reference(path) =>
-                  resolve_column(path, query, input, selected_input_fields)
+                  order_expression_slot(
+                    path, query, input, selected_input_fields, order_analytic_slots,
+                  )
                 _ => None
               }
               match direct {
@@ -4345,7 +4484,11 @@ fn compile_steps(
                               order_aggregate_slots,
                               path => {
                                 order_expression_slot(
-                                  path, query, input, selected_input_fields, pending_bindings,
+                                  path,
+                                  query,
+                                  input,
+                                  selected_input_fields,
+                                  order_analytic_slots + pending_bindings,
                                 )
                               },
                               active_fields,
@@ -4361,7 +4504,7 @@ fn compile_steps(
                               query,
                               input,
                               selected_input_fields,
-                              pending_bindings,
+                              order_analytic_slots + pending_bindings,
                               max_work,
                             )
                           },
@@ -4392,6 +4535,16 @@ fn compile_steps(
           step_entries.push(derive_step)
         }
         entries.push(("sort", construction.array(sort)))
+        if !order_analytic_slots.is_empty() && pending_select is None {
+          step_entries.push(entries)
+          step_entries.push([
+            (
+              "select",
+              construction.array(output.map(field => construction.text(field))),
+            ),
+          ])
+          deferred = true
+        }
       }
       Limit(count, offset) =>
         entries.push(
@@ -4452,6 +4605,11 @@ fn compile_steps(
       ])
     }
     if operation is Order(_) {
+      let private_slots = order_analytic_slots.map(pair => pair.1)
+      active_fields = active_fields.filter(field => {
+        !private_slots.contains(field)
+      })
+      order_analytic_slots.clear()
       sql_group_order_input_scope = None
       if i > 0 && @query.operation_at(query, i - 1) is Some(Select(_, _)) {
         // The SELECT-owned ORDER has consumed its input snapshot. Neither
@@ -4577,12 +4735,16 @@ pub fn compile(
   query : @query.Query,
   context : Context,
   limits : Limits,
+  table_writes? : Array[TableWriteBinding] = [],
 ) -> Result[@program.Program, Issue] {
-  if @query.terminal_effect(query) is Some(_) || has_pipe_range_input(query) {
+  if @query.terminal_effect(query) is Some(_) ||
+    @query.terminal_table_effect(query) is Some(_) ||
+    has_pipe_range_input(query) {
     return compile_query_script(
       @query.single_query_script(query),
       context,
       limits,
+      table_writes~,
     )
   }
   let mut has_nearest = false

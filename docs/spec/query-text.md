@@ -178,11 +178,11 @@ obligations. NULL computed keys share their existing common NULL partition;
 CASE/IF/COALESCE retain ordinary demand semantics and expression failures do not
 publish a partial Result. This connection retains ActQL's existing finite
 number and recursive type contracts; it does not claim Google's complete type
-profile, including its floating-point partition exclusion. Named windows,
-optional ordering, default frames and nested window calls remain outside this
-implemented inline profile.
+profile, including its floating-point partition exclusion. Optional ordering,
+default frames and nested window calls remain outside this implemented inline
+profile. Named-window resolution is described separately below.
 
-In the implemented inline `OVER` profile, numeric `ROWS BETWEEN` boundaries
+In the implemented inline `OVER` profile, numeric `ROWS` boundaries
 accept an integer literal or a whole named parameter, for example
 `ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
 syntax; the parameter is lowered to the common `preceding`/`following`
@@ -193,6 +193,15 @@ contract's positive distances. GoogleSQL also permits zero numeric boundaries;
 that difference remains a common-contract coverage gap, not a restriction of
 GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
 are not implemented in this profile.
+
+The selected GoogleSQL single-boundary `ROWS` form has an implicit
+`CURRENT ROW` upper boundary. `ROWS 2 PRECEDING`, `ROWS @before PRECEDING`,
+`ROWS CURRENT ROW` and `ROWS UNBOUNDED PRECEDING` lower to the same common
+frame contract as their explicit `ROWS BETWEEN ... AND CURRENT ROW` forms.
+The authored lower boundary and parameter remain unchanged. This is an
+explicit physical-row frame, not an implicit RANGE frame or an added order
+guarantee. Interval and bound-value validation remain in the common checker;
+a start after the implicit upper boundary is rejected before Run admission.
 
 The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
 `STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
@@ -243,7 +252,8 @@ ORDER BY or another frame. Plain aliases retain the inherited frame. Names
 inside partition/order/frame expressions continue to use SELECT's input
 snapshot, never its output aliases. Missing ordering, frame and signature
 support remains subject to the current common analytic contract; naming a
-window does not add RANGE, unbounded frames or default aggregate frames.
+window does not add RANGE or default aggregate frames. Explicit ROWS boundary
+support follows the frame rules above.
 Unused declarations are checked for declaration conflicts but do not execute
 their expressions. These rules follow
 [GoogleSQL named windows](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls#rules_for_using_a_named_window_in_the_window_specification)
@@ -255,7 +265,7 @@ inputs. Qualified input references retain their input meaning. A scalar alias
 needed by the condition is evaluated once against SELECT's input snapshot and
 reused by final projection; unrelated scalar projections are evaluated after
 the condition. No alias is made visible inside its own or a sibling SELECT
-expression, or inside an OVER specification. Ordinary Boolean and aggregate
+expression, or inside a SELECT-owned OVER specification. Ordinary Boolean and aggregate
 typing, failure, capacity and parameter rules remain common-owner decisions.
 
 `WHERE` and siblings in one SELECT list see the input snapshot, not aliases
@@ -263,8 +273,18 @@ introduced by that list. In `GROUP BY`, `HAVING`, `QUALIFY` and the query's fina
 `ORDER BY`, a visible SELECT alias takes precedence over an input column of
 the same name. Duplicate aliases, qualified references and aggregate
 visibility still undergo their own ambiguity and validity checks. Names in
-an analytic `OVER` clause resolve against the input snapshot, not the final
-ORDER BY scope. These rules follow the adopted GoogleSQL query and window
+a SELECT-owned analytic `OVER` clause resolve against the input snapshot.
+Inline windows in the query ORDER BY instead resolve SELECT aliases before
+same-name inputs, including function arguments and OVER partition/order keys;
+qualified input columns retain their range meaning. An alias containing a
+SELECT window cannot feed another window. New window calls after SELECT
+DISTINCT and named-window references in ORDER BY are refused. The inline
+ORDER windows execute with the other windows before QUALIFY; their private
+outputs and demanded scalar aliases are removed by final projection. Pipe
+ORDER and post-set ORDER run windows over the current projected/combined rows,
+without recovering a removed input range. Existing common signatures, frames,
+NULL and order evidence still apply; no default frame or ordering guarantee is
+invented by this connection. These rules follow the adopted GoogleSQL query and window
 scopes; they do not confer general GoogleSQL compatibility.
 
 In a grouped SELECT, a grouping expression may occur inside a larger scalar
@@ -1131,3 +1151,39 @@ preview, approval, capture and cleanup owners remain authoritative. No approval
 policy is authored in this surface, and syntax admission does not authorize
 execution. Other Effect kinds and complete Effect-language coverage remain
 separate implementation obligations.
+
+## Table create and whole-table replace
+
+The initial Table write surface is:
+
+```sql
+CREATE TABLE analytics.report AS SELECT id, p FROM source;
+CREATE OR REPLACE TABLE analytics.report AS (SELECT id, p FROM source);
+FROM source |> SELECT id, p |> CREATE TABLE analytics.report;
+FROM source |> SELECT id, p |> EFFECT save CREATE OR REPLACE TABLE analytics.report;
+```
+
+A Table path resolves against an explicit Host-published write binding to the
+existing Connector Resource, Mapping and Capability. It is not a Source alias
+and confers no authority by itself. Unknown, ambiguous and action-incompatible
+targets are rejected by checking before acquisition or dispatch. Table writes
+are terminal and cannot occur in DATA, CTE or another Table write's input.
+
+CREATE selects only a fixed create binding. CREATE OR REPLACE selects the
+single published create or replace operation; it does not observe the Catalog
+to choose one. A create conflict remains a conflict under OR REPLACE and does
+not switch to replace. Authored intent, selected operation, target, Mapping,
+Capability, installation binding and expected Table identity/generation form
+checked meaning and approval. Execution and recovery recheck that binding;
+conflicts do not refresh the expected generation, change candidates or resend
+unknown operations. Catalog commit checks absence for create and exact approved
+identity/generation for replace.
+
+Lowering uses the existing store Effect and private Table capture. It preserves
+absence, explicit NULL and actual values without creating an implicit public
+Relation. A save-only checked Effect Program has `results: {}` under the common
+Effect-only Program contract; ordinary Named Results remain all-Required.
+Initial support is Relation create and same-schema whole-table replace using
+the installed writer's admitted types. Syntax does not authorize a write.
+Append/upsert, schema evolution, automatic Catalog observation and other Carrier
+writers are separate implementation units.

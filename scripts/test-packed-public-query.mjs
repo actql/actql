@@ -57,6 +57,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/star-replace-source-input.mjs', 'star-replace-source-input.mjs'],
   ['scripts/fixtures/qualified-star-source-input.mjs', 'qualified-star-source-input.mjs'],
   ['scripts/fixtures/upper-source-input.mjs', 'upper-source-input.mjs'],
+  ['scripts/fixtures/lower-source-input.mjs', 'lower-source-input.mjs'],
   ['scripts/fixtures/replace-call-source-input.mjs', 'replace-call-source-input.mjs'],
   ['scripts/fixtures/character-length-source-input.mjs', 'character-length-source-input.mjs'],
   ['scripts/fixtures/select-all-source-input.mjs', 'select-all-source-input.mjs'],
@@ -75,6 +76,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-aggregate-expression-source-input.mjs', 'order-aggregate-expression-source-input.mjs'],
   ['scripts/fixtures/select-aggregate-expression-source-input.mjs', 'select-aggregate-expression-source-input.mjs'],
   ['scripts/fixtures/having-aggregate-source-input.mjs', 'having-aggregate-source-input.mjs'],
+  ['scripts/fixtures/short-rows-source-input.mjs', 'short-rows-source-input.mjs'],
+  ['scripts/fixtures/order-window-source-input.mjs', 'order-window-source-input.mjs'],
   ['scripts/fixtures/window-scalar-source-input.mjs', 'window-scalar-source-input.mjs'],
   ['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs'],
   ['scripts/fixtures/analytic-string-agg-source-input.mjs', 'analytic-string-agg-source-input.mjs'],
@@ -195,6 +198,9 @@ const runtimeEnvironment = {...environment,
 if (process.argv.includes('--upper-only')) {
   runtimeEnvironment.ACTQL_TEST_UPPER_ONLY = '1';
 }
+if (process.argv.includes('--lower-only')) {
+  runtimeEnvironment.ACTQL_TEST_LOWER_ONLY = '1';
+}
 if (process.argv.includes('--replace-call-only')) {
   runtimeEnvironment.ACTQL_TEST_REPLACE_CALL_ONLY = '1';
 }
@@ -296,6 +302,12 @@ if (process.argv.includes('--select-aggregate-expression-only')) {
 }
 if (process.argv.includes('--having-aggregate-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_AGGREGATE_ONLY = '1';
+}
+if (process.argv.includes('--short-rows-only')) {
+  runtimeEnvironment.ACTQL_TEST_SHORT_ROWS_ONLY = '1';
+}
+if (process.argv.includes('--order-window-only')) {
+  runtimeEnvironment.ACTQL_TEST_ORDER_WINDOW_ONLY = '1';
 }
 if (process.argv.includes('--window-scalar-only')) {
   runtimeEnvironment.ACTQL_TEST_WINDOW_SCALAR_ONLY = '1';
@@ -533,7 +545,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -601,6 +613,7 @@ if (process.argv.includes('--unnest-parameter-path-only')) return;
 if (process.argv.includes('--sqrt-only')) return;
 if (process.argv.includes('--ceiling-only')) return;
 if (process.argv.includes('--upper-only')) return;
+if (process.argv.includes('--lower-only')) return;
 if (process.argv.includes('--unary-plus-only')) return;
 if (process.argv.includes('--qualified-star-only')) return;
 if (process.argv.includes('--right-join-only')) return;
@@ -613,7 +626,7 @@ if (process.argv.includes('--qualify-only')) return;
 if (process.argv.includes('--named-window-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (process.argv.includes('--select-all-only')) return;
-if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--window-scalar-only') || process.argv.includes('--analytic-string-agg-only') || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
+if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--short-rows-only') || process.argv.includes('--order-window-only') || process.argv.includes('--window-scalar-only') || process.argv.includes('--analytic-string-agg-only') || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
     process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.

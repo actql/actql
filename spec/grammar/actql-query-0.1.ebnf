@@ -4,7 +4,13 @@ script        = { data_declaration }, query ;
 data_declaration = "DATA", identifier, "=",
                    ( relational_body | graph_constructor
                    | named_sga_call ), ";" ;
-query         = [ with_clause ], ( sql_query | pipe_query ), [ ";" ] ;
+query         = ( table_create_statement
+              | [ with_clause ], ( sql_query | pipe_query ) ), [ ";" ] ;
+table_create_statement = table_create, "AS", table_input_query ;
+(* A Table input can include statement-level inference, but not another
+   terminal write. DATA and CTE bodies remain pure declaration bodies. *)
+table_input_query = [ with_clause ], ( sql_query | pipe_query )
+                  | "(", [ with_clause ], ( sql_query | pipe_query ), ")" ;
 (* The pure constructor wrapper is an ActQL extension. Its table mapping
    follows the selected GoogleSQL/SQL-PGQ profile, not ISO GQL CREATE. *)
 graph_constructor = "PROPERTY", "GRAPH", "(",
@@ -99,8 +105,10 @@ window_specification = identifier
                      | "(", [ identifier ], [ partition_clause ],
                        [ order_clause ], [ rows_frame ], ")" ;
 partition_clause = "PARTITION", "BY", expression, { ",", expression } ;
-rows_frame = "ROWS", "BETWEEN", frame_boundary, "AND", frame_boundary ;
+rows_frame = "ROWS", ( "BETWEEN", frame_boundary, "AND", frame_boundary
+                     | frame_boundary ) ;
 frame_boundary = "CURRENT", "ROW"
+               | "UNBOUNDED", ( "PRECEDING" | "FOLLOWING" )
                | limit_integer, ( "PRECEDING" | "FOLLOWING" ) ;
 select_list   = select_item, { ",", select_item } ;
 select_item   = ( "*" | path, ".", "*" ), [ star_except ], [ star_replace ]
@@ -136,7 +144,9 @@ sga_value     = query_string | [ "-" ], numeric_token | "TRUE" | "FALSE"
               | "[", [ sga_value, { ",", sga_value } ], "]" ;
 result_operator = "RESULT", identifier ;
 assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
-terminal_effect = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
+terminal_effect = terminal_update | [ "EFFECT", identifier ], table_create ;
+table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
+terminal_update = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
                   "MAPPING", identifier, "FROM", "RESULT", identifier,
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
 relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "DISTINCT" ], select_list

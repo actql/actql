@@ -4,19 +4,25 @@ fn prepared(
   effects? : String = "",
   reference_nullable? : Bool? = None,
   amount_nullable? : Bool = false,
+  effect_only? : Bool = false,
 ) -> @parameters.CollectedOperations {
+  let local_results = if effect_only { "{}" } else { "{\"r\":" + body + "}" }
   let text = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[" +
-    "{\"id\":\"a\",\"inputs\":{\"rows\":{}},\"steps\":[],\"results\":{\"r\":" +
-    body +
-    "}" +
+    "{\"id\":\"a\",\"inputs\":{\"rows\":{}},\"steps\":[],\"results\":" +
+    local_results +
     effects +
     "}," +
-    "{\"id\":\"b\",\"inputs\":{\"rows\":{}},\"steps\":[],\"results\":{\"r\":" +
-    body +
-    "}" +
+    "{\"id\":\"b\",\"inputs\":{\"rows\":{}},\"steps\":[],\"results\":" +
+    local_results +
     effects +
     "}]," +
-    "\"results\":{\"out\":{\"from\":{\"stage\":\"b\",\"result\":\"r\"}}}}"
+    "\"results\":" +
+    (if effect_only {
+      "{}"
+    } else {
+      "{\"out\":{\"from\":{\"stage\":\"b\",\"result\":\"r\"}}}"
+    }) +
+    "}"
   let program = @syntax.parse(
     text,
     {

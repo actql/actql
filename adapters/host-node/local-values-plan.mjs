@@ -27,6 +27,12 @@ const cid = value => `sha256:${createHash('sha256')
 const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
   name});
 const valuesAdmissions = new WeakMap();
+// The ordinary Effect-free INFER Host profile explicitly binds unknown
+// provenance. It never relabels synthetic values or Model output as public.
+// Effect-bearing profiles retain their separate required installation policy.
+const inferResultPolicyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
+const inferResultPolicy = Object.freeze({kind: 'data_policy', wire: inferResultPolicyWire,
+  cid: `sha256:${createHash('sha256').update(inferResultPolicyWire).digest('hex')}`});
 
 // Preserve the closed publication-plan shape. The request journal retains
 // this original configuration with the admission it actually authorized.
@@ -161,14 +167,14 @@ export function sourceFreeEffectPublicationPlan(options) {
   const run = JSON.parse(runDefinition.wire);
   const resultCount = moon.clientProgramEffectCompilationResultNames(
     compilation).length;
-  const plan = localPublicationPlan({control, admission, runDefinition,
+  const {plan, retention} = buildLocalPublicationPlan({control, admission, runDefinition,
     invocation, observation, compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
     resultCount, retainUntil: run.valid_until,
     moon, effectCompilation: compilation, preparedEffect: prepared});
-  return Object.freeze({...plan, invocationOwner: sourceFree._1,
+  return Object.freeze({...plan, effectInputRetention: retention, invocationOwner: sourceFree._1,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       runInvocation: invocation, observation})});
 }
@@ -205,7 +211,7 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
       resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
       retainUntil: run.valid_until,
       moon, effectCompilation: compilation, preparedEffect: prepared});
-    return Object.freeze({...issued, plan: Object.freeze({...plan,
+    return Object.freeze({...issued, plan: Object.freeze({...plan, effectInputRetention: retention,
       invocationOwner, localEvidenceContext: Object.freeze({admission,
         runDefinition, retentionDependencies: Object.freeze([...retentionDependencies,
           Object.freeze({kind: 'result_retention_policy',
@@ -280,7 +286,7 @@ export function acquiredEffectPublicationPlan({acquired, captured,
       cid: moon.clientProgramCapturedSourceSchemaCid(captured.identity),
       wire: inputBodies._1}),
   ]);
-  return Object.freeze({...plan, invocationOwner,
+  return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       acquiredEvidence, retentionDependencies, acquisitionDependencies,
       sourceLocalInvocation: acquiredEvidence.invocation,
@@ -348,7 +354,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
         wire: bodies._1}));
     return evidence;
   });
-  return Object.freeze({...plan, invocationOwner,
+  return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       acquiredEvidence: acquiredEvidenceByUnit[0],
       acquiredEvidenceByUnit: Object.freeze(acquiredEvidenceByUnit),
@@ -478,7 +484,7 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
 }
 
 function checkedTaskRunAdmission({control, preparedProgram, inferGraph,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire}, kind) {
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy}, kind) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
@@ -491,7 +497,8 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph,
   const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
     kind, {executionContextCid: contextCid,
       hostPolicyCid: policyCid(kind === 'infer' ? 'checked-infer' : 'checked-tasks'),
-      expiresAt: validUntil}, inferGraph);
+      expiresAt: validUntil,
+      ...(kind === 'infer' ? {resultDataPolicy: resultDataPolicy ?? inferResultPolicy} : {})}, inferGraph);
   const {admission, compiledPlan} = compiled;
   const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
     namespaceId, runId: randomUUID(), createdAt, validUntil,

@@ -78,16 +78,94 @@ fn append_set_final_steps(
   prefix : String,
 ) -> String raise Abort {
   let mut current = input
+  let order_windows : Array[(String, String)] = []
   for index in 0..<@query.final_operation_count(query) {
     let operation = @query.final_operation_at(query, index).unwrap()
     let final_name = prefix + "aql_set_final_" + index.to_string()
     match operation {
+      OrderAnalytic(projections, false) => {
+        let reserved = left_fields.copy()
+        let groups : Array[Array[@query.Projection]] = []
+        for projection in projections {
+          let name = projection.name.unwrap().value
+          let slot = if reserved.contains(name) {
+            pipe_physical_name(reserved, "aql_set_window_")
+          } else {
+            name
+          }
+          reserved.push(slot)
+          order_windows.push((name, slot))
+          let projected = {
+            ..projection,
+            name: Some({ value: slot, quoted: false, }),
+          }
+          let mut found = false
+          for group in groups {
+            if same_analytic_window(
+                group[0].analytic.unwrap().window,
+                projected.analytic.unwrap().window,
+              ) {
+              group.push(projected)
+              found = true
+              break
+            }
+          }
+          if !found {
+            groups.push([projected])
+          }
+        }
+        let derives : Array[(String, @builder.Node)] = []
+        let evaluated : Array[(@query.Expression, String)] = []
+        let visible = left_fields.map(field => (field, field))
+        let bodies = groups.map(group => {
+          lower_analytic(
+            construction,
+            group,
+            path => pipe_slot(path, visible, []),
+            limits.max_expression_work,
+            limits.max_collection_bytes,
+            reserved,
+            evaluated,
+            derives,
+          )
+        })
+        if !derives.is_empty() {
+          let derived = prefix + "aql_set_window_input_" + index.to_string()
+          steps.push(
+            construction.object([
+              ("from", construction.text(current)),
+              ("derive", construction.object(derives)),
+              ("as", construction.text(derived)),
+            ]),
+          )
+          current = derived
+        }
+        for group_index in 0..<bodies.length() {
+          let next = if group_index + 1 == bodies.length() {
+            final_name
+          } else {
+            prefix +
+            "aql_set_window_" +
+            index.to_string() +
+            "_" +
+            group_index.to_string()
+          }
+          steps.push(
+            construction.object([
+              ("from", construction.text(current)),
+              ("analytic", bodies[group_index]),
+              ("as", construction.text(next)),
+            ]),
+          )
+          current = next
+        }
+      }
       Order(terms) => {
         let sort : Array[@builder.Node] = []
         let hidden : Array[(@query.Expression, String)] = []
         let derives : Array[(String, @builder.Node)] = []
-        let reserved = left_fields.copy()
-        let visible = left_fields.map(field => (field, field))
+        let reserved = left_fields + order_windows.map(pair => pair.1)
+        let visible = order_windows + left_fields.map(field => (field, field))
         for term in terms {
           let mut root = @query.expression_node(
             term.expression,
@@ -144,18 +222,20 @@ fn append_set_final_steps(
           )
         }
         let mut sort_from = current
-        let sort_output = if derives.is_empty() {
+        let sort_output = if derives.is_empty() && order_windows.is_empty() {
           final_name
         } else {
           let derived = prefix + "aql_set_order_input_" + index.to_string()
-          steps.push(
-            construction.object([
-              ("from", construction.text(current)),
-              ("derive", construction.object(derives)),
-              ("as", construction.text(derived)),
-            ]),
-          )
-          sort_from = derived
+          if !derives.is_empty() {
+            steps.push(
+              construction.object([
+                ("from", construction.text(current)),
+                ("derive", construction.object(derives)),
+                ("as", construction.text(derived)),
+              ]),
+            )
+            sort_from = derived
+          }
           prefix + "aql_set_ordered_" + index.to_string()
         }
         steps.push(
@@ -165,7 +245,7 @@ fn append_set_final_steps(
             ("as", construction.text(sort_output)),
           ]),
         )
-        if !derives.is_empty() {
+        if !derives.is_empty() || !order_windows.is_empty() {
           steps.push(
             construction.object([
               ("from", construction.text(sort_output)),
@@ -179,6 +259,7 @@ fn append_set_final_steps(
             ]),
           )
         }
+        order_windows.clear()
       }
       Limit(count, offset) =>
         steps.push(

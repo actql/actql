@@ -94,6 +94,8 @@ pub fn starts_sql(String, LexicalLimits, source_path? : String) -> Result[Bool, 
 
 pub fn terminal_effect(Query) -> UpdateEffectClause?
 
+pub fn terminal_table_effect(Query) -> TableEffectClause?
+
 pub fn token_at(Tokens, Int) -> Token?
 
 pub fn token_count(Tokens) -> Int
@@ -434,6 +436,7 @@ pub(all) enum QueryOperation {
   Qualify(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   AnalyticExpressions(Array[Projection], Array[NamePart])
+  OrderAnalytic(Array[Projection], Bool)
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
   Limit(QueryInteger, QueryInteger)
@@ -483,6 +486,12 @@ pub(all) struct StarReplacement {
   expression : Expression?
   aggregate : AggregateCall?
   analytic : AnalyticCall?
+}
+
+pub(all) struct TableEffectClause {
+  name : NamePart?
+  target : Array[NamePart]
+  allow_replace : Bool
 }
 
 pub struct Token {

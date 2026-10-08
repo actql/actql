@@ -399,9 +399,84 @@ pub fn complete_resident_output_intent(
 }
 
 ///|
+/// Persist an authenticated release request for a completed original dispatch.
+/// This only begins release: payload intents, physical cleanup and reservations
+/// remain owned until their existing cleanup Owners confirm them separately.
+pub fn begin_resident_output_release(
+  journal : @journal.Journal,
+  delegation : @resident.ResidentSiteDelegation,
+  generation : Int,
+  request : @remote.DispatchRequest,
+) -> Result[Unit, ResidentOutputIssue] {
+  if @resident.check_resident_dispatch_delegation(
+      delegation, request, generation,
+    )
+    is Err(_) {
+    return Err(OutputForeign)
+  }
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(OutputJournal(issue))
+  }
+  let (execution, _, cleanup, _, _) = @remote.dispatch_record_state(record)
+  if !(execution is @remote.NativeSettled) {
+    return Err(OutputUnavailable)
+  }
+  match cleanup {
+    @remote.CleanupReleasing | @remote.CleanupReleased => Ok(())
+    @remote.CleanupForceLost | @remote.CleanupRecoveredAfterLoss =>
+      Err(OutputUnavailable)
+    @remote.CleanupActive | @remote.CleanupUnknown => {
+      let transition = match @remote.prepare_begin_remote_release(record) {
+        Ok(value) => value
+        Err(issue) => return Err(OutputProtocol(issue))
+      }
+      journal
+      .commit_transition(transition)
+      .map(_ => ())
+      .map_err(issue => OutputJournal(issue))
+    }
+  }
+}
+
+///|
+/// A stopped process is not permission to destroy an unfinished Output.
+/// Resolve the intent's original attempt through the existing dispatch journal;
+/// only a formally begun release permits this orphan cleanup to reclaim it.
+fn output_intent_release_started(
+  journal : @journal.Journal,
+  body : String,
+) -> Result[Bool, ResidentOutputIssue] {
+  let mut cursor = ""
+  while true {
+    match journal.recover_after(cursor) {
+      Err(issue) => return Err(OutputIntent(issue))
+      Ok(None) => return Err(OutputForeign)
+      Ok(Some((key, record))) => {
+        cursor = key
+        if output_intent_matches_dispatch(
+            body,
+            @remote.dispatch_record_request(record),
+          ) {
+          let (_, _, cleanup, _, _) = @remote.dispatch_record_state(record)
+          return Ok(
+            cleanup is @remote.CleanupReleasing ||
+            cleanup is @remote.CleanupReleased,
+          )
+        }
+      }
+    }
+  } nobreak {
+    Err(OutputForeign)
+  }
+}
+
+///|
 /// Reclaim the payloads of output intents whose holder is gone. The caller
 /// must hold the Site's executor slot, which proves that no holder can still
-/// write them. Each exact request is reclaimed through the existing Store
+/// write them, and the original dispatch must have formally begun release.
+/// A completed task awaiting Output keeps its payload and reservation.
+/// Each exact request is reclaimed through the existing Store
 /// owner, and its intent is completed only after the Store confirmed it.
 /// Returns how many intents are still pending; a failure leaves them pending
 /// for a later call and never re-runs anything.
@@ -424,6 +499,20 @@ pub fn reclaim_resident_output_intents(
         failure = Some(OutputIntentInvalid)
       }
       continue
+    }
+    match output_intent_release_started(journal, body) {
+      Ok(true) => ()
+      Ok(false) => {
+        remaining += 1
+        continue
+      }
+      Err(issue) => {
+        remaining += 1
+        if failure is None {
+          failure = Some(issue)
+        }
+        continue
+      }
     }
     let done = match reclaim_resident_payload(store, request) {
       Ok(true) =>

@@ -30,10 +30,8 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
       | Rename(_)
       | Extend(_)
       | Analytic(_)
-      | AnalyticExpressions(_, _) =>
-        if current_range is Some(_) {
-          safe = false
-        }
+      | AnalyticExpressions(_, _)
+      | OrderAnalytic(_, _) => if current_range is Some(_) { safe = false }
       Where(_)
       | Having(_, _)
       | Qualify(_)
