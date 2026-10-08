@@ -5336,7 +5336,35 @@ for (const entrance of ['local', 'http']) {
         record.operation === 'run' && ['definition_admitted', 'dispatch_reserved', 'physical_start_reserved']
           .includes(record.event)).length, 0, 'checking emits no execution Owner lifecycle facts');
     };
+    for (const [input, kind, extra] of [['SELECT 1 AS n', 'text', {format: 'sql'}],
+      [{version: 'actql/0.1'}, 'program', {}]]) {
+      for (const parameters of [undefined, null, {}, {x: 7}]) {
+        await assert.rejects(client.check(input, {kind, scope: 'template_only', ...extra, parameters}),
+          {code: 'InvalidCheckRequest'});
+      }
+      if (entrance === 'http') {
+        for (const parameters of [null, {}, {x: 7}]) {
+          const response = await client.post({kind, scope: 'template_only',
+            input: kind === 'text' ? {text: input, format: 'sql'} : input, parameters});
+          assert.equal(response.status, 400);
+          assert.deepEqual(await response.json(), {code: 'InvalidClientRequest'});
+        }
+      }
+    }
+    await noExecution();
     for (const format of ['sql', 'aql-text']) {
+      for (const [text, byte, position] of [['/*😀*/\r\nSELECT', 16, {line: 1, character: 6}],
+        ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, {line: 1, character: 0}]]) {
+        const syntax = await client.check(text, {kind: 'text', scope: 'template_only', format});
+        assert.equal(syntax.report.verdict, 'invalid');
+        const reason = syntax.report.reasons[0];
+        assert.equal(reason.code, 'query_syntax_invalid');
+        assert.deepEqual({start: reason.location.start_byte, end: reason.location.end_byte},
+          {start: byte, end: byte});
+        const range = resolveCheckTextRange(syntax, reason.location);
+        assert.deepEqual(range.range, {start: position, end: position});
+        assert.equal(getCheckInput(syntax, 'source').text, text);
+      }
       const unused = await client.check('SELECT 1 AS n', {kind: 'text', scope: 'template_only',
         format, parameterDeclarations: {x: {type: 'number'}}});
       assert.equal(unused.report.verdict, 'invalid');
@@ -5423,6 +5451,57 @@ for (const entrance of ['local', 'http']) {
       }
       assert.deepEqual(sdk.getCheckFixes(checked), []);
     }
+    const nullSteps = structuredClone(snapshot.value);
+    nullSteps.stages[0].steps = null;
+    const nullNode = await client.check(nullSteps, {kind: 'program', scope: 'template_only'});
+    assert.equal(nullNode.report.verdict, 'invalid');
+    assert.equal(nullNode.report.reasons[0].facts.issue, 'unexpected_null');
+    assert.equal(resolveCheckLocation(nullNode, nullNode.report.reasons[0].location).pointer, '/stages/0/steps');
+    const unicodeKey = 'e\u0301/~😀';
+    const unicodeProgram = structuredClone(snapshot.value);
+    unicodeProgram.params = {payload: {type: 'object', fields: {[unicodeKey]: {type: 'number'}}}};
+    unicodeProgram.stages[0].steps[1].derive.n = '$payload';
+    for (const [value, actualType] of [['private-leaf', 'string'], [null, 'null']]) {
+      const checked = await client.check(unicodeProgram, {kind: 'program', scope: 'bound_input',
+        parameters: {payload: {[unicodeKey]: value}}});
+      assert.equal(checked.report.verdict, 'invalid');
+      assert.deepEqual(checked.report.reasons[0].facts,
+        {parameter: 'payload', expected_type: 'number', actual_type: actualType});
+      assert.equal(resolveCheckLocation(checked, checked.report.reasons[0].location).pointer,
+        '/payload/e\u0301~1~0😀');
+      assert.equal(getCheckInput(checked, 'parameters').value.payload[unicodeKey], value);
+      assert.doesNotMatch(JSON.stringify(checked), /private-leaf/);
+    }
+    const absent = await client.check(unicodeProgram, {kind: 'program', scope: 'bound_input', parameters: {}});
+    assert.equal(absent.report.verdict, 'undetermined');
+    assert.equal(absent.report.requirements[0].location.pointer, '/params/payload');
+    assert.equal(Object.hasOwn(getCheckInput(absent, 'parameters').value, 'payload'), false);
+    const unsupported = await client.check('SELECT UNKNOWN_FUNCTION(1) AS n',
+      {kind: 'text', scope: 'template_only', format: 'sql'});
+    assert.equal(unsupported.report.verdict, 'undetermined');
+    assert.deepEqual(unsupported.report.coverage.limits, [{code: 'implementation_limit',
+      facts: {issue: 'function_lowering_unresolved'}, location: {kind: 'text', document_id: 'source',
+        revision: getCheckInput(unsupported, 'source').revision, start_byte: 7, end_byte: 26, precision: 'exact'}}]);
+    let nestedDefault = 'leaf';
+    for (let i = 0; i < 40; i++) nestedDefault = [nestedDefault];
+    const exhausted = await client.check('SELECT @payload AS n',
+      {kind: 'text', scope: 'template_only', format: 'sql',
+        parameterDeclarations: {payload: {type: 'number', default: nestedDefault}}});
+    assert.equal(exhausted.report.verdict, 'undetermined');
+    assert.deepEqual(exhausted.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
+    const names = Array.from({length: 129}, (_, i) => `p${String(i).padStart(3, '0')}`);
+    const truncated = await client.check('SELECT ' + names.map((name, i) => `@${name} AS n${i}`).join(', '),
+      {kind: 'text', scope: 'template_only', format: 'sql',
+        parameterDeclarations: Object.fromEntries(names.map(name => [name, {type: 'number'}]))});
+    assert.equal(truncated.report.verdict, 'undetermined');
+    assert.deepEqual(truncated.report.omissions, {requirements: true});
+    assert.equal(truncated.report.coverage.limits.some(limit => limit.code === 'reporting_budget_exhausted'), true);
+    assert.deepEqual(truncated.report.requirements.map(reason => reason.facts.parameter), names.slice(0, 64));
+    for (const checked of [unsupported, exhausted, truncated]) {
+      assert.deepEqual(checked.report.scope, {kind: 'template_only'});
+      sdk.getCheckFixes(checked);
+      assert.equal(getCheckInput(structuredClone(checked), 'source'), undefined);
+    }
     await noExecution();
     client.permitExplicitExecution();
     // Complete bound checking does not promise a physical Program backend.
@@ -5457,6 +5536,65 @@ for (const entrance of ['local', 'http']) {
     assert.ok(records.some(record => record.operation === 'compute' && record.event === 'task_started'),
       'the explicit Run exercises the common task observation path');
     assert.deepEqual({modelCalls, effectCalls, resumes}, {modelCalls: 0, effectCalls: 0, resumes: 0});
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: installed scoped protected checks retain safe reasons without execution`, async t => {
+    let modelCalls = 0, effectCalls = 0;
+    const installed = {
+      registerModelProviders: () => [{providerId: 'models/protected-authoring-fixture',
+        validatePrompt: () => false,
+        invoke() {modelCalls++; throw new Error('UnexpectedProtectedAuthoringModelExecution');}}],
+      effectInstallation: {environmentWire: (await readFile(join(repository,
+        'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd(),
+        execute() {effectCalls++; throw new Error('UnexpectedProtectedAuthoringEffectExecution');},
+        resume() {effectCalls++; throw new Error('UnexpectedProtectedAuthoringEffectResume');}}};
+    const clients = [];
+    for (const configuration of [configurations.absent, configurations.denied, configurations.undecidable]) {
+      clients.push(entrance === 'local' ? await localClient(t, configuration, installed)
+        : await httpClient(t, configuration, undefined, installed));
+    }
+    const parameterDeclarations = {x: {type: 'number'}, y: {type: 'number'}};
+    const text = 'SELECT private_field + @x AS n FROM records';
+    const program = {version: 'actql/0.1', id: 'protected-authoring', params: parameterDeclarations,
+      stages: [{id: 'main', inputs: {rows: {connector: 'crm/main', resource: 'r', view: 'v'}},
+        steps: [{derive: {n: 'private_field + $x'}, as: 'derived'}, {select: ['n'], as: 'selected'}],
+        results: {out: {from: 'selected', fields: ['n']}}}],
+      results: {out: {from: {stage: 'main', result: 'out'}}}};
+    // Independently installed Hosts have different keyed document revisions.
+    // Compare all diagnostic facts and positions; no key or context is shared.
+    const facts = value => JSON.parse(JSON.stringify(value), (key, item) => key === 'revision' ? '<opaque>' : item);
+    for (const scope of ['template_only', 'bound_input']) {
+      for (const [input, kind, extra] of [[text, 'text', {format: 'sql', parameterDeclarations}],
+        [program, 'program', {}]]) {
+        const received = [];
+        for (const client of clients) {
+          const checked = await client.check(input, {kind, scope, ...extra,
+            ...(scope === 'template_only' ? {} : {parameters: {x: 'private-wrong-value'}})});
+          assert.equal(checked.report.verdict, scope === 'template_only' ? 'undetermined' : 'invalid');
+          assert.deepEqual(checked.report.coverage.unresolved,
+            [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+          assert.deepEqual(checked.report.reasons.map(({code, facts: detail}) => ({code, facts: detail})),
+            scope === 'template_only' ? [] : [{code: 'supplied_value_type_mismatch',
+              facts: {parameter: 'x', expected_type: 'number', actual_type: 'string'}}]);
+          assert.deepEqual(checked.report.requirements.map(reason => reason.facts.parameter),
+            scope === 'template_only' ? ['x', 'y'] : ['y']);
+          assert.doesNotMatch(JSON.stringify(checked), /private_field|private-wrong-value|crm\/main/);
+          for (const reason of [...checked.report.reasons, ...checked.report.requirements]) {
+            assert.ok(explainCheckReason(reason));
+            assert.ok(resolveCheckLocation(checked, reason.location));
+          }
+          received.push(facts({verdict: checked.report.verdict, reasons: checked.report.reasons,
+            requirements: checked.report.requirements, coverage: checked.report.coverage}));
+          assert.deepEqual(client.executionCounts(), {runs: 0, dispatchReservations: 0, physicalReservations: 0,
+            sourceOpens: 0, dispatches: 0, submissions: 0, issuedSubmissions: 0});
+        }
+        assert.deepEqual(received[0], received[1]);
+        assert.deepEqual(received[0], received[2]);
+      }
+    }
+    assert.deepEqual({modelCalls, effectCalls}, {modelCalls: 0, effectCalls: 0});
   });
 }
 
