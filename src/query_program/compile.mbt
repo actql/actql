@@ -1225,9 +1225,12 @@ fn lower_aggregate_resolved(
   order_fields? : Array[String]? = None,
   analytic? : Bool = false,
 ) -> @builder.Node raise Abort {
+  let conditional_count = call.function_name == "COUNTIF" &&
+    call.distinct &&
+    !analytic
   let name = match call.function_name {
     "COUNT" => "count"
-    "COUNTIF" => "count_if"
+    "COUNTIF" => if conditional_count { "count" } else { "count_if" }
     "SUM" => "sum"
     "AVG" => "avg"
     "MIN" => "min"
@@ -1249,9 +1252,13 @@ fn lower_aggregate_resolved(
         argument,
         @query.expression_root(argument),
       ).unwrap()
-      let field = match root.kind {
-        Reference(path) => resolve(path)
-        _ => None
+      let field = if conditional_count {
+        None
+      } else {
+        match root.kind {
+          Reference(path) => resolve(path)
+          _ => None
+        }
       }
       match field {
         Some(field) => entries.push(("field", construction.text(field)))
@@ -1259,16 +1266,39 @@ fn lower_aggregate_resolved(
           entries.push(
             (
               "expr",
-              match
-                @expression.append_with_properties(
-                  argument,
-                  resolve,
-                  construction.builder,
-                  max_work,
-                  resolve_parameter=construction.parameter_resolver(),
-                ) {
-                Ok(value) => value
-                Err(error) => raise Abort(Expression(error))
+              {
+                let argument = match
+                  @expression.append_with_properties(
+                    argument,
+                    resolve,
+                    construction.builder,
+                    max_work,
+                    resolve_parameter=construction.parameter_resolver(),
+                  ) {
+                  Ok(value) => value
+                  Err(error) => raise Abort(Expression(error))
+                }
+                // TRUE is the only qualifying distinct Boolean observation.
+                // The existing conditional and COUNT owners exclude FALSE/NULL
+                // without evaluating the authored predicate a second time.
+                if conditional_count {
+                  construction.object([
+                    (
+                      "if",
+                      construction.array([
+                        argument,
+                        construction.object([
+                          ("literal", construction.add(Bool(true))),
+                        ]),
+                        construction.object([
+                          ("literal", construction.add(Null)),
+                        ]),
+                      ]),
+                    ),
+                  ])
+                } else {
+                  argument
+                }
               },
             ),
           )
@@ -1299,7 +1329,10 @@ fn lower_aggregate_resolved(
       )
     None => ()
   }
-  if call.distinct {
+  // Grouped extrema are unchanged by duplicate observations, including NULL
+  // exclusion and empty input. The common MIN/MAX operation therefore needs
+  // no distinct modifier or separate deduplication/evaluation pass.
+  if call.distinct && !(!analytic && (name == "min" || name == "max")) {
     entries.push(("distinct", construction.add(Bool(true))))
   }
   if name == "array_agg" || name == "string_agg" {
@@ -1347,6 +1380,12 @@ fn lower_aggregate_resolved(
           ("nulls", construction.text(term.nulls)),
         ]),
       )
+      if call.distinct {
+        guard call.argument is Some(argument) &&
+          aggregate_order_matches_argument(argument, term.expression, resolve) else {
+          raise Abort(UnsupportedAggregate)
+        }
+      }
     }
     if !analytic {
       entries.push(("order_by", construction.array(order)))
@@ -1426,6 +1465,12 @@ fn lower_analytic_call(
 ) -> @builder.Node raise Abort {
   match call.aggregate {
     Some(aggregate) => {
+      // The selected SQL analytic contract forbids DISTINCT with window ORDER
+      // BY or an authored frame. Default/unordered DISTINCT needs a separate
+      // common window connection; never turn it into this explicit ROWS path.
+      if aggregate.distinct {
+        raise Abort(UnsupportedAnalytic)
+      }
       if call.window.frame is None {
         raise Abort(UnsupportedAnalytic)
       }
