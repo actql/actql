@@ -12,7 +12,7 @@ test('BY NAME ON expectations distinguish names, order, NULL and duplicates', ()
     [{amount:20,id:2}, {amount:30,id:3}, {amount:null,id:1}]);
   assert.deepEqual(setByNameListSuccesses.find(x => x.name === 'set-by-name-list-data-quoted-case').columns.map(x=>x.name), ['AMOUNT','ID']);
   assert.deepEqual(setByNameListProgram.stages[1].steps[0].filter, {gt:[{field:'id'},{literal:1}]});
-  assert.deepEqual(setByNameListProgram.stages[1].steps[2].filter, {le:[{field:'id'},{literal:2}]});
+  assert.deepEqual(setByNameListProgram.stages[1].steps[2].filter, {lte:[{field:'id'},{literal:2}]});
 });
 
 test('BY NAME ON is copied and selected in narrow and normal public acceptance', () => {

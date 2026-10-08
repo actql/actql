@@ -22,7 +22,7 @@ export const setByNameListProgram = {version: 'actql/0.1', id: 'fixture.set_by_n
   {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
     steps: [{from: 'records', filter: {gt: [{field: 'id'}, {literal: 1}]}},
       {select: ['amount', 'id'], as: 'left'},
-      {from: 'records', filter: {le: [{field: 'id'}, {literal: 2}]}},
+      {from: 'records', filter: {lte: [{field: 'id'}, {literal: 2}]}},
       {select: ['amount', 'id'], as: 'right'},
       {from: 'left', append: {with: 'right'}},
       {sort: [{field: 'amount', dir: 'asc', nulls: 'last'}, {field: 'id', dir: 'asc', nulls: 'first'}]},
