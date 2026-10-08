@@ -12,6 +12,11 @@ test('DISTINCT aggregate order obligations distinguish multiplicity and input sn
   assert.deepEqual(cases.get('distinct-aggregate-order-typed-empty').expected, [{names: null}]);
   assert.deepEqual(cases.get('distinct-aggregate-order-pipe-descending').expected, [{names: '20|10'}]);
   assert.deepEqual(cases.get('distinct-aggregate-order-static-property').expected, [{names: 'kept'}]);
+  // Parameter declarations have their own closed syntax. General relation
+  // string evidence such as max_utf8_bytes is not a parameter constraint.
+  assert.deepEqual(cases.get('distinct-aggregate-order-static-property').parameterDeclarations,
+    {payload: {type: 'object', nullable: true,
+      fields: {name: {type: 'string', nullable: true}}}});
   assert.deepEqual(cases.get('distinct-aggregate-order-keyed-array-qualified').expected,
     [{ids: [4, 3, 2, 1]}]);
   assert.deepEqual(JSON.parse(cases.get('distinct-aggregate-order-independent-json').text),

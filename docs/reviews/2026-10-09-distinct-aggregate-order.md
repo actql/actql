@@ -105,3 +105,26 @@ execution are pending. Record their actual revision/digests/results separately
 in the PR; focused success does not establish public execution or required CI.
 Full Core, Native/Wasm, Cloud, broader computed order and nullable ARRAY
 publication are not established by this unit. No manual CI rerun or merge.
+
+## Initial packed execution and fixture correction
+
+Normal five-package production for `4d66f3ddf8dc398be8df5b2c79bfb4f0ad0b88e0`
+completed and independent digest verification passed. The packed consumer
+`run-zlTiTr` / `public-query-evidence-C59fdC` passed the first nine normal Local
+cases, including the independent JSON control and keyed ARRAY, then stopped
+before the static-property case was admitted: `ClientParametersInvalid`.
+HTTPS and the refusal cohort were not reached; this is not complete acceptance.
+
+The static-property fixture incorrectly put general string value evidence
+`max_utf8_bytes` in a parameter declaration. `value_contract/parameters.mbt`
+defines closed parameter syntax: string declarations permit `format`, not
+general relation string bounds. Remove that unsupported declaration member;
+keep the same parameter value, nullable object/field, expected row and aggregate
+limit. A fixed declaration expectation failed 1/2 before the correction
+(`run-iaAUcA` / `focused-test-dzuquM`) and passed 2/2 afterward
+(`run-y72RWf` / `focused-test-5tyNlV`). The normal checker is not loosened.
+
+The failed run's logs, receipts, package digest manifest and five tarballs
+remain. Its re-downloadable npm content cache was removed separately; the
+cleanup does not erase failure evidence. New integrated-HEAD public execution
+will be recorded separately rather than relabeling these nine successes.

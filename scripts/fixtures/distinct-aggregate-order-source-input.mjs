@@ -46,7 +46,7 @@ export const distinctAggregateOrderSuccesses = [
     text: 'DATA objects = SELECT id, @payload AS payload FROM records WHERE id > 0; '
       + "SELECT STRING_AGG(DISTINCT (payload).name, '|' ORDER BY objects.payload.`NAME`) AS names FROM objects",
     parameterDeclarations: {payload: {type: 'object', nullable: true,
-      fields: {name: {type: 'string', nullable: true, max_utf8_bytes: 16}}}},
+      fields: {name: {type: 'string', nullable: true}}}},
     parameters: {payload: {name: 'kept'}}, expected: [{names: 'kept'}],
   }),
 ];
