@@ -54,13 +54,17 @@ fn unnest_source_element(
       raise Abort(Expression({ issue: @expression.WorkLimit, origin, }))
     Err({ kind: InvalidLimits, .. }) =>
       raise Abort(Expression({ issue: @expression.InvalidLimits, origin, }))
-    // No guessed scope for an unresolved, unknown or inadmissible type. The
-    // completed Program still undergoes its normal common admission checks.
-    Err(_) => return None
+    // Without an inferred element contract, untyped empty/NULL arrays keep
+    // their existing unsupported scope. Proven input violations are different:
+    // a star requires this probe to succeed before any Program can be checked.
+    Err({ kind: NullTypeUnresolved, .. }) => return None
+    Err(issue) => raise Abort(ExpressionTyping(issue))
   }
   match @typing.result_type(typed).shape {
     @contract.Array(element, ..) => Some(element)
-    _ => None
+    // The checked receiver is known not to be an ARRAY. Missing star fields
+    // must not hide that input violation behind an implementation limit.
+    _ => raise Abort(Expression({ issue: @expression.InvalidArguments, origin, }))
   }
 }
 

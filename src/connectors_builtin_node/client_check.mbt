@@ -310,6 +310,16 @@ fn check_source_findings(
           findings.push(ExpressionViolation("unknown_reference", None))
         QueryLowering(AmbiguousRelation | AmbiguousColumn | DuplicateOutput) =>
           findings.push(Violation("query_invalid"))
+        // A Frontend scope probe retains the same typed cause as ordinary
+        // Program checking. No generated cursor becomes an authored location.
+        QueryLowering(ExpressionTyping(issue)) =>
+          match issue.kind {
+            UnknownParameter(name) if name.length() <= 256 =>
+              findings.push(UndeclaredParameter(name, None))
+            InvalidLimits | InvalidScope(_) => return Failed("check_internal")
+            BudgetExceeded => findings.push(Limit("analysis_budget_exhausted"))
+            _ => findings.push(Violation("query_invalid"))
+          }
         // Expression lowering wraps the same construction owner and its
         // budgets. The wrapper cannot turn its own limit into bad input.
         QueryLowering(
