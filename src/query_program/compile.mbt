@@ -3727,6 +3727,39 @@ fn compile_steps(
         }
         deferred = true
       }
+      Distinct => {
+        if requires_graph_projection {
+          raise Abort(UnsupportedProjection)
+        }
+        // Compare only current visible values. Displaced range slots are not
+        // representative-row payload and cannot survive this projection.
+        let slots : Array[String] = []
+        for field in pipe_visible {
+          if !slots.contains(field.1) {
+            slots.push(field.1)
+          }
+        }
+        // The current keyed distinct contract does not compare closed value
+        // tables. Do not expand them into nullable fields and change equality.
+        if !value_table_receivers.is_empty() {
+          raise Abort(UnsupportedProjection)
+        }
+        entries.push(
+          (
+            "distinct",
+            construction.array(slots.map(slot => construction.text(slot))),
+          ),
+        )
+        active_fields = slots
+        pipe_ranges = pipe_ranges.map(range => {
+          (range.0, range.1.filter(field => slots.contains(field.1)))
+        })
+        pipe_rebound = true
+        pipe_selected = false
+        distinct_order_scope = false
+        selected_expressions = []
+        selected_output_slots = []
+      }
       Select(projections, distinct) if pipe_changed || pipe_rebound => {
         let projections = if sql_group_projection {
           sql_group_selected_projections

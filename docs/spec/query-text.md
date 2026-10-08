@@ -489,6 +489,25 @@ no grouping output to sort; an explicit aggregate suffix still orders its output
 These forms do not extend SQL GROUP BY's grammar. See the pinned reference
 [shorthand ordering](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#shorthand_order_pipe_syntax).
 
+Pipe `|> DISTINCT` compares the complete current visible row using the common
+keyed `distinct: [visible slots]` operation. It preserves column order, types, NULL
+equality and surviving range bindings without reevaluating expressions. Private
+slots and values displaced by SET or removed by DROP are projected away before distinct;
+range columns survive only when their evaluated slots remain visible. Thus a
+current `t.y` may remain usable while a removed `t.x` does not. RENAME preserves
+the evaluated value slot. Closed value-table receivers are explicitly unsupported rather than expanded
+into fields with different equality.
+Unlike `SELECT DISTINCT *`, this operator does not reset every table alias.
+Empty input remains empty; no ordering, representative-row choice or new
+execution owner is invented. Existing common type and publication checks still
+apply. The selected rules follow the pinned GoogleSQL
+[DISTINCT pipe operator](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#distinct_pipe_operator)
+and its resolver's mapping of surviving range columns. This does not establish
+support for all GoogleSQL value-table types or their grouping rules. Explicit
+keys use the existing common KeyComparable domains; broader object/array
+groupability remains a separate conformance dependency. Complete-row Program
+distinct is not substituted to admit non-groupable GoogleSQL JSON values.
+
 Pipe `AGGREGATE GROUP BY` may omit the aggregate expression list. It lowers
 to the ordinary group operation with an empty aggregate map: each distinct
 group contributes its grouping columns, in authored key order, with their

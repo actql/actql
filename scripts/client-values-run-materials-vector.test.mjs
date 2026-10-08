@@ -846,8 +846,16 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('9b263643848b163c45ca846775d1fa20e91023b694638794959335d284d4c3ff'),
     cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('ac0a16e48c0578b1ae4e5c63405220579592cc2fa220461f1f066f05b27b84b8'));
-  assert.equal(current.run.run_definition_cid,
+  // Keep the original Pipe DISTINCT grammar under its fixed pre-Table closure.
+  assert.equal(vector(pin('49d6bf9a27842b2d8d9c2709677f62d65a359285de99a83f881f109263c65aec'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('d2834b5d214993feb6280e176d6c9310aecfa1a5c59092484293d00a4371e528'));
+  // Retain the adopted CORRESPONDING parent with its installed Table closure.
+  assert.equal(vector(pin('527460015f7b5021f104bddf356d629de4da58036886e1e28c03df78a52fddbf'),
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('73b3565c96d7cee01a72fcbb0a7ab76f876dd0745661df556a01f449660a9abe'));
+  assert.equal(current.run.run_definition_cid,
+    pin('1ab3973704c07a95422f01944bff0786c119e082a5a534f4854dcc20c286043f'));
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
