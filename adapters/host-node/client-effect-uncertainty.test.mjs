@@ -3,6 +3,8 @@
 // records are independently authored in the existing composition fixture.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
 import * as sdk from '../../packages/sdk/index.mjs';
 import {approveHeldSet, expectedOrgAfterSuccess,
   readComputeEffectInstallation, submitReadComputeEffect, waitFor} from
@@ -35,13 +37,24 @@ for (const entrance of ['local', 'https']) {
       'the original Program completes Compute once before approval');
     assert.equal(initialComputation[0].pid, step.processes[0].pid);
     assert.deepEqual(await step('answer'), {answered: ['committed']});
-    assert.deepEqual(await step('resume'), {status: 'needs_reconciliation'});
-    assert.equal(setup.writes().length, 2);
+    const resumed = await step('resume');
+    // Record physical provider facts before checking the public outcome. A
+    // lost reply cannot authorize another write of the original Effect.
+    await writeFile(join(setup.root, 'effect-resend-observation.json'),
+      JSON.stringify({entrance, expectedWrites: 2, actualWrites: setup.writes().length,
+        resumedStatus: resumed.status, sourceQueries: setup.queries(),
+        computeCompletions: computationEvents(await step.ownerObservations()).length}),
+      {mode: 0o600});
+    assert.equal(setup.writes().length, 2, '[check-mutation:effect-no-resend]');
+    assert.deepEqual(resumed, {status: 'needs_reconciliation'});
     assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
     const stoppedCounts = {writes: setup.writes().length, queries: setup.queries(), targetReads: setup.targetReads()};
     const originalProcesses = [...step.processes];
     assert.equal(originalProcesses.length, 3);
-    t.diagnostic(JSON.stringify({entrance, originalProcesses, fixtureRoot: setup.root}));
+    // Keep optional trace events outside the strict mutation acceptance path.
+    if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') {
+      t.diagnostic(JSON.stringify({entrance, originalProcesses, fixtureRoot: setup.root}));
+    }
     for (const process of originalProcesses) {
       assert.ok(Number.isSafeInteger(process.pid));
       assert.equal(process.exitCode, 0);

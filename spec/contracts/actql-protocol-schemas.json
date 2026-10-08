@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:224dd6af7cbe33b940e8b3369efbf459045298e8743a2b7a624571eb1eab4a7d",
+  "artifact_registry_cid": "sha256:28f6ac002463fe658f2907d8944e11363c164564c87213d259589ec5d0c8b75a",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10668,7 +10668,7 @@
     "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:80c4fca7de1c1043ec30e50163c41f1c9f2a50d67145078fd5b4cdcf5ec0e49b",
+    "executable_plan": "sha256:673d25160a7dfa6311e65fff30b8e23932d8966d32cdbb0cf0185aece692f318",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -10678,7 +10678,7 @@
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
     "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
     "effect_reconciliation_receipt": "sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2",
-    "run_receipt": "sha256:d5de76fb14e35a588d34bfa13d758b6e6b2e0a388645630b692de8cf1f27ba79",
+    "run_receipt": "sha256:15fc852a55288e801b64eccd756bb9d82a6cd0c3c65e6116505b27bbdc32523a",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
     "execution_context": "sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2",
     "run_policy": "sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6",
@@ -10690,12 +10690,12 @@
     "execution_checkpoint": "sha256:2463a0ebef2f3b78f2603d934a4e4e85851a4afa956abcdedec641594c92f91c",
     "checkpoint_resolution": "sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5",
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
-    "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
+    "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:2e4467e2fed7de38cdf618d46df813efbec8c07e25e181ea79388516df73b211",
+    "plan_document": "sha256:c8f0401c6d700998e25a7f7410aa67a4fa7e42e76955498d7835e264dbd494c0",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
-    "run_state": "sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e",
-    "captured_run": "sha256:249355f0a0d114884907036fe07590799bceb281d1ba243cf5ec10f3550f9322",
+    "run_state": "sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30",
+    "captured_run": "sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
@@ -10713,7 +10713,7 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:c7e11c497b3d0ab58adc69c1ec04e4a44e6420aed7f0981e8e9741d2c3af8b5f",
+    "check_outcome": "sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9",
     "check_reason": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
@@ -35868,7 +35868,6 @@
                 },
                 "results": {
                   "type": "object",
-                  "minProperties": 1,
                   "additionalProperties": {
                     "type": "object",
                     "additionalProperties": false,
@@ -36605,17 +36604,34 @@
                                 "pattern": "^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$"
                               },
                               "from": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "result"
-                                ],
-                                "properties": {
-                                  "result": {
-                                    "type": "string",
-                                    "minLength": 1
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "result"
+                                    ],
+                                    "properties": {
+                                      "result": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "table_input"
+                                    ],
+                                    "properties": {
+                                      "table_input": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
                                   }
-                                }
+                                ]
                               },
                               "max_items": {
                                 "oneOf": [
@@ -36641,6 +36657,112 @@
                               },
                               "on_item_failure": {
                                 "const": "continue"
+                              },
+                              "table_write": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "intent",
+                                  "action",
+                                  "expected_table",
+                                  "mapping_cid",
+                                  "capability_cid",
+                                  "installation_binding_cid"
+                                ],
+                                "properties": {
+                                  "intent": {
+                                    "enum": [
+                                      "create",
+                                      "create_or_replace"
+                                    ]
+                                  },
+                                  "action": {
+                                    "enum": [
+                                      "create",
+                                      "replace"
+                                    ]
+                                  },
+                                  "expected_table": {
+                                    "oneOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "table_uuid",
+                                          "generation_cid"
+                                        ],
+                                        "properties": {
+                                          "table_uuid": {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                                          },
+                                          "generation_cid": {
+                                            "type": "string",
+                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "mapping_cid": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                  },
+                                  "capability_cid": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                  },
+                                  "installation_binding_cid": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                  }
+                                },
+                                "allOf": [
+                                  {
+                                    "if": {
+                                      "required": [
+                                        "action"
+                                      ],
+                                      "properties": {
+                                        "action": {
+                                          "const": "create"
+                                        }
+                                      }
+                                    },
+                                    "then": {
+                                      "properties": {
+                                        "expected_table": {
+                                          "type": "null"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "if": {
+                                      "required": [
+                                        "action"
+                                      ],
+                                      "properties": {
+                                        "action": {
+                                          "const": "replace"
+                                        }
+                                      }
+                                    },
+                                    "then": {
+                                      "properties": {
+                                        "intent": {
+                                          "const": "create_or_replace"
+                                        },
+                                        "expected_table": {
+                                          "type": "object"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
                               }
                             },
                             "allOf": [
@@ -36659,8 +36781,59 @@
                       }
                     ]
                   }
+                },
+                "table_inputs": {
+                  "type": "object",
+                  "minProperties": 1,
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "fields": {
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "fields"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "required": [
+                      "results"
+                    ],
+                    "properties": {
+                      "results": {
+                        "maxProperties": 0
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "effects"
+                    ],
+                    "properties": {
+                      "effects": {
+                        "minProperties": 1
+                      }
+                    }
+                  }
+                }
+              ]
             },
             "parameter_names": {
               "type": "array",
@@ -39545,7 +39718,6 @@
             },
             "results": {
               "type": "object",
-              "minProperties": 1,
               "additionalProperties": {
                 "type": "object",
                 "additionalProperties": false,
@@ -41844,7 +42016,6 @@
         },
         "results": {
           "type": "object",
-          "minProperties": 1,
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,
@@ -65379,7 +65550,6 @@
                     },
                     "results": {
                       "type": "object",
-                      "minProperties": 1,
                       "additionalProperties": {
                         "type": "object",
                         "additionalProperties": false,
@@ -66116,17 +66286,34 @@
                                     "pattern": "^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$"
                                   },
                                   "from": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "result"
-                                    ],
-                                    "properties": {
-                                      "result": {
-                                        "type": "string",
-                                        "minLength": 1
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "result"
+                                        ],
+                                        "properties": {
+                                          "result": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "table_input"
+                                        ],
+                                        "properties": {
+                                          "table_input": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        }
                                       }
-                                    }
+                                    ]
                                   },
                                   "max_items": {
                                     "oneOf": [
@@ -66152,6 +66339,112 @@
                                   },
                                   "on_item_failure": {
                                     "const": "continue"
+                                  },
+                                  "table_write": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "intent",
+                                      "action",
+                                      "expected_table",
+                                      "mapping_cid",
+                                      "capability_cid",
+                                      "installation_binding_cid"
+                                    ],
+                                    "properties": {
+                                      "intent": {
+                                        "enum": [
+                                          "create",
+                                          "create_or_replace"
+                                        ]
+                                      },
+                                      "action": {
+                                        "enum": [
+                                          "create",
+                                          "replace"
+                                        ]
+                                      },
+                                      "expected_table": {
+                                        "oneOf": [
+                                          {
+                                            "type": "null"
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "table_uuid",
+                                              "generation_cid"
+                                            ],
+                                            "properties": {
+                                              "table_uuid": {
+                                                "type": "string",
+                                                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                                              },
+                                              "generation_cid": {
+                                                "type": "string",
+                                                "pattern": "^sha256:[0-9a-f]{64}$"
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      "mapping_cid": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                      },
+                                      "capability_cid": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                      },
+                                      "installation_binding_cid": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                      }
+                                    },
+                                    "allOf": [
+                                      {
+                                        "if": {
+                                          "required": [
+                                            "action"
+                                          ],
+                                          "properties": {
+                                            "action": {
+                                              "const": "create"
+                                            }
+                                          }
+                                        },
+                                        "then": {
+                                          "properties": {
+                                            "expected_table": {
+                                              "type": "null"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "if": {
+                                          "required": [
+                                            "action"
+                                          ],
+                                          "properties": {
+                                            "action": {
+                                              "const": "replace"
+                                            }
+                                          }
+                                        },
+                                        "then": {
+                                          "properties": {
+                                            "intent": {
+                                              "const": "create_or_replace"
+                                            },
+                                            "expected_table": {
+                                              "type": "object"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    ]
                                   }
                                 },
                                 "allOf": [
@@ -66170,8 +66463,59 @@
                           }
                         ]
                       }
+                    },
+                    "table_inputs": {
+                      "type": "object",
+                      "minProperties": 1,
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "fields"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
-                  }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "required": [
+                          "results"
+                        ],
+                        "properties": {
+                          "results": {
+                            "maxProperties": 0
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "effects"
+                        ],
+                        "properties": {
+                          "effects": {
+                            "minProperties": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
                 },
                 "parameter_names": {
                   "type": "array",
@@ -72446,7 +72790,6 @@
         },
         "result_availability": {
           "type": "object",
-          "minProperties": 1,
           "propertyNames": {
             "minLength": 1
           },
@@ -72748,6 +73091,37 @@
                 "properties": {
                   "kind": {
                     "const": "none"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "result_availability"
+            ],
+            "properties": {
+              "result_availability": {
+                "maxProperties": 0
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "result_available": {
+                "const": false
+              },
+              "next_action": {
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "none",
+                      "resolve_checkpoint",
+                      "reconcile",
+                      "reconcile_run"
+                    ]
                   }
                 }
               }
@@ -73142,7 +73516,6 @@
                 },
                 "results": {
                   "type": "object",
-                  "minProperties": 1,
                   "additionalProperties": {
                     "type": "object",
                     "additionalProperties": false,
@@ -75647,11 +76020,6 @@
                         "items": {},
                         "maxItems": 0
                       },
-                      "requirements": {
-                        "type": "array",
-                        "items": {},
-                        "maxItems": 0
-                      },
                       "coverage": {
                         "properties": {
                           "limits": {
@@ -75666,7 +76034,57 @@
                           }
                         }
                       }
-                    }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "scope": {
+                              "properties": {
+                                "kind": {
+                                  "const": "bound_input"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "requirements": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "scope": {
+                              "properties": {
+                                "kind": {
+                                  "const": "template_only"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "requirements": {
+                              "items": {
+                                "properties": {
+                                  "code": {
+                                    "const": "parameter_value_required"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
                   }
                 },
                 {
@@ -79313,7 +79731,10 @@
                   ],
                   "properties": {
                     "kind": {
-                      "const": "bound_input"
+                      "enum": [
+                        "template_only",
+                        "bound_input"
+                      ]
                     }
                   }
                 },
@@ -79375,11 +79796,6 @@
                         "items": {},
                         "maxItems": 0
                       },
-                      "requirements": {
-                        "type": "array",
-                        "items": {},
-                        "maxItems": 0
-                      },
                       "coverage": {
                         "properties": {
                           "limits": {
@@ -79394,7 +79810,57 @@
                           }
                         }
                       }
-                    }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "scope": {
+                              "properties": {
+                                "kind": {
+                                  "const": "bound_input"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "requirements": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "scope": {
+                              "properties": {
+                                "kind": {
+                                  "const": "template_only"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "requirements": {
+                              "items": {
+                                "properties": {
+                                  "code": {
+                                    "const": "parameter_value_required"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
                   }
                 },
                 {
@@ -83041,7 +83507,10 @@
                   ],
                   "properties": {
                     "kind": {
-                      "const": "bound_input"
+                      "enum": [
+                        "template_only",
+                        "bound_input"
+                      ]
                     }
                   }
                 },

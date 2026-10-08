@@ -1,5 +1,9 @@
 // Independently authored common control and GoogleSQL row-expansion obligations.
 // No compiler output is patched; parent identity alone is not a match key.
+import {correlatedUnnestStarSuccesses, correlatedUnnestStarRefusals}
+  from './correlated-unnest-star-source-input.mjs';
+import {joinedUnnestStarSuccesses, joinedUnnestStarRefusals}
+  from './joined-unnest-star-source-input.mjs';
 const number = {type: 'number', nullable: false};
 const element = {type: 'number', nullable: true};
 const items = {type: 'array', nullable: true, max_items: 3, items: element};
@@ -106,3 +110,7 @@ export const correlatedUnnestRefusals = [
   refusal('array-bound', sql, {parameters: {parents: [{id: 1, items: [1, 2, 3, 4]}]}}),
   refusal('join-after-expansion', sql.replace('ORDER BY', 'CROSS JOIN records r ORDER BY')),
 ];
+correlatedUnnestSuccesses.push(...correlatedUnnestStarSuccesses);
+correlatedUnnestRefusals.push(...correlatedUnnestStarRefusals);
+correlatedUnnestSuccesses.push(...joinedUnnestStarSuccesses);
+correlatedUnnestRefusals.push(...joinedUnnestStarRefusals);

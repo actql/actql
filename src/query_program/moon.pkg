@@ -22,6 +22,7 @@ import {
   "actql/actql/vector_typing" @vector,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/check_environment" @environment,
+  "actql/actql/contract_reference" @contract_ref,
   "actql/actql/pipeline_check_context" @check_context,
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",

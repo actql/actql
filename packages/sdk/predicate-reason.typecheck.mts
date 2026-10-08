@@ -19,7 +19,7 @@ const privateSelector: Reason = {code: 'graph_operation_invalid', facts: {operat
 void mismatchedSelector; void privateSelector;
 
 declare const client: Client;
-const outcome = await client.check('SELECT id FROM records WHERE id', {format: 'sql'});
+const outcome = await client.check('SELECT id FROM records WHERE id', {kind: 'text', scope: 'bound_input', format: 'sql'});
 if (outcome.outcome === 'completed') {
   for (const reason of outcome.report.reasons) {
     if (reason.facts && 'issue' in reason.facts && reason.facts.issue === 'expected_boolean') {

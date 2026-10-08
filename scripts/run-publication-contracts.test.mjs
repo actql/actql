@@ -361,6 +361,9 @@ test('Run state separates terminal outcome from per-Result availability', () => 
   const state = registry.artifact_schemas.run_state;
   assert.deepEqual(state, runStateSchema(state));
   assert.ok(state.required.includes('result_availability'));
+  assert.equal(state.properties.result_availability.minProperties, undefined);
+  assert.ok(state.allOf.some(rule => rule.if?.properties?.result_availability?.maxProperties === 0 &&
+    rule.then?.properties?.result_available?.const === false));
   const succeeded = state.allOf.find(
     rule => rule.if?.properties?.status?.const === 'succeeded',
   );
@@ -414,19 +417,40 @@ test('corrected schemas have independently fixed canonical identities', () => {
     ),
     {
       result_manifest:
-        'sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa',
+        'sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02',
       run_receipt:
-        'sha256:d5de76fb14e35a588d34bfa13d758b6e6b2e0a388645630b692de8cf1f27ba79',
+        'sha256:15fc852a55288e801b64eccd756bb9d82a6cd0c3c65e6116505b27bbdc32523a',
       run_state:
-        'sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e',
+        'sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30',
       captured_run:
-        'sha256:249355f0a0d114884907036fe07590799bceb281d1ba243cf5ec10f3550f9322',
+        'sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4',
     },
   );
+  // The new empty-inventory rule is the only change to this fixed prior
+  // Run-state contract. Retain its original CID as historical evidence.
+  const priorState = structuredClone(registry.artifact_schemas.run_state);
+  priorState.properties.result_availability.minProperties = 1;
+  const emptyRules = priorState.allOf.filter(rule =>
+    rule.if?.properties?.result_availability?.maxProperties === 0);
+  assert.equal(emptyRules.length, 1);
+  priorState.allOf = priorState.allOf.filter(rule => !emptyRules.includes(rule));
+  assert.equal(machineCid(priorState),
+    'sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e');
+  const priorManifest = structuredClone(registry.artifact_schemas.result_manifest);
+  priorManifest.properties.results.minProperties = 1;
+  assert.equal(machineCid(priorManifest),
+    'sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa');
+  const priorReceipt = structuredClone(registry.artifact_schemas.run_receipt);
+  priorReceipt.properties.result_manifest = priorManifest;
+  assert.equal(machineCid(priorReceipt),
+    'sha256:d5de76fb14e35a588d34bfa13d758b6e6b2e0a388645630b692de8cf1f27ba79');
   // Independently recomputed from fixed e88475ee with the private Definition
   // choice and four typed dependency roles added. Undo exactly those changes
   // before checking the previous source discriminant and Manifest extension.
   const previous = structuredClone(registry.artifact_schemas.captured_run);
+  previous.properties.receipt = priorReceipt;
+  assert.equal(machineCid(previous),
+    'sha256:249355f0a0d114884907036fe07590799bceb281d1ba243cf5ec10f3550f9322');
   const context = previous.properties.effect_context;
   const definition = context.properties.effect_source_local_inventory
     .additionalProperties.properties.definition;

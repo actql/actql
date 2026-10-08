@@ -550,15 +550,16 @@ test('a restarted Run can claim physical start once after a safe reservation',
       publicationControl).revision, 2);
   });
 
-test('checked Result inventory stays with the durable Run', async t => {
+for (const resultNames of [[], ['answer']]) {
+test(`checked Result inventory stays with the durable Run (${resultNames.length})`, async t => {
   const path = await directory(t);
   const journal = openClientRequestJournal(path);
   const definition = runDefinition('inventory-run');
   const first = journal.acceptDefinition(identity(), {
     namespaceId: 'namespace-a', runDefinition: definition,
-    resultNames: ['answer'], lookupExpiresAt: expires,
+    resultNames, lookupExpiresAt: expires,
   }, moon, publicationControl);
-  assert.deepEqual(first.resultNames, ['answer']);
+  assert.deepEqual(first.resultNames, resultNames);
   assert.throws(() => journal.acceptDefinition(identity(), {
     namespaceId: 'namespace-a', runDefinition: definition,
     resultNames: ['different'], lookupExpiresAt: expires,
@@ -568,9 +569,10 @@ test('checked Result inventory stays with the durable Run', async t => {
   t.after(() => reopened.close());
   const retained = reopened.lookupRunDefinition(first.ref, moon,
     publicationControl);
-  assert.deepEqual(retained.resultNames, ['answer']);
+  assert.deepEqual(retained.resultNames, resultNames);
   assert.equal(retained.dispatchReserved, false);
 });
+}
 
 test('admit-or-lookup skips issuance after ACK loss and rejects changed intent',
   async t => {

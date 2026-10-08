@@ -34,7 +34,7 @@ fn client_task_edge_input(
 }
 
 ///|
-/// Checked AoA nodes, their producer edges, and named Result roots. Supplied
+/// Checked AoA nodes, their producer edges, and checked Result/Effect roots. Supplied
 /// source inputs still require physical capture and admission before a Run.
 pub struct ClientTaskPlanGraph {
   wire : String
@@ -106,6 +106,42 @@ pub fn issue_prepared_client_composed_task_plan_graph(
 }
 
 ///|
+/// The complete checked Model inventory is required in graph order. Dropping,
+/// duplicating or substituting one component cannot compile a partial Run.
+pub fn issue_prepared_client_multi_infer_task_plan_graph(
+  value : PreparedClientProgram,
+  components : Array[ClientInferPlanGraph],
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue] {
+  guard prepared_client_composed_infer_occurrences(value) is Some(occurrences) &&
+    !occurrences.is_empty() &&
+    occurrences.length() == components.length() else {
+    return Err(UnsupportedGraph)
+  }
+  for index in 0..<occurrences.length() {
+    if !client_infer_occurrence_matches_plan(
+        occurrences[index],
+        components[index],
+      ) {
+      return Err(UnsupportedGraph)
+    }
+  }
+  issue_client_task_plan_graph(
+    value,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    false,
+    [],
+    infers=components,
+  )
+}
+
+///|
 fn issue_client_task_plan_graph(
   value : PreparedClientProgram,
   sequence_limits : @lower.SequenceLimits,
@@ -115,6 +151,7 @@ fn issue_client_task_plan_graph(
   effects : Bool,
   effect_roots : Array[(String, Int)],
   infer? : ClientInferPlanGraph? = None,
+  infers? : Array[ClientInferPlanGraph] = [],
 ) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
@@ -123,7 +160,14 @@ fn issue_client_task_plan_graph(
   let count = @strategy.graph_task_count(graph)
   if count == 0 ||
     count > max_nodes ||
-    @strategy.graph_result_count(graph) == 0 ||
+    (
+      @strategy.graph_result_count(graph) == 0 &&
+      (
+        !effects ||
+        !@strategy.graph_program_has_effects(graph) ||
+        effect_roots.is_empty()
+      )
+    ) ||
     (@strategy.graph_program_has_effects(graph) && !effects) ||
     !@strategy.graph_ordered_inputs_complete(graph) {
     return Err(UnsupportedGraph)
@@ -134,16 +178,26 @@ fn issue_client_task_plan_graph(
   let model_edges : Array[@canonical.CanonicalValue] = []
   let transformations : Array[ClientResultTransformation] = []
   let nodes : Array[@canonical.CanonicalValue] = []
-  if infer is Some(infer) &&
-    (
-      !physical_equal(value, infer.owner) ||
-      infer.task < 0 ||
-      infer.task >= count
-    ) {
+  if infer is Some(_) && !infers.is_empty() {
     return Err(UnsupportedGraph)
   }
+  let components = match infer {
+    Some(component) => [component]
+    None => infers
+  }
+  let by_task : Map[Int, ClientInferPlanGraph] = Map([])
+  for component in components {
+    if !physical_equal(value, component.owner) ||
+      component.task < 0 ||
+      component.task >= count ||
+      by_task.contains(component.task) {
+      return Err(UnsupportedGraph)
+    }
+    by_task[component.task] = component
+  }
   for task in 0..<count {
-    let fragment = match infer {
+    let selected = by_task.get(task)
+    let fragment = match selected {
       Some(infer) if task == infer.task => infer.output
       _ =>
         match
@@ -154,7 +208,7 @@ fn issue_client_task_plan_graph(
           Err(issue) => return Err(Fragment(issue))
         }
     }
-    let input = match infer {
+    let input = match selected {
       Some(infer) if task == infer.task => infer.input
       _ => fragment
     }
@@ -170,7 +224,7 @@ fn issue_client_task_plan_graph(
     fragments.push(fragment)
     input_fragments.push(input)
     input_nodes.push(node)
-    match infer {
+    match selected {
       Some(infer) if task == infer.task => {
         guard parse_plan_identity_value(
             infer.graph.wire,

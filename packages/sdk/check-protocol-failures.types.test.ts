@@ -12,13 +12,19 @@ if (explanation?.kind === 'uninterpretable') {
   explanation.next;
 }
 const input = getCheckFailureInput(error);
-if (input) {
+if (input?.kind === 'text') {
   const text: string = input.text;
   void text;
   // @ts-expect-error No Host document revision is fabricated for a rejected reply.
   input.revision;
   // @ts-expect-error Submitted snapshots are immutable.
   input.text = 'edited';
+}
+if (input?.kind === 'program') {
+  const program: Readonly<Record<string, unknown>> = input.program;
+  void program;
+  // @ts-expect-error A structured snapshot has no invented source text.
+  input.text;
 }
 const variant: 'completed' | 'failed' | 'unavailable' | undefined = checkOutcomeProtocol.outcomes[0];
 void variant;

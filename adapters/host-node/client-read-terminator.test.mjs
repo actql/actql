@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
+import {readFile, readdir, writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import * as sdk from '../../packages/sdk/index.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openReadOpeningFixture, connectOpeningHost, openingProgram} from './client-read-opening.fixture.mjs';
@@ -22,7 +25,8 @@ for (const entrance of ['local', 'https']) {
         const fixture = await openReadOpeningFixture(scratch.path);
         const host = await connectOpeningHost(fixture, entrance, scratch.path, {loseReadTerminator: true});
         try {
-          const run = await host.client.start(openingProgram, {requestId: 'terminator-run'});
+          const submissionRef = host.client.newSubmission({nonce: 'terminator-run'});
+          const run = await host.client.start(openingProgram, {submissionRef});
           const result = run.result('answer');
           assert.equal((await run.status()).status, 'succeeded');
           const reader = consumer === 'rows' ? result.rows() : undefined;
@@ -87,7 +91,35 @@ for (const entrance of ['local', 'https']) {
           await host.settled();
           assert.deepEqual(await result.deliveryAttempt(failure.attemptId), delivered);
           assert.deepEqual(sdk.explainReadFailure(failure), explanation);
-          assert.deepEqual(fixture.counts, {admissions: 2, readers: 2, computes: 1, definitions: 1});
+          const database = new DatabaseSync(join(scratch.path, 'requests', 'client-requests.sqlite3'),
+            {readOnly: true});
+          let requests, intents;
+          try {
+            requests = database.prepare('SELECT run_definition_cid, caller_request_id FROM client_requests ORDER BY caller_request_id')
+              .all().map(value => ({...value}));
+            intents = database.prepare('SELECT nonce, phase FROM client_submitted_intents ORDER BY nonce')
+              .all().map(value => ({...value}));
+          } finally {database.close();}
+          const root = join(scratch.path, 'publication', 'deliveries');
+          const births = await Promise.all((await readdir(root)).filter(name => /^[0-9a-f]{64}$/u.test(name))
+            .sort().map(async name => JSON.parse(await readFile(join(root, name, 'attempt.json'), 'utf8'))));
+          // A physical rerun can return the same rows; inspect authoritative
+          // journal/Store births and real executor counts before the oracle.
+          await writeFile(join(scratch.path, 'reread-execution-observation.json'), JSON.stringify({
+            entrance, consumer, ref: run.ref, originalAttempt: failure.attemptId,
+            freshAttempt: fresh.attemptId, counts: fixture.counts, requests, intents, births,
+            prefix: seen, explanation, delivered, freshState: fresh.state(),
+          }), {mode: 0o600});
+          assert.deepEqual(fixture.counts, {admissions: 2, readers: 2, computes: 1, definitions: 1},
+            '[check-mutation:read-reread-no-compute]');
+          assert.deepEqual(requests.map(value => value.run_definition_cid), [run.ref.runDefinitionCid]);
+          // The journal request identity is Owner-derived, not the bare nonce.
+          assert.match(requests[0].caller_request_id, /^sha256:[0-9a-f]{64}$/u);
+          assert.deepEqual(intents, [{nonce: submissionRef.nonce, phase: 'ready'}]);
+          assert.equal(births.length, 2);
+          assert.equal(new Set(births.map(value => value.result_read_grant_cid)).size, 2);
+          assert.equal(births.every(value => value.run_definition_cid === run.ref.runDefinitionCid), true);
+          console.error(`Reread execution observation retained: ${scratch.path}`);
           console.log('READ_TERMINATOR_EVIDENCE', JSON.stringify({entrance, consumer,
             ref: run.ref, attemptId: failure.attemptId, rowsYielded: count,
             ownerState: delivered.record.state, readerComplete: false,

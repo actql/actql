@@ -40,7 +40,7 @@ import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {issueInstalledRunControlObservation,
+import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
   '../host-common/run-state-observation.mjs';
 import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
@@ -248,7 +248,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     const body = JSON.parse(facts.control.effectComputationPreviewWire(preview));
     const descriptors = body.effects.map(member => ({effectId: member.effect_id,
       kind: member.effect_kind, target: member.target, mappingRef: member.mapping,
-      mappingCid: member.resolved_mapping_contract_cid}));
+      mappingCid: member.resolved_mapping_contract_cid,
+      ...(member.source_table_input === undefined ? {} : {capabilityCid: member.capability_evidence_cid})}));
     try { return installedEffectFor(installedEffect, descriptors); }
     catch (cause) {
       // This observes only installation metadata before any new provider work.
@@ -328,7 +329,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       false, numericProfileCid, contentCid(graphLaw));
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
-        sourceProfile?.queryAliases ?? []);
+        sourceProfile?.queryAliases ?? [],
+        installedEffect?.queryTableBindings ?? effectInstallation?.queryTableBindings ?? []);
     }
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
@@ -480,17 +482,20 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       ref.authorityScopeCid === authorityScopeCid});
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
+    tableWriteAccesses: installedEffect?.queryTableWriteAccesses ??
+      effectInstallation?.queryTableWriteAccesses ?? [],
     sourceAccesses: (sourceProfile?.sources ??
       (sourceProfile === undefined ? [] : [sourceProfile]))
       .flatMap(installedSourceReadAccesses)});
   // Checking dispatches nothing and reads no source rows; the audience is
   // the authenticated caller this connection admits.
-  const check = async ({principalId: actual, connection, kind, input, parameters,
-    signal}) => {
+  const check = async ({principalId: actual, connection, ...request}) => {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
-    const result = await checkSource({principalId: actual, kind, input, parameters, signal});
+    // Preserve the selected scope and the absence of template bindings across
+    // this installed-Host authorization boundary.
+    const result = await checkSource({principalId: actual, ...request});
     // The verdict belongs to the common checker. No diagnostic text, source
     // location, authored name, source bytes or hypothetical Run is projected.
     observation?.emit('check', 'check_completed', {checkVerdict: result.report?.verdict,
@@ -537,9 +542,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     try {
       // MoonBit fixes the projection equivalence. SQLite only retains this
       // bounded key; it cannot authorize a transition or reinterpret a Run.
-      const ownerFactKey = moon.clientProgramRunObservationKey(state.status,
-        BigInt(retained.revision), state.cleanupPending,
-        retained.physicalCloseConfirmed === true ? true : undefined);
+      const ownerFactKey = issueInstalledRunObservationKey(moon, {
+        outcome: state.status, revision: retained.revision,
+        cleanupPending: state.cleanupPending,
+        physicalCloseConfirmed: retained.physicalCloseConfirmed,
+      });
       if (ownerFactKey === undefined) { observation.noteLoss(); return; }
       observation.emit('run', 'owner_observed', {ref, outcome: state.status,
         revision: retained.revision,
@@ -783,10 +790,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     }
     return observeRun({ref, principalId: actual});
   };
-  const prepareInferSelection = (preparedProgram, occurrence) => {
+  const prepareInferSelection = (preparedProgram, occurrence, retain = true) => {
     // The Effect compiler retains this exact graph for the saved admission.
     // Current account/egress callbacks are checked again by physical dispatch.
-    if (occurrence !== undefined && inferSelections.has(preparedProgram)) return;
+    if (retain && occurrence !== undefined && inferSelections.has(preparedProgram)) return;
     const selectedStep = occurrence === undefined
       ? moon.clientProgramSelectedInferStep(preparedProgram)
       : moon.clientProgramInferOccurrenceCoordinates(occurrence)._2;
@@ -842,7 +849,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         const durableModel = modelController !== undefined && checkpoints?.configured === true;
         const step = selectedStep;
         const segments = occurrence === undefined ? undefined : checked(
-          moon.clientProgramPrepareEffectInferSegments(preparedProgram, occurrence,
+          (prepareSubmit.kindOf(preparedProgram) === 'effectful'
+            ? moon.clientProgramPrepareEffectInferSegments : moon.clientProgramPrepareComposedInferSegments)(preparedProgram, occurrence,
             registry, values, fragment, ordered));
         const computeSuffix = occurrence === undefined
           ? checked(moon.clientProgramPrepareInferComputeSuffix(preparedProgram,
@@ -881,13 +889,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         const providerId = moon.clientProgramInferProviderId(execution);
         const providerBinding = durableModel
           ? admitInstalledModelProviderBinding(moon, providerId, physical) : undefined;
-        inferSelections.set(preparedProgram, Object.freeze({step, graph, computeSuffix,
+        const selection = Object.freeze({step, graph, computeSuffix,
           occurrence, computePrefix: segments?._0,
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
           physicalPreflight: physical.physicalPreflight,
-          quantityCapacity: physical.quantityCapacity}));
+          quantityCapacity: physical.quantityCapacity});
+        if (retain) inferSelections.set(preparedProgram, selection);
+        return selection;
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'model_admission',
           code: cause.code, cause: cause.cause ?? cause});
@@ -956,7 +966,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     // Static ModelTask admission cannot authorize a model call. Until the
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.
-    prepareInferSelection(preparedProgram);
+    const inventory = moon.clientProgramComposedInferOccurrences(preparedProgram);
+    const occurrences = inventory.$tag === 1 ? inventory._0 : [];
+    if (occurrences.length > 1) {
+      const components = Object.freeze(occurrences.map(occurrence =>
+        prepareInferSelection(preparedProgram, occurrence, false)));
+      inferSelections.set(preparedProgram, Object.freeze({components,
+        graph: Object.freeze(components.map(component => component.graph)),
+        egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
+    } else prepareInferSelection(preparedProgram);
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
       moon.clientProgramSourceFreeInputIntentCid());
@@ -1039,7 +1057,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         {retainedDefinitionWire})};
     const infer = inferSelections.get(preparedProgram);
     if (infer !== undefined) {
-      return inferTaskRunAdmission({...common, inferGraph: infer.graph});
+      try {return inferTaskRunAdmission({...common, inferGraph: infer.graph});}
+      catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'task_compilation',
+          code: cause.code, cause: cause.cause ?? cause});
+        throw cause;
+      }
     }
     return sourceProfile !== undefined &&
       moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
@@ -1096,7 +1119,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
-    faultInjection: authorization?.faultInjection});
+    faultInjection: authorization?.faultInjection,
+    computeConfigurations: {local: localSnapshotConfiguration}});
   dispatchOwner = installNodeClientDispatchOwner({moon, control,
     journal, store, checkpoints, startRun, hostConnection, beforeDispatch,
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,
@@ -1252,7 +1276,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                 } finally { modelController?.release(ownedModelToken); }
               }
               const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
-                facts.owner, registry, values, 1n, 0n, 0n, 0n);
+                facts.owner, registry, values, 1n, 0n, 0n, 0n,
+                fragment, ordered);
               if (setup === undefined) {
                 throw new Error('InstalledEffectProgramUnsupported');
               }

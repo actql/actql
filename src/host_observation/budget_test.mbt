@@ -231,3 +231,107 @@ test "foreign charge and oversized record preserve the original budget" {
   )
   assert_eq(observation_budget_snapshot(budget).records, 0)
 }
+
+///|
+test "interleaved task polling stays repeated after restoration" {
+  let scope = customer("ws_a", "collector.1")
+  let budget = open_observation_budget(scope, request, 2, 8, true, None).unwrap()
+  assert_eq(
+    charge_observation(budget, scope, request, Some("task.0.7.settled"), 4),
+    Ok(ObservationCharged),
+  )
+  assert_eq(
+    charge_observation(budget, scope, request, Some("task.1.3.running"), 4),
+    Ok(ObservationCharged),
+  )
+  let saved = observation_budget_snapshot(budget)
+  let restored = open_observation_budget(
+    scope,
+    request,
+    2,
+    8,
+    false,
+    Some(saved),
+  ).unwrap()
+  assert_eq(
+    charge_observation(restored, scope, request, Some("task.0.7.settled"), 4),
+    Ok(ObservationRepeated),
+  )
+  assert_eq(observation_budget_snapshot(restored), saved)
+  assert_eq(
+    charge_observation(restored, scope, request, Some("task.1.4.settled"), 1),
+    Err(ObservationRunLimit),
+  )
+}
+
+///|
+test "fact history copies custody and rejects damaged digests" {
+  let scope = customer("ws_a", "collector.1")
+  let budget = open_observation_budget(scope, request, 2, 8, true, None).unwrap()
+  assert_eq(
+    charge_observation(budget, scope, request, Some("task.0.7.settled"), 4),
+    Ok(ObservationCharged),
+  )
+  let saved = observation_budget_snapshot(budget)
+  let restored = open_observation_budget(
+    scope,
+    request,
+    2,
+    8,
+    false,
+    Some(saved),
+  ).unwrap()
+  let original_hash = saved.fact_hashes[0]
+  saved.fact_hashes[0] = "invalid"
+  assert_eq(
+    charge_observation(restored, scope, request, Some("task.0.7.settled"), 4),
+    Ok(ObservationRepeated),
+  )
+  assert_eq(observation_budget_snapshot(budget).fact_hashes[0], original_hash)
+  assert_true(
+    open_observation_budget(scope, request, 2, 8, false, Some(saved))
+    is Err(ObservationBudgetUnavailable),
+  )
+  let duplicate = {
+    ..observation_budget_snapshot(budget),
+    records: 2,
+    fact_hashes: [original_hash, original_hash],
+  }
+  assert_true(
+    open_observation_budget(scope, request, 2, 8, false, Some(duplicate))
+    is Err(ObservationBudgetUnavailable),
+  )
+}
+
+///|
+test "maximum finite fact history does not replenish exhausted custody" {
+  let scope = customer("ws_a", "collector.1")
+  let budget = open_observation_budget(scope, request, 2048, 2048, true, None).unwrap()
+  for index in 0..<2048 {
+    assert_eq(
+      charge_observation(budget, scope, request, Some("task.\{index}.1"), 1),
+      Ok(ObservationCharged),
+    )
+  }
+  let saved = observation_budget_snapshot(budget)
+  assert_eq(saved.fact_hashes.length(), 2048)
+  for hash in saved.fact_hashes {
+    assert_eq(hash.length(), 64)
+  }
+  let restored = open_observation_budget(
+    scope,
+    request,
+    2048,
+    2048,
+    false,
+    Some(saved),
+  ).unwrap()
+  assert_eq(
+    charge_observation(restored, scope, request, Some("task.0.1"), 1),
+    Ok(ObservationRepeated),
+  )
+  assert_eq(
+    charge_observation(restored, scope, request, Some("task.new.1"), 1),
+    Err(ObservationRunLimit),
+  )
+}

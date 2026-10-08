@@ -83,11 +83,8 @@ fn append_order_grouped_expression(
     construction,
     expression,
     available_keys,
-    (left, right) => {
-      same_group_reference_in_scopes(
-        left, right, resolve_input, resolve_order_input,
-      )
-    },
+    resolve_input,
+    resolve_order_input,
     resolve,
     active_fields + selected.map(pair => pair.0),
     max_work,

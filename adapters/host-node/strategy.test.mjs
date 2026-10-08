@@ -309,15 +309,31 @@ test('standard Host owns publication control and exact execution binding', async
 test('Effectful computation cannot use Effect-free publication', async () => {
   const registration = {}, f = fixture([registration]);
   f.core.programHasEffects = () => true;
+  const programDefinitionCid = `sha256:${'1'.repeat(64)}`;
+  f.core.programDefinitionCid = () => programDefinitionCid;
   const result = await runInstalledStrategy(f.setup, f.core, [{
     registration,
     run() { f.complete.add(1); },
   }]);
+  assert.deepEqual(result.resultInventory, []);
+  assert.deepEqual(result.publicationInventory, {
+    programDefinitionCid, occurrences: [], requestInventory: [],
+  }, 'Effect roots retain a checked empty inventory, not an absent publication owner');
+  assert.ok(Object.isFrozen(result.publicationInventory));
   await assert.rejects(
     result.publishEffectFreeRun({}, {}, undefined),
     {code: 'EffectfulProgramRequiresEffectRun'},
   );
   result.close();
+});
+
+test('Effect-only computation cannot lose its Program Definition identity', async () => {
+  const registration = {}, f = fixture([registration]);
+  f.core.programHasEffects = () => true;
+  await assert.rejects(runInstalledStrategy(f.setup, f.core, [{
+    registration, run() { assert.fail('No Compute without a checked identity'); },
+  }]), {code: 'InvalidCheckedResultInventory'});
+  assert.equal(f.complete.size, 0);
 });
 
 test('checked Results cannot lose their Program Definition identity', async () => {

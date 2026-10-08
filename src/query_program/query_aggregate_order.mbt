@@ -1,8 +1,75 @@
 ///|
-// Aggregate-local order keys use the input scope, never SELECT siblings. A
-// static typed property path is a total projection of an admitted row: NULL
-// receivers propagate NULL and missing/non-object members fail common checking.
-// Do not hoist arbitrary calls or arithmetic out of aggregate demand here.
+// DISTINCT collection ordering must name its input argument. Qualification,
+// quotation and static property syntax do not change an admitted receiver.
+// Resolve against the same immutable aggregate input scope for both sides.
+fn aggregate_order_matches_argument(
+  argument : @query.Expression,
+  order : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+) -> Bool {
+  let identity = fn(
+    expression : @query.Expression,
+  ) -> (Array[String], String, Array[@query.NamePart])? {
+    let mut index = @query.expression_root(expression)
+    let signs : Array[String] = []
+    let suffix : Array[@query.NamePart] = []
+    while true {
+      match @query.expression_node(expression, index).unwrap().kind {
+        Parenthesized(child) => index = child
+        Unary("+" | "-" as sign, child) => {
+          // Only peel outer numeric signs. A property of a signed receiver
+          // is a different expression and remains subject to common typing.
+          if !suffix.is_empty() {
+            return None
+          }
+          signs.push(sign)
+          index = child
+        }
+        Property(child, name) => {
+          suffix.push(name)
+          index = child
+        }
+        Reference(parts) => {
+          // Resolve this receiver before appending explicit property nodes.
+          // (payload).name must not become the range-qualified payload.name.
+          guard order_reference_identity(parts, resolve) is Some((slot, length)) else {
+            return None
+          }
+          let members = parts[length:].to_owned()
+          for i = suffix.length() - 1; i >= 0; i = i - 1 {
+            members.push(suffix[i])
+          }
+          return Some((signs, slot, members))
+        }
+        _ => return None
+      }
+    } nobreak {
+      None
+    }
+  }
+  match (identity(argument), identity(order)) {
+    (Some((left_signs, a, left)), Some((right_signs, b, right))) => {
+      if a != b || left.length() != right.length() || left_signs != right_signs {
+        return false
+      }
+      for index in 0..<left.length() {
+        if !same_name(left[index], right[index]) {
+          return false
+        }
+      }
+      true
+    }
+    _ => same_expression(argument, order)
+  }
+}
+
+///|
+// Aggregate-local order keys use the input scope, never SELECT siblings.
+// Typed parameters, static properties and numeric unary signs are total after
+// admission. The common checker validates receivers and numeric signatures;
+// the expression owner preserves NULL propagation and evaluates each operand
+// once. Do not hoist potentially failing calls or binary arithmetic out of
+// aggregate demand here.
 fn aggregate_order_fields(
   construction : Construction,
   call : @query.AggregateCall,
@@ -19,25 +86,41 @@ fn aggregate_order_fields(
       expression,
       @query.expression_root(expression),
     ).unwrap()
-    while root.kind is Parenthesized(child) {
-      root = @query.expression_node(expression, child).unwrap()
-    }
-    guard root.kind is Reference(path) else {
-      raise Abort(UnsupportedAggregate)
-    }
-    if resolve(path) is Some(field) {
-      fields.push(field)
-      continue
-    }
-    let mut receiver = false
-    for length = 1; length < path.length(); length = length + 1 {
-      if resolve(path[:length].to_owned()) is Some(_) {
-        receiver = true
-        break
+    let mut transformed = false
+    while true {
+      match root.kind {
+        Parenthesized(child) =>
+          root = @query.expression_node(expression, child).unwrap()
+        Property(child, _) | Unary("+" | "-", child) => {
+          transformed = true
+          root = @query.expression_node(expression, child).unwrap()
+        }
+        _ => break
       }
     }
-    if !receiver {
-      raise Abort(UnknownColumn)
+    match root.kind {
+      Reference(path) => {
+        if !transformed {
+          if resolve(path) is Some(field) {
+            fields.push(field)
+            continue
+          }
+        }
+        // Keep the original Property/unary AST. Do not concatenate members
+        // into a range path or substitute a signed key with its input column.
+        let mut receiver = transformed && resolve(path) is Some(_)
+        for length = 1; length < path.length(); length = length + 1 {
+          if resolve(path[:length].to_owned()) is Some(_) {
+            receiver = true
+            break
+          }
+        }
+        if !receiver {
+          raise Abort(UnknownColumn)
+        }
+      }
+      ParameterReference(_) => ()
+      _ => raise Abort(UnsupportedAggregate)
     }
     let mut reused : String? = None
     for (previous, field) in evaluated {

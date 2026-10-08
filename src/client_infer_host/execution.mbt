@@ -661,6 +661,7 @@ fn begin_model(active : Execution) -> Poll {
         read,
         active.fixed_request_cid,
         active.limits.model,
+        compiled_run=active.run_binding.map(value => value.compiled),
       )
     }
   }

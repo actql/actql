@@ -968,9 +968,11 @@ priv struct StoppedReleaseRecovery {
   mut transfer_journal : @transfer_journal.Journal?
   mut physical_cleanup : (() -> Bool)?
   mut physical_cleanup_done : Bool
+  release_failure_hook : StoppedReleaseFailureHook
   mut retained_input : Bool
   mut recorded_source : @publication.RecordedRunPublication?
   mut recorded_consumer : (String, String)?
+  mut completed_input_producer : (String, String)?
 }
 
 ///|
@@ -1035,9 +1037,14 @@ fn open_release_recovery(
     transfer_journal: None,
     physical_cleanup: None,
     physical_cleanup_done: false,
+    release_failure_hook: {
+      remaining: required_int(matches, "holder-release-failures"),
+      attempts: 0,
+    },
     retained_input: false,
     recorded_source: None,
     recorded_consumer: None,
+    completed_input_producer: None,
   }
 }
 
@@ -1138,6 +1145,21 @@ fn recover_stopped_release(
     Ok(values) if values.is_empty() => ()
     _ => return false
   }
+  // Apply the existing opt-in release fault to this exact stopped owner too.
+  // The exclusive slot, journal and original material custody stay retained;
+  // no physical cleanup or terminal transition occurs during the injected wait.
+  if stopped_release_failure_attempt(
+      owner.release_failure_hook,
+      owner.physical_cleanup_done || codes[2] == 2,
+    )
+    is Some(attempt) {
+    report("cleanup-pending", [
+      ("step", "release"),
+      ("request_cid", identity),
+      ("attempt", attempt.to_string()),
+    ])
+    return false
+  }
   if !settle_stopped_holder_custody(matches, owner, request) {
     return false
   }
@@ -1148,14 +1170,22 @@ fn recover_stopped_release(
         Ok(value) => value
         Err(_) => return false
       }
-      match
+      let process_hold = if owner.completed_input_producer is Some(_) &&
+        owner.retained_input {
+        // The completed-input cleanup Owner already admitted both original
+        // occurrences and the exact accepted consumer binding. No current
+        // compilation or executable input is needed to discharge this hold.
+        Ok(consumer_process_hold_identity(request))
+      } else {
         @resident_host.resident_holder_process_hold_identity(
           owner.journal,
           run_admission(matches),
           attempt,
           value,
           recorded_source=owner.recorded_source,
-        ) {
+        )
+      }
+      match process_hold {
         Ok(hold) => holds.push(hold)
         Err(_) => return false
       }
@@ -1975,6 +2005,14 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
       Ok(Some(@remote.Release(request))) => {
         backoff_ms = 0
+        if @resident.check_resident_dispatch_delegation(
+            site_delegation, request, generation,
+          )
+          is Err(_) {
+          report("release-failed", [("reason", "scope-mismatch")])
+          ignore(journal.close())
+          continue
+        }
         // A live holder owns this output: it releases it and then ends.
         let identity = @remote.dispatch_request_identity(request)
         if holder is Some(current) &&
@@ -1986,6 +2024,31 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           }
           ignore(journal.close())
           continue
+        }
+        // Save the authenticated release before waiting for orphan payload
+        // cleanup. Reclaim requires Releasing, so waiting for intents to vanish
+        // first would leave a completed holder's Output custody permanently stuck.
+        match
+          @resident_host.begin_resident_output_release(
+            journal, site_delegation, generation, request,
+          ) {
+          Ok(_) =>
+            match journal.pending_output_intents() {
+              Ok(values) => if !values.is_empty() { reclaim_due = true }
+              Err(_) => {
+                report("release-failed", [("reason", "journal")])
+                ignore(journal.close())
+                continue
+              }
+            }
+          // Non-completed dispositions keep the existing cancellation and
+          // unstarted cleanup paths; this helper never guesses execution status.
+          Err(@resident_host.OutputUnavailable) => ()
+          Err(issue) => {
+            report("release-failed", [("reason", output_code(issue))])
+            ignore(journal.close())
+            continue
+          }
         }
         if orphan_store is None &&
           !reclaim_due &&
@@ -3812,8 +3875,9 @@ fn restore_holder_attempt(
 ///|
 /// One explicitly selected saved dispatch; no poll, materials preparation,
 /// execution claim, or Output replay is reachable from this operation.
-/// Any outstanding publication custody refuses rather than reclaiming other
-/// attempts. An unconfirmed observation can be sent again on the next call.
+/// After the original Output ACK, recover only this dispatch's payloads through
+/// their existing cleanup Owner. Other attempts' custody still refuses release.
+/// An unconfirmed observation can be sent again on the next call.
 fn recover_release_command(
   matches : @argparse.Matches,
   child : @argparse.Matches,
@@ -3863,9 +3927,11 @@ fn recover_release_command(
   let owner = open_release_recovery(matches, slot, identity)
   owner.recorded_source = recorded_source
   owner.recorded_consumer = recorded_consumer
-  match owner.journal.pending_output_intents() {
-    Ok(values) if values.is_empty() => ()
-    _ => stop("release recovery Output custody pending")
+  owner.completed_input_producer = optional(
+    child, "completed-input-producer-attempt",
+  ).map(attempt => (attempt, required(child, "expect-input-producer-dispatch")))
+  if owner.completed_input_producer is Some(_) && recorded_source is Some(_) {
+    stop("release recovery conflicting cleanup roles")
   }
   let mut cursor = ""
   while true {
@@ -3884,6 +3950,18 @@ fn recover_release_command(
       Err(_) => stop("release recovery Output acknowledgement unreadable")
     }
   }
+  match
+    @resident_host.begin_resident_output_release(
+      owner.journal,
+      delegation(matches, budget(matches)),
+      environment.site_generation,
+      request,
+    ) {
+    Ok(_) => ()
+    // Preserve the existing cancelled/unstarted cleanup dispositions.
+    Err(@resident_host.OutputUnavailable) => ()
+    Err(_) => stop("release recovery release persistence unconfirmed")
+  }
   let store = match
     @publication_store.open_store(
       environment.sqlite_library,
@@ -3896,12 +3974,21 @@ fn recover_release_command(
     Ok(value) => value
     Err(_) => stop("release recovery publication Store unavailable")
   }
+  let reclaimed = @resident_host.reclaim_resident_dispatch_output_intents(
+    owner.journal,
+    store,
+    request,
+  )
+  let intents_empty = match owner.journal.pending_output_intents() {
+    Ok(values) => values.is_empty()
+    Err(_) => false
+  }
   let empty = match store.capacity_usage() {
     Ok(value) => value.reserved_bytes == 0L && value.reserved_objects == 0L
     Err(_) => false
   }
   let closed = store.close()
-  if !empty || !(closed is Ok(true)) {
+  if !(reclaimed is Ok(0)) || !intents_empty || !empty || !(closed is Ok(true)) {
     stop("release recovery publication custody unconfirmed")
   }
   let retained : Ref[StoppedReleaseRecovery?] = { val: Some(owner), }
@@ -4272,6 +4359,8 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("publication-custody-root"),
         @argparse.OptionArg("consumer-attempt"),
         @argparse.OptionArg("expect-consumer-dispatch"),
+        @argparse.OptionArg("completed-input-producer-attempt"),
+        @argparse.OptionArg("expect-input-producer-dispatch"),
       ]),
       @argparse.Command("retry-output-report", options=[
         @argparse.OptionArg("intent-cid", required=true),

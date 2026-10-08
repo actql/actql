@@ -17,8 +17,8 @@ const mutations = [
     to: "kind: 'protocol_failure',",
     targets: [target('check protocol failures distinguish unknown outcomes from malformed known facts and pins', 'protocol-failure-kind', 'deepStrictEqual')]},
   {name: 'submitted parameter snapshot lost', path, file: unit,
-    from: '{parameterDeclarations: body.input.parameterDeclarations}), parameters: body.parameters}',
-    to: '{parameterDeclarations: body.input.parameterDeclarations}), parameters: null}',
+    from: "...(Object.hasOwn(body, 'parameters') ? {parameters: body.parameters} : {})",
+    to: "...(Object.hasOwn(body, 'parameters') ? {parameters: null} : {})",
     targets: [target('check protocol failures retain each original submitted snapshot only under its real error', 'protocol-failure-input', 'deepStrictEqual')]},
   {name: 'submitted input serialized in the error', path, file: unit,
     from: "const error = new ClientError('InvalidHostCheckOutcome');",
@@ -33,6 +33,17 @@ const mutations = [
   {name: 'malformed known completed outcome admission bypass', path, file: publicTests, occurrences: 2,
     from: 'if (!validCheckOutcome(outcome)) reject();',
     to: "if (outcome.outcome !== 'completed' && !validCheckOutcome(outcome)) reject();", targets: publicTargets},
+  {name: 'legacy diagnostics payload changes under the retained schema identity',
+    path: 'spec/contracts/actql-protocol-schemas.json', file: 'scripts/diagnostic-migration-contract.test.mjs',
+    from: '"ok": {\n                  "const": false\n                }',
+    to: '"ok": {\n                  "const": true\n                }',
+    targets: [target('legacy diagnostic payload retains the frozen schema and identity',
+      'legacy-diagnostic-body', 'deepStrictEqual')]},
+  {name: 'public check accepts legacy diagnostics relabeling', path, file: publicTests, occurrences: 2,
+    from: 'if (!validCheckOutcome(outcome)) reject();', to: '',
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: check migration rejects legacy diagnostics and planning labels`,
+      'legacy-diagnostic-public-rejection'))},
 ];
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {

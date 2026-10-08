@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/native_values_integration"
+
+import {
+  "actql/actql/platform_native/remote_journal",
+  "actql/actql/platform_native/remote_runtime",
+  "actql/actql/remote_site_protocol",
+}
+
+// Values
+pub fn assert_native_remote_standard_output(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, String, retry_release? : Bool) -> Unit raise
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

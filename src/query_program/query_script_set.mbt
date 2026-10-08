@@ -18,27 +18,90 @@ fn lower_script_set_relation(
   let left = lower_script_relation_term(
     construction, query, known, context, sources, limits, steps, reserved, first,
   )
-  let fields = left.visible_fields
-  let mut current = left.name
-  for index in 0..<@query.set_part_count(query) {
+  let sql_inner_count = set_inner_chain_length(query)
+  let sql_rights : Array[Input] = []
+  for index in 0..<sql_inner_count {
     let part = @query.set_part_at(query, index).unwrap()
     let term = pipe_physical_name(reserved, "aql_data_set_term_")
     reserved.push(term)
-    let right = lower_script_relation(
-      construction,
-      part.right,
-      known,
-      context,
-      sources,
-      limits,
-      steps,
-      reserved,
-      term,
+    sql_rights.push(
+      lower_script_relation(
+        construction,
+        part.right,
+        known,
+        context,
+        sources,
+        limits,
+        steps,
+        reserved,
+        term,
+      ),
     )
+  }
+  let sql_inner_fields = if sql_inner_count > 0 {
+    Some(
+      set_inner_fields(
+        left.visible_fields,
+        sql_rights.map(input => input.visible_fields),
+        @query.set_part_at(query, 0).unwrap(),
+      ),
+    )
+  } else {
+    None
+  }
+  let mut fields = left.visible_fields
+  let mut current = left.name
+  for index in 0..<@query.set_part_count(query) {
+    let part = @query.set_part_at(query, index).unwrap()
+    let right = if index < sql_inner_count {
+      sql_rights[index]
+    } else {
+      let term = pipe_physical_name(reserved, "aql_data_set_term_")
+      reserved.push(term)
+      lower_script_relation(
+        construction,
+        part.right,
+        known,
+        context,
+        sources,
+        limits,
+        steps,
+        reserved,
+        term,
+      )
+    }
+    let output_fields = if index < sql_inner_count {
+      sql_inner_fields.unwrap()
+    } else {
+      set_output_fields(fields, part, right_fields=right.visible_fields)
+    }
+    let (left_matched, left_alignment_needed) = set_alignment_fields(
+      output_fields,
+      fields,
+      true,
+      allow_subset=part.inner_by_name,
+    )
+    if left_alignment_needed {
+      let aligned = pipe_physical_name(reserved, "aql_data_set_left_")
+      reserved.push(aligned)
+      steps.push(
+        construction.object([
+          ("from", construction.text(current)),
+          (
+            "select",
+            set_select_fields(construction, output_fields, left_matched),
+          ),
+          ("as", construction.text(aligned)),
+        ]),
+      )
+      current = aligned
+    }
+    fields = output_fields
     let (matched, alignment_needed) = set_alignment_fields(
       fields,
       right.visible_fields,
       part.by_name,
+      allow_subset=part.inner_by_name,
     )
     let mut right_name = right.name
     if alignment_needed {

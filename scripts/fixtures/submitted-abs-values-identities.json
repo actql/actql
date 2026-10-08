@@ -1,0 +1,120 @@
+{
+  "source_revision": "71bc2363375944f8497a691314c21aad7a8ce08e",
+  "description": "Frozen submitted ABS normative closure and independent Values preimages, before current-main integration. No installed product output is used.",
+  "values_dependencies": {
+    "unit": "sha256:6026e7dde65bf0ecb2a95eb67b622d429536c06127ebfda918828d6758343e6f",
+    "proof": "sha256:46a0a21bc4e34c9aff45bb213ed66925048aa441af737c80984de9fc1be985f4",
+    "resultPlan": "sha256:865d2e0e83c59b713e1e59ef589ddb9f622d07d2324e0ae071a4bb5c4610011a",
+    "contracts": [
+      "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911",
+      "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551",
+      "sha256:0297fb74f0ff4e55b4ededfe5f0968a6d1f3f1231f84d7d4122f2cb7dfee077a",
+      "sha256:0591812d2909558b64c931e4336970a7cfe14667ad672a33e940839a7571c0a2",
+      "sha256:0bf21470f9609e414e597a5cdc599764677bc92e479073f9d9924fdaba88ba72",
+      "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971",
+      "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9",
+      "sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8",
+      "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
+      "sha256:460873332aa4731fb4631a293e798ce089516ffc058c544253c1d5d3b9c6f6a1",
+      "sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4",
+      "sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f",
+      "sha256:540d06456c7ddf166f5192dd1379b853e48791ca869a54abcc428b2210097325",
+      "sha256:5afa312c0fa9b1e5620bc3556b17aa8da9e50646097ab84a2c04aa8a24575574",
+      "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164",
+      "sha256:62c052d6afb178a08620019253b091c83fc54f7c6d0f32c05b269a06c194a264",
+      "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
+      "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      "sha256:8483e1535239becdd53d31d361967e0e29a3f27234ad83d419b47535c858844c",
+      "sha256:8e4b432a6b975be3876db964d8c9cf2a623b1f08b914dc6f852912cad5325332",
+      "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed",
+      "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
+      "sha256:9bf401d84381c6910d82263fdd162a6d267bf2d18af8090271fb7c2e40c896b2",
+      "sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78",
+      "sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621",
+      "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
+      "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1",
+      "sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d",
+      "sha256:c9dadd5fbfc5c147b9d4322d70c5373c46bcf4f9aa39da1a3f1c0fd2fa09b4c8",
+      "sha256:cc114653eb3db3bdf94bf233f34c0baa5f4c5bc305aeb07ed66283706054d3d9",
+      "sha256:d896f22c236f6af9d99f0666f1dbf72c208df69a5dfa083d89d653e7b8a1cde0",
+      "sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28"
+    ],
+    "local": {
+      "version": "actql-stage-semantics/0.1",
+      "binding_references": [],
+      "bindings": {},
+      "parameter_references": [],
+      "parameters": {},
+      "expression_contract_cid": "sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d",
+      "local_body": {
+        "effects": {},
+        "inputs": {},
+        "results": {
+          "rows": {
+            "fields": [
+              "id"
+            ],
+            "from": "selected"
+          }
+        },
+        "steps": [
+          {
+            "as": "selected",
+            "values": {
+              "rows": [
+                {
+                  "id": 1
+                },
+                {
+                  "id": 2
+                }
+              ],
+              "schema": {
+                "id": {
+                  "nullable": false,
+                  "type": "number"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "values_identity": {
+    "semantics": {
+      "version": "actql-program-semantics/0.1",
+      "actql_version": "actql/0.1",
+      "expression_contract_cid": "sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d",
+      "parameters": {},
+      "parameter_references": [],
+      "bindings": {},
+      "binding_references": [],
+      "program_template": {
+        "stages": [
+          {
+            "id": "source",
+            "after": "initial",
+            "imports": {},
+            "stage_semantics_cid": "sha256:7e9ebfcdd059299e0e8d07c2505450f4381410a967d7dab478676ba4d1831137"
+          }
+        ],
+        "exports": {
+          "answer": {
+            "from": {
+              "stage": "source",
+              "result": "rows"
+            }
+          }
+        }
+      }
+    },
+    "semanticsCid": "sha256:3fcd69e5d4f243505da508a12dfca09b5bb9e0104fcc8f0027d88a052fc317bf",
+    "definition": {
+      "version": "actql-program-definition/0.1",
+      "id": "client-values",
+      "program_semantics_cid": "sha256:3fcd69e5d4f243505da508a12dfca09b5bb9e0104fcc8f0027d88a052fc317bf"
+    },
+    "programCid": "sha256:5b60d2728eeab010cd8cb2ce2efe9f1df250e16bea9826703c2157a6c4a7de34"
+  }
+}

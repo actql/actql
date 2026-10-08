@@ -225,6 +225,18 @@ pub fn[E] adaptive_policy_candidates(
 }
 
 ///|
+pub fn[E] adaptive_offline_policy_position(
+  policy : AdaptiveDispatch[E],
+) -> Result[Int?, AdaptiveEstimateIssue[E]] {
+  guard policy.pending_choice is Some(choices) else {
+    return Err(InvalidConfiguration)
+  }
+  @strategy.strategy_offline_policy_position(choices).map_err(issue => {
+    Search(issue)
+  })
+}
+
+///|
 pub fn[E] validate_adaptive_policy_request(
   policy : AdaptiveDispatch[E],
   request : @strategy.PolicyRequest,

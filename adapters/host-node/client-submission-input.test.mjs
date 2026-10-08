@@ -660,9 +660,9 @@ const numericInputCases = value => {
       {format: 'sql', submissionRef: client.newSubmission({nonce: 'numeric-aql-default'}),
         parameterDeclarations: {x: defaultDeclaration}, parameters: {}})],
     ['check parameters', 'check', client => client.check('SELECT @x AS n',
-      {format: 'sql', parameterDeclarations: {x: declaration}, parameters: {x: nested}})],
+      {kind: 'text', scope: 'bound_input', format: 'sql', parameterDeclarations: {x: declaration}, parameters: {x: nested}})],
     ['check default', 'check', client => client.check('SELECT @x AS n',
-      {format: 'sql', parameterDeclarations: {x: defaultDeclaration}, parameters: {}})],
+      {kind: 'text', scope: 'bound_input', format: 'sql', parameterDeclarations: {x: defaultDeclaration}, parameters: {}})],
   ];
 };
 

@@ -181,13 +181,14 @@ for (const [transport, observationMode] of [['local', 'disabled'], ['https', 'di
         const deadline = Date.now() + 10000;
         let receipt;
         for (;;) {
-          try {receipt = await context.sink.lookup(subject); break;}
+          try {receipt = await context.sink.lookup(subject, target); break;}
           catch (error) {if (error.code !== 'EvidenceOriginalMissing' || Date.now() >= deadline) throw error;}
           await new Promise(resolve => setTimeout(resolve, 10));
         }
         assert.equal(receipt.manifest.status, 'complete');
         assert.equal(receipt.manifest.modelTaskCid, context.installed.taskCid);
-        return {...receipt.manifest, caseId: trial.case.id, instructionCid: trial.candidate.instructionCid,
+        assert.equal(receipt.manifest.items.length, 1);
+        return {...receipt.manifest, ...receipt.manifest.items[0], caseId: trial.case.id, instructionCid: trial.candidate.instructionCid,
           inputCid: evaluationValueCid(trial.case.input)};
       },
       async evaluate(job) {
@@ -201,6 +202,7 @@ for (const [transport, observationMode] of [['local', 'disabled'], ['https', 'di
             fields: {reason: {nullable: true, type: 'string'}, risk: {nullable: false, type: 'string'}},
             nullable: false, type: 'object'});
           assert.deepEqual(originals.typedInput.key, ['a']);
+          assert.deepEqual(originals.typedInput.key_contracts, [{nullable: false, type: 'string'}]);
           assert.deepEqual(originals.typedInput.inputs, {text: trial.case.input.text});
           assert.deepEqual(originals.renderedInput, {instructions: trial.candidate.instructions, text: trial.case.input.text});
           assert.deepEqual(originals.contextManifest, {promptTemplateCid: JSON.parse(context.installed.installation.environmentWire)
@@ -234,7 +236,7 @@ for (const [transport, observationMode] of [['local', 'disabled'], ['https', 'di
     const limitDeadline = Date.now() + 10000;
     let limitReceipt;
     for (;;) {
-      try {limitReceipt = await limited.sink.lookup(limitedSubject); break;}
+      try {limitReceipt = await limited.sink.lookup(limitedSubject, target); break;}
       catch (error) {if (error.code !== 'EvidenceOriginalMissing' || Date.now() >= limitDeadline) throw error;}
       await new Promise(resolve => setTimeout(resolve, 10));
     }
@@ -257,8 +259,8 @@ for (const [transport, observationMode] of [['local', 'disabled'], ['https', 'di
     if (observationMode === 'sampling-zero') assert(observedRecords > 0, 'The actual Host observation connection must be active');
     assert.equal(otlpRequests, 0);
     const item = runs.values().next().value;
-    const receipt = await item.context.sink.lookup(item.subject);
-    const request = {subject: item.subject, attemptCid: receipt.manifest.attemptCid, references: receipt.manifest.references};
+    const receipt = await item.context.sink.lookup(item.subject, target);
+    const request = {subject: item.subject, attemptCid: receipt.manifest.items[0].attemptCid, references: receipt.manifest.items[0].references};
     for (const [change, reset, code] of [
       [() => item.context.denyRead(), () => item.context.allowRead(), 'EvidenceReadDenied'],
       [() => item.context.denySend(), () => item.context.allowSend(), 'EvidenceExternalSendDenied'],
@@ -277,14 +279,14 @@ for (const [transport, observationMode] of [['local', 'disabled'], ['https', 'di
       () => assert.fail('other Run cannot retrieve original content')), {code: 'EvidenceSubjectMismatch'});
     let malformedEvaluatorStarts = 0;
     await assert.rejects(item.context.sink.withEvaluatorEvidence(request, resolvedEvidence =>
-      runEvaluatorProcess({job: {subject: item.subject, evidence: receipt.manifest,
+      runEvaluatorProcess({job: {subject: item.subject, evidence: {...receipt.manifest, ...receipt.manifest.items[0]},
         caseId: 'invalid-rubric-input', role: 'selection', expected: 'not-a-label'}, resolvedEvidence,
         deadline: Date.now() + 10000, onProcess() {malformedEvaluatorStarts++;}})),
     {code: 'EvaluatorInfrastructureFailure'});
     assert.equal(malformedEvaluatorStarts, 1);
     assert.equal((await item.run.status()).status, 'succeeded');
     assert.equal(physicalCalls, 4);
-    await unlink(join(root, 'A', 'evidence', receipt.manifest.references.typedInput.evidenceRefCid.slice(7)));
+    await unlink(join(root, 'A', 'evidence', receipt.manifest.items[0].references.typedInput.evidenceRefCid.slice(7)));
     await assert.rejects(item.context.sink.withEvaluatorEvidence(request,
       () => assert.fail('missing original cannot be sent')), {code: 'EvidenceOriginalMissing'});
     assert.equal((await item.run.status()).status, 'succeeded');

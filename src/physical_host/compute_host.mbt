@@ -196,6 +196,14 @@ pub fn[C, E] compute_host_policy_candidates(
 }
 
 ///|
+pub fn[C, E] compute_host_offline_policy_position(
+  host : ComputeHost[C, E],
+) -> Result[Int?, AdaptiveEstimateIssue[E]] {
+  guard host.estimates is Some(policy) else { return Err(InvalidConfiguration) }
+  adaptive_offline_policy_position(policy)
+}
+
+///|
 pub fn[C, E] validate_compute_host_policy_request(
   host : ComputeHost[C, E],
   request : @strategy.PolicyRequest,

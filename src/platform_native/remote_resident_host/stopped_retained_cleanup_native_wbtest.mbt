@@ -1137,13 +1137,61 @@ test "pending Output survives holder loss until formal release and retries the s
   let store = open()
   assert_true(reclaim_resident_output_intents(f.journal, store) is Ok(1))
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
-  let record = @journal.recovered_site_dispatch_record(
-    f.journal.observation(f.consumer).unwrap(),
+  let active_revision = @remote.dispatch_record_revision(
+    f.journal.require(f.consumer).unwrap(),
   )
-  f.journal
-  .commit_transition(@remote.prepare_begin_remote_release(record).unwrap())
-  .unwrap()
-  |> ignore
+  assert_true(
+    begin_resident_output_release(f.journal, f.delegation, 2, f.consumer)
+    is Err(OutputForeign),
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    active_revision,
+  )
+  assert_true(
+    begin_resident_output_release(
+      f.journal,
+      { ..f.delegation, grant_cid: cleanup_cid("0"), },
+      1,
+      f.consumer,
+    )
+    is Err(OutputForeign),
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    active_revision,
+  )
+  // A real competing SQLite writer prevents the release intent from committing.
+  let blocker = f.sqlite.open_database(f.journal_path, 1048576L).unwrap()
+  blocker.begin_immediate().unwrap()
+  assert_true(
+    begin_resident_output_release(f.journal, f.delegation, 1, f.consumer)
+    is Err(OutputJournal(_)),
+  )
+  assert_true(reclaim_resident_output_intents(f.journal, store) is Ok(1))
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  blocker.rollback().unwrap()
+  blocker.close_checked().unwrap()
+  begin_resident_output_release(f.journal, f.delegation, 1, f.consumer).unwrap()
+  let releasing = f.journal.require(f.consumer).unwrap()
+  let release_revision = @remote.dispatch_record_revision(releasing)
+  assert_true(@remote.dispatch_record_state(releasing).2 is CleanupReleasing)
+  begin_resident_output_release(f.journal, f.delegation, 1, f.consumer).unwrap()
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    release_revision,
+  )
+  assert_eq(f.journal.pending_output_intents().unwrap().length(), 1)
+  store.close().unwrap() |> ignore
+  f = stopped_cleanup_reopen(f)
+  let store = open()
+  // Holder/controller reconstruction uses the saved release and exact payload.
+  begin_resident_output_release(f.journal, f.delegation, 1, f.consumer).unwrap()
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    release_revision,
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
   let reader = store
     .open_payload_reader(
       @payload.publication_payload_material_identity(payload),
@@ -1173,6 +1221,105 @@ test "pending Output survives holder loss until formal release and retries the s
     )
     is Err(OutputForeign),
   )
+  store.close().unwrap() |> ignore
+  assert_true(f.journal.close())
+  assert_true(f.receiver.close())
+}
+
+///|
+test "selected stopped release retries exact Output without reclaiming another releasing attempt" {
+  let mut f = stopped_cleanup_fixture("selected-output-release")
+  f.root.create_directory("publication").unwrap() |> ignore
+  let authority = cleanup_cid("1")
+  let open = () => {
+    @publication_store.open_store(
+      f.sqlite,
+      f.producer_root + "/publication",
+      authority,
+      1024L,
+      4L,
+      65536L,
+    ).unwrap()
+  }
+  let payload = fn(tag : String, request : @remote.DispatchRequest) {
+    let payload = @payload.prepare_publication_payload_request(
+      authority,
+      cleanup_cid(tag),
+      cleanup_cid(tag),
+      cleanup_cid("4"),
+      cleanup_cid("5"),
+      cleanup_cid("6"),
+      cleanup_cid("7"),
+      cleanup_cid("8"),
+      32L,
+      1L,
+    ).unwrap()
+    f.journal
+    .retain_output_intent(
+      @payload.publication_payload_request_identity(payload),
+      output_intent_body(
+        @remote.dispatch_request_attempt_identity(request).unwrap(),
+        @remote.dispatch_request_identity(request),
+        @payload.publication_payload_request_json(payload).unwrap(),
+      ),
+    )
+    .unwrap()
+    payload
+  }
+  let producer_payload = payload("a", f.producer)
+  let consumer_payload = payload("b", f.consumer)
+  let store = open()
+  for request in [producer_payload, consumer_payload] {
+    let writer = store.begin_payload(request).unwrap()
+    writer.append(b"[{\"id\":3}]\n").unwrap()
+    writer.seal().unwrap() |> ignore
+  }
+  // A stopped holder alone cannot authorize cleanup.
+  assert_true(
+    reclaim_resident_dispatch_output_intents(f.journal, store, f.consumer)
+    is Ok(1),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 64L)
+  begin_resident_output_release(f.journal, f.delegation, 1, f.producer).unwrap()
+  begin_resident_output_release(f.journal, f.delegation, 1, f.consumer).unwrap()
+  let reader = store
+    .open_payload_reader(
+      @payload.publication_payload_material_identity(consumer_payload),
+    )
+    .unwrap()
+  assert_true(
+    reclaim_resident_dispatch_output_intents(f.journal, store, f.consumer)
+    is Err(OutputPayloadStore(@publication_store.ReaderBusy)),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 64L)
+  assert_eq(f.journal.pending_output_intents().unwrap().length(), 2)
+  reader.close().unwrap() |> ignore
+  store.close().unwrap() |> ignore
+  f = stopped_cleanup_reopen(f)
+  let store = open()
+  assert_true(
+    reclaim_resident_dispatch_output_intents(f.journal, store, f.consumer)
+    is Ok(0),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  assert_true(store.reconcile_payload(producer_payload).unwrap() is Some(_))
+  let pending = f.journal.pending_output_intents().unwrap()
+  assert_eq(pending.length(), 1)
+  assert_eq(
+    pending[0].0,
+    @payload.publication_payload_request_identity(producer_payload),
+  )
+  assert_true(
+    reclaim_resident_dispatch_output_intents(f.journal, store, f.consumer)
+    is Ok(0),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 32L)
+  assert_true(
+    reclaim_resident_dispatch_output_intents(f.journal, store, f.producer)
+    is Ok(0),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_eq(f.journal.pending_output_intents().unwrap().length(), 0)
   store.close().unwrap() |> ignore
   assert_true(f.journal.close())
   assert_true(f.receiver.close())

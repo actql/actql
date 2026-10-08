@@ -11,8 +11,8 @@ pub(all) struct EmpiricalRanking {
 } derive(Eq, Debug)
 
 ///|
-/// Minimize the descriptive median of this task's processing interval only.
-/// Positions are complete assignments; this is not a whole-assignment optimum.
+/// Minimize the descriptive median of the explicitly requested measured quantity.
+/// Positions are presented complete assignments, not a global search optimum.
 /// Every presented position must have a usable reference. Ties use position.
 pub fn rank_operational_candidates(
   candidates : PolicyCandidateSet,
@@ -20,9 +20,11 @@ pub fn rank_operational_candidates(
   task : Int,
   policy_revision : String,
   now_ms : Int64,
+  quantity? : String = "task-processing",
 ) -> Result[EmpiricalRanking, SearchIssue] {
   try {
-    if candidates.cid != sidecar.request.candidate_set_cid ||
+    if !["task-processing", "run-caller-elapsed"].contains(quantity) ||
+      candidates.cid != sidecar.request.candidate_set_cid ||
       task < 1 ||
       sidecar.oldest_ms < 0L ||
       sidecar.newest_ms < sidecar.oldest_ms ||
@@ -102,7 +104,7 @@ pub fn rank_operational_candidates(
       let references = sidecar.references.filter(reference => {
         reference.task == task &&
         reference.position == position &&
-        reference.quantity == "task-processing"
+        reference.quantity == quantity
       })
       if references.length() != 1 {
         return Ok(base)
@@ -126,7 +128,7 @@ pub fn rank_operational_candidates(
     Ok({
       ..base,
       selected_position: Some(best.unwrap().0),
-      reason: "task-processing-median",
+      reason: quantity + "-median",
     })
   } catch {
     _ => Err(InvalidPreference)

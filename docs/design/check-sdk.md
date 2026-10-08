@@ -51,6 +51,61 @@ Neither entry estimates parser CPU work from a source span or charges an
 imaginary repeated parse. Source syntax and retention failures keep their
 original typed details, rather than becoming evidence requests.
 
+## Authoring scope and complete template evidence
+
+The scoped common entry selects `TemplateOnly` or `BoundInput` before
+preparation. A supplied binding cursor, including an empty object or null,
+is `BindingsInTemplateScope`, an invalid check request distinct from invalid
+Program input. Bound checking continues the ordinary actual-value constructor.
+
+`TemplateCheckedProgram` is a separate opaque witness. It retains the original
+Program, environment, declaration/reference/wiring owners and compilation
+limits. Completion joins the actual expression and operation obligations,
+Values resource selectors, capacity and result-order application, publication
+candidate selection and interpretation contracts. Declaration use or topology
+success alone cannot construct this witness. Shared prefixes are charged from
+the exact retained owners once; semantic/definition hashes, Values payloads and
+resource metadata use the original cumulative artifact allowance.
+
+Only fully connected static paths produce `Verified` in template scope.
+Unconnected operations, incoming gates, Source/Local/Table inputs, missing resource
+material and exhausted budgets retain the original scope as `Unresolved`.
+These are implementation/preparation limits, not new language restrictions or
+permission to certify a smaller supported fragment. Known independent input
+violations remain rejections with their original typed causes.
+
+Typed execution-value Requirements retain the original Parameter declarations.
+Defaults are admitted by the existing declaration owner; invented values do
+not stand in for missing input. Runtime resource/publication binding and
+enforcement owners remain retained separately. Template verification cannot
+construct executable Units, authorize a Run or Submission, validate runtime
+observations, or trigger automatic execution/resending. Supplementation enters
+a fresh bound-input check and execution still requires an explicit request.
+
+## Bound checking outcomes
+
+The public Client uses one overloaded `check` operation for text and structured
+Program snapshots. Every call explicitly selects its input kind and original
+checking scope. Template-only has no submitted bindings; presence of a binding
+member, even null or an empty object, is an invalid check request at SDK and
+Host admission. Declaration defaults remain admitted by the declaration Owner.
+
+The Host includes this scope in its keyed context reference and passes it to
+the common scoped constructor. Only the opaque `TemplateCheckedProgram` can
+produce a public verified template report with execution-value Requirements.
+Partial declaration preparation, unavailable material, protected obligations,
+unsupported paths and budgets retain the original unresolved scope. Reporting
+truncation also prevents verification, even when static construction completed.
+
+The SDK captures the selection and immutable original input before yielding,
+rejects a response for a different scope, and binds locations to the submitted
+document revisions. Program pointers never become source-text spans. Template
+verification with known runtime Requirements permits another explicitly
+requested bound-input check in a bounded supplementation session; it does not
+reset the session's total attempt budget or start execution. A submission's
+rejection observation continues to have bound-input scope and cannot borrow a
+standalone template verdict.
+
 The checker distinguishes three outcomes:
 
 - A complete opaque CheckedProgram, constructed only after static closure.
@@ -552,7 +607,9 @@ Workers support and durable capture are not implied by this checking boundary.
 
 ## Public authored-input reports
 
-The public Client `check(text, {format, parameterDeclarations, parameters})`
+The public Client `check(text, {kind: "text", scope, format,
+parameterDeclarations, parameters})` and `check(program, {kind: "program",
+scope, parameters})`
 returns the registered `actql-check-outcome/0.1` envelope. Checking completion,
 its scope-bound verdict and eventual execution outcomes are separate facts.
 The public report is projected by the existing MoonBit check bridge before
@@ -853,8 +910,8 @@ metadata member. The pointer must resolve to an admitted submitted node; a missi
 member is omitted rather than invented. An admitted empty declaration map has the
 known root pointer `""`. Admission budgets and internal failures remain separate
 from declaration violations and do not receive a violation location.
-A missing value is a Requirement for bound-input checking, not a diagnostic or
-verified template report. Its declaration pointer/revision identifies the full
+A missing value is a Requirement for bound-input checking, not a diagnostic.
+That Requirement alone does not establish template verification. Its declaration pointer/revision identifies the full
 submitted admission contract, including constraints; supplying a value requires
 a new complete check. Other typed causes retain their less-specific registered
 public reason until their projection is implemented. Protected Source resolution
@@ -863,10 +920,13 @@ There is no negative-existence authority for installed query aliases; omission
 from an audience-visible publication cannot prove absence. Provider Resource
 catalog completeness is not query-alias completeness.
 
-The first supported boundary is bound-input checking. Template-only checking,
-fix application, report retrieval, LSP conversion and execution/Delivery outcome
-explanations remain separate work. The input-report connection does not claim
-the design's S1–S9/X1–X17/invariant completion gate.
+Public authoring checks select bound-input or template-only scope explicitly.
+Complete common static-scope evidence permits template verification with
+execution-value Requirements; unsupported or incomplete static paths retain
+the requested scope as undetermined. Original text fixes and editor positions
+use their existing input custody. Structured automatic edits, Host report
+retrieval and a complete LSP server remain separate work. This connection does
+not claim the design's S1–S9/X1–X17/invariant completion gate.
 
 
 ### Predicate type explanations
@@ -1375,8 +1435,9 @@ prevents an incomplete frontier. Analysis is not repeated.
 Stage topology or an unbound result wiring cannot certify all remaining static
 obligations as verified(template). A public template scope requires the common
 checker to close those obligations under a scope selected before checking,
-without fabricated values or a second checker. No template success or unsupported
-preparation-write path is introduced by these declaration conditions.
+without fabricated values or a second checker. These declaration conditions
+alone introduce neither template success nor a preparation-write path; the
+separate common static closure described above supplies the complete witness.
 
 The common `program_references.prepare_declaration_usage` continuation collects
 operation/Effect and request references from the exact retained staged source
@@ -1404,6 +1465,42 @@ and environment admissions. Preparation traversal, payload and complete-artifact
 metadata retain their separate budgets. This pipeline evidence still does not
 close whole-Program incoming, publication, authority or other static obligations
 and cannot by itself produce a verified template report.
+
+The common scoped entry selects `TemplateOnly` or `BoundInput` before checking.
+Template-only rejects any submitted bindings, including an empty object or
+explicit null, as a check-request issue before Program preparation. The bound
+branch uses the existing full checker with actual supplied values.
+
+Prebinding declaration preparation retains the exact admitted Program,
+CheckEnvironment, Catalog, Source registrations, Stage/Result wiring and
+whole-Program declaration-use inventory. Default admission, pipeline typing and
+unused-declaration decisions come from their existing owners. Preparation work
+includes the Catalog, registration/topology and reference prefixes; no execution
+values are fabricated to advance a missing-value frontier. Definitive input
+violations preserve their original diagnostic cause. Unsupported, budget or
+incomplete static preparation remains an unresolved template frontier. The
+frontier exposes its retained phase evidence separately from complete template
+verification and does not grant execution or resubmission permission.
+
+Resolved producer/publication orders and their pending expression occurrences
+can also be prepared before execution-value binding. The bound context uses
+that same preparation and charges its exact prefix once. Repeated and unused
+producer visits retain distinct sites; neither resolved order nor an empty
+pending-expression inventory certifies complete Program template checking.
+
+For a closed source-free pipeline, authoring capacity preparation applies real
+Values count proofs and the selected capacity policy through the existing
+coverage and context owners. It retains the original order preparation and
+never supplies execution Parameter values. Pipelines with input obligations
+remain explicitly unconnected at this boundary; their scope is not narrowed.
+This capacity owner is separate from Result publication and complete Program
+template verification.
+
+The connected authoring publication phase retains every Result's exact order
+owner, every applicable Program row candidate, and distinct Host row/byte
+ceilings. Candidate search and row-minimum selection use the same functions as
+bound publication. Work or inventory exhaustion returns no partial closure;
+canonical execution-subject binding and enforcement remain separate.
 
 ### Passive operation diagnostic formats
 
@@ -1809,8 +1906,8 @@ does not certify complete template checking or narrow the original bound scope.
 
 `client.start(program)` may expose the same transient observation on
 `not_accepted` and `preparation_failed`. It uses the admitted Program parser,
-parameter binding, Source inventory and common checker. It does not expose a
-standalone Program check API or structured editing fixes.
+parameter binding, Source inventory and common checker. The separately scoped authoring `client.check(program, {kind: "program",
+scope})` is read-only; neither entry exposes structured editing fixes.
 
 The original Program is an input document with `document_id: "program"` and
 `kind: "structured"`. A reason or Requirement identifies that document's

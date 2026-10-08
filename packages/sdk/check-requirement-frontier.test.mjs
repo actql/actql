@@ -18,10 +18,10 @@ test('transport failures consume the attempt cap without manufacturing an outcom
   const session = createCheckSupplementationSession({async check() {calls++; throw failure;}},
     {maxAttempts: 2});
   for (const attempt of [1, 2]) {
-    await assert.rejects(session.check('SELECT 1', {format: 'sql'}), error => error === failure);
+    await assert.rejects(session.check('SELECT 1', {kind: 'text', scope: 'bound_input', format: 'sql'}), error => error === failure);
     assert.equal(calls, attempt);
   }
-  await assert.rejects(session.check('SELECT 1', {format: 'sql'}), error =>
+  await assert.rejects(session.check('SELECT 1', {kind: 'text', scope: 'bound_input', format: 'sql'}), error =>
     error.code === 'CheckSupplementationStopped' && error.attempts === 2 &&
     error.maxAttempts === 2 && error.decision.reason === 'attempt_budget');
   assert.equal(calls, 2);
@@ -33,8 +33,8 @@ test('overlapping supplementation calls refuse before consuming another attempt'
   const session = createCheckSupplementationSession({check() {
     calls++; return new Promise(resolve => {release = resolve;});
   }}, {maxAttempts: 3});
-  const pending = session.check('SELECT 1', {format: 'sql'});
-  await assert.rejects(session.check('SELECT 2', {format: 'sql'}),
+  const pending = session.check('SELECT 1', {kind: 'text', scope: 'bound_input', format: 'sql'});
+  await assert.rejects(session.check('SELECT 2', {kind: 'text', scope: 'bound_input', format: 'sql'}),
     {code: 'CheckSupplementationBusy'});
   assert.equal(calls, 1);
   release(response);
@@ -44,7 +44,7 @@ test('overlapping supplementation calls refuse before consuming another attempt'
   assert.deepEqual(result.decision, {kind: 'stop', reason: 'frontier_unavailable'});
   assert.equal(Object.isFrozen(result), true);
   assert.equal(Object.isFrozen(result.decision), true);
-  await assert.rejects(session.check('SELECT 3', {format: 'sql'}),
+  await assert.rejects(session.check('SELECT 3', {kind: 'text', scope: 'bound_input', format: 'sql'}),
     {code: 'CheckSupplementationStopped'});
   assert.equal(calls, 1);
 });

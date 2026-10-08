@@ -44,6 +44,7 @@ const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunS
     unknown_state: 'The Run reply contains a state this SDK cannot interpret.',
     contract_mismatch: 'The Run reply does not match this SDK’s registered state contract.',
     malformed_response: 'The Run reply violates the registered state contract.',
+    stale_observation: 'The Run reply has an older control revision or conflicts with previously observed control facts.',
   };
   runObservationFailures.set(error, freezeInput({
     kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',
@@ -135,12 +136,13 @@ function bindCheckObservation(outcome, body) {
   try {
     const report = outcome.report ?? outcome.partial_report;
     if (report) {
+      if (report.scope.kind !== (body.scope ?? 'bound_input')) throw new TypeError('InvalidCheckScopeBinding');
       const received = body.kind === 'program'
         ? new Map([['program', {kind: 'structured', value: body.input}]])
         : new Map([['source', {kind: 'text', text: body.input.text}]]);
       if (body.kind !== 'program' && body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
         {kind: 'structured', value: body.input.parameterDeclarations});
-      if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
+      if (body.parameters !== undefined && body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
       if (report.inputs.length !== received.size) throw new TypeError('InvalidCheckInputBinding');
       const snapshots = new Map();
       for (const document of report.inputs) {
@@ -289,7 +291,9 @@ export function createCheckSupplementationSession(client, {maxAttempts} = {}) {
         const frontier = getCheckRequirementFrontier(outcome);
         let reason;
         if (!frontier) reason = 'frontier_unavailable';
-        else if (outcome.report.verdict !== 'undetermined' || frontier.requirements.length === 0) {
+        else if ((outcome.report.verdict !== 'undetermined' &&
+            !(outcome.report.scope.kind === 'template_only' && outcome.report.verdict === 'verified')) ||
+            frontier.requirements.length === 0) {
           reason = 'no_known_supplement';
         } else if (previous && structuralKey(previous) === structuralKey(frontier)) {
           reason = 'unchanged_frontier';
@@ -676,7 +680,7 @@ export function createCheckDocumentSession(client, options) {
       if (!current) fail('CheckDocumentClosed');
       const submitted = current, ticket = ++issued;
       // Call the existing SDK before yielding so it also detaches supplied bindings.
-      const outcome = await checker.check(submitted.text, options);
+      const outcome = await checker.check(submitted.text, {...options, kind: 'text'});
       const input = getCheckInput(outcome, 'source');
       const observation = Object.freeze({outcome, version: submitted.version, positionEncoding});
       observations.set(observation, {ticket, input: input?.kind === 'text' &&
@@ -716,9 +720,9 @@ export function createCheckDocumentSession(client, options) {
         cursor = edit.end_byte;
       }
       text += decoder.decode(bytes.subarray(cursor));
-      const checkOptions = {format: record.request.input.format,
+      const checkOptions = {kind: 'text', scope: record.request.scope, format: record.request.input.format,
         parameterDeclarations: record.request.input.parameterDeclarations,
-        parameters: record.request.parameters};
+        ...(Object.hasOwn(record.request, 'parameters') ? {parameters: record.request.parameters} : {})};
       const originalClient = checker;
       const assertCurrent = () => {
         if (currentRecord(observation) !== record) fail('CheckFixStale');
@@ -793,7 +797,7 @@ export function explainCheckOutcome(outcome, options) {
     const explanations = {
       invalid: ['The report establishes an input violation in its checking scope.',
         'Review the disclosed reasons and correct the submitted revision where indicated.'],
-      verified: ['The report verifies only its bound checking scope and context.',
+      verified: ['The report verifies only its selected checking scope and context.',
         'Use the execution, cancellation and release owners for their respective results.'],
       undetermined: ['The report cannot establish verification or a proven input violation in its checking scope.',
         'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
@@ -1013,9 +1017,11 @@ const rejectedCheck = (body, problem) => {
   const error = new ClientError('InvalidHostCheckOutcome');
   checkFailures.set(error, freezeInput({problem,
     kind: problem === 'unknown_outcome' ? 'uninterpretable' : 'protocol_failure',
-    input: {text: body.input.text, format: body.input.format,
+    input: {kind: body.kind, scope: body.scope,
+      ...(body.kind === 'program' ? {program: body.input} : {text: body.input.text, format: body.input.format,
       ...(body.input.parameterDeclarations === undefined ? {} :
-        {parameterDeclarations: body.input.parameterDeclarations}), parameters: body.parameters}}));
+        {parameterDeclarations: body.input.parameterDeclarations})}),
+      ...(Object.hasOwn(body, 'parameters') ? {parameters: body.parameters} : {})}}));
   return error;
 };
 const submissionUnknown = (context, cause) => {
@@ -1515,6 +1521,9 @@ async function connectSelected(selected, port) {
       }
     };
 
+    // Compare only this Owner's control component. Its revision is not an
+    // Effect, publication or whole-Run revision, and carries no retry authority.
+    let latestControl;
     const readRunObservation = async (operation, body, signal) => {
       // Failure to obtain an observation admits no Run facts, including when
       // credentials or a closed connection prevent dispatch entirely.
@@ -1539,6 +1548,15 @@ async function connectSelected(selected, port) {
         }
         if (structuralKey(observation) !== observedKey) {
           throw rejectedRunObservation(ref, operation, 'malformed_response');
+        }
+        if (observation.control !== undefined) {
+          const control = observation.control;
+          if (latestControl !== undefined && (control.revision < latestControl.revision ||
+              control.revision === latestControl.revision &&
+              structuralKey(control) !== structuralKey(latestControl))) {
+            throw rejectedRunObservation(ref, operation, 'stale_observation');
+          }
+          latestControl = freezeInput({...control});
         }
         return retainEffectUncertainty(observation, ref);
       } catch (cause) {
@@ -2204,19 +2222,28 @@ async function connectSelected(selected, port) {
       }
       return retainSubmissionExplanation(freezeInput(answer), answer, context);
     },
-    // Check authored source without starting anything. The outcome is the
+    // Check an authored text or Program snapshot without starting anything. The outcome is the
     // Host's actql-check-outcome/0.1 value: a report bound to its scope and
     // context, a failure, or unavailable. None of them is a thrown error.
-    check: async (text, options = {}) => {
-      if (typeof text !== 'string') fail('InvalidCheckRequest');
+    check: async (input, options) => {
+      if (options === null || typeof options !== 'object' || Array.isArray(options)) fail('InvalidCheckRequest');
+      const kind = options.kind, scope = options.scope;
+      if (!['text', 'program'].includes(kind) ||
+          !['template_only', 'bound_input'].includes(scope) ||
+          (kind === 'text' ? typeof input !== 'string' :
+            input === null || typeof input !== 'object' || Array.isArray(input)) ||
+          (kind === 'program' && (Object.hasOwn(options, 'format') ||
+            Object.hasOwn(options, 'parameterDeclarations'))) ||
+          (scope === 'template_only' && Object.hasOwn(options, 'parameters'))) fail('InvalidCheckRequest');
       const signal = options.signal;
       let body;
       try {
         // Detach caller-owned objects synchronously, before credentials or I/O.
-        body = freezeInput(snapshotClientRequest({input: {text, format: options.format,
-          ...(options.parameterDeclarations === undefined ? {} :
-            {parameterDeclarations: options.parameterDeclarations})},
-          parameters: options.parameters ?? null}));
+        body = freezeInput(snapshotClientRequest({kind, scope,
+          input: kind === 'program' ? input : {text: input, format: options.format,
+            ...(options.parameterDeclarations === undefined ? {} :
+              {parameterDeclarations: options.parameterDeclarations})},
+          ...(scope === 'bound_input' ? {parameters: options.parameters ?? null} : {})}));
       } catch { fail('InvalidCheckRequest'); }
       if (!validClientBody('check', {connection: selected.wire, ...body})) {
         fail('InvalidCheckRequest');

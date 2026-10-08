@@ -674,6 +674,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/value-contracts.relation-drop-preservation-and-admission",
+      "statement_sha256": "0d22f828da9d6f00187f9edd5267696b337d00538e2433d7fb114d6822a1b0c1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/value-contracts.relation-filter-preservation",
       "statement_sha256": "7220ef7d16902dbc7b8722eed9bf67a9342bf73a24be2d662f650e8de6a28a0d",
       "status": "pending",
@@ -6856,8 +6867,52 @@
       }
     },
     {
-      "requirement_id": "actql.language/results-and-delivery.every-actql-program-must-declare-a-non-empty-map-of-closed",
-      "statement_sha256": "f41b0a259a19d2100773d89e102de65d4adef7ac2142045aab58ca8999447bbf",
+      "requirement_id": "actql.language/results-and-delivery.declared-results-map",
+      "statement_sha256": "093dd2cdf938e6117f6ea4297e0174a3c6fb7cdc047ace4dccbf4409b0e6df53",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "results-and-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/results-and-delivery.no-results-or-effects-rejected",
+      "statement_sha256": "420ad3ac4e4f23ea59fe239a15c7f64e86b40e69fe796f6284f4c1ef5ccc2525",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "results-and-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/results-and-delivery.effect-only-owner-contracts",
+      "statement_sha256": "009c0815b67f7b630aa42f1ca41696159abd04027e632034a9f38f76ca393751",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "results-and-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/results-and-delivery.unresolved-effect-not-success",
+      "statement_sha256": "f86aba382910d622215c223da2669492bbbfcb7421597641f78dc60440e19eb7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "results-and-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/results-and-delivery.unknown-operation-not-resent",
+      "statement_sha256": "0f6720c4044ae0aa5b447dfcea7a75014e6be6e03a25bbb9351abb4c7e491a55",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

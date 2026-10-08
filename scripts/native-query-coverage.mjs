@@ -8,7 +8,8 @@ import {assertTestExecution} from './test-execution.mjs';
 
 export const nativeQueryCoverage = JSON.parse(readFileSync(
   new URL('./native-query-coverage.json', import.meta.url), 'utf8'));
-const packagePath = 'src/query_integration';
+const packagePaths = ['src/query_integration', 'src/native_values_integration'];
+const inHarnessPackage = path => packagePaths.some(root => path.startsWith(`${root}/`));
 const owners = ['http-client', 'remote-runtime'];
 const environmentReader = /\b(?:get_env_var|(?:secure_)?getenv|environ)\b|ACTQL_TEST_/u;
 const queryReader = /get_env_var|native_duckdb_test_library|native_resident_test_prerequisites|native_duckdb_test_variable/u;
@@ -26,11 +27,16 @@ const identifiers = source => source.match(/\b[a-zA-Z_][a-zA-Z_0-9]*\b/gu) ?? []
 function queryEnvironmentHelpers(sources) {
   const functions = new Map();
   for (const [path, source] of Object.entries(sources)) {
-    if (!path.startsWith(`${packagePath}/`)) continue;
+    if (!inHarnessPackage(path)) continue;
     const starts = [...source.matchAll(/^(?:(?:pub )?fn ([a-zA-Z_][a-zA-Z_0-9]*)\b|test\b)/gmu)];
     for (let index = 0; index < starts.length; index++) {
-      if (starts[index][1]) functions.set(starts[index][1],
-        source.slice(starts[index].index, starts[index + 1]?.index));
+      if (starts[index][1]) {
+        const name = starts[index][1];
+        // Equal names across harness packages must not erase an environment
+        // dependency. Keep the conservative union until package resolution.
+        functions.set(name, (functions.get(name) ?? '') + '\n' +
+          source.slice(starts[index].index, starts[index + 1]?.index));
+      }
     }
   }
   const affected = new Set();
@@ -73,7 +79,7 @@ export function selectNativeQueryTests(owner, sources, env,
   let total = 0;
   const helpers = queryEnvironmentHelpers(sources);
   for (const [file, entry] of entries) {
-    if (!/^[a-z_]+_wbtest\.mbt$/u.test(file) ||
+    if (!/^src\/(?:query_integration|native_values_integration)\/[a-z_]+_wbtest\.mbt$/u.test(file) ||
         !Array.isArray(entry.owners) || entry.owners.length === 0 ||
         new Set(entry.owners).size !== entry.owners.length ||
         entry.owners.some(value => !owners.includes(value)) ||
@@ -82,7 +88,7 @@ export function selectNativeQueryTests(owner, sources, env,
         !Array.isArray(entry.variables)) {
       throw new Error(`Malformed native query ownership: ${file}`);
     }
-    const source = sources[`${packagePath}/${file}`];
+    const source = sources[file];
     const found = testNames(source ?? '');
     if (entry.tests.some(name => !found.includes(name))) {
       throw new Error(`Missing required native query case: ${file}`);
@@ -91,14 +97,14 @@ export function selectNativeQueryTests(owner, sources, env,
       reasons.push(`changed native query cases or environment: ${file}`);
     }
     if (entry.owners.includes(owner)) {
-      selected.push(`${packagePath}/${file}`);
+      selected.push(file);
       expected += found.length;
     }
   }
   for (const [path, source] of Object.entries(sources)) {
-    if (path.startsWith(`${packagePath}/`)) {
+    if (inHarnessPackage(path)) {
       total += testNames(source).length;
-      const file = path.slice(packagePath.length + 1);
+      const file = path;
       const readsEnvironment = environmentReader.test(source) || queryReader.test(source) ||
         identifiers(source).some(name => helpers.has(name));
       if (readsEnvironment && !manifest.files[file]) {
@@ -130,7 +136,7 @@ export function selectNativeQueryTests(owner, sources, env,
     throw new Error('Native query DuckDB execution must be required');
   }
   if (expected === 0 || total === 0) throw new Error('Empty native query selection');
-  return {paths: reasons.length ? [packagePath] : selected,
+  return {paths: reasons.length ? packagePaths : selected,
     expected: reasons.length ? total : expected,
     mode: reasons.length ? 'full-fallback' : 'subset', reasons};
 }

@@ -39,10 +39,16 @@ function resolve(body, selected, owner = aoa, expr = expressions) {
 test('extensions preserve historical primitives except explicitly revised values resources', () => {
   assert.equal(cid(historical), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
   assert.equal(cid(registry), currentCid);
-  assert.equal(Object.keys(registry).length, 69);
+  const addedOperations = [
+    'ACTQL.expression_fragment/0.1',
+    'REL.analytic', 'REL.cross_join', 'REL.except_rows', 'REL.intersect_rows',
+    'SGA.equal', 'SGA.mean_structural', 'SGA.subgraph',
+    'TEA.join.interval', 'TEA.time_series',
+  ];
+  assert.deepEqual(Object.keys(registry).sort(),
+    [...Object.keys(historical), ...addedOperations].sort());
   const {[op]: added, ...rest} = registry;
   const retained=structuredClone(rest);
-  delete retained['BRIDGE.rows.to_graph'];
   delete retained['REL.derive'].execution_extensions;
   delete retained['REL.except_rows'];
   delete retained['REL.intersect_rows'];
@@ -56,6 +62,7 @@ test('extensions preserve historical primitives except explicitly revised values
     'TEA.join.interval',
   ]) delete retained[operation];
   for (const operation of [
+    'BRIDGE.rows.to_graph',
     'SGA.apply_delta',
     'SGA.union_structural',
     'SGA.traverse',

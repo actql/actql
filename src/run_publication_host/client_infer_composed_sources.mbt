@@ -9,7 +9,8 @@ struct ClientInferSourceInput {
 }
 
 ///|
-/// The original checked two-source closure consumed by JOIN before INFER.
+/// The original checked Source closure consumed by an INFER Unit. Independent
+/// components can borrow the same saved producer; each retains its exact port.
 /// This value binds capture provenance; it grants neither reads nor Model
 /// dispatch and does not own a separate execution or authorization path.
 pub struct ClientInferComposedSources {
@@ -31,14 +32,16 @@ pub fn admit_client_infer_composed_sources(
 ) -> Result[ClientInferComposedSources, ClientInferCallScopeIssue] {
   let owner = occurrence.owner
   let graph = owner.graph
+  let count = @strategy.graph_captured_prefix(graph)
   if !client_infer_occurrence_matches(occurrence, owner) ||
-    @strategy.graph_captured_prefix(graph) != 2 ||
-    occurrence.task != 2 ||
-    captures.length() != 2 ||
-    identities.length() != 2 ||
-    requirements.length() != 2 ||
-    logicals.length() != 2 ||
-    evidence.length() != 2 {
+    count < 1 ||
+    count > 2 ||
+    occurrence.task < count ||
+    captures.length() != count ||
+    identities.length() != count ||
+    requirements.length() != count ||
+    logicals.length() != count ||
+    evidence.length() != count {
     return Err(ForeignInput)
   }
   let incoming : Array[(Int, Int)] = []
@@ -52,7 +55,7 @@ pub fn admit_client_infer_composed_sources(
       )
     }
   }
-  if incoming.length() != 2 {
+  if incoming.length() != count {
     return Err(ForeignInput)
   }
   let pipeline = @lower.pipeline(
@@ -60,7 +63,7 @@ pub fn admit_client_infer_composed_sources(
   )
   let inputs : Array[ClientInferSourceInput] = []
   let names : Array[String] = []
-  for task in 0..<2 {
+  for task in 0..<count {
     let ports = incoming.filter(edge => edge.0 == task)
     guard ports.length() == 1 &&
       @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
@@ -132,10 +135,13 @@ pub fn client_infer_composed_sources_matches(
   if !client_infer_occurrence_matches(value.occurrence, occurrence.owner) ||
     client_infer_occurrence_coordinates(value.occurrence) !=
     client_infer_occurrence_coordinates(occurrence) ||
-    value.inputs.length() != 2 {
+    value.inputs.length() !=
+    @strategy.graph_captured_prefix(occurrence.owner.graph) ||
+    value.inputs.is_empty() ||
+    value.inputs.length() > 2 {
     return false
   }
-  for task in 0..<2 {
+  for task in 0..<value.inputs.length() {
     let input = value.inputs[task]
     if !client_captured_task_tuple_matches(
         occurrence.owner,

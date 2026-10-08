@@ -83,6 +83,9 @@ fn lower_script_join_relation(
       retained,
       initial_scope~,
       preserved_scope~,
+      parameter_declarations=context.parameter_declarations,
+      prefix_steps=steps.copy(),
+      prefix_context=Some(context),
     )
     steps.append(body)
     return {

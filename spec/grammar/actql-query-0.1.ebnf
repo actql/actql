@@ -4,7 +4,13 @@ script        = { data_declaration }, query ;
 data_declaration = "DATA", identifier, "=",
                    ( relational_body | graph_constructor
                    | named_sga_call ), ";" ;
-query         = [ with_clause ], ( sql_query | pipe_query ), [ ";" ] ;
+query         = ( table_create_statement
+              | [ with_clause ], ( sql_query | pipe_query ) ), [ ";" ] ;
+table_create_statement = table_create, "AS", table_input_query ;
+(* A Table input can include statement-level inference, but not another
+   terminal write. DATA and CTE bodies remain pure declaration bodies. *)
+table_input_query = [ with_clause ], ( sql_query | pipe_query )
+                  | "(", [ with_clause ], ( sql_query | pipe_query ), ")" ;
 (* The pure constructor wrapper is an ActQL extension. Its table mapping
    follows the selected GoogleSQL/SQL-PGQ profile, not ISO GQL CREATE. *)
 graph_constructor = "PROPERTY", "GRAPH", "(",
@@ -83,7 +89,7 @@ join          = [ "INNER" | "LEFT", [ "OUTER" ]
               | "CROSS", "JOIN", unnest_source ;
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
-group_clause  = "GROUP", "BY", ( "(", ")" | expression, { ",", expression } ) ;
+group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | expression, { ",", expression } ) ;
 pipe_group_clause = "GROUP", [ "AND", "ORDER" ], "BY", ( "(", ")" | pipe_group_item, { ",", pipe_group_item } ) ;
 pipe_group_item = expression, [ [ "AS" ], identifier ], [ pipe_group_order ] ;
 pipe_group_order = [ "ASC" | "DESC" ], "NULLS", ( "FIRST" | "LAST" )
@@ -115,9 +121,15 @@ sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;
 limit_clause  = "LIMIT", limit_integer, [ "OFFSET", limit_integer ] ;
 limit_integer = integer | parameter_token ;
-set_part      = ( "UNION", ( "ALL" | "DISTINCT" )
-              | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME" ], sql_operand ;
+set_operator  = "UNION", ( "ALL" | "DISTINCT" )
+              | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ;
+set_names     = "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ]
+              | [ "STRICT" ], "CORRESPONDING", [ "BY", "(", identifier, { ",", identifier }, ")" ] ;
+set_matching  = set_operator, [ set_names ]
+              | "INNER", set_operator,
+                ( "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ]
+                | "CORRESPONDING", [ "BY", "(", identifier, { ",", identifier }, ")" ] ) ;
+set_part      = set_matching, sql_operand ;
 pipe_item     = relation_pipe_item | infer_operator | nearest_operator
               | result_operator | terminal_effect | named_sga_call ;
 (* Named SGA calls are ActQL extensions for existing logical Graph operators.
@@ -138,10 +150,12 @@ sga_value     = query_string | [ "-" ], numeric_token | "TRUE" | "FALSE"
               | "[", [ sga_value, { ",", sga_value } ], "]" ;
 result_operator = "RESULT", identifier ;
 assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
-terminal_effect = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
+terminal_effect = terminal_update | [ "EFFECT", identifier ], table_create ;
+table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
+terminal_update = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
                   "MAPPING", identifier, "FROM", "RESULT", identifier,
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
-relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "DISTINCT" ], select_list
+relation_pipe_item = assertion_operator | where_clause | "DISTINCT" | "SELECT", [ "DISTINCT" ], select_list
               | "EXTEND", select_list
               | "SET", assignment, { ",", assignment }
               | "DROP", identifier, { ",", identifier }
@@ -163,9 +177,7 @@ nearest_operator = "NEAREST", path, "AS", identifier,
 metric        = "cosine" | "dot" | "l2" ;
 keep_clause   = "KEEP", "(", keep_item, { ",", keep_item }, ")" ;
 keep_item     = path, [ "AS", identifier ] | "*" | path, ".", "*" ;
-pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )
-              | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME" ], "(", relational_body, ")" ;
+pipe_set_part = set_matching, "(", relational_body, ")" ;
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;

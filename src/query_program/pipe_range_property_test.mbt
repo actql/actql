@@ -1,0 +1,76 @@
+///|
+fn pipe_range_property_context() -> Context {
+  let seed =
+    #|{"values":{"schema":{"id":{"type":"number","nullable":false},"score":{"type":"number","nullable":false},"payload":{"type":"object","nullable":false,"fields":{"score":{"type":"number","nullable":false}}},"aql_pipe_range_property_0":{"type":"number","nullable":false}},"rows":[{"id":1,"score":90,"payload":{"score":10},"aql_pipe_range_property_0":100}]},"as":"objects"}
+  {
+    ..fixture_context(),
+    inputs: [
+      {
+        relation: [{ value: "objects", quoted: false, }],
+        name: "objects",
+        source: GeneratedValues(unnest_value_cursor(seed)),
+        visible_fields: ["id", "score", "payload", "aql_pipe_range_property_0"],
+        graph_bindings: [],
+      },
+    ],
+  }
+}
+
+///|
+test "parenthesized range binding cannot capture an authored private-looking name" {
+  let actual = compile(
+    @query.parse_query(
+      "FROM objects |> AS p |> SELECT (p).id + aql_pipe_range_property_0 AS value",
+      syntax_limits(),
+    ).unwrap(),
+    pipe_range_property_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    semantic(actual).contains(
+      "\"add\":[{\"field\":\"id\"},{\"field\":\"aql_pipe_range_property_0\"}]",
+    ),
+  )
+  assert_true(
+    @check.check_parsed(actual, check_environment(), None, check_limits())
+    is Checked(_),
+  )
+}
+
+///|
+test "an explicit value receiver stays property access despite a same-named range" {
+  let actual = compile(
+    @query.parse_query(
+      "FROM objects |> AS payload |> SELECT (payload).score AS value",
+      syntax_limits(),
+    ).unwrap(),
+    pipe_range_property_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    semantic(actual).contains(
+      "\"property\":{\"name\":\"score\",\"value\":{\"field\":\"payload\"}}",
+    ),
+  )
+  assert_true(
+    @check.check_parsed(actual, check_environment(), None, check_limits())
+    is Checked(_),
+  )
+}
+
+///|
+test "parenthesized removed and unknown ranges cannot manufacture a column" {
+  for
+    text in [
+      "FROM objects p |> SELECT id |> WHERE (p).id > 0", "SELECT (p).missing AS value FROM objects p",
+    ] {
+    assert_true(
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        pipe_range_property_context(),
+        construction_limits(),
+      )
+      is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
+    )
+  }
+}

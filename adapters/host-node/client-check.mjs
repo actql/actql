@@ -15,14 +15,13 @@ const version = 'actql-check-outcome/0.1';
 // may see, or to the projection, must never reuse an earlier reference.
 const disclosurePolicy = 'actql-check-disclosure/0.1';
 const contextVersion = 'actql-check-context/0.1';
-const scope = 'bound_input';
 
 const failed = (code, correlation_ref) => Object.freeze({outcome: 'failed', correlation_ref,
   problem: Object.freeze({code}), reason_schema_cid: checkReasonSchemaCid,
   outcome_schema_cid: checkOutcomeSchemaCid, version});
 
 export function installNodeClientCheck({moon, environment, publication,
-  sourceAccesses = [], contextKey = randomBytes(32)}) {
+  sourceAccesses = [], tableWriteAccesses = [], contextKey = randomBytes(32)}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckSource !== 'function' ||
       typeof moon.clientProgramCheckProgram !== 'function' ||
@@ -33,13 +32,19 @@ export function installNodeClientCheck({moon, environment, publication,
       environment === undefined ||
       !(contextKey instanceof Uint8Array) || contextKey.byteLength !== 32 ||
       !Array.isArray(sourceAccesses) || sourceAccesses.some(access =>
-        typeof access?.authorization?.authorize !== 'function')) {
+        typeof access?.authorization?.authorize !== 'function') ||
+      !Array.isArray(tableWriteAccesses) || tableWriteAccesses.some(access =>
+        typeof access?.authorization?.authorize !== 'function' ||
+        !/^sha256:[0-9a-f]{64}$/u.test(access.capabilityCid ?? '') ||
+        typeof access.connection !== 'string' || !access.connection ||
+        typeof access.resource !== 'string' || !access.resource)) {
     throw new TypeError('InvalidClientCheckInstallation');
   }
   const environmentCid = moon.clientProgramCheckingEnvironmentCid(environment);
   const compiler = JSON.parse(moon.clientProgramCheckCompilerIdentity());
   const checkingContext = JSON.parse(moon.clientProgramCheckContextIdentity(environment));
   const aliases = publication?.aliases ?? [];
+  const tableWrites = publication?.tableWrites ?? [];
   if (publication !== undefined &&
       publication.environmentCid !== environmentCid) {
     throw new TypeError('InvalidClientCheckInstallation');
@@ -81,18 +86,43 @@ export function installNodeClientCheck({moon, environment, publication,
       left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
   };
 
+  // Table names have their own installed write scopes. A Source read decision
+  // cannot disclose or authorize a destination. This preparation decision
+  // discloses metadata only; the Effect still requires its ordinary approval
+  // and current commit authorization against the sealed operation.
+  const writeAccesses = tableWriteAccesses.map(access => ({...access}));
+  const visibleTableWrites = async signal => {
+    const visibleCapabilities = new Set();
+    for (const access of writeAccesses) {
+      signal?.throwIfAborted();
+      let decision;
+      try {
+        decision = await access.authorization.authorize('preparation', {
+          connection: access.connection, resource: access.resource,
+          operation: 'write',
+        }, {subjectCid: access.capabilityCid, signal});
+      } catch (cause) {
+        if (signal?.aborted) throw cause;
+        continue;
+      }
+      if (decision?.action === 'dispatch') visibleCapabilities.add(access.capabilityCid);
+    }
+    return tableWrites.filter(binding => visibleCapabilities.has(binding.capabilityCid));
+  };
+
   // Keyed by this Host over everything the verdict is about: the audience
   // and its disclosure policy, the exact source and format, the scope, the
   // compiler, both reporting schema identities and public checking selections,
   // the visible names and supplied
   // bindings. Equal requests give an equal reference here; the reference is
   // not a public hash of supplied values.
-  const contextRef = (principalId, input, parameters, visible, kind) => {
+  const contextRef = (principalId, input, parameters, visible, visibleWrites, kind, scope) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
       compiler, reason_schema_cid: checkReasonSchemaCid,
       outcome_schema_cid: checkOutcomeSchemaCid,
-      checking_context: checkingContext, visible_aliases: visible};
+      checking_context: checkingContext, visible_aliases: visible,
+      ...(visibleWrites.length === 0 ? {} : {visible_table_writes: visibleWrites})};
     let preimage;
     try {
       preimage = canonicalJson({...bound,
@@ -113,19 +143,29 @@ export function installNodeClientCheck({moon, environment, publication,
     .update('actql-check-input/0.1\0').update(documentId).update('\0')
     .update(bytes).digest('hex')}`;
 
-  const check = async ({principalId, kind, input, parameters, signal}) => {
+  const check = async request => {
+    const {principalId, kind, input, parameters, signal, scope} = request;
+    if (!['template_only', 'bound_input'].includes(scope) || !['text', 'program'].includes(kind) ||
+        scope === 'template_only' && Object.hasOwn(request, 'parameters')) {
+      const error = new TypeError('InvalidCheckRequest');
+      error.code = 'InvalidCheckRequest';
+      throw error;
+    }
     // One opaque reference for this reporting attempt, independent of source,
     // context, authorization and the presence of any protected Source.
     const correlationRef = `corr:${randomBytes(16).toString('hex')}`;
     signal?.throwIfAborted();
     const visible = await visibleAliases(signal);
+    const visibleWrites = await visibleTableWrites(signal);
     signal?.throwIfAborted();
     if (kind === 'program') {
       const document = JSON.stringify(input);
       const supplied = parameters == null ? undefined : JSON.stringify(parameters);
-      const outcome = JSON.parse(moon.clientProgramCheckProgram(document, environment, JSON.stringify({environmentCid, aliases: visible}), supplied,
-        contextRef(principalId, input, parameters, visible, kind), revision('program', document),
-        supplied === undefined ? undefined : revision('parameters', supplied), correlationRef));
+      const outcome = JSON.parse(moon.clientProgramCheckProgram(document, environment,
+        JSON.stringify({environmentCid, aliases: visible,
+          ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}), supplied,
+        contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope), revision('program', document),
+        supplied === undefined ? undefined : revision('parameters', supplied), correlationRef, scope));
       return validCheckOutcome(outcome) ? outcome : failed('check_internal', correlationRef);
     }
     const declarations = input.parameterDeclarations === undefined
@@ -134,12 +174,13 @@ export function installNodeClientCheck({moon, environment, publication,
       JSON.stringify(parameters);
     const outcome = JSON.parse(moon.clientProgramCheckSource(input.text,
       input.format, environment,
-      JSON.stringify({environmentCid, aliases: visible}),
+      JSON.stringify({environmentCid, aliases: visible,
+        ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}),
       declarations, supplied,
-      contextRef(principalId, input, parameters, visible),
+      contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope),
       revision('source', input.text),
       declarations === undefined ? undefined : revision('parameter_declarations', declarations),
-      supplied === undefined ? undefined : revision('parameters', supplied), correlationRef));
+      supplied === undefined ? undefined : revision('parameters', supplied), correlationRef, scope));
     return validCheckOutcome(outcome) ? outcome : failed('check_internal', correlationRef);
   };
   // The ingress's existing connection authorization owner determines whether

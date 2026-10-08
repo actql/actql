@@ -11,8 +11,9 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
 
 export function openNodeInferCaptureCustody({moon, control, operation, plan,
   store, storeAuthorityCid, sourceEvidence = [], replay = false, faultInjection,
-  publicationFor, durableCalls = false}) {
-  if (typeof publicationFor !== 'function' || !Array.isArray(sourceEvidence)) {
+  publicationFor, durableCalls = false, captureOnly = false}) {
+  if ((!captureOnly && typeof publicationFor !== 'function') ||
+      captureOnly && !durableCalls || !Array.isArray(sourceEvidence)) {
     throw new TypeError('InvalidInferCaptureCustody');
   }
   let issuance, publication, capture, exporter, captureOutput, count;
@@ -26,6 +27,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   let settling;
   let observeModelEntry;
   let modelEntryFor;
+  const durableSettlements = new Map();
 
   // A failed write retains its exact physical owner. Cleanup retries only
   // that write, never operation.run or the provider.
@@ -198,6 +200,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     if (!['SavedSuccess', 'SavedFailure'].includes(observed?.state)) {
       throw new Error('InferSettlementNotDurable');
     }
+    durableSettlements.set(slot, current.entry.attemptCid);
     await faultInjection?.('infer_model_settlement_committed', {slot,
       scopeCid: current.entry.scopeCid, attemptCid: current.entry.attemptCid, state: observed.state});
     if (!checked(moon.clientProgramCleanupInferCaptureExport(current.exporter))) throw pending();
@@ -213,9 +216,15 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     await persistSourceObservation();
     modelEvidence.length = 0;
     for (let slot = 0; slot < count; slot++) {
+      if (captureOnly) {
+        const entry = modelEntryFor?.(slot);
+        if (entry === undefined || durableSettlements.get(slot) !== entry.attemptCid) {
+          throw new Error('InferSettlementNotDurable');
+        }
+      }
       // Replay already adopted verified slot records and their original
       // attempt proofs. It must not issue a new physical attempt or accounting.
-      if (!replay) {
+      if (!replay && !captureOnly) {
         const proof = operation.attemptEvidence(slot);
         for (const [kind, name] of [
           ['attempt', 'model_call_attempt'],
@@ -246,6 +255,13 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       if (progress._0) { exportComplete = true; break; }
       await yieldEventLoop();
     }
+    if (captureOnly) {
+      // Each original slot already reached scoped private Store custody at
+      // Settling. Multiple components must not compete for the legacy single
+      // whole-bundle cell. The complete Run issuer is retained by the parent.
+      captureStored = true;
+      return;
+    }
     await hold('model_capture_bundle', -1, wire,
       moon.clientProgramInferCaptureExportIdentity(exporter));
     if (publication === undefined) {
@@ -274,11 +290,21 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     captureStored = true;
   };
   return Object.freeze({custody, retainCompleted, persistStoppedAttempts,
+    modelEvidence() {return captureStored ? Object.freeze([...modelEvidence]) : undefined;},
     // This immutable original is available only after the existing Store
     // commit. It conveys no read/capture permission and retains no new owner.
     evaluationBundle() {
       if (!captureStored || !exportComplete || reclaimed) return undefined;
-      return Object.freeze({wire, cid: moon.clientProgramInferCaptureExportIdentity(exporter), count});
+      const calls = [];
+      for (let slot = 0; slot < count; slot++) {
+        const call = moon.clientProgramInferCaptureCall(capture, slot);
+        const outcome = moon.clientProgramInferCaptureOutcome(capture, slot);
+        if (call === undefined || outcome === undefined) return undefined;
+        calls.push(Object.freeze({slotCid: moon.strategyRunEvidenceIdentity(call),
+          callWire: moon.strategyRunEvidenceJson(call), outcome}));
+      }
+      return Object.freeze({wire, cid: moon.clientProgramInferCaptureExportIdentity(exporter), count,
+        calls: Object.freeze(calls)});
     },
     configureModelJournal({observe, entry}) {
       if (!durableCalls || typeof observe !== 'function' || observeModelEntry !== undefined) {
