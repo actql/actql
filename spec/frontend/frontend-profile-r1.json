@@ -764,12 +764,14 @@
         "|> DROP",
         "|> RENAME",
         "|> AS",
-        "|> ASSERT UNIQUE BY (fields)"
+        "|> ASSERT UNIQUE BY (fields)",
+        "|> DISTINCT"
       ],
       "canonical_lowering": "shared Query AST and ordinary Steps",
       "preconditions": [
         "snapshot field slots",
-        "range-alias preservation"
+        "range-alias preservation",
+        "DISTINCT compares visible value slots and preserves only surviving range columns"
       ],
       "spec_section": "7.2-7.4",
       "execution_evidence_ids": [],

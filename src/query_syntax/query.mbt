@@ -112,6 +112,7 @@ pub(all) enum QueryOperation {
   // ORDER windows either consume SELECT aliases or the current projected rows.
   OrderAnalytic(Array[Projection], Bool)
   Select(Array[Projection], Bool)
+  Distinct
   Order(Array[SortTerm])
   Limit(QueryInteger, QueryInteger)
 }
@@ -449,6 +450,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
         ),
       )
     Select(xs, distinct) => Some(Select(copy_projections(xs), distinct))
+    Distinct => Some(Distinct)
     Order(xs) => Some(Order(xs.copy()))
     Limit(count, offset) => Some(Limit(count, offset))
   }
@@ -2412,6 +2414,9 @@ fn QueryParser::pipe_tail(
         }
         operations.push(Order(terms))
       }
+    } else if self.has("DISTINCT") {
+      self.keyword("DISTINCT")
+      operations.push(Distinct)
     } else if self.has("SELECT") {
       self.keyword("SELECT")
       let distinct = self.has("DISTINCT")

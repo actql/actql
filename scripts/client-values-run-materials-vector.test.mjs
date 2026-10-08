@@ -792,8 +792,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('ba59c48eb915694484664a7daf7f839e492c36eae44137993f39130793c59672'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('afb2b3cedb82f86b5296376ac0dd10cee8991082c1f05971768059bb52d77e2b'));
-  assert.equal(current.run.run_definition_cid,
+  // Retain the pre-Pipe-DISTINCT grammar and its independently authored Run.
+  assert.equal(vector(pin('440dfe0c1508b744e4ce22e6729dc362678785119932aa142aba313dc57b8680'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('64f4e1246e3493acf214c0010568f156f7fefc026fb3c0bb07bf59c5d9dcea2f'));
+  assert.equal(current.run.run_definition_cid,
+    pin('d2834b5d214993feb6280e176d6c9310aecfa1a5c59092484293d00a4371e528'));
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));

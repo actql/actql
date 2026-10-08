@@ -436,6 +436,7 @@ pub(all) enum QueryOperation {
   AnalyticExpressions(Array[Projection], Array[NamePart])
   OrderAnalytic(Array[Projection], Bool)
   Select(Array[Projection], Bool)
+  Distinct
   Order(Array[SortTerm])
   Limit(QueryInteger, QueryInteger)
 }
