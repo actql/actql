@@ -85,6 +85,8 @@ pub fn reclaim_stopped_resident_retained_input(@remote_journal.Journal, @executi
 
 pub fn reclaim_stopped_resident_source_output(@remote_journal.Journal, ResidentRunAdmission, @execution_site.ExecutionSite, @remote_resident_site.ResidentSiteDelegation, String, String, @remote_transfer_journal.Journal, @filesystem.Root, String, @remote_standard_host.NativeRemoteStandardTransferBindingLimits, () -> Bool, recorded? : @run_publication.RecordedRunPublication?) -> Result[@run_publication_host.ClientRetainedSourceCleanup, ResidentStoppedSourceCleanupIssue]
 
+pub fn resident_completed_consumer_producer_identity(@remote_journal.Journal, ResidentRunAdmission, @remote_site_protocol.DispatchRequest, String) -> Result[String, ResidentHostIssue]
+
 pub fn resident_completed_holder_claimant(@remote_journal.Journal, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, Int, String, String) -> Result[String?, ResidentHostIssue]
 
 pub fn resident_holder_process_hold_identity(@remote_journal.Journal, ResidentRunAdmission, String, String, recorded_source? : @run_publication.RecordedRunPublication?) -> Result[String, ResidentHostIssue]

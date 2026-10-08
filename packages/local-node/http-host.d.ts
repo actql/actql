@@ -1,4 +1,5 @@
 import type {HostInstallation} from './index.js';
+import type {HostObservationConnection} from './observation.js';
 export type {HostCapacityPolicy} from './host-policy.js';
 export type InstalledRemoteHostOptions = HostInstallation & Readonly<{
   directory: string;
@@ -14,5 +15,6 @@ export type InstalledRemoteHostOptions = HostInstallation & Readonly<{
 export declare function openInstalledRemoteHttpHost(options: InstalledRemoteHostOptions): Promise<Readonly<{
   /** Attach directly to a Node HTTP(S) server. */
   handler: (request: any, response: any) => void;
+  observationStatus: HostObservationConnection['status'];
   close: () => Promise<unknown>;
 }>>;

@@ -10,6 +10,58 @@ function checked(result) {
     {code: 'InvalidCoordinatorOwnerResult'});
 }
 
+// Portable construction/admission only. Context is not retained readiness;
+// persist the original returned binding JSON/CID before requesting retention.
+export const bundleRetention = Object.freeze({
+  prepareDistribution: members => checked(
+    owner.coordinatorBundleDistributionPrepare(members)),
+  distributionIdentity: owner.coordinatorBundleDistributionIdentity,
+  distributionJson: value => checked(owner.coordinatorBundleDistributionJson(value)),
+  distributionProjection: owner.coordinatorBundleDistributionProjection,
+  distributionContains: owner.coordinatorBundleDistributionContains,
+  admitDistributionJson: (body, cid) => checked(
+    owner.coordinatorBundleDistributionAdmitJson(body, cid)),
+  prepareHoldScope: value => checked(owner.coordinatorBundleHoldScopePrepare(
+    value.distribution, value.coordinatorAuthority, value.workspaceId,
+    value.authorityScopeCid, value.environment, value.setRevisionCid,
+    value.runtimeBundleCid, value.siteKey, value.siteGeneration, value.attemptId)),
+  holdScopeIdentity: owner.coordinatorBundleHoldScopeIdentity,
+  holdScopeJson: value => checked(owner.coordinatorBundleHoldScopeJson(value)),
+  holdScopeProjection: owner.coordinatorBundleHoldScopeProjection,
+  admitHoldScopeJson: (distribution, body, cid) => checked(
+    owner.coordinatorBundleHoldScopeAdmitJson(distribution, body, cid)),
+  holdBindingIdentity: owner.coordinatorBundleHoldBindingIdentity,
+  holdBindingJson: value => checked(owner.coordinatorBundleHoldBindingJson(value)),
+  holdBindingProjection: owner.coordinatorBundleHoldBindingProjection,
+  holdBindingScope: value => checked(owner.coordinatorBundleHoldBindingScope(value)),
+  admitHoldBindingJson: (distribution, body, cid) => checked(
+    owner.coordinatorBundleHoldBindingAdmitJson(distribution, body, cid)),
+  prepareCustodyContextQuery: (distribution, scope) => checked(
+    owner.coordinatorBundleCustodyContextQueryPrepare(distribution, scope)),
+  prepareCustodyRequest: (distribution, binding, operation) => checked(
+    owner.coordinatorBundleCustodyRequestPrepare(distribution, binding, operation)),
+  custodyRequestIdentity: owner.coordinatorBundleCustodyRequestIdentity,
+  custodyRequestJson: value => checked(owner.coordinatorBundleCustodyRequestJson(value)),
+  custodyRequestOperation: owner.coordinatorBundleCustodyRequestOperation,
+  custodyRequestScope: owner.coordinatorBundleCustodyRequestScope,
+  custodyRequestBinding: value => owner.coordinatorBundleCustodyRequestBindings(value)[0],
+  admitCustodyRequestJson: (body, cid) => checked(
+    owner.coordinatorBundleCustodyRequestAdmitJson(body, cid)),
+  admitCustodyResponseJson: (request, body, cid) => checked(
+    owner.coordinatorBundleCustodyResponseAdmitJson(request, body, cid)),
+  custodyResponseIdentity: owner.coordinatorBundleCustodyResponseIdentity,
+  custodyResponseJson: value => checked(owner.coordinatorBundleCustodyResponseJson(value)),
+  custodyResponseKind: owner.coordinatorBundleCustodyResponseKind,
+  custodyResponseBinding: owner.coordinatorBundleCustodyResponseBinding,
+  custodyResponseObservation: owner.coordinatorBundleCustodyResponseObservationText,
+  custodyResponseCatalog: value =>
+    owner.coordinatorBundleCustodyResponseCatalogText(value) || undefined,
+  custodyResponseRevision: value => {
+    const revision = owner.coordinatorBundleCustodyResponseRevisionText(value);
+    return revision === '' ? undefined : Number(revision);
+  },
+});
+
 export const createJournal = authority =>
   checked(owner.coordinatorCreateJournal(authority));
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {clientWireCorpus, connection, profile, ref}
   from './fixtures/client-wire-contract-corpus.mjs';
-import {submissionCheckWireCorpus} from './fixtures/submission-check-wire-corpus.mjs';
+import {submissionCheckWireCorpus, submissionProgramCheckWireCorpus} from './fixtures/submission-check-wire-corpus.mjs';
 import {validClientProfile, validClientAdmission, validRunRef,
   validClientConnection, validHeldRequest, validRequestLookup, validSubmitReply, validSubmissionRef,
   validSubmissionLookup, validSubmissionOutcome}
@@ -18,7 +18,7 @@ import {isAbsolute, join} from 'node:path';
 // An optional, independently authored JSON array can add authority-evolution
 // probes without rewriting this harness or deriving expectations from a product.
 // Select named probes with the ordinary --test-name-pattern and nonzero wrapper.
-const corpus = [...clientWireCorpus, ...submissionCheckWireCorpus.map(entry =>
+const corpus = [...clientWireCorpus, ...[...submissionCheckWireCorpus, ...submissionProgramCheckWireCorpus].map(entry =>
   ({...entry, requestId: 'independent-check'}))];
 const extraCorpusFile = process.env.ACTQL_TEST_CLIENT_WIRE_EXTRA_CORPUS;
 if (extraCorpusFile) {
@@ -71,6 +71,9 @@ let reply = profile;
 let active;
 const requests = [];
 function responseValue(entry, body) {
+  if (entry.kind === 'submission' && entry.operation === 'start' &&
+      ['not_accepted', 'preparation_failed'].includes(entry.value.kind)) return {...entry.value,
+    submissionRef: body.submissionRef, intentCid: body.intentCid};
   if (entry.kind === 'submission' && entry.operation === 'start') return {
     ...readySubmission(body, entry.value.admission), unresolvedHistory: entry.value.unresolvedHistory};
   if (entry.kind === 'submission' && entry.operation === 'aql') return {...entry.value,
@@ -195,7 +198,7 @@ function assertResponseBoundary(entry, selected, actual) {
   if (route === 'submit-intent') assert.equal(requests[1].body.kind,
     entry.operation === 'aql' ? 'aql' : 'program');
   if (entry.expected) {
-    if (entry.operation === 'aql') {
+    if (entry.kind === 'submission' && ['not_accepted', 'preparation_failed'].includes(entry.value.kind)) {
       assert.equal(actual.code, 1);
       assert.equal(actual.stderr, `actql-native-client: ${entry.value.problem.code}\n`,
         'A valid negative submission must retain its original Owner problem, not transport uncertainty');
@@ -231,6 +234,7 @@ try {
     await writeFile(join(root, 'connection.json'), JSON.stringify(selected));
     await writeFile(join(root, 'ref.json'),
       JSON.stringify(entry.kind === 'run_ref' ? entry.value : ref));
+    if (entry.program) await writeFile(join(root, 'program.json'), JSON.stringify(entry.program));
     if (entry.operation === 'aql') {
       await writeFile(join(root, 'source.sql'), entry.source);
       if (entry.declarations) await writeFile(join(root, 'declarations.json'), JSON.stringify(entry.declarations));
