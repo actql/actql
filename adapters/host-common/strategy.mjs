@@ -318,12 +318,12 @@ export async function runInstalledStrategy(
   const programHasEffects = core.programHasEffects?.(setup) === true;
   const resultInventory = core.resultInventory?.(setup) ?? [];
   if (!Array.isArray(resultInventory) ||
-      (resultInventory.length > 0 && programDefinitionCid === undefined)) {
+      ((resultInventory.length > 0 || programHasEffects) && programDefinitionCid === undefined)) {
     throw new StrategyHostError('InvalidCheckedResultInventory');
   }
   const checkedResultInventory = Object.freeze(resultInventory.map(result =>
     Object.freeze({name: result.name, task: result.task})));
-  const publicationInventory = checkedResultInventory.length === 0
+  const publicationInventory = checkedResultInventory.length === 0 && !programHasEffects
     ? undefined
     : Object.freeze({
       programDefinitionCid,

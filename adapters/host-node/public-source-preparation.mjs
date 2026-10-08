@@ -17,7 +17,8 @@ function checkedPublication(moon, environment, publication) {
     throw new TypeError('InvalidPublicSourceEnvironment');
   }
   const selected = publication ?? {environmentCid, aliases: []};
-  if (!exact(selected, ['environmentCid', 'aliases']) ||
+  const hasWrites = Object.hasOwn(selected, 'tableWrites');
+  if (!exact(selected, ['environmentCid', 'aliases', ...(hasWrites ? ['tableWrites'] : [])]) ||
       selected.environmentCid !== environmentCid ||
       !Array.isArray(selected.aliases) ||
       selected.aliases.length > maxAliases ||
@@ -31,7 +32,10 @@ function checkedPublication(moon, environment, publication) {
     throw new TypeError('InvalidPublicSourcePublication');
   }
   const wire = JSON.stringify(selected);
-  if (Buffer.byteLength(wire) > maxPublicationBytes) {
+  if (Buffer.byteLength(wire) > maxPublicationBytes || hasWrites &&
+      (!Array.isArray(selected.tableWrites) || selected.tableWrites.length > maxAliases ||
+       typeof moon.clientProgramSourcePublicationValid !== 'function' ||
+       !moon.clientProgramSourcePublicationValid(environment, wire))) {
     throw new TypeError('InvalidPublicSourcePublication');
   }
   return wire;

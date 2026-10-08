@@ -13,7 +13,6 @@ struct CheckedPublicationInventory {
 ///|
 pub(all) enum PublicationInventoryIssue {
   InvalidProgramDefinitionCid
-  EmptyInventory
   LengthMismatch
   InvalidTask(Int)
   DuplicateResult(String)
@@ -32,9 +31,6 @@ pub fn prepare_checked_publication_inventory(
 ) -> Result[CheckedPublicationInventory, PublicationInventoryIssue] {
   if !valid_cid(program_definition_cid) {
     return Err(InvalidProgramDefinitionCid)
-  }
-  if result_names.is_empty() {
-    return Err(EmptyInventory)
   }
   if result_names.length() != result_tasks.length() {
     return Err(LengthMismatch)

@@ -276,6 +276,8 @@ pub fn client_effect_result_import_observation_json(ClientEffectResultImportObse
 
 pub fn client_effect_run_start_current(ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
 
+pub fn client_effect_table_write_binding(PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, ClientEffectMemberDescriptorIssue]
+
 pub fn client_execution_material_template_cid(ClientExecutionMaterial) -> String
 
 pub fn client_execution_material_template_wire(ClientExecutionMaterial) -> String

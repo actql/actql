@@ -265,7 +265,8 @@ fn decode(
         Err(issue) => raise Abort(Decode(issue))
       },
     )
-    let results = names(required(stage, "results"), true)
+    let results_node = required(stage, "results")
+    let results = names(results_node, false)
     let table_inputs = match @wire.lookup(stage, "table_inputs") {
       Some(value) => names(value, true)
       None => []
@@ -273,6 +274,11 @@ fn decode(
     let effects = match @wire.lookup(stage, "effects") {
       Some(value) => names(value, false)
       None => []
+    }
+    // Effects are roots even without public Results. This is structural syntax,
+    // not authorization: every Effect still needs the common semantic checker.
+    if results.is_empty() && effects.is_empty() {
+      invalid(results_node, EmptyDeclarations)
     }
     let value = {
       id: stage_id,
@@ -290,7 +296,10 @@ fn decode(
     seen[stage_id] = value
   }
   let exports_node = required(view, "results")
-  let export_names = names(exports_node, true)
+  let export_names = names(exports_node, false)
+  if export_names.is_empty() && !stages.any(stage => !stage.effects.is_empty()) {
+    invalid(exports_node, EmptyDeclarations)
+  }
   let exports_view = open(exports_node)
   let exports = export_names.map(key => {
     let export_ = object(required(exports_view, key), ["from"])

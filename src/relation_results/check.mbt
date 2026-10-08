@@ -222,6 +222,7 @@ fn check_impl(
   pipeline : @pipeline.CheckedPipeline,
   root : @decode.Cursor,
   limits : Limits,
+  empty_inventory? : Bool = false,
 ) -> CheckedResults raise Stop {
   if limits.max_results < 0 ||
     limits.max_work < 0 ||
@@ -238,7 +239,7 @@ fn check_impl(
   }
   let object = decoded(@decode.open_object(root), root)
   let names = @decode.object_field_names(root).unwrap()
-  if names.is_empty() {
+  if names.is_empty() && !empty_inventory {
     fail(root, InvalidBody)
   }
   if names.length() > limits.max_results {
@@ -332,6 +333,20 @@ pub fn check(
   limits : Limits,
 ) -> Result[CheckedResults, Issue] {
   Ok(check_impl(pipeline, source, limits)) catch {
+    Stop(issue) => Err(issue)
+  }
+}
+
+///|
+/// Check a Stage's complete Result inventory, including zero public Results.
+/// An empty inventory is not a Result or an execution root. Program/Effect
+/// checking still owns the requirement for a validated Effect root.
+pub fn check_inventory(
+  pipeline : @pipeline.CheckedPipeline,
+  source : @decode.Cursor,
+  limits : Limits,
+) -> Result[CheckedResults, Issue] {
+  Ok(check_impl(pipeline, source, limits, empty_inventory=true)) catch {
     Stop(issue) => Err(issue)
   }
 }

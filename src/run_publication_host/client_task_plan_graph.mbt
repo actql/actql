@@ -34,7 +34,7 @@ fn client_task_edge_input(
 }
 
 ///|
-/// Checked AoA nodes, their producer edges, and named Result roots. Supplied
+/// Checked AoA nodes, their producer edges, and checked Result/Effect roots. Supplied
 /// source inputs still require physical capture and admission before a Run.
 pub struct ClientTaskPlanGraph {
   wire : String
@@ -160,7 +160,14 @@ fn issue_client_task_plan_graph(
   let count = @strategy.graph_task_count(graph)
   if count == 0 ||
     count > max_nodes ||
-    @strategy.graph_result_count(graph) == 0 ||
+    (
+      @strategy.graph_result_count(graph) == 0 &&
+      (
+        !effects ||
+        !@strategy.graph_program_has_effects(graph) ||
+        effect_roots.is_empty()
+      )
+    ) ||
     (@strategy.graph_program_has_effects(graph) && !effects) ||
     !@strategy.graph_ordered_inputs_complete(graph) {
     return Err(UnsupportedGraph)
