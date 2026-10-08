@@ -4466,6 +4466,17 @@ fn compile_steps(
                         distinct_order_scope,
                         max_work,
                       )
+                    } else if distinct_order_scope {
+                      append_distinct_order_member_expression(
+                        construction,
+                        expression,
+                        selected_expressions,
+                        selected_input_scope,
+                        order_aggregate_slots + selected_output_slots,
+                        resolve,
+                        active_fields,
+                        max_work,
+                      )
                     } else {
                       match
                         @expression.append_with_properties(

@@ -42,7 +42,7 @@ export const distinctOrderRefusals = [
   'SELECT DISTINCT -amount AS amount FROM records ORDER BY records.amount',
   'FROM records AS original |> SELECT DISTINCT -amount AS amount |> ORDER BY original.amount',
 ].map((text, index) => ({name: 'distinct-order-unselected-' + index,
-  format: 'aql-text', text}));
+  format: 'aql-text', text, expectedCode: 'ClientProgramImplementationLimit'}));
 
 // The shared Source is read once; JOIN duplicates are removed using only the
 // public amount before an ORDER helper negates its evaluated output value.
@@ -72,5 +72,6 @@ distinctOrderSuccesses.push(
 for (const [index, order] of ['l.amount', 'l.id + 1', 'r.amount + 1'].entries()) {
   distinctOrderRefusals.push({name: 'distinct-order-join-unselected-' + index,
     format: 'sql', text: 'SELECT DISTINCT -l.amount AS amount FROM records AS l '
-      + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 ORDER BY ' + order});
+      + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 ORDER BY ' + order,
+    expectedCode: 'ClientProgramImplementationLimit'});
 }

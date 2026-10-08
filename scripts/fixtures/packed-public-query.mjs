@@ -103,6 +103,8 @@ import {groupOrdinalSuccesses, groupOrdinalRefusals}
   from './group-ordinal-source-input.mjs';
 import {distinctOrderSuccesses, distinctOrderRefusals}
   from './distinct-order-source-input.mjs';
+import {distinctOrderMemberSuccesses, distinctOrderMemberRefusals}
+  from './distinct-order-member-source-input.mjs';
 import {joinPropertySuccesses, joinPropertyRefusals}
   from './join-property-source-input.mjs';
 import {orderPropertySuccesses, orderPropertyRefusals}
@@ -366,7 +368,7 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   : groupStarOnly ? {successes: groupStarSuccesses, refusals: groupStarRefusals}
   : quotedIdentifiersOnly ? {successes: quotedIdentifierSuccesses, refusals: quotedIdentifierRefusals}
   : orderOrdinalOnly ? {successes: orderOrdinalSuccesses, refusals: orderOrdinalRefusals}
-  : distinctOrderOnly ? {successes: distinctOrderSuccesses, refusals: distinctOrderRefusals}
+  : distinctOrderOnly ? {successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses], refusals: [...distinctOrderRefusals, ...distinctOrderMemberRefusals]}
   : graphTraversePathsOnly ? {successes: [...graphTraverseSourceSuccesses, ...graphTraversePathSuccesses],
     refusals: [...graphTraverseSourceRefusals, ...graphTraversePathRefusals]}
   : graphTraverseOnly ? {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals}
@@ -568,6 +570,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...orderOrdinalRefusals);
   scopeInputs.successes.push(...distinctOrderSuccesses);
   scopeInputs.refusals.push(...distinctOrderRefusals);
+  scopeInputs.successes.push(...distinctOrderMemberSuccesses);
+  scopeInputs.refusals.push(...distinctOrderMemberRefusals);
   scopeInputs.successes.push(...graphRowSourceSuccesses);
   scopeInputs.refusals.push(...graphRowSourceRefusals);
   scopeInputs.successes.push(...graphMatchSourceSuccesses);
