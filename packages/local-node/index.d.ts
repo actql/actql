@@ -5,12 +5,16 @@ export type {HostCapacityPolicy} from './host-policy.js';
 /** Multiple independently published Sources: 2–128 profiles and at most
  * 128 total read bindings. Execution keeps its existing acquisition bounds. */
 export type SourceProfilePaths = readonly [string, string, ...string[]];
+/** Independently published Effect installations. The shared Environment bounds
+ * their inventory; every complete Effect Set must select one installation. */
+export type EffectProfilePaths = readonly [string, string, ...string[]];
 
 export type HostInstallation = Readonly<{
   directory?: string;
   sourceProfilePath?: string;
   sourceProfilePaths?: SourceProfilePaths;
   effectProfilePath?: string;
+  effectProfilePaths?: EffectProfilePaths;
   hostCapacityPolicy?: HostCapacityPolicy;
   resolveSourceSecret?: (...args: any[]) => any;
   resolveEffectSecret?: (...args: any[]) => any;
