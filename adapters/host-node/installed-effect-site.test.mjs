@@ -80,10 +80,12 @@ for (const outcome of ['not_started', 'stopped', 'unknown']) {
         run: context => site.execute({...context,
           openComputation: ({retainComputationOwner}) =>
             openAcquiredEffectComputation({acquired: {prepared: {}},
-              moon: {clientProgramEffectAcquisitionCount: () => 1},
+              moon: {clientProgramEffectAcquisitionCount: () => 1,
+                clientProgramEffectPrepareLocalQueryRequirement: () => ({$tag: 1, _0: 'source'}),
+                clientProgramQueryRequirementSourceRef: ref => ref},
               now: () => '2026-09-29T00:00:00.000Z',
               retainComputationOwner,
-              sourceProfile: {prepare() { return {}; }, open() {
+              sourceProfile: {admitsSource: ref => ref === 'source', prepare() { return {}; }, open() {
                 opens++;
                 throw acquisitionFailure(primary, outcome,
                   outcome === 'unknown' ? recovery : undefined);

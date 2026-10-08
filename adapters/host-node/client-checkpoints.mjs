@@ -29,6 +29,7 @@ import {retainInstalledHostInitializationFailure} from
 import {modelCheckpointMetadata} from './model-checkpoint-metadata.mjs';
 import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
   './effect-target-read-inventory.mjs';
+import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
@@ -125,9 +126,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
   if (authorization === null || typeof authorization !== 'object') {
     fail('InvalidRemoteHostAuthorization');
   }
-  // Two installed row declarations may each publish up to 64 views.
+  // Inventory admission and Checkpoints share one aggregate authority bound.
   if (sources !== undefined && (source !== undefined ||
-      !Array.isArray(sources) || sources.length < 1 || sources.length > 128 ||
+      !Array.isArray(sources) || sources.length < 1 ||
+      sources.length > MAX_INSTALLED_SOURCE_AUTHORITIES ||
       sources.some(item => typeof item?.sourceRef !== 'string' ||
         item.sourceRef.length === 0) ||
       new Set(sources.map(item => item.sourceRef)).size !== sources.length)) {
