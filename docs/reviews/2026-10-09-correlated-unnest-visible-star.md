@@ -3,6 +3,9 @@
 This unit repairs an accepted query's missing output scope. It does not add an
 UNNEST executor, alter ARRAY/NULL semantics, or assert expansion uniqueness.
 Initial base: main `f40139bab9d0fe708cac97cbb1d8df4eec95d0d5`.
+The ordinary integration merge adopts main
+`b25708aa1913cd4735d9d1b5da5558cc2bb0202d`, including #1047's repaired
+DISTINCT ARRAY reference handling and the current shared mutation checks.
 
 ## Independent counterexample
 
@@ -99,6 +102,9 @@ Focused local checks before integration:
   test variable. Neither is counted as a product failure or a successful check.
 - Selected Node star/correlated corpus and public-profile tests: **15/15**,
   `run-mcQSoO`, `focused-test-NdUFd8`.
+- After the ordinary main merge, the new scope tests and directly merged
+  DISTINCT ARRAY reference caller tests: **9/9**, `run-v1fsVL`,
+  `focused-test-UEOS1H`.
 
 At this committed preparation snapshot, exact-HEAD normal five-package packed
 Local/HTTPS acceptance is pending. Run the existing
