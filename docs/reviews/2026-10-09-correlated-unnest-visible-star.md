@@ -106,13 +106,14 @@ Focused local checks before integration:
   DISTINCT ARRAY reference caller tests: **9/9**, `run-v1fsVL`,
   `focused-test-UEOS1H`.
 
-At this committed preparation snapshot, exact-HEAD normal five-package packed
-Local/HTTPS acceptance is pending. Run the existing
+At committed source `2ab5b8e8d66af2895783621ab76acf120967e39d`, normal
+five-package production and the existing
 `node scripts/test-packed-public-query.mjs --correlated-unnest-only` consumer
-against the manifest/digest-verified clean source packages; it includes all
-fourteen existing positives plus the thirteen new positives and ten refusals.
-Do not exclude a failed fixture or read an old SHA's evidence as this HEAD's
-success. The final public receipt and package digests belong in the PR report.
+passed. Receipt `public-query-evidence-SnBUYf` records ten complete successful
+commands from that clean SHA. Each Local/HTTPS entrance covers 27 positives and
+ten refusals, including all existing correlated cases and the thirteen new
+positives. The final receipt and five package digests are retained separately
+from the earlier failed campaign below; no fixture was excluded to pass.
 
 No full Core, Wasm/Native campaign, manual CI retry or merge is performed for
 this unit. Draft CI and focused local success do not establish full integration
@@ -147,7 +148,25 @@ through the common joined-row lowerer. It changes neither the predicate nor
 the declared JOIN bound, CTE capture, stage ownership or execution strategy.
 The parameter and all original fixture rows/contracts/order remain unchanged.
 
-After this local forwarding repair, the fixed scope/caller regressions and
-existing JOIN-chain tests pass **14/14**, `run-WTr3LV`,
-`focused-test-h6UKP8`. Exact new-HEAD packed acceptance is still required; the
-failed `c6a2a0ca0` packages cannot establish the later repair's success.
+After this local forwarding repair, the scope/caller regressions and existing
+JOIN-chain tests pass **14/14**, `run-WTr3LV`, `focused-test-h6UKP8`.
+That receipt records a dirty preparation worktree based on `c6a2a0ca0`; it is
+not a clean-HEAD unit-test result. The subsequently committed `2ab5b8e8` has
+the independent normal packed success above. Failed `c6a2a0ca0` packages do
+not establish the later repair's success.
+
+## Root integration review
+
+Root independently rehashed all five retained `2ab5b8e8` tarballs against their
+unaltered clean-source manifest and final public receipt, and verified all ten
+command results and captured-output hashes. Final Local/HTTPS positive logs
+and the new named refusal logs agree with the independent selected fixtures.
+The final ordinary core/adapter admission remains mandatory; prefix inspection
+supplies only type facts and cannot grant Source access or fabricate key proof.
+
+Root fixture/profile tests pass **15/15**, `run-r44pED`. The later normal
+integration of main preserves the complete `2ab5b8e8` source tree, module and
+frontend fixture/consumer files; it adds #1050's unrelated reporting tests and
+this documentation correction. The final integration review uses source and
+artifact correspondence, not a repeated packed campaign for a new SHA.
+There is no claim of new-SHA packed, Native/Wasm or hosted CI success.
