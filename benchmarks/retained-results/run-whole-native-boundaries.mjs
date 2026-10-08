@@ -12,8 +12,8 @@ import {loadWholeRunProfile,wholeRunTemplate,admitWholeRunTrajectory} from './wh
 import {prepareNativeDirectProduct,executeNativeDirectProduct,readNativeDirectProductExecution,admitNativeDirectProduct} from './native-direct-product.mjs';
 import {nativeOwnerObservations} from './native-owner-observations.mjs';
 
-const root=process.cwd(),[planArg,profileArg,destinationArg]=process.argv.slice(2);
-assert.equal(process.argv.length,5);
+const root=process.cwd(),[planArg,profileArg,destinationArg,selectionArg]=process.argv.slice(2);
+assert([5,6].includes(process.argv.length));
 const destination=resolve(destinationArg);assert(destination!==root&&!destination.startsWith(root+sep));
 const git=args=>execFileSync('git',args,{encoding:'utf8'}).trim();
 const revision=git(['rev-parse','HEAD']);assert.equal(git(['status','--porcelain']),'');
@@ -28,8 +28,11 @@ assert.equal(witness.revision,revision);assert.equal(witness.exitCode,0);
 const candidates={canonical_json:JSON.stringify(plan.candidates.body),cid:plan.candidates.cid};
 const assignment=plan.candidates.body[5].find(a=>a[5][1]?.[9]!==null);
 assert(assignment,'ResidentBoundaryRequiresPresentedResidentAssignment');
-const schedule=['all-unknown','partial-unknown','conditions-mismatch','stale','single-candidate',
+const registered=['all-unknown','partial-unknown','conditions-mismatch','stale','single-candidate',
   'binding','stop','expiry','cleanup'];
+const schedule=selectionArg===undefined?registered:selectionArg.split(',');
+assert(schedule.length>0&&new Set(schedule).size===schedule.length);
+assert(schedule.every(name=>registered.includes(name)),'UnknownWholeRunBoundary');
 const receipts=[];
 await mkdir(destination,{mode:0o700});
 const unknown=e=>({...e,status:'unknown',reason:'quantity-unobserved',median_ms:null,minimum_ms:null,maximum_ms:null});

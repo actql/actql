@@ -1615,7 +1615,7 @@ fn main {
     return
   }
   if stop_after_task is Some(task) {
-    if empirical is Some(_) {
+    if empirical is Some(_) || normal is Some(_) {
       let held = @resources.ledger_usage(ledger)
       @standard_host.stop_strategy_dispatch(dispatch)
       // The existing Owner drains a stopped dispatch with no next task.
@@ -1629,7 +1629,14 @@ fn main {
       )
       operational_require(@resources.ledger_usage(ledger) == held)
       operational_require(held.held_bytes > 0L)
-      println("empirical-stop-retains-responsibility:" + task.to_string())
+      println(
+        (if normal is Some(_) {
+          "normal-host-stop-retains-responsibility:"
+        } else {
+          "empirical-stop-retains-responsibility:"
+        }) +
+        task.to_string(),
+      )
     }
     close_observed_run(run, ledger, task)
     @host.close_native_acquisition_runtime(acquisition)

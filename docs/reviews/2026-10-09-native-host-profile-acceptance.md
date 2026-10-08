@@ -50,3 +50,11 @@ to a nullable profile-creation cost. This is a functional setup failure, not a
 comparison sample. Its raw guard logs and release witness are retained; no
 comparison/evaluation slots were collected or replaced. The nullable lookup
 uses the same bounded decoder and does not change Source acquisition or limits.
+
+The existing shared Native request-admission runner is selected for `binding`
+and `expiry` only. These two functional runs exercise modified requests, old
+requests/state and a real-clock deadline through the same Native admission
+used by the ordinary connection. They are separate from the twelve normal
+Host boundary cases and every performance sample. The stop case explicitly
+stops the existing dispatch, observes no further task admission and retained
+cleanup responsibility, then confirms release; it is not public Run cancellation.
