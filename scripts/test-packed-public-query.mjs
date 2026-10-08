@@ -573,6 +573,7 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+if (process.argv.includes('--source-graph-member-only')) return;
 if (process.argv.includes('--in-unnest-literal-array-only')) return;
 if (process.argv.includes('--array-literal-only')) return;
 if (process.argv.includes('--correlated-unnest-only')) return;

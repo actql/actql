@@ -27,6 +27,10 @@ test('Source Graph member selection is narrow while the normal corpus retains it
   assert.ok(start >= 0 && end > start);
   assert.ok(driver.slice(start, end).includes("'--source-graph-member-only'"),
     'the explicit selection must not start the independent Planner/Effect campaigns');
+  const sourceEnd = driver.indexOf("if (process.argv.includes('--source-graph-member-only')) return;", end);
+  const restart = driver.indexOf("['string-values-restart.mjs']", end);
+  assert.ok(sourceEnd > driver.indexOf("['acceptance.mjs']", end) && restart > sourceEnd,
+    'finish Source acceptance before any unrelated retained String restart');
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(corpus.includes('scopeInputs.successes.push(...sourceGraphMemberSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...sourceGraphMemberRefusals)'));
