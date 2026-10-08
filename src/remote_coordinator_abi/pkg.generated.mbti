@@ -210,6 +210,8 @@ pub fn coordinator_payload_transition_durable_json(@publication_payload.Publicat
 
 pub fn coordinator_payload_transition_expected_revision(@publication_payload.PublicationPayloadTransition) -> Int
 
+pub fn coordinator_plan_site_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> (Int, Int64)
+
 pub fn coordinator_poll_cancel_json(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_poll_dispatch_json(@remote_site_protocol.DispatchRequest, String, Int) -> Result[String, @remote_site_protocol.DispatchIssue]
@@ -245,6 +247,8 @@ pub fn coordinator_response_durable_json(@remote_site_protocol.DurableCoordinato
 pub fn coordinator_restore_durable(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_restore_durable_output(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DurableCoordinatorOutputRecord) -> Result[@remote_site_protocol.CoordinatorOutputRecord, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_select_site_candidate(Array[Int64], Array[String]) -> Int
 
 pub fn coordinator_transition_durable_json(@remote_site_protocol.DurableCoordinatorDispatchRecord, @remote_site_protocol.CoordinatorDispatchTransition) -> Result[String, @remote_site_protocol.DispatchIssue]
 
