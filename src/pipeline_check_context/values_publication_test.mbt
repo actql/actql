@@ -253,7 +253,10 @@ test "values resources close exact operation requirements as future execution ch
         ),
       )
       assert_true(
-        physical_equal(check.recursive.rows.wire.bound.site, check.site),
+        physical_equal(
+          values_wire_bound_site(check.recursive.rows.wire.bound).unwrap(),
+          check.site,
+        ),
       )
       assert_true(check.recursive_limit is None)
       assert_eq(
@@ -331,9 +334,8 @@ test "recursive values execution checks expose selected fields and canonical sco
     "{\"type\":\"array\",\"items\":{\"type\":\"number\"},\"default\":[1,2]}", "[{\"x\":{\"$param\":\"n\"}}]",
     5, 1,
   )
-  let index = values_publication_queries_index(
-    operation_cells_queries(rows.wire.bound.cells),
-  )
+  let cells = values_wire_bound_cells(rows.wire.bound).unwrap()
+  let index = values_publication_queries_index(operation_cells_queries(cells))
   let resolved = resolve_program_values_resources(
     index,
     values_publication_limits(),

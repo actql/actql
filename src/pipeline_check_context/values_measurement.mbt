@@ -2,6 +2,7 @@
 pub(all) enum ValuesMeasurementIssue {
   InvalidRequirement
   ForeignOwner
+  NeedsBinding(Int, Int)
   Encoding(@encode.EncodeFailure)
 } derive(Debug)
 
@@ -19,24 +20,21 @@ pub fn measure_operation_values_rows(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[(Int, Int, Int), ValuesMeasurementIssue] {
-  let requirements = cells.requirements
-  guard requirements.entries.get(requirement_index) is Some(site) else {
-    return Err(InvalidRequirement)
+  let owner = match bound_values_resource_owner(cells, requirement_index) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  guard site.requirement
-    is @pipeline.ValuesRequirement(@values.ResolvePublicationResources) else {
-    return Err(InvalidRequirement)
-  }
-  guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
-    return Err(ForeignOwner)
-  }
-  guard step.operation is @pipeline.Values(values) else {
-    return Err(ForeignOwner)
-  }
-  if site.index != 0 ||
-    @pipeline.operation_obligations_scope(site.obligations) != @pipeline.Body {
-    return Err(ForeignOwner)
-  }
+  measure_values_resource_rows(owner, max_bytes, max_nodes, max_depth)
+}
+
+///|
+fn measure_values_resource_rows(
+  owner : ValuesResourceOwner,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, Int, Int), ValuesMeasurementIssue] {
+  let values = owner.values
   let schema = @values.output_schema(values)
   let width = @schema.field_count(schema)
   let mut next_binding = 1
@@ -50,9 +48,7 @@ pub fn measure_operation_values_rows(
         let field = @schema.field_at(schema, column).unwrap()
         @encode.key(out, @schema.reference_name(field.name))
         let (value, next) = match
-          resolved_values_cell(
-            cells, site, values, requirement_index, row, row_index, column, next_binding,
-          ) {
+          values_resource_cell(owner, row, row_index, column, next_binding) {
           Ok(v) => v
           Err(e) => return Err(e)
         }

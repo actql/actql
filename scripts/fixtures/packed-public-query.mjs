@@ -14,6 +14,7 @@ import {pipeJoinRangesSuccesses, pipeJoinRangesRefusals} from './pipe-join-range
 import {starReplaceSuccesses, starReplaceRefusals} from './star-replace-source-input.mjs';
 import {qualifySuccesses, qualifyRefusals, qualifyExecutionFailures} from './qualify-source-input.mjs';
 import {namedWindowSuccesses, namedWindowRefusals} from './named-window-source-input.mjs';
+import {upperSuccesses, upperRefusals, upperExecutionFailures} from './upper-source-input.mjs';
 import {replaceCallSuccesses, replaceCallRefusals, replaceCallExecutionFailures}
   from './replace-call-source-input.mjs';
 import {selectAllSuccesses, selectAllRefusals} from './select-all-source-input.mjs';
@@ -46,6 +47,8 @@ import {selectAggregateExpressionSuccesses, selectAggregateExpressionRefusals, s
   from './select-aggregate-expression-source-input.mjs';
 import {havingAggregateSuccesses, havingAggregateRefusals, havingAggregateExecutionFailures}
   from './having-aggregate-source-input.mjs';
+import {windowScalarSuccesses, windowScalarRefusals, windowScalarExecutionFailures}
+  from './window-scalar-source-input.mjs';
 import {analyticCountifSuccesses, analyticCountifRefusals, analyticCountifExecutionFailures}
   from './analytic-countif-source-input.mjs';
 import {analyticStringAggSuccesses, analyticStringAggRefusals, analyticStringAggExecutionFailures}
@@ -154,6 +157,7 @@ const selectAggregateExpressionOnly = process.env.ACTQL_TEST_SELECT_AGGREGATE_EX
 const havingAggregateOnly = process.env.ACTQL_TEST_HAVING_AGGREGATE_ONLY === '1';
 const limitParameterOnly = process.env.ACTQL_TEST_LIMIT_PARAMETER_ONLY === '1';
 const ifnullOnly = process.env.ACTQL_TEST_IFNULL_ONLY === '1';
+const windowScalarOnly = process.env.ACTQL_TEST_WINDOW_SCALAR_ONLY === '1';
 const analyticStringAggOnly = process.env.ACTQL_TEST_ANALYTIC_STRING_AGG_ONLY === '1';
 const analyticCountifOnly = process.env.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY === '1';
 const groupedInOnly = process.env.ACTQL_TEST_GROUPED_IN_ONLY === '1';
@@ -217,6 +221,7 @@ const graphUnionOnly = process.env.ACTQL_TEST_GRAPH_UNION_ONLY === '1';
 const selectAllOnly = process.env.ACTQL_TEST_SELECT_ALL_ONLY === '1';
 const starExclusionOnly = process.env.ACTQL_TEST_STAR_EXCLUSION_ONLY === '1';
 const characterLengthOnly = process.env.ACTQL_TEST_CHARACTER_LENGTH_ONLY === '1';
+const upperOnly = process.env.ACTQL_TEST_UPPER_ONLY === '1';
 const replaceCallOnly = process.env.ACTQL_TEST_REPLACE_CALL_ONLY === '1';
 const sqrtOnly = process.env.ACTQL_TEST_SQRT_ONLY === '1';
 const ceilingOnly = process.env.ACTQL_TEST_CEILING_ONLY === '1';
@@ -230,7 +235,7 @@ const pipeJoinInputOnly = process.env.ACTQL_TEST_PIPE_JOIN_INPUT_ONLY === '1';
 const starReplaceOnly = process.env.ACTQL_TEST_STAR_REPLACE_ONLY === '1';
 const qualifyOnly = process.env.ACTQL_TEST_QUALIFY_ONLY === '1';
 const namedWindowOnly = process.env.ACTQL_TEST_NAMED_WINDOW_ONLY === '1';
-const scopeOnly = analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly;
+const scopeOnly = upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -276,10 +281,12 @@ const scopeInputs = inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArrayS
   : sqrtOnly ? {successes: sqrtSuccesses, refusals: sqrtRefusals, executionFailures: sqrtExecutionFailures}
   : ceilingOnly ? {successes: ceilingSuccesses, refusals: ceilingRefusals, executionFailures: ceilingExecutionFailures}
   : unaryPlusOnly ? {successes: unaryPlusSuccesses, refusals: unaryPlusRefusals, executionFailures: unaryPlusExecutionFailures}
+  : upperOnly ? {successes: upperSuccesses, refusals: upperRefusals, executionFailures: upperExecutionFailures}
   : replaceCallOnly ? {successes: replaceCallSuccesses, refusals: replaceCallRefusals, executionFailures: replaceCallExecutionFailures}
   : characterLengthOnly ? {successes: characterLengthSuccesses, refusals: characterLengthRefusals}
   : selectAllOnly ? {successes: selectAllSuccesses, refusals: selectAllRefusals} : starExclusionOnly ? {successes: starExclusionSuccesses, refusals: starExclusionRefusals} : typedJsonOnly ? {successes: typedJsonLiteralSuccesses, refusals: typedJsonLiteralRefusals} : analyticPartitionExpressionOnly ? {successes: analyticPartitionExpressionSuccesses, refusals: analyticPartitionExpressionRefusals, executionFailures: analyticPartitionExpressionExecutionFailures} : graphSubtractionOnly ? {successes: graphSubtractionSourceSuccesses, refusals: graphSubtractionSourceRefusals, executionFailures: graphSubtractionSourceExecutionFailures} : graphUnionOnly ? {successes: graphUnionSourceSuccesses, refusals: graphUnionSourceRefusals, executionFailures: graphUnionSourceExecutionFailures} : statisticalAggregateOnly ? {successes: statisticalAggregateSuccesses, refusals: statisticalAggregateRefusals, executionFailures: statisticalAggregateExecutionFailures} : limitParameterOnly ? {successes: limitParameterSuccesses, refusals: limitParameterRefusals} : havingObjectPropertyOnly ? {successes: havingObjectPropertySuccesses, refusals: havingObjectPropertyRefusals, executionFailures: havingObjectPropertyExecutionFailures}
   : analyticPartitionPropertyOnly ? {successes: analyticPartitionPropertySuccesses, refusals: analyticPartitionPropertyRefusals}
+  : windowScalarOnly ? {successes: windowScalarSuccesses, refusals: windowScalarRefusals, executionFailures: windowScalarExecutionFailures}
   : analyticStringAggOnly ? {successes: analyticStringAggSuccesses, refusals: analyticStringAggRefusals, executionFailures: analyticStringAggExecutionFailures}
   : analyticCountifOnly ? {successes: analyticCountifSuccesses, refusals: analyticCountifRefusals, executionFailures: analyticCountifExecutionFailures}
   : analyticFrameParameterOnly ? {successes: analyticFrameParameterSuccesses, refusals: analyticFrameParameterRefusals}
@@ -392,6 +399,9 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...unaryPlusSuccesses);
   scopeInputs.refusals.push(...unaryPlusRefusals);
   scopeInputs.executionFailures.push(...unaryPlusExecutionFailures);
+  scopeInputs.successes.push(...upperSuccesses);
+  scopeInputs.refusals.push(...upperRefusals);
+  scopeInputs.executionFailures.push(...upperExecutionFailures);
   scopeInputs.successes.push(...replaceCallSuccesses);
   scopeInputs.refusals.push(...replaceCallRefusals);
   scopeInputs.executionFailures.push(...replaceCallExecutionFailures);
@@ -431,6 +441,9 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...aggregatePropertyOrderSuccesses);
   scopeInputs.refusals.push(...aggregatePropertyOrderRefusals);
   scopeInputs.executionFailures.push(...aggregatePropertyOrderExecutionFailures);
+  scopeInputs.successes.push(...windowScalarSuccesses);
+  scopeInputs.refusals.push(...windowScalarRefusals);
+  scopeInputs.executionFailures.push(...windowScalarExecutionFailures);
   scopeInputs.successes.push(...analyticStringAggSuccesses);
   scopeInputs.refusals.push(...analyticStringAggRefusals);
   scopeInputs.executionFailures.push(...analyticStringAggExecutionFailures);
