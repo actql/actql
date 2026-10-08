@@ -404,6 +404,10 @@ function inspectSubmissionStorage(database, enabled) {
 const epochMarkerName = 'submission-epoch-format.json';
 const intentMarkerName = 'submitted-intent-format.json';
 const retirementMarkerName = 'submitted-intent-retirement-format.json';
+const restartMarkerName = 'submission-restart-format.json';
+const restartMarker = Buffer.from(JSON.stringify({
+  version: 'actql-client-request-journal/0.1', feature: 'submission_restarts',
+}));
 const retirementMarker = Buffer.from(JSON.stringify({
   version: 'actql-client-request-journal/0.1', feature: 'submitted_intent_retirement',
 }));
@@ -463,6 +467,24 @@ function inspectIntentRetirementStorage(database, enabled) {
   }
 }
 
+function inspectRestartStorage(database, enabled) {
+  const names = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
+    AND name IN ('client_submission_restarts', 'client_submission_restart_custody')`).all();
+  if (!enabled && names.length === 0) return;
+  if (!enabled || names.length !== 2) fail('UnknownClientRequestJournalFormat');
+  const fields = database.prepare('PRAGMA table_info(client_submission_restarts)').all()
+    .map(field => field.name).sort();
+  const custodyFields = database.prepare('PRAGMA table_info(client_submission_restart_custody)').all()
+    .map(field => field.name).sort();
+  const custody = database.prepare('SELECT * FROM client_submission_restart_custody').all();
+  if (JSON.stringify(fields) !== JSON.stringify(['fresh_submission_id', 'original_submission_id', 'link_wire'].sort()) ||
+      JSON.stringify(custodyFields) !== JSON.stringify(['issued_count', 'singleton']) ||
+      custody.length !== 1 || custody[0].singleton !== 1 ||
+      !Number.isSafeInteger(custody[0].issued_count) || custody[0].issued_count < 0) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+}
+
 function inspectCancellationStorage(database, enabled) {
   const tables = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
     AND name IN ('client_cancellation_operations', 'client_cancellation_custody')`).all();
@@ -511,6 +533,10 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
   const retirementEnabled = entries.includes(retirementMarkerName);
   if (retirementEnabled && (!intentEnabled || !lstatSync(retirementPath).isFile() ||
       !readFileSync(retirementPath).equals(retirementMarker))) fail('UnknownClientRequestJournalFormat');
+  const restartPath = join(directory, restartMarkerName);
+  const restartEnabled = entries.includes(restartMarkerName);
+  if (restartEnabled && (!intentEnabled || !lstatSync(restartPath).isFile() ||
+      !readFileSync(restartPath).equals(restartMarker))) fail('UnknownClientRequestJournalFormat');
   inspectSqliteSnapshot(databasePath, database => {
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
@@ -522,6 +548,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
     inspectEpochStorage(database, epochEnabled);
     inspectIntentStorage(database, intentEnabled);
     inspectIntentRetirementStorage(database, retirementEnabled);
+    inspectRestartStorage(database, restartEnabled);
   }, {code: 'UnknownClientRequestJournalFormat',
     validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
       (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
@@ -529,6 +556,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
       (!epochEnabled || readFileSync(epochPath).equals(epochMarker)) &&
       (!intentEnabled || readFileSync(intentPath).equals(intentMarker)) &&
       (!retirementEnabled || readFileSync(retirementPath).equals(retirementMarker)) &&
+      (!restartEnabled || readFileSync(restartPath).equals(restartMarker)) &&
       JSON.stringify(readdirSync(directory).sort()) === JSON.stringify(entries)});
 }
 
@@ -712,6 +740,24 @@ export function openClientRequestJournal(directory, {
       finally {closeSync(marker);}
       syncDirectory(root);
     }
+    if (!existsSync(join(root, restartMarkerName))) {
+      transaction.run(() => database.exec(`
+        CREATE TABLE client_submission_restarts (
+          fresh_submission_id TEXT PRIMARY KEY,
+          original_submission_id TEXT NOT NULL,
+          link_wire TEXT NOT NULL
+        ) STRICT;
+        CREATE TABLE client_submission_restart_custody (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)
+        ) STRICT;
+        INSERT INTO client_submission_restart_custody VALUES (1, 0);
+      `));
+      const marker = openSync(join(root, restartMarkerName), 'wx', 0o600);
+      try {writeFileSync(marker, restartMarker); fsyncSync(marker);}
+      finally {closeSync(marker);}
+      syncDirectory(root);
+    }
     if (!existsSync(join(root, cancellationMarkerName))) {
       transaction.run(() => database.exec(`
         CREATE TABLE client_cancellation_operations (
@@ -867,6 +913,16 @@ export function openClientRequestJournal(directory, {
   const intentCount = database.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(CAST(intent_wire AS BLOB))), 0) AS bytes FROM client_submitted_intents');
   const intentIssued = database.prepare('SELECT issued_count FROM client_submitted_intent_custody WHERE singleton = 1');
   const intentRetired = database.prepare('SELECT retired_count FROM client_submitted_intent_retirement WHERE singleton = 1');
+  const restartSelect = database.prepare('SELECT * FROM client_submission_restarts WHERE fresh_submission_id = ?');
+  const restartCount = database.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(CAST(link_wire AS BLOB))), 0) AS bytes FROM client_submission_restarts');
+  const restartIssued = database.prepare('SELECT issued_count FROM client_submission_restart_custody WHERE singleton = 1');
+  const assertRestartCustody = () => {
+    const retained = restartCount.get();
+    if (!Number.isSafeInteger(retained.n) || restartIssued.get()?.issued_count !== retained.n) {
+      fail('ClientSubmissionRestartCustodyLost');
+    }
+    return retained;
+  };
   const assertIntentCustody = () => {
     const retained = intentCount.get();
     const issued = intentIssued.get()?.issued_count;
@@ -884,6 +940,82 @@ export function openClientRequestJournal(directory, {
     if (checked === undefined || control.clientSubmittedIntentCid(checked) !== identity ||
         control.clientSubmittedIntentWire(checked) !== wire) fail('InvalidClientSubmittedIntent');
     return {wire, identity};
+  };
+  const restartDecision = (submissionRef, intentCid, unresolvedHistory, actorId) => {
+    if (unresolvedHistory === undefined) return undefined;
+    if (unresolvedHistory === null || typeof unresolvedHistory !== 'object' ||
+        JSON.stringify(Object.keys(unresolvedHistory).sort()) !== JSON.stringify(['acknowledgement', 'submissionRef']) ||
+        unresolvedHistory.acknowledgement !== 'possible_prior_execution_and_effects' || !text(actorId)) {
+      fail('InvalidClientSubmissionRestart');
+    }
+    return canonicalValueJson({submissionRef: unresolvedHistory.submissionRef,
+      acknowledgement: unresolvedHistory.acknowledgement, freshSubmissionRef: submissionRef,
+      intentCid, actorId}, {dataKeys: true});
+  };
+  const checkRestartLocked = (requestId, restartWire, fields, control) => {
+    const restarts = assertRestartCustody();
+    if (restartWire === undefined) return {restarts};
+    const restart = JSON.parse(restartWire);
+    assertSubmissionCustody();
+    const prior = verifyEpochLocked(restart.submissionRef.epoch,
+      {...fields, purpose: 'lookup'}, control);
+    const originalRequestId = control.clientSubmissionRequestId(prior.handle, restart.submissionRef.nonce);
+    if (originalRequestId === undefined) fail('InvalidClientSubmissionRestart');
+    if (prior.validity !== 'expired' || intentSelect.get(originalRequestId) !== undefined) {
+      fail('ClientSubmissionRestartOriginalResolvable');
+    }
+    if (restart.submissionRef.epoch.expiresAt >= restart.freshSubmissionRef.epoch.expiresAt) {
+      fail('InvalidClientSubmissionRestart');
+    }
+    // Unknown old execution is not a new-work permit. This connection cannot
+    // discharge an existing Run/Model/Effect owner's unresolved responsibility.
+    if (select.get(fields.authorityScopeCid, originalRequestId) !== undefined) {
+      fail('ClientSubmissionRestartRequiresReconciliation');
+    }
+    if (restartSelect.get(requestId) !== undefined) fail('ClientSubmissionRestartConflict');
+    if (restarts.n >= maxRecords || restarts.n === Number.MAX_SAFE_INTEGER ||
+        restarts.bytes + Buffer.byteLength(restartWire) > 64 * 1024 * 1024) {
+      fail('ClientSubmissionRestartCapacity');
+    }
+    return {restarts, originalRequestId};
+  };
+  const retainedRestart = (row, control) => {
+    if (row === undefined) return undefined;
+    let link;
+    try {link = JSON.parse(row.link_wire);} catch (cause) {fail('ClientSubmissionRestartCorrupt', cause);}
+    let canonical;
+    try {
+      canonical = restartDecision(link?.freshSubmissionRef, link?.intentCid,
+        {submissionRef: link?.submissionRef, acknowledgement: link?.acknowledgement}, link?.actorId);
+    } catch (cause) {fail('ClientSubmissionRestartCorrupt', cause);}
+    if (link === null || typeof link !== 'object' ||
+        JSON.stringify(Object.keys(link).sort()) !== JSON.stringify([
+          'acknowledgement', 'actorId', 'freshSubmissionRef', 'intentCid', 'submissionRef']) ||
+        !cid(link.intentCid) || canonical !== row.link_wire) {
+      fail('ClientSubmissionRestartCorrupt');
+    }
+    const admitRef = ref => {
+      if (ref === null || typeof ref !== 'object' ||
+          JSON.stringify(Object.keys(ref).sort()) !== JSON.stringify(['epoch', 'nonce'])) {
+        fail('ClientSubmissionRestartCorrupt');
+      }
+      const {handle} = epochHandle(ref.epoch, control);
+      const authority = epochAuthority.get();
+      if (!validEpochAuthority(authority) ||
+          authenticateEpoch(authority.authentication_key, control.clientSubmissionEpochWire(handle)) !== ref.epoch.authenticator) {
+        fail('ClientSubmissionRestartCorrupt');
+      }
+      return control.clientSubmissionRequestId(handle, ref.nonce);
+    };
+    if (admitRef(link.submissionRef) !== row.original_submission_id ||
+        admitRef(link.freshSubmissionRef) !== row.fresh_submission_id ||
+        link.submissionRef.epoch.authorityScopeCid !== link.freshSubmissionRef.epoch.authorityScopeCid ||
+        link.submissionRef.epoch.expiresAt >= link.freshSubmissionRef.epoch.expiresAt) {
+      fail('ClientSubmissionRestartCorrupt');
+    }
+    Object.freeze(link.submissionRef.epoch); Object.freeze(link.submissionRef);
+    Object.freeze(link.freshSubmissionRef.epoch); Object.freeze(link.freshSubmissionRef);
+    return Object.freeze(link);
   };
   const retainedIntent = (row, control) => {
     const intent = control.clientSubmittedIntent(row.intent_wire, 1048576, 65536, 64);
@@ -912,9 +1044,15 @@ export function openClientRequestJournal(directory, {
       if (run === undefined || run.run_definition_cid !== outcome.admission.ref.runDefinitionCid ||
           run.namespace_id !== outcome.admission.ref.namespaceId) fail('ClientSubmittedIntentCorrupt');
     }
+    assertRestartCustody();
+    const unresolvedHistory = retainedRestart(restartSelect.get(row.submission_id), control);
+    if (unresolvedHistory !== undefined && unresolvedHistory.intentCid !== row.intent_cid) {
+      fail('ClientSubmissionRestartCorrupt');
+    }
     return Object.freeze({submissionRef: Object.freeze({epoch: Object.freeze(epoch), nonce: row.nonce}),
       requestId: row.submission_id, intentCid: row.intent_cid, intentWire: row.intent_wire,
-      phase: row.phase, revision: row.revision, outcome});
+      phase: row.phase, revision: row.revision, outcome,
+      ...(unresolvedHistory === undefined ? {} : {unresolvedHistory})});
   };
   const cancellationCount = database.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations');
   const cancellationIssued = database.prepare('SELECT issued_count FROM client_cancellation_custody WHERE singleton = 1');
@@ -1196,13 +1334,40 @@ export function openClientRequestJournal(directory, {
     },
     // Intent custody is separate from Run-definition custody. A preparing
     // receipt contains no invented execution CID and performs no dispatch.
+    checkSubmittedIntent(submissionRef, intent, {authorityScopeCid,
+      currentAuthorization, unresolvedHistory, actorId}, control) {
+      ensureOpen();
+      const original = originalIntent(intent, control);
+      const restartWire = restartDecision(submissionRef, original.identity, unresolvedHistory, actorId);
+      const fields = {authorityScopeCid, currentAuthorization};
+      const result = transaction.run(() => {
+        assertIntentCustody();
+        assertRestartCustody();
+        const verified = verifyEpochLocked(submissionRef.epoch, {...fields, purpose: 'lookup'}, control);
+        const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
+        if (requestId === undefined) fail('InvalidClientSubmittedIntent');
+        const existing = intentSelect.get(requestId);
+        if (existing !== undefined) {
+          const previous = retainedIntent(existing, control);
+          if (previous.intentCid !== original.identity) fail('ClientSubmittedIntentConflict');
+          if (restartSelect.get(requestId)?.link_wire !== restartWire) fail('ClientSubmissionRestartConflict');
+        } else {
+          if (verified.validity !== 'admissible') return {epochRejected: verified.validity};
+          checkRestartLocked(requestId, restartWire, fields, control);
+        }
+        return {requestId};
+      });
+      if (result.epochRejected !== undefined) refuseEpoch(result.epochRejected);
+      return Object.freeze(result);
+    },
     recordSubmittedIntent(submissionRef, intent, {authorityScopeCid,
-      currentAuthorization, phase = 'preparing', outcome}, control) {
+      currentAuthorization, phase = 'preparing', outcome, unresolvedHistory, actorId}, control) {
       ensureOpen();
       const original = originalIntent(intent, control);
       const verified = verifyEpoch(submissionRef.epoch, {authorityScopeCid,
         currentAuthorization, purpose: 'admit'}, control);
       const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
+      const restartWire = restartDecision(submissionRef, original.identity, unresolvedHistory, actorId);
       if (requestId === undefined || !['preparing', 'not_accepted'].includes(phase)) {
         fail('InvalidClientSubmittedIntent');
       }
@@ -1216,15 +1381,19 @@ export function openClientRequestJournal(directory, {
       }
       const result = transaction.run(() => {
         const retained = assertIntentCustody();
+        assertRestartCustody();
         const existing = intentSelect.get(requestId);
         if (existing !== undefined) {
           const previous = retainedIntent(existing, control);
           if (previous.intentCid !== original.identity) fail('ClientSubmittedIntentConflict');
+          if (restartSelect.get(requestId)?.link_wire !== restartWire) fail('ClientSubmissionRestartConflict');
           return {inserted: false, ...previous};
         }
         const current = verifyEpochLocked(submissionRef.epoch, {authorityScopeCid,
           currentAuthorization, purpose: 'admit'}, control);
         if (current.validity !== 'admissible') return {epochRejected: current.validity};
+        const {restarts, originalRequestId} = checkRestartLocked(requestId, restartWire,
+          {authorityScopeCid, currentAuthorization}, control);
         if (retained.n >= maxRecords || retained.issued === Number.MAX_SAFE_INTEGER ||
             retained.bytes + Buffer.byteLength(original.wire) > 64 * 1024 * 1024) {
           fail('ClientSubmittedIntentCapacity');
@@ -1237,6 +1406,13 @@ export function openClientRequestJournal(directory, {
         if (Number(database.prepare(`UPDATE client_submitted_intent_custody
           SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
           .run(retained.issued).changes) !== 1) fail('ClientSubmittedIntentCustodyLost');
+        if (restartWire !== undefined) {
+          database.prepare('INSERT INTO client_submission_restarts VALUES (?, ?, ?)')
+            .run(requestId, originalRequestId, restartWire);
+          if (Number(database.prepare(`UPDATE client_submission_restart_custody
+            SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
+            .run(restarts.n).changes) !== 1) fail('ClientSubmissionRestartCustodyLost');
+        }
         return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control)};
       });
       if (result.epochRejected !== undefined) refuseEpoch(result.epochRejected);

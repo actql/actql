@@ -45,6 +45,8 @@ fn mapping_context() -> Context {
     stage_id: "main",
     stage_result: "rows",
     input_schemas: [],
+    source_catalog: None,
+    model_tasks: None,
     result_name: "answer",
     captured_stage: None,
     parameter_declarations: None,

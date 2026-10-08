@@ -72,6 +72,7 @@ function providerState(provider) {
 }
 
 function accountConfiguration(connections) {
+  connections = [...connections].sort();
   const entry = (entry_id, outcome, operation, resource) => ({entry_id, outcome,
     exclusions: [], principal: {all: true}, connection: {any_of: connections},
     resource: {any_of: resource}, operation: {any_of: [operation]}});

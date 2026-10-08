@@ -1,0 +1,19 @@
+{
+  "installation": {
+    "registration": "external_read",
+    "revision": "external_read/0.1",
+    "providerBundle": "connectors/external_read/host_node",
+    "assets": ["src/connectors/external_read/source-views.json"],
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-external-read-source/0.1",
+      "module": "adapters/connectors/external_read/host/installation.mjs",
+      "exports": {
+        "check": "checkProfile",
+        "identityParts": "identityParts",
+        "publish": "publish",
+        "load": "load"
+      }
+    }
+  }
+}

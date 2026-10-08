@@ -10,6 +10,7 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/local",
+  "actql/actql/connectors/local/table",
   "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors_builtin",
@@ -106,6 +107,8 @@ pub fn client_program_admit_infer_egress(@run_publication_host.PreparedClientPro
 
 pub fn client_program_admit_local_effect_source_evidence(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
+pub fn client_program_admit_local_table_storage_mapping(String, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
+
 pub fn client_program_admit_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[Unit, @run_publication_host.ClientValuesAoAAdmissionIssue]
 
 pub fn client_program_admit_local_values_fragment(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentAdmissionIssue]
@@ -190,7 +193,7 @@ pub fn client_program_bind_issued_infer_invocation(@client_infer_host.Execution,
 
 pub fn client_program_bind_recovered_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
-pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, Int, Int, Int) -> Result[@run_publication_host.ClientTableInput, @run_publication_host.ClientTableInputIssue]
+pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientTableInput, @run_publication_host.ClientTableInputIssue]
 
 pub fn client_program_bind_table_preview(@run_publication_host.ClientTableInput, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Result[@run_publication_host.ClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
@@ -936,7 +939,13 @@ pub fn client_program_local_effect_table_definition_cid(@run_publication_host.Cl
 
 pub fn client_program_local_effect_table_definition_json(@run_publication_host.ClientEffectLocalTableDefinition) -> String
 
-pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@effect_application.TableStorageMapping, @run_publication_host.ClientTableInputIssue]
+pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
+
+pub fn client_program_local_table_commit_response(String, Int, Int, Int, Int) -> Result[String, @effect_application.TableCommitIssue]
+
+pub fn client_program_local_table_storage_mapping_cid(@table.IcebergStorageMapping) -> String
+
+pub fn client_program_local_table_storage_mapping_json(@table.IcebergStorageMapping) -> String
 
 pub fn client_program_local_values_aoa_cid(@run_publication_host.ClientValuesAoAIdentity) -> String
 
@@ -1359,10 +1368,6 @@ pub fn client_program_table_preview_member_index(@run_publication_host.ClientTab
 pub fn client_program_table_preview_operation_json(@run_publication_host.ClientTablePreview) -> String
 
 pub fn client_program_table_preview_subject_cid(@run_publication_host.ClientTablePreview) -> String
-
-pub fn client_program_table_storage_mapping_cid(@effect_application.TableStorageMapping) -> String
-
-pub fn client_program_table_storage_mapping_json(@effect_application.TableStorageMapping) -> String
 
 pub fn client_program_task_compilation_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 
@@ -2067,6 +2072,8 @@ pub fn strategy_publication_contract_identity_field(@run_publication.Publication
 pub fn strategy_publication_contract_json(@run_publication.PublicationContract) -> String
 
 pub fn strategy_publication_contract_name(@run_publication.PublicationContract) -> String
+
+pub fn strategy_publication_evidence_workspace(Int) -> Int
 
 pub fn strategy_publication_preflight_valid(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Bool
 

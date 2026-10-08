@@ -94,9 +94,9 @@ export function createNodeHostObservability(options = {}) {
       try {
         const parent = record.parent === undefined ? ROOT_CONTEXT :
           trace.setSpanContext(ROOT_CONTEXT, {...record.parent, isRemote: true});
-        // A segment is exported only after it ends. Other confirmed facts are
-        // instant spans; no span survives approval waits or process restart.
-        if (tracer !== undefined && record.event !== 'segment_started') {
+        // Export measured finite work as spans. Discrete Owner facts use the
+        // correlated Logs API, without duplicate instant spans or Span Events.
+        if (tracer !== undefined && record.durationMs !== undefined) {
           await attempt(async () => {
             endedSpan = undefined;
             const method = record.attributes['http.request.method'];
@@ -111,7 +111,6 @@ export function createNodeHostObservability(options = {}) {
               startTime: record.observedAt - (record.durationMs ?? 0),
               links: record.link === undefined ? [] : [{context: {...record.link, isRemote: true}}],
             }, parent);
-            if (logger === undefined) span.addEvent(record.event, record.observedAt);
             if (method === undefined ? record.attributes['actql.outcome'] === 'failed' :
                 record.attributes['http.response.status_code'] >= 500) {
               span.setStatus({code: SpanStatusCode.ERROR});

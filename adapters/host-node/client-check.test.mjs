@@ -885,6 +885,212 @@ for (const [entrance, open] of Object.entries(entrances)) {
     }
   });
 
+  test(`${entrance}: rejected source submission carries original syntax checking without stored input observation`, async t => {
+    const client = await open(t, configurations.denied);
+    for (const [text, byte, position] of [
+      ['SELECT', 6, {line: 0, character: 6}],
+      ['/*😀*/\r\nSELECT', 16, {line: 1, character: 6}],
+      ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, {line: 1, character: 0}],
+    ]) {
+      const original = await client.newSubmission();
+      let error;
+      try {await client.startSource(text, {format: 'sql', submissionRef: original});}
+      catch (cause) {error = cause;}
+      const outcome = sdk.getSubmissionOutcome(error);
+      assert.equal(outcome?.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+      const checked = sdk.getSubmissionCheckObservation(error);
+      assert.equal(checked?.report.verdict, 'invalid', '[check-mutation:submission-check-public]');
+      const input = sdk.getCheckInput(checked, 'source');
+      assert.deepEqual(input, {documentId: 'source', revision: checked.report.inputs[0].revision, kind: 'text', text});
+      assert.deepEqual(checked.report.inputs, [{document_id: 'source', revision: input.revision, kind: 'text', byte_length: byte}]);
+      assert.deepEqual(checked.report.reasons, [{code: 'query_syntax_invalid', location: {
+        kind: 'text', document_id: 'source', revision: input.revision,
+        start_byte: byte, end_byte: byte, precision: 'exact'}}]);
+      assert.deepEqual(sdk.resolveCheckTextRange(checked, checked.report.reasons[0].location).range,
+        {start: position, end: position}, '[check-mutation:submission-check-public-position]');
+      const lookup = await client.lookupSubmission(original);
+      assert.deepEqual(lookup, outcome);
+      assert.equal(sdk.getSubmissionCheckObservation(lookup), undefined,
+        '[check-mutation:submission-check-reference-only]');
+      assert.equal(sdk.getSubmissionCheckObservation(structuredClone(error)), undefined);
+      assert.equal(sdk.getCheckInput(structuredClone(checked), 'source'), undefined);
+    }
+    client.assertNoExecution();
+  });
+
+  test(`${entrance}: rejected original submission exposes review-required fixes without granting retry`, async t => {
+    const client = await open(t, configurations.denied);
+    // Byte intervals and editor positions are independently counted.
+    for (const [text, bytes, comment, position] of [
+      ['SELECT 1 AS n /*', 16, 14, {line: 0, character: 14}],
+      ['/*😀*/\r\nSELECT 1 AS n /*', 26, 24, {line: 1, character: 14}],
+      ['\ufeffSELECT 1 AS n /*', 19, 17, {line: 0, character: 15}],
+      ['SELECT 1 AS n /* e\u0301😀\r\n', 26, 14, {line: 0, character: 14}],
+    ]) {
+      const original = await client.newSubmission();
+      let error;
+      try {await client.startSource(text, {format: 'sql', submissionRef: original});}
+      catch (cause) {error = cause;}
+      const accepted = sdk.getSubmissionOutcome(error);
+      assert.equal(accepted?.kind, 'not_accepted');
+      const checked = sdk.getSubmissionCheckObservation(error);
+      assert.equal(checked?.report.verdict, 'invalid');
+      const input = sdk.getCheckInput(checked, 'source');
+      assert.equal(input.text, text);
+      assert.equal(checked.report.inputs[0].byte_length, bytes);
+      const fix = {code: 'close_block_comment', applicability: 'requires_review',
+        risk: 'syntax_structure', target: {document_id: 'source', revision: input.revision},
+        edits: [{start_byte: bytes, end_byte: bytes, replacement: '*/'}]};
+      const reason = {code: 'query_lexical_invalid', facts: {issue: 'unterminated_comment'},
+        location: {kind: 'text', document_id: 'source', revision: input.revision,
+          start_byte: comment, end_byte: comment, precision: 'exact'}, fixes: [fix]};
+      assert.deepEqual(checked.report.reasons, [reason]);
+      assert.deepEqual(sdk.getCheckFixes(checked), [fix]);
+      assert.equal(sdk.explainCheckReason(reason).kind, 'known');
+      assert.deepEqual(sdk.resolveCheckTextRange(checked, reason.location).range,
+        {start: position, end: position});
+      assert.equal(sdk.getCheckFixes(structuredClone(checked)), undefined);
+      assert.equal(sdk.resolveCheckTextRange(checked, reason.location,
+        {...input, text: text + '*/'}), undefined);
+      assert.equal(sdk.resolveCheckTextRange(checked,
+        {...reason.location, revision: 'rev:' + '0'.repeat(64)}), undefined);
+      assert.deepEqual(await client.lookupSubmission(original), accepted);
+      assert.equal(sdk.getSubmissionCheckObservation(structuredClone(error)), undefined);
+    }
+    client.assertNoExecution();
+  });
+
+  test(`${entrance}: submission checking preserves safe parameter origin beside protected resolution`, async t => {
+    const projections = [];
+    for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
+      const client = await open(t, configuration);
+      let error;
+      try {await client.startSource(query, {format: 'sql', parameterDeclarations: declarations,
+        parameters: {minimum: 'twenty'}});}
+      catch (cause) {error = cause;}
+      const outcome = sdk.getSubmissionOutcome(error);
+      assert.equal(outcome?.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+      const checked = sdk.getSubmissionCheckObservation(error);
+      assert.equal(checked?.report.verdict, 'invalid');
+      const values = sdk.getCheckInput(checked, 'parameters');
+      assert.deepEqual(values.value, {minimum: 'twenty'});
+      assert.deepEqual(checked.report.reasons, [{code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
+        location: {document_id: 'parameters', revision: values.revision,
+          kind: 'structured', pointer: '/minimum'}}], '[check-mutation:submission-check-public-parameter]');
+      assert.deepEqual(checked.report.coverage, {limits: [], unresolved:
+        configuration === configurations.allowed ? [] : protectedSource});
+      projections.push({problem: outcome.problem, coverage: checked.report.coverage,
+        facts: checked.report.reasons.map(reason => ({code: reason.code, facts: reason.facts}))});
+      client.assertNoExecution();
+    }
+    assert.deepEqual(projections[1], projections[2]);
+  });
+
+  test(`${entrance}: missing submitted values retain requirements instead of invalid input`, async t => {
+    const client = await open(t, configurations.allowed);
+    let error;
+    try {await client.startSource(query, {format: 'sql', parameterDeclarations: declarations});}
+    catch (cause) {error = cause;}
+    const acceptance = sdk.getSubmissionOutcome(error);
+    assert.equal(acceptance?.kind, 'not_accepted');
+    assert.deepEqual(acceptance.problem, {code: 'ClientProgramNeedsInputs', classification: 'requirements'},
+      '[check-mutation:submission-missing-phase]');
+    const checked = sdk.getSubmissionCheckObservation(error);
+    assert.equal(checked?.report.verdict, 'undetermined', '[check-mutation:submission-missing-verdict]');
+    assert.deepEqual(checked.report.scope, {kind: 'bound_input'});
+    assert.deepEqual(checked.report.reasons, []);
+    const declaration = sdk.getCheckInput(checked, 'parameter_declarations');
+    assert.deepEqual(declaration.value, declarations);
+    assert.deepEqual(checked.report.requirements, [{code: 'parameter_value_required',
+      facts: {parameter: 'minimum', expected_type: 'number', admission: expectedNumberAdmission},
+      location: {kind: 'structured', document_id: 'parameter_declarations',
+        revision: declaration.revision, pointer: '/minimum'}}],
+    '[check-mutation:submission-missing-requirement]');
+    assert.deepEqual(checked.report.coverage, {limits: [{code: 'bound_values_missing'}], unresolved: []});
+    const resolved = sdk.resolveCheckLocation(checked, checked.report.requirements[0].location);
+    assert.equal(resolved.input, declaration);
+    assert.equal(resolved.pointer, '/minimum');
+    assert.equal(resolved.input.value.minimum.type, 'number');
+    assert.equal(sdk.getCheckInput(structuredClone(checked), 'parameter_declarations'), undefined);
+    const original = sdk.getSubmissionInput(error);
+    assert.equal(original.input.text, query);
+    assert.equal(sdk.getSubmissionCheckObservation(await client.lookupSubmission(original.submissionRef)), undefined);
+    const filled = await client.check(original.input.text, {format: original.input.format,
+      parameterDeclarations: declaration.value, parameters: {minimum: 20}});
+    assert.equal(filled.report.verdict, 'verified');
+    assert.deepEqual(filled.report.scope, {kind: 'bound_input'});
+    assert.deepEqual(filled.report.requirements, []);
+    assert.notEqual(filled.report.context_ref, checked.report.context_ref);
+    assert.equal(checked.report.verdict, 'undetermined');
+    client.assertNoExecution();
+  });
+
+  test(`${entrance}: missing submitted bindings never mask an independent wrong value`, async t => {
+    const text = 'SELECT @a AS n, @b AS m FROM records';
+    const declared = {a: {type: 'number'}, b: {type: 'number'}};
+    for (const [missing, wrong] of [['a', 'b'], ['b', 'a']]) {
+      const projections = [];
+      for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
+        const client = await open(t, configuration);
+        let error;
+        try {await client.startSource(text, {format: 'sql', parameterDeclarations: declared,
+          parameters: {[wrong]: 'private-mixed-value'}});}
+        catch (cause) {error = cause;}
+        const acceptance = sdk.getSubmissionOutcome(error);
+        assert.equal(acceptance?.kind, 'not_accepted');
+        assert.deepEqual(acceptance.problem,
+          {code: 'ClientProgramInvalidInput', classification: 'invalid_input'},
+          '[check-mutation:submission-mixed-phase]');
+        const checked = sdk.getSubmissionCheckObservation(error);
+        assert.equal(checked?.outcome, 'completed', '[check-mutation:submission-mixed-outcome]');
+        assert.equal(checked.report.verdict, 'invalid', '[check-mutation:submission-mixed-verdict]');
+        assert.deepEqual(checked.report.scope, {kind: 'bound_input'});
+        const supplied = sdk.getCheckInput(checked, 'parameters');
+        assert.deepEqual(supplied.value, {[wrong]: 'private-mixed-value'});
+        const reason = {code: 'supplied_value_type_mismatch', facts: {
+          parameter: wrong, expected_type: 'number', actual_type: 'string'},
+          location: {kind: 'structured', document_id: 'parameters',
+            revision: supplied.revision, pointer: '/' + wrong}};
+        assert.deepEqual(checked.report.reasons, [reason], '[check-mutation:submission-mixed-reason]');
+        assert.equal(sdk.resolveCheckLocation(checked, reason.location).input, supplied,
+          '[check-mutation:submission-mixed-location]');
+        const unresolved = configuration === configurations.allowed ? [] : protectedSource;
+        assert.deepEqual(checked.report.coverage.unresolved, unresolved);
+        assert.doesNotMatch(JSON.stringify(checked), /private-mixed-value/);
+        assert.equal(sdk.getCheckInput(structuredClone(checked), 'parameters'), undefined);
+        // A fail-fast violation does not certify an exhaustive missing frontier.
+        // Correct the supplied value explicitly and ask the same owner again.
+        const fresh = await client.check(text, {format: 'sql', parameterDeclarations: declared,
+          parameters: {[wrong]: 20}});
+        assert.equal(fresh.outcome, 'completed');
+        assert.equal(fresh.report.verdict, 'undetermined');
+        assert.deepEqual(fresh.report.scope, {kind: 'bound_input'});
+        assert.deepEqual(fresh.report.reasons, []);
+        const declaration = sdk.getCheckInput(fresh, 'parameter_declarations');
+        assert.deepEqual(fresh.report.requirements, [{code: 'parameter_value_required',
+          facts: {parameter: missing, expected_type: 'number', admission: expectedNumberAdmission},
+          location: {kind: 'structured', document_id: 'parameter_declarations',
+            revision: declaration.revision, pointer: '/' + missing}}],
+        '[check-mutation:submission-mixed-fresh-requirement]');
+        assert.deepEqual(fresh.report.coverage, {limits: [{code: 'bound_values_missing'}], unresolved});
+        assert.equal(sdk.resolveCheckLocation(fresh, fresh.report.requirements[0].location).input, declaration);
+        assert.notEqual(fresh.report.context_ref, checked.report.context_ref);
+        assert.equal(checked.report.verdict, 'invalid');
+        assert.deepEqual(checked.report.reasons, [reason]);
+        projections.push({problem: acceptance.problem, verdict: checked.report.verdict,
+          reasons: checked.report.reasons.map(value => ({code: value.code, facts: value.facts,
+            kind: value.location.kind, document_id: value.location.document_id, pointer: value.location.pointer})),
+          inputs: checked.report.inputs.map(value => ({document_id: value.document_id,
+            kind: value.kind, byte_length: value.byte_length})), coverage: checked.report.coverage});
+        client.assertNoExecution();
+      }
+      assert.deepEqual(projections[1], projections[2], '[check-mutation:submission-mixed-disclosure]');
+    }
+  });
+
   test(`${entrance}: authored syntax locations retain exact UTF-8 input revisions`, async t => {
     const client = await open(t, configurations.denied);
     // Fixed byte expectations, hand-counted independently of parser output.
@@ -1104,6 +1310,14 @@ for (const [entrance, open] of Object.entries(entrances)) {
         ? {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'}
         : {code: 'ClientProgramRejected', classification: 'operation_failed'},
         '[check-mutation:submission-budget-public]');
+      const observed = sdk.getSubmissionCheckObservation(error);
+      assert.equal(observed?.outcome, 'completed', '[check-mutation:submission-budget-observation]');
+      assert.equal(observed.report.verdict, 'undetermined');
+      assert.deepEqual(observed.report.coverage, publicBudget
+        ? {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []}
+        : {limits: [], unresolved: protectedSource});
+      assert.equal(sdk.getCheckInput(observed, 'source').text, text);
+      assert.equal(sdk.getSubmissionCheckObservation({...error}), undefined);
       problems.push(outcome.problem);
       const explanation = sdk.explainSubmission(error);
       assert.equal(explanation.observation, 'not_accepted');
@@ -1147,6 +1361,17 @@ for (const [entrance, open] of Object.entries(entrances)) {
           ? {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'}
           : {code: 'ClientProgramRejected', classification: 'operation_failed'},
           '[check-mutation:submission-implementation-public]');
+        const observed = sdk.getSubmissionCheckObservation(error);
+        assert.equal(observed?.outcome, 'completed', '[check-mutation:submission-implementation-observation]');
+        assert.equal(observed.report.verdict, 'undetermined');
+        assert.deepEqual(observed.report.coverage.limits.map(limit => limit.code), publicLimit
+          ? ['implementation_limit'] : []);
+        assert.deepEqual(observed.report.coverage.unresolved, publicLimit ? [] : protectedSource);
+        assert.equal(sdk.getCheckInput(observed, 'source').text, text);
+        if (!sourceDependent) {
+          assert.deepEqual(sdk.resolveCheckTextRange(observed, observed.report.coverage.limits[0].location).range,
+            {start: {line: 0, character: 7}, end: {line: 0, character: 26}});
+        }
         const explanation = sdk.explainSubmission(error);
         assert.equal(explanation.observation, 'not_accepted');
         assert.equal(explanation.preparationIssue?.kind, publicLimit ? 'implementation_limit' : undefined);

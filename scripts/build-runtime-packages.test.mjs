@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {buildSync} from 'esbuild';
 import {readHostBundles, generateInstallations} from './connector-node-bundles.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -78,18 +79,35 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
   mkdirSync(join(directory, 'scripts'));
   for (const name of ['build-runtime-packages', 'check-owned-contract-versions',
     'local-node-package-inputs', 'connector-node-bundles', 'connector-compute-bundles',
-    'connector-manifest-selection',
+    'connector-manifest-selection', 'connector-host-bundles', 'adapter-module-graph',
     ...Object.values(packages).map(item => item.builder)]) {
     copyFileSync(join(root, `scripts/${name}.mjs`), join(directory, `scripts/${name}.mjs`));
   }
+  put(directory, 'adapters/host-common/installed-connector-declaration.mjs',
+    readFileSync(join(root, 'adapters/host-common/installed-connector-declaration.mjs')));
   put(directory, 'adapters/host-common/http-exchange.mjs',
     readFileSync(join(root, 'adapters/host-common/http-exchange.mjs'), 'utf8'));
   for (const entry of readHostBundles(root)) {
     for (const path of [`src/connectors/${entry.name}/host-bundle.json`,
-      `src/${entry.providerBundle}/moon.pkg`,
+      ...(entry.providerBundle === undefined ? [] : [`src/${entry.providerBundle}/moon.pkg`]),
       ...[entry.source, entry.effect].filter(Boolean).map(role => role.module), ...entry.assets]) {
       put(directory, path, readFileSync(join(root, path)));
     }
+  }
+  // Implementation inventories now resolve real transitive imports. This
+  // scheduling fixture needs their complete source inputs before generation,
+  // not only the installation entry file. No provider code is executed here;
+  // the independently authored compiled payloads below still test each builder.
+  const fixtureGraph = buildSync({
+    entryPoints: readHostBundles(root).flatMap(entry => [entry.source, entry.effect]
+      .filter(Boolean).map(role => role.module)),
+    bundle: true, packages: 'external', platform: 'node', format: 'esm',
+    metafile: true, write: false, absWorkingDir: root,
+    outdir: join(root, '_build/runtime-preparation-fixture-graph'),
+  });
+  for (const path of Object.keys(fixtureGraph.metafile.inputs)) {
+    assert.ok(!path.startsWith('../') && !path.startsWith('/'));
+    put(directory, path, readFileSync(join(root, path)));
   }
   if (additionalProvider) {
     put(directory, 'src/connectors/third/host-bundle.json', JSON.stringify({installation: {
@@ -124,7 +142,9 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
     'result-access.mjs': ["export {value} from '../../packages/client-wire/index.mjs';\n",
       "export {value} from '@actql/client-wire';\n"],
     'result-delivery.mjs': ['export const delivery = 1;\n', 'export const delivery = 1;\n'],
-    'publication-action.mjs': ['export const action = 1;\n', 'export const action = 1;\n'],
+    'publication-action.mjs': [
+      'export const action = 1;\nexport const publicationAction = () => action;\n',
+      'export const action = 1;\nexport const publicationAction = () => action;\n'],
   };
   for (const [path, [source, tracked]] of Object.entries(wrappers)) {
     put(directory, `adapters/host-common/${path}`, source);
@@ -155,6 +175,8 @@ record({done: true});
   const result = spawnSync(process.execPath, ['driver.mjs'], {
     cwd: directory, encoding: 'utf8', timeout: 30000,
   });
+  assert.ok(existsSync(join(directory, 'calls.jsonl')),
+    result.error?.message ?? result.stderr);
   const calls = readFileSync(join(directory, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
   return {result, calls, directory};
 }
@@ -298,9 +320,10 @@ distribution[3] = distribution[3].replace(
 distribution.splice(distribution.indexOf('node scripts/test-node-client-package.mjs') + 1,
   0, 'node scripts/test-packed-workspace-connection.mjs');
 expectedGates['check:local-node-assets'].splice(3, 0,
-  'node --test scripts/local-node-package-inputs.test.mjs scripts/local-node-table-assets.test.mjs');
+  'node --test scripts/local-node-package-inputs.test.mjs scripts/local-node-external-package-inputs.test.mjs scripts/local-node-table-assets.test.mjs',
+  'tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 packages/local-node/connector-installation.typecheck.mts');
 expectedGates['check:local-node-assets'].push('node scripts/test-packed-installed-connectors.mjs',
-  'node scripts/test-packed-external-connector.mjs');
+  'node scripts/test-packed-external-connector.mjs', 'node scripts/test-packed-external-installed.mjs');
 
 // The epoch-bound submission chain uses the same prepared distribution gate.
 distribution[3] += ' adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/submission-epoch-public.test.mjs packages/sdk/submission-identity.test.mjs';

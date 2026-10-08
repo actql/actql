@@ -110,6 +110,28 @@ test('concurrent final leases share the same asynchronous observation close', as
   assert.equal(closes, 1);
 });
 
+test('failed observation close retains the Host and retries only unfinished finalization', async () => {
+  let pending = true, closes = 0;
+  const f = fixture({async observationClose() {
+    closes++;
+    if (pending) throw new Error('ObservationPending');
+  }});
+  const client = await f.acquire();
+  await assert.rejects(client.close(), {code: 'ClientCleanupPending'});
+  await assert.rejects(f.acquire(), {code: 'ClientHostClosing'});
+  assert.equal(f.opens(), 1);
+  pending = false;
+  await client.close();
+  await client.close();
+  assert.equal(closes, 2);
+  for (const name of ['stop', 'drain', 'journal', 'source', 'effect', 'store', 'diagnostic']) {
+    assert.equal(f.calls.filter(call => call === name).length, 1, name);
+  }
+  const reopened = await f.acquire();
+  assert.equal(f.opens(), 2);
+  await reopened.close();
+});
+
 test('failed shutdown retains its generation and retries only the failed owner', async () => {
   let ready = false;
   const f = fixture({sourceClose() { if (!ready) throw new Error('SourcePending'); }});

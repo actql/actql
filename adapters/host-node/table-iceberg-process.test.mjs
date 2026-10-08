@@ -8,16 +8,18 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {createIcebergPhysicalBridge} from './table-iceberg-process.mjs';
+import {createIcebergPhysicalBridge, supportsIcebergTableOperation} from '../connectors/local/host/iceberg-process.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 import {machineCid} from '../../scripts/actql-spec-family.mjs';
+import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
 
 const python = pathToFileURL(process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)));
-const directory = fileURLToPath(new URL('../table-iceberg/', import.meta.url));
+const directory = fileURLToPath(new URL('../connectors/local/iceberg/', import.meta.url));
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const control = runtimeCore(moon).effectApplicationControl;
+const publicationControl = runtimeCore(moon).publicationControl;
 // The bounded channel snapshots plain records with null prototypes. Compare
 // exact JSON data, not that defensive in-memory layout. No normalization,
 // sorting, omission/defaulting or identity recomputation occurs here.
@@ -25,6 +27,28 @@ const wireValue = value => JSON.parse(JSON.stringify(value));
 
 // Share this exact physical setup with installed read acceptance.
 const fixture = tablePhysicalFixture;
+
+test('Local Table declaration rejects unsupported Carrier operations before physical invocation', () => {
+  const bridge = createIcebergPhysicalBridge({python: pathToFileURL('/not-installed/table-python'),
+    run: 'unsupported-kind', catalog: {database: '/not-created/catalog.db',
+      warehouse: '/not-created/warehouse', catalogCid: cid('3'),
+      limits: {bytes: 1048576, files: 16, operations: 4}}});
+  for (const kind of ['graph', 'vectors', 'events']) {
+    assert.equal(supportsIcebergTableOperation({action: 'create', kind}), false);
+    assert.equal(bridge.supportsOperation({action: 'replace', kind}), false);
+    assert.throws(() => bridge.prepareWrite({operation: {action: 'create',
+      input_carrier: {kind, cid: cid('5')}}, mapping: {}, rows: [],
+      reservation: {bytes: 1024, files: 1}, schemaWire: '{}'}),
+    {code: 'UnsupportedTableCarrierOperation'});
+  }
+  for (const action of ['create', 'replace', 'snapshot_read']) {
+    assert.equal(bridge.supportsOperation({action, kind: 'relation'}), true);
+  }
+  assert.equal(bridge.supportsOperation({action: 'append', kind: 'relation'}), false);
+  assert.throws(() => bridge.prepareWrite({operation: {action: 'create', input_relation_cid: cid('5')},
+    mapping: {}, rows: [], reservation: {bytes: 1024, files: 1}, schemaWire: '{}'}),
+  {code: 'InvalidTableCarrierReference'});
+});
 
 test('Table managed framing rejects malformed material and performs partial I/O exactly', () => {
   const result = spawnSync(fileURLToPath(python), ['-m', 'unittest', '-v', 'process_worker_test'],
@@ -52,9 +76,10 @@ test('real whole-Relation commit is captured once, frozen generations survive la
   assert.equal(first.result.row_count, 4);
   const projected = JSON.parse(checked(moon.clientProgramTableOperationCommitOutcome(
     canonicalText({...operation, table_name: 'rows'}),
-    Buffer.from(sent.response.responseBytes).toString('utf8'),
+    publicationControl.localTableCommitResponse(Buffer.from(sent.response.responseBytes).toString('utf8'),
+      sent.response.statusCode, {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 16}),
     sent.response.statusCode, 4n, 65536, 4096, 16)));
-  assert.deepEqual(projected, {state: 'applied', result: first.result});
+  assert.deepEqual(projected, {state: 'applied', result: expectedLogicalTableReceipt(first.result)});
   assert.deepEqual(f.bridge.status(prepared), {attempted: true, stopped: true});
   const again = await captureClaimedEffectResponse({ledger, claim, requestCid: operation.request_cid,
     execute: () => { assert.fail('Durable claim must not send twice'); }});
@@ -88,9 +113,11 @@ test('typed empty input performs one operation rather than zero row dispatches',
   assert.equal(receipt.row_count, 0);
   assert.equal(receipt.snapshot_id, null);
   assert.deepEqual(JSON.parse(checked(moon.clientProgramTableOperationCommitOutcome(
-    canonicalText(operation), Buffer.from(sent.response.responseBytes).toString('utf8'),
+    canonicalText(operation), publicationControl.localTableCommitResponse(
+      Buffer.from(sent.response.responseBytes).toString('utf8'), sent.response.statusCode,
+      {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 16}),
     sent.response.statusCode, 0n, 65536, 4096, 16))),
-  {state: 'applied', result: receipt});
+  {state: 'applied', result: expectedLogicalTableReceipt(receipt)});
   assert.deepEqual((await f.bridge.read(receipt, f.mapping)).result, []);
 });
 
@@ -127,7 +154,7 @@ test('Table generation resolution freezes a new reader before later head replace
 });
 
 test('real commit followed by process loss stays possible-dispatch after Ledger restart', async t => {
-  const f = await fixture(t, new URL('../table-iceberg/fixtures/lost-reply-process.py', import.meta.url));
+  const f = await fixture(t, new URL('../connectors/local/iceberg/fixtures/lost-reply-process.py', import.meta.url));
   const operation = f.operation(), prepared = f.prepare(operation, [{id: 1}]), claim = f.claim(operation);
   const ledger = f.open();
   await assert.rejects(captureClaimedEffectResponse({ledger, claim, requestCid: operation.request_cid,
@@ -153,10 +180,10 @@ test('lost noncommit reply recovers the original durable fence without resending
   const first = await f.bridge.execute(f.prepare(f.operation(), [{id: 1}]), {useCid: cid('7')});
   const committed = JSON.parse(first.observation.body).result;
   const {request_cid: _, ...body} = f.operation();
-  const preimage = {...body, input_relation_cid: cid('9')};
+  const preimage = {...body, input_carrier: {kind: 'relation', cid: cid('9')}};
   const operation = {...preimage, request_cid: machineCid(preimage)};
   const lost = createIcebergPhysicalBridge({python, run: 'table-run', catalog: f.catalog,
-    entry: new URL('../table-iceberg/fixtures/lost-noncommit-process.py', import.meta.url)});
+    entry: new URL('../connectors/local/iceberg/fixtures/lost-noncommit-process.py', import.meta.url)});
   const prepared = lost.prepareWrite({operation, mapping: f.mapping, rows: [{id: 2}],
     reservation: {bytes: 1048576, files: 16}, schemaWire: f.schemaWire});
   const claim = f.claim(operation), ledger = f.open();
@@ -188,7 +215,7 @@ test('lost noncommit reply recovers the original durable fence without resending
 });
 
 test('positive staging then cancellation waits for actual stop before fenced cleanup', async t => {
-  const f = await fixture(t, new URL('../table-iceberg/fixtures/stalled-process.py', import.meta.url));
+  const f = await fixture(t, new URL('../connectors/local/iceberg/fixtures/stalled-process.py', import.meta.url));
   const operation = f.operation(), prepared = f.prepare(operation, [{id: 1}]);
   const ledger = f.open();
   t.after(() => ledger.close());
@@ -223,7 +250,8 @@ test('whole transport and unsupported configuration are refused before any proce
   assert.throws(() => createIcebergPhysicalBridge({python: new URL('https://example.invalid/python'),
     run: 'run', catalog}), {code: 'InvalidTablePhysicalConfiguration'});
   const bridge = createIcebergPhysicalBridge({python, run: 'run', catalog});
-  assert.throws(() => bridge.prepareWrite({operation: {request_cid: cid('1'), schema_cid: cid('2')},
+  assert.throws(() => bridge.prepareWrite({operation: {action: 'create',
+    input_carrier: {kind: 'relation', cid: cid('5')}, request_cid: cid('1'), schema_cid: cid('2')},
     mapping: {}, rows: [], reservation: {bytes: 1048576, files: 16}, schemaWire: '{}'}),
   {code: 'InvalidTableLogicalSchema'});
   assert.throws(() => bridge.prepareWrite({operation: {request_cid: cid('1')}, mapping: {}, schemaWire: '{}',

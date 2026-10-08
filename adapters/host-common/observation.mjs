@@ -185,15 +185,18 @@ export function installHostObservation(connection, {journal, runId} = {}) {
   const config = connections.get(connection);
   if (config === undefined) throw new TypeError('ForeignHostObservationConnection');
   const previous = config.status?.();
-  if (previous && (!previous.closed || previous.active !== 0 || previous.activeSegments !== 0)) {
+  if (previous && (!previous.closed || previous.cleanupPending ||
+      previous.active !== 0 || previous.activeSegments !== 0)) {
     throw new TypeError('HostObservationConnectionInUse');
   }
-  let storage, storageUnavailable = false;
+  let storage, storageUnavailable = false, storageClosed = false;
   try { if (config.allowed.size !== 0) storage = journal?.observationStorage(); }
   catch { storageUnavailable = true; }
   const closeStorage = () => {
+    if (storageClosed) return;
     if (storage !== undefined) storage.close?.();
     else if (config.allowed.size !== 0) journal?.closeObservationStorage?.();
+    storageClosed = true;
   };
   const queue = [], pending = new Set();
   let queuedBytes = 0, closed = false, pumping = false, sequence = 0, activeSegments = 0;
@@ -355,10 +358,14 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     },
     status: () => Object.freeze({...counts, queued: queue.length,
       queuedBytes, active: pending.size, activeSegments, closed,
+      cleanupPending: closed && !storageClosed,
       loss: Object.freeze({...diagnostics})}),
     async close() {
       if (closed) {
-        try { closeStorage(); } catch { drop('budgetUnavailable'); }
+        try { closeStorage(); } catch {
+          drop('budgetUnavailable');
+          throw new Error('HostObservationCleanupPending');
+        }
         return;
       }
       const deadline = Date.now() + config.selected.shutdownMs;
@@ -368,7 +375,10 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       closed = true;
       for (const _ of queue) drop('shutdown');
       queue.length = 0; queuedBytes = 0;
-      try { closeStorage(); } catch { drop('budgetUnavailable'); }
+      try { closeStorage(); } catch {
+        drop('budgetUnavailable');
+        throw new Error('HostObservationCleanupPending');
+      }
     },
   });
   projections.add(projection);

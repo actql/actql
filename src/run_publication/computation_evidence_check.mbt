@@ -27,8 +27,10 @@ priv enum ComputationEvidencePhase {
   PreludeCheck(ComputationPreludePreparation)
   ContextHash(@json.CanonicalEmit, String)
   Inventory
+  InventoryCheck(CaptureInventoryPreparation)
   Artifact(Int)
   Definition(Int, Int, String, Int)
+  ResultLookup(Int, PublicationContract, String, Int, Int)
   Fields(
     Int,
     PublicationContract,
@@ -38,6 +40,7 @@ priv enum ComputationEvidencePhase {
   )
   Rows(Int, CapturedResultSnapshotPreparation)
   Suffix
+  SuffixCheck(ComputationSuffixPreparation)
   Done
 }
 
@@ -168,14 +171,39 @@ fn ComputationEvidenceCheck::step(
       }
     }
     Inventory => {
-      let (values, fields) = match
-        computation_evidence_capture_inventory(inputs, self.prelude.unwrap()) {
-        Ok(pair) => pair
+      let prelude = self.prelude.unwrap()
+      match computation_evidence_capture_preflight(inputs, prelude) {
+        Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      self.values = Some(values)
-      self.field_inventory = Some(fields)
-      self.phase = Artifact(0)
+      if self.max_workspace - self.live < 12 {
+        return Err(EvidenceEncoding)
+      }
+      self.phase = InventoryCheck(
+        start_capture_inventory(
+          {
+            context: prelude.effect_context,
+            manifest_results: prelude.manifest_results,
+            max_wire_bytes: inputs.max_wire_bytes,
+            max_nodes: inputs.max_nodes,
+            max_depth: inputs.max_depth,
+          },
+          self.max_workspace - self.live,
+        ),
+      )
+    }
+    InventoryCheck(child) => {
+      let (done, _) = match child.advance(1) {
+        Ok(result) => result
+        Err(issue) => return Err(issue)
+      }
+      self.peak = Int::max(self.peak, self.live + child.peak)
+      if done {
+        let (values, fields) = child.finish().unwrap()
+        self.values = Some(values)
+        self.field_inventory = Some(fields)
+        self.phase = Artifact(0)
+      }
     }
     Artifact(index) => {
       if index == inputs.artifacts.length() {
@@ -203,15 +231,37 @@ fn ComputationEvidenceCheck::step(
           return Err(EvidenceInventoryMismatch("captured_results"))
         }
         let definition = inputs.definitions[found]
-        guard contract_string(definition, "result_name") is Some(name) &&
-          @json.object_field(self.values.unwrap(), name) is Some(rows) &&
-          rows is @json.Array(_) &&
-          @json.object_field(self.field_inventory.unwrap(), name)
-          is Some(@json.Array(fields)) else {
+        guard contract_string(definition, "result_name") is Some(name) else {
           return Err(EvidenceInventoryMismatch("captured_results"))
         }
-        self.phase = Fields(artifact, definition, rows, fields, 0)
+        self.phase = ResultLookup(artifact, definition, name, 0, 0)
       }
+    ResultLookup(artifact, definition, name, index, offset) => {
+      guard self.values.unwrap() is @json.Object(values) &&
+        self.field_inventory.unwrap() is @json.Object(field_inventory) &&
+        @json.array_at(values, index) is Some((current, rows)) else {
+        return Err(EvidenceInventoryMismatch("captured_results"))
+      }
+      let (compared, next, _) = @canonical.compare_utf16_fragment(
+        name, current, offset, 64,
+      )
+      match compared {
+        None =>
+          self.phase = ResultLookup(artifact, definition, name, index, next)
+        Some(0) => {
+          guard rows is @json.Array(_) &&
+            @json.array_at(field_inventory, index)
+            is Some((_, @json.Array(fields))) else {
+            return Err(EvidenceInventoryMismatch("captured_results"))
+          }
+          // Both borrowed objects were admitted with exactly the same sorted
+          // keys. Reuse this index; never repeat a synchronous name lookup.
+          self.phase = Fields(artifact, definition, rows, fields, 0)
+        }
+        Some(_) =>
+          self.phase = ResultLookup(artifact, definition, name, index + 1, 0)
+      }
+    }
     Fields(artifact, definition, rows, fields, index) =>
       if index == @json.array_count(fields) {
         let child = match
@@ -258,11 +308,37 @@ fn ComputationEvidenceCheck::step(
           }
         }
       }
-    Suffix =>
-      match computation_evidence_suffix(inputs, self.prelude.unwrap()) {
-        Ok(_) => self.phase = Done
+    Suffix => {
+      if self.max_workspace - self.live < 16 {
+        return Err(EvidenceEncoding)
+      }
+      let prelude = self.prelude.unwrap()
+      self.phase = SuffixCheck(
+        start_computation_suffix(
+          {
+            context: prelude.effect_context,
+            program: prelude.program,
+            external_model_cids: prelude.external_model_cids,
+            preview: inputs.preview,
+            max_wire_bytes: inputs.max_wire_bytes,
+            max_nodes: inputs.max_nodes,
+            max_depth: inputs.max_depth,
+          },
+          self.max_workspace - self.live,
+        ),
+      )
+    }
+    SuffixCheck(child) => {
+      let (done, _) = match child.advance(1) {
+        Ok(result) => result
         Err(issue) => return Err(issue)
       }
+      self.peak = Int::max(self.peak, self.live + child.peak)
+      if done {
+        child.finish().unwrap()
+        self.phase = Done
+      }
+    }
     Done => ()
   }
   Ok(())
@@ -310,6 +386,8 @@ pub fn ComputationEvidenceCheck::cancel(
   self.closed = true
   match self.phase {
     PreludeCheck(child) => child.cancel()
+    InventoryCheck(child) => child.cancel()
+    SuffixCheck(child) => child.cancel()
     ContextHash(cursor, _) => @json.cancel_emit(cursor)
     Rows(_, child) => child.cancel()
     _ => ()

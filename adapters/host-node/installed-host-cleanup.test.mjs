@@ -727,8 +727,10 @@ for (const kind of ['frozen', 'undefined']) {
           assert.equal(Object.hasOwn(error, 'primaryFailure'), true);
           assert.equal(error.primaryFailure, primary);
           assert.equal(error.cleanupPending, true);
+          // Diagnostic delivery is a real child of this installed Host and
+          // remains owned until Checkpoint shutdown has completed.
           assert.deepEqual(error.cleanupHandle.status().pending,
-            ['checkpoint', 'journal', 'source', 'effect', 'store']);
+            ['checkpoint', 'journal', 'source', 'effect', 'store', 'diagnostic']);
           return true;
         });
         await failure.cleanupHandle.retry();

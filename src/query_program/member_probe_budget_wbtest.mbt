@@ -48,6 +48,101 @@ fn probe_budget_rows() -> @schema.Schema {
 }
 
 ///|
+fn probe_graph_prefix_source(
+  bad_key? : Bool = false,
+) -> (@builder.Source, @origin.Document) {
+  let text =
+    #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"rows":[{"id":1,"payload":null}]},"as":"nodes"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"payload","to":"payload"}]}}]}],"edges":[]},"as":"g"},{"from":"g","match_nodes":{"definition":"N","label":"Person","where":{"literal":true},"fields":["payload"]}}]
+  let text = if bad_key {
+    text.replace(old="\"key\":[\"id\"]", new="\"key\":[\"missing\"]")
+  } else {
+    text
+  }
+  let limits = mapping_limits()
+  let document = @origin.document(text, 10000).unwrap()
+  let parsed = @source.parse_json_measured(
+    text,
+    limits.source.source,
+    source_path="<generated>",
+  ).unwrap()
+  let builder = @builder.create(document, limits.source).unwrap()
+  let root = @builder.import_parsed(builder, parsed).unwrap()
+  (@builder.finish(builder, root).unwrap(), document)
+}
+
+///|
+test "Graph prefix uses common output and charges copying plus successful pipeline work" {
+  let (source, document) = probe_graph_prefix_source()
+  let resolution = probe_budget_state(source, document)
+  let control = @pipeline.check_carriers(
+    @builder.cursor(source),
+    [],
+    None,
+    None,
+    {
+      max_steps: 10000,
+      max_work: 10000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_text_bytes: 100000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let output = resolution
+    .prefix_carrier(@wire.elements(@builder.cursor(source)).unwrap(), None)
+    .unwrap()
+  let rows = member_rows(output).unwrap()
+  let payload = @schema.lookup_reference(rows, "payload").unwrap().contract
+  assert_true(payload.nullable)
+  guard payload.shape is @contract.Object(fields) else {
+    fail("common match output must retain the object")
+  }
+  let score = @contract.field_at(fields, 0).unwrap()
+  assert_eq(score.name, "score")
+  assert_true(score.contract.nullable)
+  assert_eq(
+    resolution.work,
+    10000 - @builder.usage(source).nodes - @pipeline.usage(control).work,
+  )
+  assert_false(resolution.probe_refused)
+}
+
+///|
+test "Graph prefix lends its remaining work before copying any over-budget tree" {
+  let (source, document) = probe_graph_prefix_source()
+  let steps = @wire.elements(@builder.cursor(source)).unwrap()
+  // This fixture is already an array of the exact prefix. Its independent
+  // admitted source node count includes the replacement array's single root.
+  let nodes = @builder.usage(source).nodes
+  for allowance in [0, nodes - 1] {
+    let short = probe_budget_state(source, document, work=allowance)
+    let rejected = try {
+      ignore(short.prefix_carrier(steps, None))
+      false
+    } catch {
+      Abort(Expression({ issue: @expression.WorkLimit, .. })) => true
+      _ => false
+    }
+    assert_true(rejected)
+    // Failed partial construction retains the loan; it cannot fund a retry.
+    assert_eq(short.work, 0)
+  }
+}
+
+///|
+test "refused Graph prefix retains its remaining allowance and stops continuation" {
+  let (source, document) = probe_graph_prefix_source(bad_key=true)
+  let resolution = probe_budget_state(source, document)
+  let steps = @wire.elements(@builder.cursor(source)).unwrap()
+  assert_true(resolution.prefix_carrier(steps, None) is None)
+  assert_true(resolution.probe_refused)
+  assert_eq(resolution.work, 0)
+  assert_eq(resolution.output_work, 0)
+  assert_true(resolution.prefix_carrier([steps[0]], None) is None)
+  assert_eq(resolution.work, 0)
+}
+
+///|
 test "member copy lends bounded work before importing any over-budget tree" {
   let (source, document) = probe_budget_source()
   // One array, two five-node property expressions and one nine-node expression.

@@ -46,7 +46,12 @@ test('managed SDK exports real protobuf with caller correlation and no content i
     assert.ok(packet.body.length > 0 && packet.body.length <= 65536);
   }
   const packet = sink.packets.find(item => item.path === '/v1/traces');
+  assert.equal(sink.packets.filter(item => item.path === '/v1/traces').length, 1,
+    'only the measured segment is a span; the discrete check fact is a log');
+  assert.ok(sink.packets.some(item => item.path === '/v1/logs' &&
+    item.body.includes(Buffer.from('check_completed'))));
   const span = field(field(field(packet.body, 1), 2), 2);
+  assert.equal(field(span, 11), undefined, 'new facts do not duplicate Span Events');
   assert.equal(field(span, 1).toString('hex'), parent.traceId);
   assert.equal(field(span, 4).toString('hex'), parent.spanId);
   assert.equal(field(span, 5).toString(), 'actql.check');
@@ -111,7 +116,7 @@ test('trace export failure does not disable logs or metrics or change execution'
     logs: {endpoint: `${sink.endpoint}/v1/logs`}});
   const observer = installHostObservation(adapter.connection);
   t.after(async () => { await observer.close(); await adapter.close(); });
-  observer.emit('compute', 'task_completed', {task: 0});
+  observer.emit('compute', 'task_completed', {task: 0}, {durationMs: 1});
   await observer.close();
   assert.equal(adapter.status().signals.traces.failed, 1);
   assert.equal(adapter.status().signals.metrics.sent, 1);
@@ -125,7 +130,7 @@ test('sampling off still exports independently enabled metrics and logs', async 
     metrics: {endpoint: `${sink.endpoint}/v1/metrics`}, logs: {endpoint: `${sink.endpoint}/v1/logs`}});
   const observer = installHostObservation(adapter.connection);
   t.after(async () => { await observer.close(); await adapter.close(); });
-  observer.emit('compute', 'task_completed', {task: 0});
+  observer.emit('compute', 'task_completed', {task: 0}, {durationMs: 1});
   await observer.close();
   assert.deepEqual(sink.packets.map(item => item.path).sort(), ['/v1/logs', '/v1/metrics']);
 });
@@ -140,7 +145,7 @@ test('application provider callback is deferred and its shutdown is never called
     }}),
   }});
   const observer = installHostObservation(adapter.connection);
-  observer.emit('compute', 'task_completed', {task: 0});
+  observer.emit('compute', 'task_completed', {task: 0}, {durationMs: 1});
   assert.equal(calls, 0);
   atomic = false;
   await observer.close(); await adapter.close();
@@ -185,13 +190,13 @@ test('closing a managed pipeline revokes queued and not-yet-sent signals', async
   for (const sender of Object.values(adapter.status().signals)) assert.equal(sender.active, 0);
 });
 
-test('actual Source and Model attempt facts use standard CLIENT span kind', async t => {
+test('measured Source and Model attempts use standard CLIENT span kind', async t => {
   const sink = await collector(t);
   const adapter = createNodeHostObservability({endpoint: sink.endpoint});
   const observer = installHostObservation(adapter.connection);
   t.after(async () => { await observer.close(); await adapter.close(); });
-  observer.emit('infer', 'attempt_observed', {outcome: 'unknown'});
-  observer.emit('source', 'attempt_completed');
+  observer.emit('infer', 'attempt_observed', {outcome: 'unknown'}, {durationMs: 1});
+  observer.emit('source', 'attempt_completed', {}, {durationMs: 1});
   await observer.close();
   const spans = records(sink.packets, 'traces');
   assert.equal(spans.length, 2);

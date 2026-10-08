@@ -27,13 +27,13 @@ attempt identity. Other provider-specific attempt details are not inferred from
 task ordering. Arbitrary Owner diagnostic details, resource usage objects,
 locations and raw failures are discarded. Completed tasks reuse the existing
 driver's measured elapsed time; ingress segments measure their own duration.
-Other instant fact spans do not claim a physical duration, including Model
-attempt receipts. Source/Model attempt facts use standard CLIENT span kind;
-application/receipt facts remain INTERNAL, never inferred physical sends.
-Logical work/accounting is not inferred from these clocks.
-Finite interval boundaries are exported as spans, not duplicate lifecycle logs.
-Discrete logs describe verified Owner facts; status polling cannot exhaust
-their allowance merely by starting and ending ingress intervals.
+Discrete verified facts use correlated log records, including Model attempt
+receipts. They do not create instant spans or duplicate Span Events. Only a
+measured finite segment or task produces a duration span. Logical
+work/accounting is not inferred from these clocks.
+Measured Source/Model attempts use standard CLIENT span kind. Finite interval
+boundaries do not duplicate lifecycle logs or spend the discrete-log allowance
+merely because a caller polls status.
 
 The common projection copies fixed fields into a bounded queue and delivers
 after `setImmediate`. The Host does not import an OTel SDK. SDK/HTTP propagation
@@ -82,6 +82,9 @@ segment and links to that saved context. There is no durable span state or
 promise. Loss counters identify unavailable budget, limit, queue overflow,
 delivery failure and deadline discard. They are diagnostic, not completeness
 certificates. Shutdown never reports physical settlement of a pending callback.
+Physical observation-journal close is retained by the existing Host shutdown
+owner. A failed close prevents retiring that Host generation; retry closes only
+unfinished children, without repeating execution or successful closes.
 
 The first profile is immutable and metadata-only. Explicit adapter close
 revokes queued and not-yet-sent owned delivery and aborts outstanding sends;

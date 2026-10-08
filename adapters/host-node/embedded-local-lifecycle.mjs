@@ -13,6 +13,10 @@ export function installedHostShutdown(host) {
     source: () => host.sourceProfile?.close(),
     effect: () => host.installedEffect?.close(),
     store: () => host.store.close(),
+    ...(host.diagnostic === undefined ? {} :
+      {diagnostic: () => host.diagnostic.close()}),
+    ...(host.observation === undefined ? {} :
+      {observation: () => host.observation.close()}),
   });
 }
 
@@ -84,15 +88,10 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         try {
           await opened.shutdown.close();
           if (!opened.finalized) {
-            // All leases share optional observation finalization as well as
-            // physical shutdown. Awaiting export must not duplicate close.
-            opened.finalization ??= Promise.resolve().then(async () => {
-              host.diagnostic.close();
-              if (host.observation !== undefined) await host.observation.close();
-              forget(root, opened);
-              opened.finalized = true;
-            });
-            await opened.finalization;
+            // The existing shutdown owner also retains observation close.
+            // Retire this generation only after every child has settled.
+            forget(root, opened);
+            opened.finalized = true;
           }
           finished = true;
         } catch (cause) {

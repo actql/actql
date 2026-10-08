@@ -4,6 +4,7 @@ import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {DatabaseSync} from 'node:sqlite';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
@@ -54,6 +55,18 @@ async function fixture(t, callbacks = {}) {
     authorize: value => {authorized = value;}, restart() {journal.close(); journal = openClientRequestJournal(root, callbacks.journalOptions); install();}};
 }
 
+// Check observations are transient submit metadata, not durable acceptance.
+function acceptanceFacts(response) {
+  const {checkObservation, ...facts} = response;
+  if (checkObservation !== undefined) assert.equal(validCheckOutcome(checkObservation), true);
+  return facts;
+}
+function assertReferenceOnly(actual, original, message) {
+  assert.equal(Object.hasOwn(actual, 'checkObservation'), false,
+    '[check-mutation:submission-check-reference-only]');
+  assert.deepEqual(actual, acceptanceFacts(original), message);
+}
+
 function admitOriginal(f, value) {
   const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
   const fixed = digit => 'sha256:' + digit.repeat(64);
@@ -78,6 +91,62 @@ function admitOriginal(f, value) {
   return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
 }
 
+async function unresolvedSubmissionFixture(t, prepare) {
+  const start = 1_800_000_000_000;
+  let now = start, preparations = 0, f;
+  f = await fixture(t, {
+    journalOptions: {submissionEpochTtlMs: 1000, submissionEpochNow: () => now},
+    async prepare(value) {
+      if (++preparations === 1) throw Object.assign(new Error('FixtureInvalidInput'), {code: 'ClientProgramInvalidInput'});
+      return await prepare?.(value, f);
+    },
+    submit: value => admitOriginal(f, value),
+    lookup(value) {
+      const admitted = f.journal.lookup({...fields, requestId: value.requestId}, moon);
+      return admitted === undefined ? {kind: 'not_found'} : {kind: 'found', ref: admitted.ref};
+    },
+  });
+  assert.equal((await f.service.submitIntent(f.body('SELECT ('))).kind, 'not_accepted');
+  now = start + 1000;
+  f.journal.retireSubmittedIntent(f.ref, {...fields, expectedRevision: 0}, moon);
+  const fresh = {epoch: await f.service.issueEpoch({principalId, connection}), nonce: 'explicit-fresh-intent'};
+  const value = {...f.body(), submissionRef: fresh, unresolvedHistory: {
+    submissionRef: f.ref, acknowledgement: 'possible_prior_execution_and_effects'}};
+  return {f, fresh, value};
+}
+
+test('submission adapter retains explicit restart decision with the authenticated actor', async t => {
+  const {f, fresh, value} = await unresolvedSubmissionFixture(t);
+  const result = await f.service.submitIntent({...value, actorId: 'caller-forged-actor'});
+  assert.equal(result.kind, 'ready');
+  f.restart();
+  const retained = f.journal.lookupSubmittedIntent(fresh, fields, moon);
+  assert.equal(retained.unresolvedHistory?.actorId, principalId);
+  assert.deepEqual(retained.unresolvedHistory?.submissionRef, f.ref);
+  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: fresh}), result);
+  assert.deepEqual(f.counts, {prepare: 2, submit: 1});
+  const {unresolvedHistory, ...ordinary} = value;
+  await assert.rejects(f.service.submitIntent(ordinary), {code: 'ClientSubmissionRestartConflict'});
+  assert.deepEqual(f.counts, {prepare: 2, submit: 1});
+});
+
+test('restart decision is checked before preparation and again after awaited preparation', async t => {
+  const {f, fresh, value} = await unresolvedSubmissionFixture(t, async (_value, f) => {
+    await Promise.resolve();
+    // Lose original receipt custody while preparation is suspended. A missing
+    // original is not permission to admit new work after the await.
+    const db = new DatabaseSync(join(f.root, 'client-requests.sqlite3'));
+    try {db.exec('DELETE FROM client_submitted_intent_retirement');} finally {db.close();}
+    return {};
+  });
+  const malformed = {...value, unresolvedHistory: {...value.unresolvedHistory, acknowledgement: 'retry'}};
+  await assert.rejects(f.service.submitIntent(malformed), {code: 'InvalidClientSubmissionRestart'});
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  await assert.rejects(f.service.submitIntent(value), {code: 'ClientSubmittedIntentCustodyLost'});
+  assert.deepEqual(f.counts, {prepare: 2, submit: 0});
+  assert.equal(fresh.nonce, 'explicit-fresh-intent');
+});
+
 test('ready lookup stays read-only while explicit replay re-enters the original Run owner after restart', async t => {
   let f;
   f = await fixture(t, {submit: value => admitOriginal(f, value), lookup(value) {
@@ -87,7 +156,7 @@ test('ready lookup stays read-only while explicit replay re-enters the original 
   const original = await f.service.submitIntent(f.body());
   assert.equal(original.kind, 'ready');
   f.restart();
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
   assert.deepEqual(f.counts, {prepare: 1, submit: 1}, 'lookup does not resume physical work');
   assert.deepEqual(await f.service.submitIntent(f.body()), original);
   assert.deepEqual(f.counts, {prepare: 2, submit: 2}, 'explicit replay reaches the existing Run owner');
@@ -110,7 +179,7 @@ test('ready replay rechecks current authority after awaited preparation and reta
   assert.deepEqual(f.counts, {prepare: 2, submit: 1});
   f.authorize(true);
   f.restart();
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
 });
 
 test('public Local submission lookup returns a durable pre-admission refusal after restart', async t => {
@@ -123,11 +192,31 @@ test('public Local submission lookup returns a durable pre-admission refusal aft
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   f.restart();
   const restored = await f.port().perform('lookup-submission', {connection, submissionRef: f.ref});
-  assert.deepEqual(restored, reply);
+  assertReferenceOnly(restored, reply);
   assert.equal(validSubmissionLookup(restored, connection, f.ref), true);
   assert.deepEqual(await f.port().perform('submit-intent', wireBody), reply);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   await assert.rejects(f.service.submitIntent(f.body('SELECT 1 AS value')), {code: 'ClientSubmittedIntentConflict'});
+});
+
+test('reference-only lookup returns original acceptance without diagnostic enrichment', async t => {
+  const f = await fixture(t, {prepare() {
+    throw Object.assign(new Error('independent syntax fixture'), {code: 'ClientProgramInvalidInput'});
+  }});
+  const original = await f.service.submitIntent(f.body('SELECT ('));
+  assert.equal(original.checkObservation.report.verdict, 'invalid');
+  f.restart();
+  let lookup;
+  // A known closed-schema rejection is an assertion failure for this valid
+  // reference-only operation; unrelated exceptions remain infrastructure errors.
+  try {
+    lookup = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
+  } catch (error) {
+    if (error?.code !== 'InvalidClientHostSubmissionLookup') throw error;
+    assert.fail('[check-mutation:submission-check-lookup-contract] A valid original lookup must match its closed response contract.');
+  }
+  assertReferenceOnly(lookup, original);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
 
 test('retained Source input problems recheck original intent and current disclosure without preparation', async t => {
@@ -163,10 +252,15 @@ test('retained Source input problems recheck original intent and current disclos
     '[check-mutation:submission-disclosure]');
   assert.equal(hidden.kind, 'not_accepted');
   assert.deepEqual(hidden.submissionRef, first.submissionRef);
-  assert.deepEqual(await f.service.submitIntent(f.body('SELECT missing AS n FROM records')), hidden);
+  const replay = await f.service.submitIntent(f.body('SELECT missing AS n FROM records'));
+  assert.deepEqual(acceptanceFacts(replay), hidden);
+  assert.equal(replay.checkObservation.report.verdict, 'undetermined');
+  assert.deepEqual(replay.checkObservation.report.reasons, []);
+  assert.deepEqual(replay.checkObservation.report.coverage, {limits: [], unresolved: [
+    {boundary: 'source_resolution', reason: 'unresolved_protected'}]});
   visible = true;
   const restored = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
-  assert.deepEqual(restored, first, '[check-mutation:submission-disclosure]');
+  assertReferenceOnly(restored, first, '[check-mutation:submission-disclosure]');
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   assert.ok(checks >= 4);
 });
@@ -185,7 +279,7 @@ test('submission disclosure retains an admitted partial invalid report across or
   const first = await f.service.submitIntent(f.body('SELECT missing AS n'));
   assert.deepEqual(first.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
   f.restart();
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
 
@@ -228,7 +322,7 @@ for (const mode of ['undetermined', 'failed', 'unavailable', 'malformed', 'excep
     assert.deepEqual(result.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
       '[check-mutation:submission-reporting]');
     f.restart();
-    assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), result);
+    assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), result);
     assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   });
 }
@@ -240,7 +334,7 @@ test('accepted preparation failure remains accepted with no invented Run identit
   assert.equal(reply.problem.classification, 'requirements');
   assert.equal('ref' in reply, false);
   f.restart();
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), reply);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), reply);
   assert.deepEqual(await f.service.submitIntent(f.body()), reply);
   assert.deepEqual(f.counts, {prepare: 1, submit: 1});
 });
@@ -355,7 +449,7 @@ test('retained Source analysis budget rechecks original intent and current discl
   assert.deepEqual(hidden.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
     '[check-mutation:submission-budget-disclosure]');
   disclosed = true;
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
   assert.ok(observed.every(text => text === 'SELECT original AS n'));
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
@@ -389,7 +483,7 @@ for (const partial of [false, true]) {
     assert.deepEqual(hidden.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
       '[check-mutation:submission-implementation-disclosure]');
     limit = 'implementation_limit';
-    assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+    assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
     assert.ok(observed.every(text => text === 'SELECT original AS n'));
     assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   });

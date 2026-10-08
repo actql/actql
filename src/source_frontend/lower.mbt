@@ -79,12 +79,45 @@ pub fn bind_query_context(
   program_id? : String = "adhoc.query",
   parameter_declarations? : @parameters.Declarations? = None,
   input_schemas? : Array[(String, @schema.Schema)] = [],
+  model_tasks? : @environment.ModelTasks? = None,
+  source_catalog? : @environment.SourceRequestContracts? = None,
 ) -> Result[@query.Context, AliasIssue] {
   if aliases.length() > 1024 {
     return Err(TooManyAliases)
   }
   if program_id.is_empty() {
     return Err(InvalidProgramId)
+  }
+  if model_tasks is Some(tasks) &&
+    @environment.cid(@environment.model_tasks_environment(tasks)) !=
+    environment_cid {
+    return Err(EnvironmentMismatch)
+  }
+  if source_catalog is Some(catalog) {
+    let wire = @environment.contract_registry_environment(
+      @environment.catalog_registry(
+        @environment.reference_contents(
+          @environment.data_policy_references(
+            @environment.value_contract_policies(
+              @environment.source_view_shape_values(
+                @environment.read_mode_shapes(
+                  @environment.carrier_schema_modes(
+                    @environment.source_request_carriers(catalog),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    )
+    if @environment.cid(wire) != environment_cid ||
+      (
+        model_tasks is Some(tasks) &&
+        !physical_equal(@environment.model_tasks_environment(tasks), wire)
+      ) {
+      return Err(EnvironmentMismatch)
+    }
   }
   let inputs : Array[@query.Input] = []
   let mut captured = false
@@ -134,6 +167,8 @@ pub fn bind_query_context(
     stage_id: "main",
     stage_result: "rows",
     input_schemas,
+    source_catalog,
+    model_tasks,
     result_name: "answer",
     captured_stage: if captured {
       Some("capture")
