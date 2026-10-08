@@ -79,7 +79,7 @@ for (const entrance of ['local', 'https']) {
   test(`${entrance}: explicit restart lookup restores the same linked Run after original processes exit`, async t => {
     const scratch = await createOwnedScratch({parent: acceptance.scratch ?? tmpdir(),
       prefix: 'actql-submit-restart-', label: `submission restart ${entrance}`});
-    t.diagnostic(`Submission restart evidence: ${scratch.path}`);
+    console.error(`Submission restart evidence: ${scratch.path}`);
     const keys = generateKeyPairSync('ed25519');
     await writeFile(join(scratch.path, 'keys.json'), JSON.stringify({publicKey: pem(keys.publicKey),
       privateKey: pem(keys.privateKey)}), {mode: 0o600});
@@ -96,6 +96,27 @@ for (const entrance of ['local', 'https']) {
       return report;
     };
     const initial = await phase('restart-initial');
+    const database = new DatabaseSync(join(scratch.path, 'host/requests/client-requests.sqlite3'),
+      {readOnly: true});
+    let requests, intents, links;
+    try {
+      requests = database.prepare('SELECT run_definition_cid, caller_request_id FROM client_requests ORDER BY caller_request_id')
+        .all().map(value => ({...value}));
+      intents = database.prepare('SELECT nonce, phase FROM client_submitted_intents ORDER BY nonce')
+        .all().map(value => ({...value}));
+      links = database.prepare('SELECT fresh_submission_id, original_submission_id, link_wire FROM client_submission_restarts ORDER BY fresh_submission_id')
+        .all().map(value => ({...value}));
+    } finally {database.close();}
+    // An unresolved lookup is passive even when a valid replacement Program
+    // has already been explicitly submitted. Inspect real durable births.
+    await writeFile(join(scratch.path, 'unresolved-lookup-observation.json'),
+      JSON.stringify({entrance, initial, requests, intents, links}), {mode: 0o600});
+    assert.deepEqual({computes: initial.computes, requests: requests.length,
+      intents: intents.length, links: links.length},
+    {computes: 1, requests: 1, intents: 1, links: 1},
+    '[check-mutation:unresolvable-no-restart]');
+    assert.deepEqual(requests.map(value => value.run_definition_cid), [initial.ref.runDefinitionCid]);
+    assert.deepEqual(intents, [{nonce: 'deliberately-new-work', phase: 'ready'}]);
     assert.equal(initial.state.status, 'succeeded');
     assert.deepEqual(initial.rows, [{id: 1}]);
     assert.equal(initial.computes, 1);
