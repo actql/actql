@@ -1451,7 +1451,15 @@ fn lower_analytic_call(
       let entries = [("fn", construction.text(wire_name))]
       if name == "ROW_NUMBER" || name == "RANK" || name == "DENSE_RANK" {
         if !arguments.is_empty() {
-          raise Abort(UnsupportedAnalytic)
+          raise Abort(
+            Expression({
+              issue: @expression.InvalidArguments,
+              origin: @query.expression_origin(
+                expression,
+                @query.expression_root(expression),
+              ),
+            }),
+          )
         }
       } else {
         if arguments.is_empty() ||
