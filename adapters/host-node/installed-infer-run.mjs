@@ -7,9 +7,11 @@ import {openNodeInferOperation} from './infer-operation.mjs';
 import {inferTaskPublicationPlan} from './local-values-plan.mjs';
 import {inferPublicationExecution} from './infer-result-publication.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
+import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
-  namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence}) {
+  namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
+  computeConfigurations = {}}) {
   const control = core.publicationControl;
   return async ({preparedProgram, plan, store, principalId, signal,
     retainExecution, acquiredInfer, replay = false, beginPhysicalWork = () => {},
@@ -17,6 +19,13 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const selected = selections.get(preparedProgram);
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
+    }
+    if (selected.components !== undefined) {
+      return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
+        store, principalId, signal, retainExecution, acquiredInfer, replay,
+        beginPhysicalWork, submission, modelController, inferEvidence,
+        namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
+        registry, values, fragment, ordered, computeConfigurations});
     }
     if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
     const runId = JSON.parse(plan.runDefinition.wire).run_id;

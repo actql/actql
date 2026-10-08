@@ -517,13 +517,14 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           await acquireSource(entry, preparedProgram, held.preparedSource, sourceAccess);
         if (inferring) {
           const captured = entry.sourceCapture;
-          const input = checked(moon.clientProgramAdmitInferCapturedInput(
+          const input = captured.composedInfer ? undefined : checked(moon.clientProgramAdmitInferCapturedInput(
             preparedProgram, captured.inferStep, captured.capturedSource,
             captured.identity, captured.requirement, captured.logicalInput,
             sourceEvidenceWire, authorityScopeCid,
             captured.checkedSource.sourceDataPolicyCid,
             captureStartedAt, captureCompletedAt));
-          acquiredInfer = {input, sourceEvidence: control.admitRunEvidence(
+          acquiredInfer = {input, captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt,
+            sourceEvidence: control.admitRunEvidence(
             'source_evidence', sourceEvidenceWire,
             {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
         } else {

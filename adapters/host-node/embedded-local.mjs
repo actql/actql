@@ -783,10 +783,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     }
     return observeRun({ref, principalId: actual});
   };
-  const prepareInferSelection = (preparedProgram, occurrence) => {
+  const prepareInferSelection = (preparedProgram, occurrence, retain = true) => {
     // The Effect compiler retains this exact graph for the saved admission.
     // Current account/egress callbacks are checked again by physical dispatch.
-    if (occurrence !== undefined && inferSelections.has(preparedProgram)) return;
+    if (retain && occurrence !== undefined && inferSelections.has(preparedProgram)) return;
     const selectedStep = occurrence === undefined
       ? moon.clientProgramSelectedInferStep(preparedProgram)
       : moon.clientProgramInferOccurrenceCoordinates(occurrence)._2;
@@ -842,7 +842,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         const durableModel = modelController !== undefined && checkpoints?.configured === true;
         const step = selectedStep;
         const segments = occurrence === undefined ? undefined : checked(
-          moon.clientProgramPrepareEffectInferSegments(preparedProgram, occurrence,
+          (prepareSubmit.kindOf(preparedProgram) === 'effectful'
+            ? moon.clientProgramPrepareEffectInferSegments : moon.clientProgramPrepareComposedInferSegments)(preparedProgram, occurrence,
             registry, values, fragment, ordered));
         const computeSuffix = occurrence === undefined
           ? checked(moon.clientProgramPrepareInferComputeSuffix(preparedProgram,
@@ -881,13 +882,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         const providerId = moon.clientProgramInferProviderId(execution);
         const providerBinding = durableModel
           ? admitInstalledModelProviderBinding(moon, providerId, physical) : undefined;
-        inferSelections.set(preparedProgram, Object.freeze({step, graph, computeSuffix,
+        const selection = Object.freeze({step, graph, computeSuffix,
           occurrence, computePrefix: segments?._0,
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
           physicalPreflight: physical.physicalPreflight,
-          quantityCapacity: physical.quantityCapacity}));
+          quantityCapacity: physical.quantityCapacity});
+        if (retain) inferSelections.set(preparedProgram, selection);
+        return selection;
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'model_admission',
           code: cause.code, cause: cause.cause ?? cause});
@@ -956,7 +959,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     // Static ModelTask admission cannot authorize a model call. Until the
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.
-    prepareInferSelection(preparedProgram);
+    const inventory = moon.clientProgramComposedInferOccurrences(preparedProgram);
+    const occurrences = inventory.$tag === 1 ? inventory._0 : [];
+    if (occurrences.length > 1) {
+      const components = Object.freeze(occurrences.map(occurrence =>
+        prepareInferSelection(preparedProgram, occurrence, false)));
+      inferSelections.set(preparedProgram, Object.freeze({components,
+        graph: Object.freeze(components.map(component => component.graph)),
+        egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
+    } else prepareInferSelection(preparedProgram);
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
       moon.clientProgramSourceFreeInputIntentCid());
@@ -1039,7 +1050,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         {retainedDefinitionWire})};
     const infer = inferSelections.get(preparedProgram);
     if (infer !== undefined) {
-      return inferTaskRunAdmission({...common, inferGraph: infer.graph});
+      try {return inferTaskRunAdmission({...common, inferGraph: infer.graph});}
+      catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'task_compilation',
+          code: cause.code, cause: cause.cause ?? cause});
+        throw cause;
+      }
     }
     return sourceProfile !== undefined &&
       moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
@@ -1096,7 +1112,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
-    faultInjection: authorization?.faultInjection});
+    faultInjection: authorization?.faultInjection,
+    computeConfigurations: {local: localSnapshotConfiguration}});
   dispatchOwner = installNodeClientDispatchOwner({moon, control,
     journal, store, checkpoints, startRun, hostConnection, beforeDispatch,
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,

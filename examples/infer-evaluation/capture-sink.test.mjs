@@ -112,6 +112,53 @@ test('retained sink quota survives reopen and immutable captures are not overwri
   });
 });
 
+test('two logical INFER manifests in one Run remain distinct after reopening the sink', async t => {
+  const f = await fixture(t);
+  await f.sink.record({subject, target: 'first', manifest: {status: 'complete', marker: 'first-original'}});
+  await f.sink.record({subject, target: 'second', manifest: {status: 'incomplete', reason: 'SecondOriginalMissing'}});
+  const reopened = await createCaptureSink({directory: f.directory, destination: 'local:independent-evaluator',
+    maxBytes: 4096, maxPendingBytes: 1048576, retentionMs: 10000, authorize: () => true});
+  assert.deepEqual(await reopened.lookup(subject, 'first'), {
+    subject, target: 'first', manifest: {status: 'complete', marker: 'first-original'},
+  });
+  assert.deepEqual(await reopened.lookup(subject, 'second'), {
+    subject, target: 'second', manifest: {status: 'incomplete', reason: 'SecondOriginalMissing'},
+  });
+  await assert.rejects(reopened.lookup(subject, 'missing'), {code: 'EvidenceOriginalMissing'});
+  await assert.rejects(reopened.lookup(subject), {code: 'InvalidEvidenceManifest'});
+  assert.equal(reopened.pendingBytes(), 0);
+});
+
+test('an independent evaluator resolves one original slot from a multi-call bundle', async t => {
+  const f = await fixture(t);
+  const otherSlot = referenceCid('other-slot');
+  const other = {...body.captures[0], model_call_slot_cid: otherSlot,
+    evidence: {...evidence, model_call_slot_cid: otherSlot}};
+  const multi = {...body, captures: [other, body.captures[0]]};
+  const multiCid = referenceCid(multi);
+  const captured = await f.sink.capture({subject, attemptCid,
+    original: {...original, captureBundleCid: multiCid},
+    policy: {kind: 'data_policy', cid: contentCid(policyWire), wire: policyWire},
+    wires: {...wires, validation: JSON.stringify({outcome: 'accepted', evidence,
+      captureBundleWire: JSON.stringify({...multi, bundle_cid: multiCid})})}});
+  assert.equal(captured.status, 'complete');
+  const result = await f.sink.withEvaluatorEvidence({subject, attemptCid, references: captured.references},
+    resolvedEvidence => runEvaluatorProcess({job: {caseId: 'original-slot', expected: 'high', role: 'final_test',
+      subject, evidence: {...captured, attemptCid}}, resolvedEvidence, deadline: Date.now() + 10000}));
+  assert.equal(result.score, 1);
+  assert.equal(f.sink.pendingBytes(), 0);
+});
+
+test('manifest identities preserve decomposed/composed names and require the original scope', async t => {
+  const f = await fixture(t);
+  await f.sink.record({subject, target: 'e\u0301', manifest: {status: 'complete', marker: 'decomposed'}});
+  await f.sink.record({subject, target: 'é', manifest: {status: 'complete', marker: 'composed'}});
+  assert.equal((await f.sink.lookup(subject, 'e\u0301')).manifest.marker, 'decomposed');
+  assert.equal((await f.sink.lookup(subject, 'é')).manifest.marker, 'composed');
+  await assert.rejects(f.sink.lookup({...subject, authorityScopeCid: referenceCid('other-scope')}, 'é'),
+    {code: 'EvidenceOriginalMissing'});
+});
+
 test('altered captured output cannot be scored as the original common response', async t => {
   const f = await fixture(t);
   await f.sink.withEvaluatorEvidence(f.request, async copies => {
