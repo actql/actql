@@ -870,8 +870,16 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('36144f485ec2de4496dbb1555a870bd556d5a383466f97633661698575293368'),
     cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('eae3c3079613858817d49619cc7b72e87990e39995ab6373b3140125ffd2c6b6'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the original analytic DISTINCT frame vector with its fixed dependency generation.
+  assert.equal(vector(pin('45f35630a2ce2014080976f94214548ae07cc9ef86f005229e3a830bc816411f'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('7609abd9743fa5a382782196df757b5ccc7e7808249525ef7995051ea8292259'));
+  // Preserve the independently reviewed adopted main grammar and Run preimage.
+  assert.equal(vector(pin('b6830c1efdd87ed4ba755a3416c8430f583f5cafc88e2411d62f7aebf0e96d68'),
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('94b776cf38c8c8468d1b2a2c51b53dea2950a0799f37e83497ecc348bbedae88'));
+  assert.equal(current.run.run_definition_cid,
+    pin('3f22e96d512f36bde8dde361640530ce5a749fb68dc15396faa32cf60bd2a89b'));
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));

@@ -182,6 +182,18 @@ profile, including its floating-point partition exclusion. Optional ordering,
 default frames and nested window calls remain outside this implemented inline
 profile. Named-window resolution is described separately below.
 
+DISTINCT aggregate calls are not admitted to the implemented explicit-ROWS
+analytic path. The selected GoogleSQL resolver forbids a DISTINCT window call
+with window ORDER BY or an authored frame, including inherited clauses. The
+Frontend rejects these combinations instead of dropping DISTINCT, discarding
+the frame or executing a different window. Default/unordered DISTINCT analytic
+calls remain a separate unimplemented connection; their refusal is a coverage
+gap, not a claim that GoogleSQL prohibits every DISTINCT window. SQL, Pipe,
+QUALIFY and query ORDER window calls share this lowering boundary. Ordinary
+non-DISTINCT analytic and grouped DISTINCT calls retain their common contracts.
+See the pinned [analytic resolver](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/analyzer/analytic_function_resolver.cc)
+and its independent ORDER/frame refusal cases.
+
 In the implemented inline `OVER` profile, numeric `ROWS` boundaries
 accept an integer literal or a whole named parameter, for example
 `ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
