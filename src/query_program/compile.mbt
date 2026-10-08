@@ -1845,6 +1845,7 @@ fn compile_steps(
   let mut selected_input_scope : JoinChainScope = {
     visible: pipe_visible.copy(),
     ranges: pipe_ranges.copy(),
+    receivers: [],
   }
   let mut pipe_changed = initial_scope is Some(_)
   // Materializing a SELECT resets private slots, not the current row scope.
@@ -1852,7 +1853,9 @@ fn compile_steps(
   // recover its ranges through the initial query resolver.
   let mut pipe_rebound = projected_input || initial_scope is Some(_)
   let mut pipe_selected = false
-  let mut value_table_receivers : Array[(@query.NamePart, String)] = []
+  let mut value_table_receivers : Array[(@query.NamePart, String)] = initial_scope
+    .map(scope => scope.receivers.copy())
+    .unwrap_or([])
   let mut distinct_order_scope = false
   let expand_projections = fn(
     selected_query : @query.Query,
@@ -1993,25 +1996,26 @@ fn compile_steps(
           max_work,
           construction.parameter_resolver(),
         )
-        let requires_element_scope = selected_projections(query).any(projection => {
-          if projection.star is None {
-            false
-          } else {
-            match projection.expression {
-              None => true
-              Some(receiver) =>
-                match
-                  @query.expression_node(
-                    receiver,
-                    @query.expression_root(receiver),
-                  ) {
-                  Some({ kind: Reference(path), .. }) =>
-                    !path.is_empty() && same_name(path[0], element)
-                  _ => false
-                }
+        let requires_element_scope = preserved_scope is Some(_) ||
+          selected_projections(query).any(projection => {
+            if projection.star is None {
+              false
+            } else {
+              match projection.expression {
+                None => true
+                Some(receiver) =>
+                  match
+                    @query.expression_node(
+                      receiver,
+                      @query.expression_root(receiver),
+                    ) {
+                    Some({ kind: Reference(path), .. }) =>
+                      !path.is_empty() && same_name(path[0], element)
+                    _ => false
+                  }
+              }
             }
-          }
-        })
+          })
         let physical = if correlated {
           active_fields.copy() + [element.value]
         } else {
@@ -2573,6 +2577,7 @@ fn compile_steps(
               input_visible, value_table_receivers,
             ),
             ranges: input_ranges.copy(),
+            receivers: [],
           })
           sql_group_input_columns = input_visible.copy()
           sql_group_input_ranges = input_ranges.copy()
@@ -2801,6 +2806,7 @@ fn compile_steps(
             ranges: input_ranges.map(range => {
               (range.0, range.1.filter(entry => key_names.contains(entry.1)))
             }),
+            receivers: [],
           })
         }
         if sql_group_projection {
@@ -3310,6 +3316,7 @@ fn compile_steps(
               pipe_visible, value_table_receivers,
             ),
             ranges: pipe_ranges,
+            receivers: [],
           })
         } else {
           None
@@ -3488,6 +3495,7 @@ fn compile_steps(
           analytic_input_scope.unwrap_or({
             visible: pipe_visible.copy(),
             ranges: pipe_ranges.copy(),
+            receivers: [],
           })
         }
         let projections = if sql_group_projection {
@@ -3623,6 +3631,7 @@ fn compile_steps(
               analytic_visible, value_table_receivers,
             ).copy(),
             ranges: pipe_ranges.copy(),
+            receivers: [],
           })
           analytic_input_fields = Some(snapshot)
         }
@@ -3644,6 +3653,7 @@ fn compile_steps(
               analytic_visible, value_table_receivers,
             ),
             ranges: pipe_ranges.copy(),
+            receivers: [],
           })
         }
         let order_aliases = if select_order_window {
@@ -3899,6 +3909,7 @@ fn compile_steps(
             ) +
             analytic_expression_bindings,
             ranges: pipe_ranges,
+            receivers: [],
           }
         }
         let lower_select_expression = fn(
@@ -4142,6 +4153,7 @@ fn compile_steps(
             pipe_visible, value_table_receivers,
           ).copy(),
           ranges: pipe_ranges.copy(),
+          receivers: [],
         }
         selected_output_slots = bindings.copy()
         if !distinct && @query.operation_at(query, i + 1) is Some(Order(_)) {
@@ -4188,6 +4200,7 @@ fn compile_steps(
             pipe_visible, value_table_receivers,
           ).copy(),
           ranges: pipe_ranges.copy(),
+          receivers: [],
         }
         let projections = if sql_group_projection {
           sql_group_selected_projections
@@ -4941,7 +4954,11 @@ fn compile_steps(
   if preserved_scope is Some(scopes) {
     // A private Pipe continuation carries value slots, not exported names.
     // Preserve existing scope/evidence; the consuming JOIN remaps these slots.
-    scopes.push({ visible: pipe_visible.copy(), ranges: pipe_ranges.copy(), })
+    scopes.push({
+      visible: pipe_visible.copy(),
+      ranges: pipe_ranges.copy(),
+      receivers: value_table_receivers.copy(),
+    })
     output = active_fields.copy()
   } else if pipe_changed && !terminal_result {
     let selected : Array[@builder.Node] = []

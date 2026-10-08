@@ -776,12 +776,14 @@ stars remain supported independently of an unknown child contract. An unknown
 ARRAY expression's element/whole-result star still requires a common schema
 connection and is explicitly unsupported, rather than inferred from rows.
 
-The first correlated profile supports explicit CROSS JOIN UNNEST after any
-preceding ordinary JOINs and successive CROSS expansions. Ordinary Relation
-JOINs after expansion, INNER/LEFT correlation, implicit comma expansion and
+The correlated profile supports explicit CROSS JOIN UNNEST after preceding
+ordinary JOINs and successive CROSS expansions. A subsequent ordinary Relation
+JOIN consumes the expanded row in both SQL and Pipe. Its explicit bound, parent
+ranges, object value-table receivers and OFFSET are retained through private
+producer references; expansion is not moved after the JOIN. An authored SELECT
+or AS still replaces scope. INNER/LEFT correlation, implicit comma expansion and
 correlated expansion following a Pipe set expression remain unsupported. These
-are coverage gaps, not GoogleSQL language restrictions. The Frontend rejects
-them rather than moving operations or changing multiplicity. CROSS expansion
+are coverage gaps, not GoogleSQL language restrictions. CROSS expansion
 does not accept MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common
 Host capacity policy without raising either limit.
 

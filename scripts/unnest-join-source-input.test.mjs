@@ -1,0 +1,61 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {unnestJoinProgram, unnestObjectJoinProgram, unnestJoinSuccesses, unnestJoinRefusals}
+  from './fixtures/unnest-join-source-input.mjs';
+import {correlatedUnnestSuccesses, correlatedUnnestRefusals}
+  from './fixtures/correlated-unnest-source-input.mjs';
+
+test('independent control expands before matching and preserves authored bounds', () => {
+  assert.deepEqual(unnestJoinProgram.stages[0].steps.slice(1, 3), [
+    {from: 'seed', derive: {array: {$param: 'items'}}},
+    {unnest: {column: 'array', as: 'element', with_index: 'position'}, as: 'expanded'},
+  ]);
+  assert.deepEqual(unnestJoinProgram.stages[0].steps[4], {
+    from: 'expanded', join: {with: 'keys', kind: 'inner', on: [{left: 'element', right: 'key'}],
+      max_output_rows: 10, select: {element: 'left.element', position: 'left.position', key: 'right.key'}},
+    as: 'joined',
+  });
+  assert.deepEqual(unnestJoinSuccesses[0].expected,
+    [{element: 2, position: 0, key: 2}, {element: 2, position: 2, key: 2}]);
+  assert.deepEqual(JSON.parse(unnestJoinSuccesses[0].text), unnestJoinProgram);
+  const object = unnestJoinSuccesses.find(item => item.name === 'unnest-join-object-json-control');
+  assert.deepEqual(JSON.parse(object.text), unnestObjectJoinProgram);
+  assert.deepEqual(object.expected, [{code: 2, label: 'b', position: 0, key: 2},
+    {code: 2, label: 'b', position: 2, key: 2}]);
+});
+
+test('NULL extension, original range and empty schemas have distinct obligations', () => {
+  const byName = new Map(unnestJoinSuccesses.map(item => [item.name, item]));
+  const left = byName.get('unnest-join-left');
+  assert.deepEqual(left.expected.map(row => [row.element, row.key]), [[2, 2], [null, null], [2, 2]]);
+  assert.deepEqual(left.columns[2], {name: 'key', contract: {type: 'number', nullable: true}});
+  const original = byName.get('unnest-join-immutable-range');
+  assert.deepEqual(original.expected.map(row => [row.current, row.original]), [[99, 2], [99, 2]]);
+  assert.match(original.text, /SET code = 99 \|> JOIN.*ON e\.code = k\.key/u);
+  for (const name of ['empty', 'null-array']) {
+    assert.deepEqual(byName.get('unnest-join-' + name).expected, []);
+    assert.deepEqual(byName.get('unnest-join-' + name).columns, byName.get('unnest-join-sql').columns);
+  }
+  const acquired = byName.get('unnest-join-acquired');
+  assert.equal(acquired.sourceReadCount, 1);
+  assert.equal(acquired.sourceReadSessionCount, 1);
+  assert.deepEqual(acquired.expected.map(row => row.position), [0, 2, 3]);
+});
+
+test('new positive and refusal obligations participate in normal and selected public routes', () => {
+  for (const item of unnestJoinSuccesses) assert.ok(correlatedUnnestSuccesses.includes(item));
+  for (const item of unnestJoinRefusals) {
+    assert.ok(correlatedUnnestRefusals.includes(item));
+    assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+  }
+  assert.equal(new Set([...correlatedUnnestSuccesses, ...correlatedUnnestRefusals].map(item => item.name)).size,
+    correlatedUnnestSuccesses.length + correlatedUnnestRefusals.length);
+  assert.ok(!correlatedUnnestRefusals.some(item => item.name === 'correlated-unnest-refusal-join-after-expansion'));
+  const cross = correlatedUnnestSuccesses.find(item => item.name === 'correlated-unnest-join-after-expansion');
+  assert.equal(cross.expected.length, 8);
+  assert.equal(cross.sourceReadCount, 1);
+  assert.match(cross.text, /MAX_OUTPUT_ROWS 10/u);
+  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  assert.ok(driver.includes("['scripts/fixtures/unnest-join-source-input.mjs', 'unnest-join-source-input.mjs']"));
+});
