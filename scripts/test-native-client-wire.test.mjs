@@ -6,7 +6,7 @@ import {clientWireCorpus, connection, profile, ref}
 import {submissionCheckWireCorpus} from './fixtures/submission-check-wire-corpus.mjs';
 import {validClientProfile, validClientAdmission, validRunRef,
   validClientConnection, validHeldRequest, validRequestLookup, validSubmitReply, validSubmissionRef,
-  validSubmissionOutcome}
+  validSubmissionLookup, validSubmissionOutcome}
   from '../packages/client-wire/index.mjs';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
@@ -71,7 +71,9 @@ let reply = profile;
 let active;
 const requests = [];
 function responseValue(entry, body) {
-  if (entry.kind === 'submission') return {...entry.value,
+  if (entry.kind === 'submission' && entry.operation === 'start') return {
+    ...readySubmission(body, entry.value.admission), unresolvedHistory: entry.value.unresolvedHistory};
+  if (entry.kind === 'submission' && entry.operation === 'aql') return {...entry.value,
     submissionRef: body.submissionRef, intentCid: body.intentCid};
   if (entry.kind === 'admission') return readySubmission(body, entry.value);
   if (entry.operation === 'start' && entry.kind === 'held') return heldSubmission(body, entry.value);
@@ -138,6 +140,11 @@ const run = async (...args) => {
 function jsOutcomes(entry, selected) {
   const {value, requestId} = entry;
   switch (entry.kind) {
+    case 'submission': return [[entry.operation === 'lookup-submission'
+      ? 'validSubmissionLookup' : 'validSubmissionOutcome', entry.operation === 'lookup-submission'
+      ? validSubmissionLookup(value, selected, originalSubmission(requestId))
+      : validSubmissionOutcome(value, selected, originalSubmission(requestId),
+        entry.operation === 'aql' ? value.intentCid : undefined, undefined)]];
     case 'profile': return [['validClientProfile',
       validClientProfile(value, selected)]];
     case 'admission': return [['validClientAdmission',
@@ -153,14 +160,13 @@ function jsOutcomes(entry, selected) {
         ? ['validSubmitReply', validSubmitReply(value, selected, requestId)]
         : ['validRequestLookup', validRequestLookup(value, requestId)],
     ];
-    case 'submission': return [['validSubmissionOutcome', validSubmissionOutcome(value,
-      selected, originalSubmission(requestId), value.intentCid)]];
     default: throw new Error(`unknown corpus kind: ${entry.kind}`);
   }
 }
 function commandArgs(entry) {
   const requestId = entry.requestId ?? 'fixed-request';
-  if (entry.kind === 'submission') return ['aql', '--program-file', 'source.sql', '--format', 'sql',
+  if (entry.operation === 'lookup-submission') return ['lookup-submission', '--submission-ref-file', 'submission.json'];
+  if (entry.operation === 'aql') return ['aql', '--program-file', 'source.sql', '--format', 'sql',
     '--request-id', requestId, ...(entry.declarations ? ['--parameter-declarations-file', 'declarations.json'] : [])];
   if (entry.operation === 'attach') return ['attach', '--ref-file', 'ref.json'];
   if (entry.operation === 'start' || entry.kind === 'admission') {
@@ -172,7 +178,8 @@ function commandArgs(entry) {
   return ['connect'];
 }
 function assertResponseBoundary(entry, selected, actual) {
-  const route = ['start', 'aql'].includes(entry.operation) ? 'submit-intent' : 'lookup-request';
+  const route = ['start', 'aql'].includes(entry.operation) ? 'submit-intent'
+    : entry.operation === 'lookup-submission' ? 'lookup-submission' : 'lookup-request';
   assert.equal(actual.signal, null, 'Native must finish normally');
   assert.deepEqual(requests.map(request => request.url),
     ['/actql/client/0.1/connect', `/actql/client/0.1/${route}`],
@@ -182,12 +189,13 @@ function assertResponseBoundary(entry, selected, actual) {
     assert.equal(request.authorization, 'Bearer scoped-token');
     assert.deepEqual(request.body.connection, selected);
   }
-  assert.equal(route === 'submit-intent' ? requests[1].body.submissionRef.nonce : requests[1].body.requestId, entry.requestId,
+  assert.equal(route === 'submit-intent' || route === 'lookup-submission'
+    ? requests[1].body.submissionRef.nonce : requests[1].body.requestId, entry.requestId,
     'the requested identity must reach the response endpoint unchanged');
   if (route === 'submit-intent') assert.equal(requests[1].body.kind,
-    entry.kind === 'submission' ? 'aql' : 'program');
+    entry.operation === 'aql' ? 'aql' : 'program');
   if (entry.expected) {
-    if (entry.kind === 'submission') {
+    if (entry.operation === 'aql') {
       assert.equal(actual.code, 1);
       assert.equal(actual.stderr, `actql-native-client: ${entry.value.problem.code}\n`,
         'A valid negative submission must retain its original Owner problem, not transport uncertainty');
@@ -203,8 +211,8 @@ function assertResponseBoundary(entry, selected, actual) {
   } else {
     assert.equal(actual.code, 1,
       `[check-mutation:submission-semantic-native] Native must reject at response validation: ${actual.stderr}`);
-    const diagnostic = entry.failureCode === 'SubmissionUnknown'
-      ? `SubmissionUnknown submission-ref-file=submission.json` : entry.failureCode;
+    const diagnostic = ['SubmissionUnknown', 'InvalidHostSubmissionLookup'].includes(entry.failureCode)
+      ? `${entry.failureCode} submission-ref-file=submission.json` : entry.failureCode;
     assert.equal(actual.stderr, `actql-native-client: ${diagnostic}\n`,
       '[check-mutation:submission-semantic-refusal] Argument, profile, transport, and spawn failures are not rejections');
     assert.equal(actual.stdout, '', 'a rejected response must not escape');
@@ -223,10 +231,12 @@ try {
     await writeFile(join(root, 'connection.json'), JSON.stringify(selected));
     await writeFile(join(root, 'ref.json'),
       JSON.stringify(entry.kind === 'run_ref' ? entry.value : ref));
-    if (entry.kind === 'submission') {
+    if (entry.operation === 'aql') {
       await writeFile(join(root, 'source.sql'), entry.source);
       if (entry.declarations) await writeFile(join(root, 'declarations.json'), JSON.stringify(entry.declarations));
     }
+    if (entry.operation === 'lookup-submission') await writeFile(join(root, 'submission.json'),
+      JSON.stringify(originalSubmission(entry.requestId)));
     const actual = await run(...commandArgs(entry));
     const received = entry.kind === 'submission' ? {...entry,
       value: responseValue(entry, requests[1]?.body ?? {})} : entry;

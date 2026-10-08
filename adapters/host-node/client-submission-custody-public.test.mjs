@@ -74,3 +74,47 @@ for (const entrance of ['local', 'https']) {
     scratch.passed();
   });
 }
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: explicit restart lookup restores the same linked Run after original processes exit`, async t => {
+    const scratch = await createOwnedScratch({parent: acceptance.scratch ?? tmpdir(),
+      prefix: 'actql-submit-restart-', label: `submission restart ${entrance}`});
+    t.diagnostic(`Submission restart evidence: ${scratch.path}`);
+    const keys = generateKeyPairSync('ed25519');
+    await writeFile(join(scratch.path, 'keys.json'), JSON.stringify({publicKey: pem(keys.publicKey),
+      privateKey: pem(keys.privateKey)}), {mode: 0o600});
+    if (entrance === 'https') execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+      '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
+      '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: scratch.path, stdio: 'ignore'});
+    const phase = async phase => {
+      const child = spawnSync(process.execPath, [fixture], {input: JSON.stringify({phase, entrance,
+        root: scratch.path, runtime: acceptance.runtime, program, scenario: 'explicit_restart'}),
+      encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024});
+      const report = JSON.parse(await readFile(join(scratch.path, `${phase}.json`), 'utf8'));
+      assert.equal(child.error, undefined, String(child.error));
+      assert.equal(child.status, 0, `${JSON.stringify(report)}\n${child.stderr}`);
+      return report;
+    };
+    const initial = await phase('restart-initial');
+    assert.equal(initial.state.status, 'succeeded');
+    assert.deepEqual(initial.rows, [{id: 1}]);
+    assert.equal(initial.computes, 1);
+    assert.equal(initial.lookup.kind, 'ready');
+    assert.deepEqual(initial.lookup.unresolvedHistory, initial.decision.unresolvedHistory);
+    assert.deepEqual(initial.second, initial.lookup);
+    assert.equal(initial.original.kind, 'unresolvable');
+    // spawnSync has observed the original process's exit before launching a
+    // different process. Host and execution owner lived in that first process.
+    const restored = await phase('restart-lookup');
+    assert.notEqual(restored.pid, initial.pid);
+    assert.deepEqual(restored.decision, initial.decision);
+    assert.deepEqual(restored.lookup, initial.lookup);
+    assert.deepEqual(restored.second, initial.lookup);
+    assert.deepEqual(restored.original, initial.original);
+    assert.deepEqual(restored.ref, initial.ref);
+    assert.equal(restored.state.status, 'succeeded');
+    assert.deepEqual(restored.rows, [{id: 1}]);
+    assert.equal(restored.computes, 0, 'restored lookup and attach do not submit or compute');
+    scratch.passed();
+  });
+}

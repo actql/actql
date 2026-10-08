@@ -15,6 +15,12 @@ import {sealAcceptance, checkAcceptance, readAcceptance, readyActions, acceptanc
 import {checkCostObservation} from './costs.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
+const bridgeObservation = [
+  'ACTQL_EVENTS_BRIDGE:{"case":"empty-number","clock":"number","rows":0}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"nullable-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"duplicate-payload-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"timestamp-original-text","clock":"timestamp","rows":1}',
+].join('\n') + '\n';
 function fixture(event = 'push', fullCatalog = false) {
   const catalog = readCatalog();
   if (!fullCatalog) {
@@ -44,12 +50,13 @@ function fixture(event = 'push', fullCatalog = false) {
   for (const action of catalog.actions) {
     const inputs = actionInputs({tree, revision: context.candidateRevision, action, runtime});
     // The deterministic JS observation fixture records all thirteen identities.
-    const output = action.kind === 'formal-model' ? `Checked ${action.minimumUnits} theorems, expected claim types and axiom dependencies\n` :
+    let output = action.kind === 'formal-model' ? `Checked ${action.minimumUnits} theorems, expected claim types and axiom dependencies\n` :
       action.id !== 'mutations-js' ? `Total tests: ${action.minimumUnits}, passed: ${action.minimumUnits}, failed: 0.\n` :
       ['stale-token-reuse', 'zero-quantum', 'terminal-resume', 'cleanup-changed-as-complete', 'cumulative-as-delta',
         'reset-budget-history', 'accept-backward-work', 'adapter-terminal-resume', 'premature-cleanup-success',
         'cleanup-retry-reruns-callback', 'actual-set-path-reaches-adapter', 'actual-nest-path-reaches-adapter', 'nest-parent-child-ports-swapped']
         .map(id => `${id}: detected by replacement tests`).join('\n');
+    if (action.id.startsWith('events-connection-')) output = bridgeObservation + output;
     const receipt = sealReceipt({origin, action, inputs, output, status: 0, milliseconds: 10});
     receipts.push(receipt);
     const bytes = canonicalReceipt(receipt), receiptDigest = hash(bytes);

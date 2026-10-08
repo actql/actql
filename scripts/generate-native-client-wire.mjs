@@ -155,7 +155,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     functions.push(`///|\nfn ${name}(${lines.length ? 'value' : '_value'} : Json) -> Bool {\n  ${lines.join('\n  ')}\n  true\n}\n`);
     return name;
   }
-  for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup',
+  for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup','submission_restart',
     'connection','profile','admission','run_ref',
     'lookup_found','lookup_not_found','lookup_unknown','held',
     'cancellation_ref','cancellation','cancellation_lookup']) emit(schemas[name], `wire_${name}_shape`);

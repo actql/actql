@@ -10,7 +10,7 @@ import {checkpointLimits, clientSourceFormats, validCancellation,
   validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validClientBody, validResourceInspection,
-  validSubmissionRef, validSubmissionOutcome, validSubmissionLookup,
+  validSubmissionRef, validSubmissionOutcome, validSubmissionLookup, validSubmissionRestart,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
@@ -1369,7 +1369,7 @@ async function connectSelected(selected, port) {
           signal?.throwIfAborted();
           dispatchedCancellations.add(cancellationContext);
         }
-        if (operation === 'submit-intent') {
+        if ((operation === 'submit-intent' || operation === 'restart-intent')) {
           signal?.throwIfAborted();
           dispatchedSubmissions.add(submitContext);
         }
@@ -1381,7 +1381,7 @@ async function connectSelected(selected, port) {
         return value;
       }
       catch (cause) {
-        if (operation === 'submit-intent') {
+        if ((operation === 'submit-intent' || operation === 'restart-intent')) {
           if (!dispatchedSubmissions.has(submitContext)) {
             throw submissionNotSent(submitContext, cause);
           }
@@ -1414,7 +1414,7 @@ async function connectSelected(selected, port) {
       signal?.throwIfAborted();
       dispatchedCancellations.add(cancellationContext);
     }
-    if (operation === 'submit-intent') {
+    if ((operation === 'submit-intent' || operation === 'restart-intent')) {
       signal?.throwIfAborted();
       dispatchedSubmissions.add(submitContext);
     }
@@ -1430,7 +1430,7 @@ async function connectSelected(selected, port) {
         redirect: 'error',
       });
     } catch (cause) {
-      if (operation === 'submit-intent') {
+      if ((operation === 'submit-intent' || operation === 'restart-intent')) {
         throw submissionUnknown(submitContext,
           selected.redactCredentialErrors ? undefined : cause);
       }
@@ -1444,7 +1444,7 @@ async function connectSelected(selected, port) {
       const code = typeof error?.code === 'string' &&
         /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(error.code)
         ? error.code : `HostHTTP${response.status}`;
-      if (operation === 'submit-intent') {
+      if ((operation === 'submit-intent' || operation === 'restart-intent')) {
         throw submissionUnknown(submitContext, new ClientError(code));
       }
       throw new ClientError(code, {status: response.status});
@@ -2046,10 +2046,13 @@ async function connectSelected(selected, port) {
     let body;
     try {
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
-        kind, input, parameters: options.parameters ?? null}));
+        kind, input, parameters: options.parameters ?? null,
+        ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
     } catch {fail('InvalidClientPayload');}
     if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
         options.requestId !== body.submissionRef.nonce) fail('InvalidSubmissionRef');
+    if (body.unresolvedHistory !== undefined &&
+        !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) fail('InvalidSubmissionRestart');
     const requestId = body.submissionRef.nonce;
     const context = {requestId, submissionRef: body.submissionRef,
       lookupContext: Object.freeze({endpoint: selected.endpoint, scopeRef: confirmed.scopeRef})};
@@ -2065,9 +2068,10 @@ async function connectSelected(selected, port) {
       let outcome;
       let checkObservation;
       try {
-        const response = await exchange('submit-intent', {...body, intentCid}, options.signal, context);
+        const response = await exchange(body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent',
+          {...body, intentCid}, options.signal, context);
         outcome = detachResponse(captureResponse(await controlValue(response)));
-        if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid)) {
+        if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid, body.unresolvedHistory)) {
           fail('InvalidHostSubmissionOutcome');
         }
         if (outcome.checkObservation !== undefined) {
@@ -2116,7 +2120,8 @@ async function connectSelected(selected, port) {
     try {
       // A bare legacy ID cannot recover its original epoch on reconnect.
       // Never reinterpret it as new work under the latest connection ticket.
-      if (options.submissionRef === undefined && options.requestId !== undefined) {
+      if (options.submissionRef === undefined &&
+          (options.requestId !== undefined || options.unresolvedHistory !== undefined)) {
         fail('SubmissionReferenceRequired');
       }
       return submitIntent(kind, input, {...options,

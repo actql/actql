@@ -5,7 +5,7 @@ export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
   WireCancellationLookup, WireCheckpointSummary, WireClientProfile,
-  WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup,
+  WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup, WireSubmissionRestart,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -122,6 +122,7 @@ export declare function createCheckSupplementationSession(client: Pick<Client, '
 export type SubmissionInput = Readonly<{
   requestId: string;
   submissionRef?: WireSubmissionRef;
+  unresolvedHistory?: WireSubmissionRestart;
   kind: 'program' | 'aql';
   input: unknown;
   parameters: unknown;
@@ -501,9 +502,10 @@ export interface Execution {
 
 type SubmissionIdentityOptions = (
   /** Omit for deliberate new work; retain getSubmissionInput(promise) before awaiting. */
-  Readonly<{submissionRef?: undefined; requestId?: never}> |
+  Readonly<{submissionRef?: undefined; requestId?: never; unresolvedHistory?: never}> |
   /** requestId only asserts this original nonce; it never allocates an identity. */
-  Readonly<{submissionRef: WireSubmissionRef; requestId?: string}>
+  Readonly<{submissionRef: WireSubmissionRef; requestId?: string;
+    unresolvedHistory?: WireSubmissionRestart}>
 );
 export type SubmissionOptions = SubmissionIdentityOptions & Readonly<{
   parameters?: unknown;

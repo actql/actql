@@ -10,15 +10,19 @@ priv enum EventsBridgeExpected {
 test "compositional Events bridge preserves independent ordered nullable rows and checked schema" {
   // Inputs and expected observations are authored independently of lowering,
   // storage output and the Lean model. The two bridges share no watermark step.
-  let cases : Array[(String, String, Array[Array[EventsBridgeExpected]])] = [
-    ("number", "[]", []),
+  let cases : Array[
+    (String, String, String, Array[Array[EventsBridgeExpected]]),
+  ] = [
+    ("empty-number", "number", "[]", []),
     (
+      "nullable-number",
       "number",
       "[{\"event_id\":2,\"occurred_at\":10,\"payload\":null}," +
       "{\"event_id\":1,\"occurred_at\":1,\"payload\":null}]",
       [[Number(2.0), Number(10.0), Null], [Number(1.0), Number(1.0), Null]],
     ),
     (
+      "duplicate-payload-number",
       "number",
       "[{\"event_id\":2,\"occurred_at\":10,\"payload\":\"same\"}," +
       "{\"event_id\":1,\"occurred_at\":1,\"payload\":\"same\"}]",
@@ -28,13 +32,14 @@ test "compositional Events bridge preserves independent ordered nullable rows an
       ],
     ),
     (
+      "timestamp-original-text",
       "timestamp",
       "[{\"event_id\":1,\"occurred_at\":\"1969-12-31T23:59:59.999Z\"," +
       "\"payload\":\"é\\r\\n\"}]",
       [[Number(1.0), Timestamp("1969-12-31T23:59:59.999Z"), Text("é\r\n")]],
     ),
   ]
-  for (clock, input, expected) in cases {
+  for (case_id, clock, input, expected) in cases {
     let source_owner = carrier_events_source_owner_with(
       clock,
       input,
@@ -222,5 +227,16 @@ test "compositional Events bridge preserves independent ordered nullable rows an
     assert_true(@records.completed_available(events))
     assert_true(@records.discard_completed(events))
     assert_false(@records.discard_completed(events))
+    // Actual per-case completion after every independent value/schema/custody
+    // assertion. A passing parameterized test count alone cannot supply scope.
+    println(
+      "ACTQL_EVENTS_BRIDGE:{\"case\":\"" +
+      case_id +
+      "\",\"clock\":\"" +
+      clock +
+      "\",\"rows\":" +
+      @execution.completed_row_count(rows).to_string() +
+      "}",
+    )
   }
 }
