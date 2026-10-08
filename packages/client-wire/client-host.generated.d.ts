@@ -791,7 +791,7 @@ export type WireCheckOutcomeShape = Readonly<{
   requirements: true;
 }>;
   inputs: readonly Readonly<{
-  document_id: "source" | "parameter_declarations" | "parameters";
+  document_id: "source" | "program" | "parameter_declarations" | "parameters";
   revision: string;
   kind: "text" | "structured";
   byte_length: number;
@@ -799,6 +799,14 @@ export type WireCheckOutcomeShape = Readonly<{
   coverage: Readonly<{
   limits: readonly (Readonly<{
   code: string;
+}> | Readonly<{
+  code: "implementation_limit" | "analysis_budget_exhausted";
+  location: Readonly<{
+  kind: "structured";
+  document_id: "program";
+  revision: string;
+  pointer: string;
+}>;
 }> | Readonly<{
   code: "implementation_limit";
   facts: Readonly<{
@@ -829,7 +837,7 @@ export type WireCheckOutcomeShape = Readonly<{
   precision: "exact" | "approximate";
 }> | Readonly<{
   kind: "structured";
-  document_id: "parameter_declarations" | "parameters";
+  document_id: "program" | "parameter_declarations" | "parameters";
   revision: string;
   pointer: string;
 }>;
@@ -909,7 +917,7 @@ export type WireCheckOutcomeShape = Readonly<{
   document: "parameters" | "parameter_declarations";
   issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds" | "function_lowering_unresolved";
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds" | "function_lowering_unresolved" | "missing_field" | "wrong_type" | "unexpected_null" | "invalid_structure";
 }> | Readonly<{
   contract_cid: "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164";
   schema_cid: "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3";
@@ -933,7 +941,7 @@ export type WireCheckOutcomeShape = Readonly<{
   precision: "exact" | "approximate";
 }> | Readonly<{
   kind: "structured";
-  document_id: "parameter_declarations" | "parameters";
+  document_id: "program" | "parameter_declarations" | "parameters";
   revision: string;
   pointer: string;
 }>;
@@ -1013,7 +1021,7 @@ export type WireCheckOutcomeShape = Readonly<{
   document: "parameters" | "parameter_declarations";
   issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds" | "function_lowering_unresolved";
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds" | "function_lowering_unresolved" | "missing_field" | "wrong_type" | "unexpected_null" | "invalid_structure";
 }> | Readonly<{
   contract_cid: "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164";
   schema_cid: "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3";
@@ -1032,7 +1040,7 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739";
+  reason_schema_cid: "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -1042,7 +1050,7 @@ export type WireCheckOutcomeShape = Readonly<{
   requirements: true;
 }>;
   inputs: readonly Readonly<{
-  document_id: "source" | "parameter_declarations" | "parameters";
+  document_id: "source" | "program" | "parameter_declarations" | "parameters";
   revision: string;
   kind: "text" | "structured";
   byte_length: number;
@@ -1050,6 +1058,14 @@ export type WireCheckOutcomeShape = Readonly<{
   coverage: Readonly<{
   limits: readonly (Readonly<{
   code: string;
+}> | Readonly<{
+  code: "implementation_limit" | "analysis_budget_exhausted";
+  location: Readonly<{
+  kind: "structured";
+  document_id: "program";
+  revision: string;
+  pointer: string;
+}>;
 }> | Readonly<{
   code: "implementation_limit";
   facts: Readonly<{
@@ -1080,7 +1096,7 @@ export type WireCheckOutcomeShape = Readonly<{
   precision: "exact" | "approximate";
 }> | Readonly<{
   kind: "structured";
-  document_id: "parameter_declarations" | "parameters";
+  document_id: "program" | "parameter_declarations" | "parameters";
   revision: string;
   pointer: string;
 }>;
@@ -1160,7 +1176,7 @@ export type WireCheckOutcomeShape = Readonly<{
   document: "parameters" | "parameter_declarations";
   issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds" | "function_lowering_unresolved";
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds" | "function_lowering_unresolved" | "missing_field" | "wrong_type" | "unexpected_null" | "invalid_structure";
 }> | Readonly<{
   contract_cid: "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164";
   schema_cid: "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3";
@@ -1184,7 +1200,7 @@ export type WireCheckOutcomeShape = Readonly<{
   precision: "exact" | "approximate";
 }> | Readonly<{
   kind: "structured";
-  document_id: "parameter_declarations" | "parameters";
+  document_id: "program" | "parameter_declarations" | "parameters";
   revision: string;
   pointer: string;
 }>;
@@ -1264,7 +1280,7 @@ export type WireCheckOutcomeShape = Readonly<{
   document: "parameters" | "parameter_declarations";
   issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds" | "function_lowering_unresolved";
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds" | "function_lowering_unresolved" | "missing_field" | "wrong_type" | "unexpected_null" | "invalid_structure";
 }> | Readonly<{
   contract_cid: "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164";
   schema_cid: "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3";
@@ -1287,7 +1303,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739";
+  reason_schema_cid: "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -1296,7 +1312,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739";
+  reason_schema_cid: "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{
@@ -1308,7 +1324,7 @@ export type WireCheckLocationShape = Readonly<{
   precision: "exact" | "approximate";
 }> | Readonly<{
   kind: "structured";
-  document_id: "parameter_declarations" | "parameters";
+  document_id: "program" | "parameter_declarations" | "parameters";
   revision: string;
   pointer: string;
 }>;
