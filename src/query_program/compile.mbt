@@ -6162,6 +6162,14 @@ fn compile_set_stages(
   let stages : Array[@builder.Node] = []
   let sources : Array[String] = []
   let outputs : Array[Array[String]] = []
+  let mut first_term : (
+    Int,
+    String,
+    String,
+    String,
+    String,
+    Array[@builder.Node],
+  )? = None
   let captured : Array[(String, String, Bool)] = []
   for index in 0..<terms.length() {
     let term = terms[index]
@@ -6376,7 +6384,7 @@ fn compile_set_stages(
     }
     let mut output = compiled_output
     let mut term_result = term_name
-    if index == 0 {
+    if index == 0 && !@query.set_part_at(query, 0).unwrap().inner_by_name {
       let part = @query.set_part_at(query, 0).unwrap()
       let ordered = set_output_fields(output, part)
       let (matched, needed) = set_alignment_fields(ordered, output, true)
@@ -6392,57 +6400,100 @@ fn compile_set_stages(
       }
       output = ordered
     }
+    if index == 0 {
+      first_term = Some(
+        (
+          stages.length(),
+          input.name,
+          seed_stage,
+          seed_result,
+          term_name,
+          term_steps,
+        ),
+      )
+    }
     stages.push(
-      construction.object([
-        ("id", construction.text(term_stage)),
-        (
-          "inputs",
-          construction.object([
-            (
-              input.name,
-              construction.object([
-                (
-                  "result",
-                  construction.object([
-                    ("stage", construction.text(seed_stage)),
-                    ("result", construction.text(seed_result)),
-                  ]),
-                ),
-              ]),
-            ),
-          ]),
-        ),
-        ("steps", construction.array(term_steps)),
-        (
-          "results",
-          construction.object([
-            (
-              term_stage,
-              construction.object([
-                ("from", construction.text(term_result)),
-                (
-                  "fields",
-                  construction.array(
-                    output.map(name => construction.text(name)),
-                  ),
-                ),
-              ]),
-            ),
-          ]),
-        ),
-      ]),
+      set_term_stage(
+        construction,
+        term_stage,
+        input.name,
+        seed_stage,
+        seed_result,
+        term_steps,
+        term_result,
+        output,
+      ),
     )
     sources.push(term_stage)
     outputs.push(output)
+  }
+  let sql_inner_count = set_inner_chain_length(query)
+  let sql_inner_fields = if sql_inner_count > 0 {
+    let rights : Array[Array[String]] = []
+    for index in 1..<(sql_inner_count + 1) {
+      rights.push(outputs[index])
+    }
+    Some(
+      set_inner_fields(
+        outputs[0],
+        rights,
+        @query.set_part_at(query, 0).unwrap(),
+      ),
+    )
+  } else {
+    None
+  }
+  let first_part = @query.set_part_at(query, 0).unwrap()
+  if first_part.inner_by_name {
+    let ordered = match sql_inner_fields {
+      Some(fields) => fields
+      None => set_output_fields(outputs[0], first_part, right_fields=outputs[1])
+    }
+    let (matched, needed) = set_alignment_fields(
+      ordered,
+      outputs[0],
+      true,
+      allow_subset=true,
+    )
+    if needed {
+      let (index, input, seed_stage, seed_result, term_name, steps) = first_term.unwrap()
+      let steps = steps.copy()
+      let result = term_name + "_ordered"
+      steps.push(
+        construction.object([
+          ("from", construction.text(term_name)),
+          ("select", set_select_fields(construction, ordered, matched)),
+          ("as", construction.text(result)),
+        ]),
+      )
+      stages[index] = set_term_stage(
+        construction,
+        sources[0],
+        input,
+        seed_stage,
+        seed_result,
+        steps,
+        result,
+        ordered,
+      )
+    }
+    outputs[0] = ordered
   }
   let mut left_fields = outputs[0]
   let mut current_stage = sources[0]
   for index in 0..<@query.set_part_count(query) {
     let part = @query.set_part_at(query, index).unwrap()
     let right_fields = outputs[index + 1]
-    let ordered = set_output_fields(left_fields, part)
+    let ordered = if index < sql_inner_count {
+      sql_inner_fields.unwrap()
+    } else {
+      set_output_fields(left_fields, part, right_fields~)
+    }
     let (left_matched, left_needed) = set_alignment_fields(
-      ordered, left_fields, true,
+      ordered,
+      left_fields,
+      true,
+      allow_subset=part.inner_by_name,
     )
     if left_needed {
       let aligned_name = prefix + "aql_set_left_" + index.to_string()
@@ -6458,6 +6509,7 @@ fn compile_set_stages(
       left_fields,
       right_fields,
       part.by_name,
+      allow_subset=part.inner_by_name,
     )
     let aligned = left_fields.mapi((index, field) => {
       (field, construction.text(matched[index]))

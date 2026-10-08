@@ -830,8 +830,16 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('54d4cdb8d0565a3ddba0098fa7c2066a67d65bb4523de480fc231bb09300478e'),
     cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('e853cc5da66441b448d65f7c2fa8b2285daa9b0c1eebf4c8edb2792b01db671d'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the published INNER original at its independent pre-Table closure.
+  assert.equal(vector(pin('bbeffcd367c6ae1a43cafdb7a08a17dc30eb277205a0f461afafab7967990317'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('eed9783fdb6055043260a0e5399d4f544d6f45f4454a1b5f78fec5f44d4ef065'));
+  // Preserve the complete adopted strict named-set integrated parent.
+  assert.equal(vector(pin('9906ca99d992584822b5450fd7b3a4c898942d57fed790ab02a8a5555454f3ae'),
+    cid(aoaContract), installedDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('daf9145193294b0c6f5f98df5b9f8a8b4066d3f85543be47122131bffd0de273'));
+  assert.equal(current.run.run_definition_cid,
+    pin('ac0a16e48c0578b1ae4e5c63405220579592cc2fa220461f1f066f05b27b84b8'));
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
