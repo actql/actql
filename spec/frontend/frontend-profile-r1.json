@@ -892,13 +892,16 @@
         "UNION DISTINCT",
         "INTERSECT DISTINCT",
         "EXCEPT DISTINCT",
-        "BY NAME ON (column_list)"
+        "BY NAME ON (column_list)",
+        "INNER UNION/INTERSECT/EXCEPT BY NAME [ON (column_list)]"
       ],
-      "canonical_lowering": "position or strict name alignment, explicit ON-list output projection, then existing append/intersect/except",
+      "canonical_lowering": "position, strict or INNER name alignment, explicit evaluated-field output projection, then existing append/intersect/except",
       "preconditions": [
         "compatible explicit types",
         "strict BY NAME exact field set",
-        "strict ON list exactly matches each input field set and determines output spelling/order"
+        "strict ON list exactly matches each input field set and determines output spelling/order",
+        "INNER retains nonempty common names, or explicit ON names present in every input; all input names remain unique",
+        "SQL INNER chain resolves global common output before set typing; sequential Pipe operators check their current intermediate output"
       ],
       "spec_section": "7.7",
       "execution_evidence_ids": [],
@@ -911,7 +914,8 @@
         "SQL-12"
       ],
       "additional_fixture_requirements": [
-        "set-by-name-list-source-input: independent JSON control, typed rows, NULL, duplicates, ordered columns and pre-admission refusals"
+        "set-by-name-list-source-input: independent JSON control, typed rows, NULL, duplicates, ordered columns and pre-admission refusals",
+        "set-inner-by-name-source-input: independent JSON control, unmatched columns, SQL global versus Pipe intermediate types, NULL, multiplicity and pre-admission refusals"
       ]
     },
     {

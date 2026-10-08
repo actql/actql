@@ -161,6 +161,8 @@ pub(all) struct SetPart {
   kind : String
   duplicates : String
   by_name : Bool
+  inner_by_name : Bool
+  sql_chain : Bool
   by_name_columns : Array[NamePart]?
   right : Query
 }
@@ -1017,7 +1019,20 @@ fn QueryParser::join_part(
 
 ///|
 fn QueryParser::starts_join(self : QueryParser) -> Bool {
-  pipe_join_head(self.peek())
+  pipe_join_head(self.peek()) && !self.starts_inner_set()
+}
+
+///|
+fn set_operator_token(token : Token) -> Bool {
+  keyword(token, "UNION") ||
+  keyword(token, "INTERSECT") ||
+  keyword(token, "EXCEPT")
+}
+
+///|
+fn QueryParser::starts_inner_set(self : QueryParser) -> Bool {
+  self.has("INNER") &&
+  set_operator_token(token_at(self.source, self.index + 1).unwrap())
 }
 
 ///|
@@ -1953,9 +1968,18 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   let mut term = self.sql_operand()
   let ctes = term.ctes.copy()
   let sets : Array[SetPart] = []
-  let mut set_spelling : (String, String, Bool, Array[NamePart]?)? = None
-  while self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
+  let mut set_spelling : (String, String, Bool, Bool, Array[NamePart]?)? = None
+  while self.has("UNION") ||
+        self.has("INTERSECT") ||
+        self.has("EXCEPT") ||
+        self.has("INNER") {
     self.node()
+    let inner_by_name = if self.has("INNER") {
+      self.keyword("INNER")
+      true
+    } else {
+      false
+    }
     let kind = if self.has("UNION") {
       self.keyword("UNION")
       "union"
@@ -1983,16 +2007,20 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     } else {
       false
     }
+    if inner_by_name && !by_name {
+      raise QueryAbort("INNER set requires BY NAME", self.peek().start)
+    }
     let mut by_name_columns = if by_name {
       self.set_column_list()
     } else {
       None
     }
     match set_spelling {
-      Some((old_kind, old_duplicates, old_by_name, old_columns)) => {
+      Some((old_kind, old_duplicates, old_by_name, old_inner, old_columns)) => {
         if old_kind != kind ||
           old_duplicates != duplicates ||
           old_by_name != by_name ||
+          old_inner != inner_by_name ||
           !same_set_column_list(old_columns, by_name_columns) {
           raise QueryAbort(
             "Mixed set operators require parentheses",
@@ -2002,7 +2030,10 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
         // One SQL set chain uses its first modifier's display spelling.
         by_name_columns = old_columns
       }
-      None => set_spelling = Some((kind, duplicates, by_name, by_name_columns))
+      None =>
+        set_spelling = Some(
+          (kind, duplicates, by_name, inner_by_name, by_name_columns),
+        )
     }
     let right = self.sql_operand()
     for cte in right.ctes {
@@ -2012,6 +2043,8 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       kind,
       duplicates,
       by_name,
+      inner_by_name,
+      sql_chain: true,
       by_name_columns,
       right: { ..right, ctes: [], },
     })
@@ -2196,6 +2229,8 @@ fn QueryParser::pipe_tail(
       return self.pipe_tail(self.bind_query(producer), cte_body~)
     }
     if pipe_join_head(next) &&
+      !(keyword(next, "INNER") &&
+      set_operator_token(token_at(self.source, self.index + 2).unwrap())) &&
       !operations.is_empty() &&
       !(operations.length() == 1 && operations[0] is Where(_)) {
       let producer : Query = {
@@ -2263,12 +2298,21 @@ fn QueryParser::pipe_tail(
             self.peek().start,
           )
       }
-    } else if self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
+    } else if self.has("UNION") ||
+      self.has("INTERSECT") ||
+      self.has("EXCEPT") ||
+      self.starts_inner_set() {
       if !final_operations.is_empty() {
         raise QueryAbort(
           "Set input cannot follow final ordering",
           self.peek().start,
         )
+      }
+      let inner_by_name = if self.has("INNER") {
+        self.keyword("INNER")
+        true
+      } else {
+        false
       }
       let kind = if self.has("UNION") {
         self.keyword("UNION")
@@ -2296,6 +2340,9 @@ fn QueryParser::pipe_tail(
         true
       } else {
         false
+      }
+      if inner_by_name && !by_name {
+        raise QueryAbort("INNER set requires BY NAME", self.peek().start)
       }
       let by_name_columns = if by_name { self.set_column_list() } else { None }
       if self.advance().value != Symbol(40) {
@@ -2328,6 +2375,8 @@ fn QueryParser::pipe_tail(
         kind,
         duplicates,
         by_name,
+        inner_by_name,
+        sql_chain: false,
         by_name_columns,
         right: { ..right, ctes: [], },
       })

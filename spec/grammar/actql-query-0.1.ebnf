@@ -115,9 +115,11 @@ sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;
 limit_clause  = "LIMIT", limit_integer, [ "OFFSET", limit_integer ] ;
 limit_integer = integer | parameter_token ;
-set_part      = ( "UNION", ( "ALL" | "DISTINCT" )
-              | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ] ], sql_operand ;
+set_operator  = "UNION", ( "ALL" | "DISTINCT" )
+              | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ;
+set_names     = "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ] ;
+set_matching  = set_operator, [ set_names ] | "INNER", set_operator, set_names ;
+set_part      = set_matching, sql_operand ;
 pipe_item     = relation_pipe_item | infer_operator | nearest_operator
               | result_operator | terminal_effect | named_sga_call ;
 (* Named SGA calls are ActQL extensions for existing logical Graph operators.
@@ -163,9 +165,7 @@ nearest_operator = "NEAREST", path, "AS", identifier,
 metric        = "cosine" | "dot" | "l2" ;
 keep_clause   = "KEEP", "(", keep_item, { ",", keep_item }, ")" ;
 keep_item     = path, [ "AS", identifier ] | "*" | path, ".", "*" ;
-pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )
-              | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ] ], "(", relational_body, ")" ;
+pipe_set_part = set_matching, "(", relational_body, ")" ;
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;

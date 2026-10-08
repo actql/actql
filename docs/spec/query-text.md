@@ -353,13 +353,35 @@ successive Pipe set operator can declare its own list against the current
 Relation. ORDER BY and downstream Pipe operators see only the combined output.
 Normal type compatibility, NULL, duplicate and equality contracts remain with
 the common checker and operations. DATA and CTE sets use the same rules without
-additional acquisition. INNER/FULL/LEFT name propagation and CORRESPONDING
+additional acquisition. FULL/LEFT name propagation and CORRESPONDING
 spelling remain separate unimplemented surfaces; omitting those modes does not
 implicitly drop unlisted columns or add NULL-filled columns.
 The selected [GoogleSQL set modifier](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#by_name_or_corresponding)
 defines that equivalence. The pinned resolver and pipe-set fixtures corroborate
 strict matching and ON-list spelling; parser acceptance does not establish
 backend execution coverage.
+
+`INNER UNION ALL BY NAME`, `INNER UNION DISTINCT BY NAME`,
+`INNER INTERSECT DISTINCT BY NAME` and `INNER EXCEPT DISTINCT BY NAME`
+retain only common column names. Without ON, output order and spelling follow
+those common names in the first input. With `BY NAME ON (column_list)`, only
+the listed common names remain, in authored list order/spelling. At least one
+column must remain. Duplicate names in any input or list, and listed names
+missing from any input, are refused under the same case-insensitive lookup.
+The INNER prefix requires BY NAME; it never means positional matching.
+
+A SQL chain resolves the common output names across all its operands before
+checking set compatibility. A column absent from a later operand is excluded
+from every set input, even if its types differ in earlier operands. Sequential
+Pipe set operators instead consume their current intermediate Relation; a
+column retained by the first Pipe set must meet that intermediate type contract.
+Projection drops unmatched names using evaluated input slots, and the existing
+checker and set operations still determine types, NULL and duplicate behavior.
+ORDER BY and later operators cannot recover dropped names or input ranges.
+No source acquisition, execution owner or placement boundary is introduced.
+FULL/LEFT name propagation and CORRESPONDING spelling remain unimplemented.
+This subset follows the same pinned GoogleSQL reference above; selected local
+checks and packed acceptance establish only their recorded execution scope.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
 body, named FROM/JOIN subquery and parenthesized query operand use the same
