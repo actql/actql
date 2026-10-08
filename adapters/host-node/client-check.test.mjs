@@ -3704,7 +3704,10 @@ for (const entrance of ['local', 'http']) {
       const result = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
       assert.equal(result.report.verdict, 'undetermined');
       assert.deepEqual(result.report.reasons, []);
-      assert.deepEqual(result.report.coverage, {limits: [{code: 'implementation_limit'}], unresolved: []});
+      assert.deepEqual(result.report.coverage, {limits: [{code: 'implementation_limit',
+        facts: {issue: 'function_lowering_unresolved'}, location: {kind: 'text',
+          document_id: 'source', revision: getCheckInput(result, 'source').revision,
+          precision: 'exact', start_byte: 7, end_byte: text.length - 5}}], unresolved: []});
     }
   });
 }
