@@ -236,6 +236,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         throw new Error('ClientDispatchCleanupPending');
       }
       entry.pendingSetup = undefined;
+      // This exact setup has stopped and returned its temporary resources.
+      // An unentered Compute needs no execution-owner handoff; the existing
+      // Run owner still decides the outcome from current durable facts.
+      if (entry.physicalStarted && !entry.computeStartAttempted) {
+        entry.stopObservationPending = true;
+      }
     }
     if (execution !== undefined) {
       if (typeof execution.close !== 'function' ||
@@ -404,12 +410,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           preparedProgram, registry, values, 1n, 0n, 0n, 0n,
           fragment, ordered);
         if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
+        // Retain before the reservation/fault boundary: cancellation can
+        // arrive there before runPublished transfers execution custody.
+        entry.pendingSetup = setup;
       }
       // The resumed admission and physical start reservation are adjacent.
       if (gate !== undefined) {
         try { gate.beforePhysicalStart(); }
         catch (error) {
           reached({refused: error});
+          await settleCleanup(entry);
           return;
         }
       }
@@ -418,7 +428,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         namespaceId, ref: accepted.ref,
         currentAuthorization: hostConnection({principalId: actual,
           connection, ref: accepted.ref}),
-      }, moon, control)) return;
+      }, moon, control)) {
+        await settleCleanup(entry);
+        return;
+      }
       entry.physicalStarted = true;
       entry.finishPending = true;
       gate?.started();
