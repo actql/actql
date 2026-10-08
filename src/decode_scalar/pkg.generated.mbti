@@ -26,6 +26,12 @@ pub fn read_safe_integer(Double) -> Int64?
 
 pub fn start_utf8_admission(String, Int64) -> Result[Utf8Admission, Utf8AdmissionIssue]
 
+pub fn unicode_is_case_ignorable(Char) -> Bool
+
+pub fn unicode_is_cased(Char) -> Bool
+
+pub fn unicode_lower_mapping(Char) -> String?
+
 pub fn unicode_scalar_count(String) -> Int?
 
 pub fn unicode_upper_mapping(Char) -> String?
