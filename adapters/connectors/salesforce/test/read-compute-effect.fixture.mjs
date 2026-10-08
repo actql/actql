@@ -347,6 +347,11 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
           resolve(report);
         } catch (cause) { reject(Object.assign(cause, {stdout, stderr})); }
       });
+      // Capture the child's actual bytes as they arrive; execFile's final
+      // callback can be lost when the parent guard stops during Host close.
+      for (const [stream, name] of [[child.stdout, 'stdout'], [child.stderr, 'stderr']]) {
+        stream.on('data', bytes => appendFileSync(`${path}.${step}.${name}.log`, bytes, {mode: 0o600}));
+      }
     });
     invoke.processes = processes;
     return invoke;
