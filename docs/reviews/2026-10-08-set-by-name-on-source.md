@@ -70,3 +70,37 @@ preimage retains main's grammar/Run history and adds the new complete closure:
 `sha256:c7f33c1d74c88186b8354a28021c1146e4042115d7e17ae62f9edccf49ddffa4`
 (Run). Values Unit/Result Plan and barrier contracts are unchanged. The Run
 expectation is not replaced with a CID observed from product execution.
+
+## Main integration and public-control correction
+
+The ordinary merge adopts main `f080615fc4be0731a9f5fa4549c307ba0a2930e8`,
+including the now-landed shorthand ROWS unit (#1005). Both narrow selectors
+and normal public corpus registrations are retained. Grammar metadata and
+canonical generated vectors were regenerated from the combined authored
+source. Both parents' independent Values Run preimages are retained.
+
+The first ordinary five-package run from
+`e980b941de74f52d0494db1f11a5d54b324023b3` stopped at the independent JSON
+control: its hand-authored filter used the nonexistent wire spelling `le`
+instead of existing `lte`. Commit
+`a25a9f7b24d48291532e5c81be8acd7adf301101` corrects only that operator spelling
+and its source-fixture assertion; expected rows, types and order are unchanged.
+The terminal evidence is `public-query-evidence-n3zvvE` / `run-440U21`.
+That attempt did not execute the new source cases or the HTTPS cohort and
+must not be presented as feature acceptance. The original tarballs, digests
+and failure logs are retained separately from the integrated rerun.
+
+The combined grammar manifest is `sha256:06af2bb4ef4b70809d026cce5a051ad442eba4484a4defd49a097aecdbc9b34e`; the independent complete
+normative-preimage oracle yields Run `sha256:1341bd6588f20cde58f0b89676618dad7fff8e589ea245b622b3d7b1a409d9bb`. Values Unit, Result Plan and
+barrier contracts remain unchanged. Exact-SHA public execution and mandatory
+CI remain unverified at this pre-commit checkpoint.
+
+The merged working tree passed the six selected MoonBit test files (14/14,
+`run-btzscy` / `focused-test-6luCYI`) and seven selected Node test files
+(35/35, `run-QqdHcq` / `focused-test-L1ggTi`). This includes the adopted
+shorthand-ROWS parser/lowerer and both public-corpus registrations. Read-only
+manifest, document metadata, spec-family and canonical freshness checks passed
+(380 canonical identities). Authored changed MoonBit files match pinned
+`moonfmt`; generated files match their generators. These pre-commit checks
+are not exact-SHA packed or CI success. The integrated packed result is
+recorded separately in PR #1009 after the ordinary merge commit is fixed.

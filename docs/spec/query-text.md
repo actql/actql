@@ -178,11 +178,11 @@ obligations. NULL computed keys share their existing common NULL partition;
 CASE/IF/COALESCE retain ordinary demand semantics and expression failures do not
 publish a partial Result. This connection retains ActQL's existing finite
 number and recursive type contracts; it does not claim Google's complete type
-profile, including its floating-point partition exclusion. Named windows,
-optional ordering, default frames and nested window calls remain outside this
-implemented inline profile.
+profile, including its floating-point partition exclusion. Optional ordering,
+default frames and nested window calls remain outside this implemented inline
+profile. Named-window resolution is described separately below.
 
-In the implemented inline `OVER` profile, numeric `ROWS BETWEEN` boundaries
+In the implemented inline `OVER` profile, numeric `ROWS` boundaries
 accept an integer literal or a whole named parameter, for example
 `ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
 syntax; the parameter is lowered to the common `preceding`/`following`
@@ -193,6 +193,15 @@ contract's positive distances. GoogleSQL also permits zero numeric boundaries;
 that difference remains a common-contract coverage gap, not a restriction of
 GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
 are not implemented in this profile.
+
+The selected GoogleSQL single-boundary `ROWS` form has an implicit
+`CURRENT ROW` upper boundary. `ROWS 2 PRECEDING`, `ROWS @before PRECEDING`,
+`ROWS CURRENT ROW` and `ROWS UNBOUNDED PRECEDING` lower to the same common
+frame contract as their explicit `ROWS BETWEEN ... AND CURRENT ROW` forms.
+The authored lower boundary and parameter remain unchanged. This is an
+explicit physical-row frame, not an implicit RANGE frame or an added order
+guarantee. Interval and bound-value validation remain in the common checker;
+a start after the implicit upper boundary is rejected before Run admission.
 
 The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
 `STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
@@ -243,7 +252,8 @@ ORDER BY or another frame. Plain aliases retain the inherited frame. Names
 inside partition/order/frame expressions continue to use SELECT's input
 snapshot, never its output aliases. Missing ordering, frame and signature
 support remains subject to the current common analytic contract; naming a
-window does not add RANGE, unbounded frames or default aggregate frames.
+window does not add RANGE or default aggregate frames. Explicit ROWS boundary
+support follows the frame rules above.
 Unused declarations are checked for declaration conflicts but do not execute
 their expressions. These rules follow
 [GoogleSQL named windows](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls#rules_for_using_a_named_window_in_the_window_specification)
