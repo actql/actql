@@ -65,16 +65,21 @@ export const statisticalAggregateSuccesses = [
       expected: [{id: 1, v: null}, {id: 2, v: 0}, {id: 3, v: 1}],
       columns: [{name: 'id', contract: {type: 'number', nullable: false}}, {name: 'v', contract: number}]}),
 ];
+// The selected inline OVER profile requires an explicit ROWS frame. This
+// valid GoogleSQL form is an implementation gap, not a malformed input.
+const defaultAnalyticFrame = 'SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM records';
 export const statisticalAggregateRefusals = [
   "SELECT VAR_POP('not a number') AS v FROM records",
   'SELECT VAR_SAMP(DISTINCT amount) AS v FROM records',
   'SELECT STDDEV_POP(amount + @missing) AS v FROM records',
-  'SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM records',
+  defaultAnalyticFrame,
   'SELECT VAR_POP(*) AS v FROM records',
   'SELECT `VAR_POP`(*) AS v FROM records',
   "SELECT `VAR_POP`('not a number') AS v FROM records",
   'SELECT `COUNT`(DISTINCT *) AS n FROM records',
-].map((text, index) => ({name: 'statistical-aggregate-refuse-' + index, format: 'sql', text}));
+].map((text, index) => ({name: 'statistical-aggregate-refuse-' + index, format: 'sql', text,
+  ...(text === defaultAnalyticFrame ? {expectedCode: 'ClientProgramImplementationLimit'} : {}),
+}));
 export const statisticalAggregateExecutionFailures = [{
   name: 'statistical-aggregate-demanded-error', format: 'sql',
   text: 'SELECT VAR_POP(1 / 0) AS v FROM records',
