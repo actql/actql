@@ -160,6 +160,18 @@ or line-ending normalization is implicit. The STRING overload is connected;
 BYTES and explicit collation remain separate coverage gaps. The scalar function
 is independent of the SELECT star REPLACE clause described above.
 
+For `ARRAY_AGG` and `STRING_AGG` with DISTINCT and aggregate-local ORDER BY,
+each ordering expression must denote the aggregate argument in the same input
+scope. This follows the selected [GoogleSQL aggregate-call rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate-function-calls).
+Qualification, grouping parentheses, quotation and equivalent static property
+access preserve the resolved receiver. A current Pipe column and an older range
+snapshot are different values after SET. The Frontend does not drop DISTINCT,
+replace the requested order or add another argument to admit a mismatched key.
+Non-DISTINCT collection calls retain their independently authored ordering.
+Broader computed aggregate order expressions remain an unconnected profile;
+they are not made invalid by this rule. Machine Program aggregate contracts
+retain their existing meaning.
+
 In the implemented inline `OVER` profile, `PARTITION BY` accepts ordinary
 row-dependent expressions, including comparisons, CASE and supported scalar
 calls. The ordinary expression parser retains each key's source origin and
@@ -182,6 +194,18 @@ profile, including its floating-point partition exclusion. Optional ordering,
 default frames and nested window calls remain outside this implemented inline
 profile. Named-window resolution is described separately below.
 
+DISTINCT aggregate calls are not admitted to the implemented explicit-ROWS
+analytic path. The selected GoogleSQL resolver forbids a DISTINCT window call
+with window ORDER BY or an authored frame, including inherited clauses. The
+Frontend rejects these combinations instead of dropping DISTINCT, discarding
+the frame or executing a different window. Default/unordered DISTINCT analytic
+calls remain a separate unimplemented connection; their refusal is a coverage
+gap, not a claim that GoogleSQL prohibits every DISTINCT window. SQL, Pipe,
+QUALIFY and query ORDER window calls share this lowering boundary. Ordinary
+non-DISTINCT analytic and grouped DISTINCT calls retain their common contracts.
+See the pinned [analytic resolver](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/analyzer/analytic_function_resolver.cc)
+and its independent ORDER/frame refusal cases.
+
 In the implemented inline `OVER` profile, numeric `ROWS` boundaries
 accept an integer literal or a whole named parameter, for example
 `ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
@@ -202,6 +226,46 @@ The authored lower boundary and parameter remain unchanged. This is an
 explicit physical-row frame, not an implicit RANGE frame or an added order
 guarantee. Interval and bound-value validation remain in the common checker;
 a start after the implicit upper boundary is rejected before Run admission.
+
+Grouped `COUNTIF(DISTINCT predicate)` accepts the ordinary nullable Boolean
+predicate and counts distinct TRUE observations: the result is one when any
+qualifying observation is TRUE, otherwise zero, including empty/all-NULL input.
+The syntax AST retains DISTINCT. The common COUNT_IF operation has no DISTINCT
+modifier, so this call lowers to common COUNT with DISTINCT on
+`IF(predicate, TRUE, NULL)`. The existing conditional owner preserves Boolean
+type checking and evaluates the authored predicate once per demanded
+observation; FALSE/NULL do not contribute a non-NULL count argument. No input
+DISTINCT step, predicate duplication or new aggregate evaluator is introduced.
+
+Per-call WHERE stays in the common aggregate filter and retains its demand
+boundary. Ordinary COUNTIF, COUNT/SUM in the same group, input scope, parameters,
+HAVING, ORDER and LIMIT/OFFSET remain independent. The output is a non-NULL
+number under the current numeric profile. The pinned GoogleSQL
+[`aggregation_distinct_countif_1` through `_4` and grouping examples](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/compliance/testdata/aggregation_distinct_queries.test)
+anchor the one/zero behavior. This connection covers grouped SQL SELECT and
+Pipe AGGREGATE. DISTINCT analytic COUNTIF remains an unsupported profile;
+do not infer default/unordered window support from the existing explicit ROWS
+frame implementation or discard DISTINCT on an authored frame.
+
+Grouped `MIN(DISTINCT expression)` and `MAX(DISTINCT expression)` retain the
+authored modifier in query syntax and lower to ordinary common MIN/MAX calls.
+Removing duplicate observations does not change these extrema in the admitted
+value domains. The common operation forbids a `distinct: true` modifier on
+MIN/MAX; the Frontend therefore omits that redundant modifier without adding a
+deduplication step or evaluating the operand again. Other aggregates in the
+same group still observe every input occurrence unless their own modifier
+requests DISTINCT. Arguments, per-call filters, grouping, HAVING, parameters,
+order and LIMIT/OFFSET retain their authored meaning. NULL observations are
+excluded, and empty/all-NULL groups produce nullable typed NULL.
+
+This selected behavior is anchored by the pinned GoogleSQL
+[`aggregation_12` and `aggregation_14` compliance cases](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/compliance/testdata/aggregation_queries.test).
+It applies to SQL grouped SELECT and Pipe AGGREGATE, including scalar aggregate
+expressions. It does not add new comparable domains, collation, NaN/infinity or
+NUMERIC/BIGNUMERIC behavior. DISTINCT analytic MIN/MAX remains an explicit
+unsupported profile: the existing explicit-frame implementation is not the
+separate default/unordered DISTINCT analytic contract. This connection also
+does not close the statistical DISTINCT gap.
 
 The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
 `STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
