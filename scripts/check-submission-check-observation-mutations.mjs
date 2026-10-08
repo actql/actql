@@ -57,6 +57,16 @@ const mutations = [
     to: "if (checkObservation.report?.verdict === 'invalid') checkObservation.report.verdict = 'undetermined'; submissionCheckObservations.set(error, freezeInput(checkObservation));",
     targets: ['local', 'http'].map(entrance => target(
       `${entrance}: missing submitted bindings never mask an independent wrong value`, 'submission-mixed-verdict'))},
+  {name: 'public submission limits lose their original input observation', path: sdk,
+    file: 'adapters/host-node/client-check.test.mjs',
+    from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
+    to: 'void checkObservation;',
+    targets: ['local', 'http'].flatMap(entrance => [
+      target(`${entrance}: original submission retains a disclosed analysis budget without input blame`,
+        'submission-budget-observation'),
+      target(`${entrance}: original submission projects implementation limits only from public checking`,
+        'submission-implementation-observation'),
+    ])},
 ];
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
