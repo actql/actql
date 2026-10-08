@@ -267,7 +267,26 @@ test('baseline preimages and changed normative pins independently determine the 
   // Freeze all preceding vectors at their pre-membership normative closure.
   const dependencies = valuesDependencyOracle({beforeMembership: true, preTypedJson: true});
   const preMembershipAoA = pin('5f1c2b3b1fc7fb76383ab1ac7cada0c1734bb5d8e21d37b42b6172938c09e951');
-  const currentDependencies = valuesDependencyOracle();
+  // Retain the complete independent closure from 9e6c8994f. Table text changed
+  // the containing source/Program contracts, including source-free Values.
+  const currentDependencies = JSON.parse(readFileSync(
+    'scripts/fixtures/pre-table-text-values-dependencies.json', 'utf8'));
+  const installedDependencies = valuesDependencyOracle();
+  assert.equal(cid({version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: cid(currentDependencies.local), used_parameter_declarations_cid: cid({}),
+    local_contract_closure_cid: cid({version: 'actql-local-contracts/0.1',
+      contracts: currentDependencies.contracts}),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}}), currentDependencies.unit);
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${currentDependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), currentDependencies.proof);
+  assert.equal(installedDependencies.unit,
+    'sha256:57baac1094a6409a29694a5710773734290c763939f7197cada36fd355dc89b1');
+  assert.equal(installedDependencies.proof,
+    'sha256:7d4194dae4c3cdf2c1832d22f1560821972241ce6e8fcd4094806fafa202cb25');
+  assert.equal(installedDependencies.resultPlan,
+    'sha256:7874afb01b75c4de3b5b45fc31bfba9b6dfeda257be02495fdd877a12f4a269c');
   const barrierManifest = JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
   const {barrier_contract_manifest_cid: barrierCid, ...barrierPreimage} = barrierManifest;
   assert.equal(cid(barrierPreimage), barrierCid);
@@ -281,7 +300,7 @@ test('baseline preimages and changed normative pins independently determine the 
     caller_input_intent_cid: pin('b'.repeat(64)), parameter_values_cid: parameterValues,
     program_definition_cid: currentIdentity.programCid};
   assert.equal(cid(requestIntent), pin('72ee31475f76b775c75b3911e0d7cc03b05a3eeba0dec0448d2f745a5ca51cfb'));
-  const current = vector(grammarCid, cid(aoaContract), currentDependencies, barrierCid,
+  const current = vector(grammarCid, cid(aoaContract), installedDependencies, barrierCid,
     currentIdentity);
   const graphRowsDependencies = {
     unit:pin('9a0e59c162b656a2196ee404011eb7a4ec763c8b402dfda359b2cc6dd5aa0e96'),
@@ -803,6 +822,6 @@ test('baseline preimages and changed normative pins independently determine the 
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
 
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
-  assert.ok(resultSource.includes(currentDependencies.unit));
-  assert.ok(resultSource.includes(currentDependencies.resultPlan), 'MoonBit fixed Result Plan must follow independent preimage');
+  assert.ok(resultSource.includes(installedDependencies.unit));
+  assert.ok(resultSource.includes(installedDependencies.resultPlan), 'MoonBit fixed Result Plan must follow independent preimage');
 });
