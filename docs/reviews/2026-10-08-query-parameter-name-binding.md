@@ -109,3 +109,12 @@ use by another worktree; no parallel producer, lock bypass, overlay, old package
 fallback or selective failure exclusion was introduced. Full Core, Wasm/Native
 execution, three-target API gate and CI remain unverified. This is an independent
 Frontend correction; it does not close all public language coverage.
+
+## Main integration
+
+Normally merged `05c6867d2d11915388ea14347a6da6ce29c75bd5`, including
+#980 quoted aggregates and #975 retained evaluated NEAREST vector inputs.
+The merge had no conflicts and preserves both corrections. The final submitted
+HEAD and its limited integration checks are recorded in the PR body separately
+from the earlier working-tree evidence above. No CI result or public execution
+is inferred from the merge.
