@@ -644,8 +644,8 @@ test('falsy execution failures retain their exact primary cause', async () => {
 });
 
 test('verified active bundle supplies the exact session factory', async () => {
-  const bundle = Object.freeze({component: 'verified-component'});
   const manifest = Object.freeze({runtimeBundleCid: 'bundle-a'});
+  const bundle = Object.freeze({component: 'verified-component', manifest});
   const factory = Object.freeze({kind: 'factory'});
   const session = Object.freeze({kind: 'session'});
   const source = Object.freeze({kind: 'source'});
@@ -714,6 +714,8 @@ test('verified active bundle supplies the exact session factory', async () => {
     }),
     bundleControl: Object.freeze({
       identity: value => value.runtimeBundleCid,
+      projection: value => [value.runtimeBundleCid, 'authority', 'bundle', '1',
+        'fixture', 'component', '1', 'local', 'local/1', 'strategy/1'],
     }),
     control: Object.freeze({
       managedOutputEvidenceKind: 'managed-output',

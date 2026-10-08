@@ -15,6 +15,8 @@ import {canonicalJson, contentCid, sourceReadAccountConfiguration} from './local
 import {installRowSourceAuthorization} from './installed-row-source.mjs';
 import {installedSourceIdentity, loadInstalledSource} from './installed-source.mjs';
 import {installedEffectIdentity, loadInstalledEffect} from './installed-effect.mjs';
+import {createInstalledConnectorTable} from './installed-connectors.mjs';
+import {installedConnectors} from '../connectors-builtin/installations.generated.mjs';
 import {checkInstalledTableSourceProfile, checkInstalledTableEffectProfile,
   installedTableReadSite, loadInstalledTableSource, loadInstalledTableEffect}
   from '../connectors/local/host/installed-local-table.mjs';
@@ -75,6 +77,33 @@ async function installedProfile(t, value) {
   return {root, path, profile, options: {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
     resolveSecret() { assert.fail('Local Table installation needs no external credential'); }}};
 }
+
+test('explicit tables preserve real Local Table identity and generic loading', async t => {
+  const connectorTable = createInstalledConnectorTable(installedConnectors);
+  for (const [make, identity, load] of [
+    [sourceProfile, installedSourceIdentity, loadInstalledSource],
+    [effectProfile, installedEffectIdentity, loadInstalledEffect],
+  ]) {
+    const f = await installedProfile(t, make);
+    assert.equal(await identity(f.path, {connectorTable}), await identity(f.path));
+    const adapter = await load(f.path, {...f.options, connectorTable});
+    try {
+      assert.equal(adapter.connectorBindings[0].connectorId, 'table');
+      assert.match(adapter.connectorBindings[0].bindingCid, /^sha256:[0-9a-f]{64}$/u);
+      if (load === loadInstalledSource) {
+        assert.equal(adapter.connectorRegistration, 'local');
+        assert.equal(adapter.connectorRevision, 'local/0.1');
+      } else {
+        assert.deepEqual(adapter.effectSelectors, [{kind: 'store',
+          target: 'connector://table/catalog', mappingRef: 'mapping:table.catalog.v1',
+          mappingCid: f.profile.targets[0].mappingCid, effectId: 'save'}]);
+      }
+    } finally {
+      await adapter.close();
+      await adapter.close();
+    }
+  }
+});
 
 test('Table Source loads through the generic Host without physical I/O', async t => {
   const f = await installedProfile(t, sourceProfile);

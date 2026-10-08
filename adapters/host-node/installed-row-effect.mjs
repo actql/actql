@@ -70,6 +70,7 @@ import {issueCompletedEffectfulComputationEvidence,
   '../host-common/completed-run-publication.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
+import {isInstalledConnectorTableEntry} from './installed-connectors.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from
   '../../packages/sdk/host-port.mjs';
@@ -179,10 +180,11 @@ function checkDriver(driver) {
 
 // The identity profile of an installation: the one its connector registered
 // in the installed connector table, or the common default. Only an entry of
-// the generated table is accepted, never a constructed one.
+// the generated table or a snapshot admitted by the table owner is accepted.
 function profileOf(installation) {
   if (installation === undefined) return defaultProfile;
-  if (!installedConnectors.includes(installation) ||
+  if ((!installedConnectors.includes(installation) &&
+      !isInstalledConnectorTableEntry(installation)) ||
       installation.effect === undefined) {
     fail('InvalidInstalledRowEffectInstallation');
   }

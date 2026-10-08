@@ -1,6 +1,7 @@
 import {connectEmbeddedLocal, publishInstalledEffect,
   publishInstalledSource} from './adapters/host-node/embedded-local.mjs';
 import {ClientError} from '@actql/sdk';
+export {createInstalledConnectorTable} from './adapters/host-node/installed-connectors.mjs';
 
 // Publish the installed source's declaration (for example a Salesforce
 // source's targeted Catalog) before the embedded Host uses it.
