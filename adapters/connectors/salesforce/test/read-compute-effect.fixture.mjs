@@ -354,6 +354,8 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
       }
     });
     invoke.processes = processes;
+    invoke.ownerObservations = async () => (await readFile(
+      `${path}.owner-observations.jsonl`, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
     return invoke;
   };
 

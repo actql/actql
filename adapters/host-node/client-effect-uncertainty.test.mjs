@@ -28,6 +28,12 @@ for (const entrance of ['local', 'https']) {
     assert.deepEqual(await step('submit'), {held: true});
     assert.equal(setup.writes().length, 0);
     assert.equal(setup.queries(), 1);
+    const computationEvents = events => events.filter(event =>
+      event.name === 'effect_computation_completed');
+    const initialComputation = computationEvents(await step.ownerObservations());
+    assert.equal(initialComputation.length, 1,
+      'the original Program completes Compute once before approval');
+    assert.equal(initialComputation[0].pid, step.processes[0].pid);
     assert.deepEqual(await step('answer'), {answered: ['committed']});
     assert.deepEqual(await step('resume'), {status: 'needs_reconciliation'});
     assert.equal(setup.writes().length, 2);
@@ -49,6 +55,8 @@ for (const entrance of ['local', 'https']) {
     assert.ok(originalProcesses.every(process => process.pid !== first.pid));
     assert.deepEqual({writes: setup.writes().length, queries: setup.queries(), targetReads: setup.targetReads()}, stoppedCounts,
       'original-Run reconciliation cannot resend or reacquire after execution-owner process exit');
+    assert.deepEqual(computationEvents(await step.ownerObservations()), initialComputation,
+      'the first original-Run reconciliation cannot regenerate Compute');
     if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') t.diagnostic(JSON.stringify({ref: first.ref, state: first.state,
       reconciled: first.reconciled, reconcileError: first.reconcileError,
       diagnostics: first.diagnostics}));
@@ -92,6 +100,8 @@ for (const entrance of ['local', 'https']) {
     assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
     assert.equal(setup.queries(), queries);
     assert.equal(setup.targetReads(), reads);
+    assert.deepEqual(computationEvents(await step.ownerObservations()), initialComputation,
+      'repeated original-Run reconciliation cannot regenerate Compute');
     // The original Effect continuation is observation-only. Inconclusive
     // provider evidence must preserve uncertainty, not fail or resend a write.
     // Keep the Local path assertion after the independent no-resend facts,

@@ -3,7 +3,7 @@
 // begin after the original child exits. Arguments: step, then installation path.
 import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
-import {readFileSync, writeFileSync} from 'node:fs';
+import {appendFileSync, readFileSync, writeFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
@@ -38,7 +38,13 @@ const installed = {
   effectProfilePath: installation.effectProfilePath,
   resolveEffectSecret: secret,
   authorization: {...installation.authorization,
-    observe: (name, detail) => diagnostics.push({name, code: detail?.code})},
+    observe: (name, detail) => {
+      const event = {pid: process.pid, name, code: detail?.code};
+      diagnostics.push({name, code: detail?.code});
+      // Test observations are separate from the Owner's durable receipts.
+      appendFileSync(`${installationPath}.owner-observations.jsonl`,
+        JSON.stringify(event) + '\n', {mode: 0o600});
+    }},
 };
 let client, host, server;
 let httpsRequests = 0;
