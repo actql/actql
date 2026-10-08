@@ -117,7 +117,7 @@ export async function prepareNativeDirectProduct({root, fixture, database,
 export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) {
   const started = performance.now();
   const {stdout, stderr} = await promisify(execFile)(invocation.binary,
-    invocation.arguments, {cwd: root, timeout: timeoutMs, maxBuffer: 1024 * 1024});
+    invocation.arguments, {cwd: root, timeout: timeoutMs, maxBuffer: 1024 * 1024, env: {...process.env, ACTQL_NATIVE_HOST_PROFILE_SETTINGS: undefined, ...invocation.environment}});
   const processCycleMs = performance.now() - started;
   return readNativeDirectProductExecution(invocation, {stdout, stderr, processCycleMs});
 }
