@@ -20,6 +20,7 @@ import {
   "actql/actql/expression_syntax" @expression_syntax,
   "actql/actql/local_relation_input" @local_input,
   "actql/actql/vector_typing" @vector,
+  "actql/actql/pipeline_typing" @pipeline,
 }
 
 import {
@@ -31,7 +32,6 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/debug",
   "actql/actql/lowering_relation" @lower,
-  "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/source_frontend" @frontend,
 } for "test"

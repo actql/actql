@@ -1,0 +1,1 @@
+{"writes":[{"resource":"events","resource_kind":"event","primary_identity":"id","fields":[{"name":"id","type":"string","nullable":false},{"name":"key","type":"string","nullable":false},{"name":"note","type":"string","nullable":false}],"create":{"fields":["key","note"],"required":["key","note"],"permission":"external_effect:events:create","approval":"required"}}]}
