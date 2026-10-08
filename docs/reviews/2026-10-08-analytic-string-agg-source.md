@@ -93,3 +93,19 @@ Node: 4/4, guard `run-hYDfnc`, focused receipt `focused-test-H37ouY`.
 Receipts are below this worktree's `_build/local-checks/attempts` and
 `_build/focused-evidence`. Formatting and `git diff --check` passed.
 These are working-tree checks, not submitted-SHA CI or packed execution.
+
+The first clean-SHA packed attempt used
+`9422cacaf9f42aa3995112cdcd672d75d0fbc999` and a normal five-package producer:
+guard `run-gctFfS`, external evidence `public-query-evidence-EHARMp`.
+Local's nine normal cases and demanded execution error passed. The subsequent
+refusal loop stopped because the generic fixture code set did not include
+the existing `UnsupportedAnalytic` public projection,
+`ClientProgramImplementationLimit`. HTTPS was not reached. The fixture now
+explicitly expects that code for the three forbidden modifiers and missing
+frame, independently pinned by the Frontend refusal tests. No generic allowed
+code set, product refusal or normal expected value is changed. Final acceptance
+uses the amended clean SHA and its own normal package manifest; this partial
+older-SHA evidence is not presented as final completion.
+The amended fixture/registration Node selection passed 4/4:
+`run-e5hfbv`, `focused-test-0hjuSu`. MoonBit product/test sources are unchanged
+from the 24/24 JS selection above.

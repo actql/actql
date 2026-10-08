@@ -65,7 +65,10 @@ export const analyticStringAggRefusals = [
   `SELECT STRING_AGG(@missing) OVER (${frame}) AS names FROM records`,
   `SELECT 'b' AS invented, STRING_AGG(invented) OVER (${frame}) AS names FROM records`,
   `FROM records AS old |> AS current |> SELECT STRING_AGG(CAST(old.amount AS STRING)) OVER (${frame}) AS names`,
-].map((text, index) => ({name: 'analytic-string-agg-refuse-' + index, format: 'sql', text}));
+].map((text, index) => ({name: 'analytic-string-agg-refuse-' + index, format: 'sql', text,
+  // These sources fail in the already-pinned UnsupportedAnalytic branch.
+  // Keep its public projection explicit rather than widening generic codes.
+  ...(index >= 1 && index <= 4 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
 export const analyticStringAggExecutionFailures = [{
   name: 'analytic-string-agg-demanded-expression-error', format: 'sql',
   text: `SELECT STRING_AGG(IF(1 / 0 > 0, 'a', 'b')) OVER (${frame}) AS names FROM records`,

@@ -29,6 +29,11 @@ test('analytic STRING_AGG obligations preserve NULLs, duplicates and empty-frame
   const all = [...analyticStringAggSuccesses, ...analyticStringAggRefusals,
     ...analyticStringAggExecutionFailures];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
+  assert.deepEqual(analyticStringAggRefusals.filter(item => item.expectedCode !== undefined)
+    .map(item => item.name), [1, 2, 3, 4].map(index => 'analytic-string-agg-refuse-' + index));
+  for (const item of analyticStringAggRefusals.slice(1, 5)) {
+    assert.equal(item.expectedCode, 'ClientProgramImplementationLimit');
+  }
 });
 
 test('ordinary and selected packed acceptance share the STRING_AGG obligations', async () => {
