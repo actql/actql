@@ -52,18 +52,18 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       'ClientProgramImplementationLimit'].includes(outcome.problem.code);
     // Only a call supplying the exact validated intent may receive its input
     // observation. A reference-only lookup does not establish input custody.
-    const observesInput = value.kind === 'aql' && value.intentCid === outcome.intentCid;
+    const observesInput = ['aql', 'program'].includes(value.kind) && value.intentCid === outcome.intentCid;
     if (!projectsProblem && !observesInput) return outcome;
     // The durable problem describes the original preparation, not a new check.
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
     const intent = immutable(JSON.parse(retained.intentWire));
-    if (intent.kind !== 'aql' || !['sql', 'aql-text'].includes(intent.input.format)) return outcome;
+    if (!(intent.kind === 'program' || intent.kind === 'aql' && ['sql', 'aql-text'].includes(intent.input.format))) return outcome;
     let disclosable = !projectsProblem;
     let checkObservation;
     try {
       const report = await checkSubmissionInput?.({principalId: value.principalId,
-        connection: value.connection, input: intent.input, parameters: intent.parameters});
+        connection: value.connection, kind: intent.kind, input: intent.input, parameters: intent.parameters});
       const observed = report?.report ?? report?.partial_report;
       if (validCheckOutcome(report)) checkObservation = report;
       disclosable = !projectsProblem || validCheckOutcome(report) && (outcome.problem.code === 'ClientProgramInvalidInput'
@@ -71,6 +71,10 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         : observed?.scope.kind === 'bound_input' && observed.coverage.limits.some(
           limit => limit.code === (outcome.problem.code === 'ClientProgramAnalysisLimit'
             ? 'analysis_budget_exhausted' : 'implementation_limit')));
+      // A protected Program dependency can change preparation's coarse cause.
+      // Keep the original operation terminal, but do not reveal that private
+      // distinction through its Problem even when independent input facts exist.
+      if (intent.kind === 'program' && observed?.coverage.unresolved.length > 0) disclosable = false;
     } catch {
       // A failed reporting attempt neither changes acceptance nor establishes
       // disclosure. No error text or HTTP status supplies a check verdict.
