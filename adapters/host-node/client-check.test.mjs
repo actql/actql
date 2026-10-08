@@ -4522,10 +4522,15 @@ for (const entrance of ['local', 'http']) {
     const legacy = JSON.parse(await readFile(join(repository,
       'scripts/fixtures/pre-public-check-diagnostic-contract.json'), 'utf8'));
     let alter = value => value;
+    const transport = [];
     const observations = {authorization: 0, analysis: 0, unavailable: 0,
       sourceDecisions: 0, wireOutcomes: [], statuses: []};
     const client = await contextClient(t, entrance, absentEnvironment,
-      {observations, mutateCheckTransportReply: value => alter(value)});
+      {observations, mutateCheckTransportReply: value => {
+        const changed = alter(value);
+        transport.push({original: structuredClone(value), received: structuredClone(changed)});
+        return changed;
+      }});
     const text = '/*e\u0301😀*/\r\nSELECT (';
     const parameterDeclarations = {x: {type: 'string'}};
     const parameters = {x: 'private-migration-binding'};
@@ -4569,7 +4574,15 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual({analysis: observations.analysis, authorization: observations.authorization,
       unavailable: observations.unavailable, sourceDecisions: observations.sourceDecisions},
     {analysis: 5, authorization: 5, unavailable: 0, sourceDecisions: 0});
-    assert.equal(observations.wireOutcomes.every(value => value.version === 'actql-check-outcome/0.1'), true);
+    assert.equal(transport.every(({original}) => original.version === 'actql-check-outcome/0.1'), true);
+    assert.deepEqual(transport.map(({received}) => received.version),
+      ['actql-check-outcome/0.1', 'actql-diagnostics/0.1', 'actql-plan-result/0.1',
+        'actql-check-outcome/0.1', 'actql-check-outcome/0.1']);
+    assert.equal(transport[3].received.outcome_schema_cid, legacy.plan_result_schema_cid);
+    // The Local observer precedes alteration; the HTTPS observer sees the
+    // altered response bytes. Keep both facts explicit rather than relabeling.
+    assert.deepEqual(observations.wireOutcomes,
+      transport.map(pair => entrance === 'http' ? pair.received : pair.original));
     assert.deepEqual(observations.statuses, entrance === 'http' ? [200, 200, 200, 200, 200] : []);
   });
 }
