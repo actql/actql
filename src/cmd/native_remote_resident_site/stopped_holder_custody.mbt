@@ -134,19 +134,98 @@ fn settle_stopped_holder_custody(
         Err(_) => return false
       }
     }
-    let input = match
-      @resident_host.prepare_resident_saved_input_cleanup(
-        owner.journal,
-        transfers,
-        root,
-        run_admission(matches),
-        request,
-        environment.max_bytes,
-        cleanup_current,
-        recorded_source=owner.recorded_source,
-      ) {
-      Ok(value) => value
-      Err(_) => return false
+    // This is an explicitly selected completed-custody maintenance path,
+    // never fallback from failed executable-material admission. The existing
+    // cleanup Owner requires both original durable completion observations,
+    // their accepted binding and current Site/delegation before reclaiming.
+    let completed_input = if owner.completed_input_producer
+      is Some((producer_attempt, expected_producer)) {
+      let envelope = match owner.journal.dispatch_envelope(producer_attempt) {
+        Ok(Some(value)) => value
+        _ => return false
+      }
+      guard @remote.admit_remote_poll_dispatch_json(envelope) is Ok(producer) &&
+        @remote.dispatch_request_identity(
+          @remote.remote_poll_dispatch_request(producer),
+        ) ==
+        expected_producer &&
+        @remote.dispatch_request_attempt_identity(request)
+        is Ok(consumer_attempt) &&
+        root is Some(receiver_root) else {
+        return false
+      }
+      guard @site.create_site(
+          environment.site_key,
+          environment.site_generation,
+          environment.runtime_bundle_cid,
+          environment.max_operations,
+          environment.max_transfers,
+          environment.max_bytes,
+          environment.max_bytes,
+        )
+        is Some(site) else {
+        return false
+      }
+      match
+        @resident_host.reclaim_stopped_resident_retained_input(
+          owner.journal,
+          site,
+          delegation(matches, budget(matches)),
+          producer_attempt,
+          consumer_attempt,
+          transfers,
+          receiver_root,
+          {
+            max_binding_bytes: 1048576,
+            max_chunks: 65536,
+            max_manifest_bytes: 1048576,
+            max_referenced_bytes: environment.max_bytes,
+          },
+          cleanup_current,
+        ) {
+        Ok(_) => true
+        Err(_) => {
+          report("release-recovery-pending", [
+            ("request_cid", @remote.dispatch_request_identity(request)),
+            ("step", "completed-input-cleanup"),
+            ("code", "cleanup-unconfirmed"),
+          ])
+          return false
+        }
+      }
+    } else {
+      false
+    }
+    let input = if completed_input {
+      Some(() => true)
+    } else {
+      match
+        @resident_host.prepare_resident_saved_input_cleanup(
+          owner.journal,
+          transfers,
+          root,
+          run_admission(matches),
+          request,
+          environment.max_bytes,
+          cleanup_current,
+          recorded_source=owner.recorded_source,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          // Report only fixed refusal codes. Historical cleanup must remain
+          // pending; arbitrary messages and saved materials are never printed.
+          let code = match issue {
+            Refused(reason) => refusal_code(reason)
+            _ => "input-custody-unconfirmed"
+          }
+          report("release-recovery-pending", [
+            ("request_cid", @remote.dispatch_request_identity(request)),
+            ("step", "input-admission"),
+            ("code", code),
+          ])
+          return false
+        }
+      }
     }
     let recovered = match owner.journal.observation(request) {
       Ok(value) => value
@@ -184,6 +263,11 @@ fn settle_stopped_holder_custody(
     owner.physical_cleanup = Some(cleanup)
   }
   if !owner.physical_cleanup.unwrap()() {
+    report("release-recovery-pending", [
+      ("request_cid", @remote.dispatch_request_identity(request)),
+      ("step", "physical-cleanup"),
+      ("code", "cleanup-unconfirmed"),
+    ])
     return false
   }
   if owner.transfer_journal is Some(journal) && !journal.close() {

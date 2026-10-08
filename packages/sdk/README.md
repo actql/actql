@@ -400,6 +400,21 @@ missing control or an unknown stop remains unknown. `controlRevision`, when
 present, belongs to the Run-control observation. It does not certify an atomic
 snapshot across Effect, publication, cancellation or resource owners.
 
+Each attached Execution retains one private Run-control observation. A later
+`status`, `wait` or `reconcile` reply with an older control revision, or changed
+control facts under the same revision, rejects with `InvalidHostRunState` and
+the safe explanation problem `stale_observation`. This includes concurrent
+replies that arrive out of order. Duplicate unchanged control facts are allowed;
+independent Effect or publication progress and observation timestamps are not
+ordered by the control revision. An absent control component supplies no such
+ordering evidence and does not reset the retained control revision.
+
+This guard changes no Host state and performs no retry. It retains no history
+or new ledger, and it cannot establish a composite snapshot's consistency or
+recover missing event history. Keep the original Run reference and explicitly
+refresh under current authorization; a rejected reconcile reply does not prove
+that the requested reconciliation failed or grant permission to repeat it.
+
 ```js
 import {explainEffectUncertainty} from '@actql/sdk';
 
