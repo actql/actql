@@ -133,16 +133,15 @@ export function composeInstalledCheckEnvironment(moon, baseWire,
 // address the same physical Site or principal. Compare adapter-issued,
 // non-secret bindings before either role can perform provider I/O.
 export function verifyInstalledConnectorBindings(source, effect) {
-  if (source === undefined || effect === undefined) return;
-  const sourceIds = new Set(JSON.parse(source.environmentWire)
-    .connector_catalogs.map(catalog => catalog.connector_id));
-  const effectIds = new Set(JSON.parse(effect.environmentWire)
-    .connector_catalogs.map(catalog => catalog.connector_id));
-  const shared = [...sourceIds].filter(id => effectIds.has(id));
-  if (shared.length === 0) return;
-  function bindings(adapter, ids) {
+  function inventory(adapter) {
+    const ids = new Set(adapter === undefined ? []
+      : JSON.parse(adapter.environmentWire).connector_catalogs
+        .map(catalog => catalog.connector_id));
     const result = new Map();
-    for (const binding of adapter.connectorBindings ?? []) {
+    const declared = adapter?.connectorBindings === undefined
+      ? [] : adapter.connectorBindings;
+    if (!Array.isArray(declared)) refuse('ConnectorBinding');
+    for (const binding of declared) {
       if (typeof binding?.connectorId !== 'string' ||
           !ids.has(binding.connectorId) ||
           typeof binding.bindingCid !== 'string' ||
@@ -150,13 +149,13 @@ export function verifyInstalledConnectorBindings(source, effect) {
           result.has(binding.connectorId)) refuse('ConnectorBinding');
       result.set(binding.connectorId, binding.bindingCid);
     }
-    return result;
+    return {ids, bindings: result};
   }
-  const sources = bindings(source, sourceIds);
-  const effects = bindings(effect, effectIds);
-  for (const id of shared) {
-    if (sources.get(id) === undefined ||
-        sources.get(id) !== effects.get(id)) {
+  const sources = inventory(source), effects = inventory(effect);
+  for (const id of sources.ids) {
+    if (!effects.ids.has(id)) continue;
+    if (sources.bindings.get(id) === undefined ||
+        sources.bindings.get(id) !== effects.bindings.get(id)) {
       refuse('ConnectorBinding');
     }
   }

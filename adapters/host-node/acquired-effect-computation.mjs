@@ -3,7 +3,7 @@
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan,
   acquiredInferEffectPublicationPlan, sourceFreeInferEffectPublicationPlan} from './local-values-plan.mjs';
-import {installedSourceFor} from './installed-source.mjs';
+import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,
   capturedDuckDBPendingCapacity} from './captured-duckdb-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -23,10 +23,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   if (typeof retainComputationOwner !== 'function' ||
       ![0, 1, 2].includes(count) ||
       sourceFree && infer === undefined ||
-      !sourceFree &&
-      (multiple ? sourceProfile?.sources?.length !== 2 :
-        typeof sourceProfile?.prepare !== 'function' ||
-        typeof sourceProfile?.open !== 'function')) {
+      !sourceFree && sourceProfile === undefined) {
     throw new TypeError('InvalidAcquiredEffectComputationPort');
   }
   const captures = [];
@@ -134,6 +131,9 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   retainComputationOwner(custody);
   try {
     signal?.throwIfAborted();
+    const selectedSources = selectAcquiredEffectSources({moon,
+      preparedEffect: acquired.prepared, sourceProfile, registry, values, fragment, ordered});
+    const singleSourceAccess = sourceAccess ?? selectedSources[0]?.adapter.sourceAccess;
     if (infer !== undefined) {
       if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
       const runId = acquired.control.runDefinitionRunId(acquired.runDefinition);
@@ -147,17 +147,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       }
     }
     const sources = [];
-    for (let task = 0; task < count; task++) {
-      const occurrence = {stage: task, input: 0, task};
-      const requirement = multiple ? checked(
-        moon.clientProgramEffectPrepareLocalQueryRequirement(acquired.prepared,
-          task, 0, registry, values, fragment, ordered)) : undefined;
-      const adapter = multiple ? installedSourceFor(sourceProfile,
-        moon.clientProgramQueryRequirementSourceRef(requirement)) : sourceProfile;
-      if (multiple && adapter.realizationKey !== 'duckdb-acquired') {
-        throw new TypeError('UnsupportedEffectSourceRealization');
-      }
-      const baseAccess = multiple ? adapter.sourceAccess : sourceAccess;
+    for (const {adapter, occurrence} of selectedSources) {
+      const baseAccess = multiple ? adapter.sourceAccess : singleSourceAccess;
       const access = sourceContinuation?.accessFor(baseAccess, occurrence) ?? baseAccess;
       const preparedSource = await adapter.prepare({
         preparedEffect: acquired.prepared, registry, values, fragment, ordered,
@@ -331,7 +322,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       });
     execution = await runCapturedEffectComputation(checkedHost,
       {...configurations,
-        authorization: multiple ? undefined : sourceAccess?.authorization}, signal);
+        authorization: multiple ? undefined : singleSourceAccess?.authorization}, signal);
     unresolved = false;
     if (execution.status === 'host-tasks-waiting') {
       return Object.freeze({status: 'waiting_checkpoint', checkpoint: execution.checkpoint,

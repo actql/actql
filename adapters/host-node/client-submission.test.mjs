@@ -27,7 +27,7 @@ const principalId = 'submission-principal';
 const fields = {authorityScopeCid, namespaceId: 'submission-test', currentAuthorization: true};
 async function fixture(t, callbacks = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-d-submission-connection-'));
-  let journal = openClientRequestJournal(root);
+  let journal = openClientRequestJournal(root, callbacks.journalOptions);
   t.after(async () => {journal.close(); await rm(root, {recursive: true, force: true});});
   let authorized = true;
   let prepareCount = 0, submitCount = 0;
@@ -51,7 +51,7 @@ async function fixture(t, callbacks = {}) {
     submitIntent: service.submitIntent, lookupSubmission: service.lookupSubmission, maxRowBytes: 65536});
   return {root, ref, body, port, get journal() {return journal;}, get service() {return service;},
     get counts() {return {prepare: prepareCount, submit: submitCount};},
-    authorize: value => {authorized = value;}, restart() {journal.close(); journal = openClientRequestJournal(root); install();}};
+    authorize: value => {authorized = value;}, restart() {journal.close(); journal = openClientRequestJournal(root, callbacks.journalOptions); install();}};
 }
 
 // Check observations are transient submit metadata, not durable acceptance.
@@ -298,6 +298,30 @@ test('unknown original identity is unresolvable rather than evidence of nonexecu
   const found = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
   assert.equal(found.kind, 'unresolvable');
   assert.deepEqual(f.counts, {prepare: 0, submit: 0});
+});
+
+test('formal expiry retirement projects Unresolvable through original lookup without resubmitting', async t => {
+  let now = 1_800_000_000_000;
+  const f = await fixture(t, {
+    journalOptions: {submissionEpochTtlMs: 1000, submissionEpochNow: () => now},
+    prepare() {throw Object.assign(new Error('invalid fixture'), {code: 'ClientProgramInvalidInput'});},
+  });
+  const body = f.body('SELECT (');
+  const original = await f.service.submitIntent(body);
+  assert.equal(original.kind, 'not_accepted');
+  now += 1000;
+  assert.deepEqual(f.journal.retireSubmittedIntent(f.ref,
+    {...fields, expectedRevision: 0}, moon), {retired: true});
+  f.restart();
+  const unresolved = {kind: 'unresolvable', submissionRef: f.ref,
+    problem: {code: 'submission_history_unresolvable'}};
+  assert.deepEqual(await f.port().perform('lookup-submission', {connection, submissionRef: f.ref}), unresolved);
+  assert.deepEqual(await f.port().perform('lookup-submission', {connection, submissionRef: f.ref}), unresolved);
+  await assert.rejects(f.service.submitIntent(body), {code: 'ClientSubmissionEpochExpired'});
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  f.authorize(false);
+  await assert.rejects(f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}),
+    {code: 'ClientRequestLookupDenied'});
 });
 
 test('intent digest mismatch is refused before preparation or admission', async t => {

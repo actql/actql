@@ -53,8 +53,10 @@ mutation result is relabeled as new arithmetic-kernel mutation evidence.
 
 - G; final merge target `actql/actql:main`.
 - Adopted main: `4e384231661558ef693620011d03c147f6792a92`.
-- Unmerged dependency: #930, `fix/composed-model-observations`; its typed/raw-log
-  observation consumer corrections are required rather than duplicated here.
+- Dependency at the original producer: #930, `fix/composed-model-observations`;
+  its typed/raw-log consumer correction was consumed rather than duplicated.
+  #930 and the registration PR #937 are now integrated in main; this supplement
+  has no unmerged parent.
 - Actual clean JS/model source: `ccd6def0376d7f5df08e0059d26c93cca5a96059`.
 - Actual producer source snapshot: `c1f982bf120729c27d270fbd52e783c458da455e0ba358b98f7742c2cbc9b9b9`.
 - Corpus digest: `9420e65ec1e80d508c740c0bc2130588a8f1a21119aa026787f1d2070a269b8f`.
@@ -141,9 +143,10 @@ The third unsuccessful run exposed the omitted `bee9f1e943d8195dd6b621cb3c9375ec
 This PR demonstrates another existing operation using shared compositional
 verification. It does not establish universal MoonBit refinement, arbitrary
 schemas/expressions, other Carriers, fan-out/shared DAGs or full physical memory
-upper bounds. New derive-specific production mutation execution, Wasm/Native
-runtime acceptance, all eight existing production mutation campaigns and final
-three-target scientific audit have not been executed for this source locally.
+upper bounds. The supplemental JS production mutation execution below covers two arithmetic
+defects only. Wasm/Native runtime and mutation acceptance, all eight existing
+production mutation campaigns and final three-target scientific audit have not
+been executed for this source locally.
 Those obligations remain in the existing CI plan; workflow/job selection is
 unchanged and the required final corpus count becomes 114 rather than 86.
 
@@ -152,3 +155,54 @@ a compatible later main, ordinary-PR `mutations-js` reuse, related-input fresh
 execution and retrieval/authentication/checker-inclusive net CI savings remain
 unproved. That separate unit resumes only after a successful full-main Actions
 original is available; no repeated polling, dispatch or same-SHA self-validation.
+
+
+## Supplemental production-kernel mutation execution
+
+Actual clean source: `1dff0abb4b27977fd126d8ff23277d04781f3b04`;
+source snapshot: `fdaf261dee2aa89d32cdd569ef6324f0b9080a8c80846db1dcc9571faab358dd`.
+This later observation is separate from the original `ccd6def0376d` producer.
+All 28 fixed inputs containing derive were selected before observing mutations.
+The existing isolated mutation workspaces, executor, source restoration and
+independent semantic consumer were used; no product source is changed by this
+supplement and no additional full campaign is registered.
+
+Two exact unique sites in `src/execution_relation/scalar.mbt` were injected:
+
+| Production defect | Actual derive-field mismatches | Intended assertion |
+| --- | ---: | --- |
+| `Add => finite(a + b)` changed to subtraction | 19/28 | `Selected child ordered values differ` |
+| Arithmetic NULL return changed to `Number(0.0)` | 3/28 | `Selected child ordered values differ` |
+
+Both compiled and executed successfully with all 28 checked, registered and
+completed observations. An independently stated faulty oracle also matched the
+mutant results, distinguishing the intended defect from unrelated refusal.
+Example arithmetic witness: `pair:select/derive`, step `n1`, row `13:r0`,
+field `d_k`, expected 0, actual 2. NULL witness: `pair:distinct/derive`,
+step `n1`, row `41:r0`, field `d_k`, expected NULL, actual 0.
+Compile errors and timeouts did not count as detection.
+
+Each mutant had a separate pristine 28-input execution. Exact original source
+bytes and the complete pristine/mutable source snapshots were checked after
+each restoration. After closing both executors, a new Owner in the restored
+workspace executed all 28 inputs successfully. Five receipts therefore bind
+140 actual observations and three Owners. Executor closure and byte restoration
+succeeded. The workspace lifecycle removed only its own finished scratch;
+original receipts, logs and verified compiled artifact copies were retained.
+
+The command was `node /private/tmp/g-pipeline-derive-real-mutations-guard.mjs`,
+which runs the archived diagnostic through the repository guard with a 600-second
+budget and 5-second TERM grace. Successful guard: `run-IBtMCw`, 284.661 seconds.
+An earlier `run-BFhcAv` was refused before execution by the shared heavy lock;
+it is not a mutation failure. This is a local JS observation, not a time-saving
+comparison, three-target audit, shrink/exploration campaign or Actions original.
+
+Supplemental textual originals:
+`evidence/2026-10-08-pipeline-derive-mutations-1dff0abb4.json.gz`.
+31 members, 1,182,603 compressed bytes; SHA-256
+`59054fa58c9c736fe1415fbb5ab8de9cdd71ca474bbe691d21c7681e23d3001c`.
+Compression round-trip, member digests, receipt/log/input/source correspondence
+and all 15 compiled-artifact references (six distinct digests) were checked.
+The diagnostic and bounded entry points are included so the exact experiment
+can be reconstructed. Binary copies remain local; the immutable first archive
+above is unchanged. This result does not authorize cross-revision evidence reuse.

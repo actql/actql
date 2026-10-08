@@ -17,7 +17,8 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {fileURLToPath} from 'node:url';
-import {connect, RequestHeld, explainRequestLookup, explainSubmission, explainRequestCancellation} from '../../packages/sdk/index.mjs';
+import {connect, RequestHeld, explainRequestLookup, explainSubmission, explainRequestCancellation,
+  getSubmissionOutcome} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
@@ -111,6 +112,31 @@ async function installedReadFixture(directory, outcome = 'allow') {
     }),
   }));
   return profilePath;
+}
+
+// A valid non-DuckDB installation that needs no process, Catalog read or
+// credentials until selected. The absent interpreter makes accidental reads
+// fail; successful selected-source tests cannot silently use this member.
+async function unusedTableFixture(directory, name = 'unused-table') {
+  const schemaWire = '{"amount":{"nullable":true,"type":"number"},"id":{"nullable":false,"type":"number"}}';
+  const catalogCid = contentCid({fixture: name});
+  const path = join(directory, `${name}.json`);
+  await writeFile(path, JSON.stringify({
+    version: 'actql-installed-table-source/0.1', connectorId: name, connection: name,
+    python: join(directory, 'uninstalled-python'),
+    catalog: {database: join(directory, `${name}.db`), warehouse: join(directory, name),
+      catalogCid, limits: {bytes: 1048576, files: 16, operations: 8}},
+    accountConfigurationWire: canonicalJson({version: 'actql-execution-account-config/0.1',
+      account_id: name, entries: [{entry_id: 'read', outcome: 'allow',
+        principal: {all: true}, connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['read']}, exclusions: []}]}),
+    targets: [{resource: 'rows', schemaWire, selector: {
+      catalog_identity_cid: catalogCid, namespace: ['unused'], table_name: 'rows',
+      table_uuid: '00000000-0000-0000-0000-000000000000',
+      schema_cid: 'sha256:' + createHash('sha256').update(schemaWire).digest('hex')}}],
+    limits: {maxPages: 1, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16},
+  }));
+  return path;
 }
 
 test('public HTTP source text uses the installed alias and existing Run owner', async t => {
@@ -575,7 +601,7 @@ const tokens = new Map([['owner-token', owner],
   ['stranger-token', 'stranger-principal']]);
 
 async function remoteHost(t, authorization, {directory,
-  effectInstallation, sourceProfilePath, sourceProfilePaths, beforeDispatch} = {}) {
+  effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret, beforeDispatch} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   let dispatches = 0;
   const host = await openInstalledRemoteHttpHost({
@@ -585,7 +611,7 @@ async function remoteHost(t, authorization, {directory,
       dispatches++;
       await beforeDispatch?.(ref);
     },
-    authorization, effectInstallation, sourceProfilePath, sourceProfilePaths,
+    authorization, effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   });
   const server = createServer({key: tlsKey, cert: tlsCertificate},
     host.handler);
@@ -1161,13 +1187,19 @@ test('installed Effect allow publishes without a commit Checkpoint',
       prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
       prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
     });
+    const sourceProfilePaths = await Promise.all(['unused-first', 'unused-second', 'unused-third']
+      .map(name => unusedTableFixture(directory, name)));
+    const configuration = JSON.parse(effectCommitConfiguration('allow', 'allow'));
+    configuration.entries[1].resource = {any_of: ['installed-multi-acquired']};
     const account = () => protectedHost(undefined,
-      {accountConfiguration: effectCommitConfiguration('allow', 'allow')});
-    const first = await remoteHost(t, account(), {directory,
-      effectInstallation});
+      {accountConfiguration: canonicalJson(configuration)});
+    const options = {directory, effectInstallation, sourceProfilePaths,
+      resolveSourceSecret() { assert.fail('SourceFreeEffectMustNotResolveSourceSecret'); }};
+    const first = await remoteHost(t, account(), options);
     const client = await first.as('owner-token');
+    const submissionRef = client.newSubmission({nonce: 'effect-direct-allow-a'});
     const submitted = await client.startSource(fixture.document, {format: 'json',
-      requestId: 'effect-direct-allow-a'});
+      submissionRef});
     await waitFor(async () => (await submitted.status()).status ===
       'succeeded');
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
@@ -1176,10 +1208,13 @@ test('installed Effect allow publishes without a commit Checkpoint',
     assert.deepEqual((await (await first.as('reviewer-token'))
       .checkpoints()).items, []);
     await first.close();
-    const restarted = await remoteHost(t, account(), {directory,
-      effectInstallation});
-    const sameRun = await (await restarted.as('owner-token'))
-      .attach(submitted.ref);
+    const restarted = await remoteHost(t, account(), options);
+    const restoredClient = await restarted.as('owner-token');
+    const original = await restoredClient.lookupSubmission(submissionRef);
+    assert.equal(original.kind, 'ready');
+    assert.deepEqual(original.submissionRef, submissionRef);
+    assert.deepEqual(original.admission.ref, submitted.ref);
+    const sameRun = await restoredClient.attach(original.admission.ref);
     assert.equal((await sameRun.status()).status, 'succeeded');
     assert.deepEqual(await sameRun.result('answer').all(),
       [{id: 1}, {id: 2}]);
@@ -1251,6 +1286,8 @@ test(uncertain
     const directory = await mkdtemp(join(scratch, 'source-effect-approval-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const sourceProfilePath = await installedReadFixture(directory, 'delegate');
+    const sourceProfilePaths = [await unusedTableFixture(directory, 'unused-first'),
+      sourceProfilePath, await unusedTableFixture(directory, 'unused-last')];
     const fixture = await effectFixture();
     const program = JSON.parse(readDocument);
     delete program.params;
@@ -1290,19 +1327,22 @@ test(uncertain
     const configuration = JSON.parse(effectCommitConfiguration('allow',
       uncertain ? 'allow' : 'delegate'));
     configuration.entries[1].connection = {all: true};
-    configuration.entries[1].resource = {all: true};
+    configuration.entries[1].resource = {any_of: ['installed-multi-acquired']};
     const account = () => protectedHost(undefined, {
       accountConfiguration: canonicalJson(configuration), resumeAfterAnswer: false,
       leaseMs: 1000,
       observe: (name, detail) => diagnostics.push({name, detail}),
     });
-    const options = {directory, sourceProfilePath, effectInstallation};
+    const options = {directory, sourceProfilePaths, effectInstallation,
+      resolveSourceSecret() { assert.fail('UnusedSourceSecret'); }};
     let host = await remoteHost(t, account(), options).catch(error => {
       t.diagnostic(String(error.cause?.stack ?? error));
       throw error;
     });
-    const submitted = await (await host.as('owner-token')).startSource(JSON.stringify(program),
-      {format: 'json', requestId: 'source-effect-approval'});
+    const client = await host.as('owner-token');
+    const submissionRef = client.newSubmission({nonce: 'source-effect-approval'});
+    const submitted = await client.startSource(JSON.stringify(program),
+      {format: 'json', submissionRef});
     const wait = async (execution, expected) => waitFor(async () =>
       (await execution.status()).status === expected).catch(async error => {
       error.message = JSON.stringify({state: await execution.status(), diagnostics});
@@ -1339,6 +1379,10 @@ test(uncertain
       await host.close();
       host = await remoteHost(t, account(), options);
       attached = await (await host.as('owner-token')).attach(submitted.ref);
+      const original = await (await host.as('owner-token')).lookupSubmission(submissionRef);
+      assert.equal(original.kind, 'ready');
+      assert.deepEqual(original.submissionRef, submissionRef);
+      assert.deepEqual(original.admission.ref, submitted.ref);
       assert.deepEqual((await attached.status()).next_action, observed.next_action);
       assert.equal(sourceCalls, 1);
       assert.equal(captures, 1);
@@ -1354,8 +1398,10 @@ test(uncertain
     assert.equal(sourceCalls, 1);
     assert.equal(captures, 1);
     assert.deepEqual(sends, []);
-    assert.deepEqual((await (await host.as('owner-token')).lookupRequest('source-effect-approval')).ref,
-      submitted.ref);
+    const original = await (await host.as('owner-token')).lookupSubmission(submissionRef);
+    assert.equal(original.kind, 'ready');
+    assert.deepEqual(original.submissionRef, submissionRef);
+    assert.deepEqual(original.admission.ref, submitted.ref);
     await reviewer.resolveCheckpoints([{checkpoint: effect, decision: 'approved'}], {
       signer: {...signer, authorityScopeCid: submitted.ref.authorityScopeCid}});
     await host.close();
@@ -1391,6 +1437,7 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     readAccount.entries[0].outcome = 'delegate';
     second.accountConfigurationWire = canonicalJson(readAccount);
     await writeFile(sourceProfilePaths[1], JSON.stringify(second));
+    sourceProfilePaths.splice(1, 0, await unusedTableFixture(directory));
     const fixture = await effectFixture();
     const program = JSON.parse(inputs.program);
     program.stages[2].effects = JSON.parse(fixture.document).stages[0].effects;
@@ -1423,10 +1470,36 @@ test(`acquired Effect second Source approval restores the first ${realization} c
       accountConfiguration: canonicalJson(configuration), resumeAfterAnswer: false,
       observe: (name, detail) => diagnostics.push({name, detail}),
     });
-    const options = {directory, sourceProfilePaths, effectInstallation};
+    const options = {directory, sourceProfilePaths, effectInstallation,
+      resolveSourceSecret() { assert.fail('UnusedSourceSecret'); }};
     let host = await remoteHost(t, account(), options);
-    const submitted = await (await host.as('owner-token')).startSource(JSON.stringify(program),
-      {format: 'json', requestId: `second-source-${realization}`});
+    const client = await host.as('owner-token');
+    for (const fault of ['duplicate-owner', 'unsupported-realization']) {
+      const rejected = structuredClone(program);
+      rejected.stages[1].inputs.remote = fault === 'duplicate-owner'
+        ? {...rejected.stages[0].inputs.remote}
+        : {connector: 'unused-table', resource: 'rows'};
+      const rejectedRef = client.newSubmission({nonce: `second-source-${realization}-${fault}`});
+      let rejectedOutcome;
+      await assert.rejects(client.startSource(JSON.stringify(rejected),
+        {format: 'json', submissionRef: rejectedRef}), error => {
+        assert.equal(error.code, 'SubmissionPreparationFailed');
+        rejectedOutcome = getSubmissionOutcome(error);
+        assert.equal(rejectedOutcome.kind, 'preparation_failed');
+        assert.deepEqual(rejectedOutcome.submissionRef, rejectedRef);
+        assert.deepEqual(rejectedOutcome.problem,
+          {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+        assert.equal(rejectedOutcome.admission, undefined);
+        return true;
+      });
+      assert.deepEqual(await client.lookupSubmission(rejectedRef), rejectedOutcome);
+      assert.deepEqual(provider.snapshot().sourceProviderOpens, []);
+      assert.equal(captures, 0);
+      assert.deepEqual(sends, []);
+    }
+    const submissionRef = client.newSubmission({nonce: `second-source-${realization}`});
+    const submitted = await client.startSource(JSON.stringify(program),
+      {format: 'json', submissionRef});
     const wait = async (execution, expected) => waitFor(async () =>
       (await execution.status()).status === expected).catch(async error => {
       error.message = JSON.stringify({state: await execution.status(), diagnostics,
@@ -1462,6 +1535,10 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     host = await remoteHost(t, account(), options);
     attached = await (await host.as('owner-token')).attach(submitted.ref);
     await wait(attached, 'succeeded');
+    const original = await (await host.as('owner-token')).lookupSubmission(submissionRef);
+    assert.equal(original.kind, 'ready');
+    assert.deepEqual(original.submissionRef, submissionRef);
+    assert.deepEqual(original.admission.ref, submitted.ref);
     assert.deepEqual(await attached.result('answer').all(), [
       {id: 1, left_amount: 10, right_amount: 100},
       {id: 2, left_amount: 20, right_amount: 200}]);
@@ -1544,7 +1621,10 @@ test(outcome === 'cancel' || outcome === 'reject'
     const effectInstallation = {...installed,
       execute: facts => installed.execute(checkedUnitFacts(facts)),
       resume: facts => installed.resume(checkedUnitFacts(facts))};
-    const options = {directory, sourceProfilePath, effectInstallation};
+    const options = {directory, effectInstallation,
+      ...(outcome === 'cancel' ? {sourceProfilePaths: [await unusedTableFixture(directory, 'unused-first'),
+        sourceProfilePath, await unusedTableFixture(directory, 'unused-last')],
+      resolveSourceSecret() { assert.fail('UnusedSourceSecret'); }} : {sourceProfilePath})};
     const account = () => {
       const configuration = JSON.parse(effectCommitConfiguration());
       configuration.entries[1].connection = {all: true};
@@ -1555,11 +1635,17 @@ test(outcome === 'cancel' || outcome === 'reject'
       });
     };
     const first = await remoteHost(t, account(), options);
+    const client = await first.as('owner-token');
+    const originalSubmissionPath = join(directory, 'original-submission.json');
+    const submissionRef = crashRecovery
+      ? JSON.parse(await readFile(originalSubmissionPath, 'utf8'))
+      : client.newSubmission({nonce: 'acquired-effect'});
+    if (!crashRecovery) await writeFile(originalSubmissionPath, JSON.stringify(submissionRef));
     if (crashRecovery) {
-      const client = await first.as('owner-token');
-      const found = await client.lookupRequest('acquired-effect');
-      assert.equal(found.kind, 'found');
-      const execution = await client.attach(found.ref);
+      const found = await client.lookupSubmission(submissionRef);
+      assert.equal(found.kind, 'ready');
+      assert.deepEqual(found.submissionRef, submissionRef);
+      const execution = await client.attach(found.admission.ref);
       const state = await execution.status();
       assert.equal(state.status, 'needs_reconciliation');
       assert.deepEqual(state.next_action,
@@ -1571,8 +1657,8 @@ test(outcome === 'cancel' || outcome === 'reject'
       assert.deepEqual(await readdir(join(publication, 'physical-holdings')), []);
       assert.deepEqual(await readdir(join(publication, 'objects')), []);
       const duplicate = await client.startSource(canonicalJson(program),
-        {format: 'json', requestId: 'acquired-effect'});
-      assert.deepEqual(duplicate.ref, found.ref);
+        {format: 'json', submissionRef});
+      assert.deepEqual(duplicate.ref, found.admission.ref);
       assert.equal((await duplicate.status()).status, 'needs_reconciliation');
       assert.equal(captures, 0);
       assert.equal(recoveries, 0);
@@ -1580,14 +1666,17 @@ test(outcome === 'cancel' || outcome === 'reject'
       await first.close();
       const reopened = await remoteHost(t, account(), options);
       const repeated = await reopened.as('owner-token');
-      assert.equal((await repeated.lookupRequest('acquired-effect')).kind, 'found');
-      assert.equal((await (await repeated.attach(found.ref)).status()).status,
+      const original = await repeated.lookupSubmission(submissionRef);
+      assert.equal(original.kind, 'ready');
+      assert.deepEqual(original.submissionRef, submissionRef);
+      assert.deepEqual(original.admission.ref, found.admission.ref);
+      assert.equal((await (await repeated.attach(original.admission.ref)).status()).status,
         'needs_reconciliation');
       await reopened.close();
       return;
     }
-    const execution = await (await first.as('owner-token')).startSource(
-      canonicalJson(program), {format: 'json', requestId: 'acquired-effect'});
+    const execution = await client.startSource(
+      canonicalJson(program), {format: 'json', submissionRef});
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint').catch(async error => {
       error.message = JSON.stringify({state: await execution.status(), diagnostics});
@@ -1619,6 +1708,10 @@ test(outcome === 'cancel' || outcome === 'reject'
       const finalExecution = await (await finalHost.as('owner-token'))
         .attach(execution.ref);
       assert.equal((await finalExecution.status()).status, terminal);
+      const original = await (await finalHost.as('owner-token')).lookupSubmission(submissionRef);
+      assert.equal(original.kind, 'ready');
+      assert.deepEqual(original.submissionRef, submissionRef);
+      assert.deepEqual(original.admission.ref, execution.ref);
       await finalHost.close();
       assert.deepEqual(await readdir(join(publication, 'physical-holdings')), []);
       assert.deepEqual(await readdir(join(publication, 'objects')), []);
