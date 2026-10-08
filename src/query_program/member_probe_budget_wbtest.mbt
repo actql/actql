@@ -111,6 +111,30 @@ test "Graph prefix uses common output and charges copying plus successful pipeli
 }
 
 ///|
+test "Graph prefix reserves its import before over-budget construction" {
+  let (source, document) = probe_graph_prefix_source()
+  let resolution = probe_budget_state(
+    source,
+    document,
+    work=@builder.usage(source).nodes - 1,
+  )
+  let rejected = try {
+    ignore(
+      resolution.closed_prefix_carrier(
+        @wire.elements(@builder.cursor(source)).unwrap(),
+        None,
+      ),
+    )
+    false
+  } catch {
+    Abort(Expression({ issue: @expression.WorkLimit, .. })) => true
+    _ => false
+  }
+  assert_true(rejected)
+  assert_eq(resolution.work, 0)
+}
+
+///|
 test "refused Graph prefix retains its remaining allowance and stops continuation" {
   let (source, document) = probe_graph_prefix_source(bad_key=true)
   let resolution = probe_budget_state(source, document)

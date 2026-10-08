@@ -392,13 +392,43 @@ fn MemberResolution::closed_prefix_carrier(
   if self.probe_refused {
     return None
   }
-  let builder = member_construct(
-    @builder.create(self.document, self.limits.source),
-  )
+  let allowance = self.work
+  self.work = 0
+  let at = steps[steps.length() - 1]
+  let copy_limits : @builder.Limits = {
+    ..self.limits.source,
+    source: {
+      ..self.limits.source.source,
+      max_nodes: self.limits.source.source.max_nodes.min(allowance),
+    },
+    tree: {
+      ..self.limits.source.tree,
+      max_nodes: self.limits.source.tree.max_nodes.min(allowance),
+    },
+  }
+  let construct = fn(
+    result : Result[@builder.Node, @builder.Issue],
+  ) -> @builder.Node raise Abort {
+    match result {
+      Ok(node) => node
+      Err(@builder.NodeLimit) if allowance <
+        self.limits.source.source.max_nodes.min(
+          self.limits.source.tree.max_nodes,
+        ) =>
+        raise Abort(
+          Expression({
+            issue: @expression.WorkLimit,
+            origin: @builder.origin(self.source, at),
+          }),
+        )
+      Err(issue) => raise Abort(Construction(issue))
+    }
+  }
+  let builder = member_construct(@builder.create(self.document, copy_limits))
   let items = []
   for step in steps {
     items.push(
-      member_construct(
+      construct(
         @builder.import_source(builder, self.source, step, replace_text=at => {
           self.replacements.get(
             @wire.tree_index(@builder.cursor(self.source), at).unwrap(),
@@ -407,27 +437,24 @@ fn MemberResolution::closed_prefix_carrier(
       ),
     )
   }
-  let at = steps[steps.length() - 1]
-  let root = member_construct(
-    @builder.add(builder, @builder.Array(items), @builder.origin(self.source, at).unwrap()),
+  let root = construct(
+    @builder.add(
+      builder,
+      @builder.Array(items),
+      @builder.origin(self.source, at).unwrap(),
+    ),
   )
   let copy = member_construct(@builder.finish(builder, root))
-  self.spend(at, @builder.usage(copy).nodes)
+  self.work = allowance - @builder.usage(copy).nodes
   match
-    @pipeline.check_carriers(
-      @builder.cursor(copy),
-      [],
-      declarations,
-      None,
-      {
-        max_steps: self.limits.source.tree.max_nodes,
-        max_work: self.work,
-        max_nodes: self.limits.source.tree.max_nodes,
-        max_tokens: self.limits.source.tree.max_nodes,
-        max_text_bytes: self.limits.source.tree.max_total_string_bytes,
-        max_depth: self.limits.source.tree.max_depth,
-      },
-    ) {
+    @pipeline.check_carriers(@builder.cursor(copy), [], declarations, None, {
+      max_steps: self.limits.source.tree.max_nodes,
+      max_work: self.work,
+      max_nodes: self.limits.source.tree.max_nodes,
+      max_tokens: self.limits.source.tree.max_nodes,
+      max_text_bytes: self.limits.source.tree.max_total_string_bytes,
+      max_depth: self.limits.source.tree.max_depth,
+    }) {
     Ok(checked) => {
       self.spend(at, @pipeline.usage(checked).work)
       @pipeline.output_carrier(checked)
@@ -848,8 +875,13 @@ fn resolve_query_members(
           )
         }
         if @wire.object_length(inputs) == Some(0) &&
-          (tag == "graph" || (current is Some(value) &&
-          @carrier.kind(value) == @carrier.GraphKind)) {
+          (
+            tag == "graph" ||
+            (
+              current is Some(value) &&
+              @carrier.kind(value) == @carrier.GraphKind
+            )
+          ) {
           output = resolution.closed_prefix_carrier(
             prefix,
             context.parameter_declarations,
