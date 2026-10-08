@@ -10,14 +10,21 @@ priv struct TextArgumentsState {
 }
 
 ///|
+priv enum TextFunctionKind {
+  TextLength
+  TextReplace
+  TextUpper
+} derive(Eq)
+
+///|
 priv struct TextFunctionState {
   expression : @lower.Expression
   roots : Array[ExpressionRootLease?]
-  length_only : Bool
+  kind : TextFunctionKind
   null_result : Bool
   input : String
   search : String
-  replacement : String
+  mut replacement : String
   output_root : ExpressionRootLease?
   reserved : Int
   mut position : Int
@@ -38,7 +45,7 @@ fn start_text_function(
   expression : @lower.Expression,
   values : Array[Value],
   roots : Array[ExpressionRootLease?],
-  length_only : Bool,
+  kind : TextFunctionKind,
   scope : ExpressionRoots?,
   workspace : RowWorkspace,
 ) -> Result[TextFunctionState, EvalIssue] {
@@ -53,7 +60,9 @@ fn start_text_function(
   if !reserve_slots(workspace, 2) {
     return Err({ kind: WorkspaceLimit, expression, })
   }
-  let output_root = if !length_only && !null_result && scope is Some(scope) {
+  let output_root = if kind != TextLength &&
+    !null_result &&
+    scope is Some(scope) {
     let budget = scope.budget
     if budget.host_nodes < 1 ||
       budget.host_depth < 1 ||
@@ -93,24 +102,24 @@ fn start_text_function(
   Ok({
     expression,
     roots,
-    length_only,
+    kind,
     null_result,
     input: text(values[0]),
-    search: if length_only {
-      ""
-    } else {
+    search: if kind == TextReplace {
       text(values[1])
-    },
-    replacement: if length_only {
-      ""
     } else {
+      ""
+    },
+    replacement: if kind == TextReplace {
       text(values[2])
+    } else {
+      ""
     },
     output_root,
-    reserved: if length_only {
-      2
-    } else {
+    reserved: if kind == TextReplace {
       12
+    } else {
+      2
     },
     position: 0,
     matched: 0,
@@ -217,7 +226,7 @@ fn advance_text_function(
   if state.null_result {
     return Ok(Some(Null))
   }
-  if state.length_only {
+  if state.kind == TextLength {
     if state.position == state.input.length() {
       return Ok(Some(Number(state.count.to_double())))
     }
@@ -268,6 +277,27 @@ fn advance_text_function(
     state.building = true
     state.position = 0
     state.matched = 0
+    return Ok(None)
+  }
+  if state.kind == TextUpper {
+    guard text_function_scalar(state.input, state.position)
+      is Some((scalar, next, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    if @scalar.unicode_upper_mapping(scalar) is Some(mapped) {
+      // Borrow the fixed mapping. Each expanded scalar is sized/emitted by
+      // the existing continuation, never by an unbounded host casing call.
+      state.position = next
+      state.replacement = mapped
+      state.emitting = true
+      state.emission = 0
+      return Ok(None)
+    }
+    state.position = match
+      append_text_function_scalar(state, state.input, state.position) {
+      Ok(next) => next
+      Err(issue) => return Err(issue)
+    }
     return Ok(None)
   }
   if !state.search.is_empty() &&

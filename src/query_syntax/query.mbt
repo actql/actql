@@ -107,6 +107,8 @@ pub(all) enum QueryOperation {
   Having(Expression, Array[(NamePart, AggregateCall)])
   Qualify(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
+  // Private window outputs are operands of SELECT expressions, not input aliases.
+  AnalyticExpressions(Array[Projection], Array[NamePart])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
   Limit(QueryInteger, QueryInteger)
@@ -431,6 +433,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
         ),
       )
     Analytic(projections) => Some(Analytic(copy_projections(projections)))
+    AnalyticExpressions(projections, names) =>
+      Some(AnalyticExpressions(copy_projections(projections), names.copy()))
     Qualify(e, calls) =>
       Some(
         Qualify(
@@ -1004,6 +1008,8 @@ fn QueryParser::projections(
   self : QueryParser,
   aggregate_expressions? : Bool = false,
   ordering? : Array[PipeAggregateOrder]? = None,
+  windows? : Array[Projection] = [],
+  window_expressions? : Bool = false,
 ) -> (Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let values : Array[Projection] = []
   let embedded : Array[(NamePart, AggregateCall)] = []
@@ -1042,6 +1048,8 @@ fn QueryParser::projections(
           let value = self.value_projection(
             embedded,
             aggregate_expressions~,
+            windows~,
+            window_expressions~,
             require_alias=true,
           )
           replacements.push({
@@ -1067,7 +1075,12 @@ fn QueryParser::projections(
         replacements,
       }
     } else {
-      self.value_projection(embedded, aggregate_expressions~)
+      self.value_projection(
+        embedded,
+        aggregate_expressions~,
+        windows~,
+        window_expressions~,
+      )
     }
     values.push(projection)
     if ordering is Some(terms) && (self.has("ASC") || self.has("DESC")) {
@@ -1096,8 +1109,45 @@ fn QueryParser::value_projection(
   embedded : Array[(NamePart, AggregateCall)],
   aggregate_expressions? : Bool = false,
   require_alias? : Bool = false,
+  windows? : Array[Projection] = [],
+  window_expressions? : Bool = false,
 ) -> Projection raise QueryAbort {
-  let (expression, aggregate) = if aggregate_expressions {
+  let mut embedded_analytic : AnalyticCall? = None
+  let (expression, aggregate) = if window_expressions {
+    let serial = self.synthetic_sources
+    let (expression, extracted, calls) = self.window_expression(
+      "aql_select_window_",
+      aggregate_prefix=Some("aql_select_aggregate_"),
+    )
+    let mut root = expression.root
+    while expression.nodes[root].kind is Parenthesized(child) {
+      root = child
+    }
+    if extracted.length() == 1 &&
+      calls.is_empty() &&
+      expression.nodes[root].kind is Reference(path) &&
+      path == [extracted[0].name.unwrap()] {
+      self.synthetic_sources = serial
+      embedded_analytic = extracted[0].analytic
+      (None, None)
+    } else if calls.length() == 1 &&
+      extracted.is_empty() &&
+      expression.nodes[root].kind is Reference(path) &&
+      path == [calls[0].0] {
+      self.synthetic_sources = serial
+      (None, Some(calls[0].1))
+    } else {
+      if !aggregate_expressions && !calls.is_empty() {
+        raise QueryAbort(
+          "Pipe SELECT requires scalar or window expressions",
+          self.peek().start,
+        )
+      }
+      windows.append(extracted)
+      embedded.append(calls)
+      (Some(expression), None)
+    }
+  } else if aggregate_expressions {
     let serial = self.synthetic_sources
     let (expression, calls) = self.aggregate_expression("aql_select_aggregate_")
     let mut root = expression.root
@@ -1123,7 +1173,9 @@ fn QueryParser::value_projection(
   } else {
     (Some(self.expression()), None)
   }
-  let analytic = if self.has("OVER") {
+  let analytic = if embedded_analytic is Some(_) {
+    embedded_analytic
+  } else if self.has("OVER") {
     Some({ expression, aggregate, window: self.over(), })
   } else {
     None
@@ -1613,7 +1665,12 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   } else if self.has("ALL") {
     self.keyword("ALL")
   }
-  let (projections, embedded) = self.projections(aggregate_expressions=true)
+  let select_windows : Array[Projection] = []
+  let (projections, embedded) = self.projections(
+    aggregate_expressions=true,
+    windows=select_windows,
+    window_expressions=true,
+  )
   let group_projections = projections +
     embedded.map(pair => {
       expression: None,
@@ -1682,10 +1739,11 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     }
     operations.push(Having(predicate, calls))
   }
-  let selected_windows = projections.any(projection => {
-    projection.analytic is Some(_) ||
-    projection.replacements.any(value => value.analytic is Some(_))
-  })
+  let selected_windows = !select_windows.is_empty() ||
+    projections.any(projection => {
+      projection.analytic is Some(_) ||
+      projection.replacements.any(value => value.analytic is Some(_))
+    })
   let qualifier = if self.has("QUALIFY") {
     self.keyword("QUALIFY")
     self.node()
@@ -1708,7 +1766,17 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   }
   let windows = qualifier.map(value => value.1).unwrap_or([])
   if selected_windows || !windows.is_empty() {
-    operations.push(Analytic(projections + windows))
+    let all = projections + select_windows + windows
+    operations.push(
+      if select_windows.is_empty() {
+        Analytic(all)
+      } else {
+        AnalyticExpressions(
+          all,
+          select_windows.map(projection => projection.name.unwrap()),
+        )
+      },
+    )
   }
   if qualifier is Some((predicate, _, calls)) {
     operations.push(Qualify(predicate, calls))
@@ -1895,7 +1963,7 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
           operations.push(Group(keys, projections + hidden, SqlSelect))
           grouped = true
         }
-        Analytic(_) | Select(_, _) if !grouped => {
+        Analytic(_) | AnalyticExpressions(_, _) | Select(_, _) if !grouped => {
           operations.push(Group([], selected + hidden, SqlSelect))
           operations.push(operation)
           grouped = true
@@ -2302,12 +2370,23 @@ fn QueryParser::pipe_tail(
       } else if self.has("ALL") {
         self.keyword("ALL")
       }
-      let (projections, _) = self.projections()
+      let windows : Array[Projection] = []
+      let (projections, _) = self.projections(windows~, window_expressions=true)
       if projections.any(projection => {
           projection.analytic is Some(_) ||
           projection.replacements.any(value => value.analytic is Some(_))
-        }) {
-        operations.push(Analytic(projections))
+        }) ||
+        !windows.is_empty() {
+        operations.push(
+          if windows.is_empty() {
+            Analytic(projections)
+          } else {
+            AnalyticExpressions(
+              projections + windows,
+              windows.map(projection => projection.name.unwrap()),
+            )
+          },
+        )
       }
       operations.push(Select(projections, distinct))
     } else if self.has("ORDER") {
