@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn, execFileSync} from 'node:child_process';
-import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, readFile, realpath, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {tmpdir} from 'node:os';
@@ -21,6 +21,9 @@ const runtime = {
   inferFixture: url('../../scripts/fixtures/installed-infer-fixture.mjs'),
   providerFixture: url('../../scripts/fixtures/model-provider-binding-fixture.mjs'),
   environment: fileURLToPath(new URL('../../spec/local-check-environment.json', import.meta.url)),
+  sourceObserver: url('../../scripts/fixtures/two-source-public-query.mjs'),
+  sourceEnvironment: fileURLToPath(new URL('../../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url)),
+  duckdbPackage: url('../../adapters/connectors/duckdb/node/package.json'),
 };
 const processFixture = fileURLToPath(new URL('../../scripts/fixtures/model-resume-public-process.mjs', import.meta.url));
 const parent = {traceId: '5'.repeat(32), spanId: '6'.repeat(16), traceFlags: 1};
@@ -52,6 +55,51 @@ function custody(root, action) {
   const database = new DatabaseSync(join(root, 'host/requests/client-requests.sqlite3'));
   try { return action(database); } finally { database.close(); }
 }
+test('public Local: real Source acquisition and Model invoke are separate CLIENT intervals', async () => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'actql-otel-source-')));
+  const packets = [];
+  let succeeded = false;
+  const server = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    packets.push({path: request.url, body: Buffer.concat(chunks)});
+    response.end();
+  }).listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  try {
+    const endpoint = `http://127.0.0.1:${server.address().port}`;
+    const result = await phase(root, 'local', endpoint, 'immediate',
+      {immediate: true, acquired: true});
+    assert.equal(result.status, 'succeeded');
+    assert.equal(result.calls, 1);
+    assert.equal(result.source.sourceReadSessions, 1);
+    assert.ok(result.source.sourceReads > 0);
+    assert.deepEqual(result.rows, [{id: 1, outcome: 'ok', value: {reason: null, risk: 'high'}}]);
+    const spans = records(packets, 'traces');
+    for (const event of ['acquisition_interval', 'transport_completed']) {
+      const selected = spans.filter(span => attributes(span, 9)['actql.event'] === event);
+      assert.equal(selected.length, 1, event);
+      assert.equal(field(selected[0], 6), 3n, 'real physical work uses CLIENT kind');
+      assert.equal(attributes(selected[0], 9)['actql.outcome'], 'confirmed');
+      const start = field(selected[0], 7).readBigUInt64LE();
+      const end = field(selected[0], 8).readBigUInt64LE();
+      assert.ok(end > start, 'elapsed time is measured, not invented');
+      assert.equal(attributes(selected[0], 9)['actql.run.definition_cid'], result.ref.runDefinitionCid);
+    }
+    for (const packet of packets) for (const content of ['alpha', 'records.duckdb', 'public-model-resume']) {
+      assert.equal(packet.body.includes(Buffer.from(content)), false, content);
+    }
+    succeeded = true;
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    if (succeeded) await rm(root, {recursive: true, force: true});
+    else {
+      await writeFile(join(root, 'failed-telemetry.json'), JSON.stringify(
+        packets.map(packet => ({path: packet.path, body: packet.body.toString('base64')}))));
+      console.error(`Retained failed Source observation acceptance: ${root}`);
+    }
+  }
+});
 for (const [transport, sampled] of [['local', true], ['https', true], ['local', false]]) {
 test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart retains capture and consumption`, async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-otel-recovery-'));
