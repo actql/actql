@@ -27,10 +27,20 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} = acquiredInfer;
   const sourceEvidence = [acquiredInfer.sourceEvidence];
   const children = selected.components.map(selection => ({selection}));
-  let execution, issuance, publication, holding;
-  let issuanceComplete = false, closed = false, released = false;
+  let execution, pendingSetup, issuance, publication, holding;
+  let issuanceComplete = false, closeAttempted = false, released = false;
   async function cleanup() {
     if (released) return true;
+    // Installation can fail before the asynchronous driver returns an owner.
+    // Retain that exact setup until its stopped outputs and reservations close.
+    if (pendingSetup !== undefined) {
+      moon.strategyHostStop(pendingSetup);
+      moon.strategyHostCloseOutputs(pendingSetup);
+      if (moon.strategyHostUsage(pendingSetup).slice(4).some(value => value !== 0n)) {
+        return false;
+      }
+      pendingSetup = undefined;
+    }
     // Copies must finish their handoff before original capture custody ends.
     for (const child of children) {
       if (child.copy !== undefined) {
@@ -69,15 +79,13 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     }
     if (pending) return false;
     if (execution !== undefined) {
-      if (!closed) {
-        const result = await execution.close();
-        if (result === false) return false;
-        closed = true;
+      if (!closeAttempted) {
+        // The driver may retain its first rejected close Promise. Recovery uses
+        // its cleanup handle rather than calling that close a second time.
+        closeAttempted = true;
+        if (await execution.close() === false) return false;
       }
-      if (execution.cleanupPending()) {
-        await execution.cleanup();
-        if (execution.cleanupPending()) return false;
-      }
+      if (await execution.cleanup() === false || execution.cleanupPending()) return false;
     }
     released = true;
     return true;
@@ -102,6 +110,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     captured.capture.source(), registry, values, fragment, ordered,
     children.map(child => child.component.provider));
   if (setup === undefined) throw new Error('InstalledComposedInferHostUnavailable');
+  pendingSetup = setup;
   // The existing single-Source dispatch owner retains this capture until
   // all Compute custody has settled. It is not a multi-capture ledger lease.
   const local = withLocalExecutionPauseHandler(computeConfigurations.local, async boundary => {
@@ -131,6 +140,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   });
   beginPhysicalWork();
   execution = await runCapturedStrategy(setup, {...computeConfigurations, local}, signal);
+  pendingSetup = undefined;
   if (execution.status === 'host-tasks-waiting') {
     return Object.freeze({status: 'waiting_checkpoint', checkpoint: execution.checkpoint});
   }
