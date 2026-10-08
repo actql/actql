@@ -142,6 +142,10 @@ fn restore_completed_holder_successor(
       task.executed = Some(completed)
       task.restoration = None
       task.restoration_failed = false
+      report("consumer-restored", [
+        ("request_cid", completed.completion.dispatch_request_cid),
+        ("revision", completed.completion.revision.to_string()),
+      ])
       true
     }
     _ => false

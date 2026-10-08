@@ -2665,6 +2665,11 @@ fn serve_holder_output(
                           "completed-retained-intermediate",
                         )
                       }
+                      if completed.result_definition_cid is Some(_) {
+                        // Interrupt only after the original consumer outcome
+                        // and returned borrow are durable, before its reply.
+                        holder_checkpoint(resources)("completed-consumer")
+                      }
                     }
                     Err(failure) => {
                       if failure.pending_runtime is Some(_) {
