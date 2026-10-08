@@ -131,9 +131,13 @@ async function installation(t) {
             footprint: () => touch('footprint')}});
       } else {
         effect = await createInstalledTableEffect({...common, catalogCid: 'sha256:' + '3'.repeat(64),
-          targets: profile.targets, bridge: Object.fromEntries(
-            ['prepareWrite', 'execute', 'inspect', 'cleanup', 'status', 'reconcileOperation']
-              .map(action => [action, () => touch(action)]))});
+          targets: profile.targets, bridge: {
+            ...Object.fromEntries(['prepareWrite', 'execute', 'inspect', 'cleanup',
+              'status', 'reconcileOperation', 'projectCommitResponse',
+              'issueStorageMapping', 'admitStorageMapping']
+              .map(action => [action, () => touch(action)])),
+            supportsOperation: ({action, kind}) => action === 'create' && kind === 'relation',
+          }});
       }
       const adapter = {...effect,
         connectorRegistration: profile.registrationMismatch ? 'other' : 'effect_inventory_fixture',

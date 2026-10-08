@@ -4,6 +4,7 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test from 'node:test';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
+import {readHostBundles} from './connector-node-bundles.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-connector-inputs-'));
@@ -45,6 +46,31 @@ function fixture(t) {
   const configuration = {target: 'js', modules, host: 'example/host',
     connectors: [{name: 'numeric', module: 'example/numeric', directory: 'src'}]};
   return {root, put, mod, modules, connector, compute, manifest, configuration};
+}
+
+function hostFixture(f, roles = ['source', 'effect'], name = 'numeric') {
+  const installation = {registration: name, revision: `${name}/0.1`,
+    providerBundle: `connectors/${name}/host_node`, responseHeaders: ['link'],
+    assets: [`src/connectors/${name}/views.json`]};
+  for (const role of roles) {
+    installation[role] = {profileVersion: `actql-installed-${name}-${role}/0.1`,
+      module: `adapters/connectors/${name}/host/${role}.mjs`,
+      exports: {check: 'check', identityParts: 'identity', load: 'load'}};
+    f.put(join(f.connector, installation[role].module),
+      'export function check() {}\nexport function identity() {}\nexport function load() {}\n');
+  }
+  const providerPath = join(f.connector, 'src', installation.providerBundle, 'moon.pkg');
+  f.put(providerPath, 'supported_targets = "js"\npkgtype(kind: "foreign_library")\n' +
+    'import { "actql/actql/connector_sdk" @connector, }\n');
+  f.put(join(f.connector, installation.assets[0]), '{}');
+  const directory = `src/connectors/${name}`;
+  const path = join(f.connector, directory, 'host-bundle.json');
+  const write = (value = installation) => f.put(path, JSON.stringify({installation: value}));
+  write();
+  const selection = {name, module: 'example/numeric', directory};
+  f.configuration.connectors = f.configuration.connectors.filter(entry => entry.name !== name);
+  f.configuration.connectors.push(selection);
+  return {installation, path, write, providerPath, selection};
 }
 
 test('external package references retain existing manifest ownership and immutable snapshots', t => {
@@ -204,17 +230,13 @@ test('existing Host revision keeps its identity and Compute-only entries invent 
   const selected = f.configuration.connectors[0];
   assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
     connectors: [{...selected, revision: 'numeric/0.1'}]}), /requires an existing Host/);
-  f.put(join(f.connector, 'src/host-bundle.json'), JSON.stringify({installation: {
-    registration: 'numeric', revision: 'numeric/0.1',
-  }}));
-  const config = {...f.configuration, connectors: [{...selected, revision: 'numeric/0.1'}]};
+  const h = hostFixture(f);
+  const config = {...f.configuration, connectors: [{...h.selection, revision: 'numeric/0.1'}]};
   assert.equal(resolveConnectorBuildInputs(config).entries[0].revision, 'numeric/0.1');
   assert.throws(() => resolveConnectorBuildInputs({...config,
-    connectors: [{...selected, revision: 'numeric/0.2'}]}), /identity mismatch/);
-  f.put(join(f.connector, 'src/host-bundle.json'), JSON.stringify({installation: {
-    registration: 'other', revision: 'numeric/0.1',
-  }}));
-  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /identity mismatch/);
+    connectors: [{...h.selection, revision: 'numeric/0.2'}]}), /identity mismatch/);
+  h.write({...h.installation, registration: 'other'});
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /registration/);
 });
 
 test('Core-owned Compute declarations retain the existing Connector package prefix', t => {
@@ -261,4 +283,122 @@ test('Host outputs permit fresh paths and refuse symlink, file-ancestor and trav
   symlinkSync(f.manifest, join(host, 'src/output.mjs'));
   assert.throws(() => resolved.outputPath('src/output.mjs'), /invalid Host output/);
   assert.equal(resolved.outputPath('src/file'), join(host, 'src/file'));
+});
+
+test('external Read-only and Effect-only Host snapshots preserve exact package owners', t => {
+  for (const role of ['source', 'effect']) {
+    const f = fixture(t), h = hostFixture(f, [role]);
+    const resolved = resolveConnectorBuildInputs(f.configuration);
+    const [entry] = resolved.hostEntries;
+    assert.equal(entry.namespace, 'example/numeric');
+    assert.equal(entry.root, f.connector);
+    assert.equal(entry.sourceRoot, join(f.connector, 'src'));
+    assert.equal(entry.registration, 'numeric');
+    assert.equal(entry.revision, 'numeric/0.1');
+    assert.equal(entry.providerBundle, 'connectors/numeric/host_node');
+    assert.equal(entry.providerPackage, 'example/numeric/connectors/numeric/host_node');
+    assert.equal(entry.providerPackagePath, h.providerPath);
+    assert.equal(entry[role].module, h.installation[role].module);
+    assert.equal(entry[role].modulePath, join(f.connector, h.installation[role].module));
+    assert.equal(entry[role === 'source' ? 'effect' : 'source'], undefined);
+    assert.deepEqual(entry.assetSources, [{path: 'src/connectors/numeric/views.json',
+      sourcePath: join(f.connector, 'src/connectors/numeric/views.json')}]);
+    assert.equal(resolved.computeEntries.length, 0);
+    assert.equal(resolved.nodeEntries.length, 0);
+    assert.equal(readHostBundles(resolved.host.root, {buildInputs: resolved}), resolved.hostEntries);
+    assert.ok(Object.isFrozen(entry));
+    assert.ok(Object.isFrozen(entry[role].exports));
+    assert.ok(Object.isFrozen(entry.assetSources[0]));
+    assert.throws(() => { entry[role].exports.load = 'replaced'; }, TypeError);
+    h.write({...h.installation, revision: 'numeric/0.2'});
+    f.put(join(f.connector, 'src/connectors/broken/host-bundle.json'), '{ invalid');
+    assert.equal(readHostBundles(resolved.host.root, {buildInputs: resolved})[0].revision, 'numeric/0.1');
+    assert.throws(() => readHostBundles(f.connector, {buildInputs: resolved}), /InvalidResolvedHost/);
+    assert.throws(() => readHostBundles(resolved.host.root,
+      {buildInputs: resolved, names: ['numeric']}), /InvalidResolvedHost/);
+  }
+});
+
+test('external Host declarations validate every present role and require at least one', t => {
+  const f = fixture(t), h = hostFixture(f);
+  const {source, effect, ...shared} = h.installation;
+  for (const installation of [shared, {...shared, source: null}, {...shared, effect: null},
+    {...shared, source, effect: {}}, {...shared, effect, source: {}},
+    {...h.installation, effect: {...effect, profileVersion: source.profileVersion}}]) {
+    h.write(installation);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Invalid Host bundle manifest/);
+  }
+});
+
+test('external Host validation shares profile, header, export and ownership restrictions', t => {
+  const f = fixture(t), h = hostFixture(f);
+  for (const change of [
+    value => { value.extra = 'unrecognized'; },
+    value => { value.providerBundle = 'connectors/other/host_node'; },
+    value => { value.responseHeaders = ['set-cookie']; },
+    value => { value.responseHeaders = ['link', 'link']; },
+    value => { value.source.profileVersion = 'unversioned'; },
+    value => { value.source.exports.load = 'notExported'; },
+    value => { delete value.effect.exports.identityParts; },
+    value => { value.effect.identityProfile = {source: 'actql-source/0.1'}; },
+    value => { value.source.module = 'adapters/connectors/numeric/host/../source.mjs'; },
+    value => { value.effect.module = 'adapters/connectors/other/host/effect.mjs'; },
+    value => { value.assets = ['src/connectors/numeric/../views.json']; },
+    value => { value.assets.push(value.assets[0]); },
+  ]) {
+    const value = structuredClone(h.installation);
+    change(value); h.write(value);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Invalid Host bundle manifest/);
+  }
+});
+
+test('external provider packages require the exact path, compatible target, kind and dependency pins', t => {
+  const f = fixture(t), h = hostFixture(f);
+  const original = readFileSync(h.providerPath, 'utf8');
+  rmSync(h.providerPath);
+  f.put(join(f.connector, 'src/host_node/moon.pkg'), original);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Missing/);
+  for (const text of [original.replace('"js"', '"native"'),
+    original.replace('pkgtype(kind: "foreign_library")', ''),
+    original.replace('actql/actql/connector_sdk', 'missing/module/provider')]) {
+    f.put(h.providerPath, text);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration), /target|kind|namespace/);
+  }
+  f.put(h.providerPath, original);
+  f.mod(1, []);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Undeclared module dependency/);
+  f.mod(1, ['actql/actql@9.9.9']);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Missing or mismatched/);
+  f.mod(1, ['actql/actql@0.0.1']);
+  f.mod(2, ['actql/actql@0.0.1']);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Undeclared module dependency/);
+});
+
+test('external Host adapter, asset and provider package paths refuse symlink aliases', t => {
+  for (const role of ['source', 'effect', 'asset', 'provider']) {
+    const f = fixture(t), h = hostFixture(f);
+    const path = role === 'provider' ? h.providerPath : join(f.connector,
+      role === 'asset' ? h.installation.assets[0] : h.installation[role].module);
+    const target = join(f.connector, `original-${role}`);
+    f.put(target, readFileSync(path));
+    rmSync(path); symlinkSync(target, path);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration), /aliased|Invalid Host/);
+  }
+  const f = fixture(t), h = hostFixture(f);
+  const real = join(f.connector, 'adapters/connectors/numeric/host/actual');
+  f.put(join(real, 'source.mjs'), readFileSync(join(f.connector, h.installation.source.module)));
+  symlinkSync(real, join(f.connector, 'adapters/connectors/numeric/host/alias'), 'dir');
+  h.write({...h.installation, source: {...h.installation.source,
+    module: 'adapters/connectors/numeric/host/alias/source.mjs'}});
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /aliased/);
+});
+
+test('duplicate installed source and Effect profiles are refused by the shared snapshot', t => {
+  for (const role of ['source', 'effect']) {
+    const f = fixture(t), first = hostFixture(f, [role]);
+    const second = hostFixture(f, [role], 'another');
+    second.write({...second.installation, [role]: {...second.installation[role],
+      profileVersion: first.installation[role].profileVersion}});
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Duplicate installed/);
+  }
 });
