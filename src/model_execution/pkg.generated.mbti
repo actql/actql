@@ -33,6 +33,8 @@ pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@
 
 pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> Bool) -> Result[Unit, ModelExecutionIssue]
 
+pub fn bind_prepared_model_observation(ModelPreparedCallSet, (ModelPhysicalObservation) -> Unit) -> Bool
+
 pub fn bind_prepared_model_scope(ModelPreparedCallSet, @run_publication.BoundModelInvocationScope) -> Result[Unit, ModelExecutionIssue]
 
 pub fn bind_verified_model_slot_capture(VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, ModelExecutionIssue]
@@ -114,6 +116,8 @@ pub fn model_outcomes_count(ModelOutcomeRead) -> Int?
 pub fn model_outcomes_invocation_evidence(ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn model_outcomes_outcome(ModelOutcomeRead, Int) -> String?
+
+pub fn model_physical_observation_facts(ModelPhysicalObservation) -> (Int, String, String, String)
 
 pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
@@ -324,6 +328,19 @@ pub struct ModelOutcomeRead {
 }
 
 type ModelOutputPreparation
+
+pub enum ModelPhysicalEvent {
+  InvokeStarted
+  InvokeReturned
+  InvokeFailed
+  InvokeCancelled
+}
+
+pub struct ModelPhysicalObservation {
+  slot : Int
+  attempt_cid : String
+  event : ModelPhysicalEvent
+}
 
 pub struct ModelPhysicalRequestPlan {
   request : ModelRequest

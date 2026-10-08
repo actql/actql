@@ -179,6 +179,8 @@ pub fn client_program_bind_infer_invocation(@client_infer_host.Execution, @run_p
 
 pub fn client_program_bind_infer_model_dispatch(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> Bool) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_bind_infer_model_observation(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, (@model_execution.ModelPhysicalObservation) -> Unit) -> Bool
+
 pub fn client_program_bind_infer_model_scope(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @client_infer_host.InvocationBindingIssue]
 
 pub fn client_program_bind_infer_physical_preflight(@client_infer_host.Execution, (@model_execution.ModelRequest) -> @model_execution.ModelRequestPreflight?) -> Result[Unit, @client_infer_host.Issue]
@@ -704,6 +706,8 @@ pub fn client_program_infer_outcomes_count(@model_execution.ModelOutcomeRead) ->
 pub fn client_program_infer_outcomes_outcome(@model_execution.ModelOutcomeRead, Int) -> String?
 
 pub fn client_program_infer_output_use(@client_infer_host.OutputUse) -> @execution_relation.CompletedOutput?
+
+pub fn client_program_infer_physical_observation_facts(@model_execution.ModelPhysicalObservation) -> (Int, String, String, String)
 
 pub fn client_program_infer_plan_boundary(@run_publication_host.ClientInferPlanGraph) -> (Int, Int, Int, String)
 
@@ -1244,6 +1248,8 @@ pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, S
 pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
+
+pub fn client_program_run_observation_key(String, Int64, Bool?, Bool?) -> String?
 
 pub fn client_program_salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@catalog.QueryRead, @catalog.QueryReadIssue]
 

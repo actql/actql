@@ -2474,6 +2474,7 @@ fn serve_holder_output(
   delegation : @resident.ResidentSiteDelegation,
   claimant : String,
   executor_entry : ((String) -> Bool)?,
+  exclusive_current : () -> Bool,
 ) -> Unit {
   let request = executed.request
   let control = resources.control
@@ -2663,6 +2664,11 @@ fn serve_holder_output(
                         holder_checkpoint(resources)(
                           "completed-retained-intermediate",
                         )
+                      }
+                      if completed.result_definition_cid is Some(_) {
+                        // Interrupt only after the original consumer outcome
+                        // and returned borrow are durable, before its reply.
+                        holder_checkpoint(resources)("completed-consumer")
                       }
                     }
                     Err(failure) => {
@@ -3004,6 +3010,16 @@ fn serve_holder_output(
               let output_identity = @remote.dispatch_request_identity(
                 @remote.remote_poll_output_request(output),
               )
+              let output_request = @remote.remote_poll_output_request(output)
+              if !restore_completed_holder_successor(
+                  tasks, order, output_request, environment, execution, resources,
+                  admission, delegation, current_time, exclusive_current,
+                ) {
+                report("output-restoration-pending", [
+                  ("request_cid", output_identity),
+                ])
+                continue
+              }
               guard tasks.get(output_identity) is Some(output_task) &&
                 !output_task.released &&
                 !output_task.release_requested &&
@@ -3052,6 +3068,16 @@ fn serve_holder_output(
               let output_identity = @remote.dispatch_request_identity(
                 @remote.remote_poll_output_request(output),
               )
+              let output_request = @remote.remote_poll_output_request(output)
+              if !restore_completed_holder_successor(
+                  tasks, order, output_request, environment, execution, resources,
+                  admission, delegation, current_time, exclusive_current,
+                ) {
+                report("output-restoration-pending", [
+                  ("request_cid", output_identity),
+                ])
+                continue
+              }
               guard tasks.get(output_identity) is Some(output_task) &&
                 !output_task.released &&
                 !output_task.release_requested &&
@@ -3678,6 +3704,7 @@ fn run_holder(
         delegation(matches, budget(matches)),
         claimant,
         observer,
+        () => slot.verify_current_hold() == Ok(()),
       )
       0
     }

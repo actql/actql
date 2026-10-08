@@ -2,7 +2,7 @@
 // same retry/status protocol as publication cleanup, without restarting work.
 export async function retainInstalledHostInitializationFailure(cause,
   {journal, store, checkpoints, dispatchOwner, sourceProfile,
-    installedEffect}) {
+    installedEffect, observation}) {
   const pending = new Set();
   if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) {
     pending.add('initialization');
@@ -14,6 +14,7 @@ export async function retainInstalledHostInitializationFailure(cause,
   if (checkpoints !== undefined) pending.add('checkpoints');
   if (journal !== undefined) pending.add('journal');
   if (store !== undefined) pending.add('store');
+  if (observation !== undefined) pending.add('observation');
   const errors = [];
   const failure = Object.assign(new Error('InstalledHostInitializationFailed',
     {cause}), {code: 'InstalledHostInitializationFailed',
@@ -53,6 +54,7 @@ export async function retainInstalledHostInitializationFailure(cause,
           // A journal close failure must not prevent the Store close attempt.
           await attempt('journal', () => journal.close());
           await attempt('store', () => store.close());
+          await attempt('observation', () => observation.close());
         }
       }
     }
@@ -74,10 +76,12 @@ export async function retainInstalledHostInitializationFailure(cause,
 // are independent. A failed close retains only that owner for the next call;
 // another adapter or the Store must not be skipped or closed twice.
 export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
-  journal, source, effect, store}) {
+  journal, source, effect, store, diagnostic, observation}) {
   const completed = new Set();
   const pending = Object.freeze(['stop', 'drain', 'retire', 'checkpoint',
-    'journal', 'source', 'effect', 'store']);
+    'journal', 'source', 'effect', 'store',
+    ...(diagnostic === undefined ? [] : ['diagnostic']),
+    ...(observation === undefined ? [] : ['observation'])]);
   let flight;
   let checkpointResult;
   let storeCleanupPending = false;
@@ -120,6 +124,8 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
       error.cleanupHandle = Object.freeze({status, retry: close});
       throw error;
     }
+    await attempt('diagnostic', () => diagnostic?.());
+    await attempt('observation', () => observation?.());
     return Object.freeze({storeCleanupPending,
       pendingRetention: checkpointResult?.pendingRetention ?? [],
       authorizationCleanupPending:

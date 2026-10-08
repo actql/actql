@@ -85,6 +85,8 @@ pub(all) enum Issue {
   UnsupportedEffect
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
+  // Retain the common checker's cause and authored cursor from scope probes.
+  ExpressionTyping(@typing.Issue)
   Admission(@program.SyntaxError)
 }
 
@@ -1210,6 +1212,7 @@ fn lower_aggregate_resolved(
   max_collection_items : Int64,
   max_collection_bytes : Int64,
   order_fields? : Array[String]? = None,
+  analytic? : Bool = false,
 ) -> @builder.Node raise Abort {
   let name = match call.function_name {
     "COUNT" => "count"
@@ -1334,7 +1337,9 @@ fn lower_aggregate_resolved(
         ]),
       )
     }
-    entries.push(("order_by", construction.array(order)))
+    if !analytic {
+      entries.push(("order_by", construction.array(order)))
+    }
   }
   match call.delimiter {
     Some(delimiter) => entries.push(("delimiter", construction.text(delimiter)))
@@ -1406,6 +1411,7 @@ fn lower_analytic_call(
   call : @query.AnalyticCall,
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
+  max_collection_bytes : Int64,
 ) -> @builder.Node raise Abort {
   match call.aggregate {
     Some(aggregate) => {
@@ -1414,12 +1420,26 @@ fn lower_analytic_call(
       }
       if ![
           "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "VAR_POP", "VAR_SAMP",
-          "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
+          "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV", "STRING_AGG",
         ].contains(aggregate.function_name) {
         raise Abort(UnsupportedAnalytic)
       }
+      if aggregate.function_name == "STRING_AGG" &&
+        (
+          aggregate.distinct ||
+          aggregate.filter is Some(_) ||
+          !aggregate.order_by.is_empty()
+        ) {
+        raise Abort(UnsupportedAnalytic)
+      }
       lower_aggregate_resolved(
-        construction, aggregate, resolve, max_work, 0L, 0L,
+        construction,
+        aggregate,
+        resolve,
+        max_work,
+        0L,
+        max_collection_bytes,
+        analytic=true,
       )
     }
     None => {
@@ -1449,7 +1469,15 @@ fn lower_analytic_call(
       let entries = [("fn", construction.text(wire_name))]
       if name == "ROW_NUMBER" || name == "RANK" || name == "DENSE_RANK" {
         if !arguments.is_empty() {
-          raise Abort(UnsupportedAnalytic)
+          raise Abort(
+            Expression({
+              issue: @expression.InvalidArguments,
+              origin: @query.expression_origin(
+                expression,
+                @query.expression_root(expression),
+              ),
+            }),
+          )
         }
       } else {
         if arguments.is_empty() ||
@@ -1555,6 +1583,7 @@ fn lower_analytic(
   projections : Array[@query.Projection],
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
+  max_collection_bytes : Int64,
   reserved : Array[String],
   evaluated : Array[(@query.Expression, String)],
   derives : Array[(String, @builder.Node)],
@@ -1603,6 +1632,7 @@ fn lower_analytic(
           projection.analytic.unwrap(),
           resolve,
           max_work,
+          max_collection_bytes,
         ),
       ),
     )
@@ -1709,7 +1739,7 @@ fn compile_steps(
   input : Input,
   fields : Array[String],
   max_work : Int,
-  source_limits : @builder.Limits,
+  query_limits : Limits,
   max_collection_items : Int64,
   max_collection_bytes : Int64,
   start_at : Int,
@@ -1833,7 +1863,7 @@ fn compile_steps(
         let element_contract = unnest_source_element(
           expression,
           parameter_declarations,
-          source_limits,
+          query_limits,
           max_work,
           construction.parameter_resolver(),
         )
@@ -3474,7 +3504,8 @@ fn compile_steps(
         for group in groups {
           operations.push(
             lower_analytic(
-              construction, group, resolve, max_work, reserved, evaluated, derives,
+              construction, group, resolve, max_work, max_collection_bytes, reserved,
+              evaluated, derives,
             ),
           )
         }
@@ -4711,7 +4742,7 @@ pub fn compile(
       input,
       fields,
       limits.max_expression_work,
-      limits.source,
+      limits,
       limits.max_collection_items,
       limits.max_collection_bytes,
       start_at,
@@ -5099,7 +5130,7 @@ fn compile_cte_query(
           cte_input,
           body_output,
           limits.max_expression_work,
-          limits.source,
+          limits,
           limits.max_collection_items,
           limits.max_collection_bytes,
           0,
@@ -5338,7 +5369,7 @@ fn compile_cte_stage(
     input,
     fields,
     limits.max_expression_work,
-    limits.source,
+    limits,
     limits.max_collection_items,
     limits.max_collection_bytes,
     body_start,
@@ -6061,7 +6092,7 @@ fn compile_set_stages(
       input,
       fields,
       limits.max_expression_work,
-      limits.source,
+      limits,
       limits.max_collection_items,
       limits.max_collection_bytes,
       if common_capture_filter {
@@ -7222,7 +7253,7 @@ fn append_join_order_steps(
       input,
       visible_names,
       limits.max_expression_work,
-      limits.source,
+      limits,
       limits.max_collection_items,
       limits.max_collection_bytes,
       next,
