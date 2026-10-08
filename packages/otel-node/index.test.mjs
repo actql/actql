@@ -98,7 +98,12 @@ test('managed SDK exports real protobuf with caller correlation and no content i
     assert.ok(packet.body.length > 0 && packet.body.length <= 65536);
   }
   const packet = sink.packets.find(item => item.path === '/v1/traces');
+  assert.equal(sink.packets.filter(item => item.path === '/v1/traces').length, 1,
+    'only the measured segment is a span; the discrete check fact is a log');
+  assert.ok(sink.packets.some(item => item.path === '/v1/logs' &&
+    item.body.includes(Buffer.from('check_completed'))));
   const span = field(field(field(packet.body, 1), 2), 2);
+  assert.equal(field(span, 11), undefined, 'new facts do not duplicate Span Events');
   assert.equal(field(span, 1).toString('hex'), parent.traceId);
   assert.equal(field(span, 4).toString('hex'), parent.spanId);
   assert.equal(field(span, 5).toString(), 'actql.check');

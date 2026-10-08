@@ -57,15 +57,20 @@ test('unavailable Run budget stops new observations without changing execution',
 
 test('failed optional storage initialization retains retryable close custody', async () => {
   let closes = 0;
-  const observer = installHostObservation(createHostObservationConnection({deliver() {}}), {
+  const connection = createHostObservationConnection({deliver() {}});
+  const observer = installHostObservation(connection, {
     journal: {observationStorage() { throw new Error('initialization failed'); },
       closeObservationStorage() { if (++closes === 1) throw new Error('close failed'); }},
   });
   assert.equal(await observer.run('check', trace, () => 42), 42);
-  await observer.close();
+  await assert.rejects(observer.close(), {message: 'HostObservationCleanupPending'});
   assert.equal(observer.status().budgetUnavailable, 1);
+  assert.equal(observer.status().cleanupPending, true);
+  assert.throws(() => installHostObservation(connection), /HostObservationConnectionInUse/u);
+  await observer.close();
   await observer.close();
   assert.equal(closes, 2);
+  assert.equal(observer.status().cleanupPending, false);
 });
 
 test('queue overflow and delivery failure cannot replace an operation result', async () => {

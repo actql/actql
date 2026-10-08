@@ -2515,11 +2515,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     retireTerminalEffects};
   } catch (cause) {
     diagnostic?.close();
-    await observation?.close();
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store, checkpoints, dispatchOwner,
-        sourceProfile, installedEffect});
+        sourceProfile, installedEffect, observation});
   }
 }
 
@@ -2598,8 +2597,6 @@ export async function openInstalledRemoteHttpHost({directory,
       const result = await shutdown.close();
       // Failed shutdown still owns retryable physical cleanup. Keep its
       // bounded observation alive until those owners confirm final release.
-      host.diagnostic.close();
-      await host.observation?.close();
       return Object.freeze({...result,
         diagnosticDeliveryPending: host.diagnostic.status().active !== 0});
     },

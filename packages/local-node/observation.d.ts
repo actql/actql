@@ -6,6 +6,7 @@ export interface HostObservationConnection {
   status(): Readonly<{dropped: number; budgetUnavailable: number;
     queueOverflow: number; deliveryFailed: number; limited: number;
     queued: number; queuedBytes: number; active: number; activeSegments: number; closed: boolean;
+    cleanupPending: boolean;
     loss: Readonly<Record<string, number>>}> | undefined;
 }
 export interface ObservationContext {
