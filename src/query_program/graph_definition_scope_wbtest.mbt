@@ -76,7 +76,7 @@ test "keyed node label selects the corresponding definition with case-insensitiv
 }
 
 ///|
-test "keyed multiple definitions do not erase unsupported endpoint label constraints" {
+test "keyed endpoint labels must hold for each statically reachable definition" {
   let source = "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS P KEY (id) LABEL Person NO PROPERTIES, n AS C KEY (id) LABEL Company NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES P DESTINATION KEY (dst) REFERENCES C LABEL R NO PROPERTIES)); "
   assert_true(
     keyed_script(
@@ -89,6 +89,14 @@ test "keyed multiple definitions do not erase unsupported endpoint label constra
     keyed_script(
       source +
       "FROM GRAPH g |> MATCH p = ACYCLIC (:Person)-[:R]->(:Company) |> SELECT PATH_LENGTH(p) AS depth",
+    )
+    is Ok(_),
+  )
+  // E reaches only C, which carries Company but does not carry Person.
+  assert_true(
+    keyed_script(
+      source +
+      "FROM GRAPH g |> MATCH p = ACYCLIC (:Person)-[:R]->(:Person) |> SELECT PATH_LENGTH(p) AS depth",
     )
     is Err(UnsupportedGraph),
   )
