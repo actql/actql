@@ -161,19 +161,19 @@ function observeCheckOnly(t, root) {
   };
 }
 
-async function localClient(t, configuration) {
+async function localClient(t, configuration, installed = {}) {
   const root = await mkdtemp(join(scratch, 'local-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const sourceInstallation = await installedConfigurations(root, configuration);
   const observation = observeCheckOnly(t, root);
   const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
-    installation: {directory: join(root, 'state'), ...sourceInstallation}});
-  return {check: client.check, startSource: client.startSource,
+    installation: {directory: join(root, 'state'), ...sourceInstallation, ...installed}});
+  return {check: client.check, start: client.start, startSource: client.startSource,
     newSubmission: client.newSubmission, lookupSubmission: client.lookupSubmission,
     assertNoExecution: observation.assertNoExecution};
 }
 
-async function httpClient(t, configuration, mutateCheckReply) {
+async function httpClient(t, configuration, mutateCheckReply, installed = {}) {
   const root = await mkdtemp(join(scratch, 'http-'));
   const sourceInstallation = await installedConfigurations(root, configuration);
   const observation = observeCheckOnly(t, root);
@@ -181,7 +181,7 @@ async function httpClient(t, configuration, mutateCheckReply) {
     directory: join(root, 'state'), beforeDispatch: observation.beforeDispatch,
     authenticate: header => header === 'Bearer owner-token' ? owner
       : undefined,
-    ...sourceInstallation,
+    ...sourceInstallation, ...installed,
   });
   const server = createServer({key: tlsKey, cert: tlsCertificate},
     (request, response) => {
@@ -208,7 +208,7 @@ async function httpClient(t, configuration, mutateCheckReply) {
       'content-type': 'application/json'},
     body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
       runners: [], consentRefs: []}, ...body})});
-  return Object.freeze({check: client.check, post, startSource: client.startSource,
+  return Object.freeze({check: client.check, post, start: client.start, startSource: client.startSource,
     newSubmission: client.newSubmission, lookupSubmission: client.lookupSubmission,
     assertNoExecution: observation.assertNoExecution});
 }
@@ -5277,5 +5277,42 @@ for (const entrance of ['local', 'http']) {
         else original = outcome;
       }
     }
+  });
+}
+
+// Actual installed providers are observed separately from Run admission.
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: installed structured Program rejection invokes no Source Model or Effect`, async t => {
+    let modelCalls = 0, effectCalls = 0, resumes = 0;
+    const installed = {registerModelProviders: () => [{providerId: 'models/diagnostic-fixture',
+      validatePrompt: () => false,
+      invoke() {modelCalls++; throw new Error('UnexpectedDiagnosticModelExecution');}}],
+    effectInstallation: {environmentWire: (await readFile(join(repository,
+      'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd(),
+      execute() {effectCalls++; throw new Error('UnexpectedDiagnosticEffectExecution');},
+      resume() {resumes++; throw new Error('UnexpectedDiagnosticEffectResume');}}};
+    const client = entrance === 'local'
+      ? await localClient(t, configurations.denied, installed)
+      : await httpClient(t, configurations.denied, undefined, installed);
+    const program = {version: 'actql/0.1', id: 'installed-rejection',
+      params: {n: {type: 'number'}},
+      stages: [{id: 'main', inputs: {rows: {connector: 'crm/main', resource: 'r', view: 'v'}},
+        steps: [{derive: {n: '$n'}, as: 'selected'}], results: {out: {from: 'selected', fields: ['n']}}}],
+      results: {out: {from: {stage: 'main', result: 'out'}}}};
+    let rejected;
+    try {await client.start(program, {parameters: {n: 'wrong'}});} catch (error) {rejected = error;}
+    const checked = sdk.getSubmissionCheckObservation(rejected);
+    assert.equal(checked?.report?.verdict, 'invalid', '[check-mutation:program-installed-verdict]');
+    assert.equal(checked.report.reasons[0].code, 'supplied_value_type_mismatch');
+    assert.equal(sdk.getCheckInput(checked, 'program').kind, 'structured');
+    client.assertNoExecution();
+    assert.deepEqual({modelCalls, effectCalls, resumes}, {modelCalls: 0, effectCalls: 0, resumes: 0},
+      '[check-mutation:program-installed-no-work]');
+    const original = sdk.getCheckInput(checked, 'program');
+    sdk.resolveCheckLocation(checked, checked.report.reasons[0].location);
+    sdk.explainCheckReason(checked.report.reasons[0]); sdk.getCheckFixes(checked);
+    assert.equal(sdk.getCheckInput(checked, 'program'), original);
+    client.assertNoExecution();
+    assert.deepEqual({modelCalls, effectCalls, resumes}, {modelCalls: 0, effectCalls: 0, resumes: 0});
   });
 }
