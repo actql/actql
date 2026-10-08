@@ -47,10 +47,17 @@ export const limitParameterSuccesses = [
     + 'DATA keys = SELECT 1 AS id UNION ALL SELECT 2 AS id UNION ALL SELECT 3 AS id; '
     + 'SELECT l.amount AS amount, l.id AS id FROM selected AS l JOIN keys AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id LIMIT @count OFFSET @skip',
     {format: 'aql-text'}),
+  success('case-insensitive-sql', sql.replace('@count', '@COUNT').replace('@skip', '@Skip')),
+  success('quoted-parameter-names', sql.replace('@count', '@`COUNT`').replace('@skip', '@`\\x53kip`')),
+  success('exact-declaration-spelling', sql, {parameterDeclarations: {COUNT: number, SKIP: number},
+    parameters: {COUNT: 2, SKIP: 1}}),
 ];
 export const limitParameterRefusals = [
   {name: 'undeclared', parameterDeclarations: undefined, parameters: undefined},
   {name: 'missing', parameters: {skip: 1}},
+  {name: 'wrong-machine-value-case', parameters: {COUNT: 2, skip: 1}},
+  {name: 'ambiguous-source-declarations', parameterDeclarations: {count: number, COUNT: number, skip: number},
+    parameters: {count: 2, COUNT: 2, skip: 1}, expectedCode: 'ClientProgramRejected'},
   ...[0, -1, 1.5, null, 9007199254740992, 'private-value'].map((count, index) => ({
     name: 'invalid-count-' + index,
     parameterDeclarations: {count: count === null ? nullableNumber : number, skip: number},

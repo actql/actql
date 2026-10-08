@@ -33,6 +33,16 @@ export async function nearestPublicInputFixtures(directory) {
       results: result([], columns)},
     {name: 'nearest-source-keep', format: 'aql-text', text: keptSource,
       results: result(rows, columns)},
+    {name: 'nearest-data-source-keep', format: 'aql-text',
+      text: `DATA qs = FROM queries; DATA cs = FROM candidates;
+        FROM qs AS q |> ${nearest.replace('NEAREST candidates', 'NEAREST cs')}
+        KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank`,
+      results: result(rows, columns)},
+    {name: 'nearest-source-query-vector-expression', format: 'aql-text',
+      text: `FROM queries AS q |> ${nearest.replace('VECTOR q.embedding',
+        'VECTOR IF(TRUE, q.embedding, q.embedding)')}
+        KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank`,
+      results: result(rows, columns)},
     {name: 'nearest-source-omitted-keep', format: 'aql-text',
       text: `FROM queries AS q |> ${nearest} AS neighbor |> ORDER BY neighbor.rank`,
       results: result(rows.map(({neighbor}) => ({neighbor})), [columns[2]])},
@@ -86,6 +96,11 @@ export async function nearestPublicInputFixtures(directory) {
         |> ORDER BY rank`, results: result(keyRows, keyColumns)},
   );
   const refusals = [
+    {name: 'nearest-data-forward-candidate', format: 'aql-text',
+      text: `DATA matched = FROM queries AS q |> NEAREST later AS c
+        QUERY KEY (q.request_id) VECTOR q.embedding
+        CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 AS neighbor;
+        DATA later = FROM candidates; FROM matched`},
     {name: 'nearest-unknown-result-member', format: 'aql-text',
       text: `FROM queries AS q |> ${nearest} AS neighbor |> SELECT neighbor.MISSING`},
     {name: 'nearest-dropped-input', format: 'aql-text',

@@ -33,6 +33,8 @@ const success = (name, text = sql, extra = {}) => ({name: 'unnest-parameter-path
 export const unnestParameterPathSuccesses = [
   success('json-control', JSON.stringify(unnestParameterPathProgram), {format: 'json', parameterDeclarations: undefined}),
   success('sql'),
+  success('case-insensitive-receiver', sql.replace('@payload', '@PAYLOAD')),
+  success('quoted-receiver', sql.replace('@payload', '@`PAYLOAD`')),
   success('pipe', 'FROM UNNEST(@payload.nested.items) element WITH OFFSET position |> SELECT element.*, position |> ORDER BY position', {format: 'aql-text'}),
   success('quoted-parentheses', 'SELECT * FROM UNNEST(((@payload).`nested`).`items`) element WITH OFFSET position ORDER BY position'),
   success('null-parent', sql, {parameters: {payload: null}, expected: []}),
