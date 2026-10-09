@@ -18,6 +18,7 @@ fn retained_effect_complete_capture(
   authoring : @publication.RunEvidenceValue,
   result : @resident.ResidentEffectResultCapture,
   provider? : Bool = false,
+  private_preview? : (String, String)? = None,
 ) -> Unit raise {
   let capture = (material, proofs, sources) => {
     consumer.capture_effect_run(
@@ -103,6 +104,7 @@ fn retained_effect_complete_capture(
     captured,
     @publication.captured_effect_source_store_authority_cid(source),
     provider~,
+    private_preview~,
   )
   println(
     "retained-effect-capture: complete original Run issued with actual public rows and checked plan",

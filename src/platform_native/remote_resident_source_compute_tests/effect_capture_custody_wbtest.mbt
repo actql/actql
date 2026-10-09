@@ -12,6 +12,7 @@ fn retained_effect_capture_store(
   captured : @publication.PublicationContract,
   authority : String,
   provider? : Bool = false,
+  private_preview? : (String, String)? = None,
 ) -> Unit raise {
   let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let child = "effect-capture-custody-" + @env.now().to_string()
@@ -166,6 +167,12 @@ fn retained_effect_capture_store(
   )
   assert_eq(consumer.usage().reserved_retention_bytes, baseline + charged)
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, charged)
+  if private_preview is Some((wire, authoring_cid)) {
+    store = retained_effect_preview_store(
+      consumer, materials, inputs, result, invocation, preview, captured, authority,
+      wire, authoring_cid, crypto, key, sqlite, path, store, custody, baseline, charged,
+    )
+  }
   // Lose cleanup acknowledgement after ciphertext removal, before capacity
   // release. The original live Ledger charge must survive Store reconstruction.
   let closed_cleanup = Ref(false)
