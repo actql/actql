@@ -502,6 +502,12 @@ common typing rules. These are selected GoogleSQL spellings of the existing
 set semantics, not a new execution or acquisition mechanism. FULL/LEFT variants
 remain unsupported pending common nullable-padding evidence.
 
+Set operands containing ordinary JOINs use the same shared-input assembly as
+DATA queries. This applies to standalone SQL/Pipe, nested set operands and
+CTE bodies. JOIN predicates, key mappings and declared output ceilings remain
+with the existing JOIN lowerer; final ORDER BY/LIMIT sees only the combined
+output. Input binding does not add another source read or materialization.
+
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
 body, named FROM/JOIN subquery and parenthesized query operand use the same
 relational query composition: SELECT or FROM-starting Pipe, set expressions,
