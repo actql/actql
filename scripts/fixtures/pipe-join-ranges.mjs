@@ -103,3 +103,45 @@ pipeJoinRangesRefusals.push(...[
 ].map(([name, tail]) => ({name: 'pipe-join-ranges-refuse-extend-' + name,
   format: 'aql-text', expectedCode: 'ClientProgramInvalidInput',
   text: 'FROM records AS old |> EXTEND id + 10 AS z |> ' + tail})));
+
+// RENAME changes the current names only. Intermediate duplicate logical names
+// retain separate physical values until the authored projection resolves them.
+export const renameTargetProgram = {version: 'actql/0.1', id: 'fixture.rename_target_scope',
+  stages: [structuredClone(pipeJoinRangesProgram.stages[0]),
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{values: {schema: {id: number}, rows: [{id: 2}]}, as: 'rights'},
+        {from: 'records', join: {with: 'rights', kind: 'inner',
+          on: [{left: 'id', right: 'id'}], max_output_rows: 10,
+          select: {current: 'left.amount', original: 'left.id', matched: 'right.id'}}},
+        {sort: [{field: 'original', dir: 'asc', nulls: 'first'}], as: 'out'}],
+      results: {rows: {from: 'out', fields: ['current', 'original', 'matched']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const renameJoin = 'FROM records AS l |> JOIN (SELECT 2 AS id) AS r '
+  + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 ';
+const renameProjection = '|> SELECT current, l.id AS original, r.id AS matched |> ORDER BY original';
+const renameColumns = [{name: 'current', contract: nullable},
+  {name: 'original', contract: number}, {name: 'matched', contract: number}];
+const renameRows = [{current: 20, original: 2, matched: 2},
+  {current: 20, original: 2, matched: 2}];
+pipeJoinRangesSuccesses.push(...[
+  ['rename-independent-json', JSON.stringify(renameTargetProgram), {format: 'json'}],
+  ['rename-unrelated-duplicates', renameJoin + '|> RENAME amount AS current ' + renameProjection, {}],
+  ['rename-quoted-target', renameJoin + '|> RENAME `AMOUNT` AS current ' + renameProjection, {}],
+  ['rename-new-ambiguity', renameJoin + '|> RENAME amount AS id '
+    + renameProjection.replace('SELECT current', 'SELECT l.amount AS current'), {}],
+  ['rename-empty-typed', renameJoin + '|> RENAME amount AS current ' + renameProjection,
+    {sourceRows: [], expected: []}],
+  ['rename-nullable', 'FROM records AS old |> RENAME id AS amount '
+    + '|> SELECT old.amount AS current, old.id AS original, old.id AS matched |> ORDER BY original',
+  {expected: [{current: null, original: 1, matched: 1}, ...renameRows]}],
+].map(([name, text, extra]) => success(name, text,
+  {columns: renameColumns, expected: renameRows, ...extra})));
+pipeJoinRangesRefusals.push(...[
+  ['ambiguous-target', renameJoin + '|> RENAME id AS current |> SELECT l.id AS original'],
+  ['quoted-ambiguous-target', renameJoin + '|> RENAME `ID` AS current |> SELECT l.id AS original'],
+  ['ambiguous-current-read', renameJoin + '|> RENAME amount AS id |> SELECT id'],
+  ['duplicate-result', 'FROM records |> RENAME id AS amount'],
+  ['missing-target', 'FROM records |> RENAME missing AS current |> SELECT id'],
+  ['repeated-target', 'FROM records |> RENAME id AS current, `ID` AS other |> SELECT amount'],
+].map(([name, text]) => ({name: 'pipe-join-ranges-refuse-rename-' + name,
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', text})));

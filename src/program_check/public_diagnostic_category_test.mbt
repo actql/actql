@@ -146,3 +146,53 @@ test "public diagnostics distinguish exhausted budgets invalid settings and miss
     )
   }
 }
+
+///|
+test "authored selector structure failures retain common categories and original paths" {
+  let (_, _, environment, _, limits) = public_input_fixture()
+  for
+    (selector, path) in [
+      (
+        "{\"connector\":\"missing\",\"resource\":\"r\",\"view\":null}",
+        [@source.Key("view")],
+      ),
+      ("{\"connector\":3,\"resource\":\"r\"}", [@source.Key("connector")]),
+      ("{\"connector\":\"missing\"}", [@source.Key("resource")]),
+    ] {
+    let text = "{\"version\":\"actql/0.1\",\"id\":\"selector.structure\",\"stages\":[{\"id\":\"main\",\"inputs\":{\"rows\":" +
+      selector +
+      "},\"steps\":[{\"from\":\"rows\",\"select\":[\"id\"],\"as\":\"selected\"}],\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"main\",\"result\":\"out\"}}}}"
+    let diagnostic = public_rejected(
+      @program_check.check_document(
+        text,
+        environment,
+        None,
+        limits,
+        format=Json,
+      ),
+    )
+    assert_true(
+      @program_check.diagnostic_cause(diagnostic)
+      is Source(Registration(Declarations(Decode(_)))),
+    )
+    assert_eq(@program_check.diagnostic_category(diagnostic), InvalidInput)
+    assert_eq(
+      @program_check.diagnostic_origin(diagnostic),
+      Some(ProgramDocument),
+    )
+    assert_eq(
+      @program_check.diagnostic_location_path(
+        @program_check.diagnostic_location(diagnostic).unwrap(),
+      ),
+      Some(
+        [
+          @source.Key("stages"),
+          @source.Index(0),
+          @source.Key("inputs"),
+          @source.Key("rows"),
+        ] +
+        path,
+      ),
+    )
+  }
+}
