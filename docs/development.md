@@ -310,6 +310,16 @@ holding or producer capture; their own cleanup remains necessary. These are
 physical custody APIs, not a journal start claim, approval or public Cloud
 integration.
 
+The formal `@actql/run-host-core` facade also supplies `prepareEffectRequest`,
+`effectSourceInputBinding`, `issueEffectSourceDispatch`,
+`prepareEffectRetainedTaskInputEdge` and `issueEffectRetainedTaskDispatch`.
+Their Effect handles remain opaque and cannot enter the Effect-free facade.
+The retained edge feeds the existing producer/Transfer/current-input APIs;
+consumer issuance re-admits the durable destination before and after current
+authorization callbacks. Original materials can reconstruct the same caller,
+Run and Source dispatch. Hosts still own persistence-before-send, current
+permission, start claims, approval and physical execution.
+
 ### Installed Connector distribution inputs
 
 The standard Local package resolves provider runtimes, installation adapter
