@@ -100,3 +100,46 @@ positives after correcting the format. This is not pristine new-SHA execution
 evidence. New Node assertions prevent a format refusal from masquerading as the
 intended scope refusal. Values, types, column order, predicates and bounds remain
 unchanged. Fresh execution follows the corrected committed fixture below.
+
+## Fresh packed public execution
+
+Clean normally packed product/fixture SHA: `5a5fb1d75ae4e2e8f5d35e8210481a4a3d865426`. One serialized
+bounded campaign, `run-9pLYAR`, normally produced the original five packages,
+verified their digests and ran the existing UNNEST cohort.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-scalar-unnest-corrected-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-scalar-unnest-corrected-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --unnest-source-only
+```
+
+Both Embedded Local and HTTPS complete **79 positives / 34 refusal loops**.
+Twenty-one exact refusal codes per transport are logged; older broad-code checks
+are kept separate. New range-target refusals require ClientProgramInvalidInput,
+zero durable admission and zero Source I/O. Original controls are retained.
+
+The existing consumer verifies independent JSON/text rows, full column types,
+nullability and order, stream completion, private-slot absence and same-Run
+resend/attach/reread without additional acquisition or execution. Scalar NULL
+and duplicates are preserved; DISTINCT publishes 2 then NULL. SELECT/AS/SET
+make an ordinary renameable column; whole DROP removes its range.
+
+Receipt `worktrees/.codex-scratch/public-query-evidence-1cULoH` independently
+confirms exact SHA, passed/complete, ten clean complete zero-exit commands,
+all expected positive names and exact codes in both transports, no evidence
+errors and artifactsRemoved=true. README Local/HTTPS and the intentional
+missing-generated-asset check also pass. Successful installations and Stores
+were reclaimed; logs/receipt remain. No overlay, relabeling or prepack bypass.
+
+| Package | Original SHA256 |
+|---|---|
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | f5487ba69e88efbab8e99930482c27254b8055f421280045a46c0532f8349d1b |
+| local-node | 621db8e37d46f13ae6c4732970bcf341740503d395e9711ddfabdc2cbc103ffd |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+The subsequent evidence commit changes this report only. Submitted-HEAD CI is
+checked after publication; local success is not CI success. Keep Draft and the
+unmerged #1146 dependency; no merge or manual CI retry.
