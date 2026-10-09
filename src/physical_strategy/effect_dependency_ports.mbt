@@ -239,9 +239,15 @@ pub fn captured_effect_local_result_borrow(
 /// Exact preparation custody for one local Result export. A receipt from
 /// another Result or another traversal cannot replace this preparation.
 struct CapturedEffectLocalResultExport {
-  inputs : CapturedEffectInputs
+  owner : CapturedEffectLocalResultExportOwner
   result : CapturedEffectLocalResult
   preparation : @execution.CompletedResultRelationExportPreparation
+}
+
+///|
+priv enum CapturedEffectLocalResultExportOwner {
+  EffectInputs(CapturedEffectInputs)
+  LocalUnit(CapturedEffectLocalUnitInputs)
 }
 
 ///|
@@ -285,7 +291,7 @@ pub fn start_captured_effect_local_result_export(
     Ok(value) => value
     Err(issue) => return Err(Export(issue))
   }
-  Ok({ inputs, result, preparation, })
+  Ok({ owner: EffectInputs(inputs), result, preparation, })
 }
 
 ///|
@@ -313,7 +319,7 @@ pub fn[T] bind_captured_effect_local_result_managed_export(
     ) {
     return Err(ForeignOutput)
   }
-  Ok({ inputs, result, preparation, })
+  Ok({ owner: EffectInputs(inputs), result, preparation, })
 }
 
 ///|
@@ -331,13 +337,17 @@ pub fn captured_effect_local_result_export_matches_receipt(
   value : CapturedEffectLocalResultExport,
   receipt : @execution.CompletedRelationExportReceipt,
 ) -> Bool {
-  physical_equal(value.inputs, inputs) &&
-  inputs.live &&
-  captured_any_result_borrow_available(value.result.borrow) &&
-  @execution.completed_result_export_preparation_matches_receipt(
-    value.preparation,
-    receipt,
-  )
+  match value.owner {
+    EffectInputs(owner) =>
+      physical_equal(owner, inputs) &&
+      inputs.live &&
+      captured_any_result_borrow_available(value.result.borrow) &&
+      @execution.completed_result_export_preparation_matches_receipt(
+        value.preparation,
+        receipt,
+      )
+    LocalUnit(_) => false
+  }
 }
 
 ///|
