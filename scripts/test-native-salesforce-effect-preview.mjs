@@ -7,7 +7,8 @@ import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 const residentPreview = process.argv.includes('--resident-preview');
-const residentProposals = residentPreview || process.argv.includes('--resident-proposals');
+const residentEffectCapture = process.argv.includes('--resident-effect-capture');
+const residentProposals = residentPreview || residentEffectCapture || process.argv.includes('--resident-proposals');
 
 const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT;
 assert(typeof scratch === 'string' && scratch.length > 0,
@@ -130,7 +131,7 @@ try {
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', ['--target', 'native', '--strip', " +
-    JSON.stringify(selection) + (residentPreview ? ", '--filter', 'Native retained consumer*'" : "") + "], " +
+    JSON.stringify(selection) + (residentPreview ? ", '--filter', 'Native retained consumer*'" : residentEffectCapture ? ", '--filter', 'Effect*'" : "") + "], " +
     "{timeout: 180000, evidenceScratch: " + JSON.stringify(root) + "});"],
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
@@ -138,14 +139,16 @@ try {
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
     code, signal, requests: paths, writes,
     provider: bearer?.effectTargets(),
-    scope: residentProposals
+    scope: residentEffectCapture
+      ? 'Actual retained Native computation, dependency capture and encrypted Store custody; protocol target metadata only; no approval, apply or Cloud'
+      : residentProposals
       ? 'Actual retained Native consumer -> physical HTTPS target observation -> original Artifact and checked Preview plan; no Store commit, approval, apply or Cloud'
       : 'Native HTTPS target observation and durable scoped credential use; no Source capture, whole Preview, approval or apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
   assert.equal(writes, 0);
   if (residentProposals) {
     assert.deepEqual(paths, []);
-    assert.deepEqual(bearer.effectTargets(), {reads: 1, writes: 0});
+    assert.deepEqual(bearer.effectTargets(), {reads: residentEffectCapture ? 0 : 1, writes: 0});
   } else assert.deepEqual(paths, [
     {method: 'GET', path: expected + '001000000000001'},
     {method: 'GET', path: expected + '001000000000001'},
