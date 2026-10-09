@@ -67,8 +67,9 @@ fn aggregate_order_matches_argument(
 
 ///|
 // Aggregate-local order keys use the input scope, never SELECT siblings.
-// Typed parameters, static properties, numeric unary signs and conditional
-// trees with total operands are total after admission. The common checker
+// Typed parameters, static properties, numeric unary signs, comparisons,
+// predicates and conditional trees with total operands are total after
+// admission. The common checker
 // validates receivers and numeric signatures;
 // the expression owner preserves NULL propagation and evaluates each operand
 // once. Do not hoist potentially failing calls or binary arithmetic out of
@@ -123,7 +124,11 @@ fn aggregate_order_fields(
         }
       }
       ParameterReference(_) => ()
-      Call(_, _) | SearchedCase(_, _) =>
+      Call(_, _)
+      | SearchedCase(_, _)
+      | Binary(_, _, _)
+      | Predicate(_, _)
+      | Unary("NOT", _) =>
         if !aggregate_order_total_conditional(expression) {
           raise Abort(UnsupportedAggregate)
         }

@@ -857,8 +857,9 @@ fn output_name(
     projection.expression is Some(expression) &&
     @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind
     is Reference(path) {
-    // Keep the ordinary input diagnostic, independently of the authored
-    // leaf name. Scoped SELECT/QUALIFY use their value lowerer's resolver.
+    // Keep the ordinary resolver, including its ambiguity and prefix rules.
+    // An unaliased projection retains the same authored expression occurrence
+    // as an aliased projection; no source-text search supplies this origin.
     let mut length = path.length()
     while length > 0 {
       let prefix = path[:length].to_owned()
@@ -869,6 +870,12 @@ fn output_name(
         raise Abort(AmbiguousColumn)
       }
       length -= 1
+    }
+    if @query.expression_origin(expression, @query.expression_root(expression))
+      is Some(origin) {
+      raise Abort(
+        Expression({ issue: @expression.UnknownReference, origin: Some(origin), }),
+      )
     }
     raise Abort(UnknownColumn)
   }
@@ -5090,6 +5097,14 @@ pub fn compile(
     // Current Graph construction and MATCH/TRAIL use the ordinary Program
     // checker; the Script frontend supplies that definition-scoped path.
     return Err(UnsupportedGraph)
+  }
+  if query_has_join_set_operand(query) {
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+      table_writes~,
+    )
   }
   if @query.join_part_count(query) > 0 &&
     (@query.join_part_count(query) > 1 || join_requires_group_scope(query)) &&
