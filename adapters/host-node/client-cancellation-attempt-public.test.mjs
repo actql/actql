@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {fixture} from './client-cancel-response-loss.fixture.mjs';
+import {explainCancellation, formatCancellation} from '../../packages/sdk/index.mjs';
+
+const safeHint = 'Keep the original cancellation reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s outcome, grant permission to resend, or confirm physical stop, external Effects or resource release.';
 
 // Reuse the existing real journal and installed ingress fixture. Its separate
 // SQLite connection observes committed facts independently of the public DTO.
@@ -13,6 +16,17 @@ for (const transport of ['in-process', 'https']) {
     assert.deepEqual(refused, {kind: 'refused', reason: 'authorization',
       guarantee: 'attempt_uncommitted_unconsumed',
       attemptRef: {operation: 'cancel', attemptId: 'refused-before'}});
+    const originalRef = {...f.execution.ref, cancelId: options.cancelId,
+      expectedRevision: options.expectedRevision};
+    const expected = {observation: 'refused', reason: 'authorization',
+      guarantee: 'attempt_uncommitted_unconsumed',
+      attemptRef: {operation: 'cancel', attemptId: 'refused-before'}, cancelRef: originalRef,
+      summary: 'The Host refused this cancellation invocation under current authorization. This invocation committed no cancellation and consumed no operation identity.',
+      hint: safeHint, next: {operation: 'lookupCancellation', cancelRef: originalRef}};
+    assert.deepEqual(explainCancellation(refused), expected, '[check-mutation:cancel-attempt-refused]');
+    assert.equal(explainCancellation(structuredClone(refused)), undefined);
+    assert.deepEqual(JSON.parse(formatCancellation(refused, {format: 'json'})).explanation, expected);
+    assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
     assert.deepEqual(f.stored(), f.before);
     f.authorizeCancel(true);
     const accepted = await f.execution.cancel({...options, attemptId: 'accepted-invocation'});
@@ -24,6 +38,11 @@ for (const transport of ['in-process', 'https']) {
     f.authorizeCancel(false);
     const laterRefusal = await f.execution.cancel({...options, attemptId: 'refused-after'});
     assert.equal(laterRefusal.kind, 'refused');
+    assert.deepEqual(explainCancellation(laterRefusal), {...expected,
+      attemptRef: {operation: 'cancel', attemptId: 'refused-after'}},
+      '[check-mutation:cancel-attempt-refused]');
+    assert.deepEqual(explainCancellation(refused), expected);
+    assert.equal(explainCancellation(accepted).observation, 'accepted');
     assert.deepEqual(f.stored(), committed);
     f.authorizeCancel(true);
     const found = await f.execution.lookupCancellation(accepted.cancellation.cancelRef);
@@ -41,6 +60,16 @@ for (const transport of ['in-process', 'https']) {
       attemptRef: {operation: 'cancel', attemptId: 'stale-invocation'},
       cancelRef: {...f.execution.ref, cancelId: options.cancelId,
         expectedRevision: options.expectedRevision}});
+    const originalRef = {...f.execution.ref, cancelId: options.cancelId,
+      expectedRevision: options.expectedRevision};
+    const expected = {observation: 'conflict', reason: 'control_revision',
+      attemptRef: {operation: 'cancel', attemptId: 'stale-invocation'}, cancelRef: originalRef,
+      summary: 'The Host reports a conflict with the submitted control revision for this cancellation invocation.',
+      hint: safeHint, next: {operation: 'lookupCancellation', cancelRef: originalRef}};
+    assert.deepEqual(explainCancellation(answer), expected, '[check-mutation:cancel-attempt-conflict]');
+    assert.equal(Object.hasOwn(explainCancellation(answer), 'revision'), false);
+    assert.equal(explainCancellation(structuredClone(answer)), undefined);
+    assert.deepEqual(JSON.parse(formatCancellation(answer, {format: 'json'})).explanation, expected);
     assert.deepEqual(f.stored(), f.before);
     assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
   });

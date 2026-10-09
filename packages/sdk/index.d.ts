@@ -262,9 +262,21 @@ export type CancellationExplanation = Readonly<{
   next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
 }> | Readonly<{observation: 'outcome_unknown';
   next: Readonly<{operation: 'lookupCancellation'; cancelRef: Readonly<CancellationReference>}>;
+}> | Readonly<{
+  observation: 'refused'; reason: 'authorization' | 'admission_capacity';
+  guarantee: 'attempt_uncommitted_unconsumed';
+  attemptRef: Readonly<WireOperationAttemptRef & {operation: 'cancel'}>; cancelRef: Readonly<CancellationReference>;
+  hint: string;
+  next: Readonly<{operation: 'lookupCancellation'; cancelRef: Readonly<CancellationReference>}>;
+}> | Readonly<{
+  observation: 'conflict'; reason: 'intent' | 'control_revision';
+  attemptRef: Readonly<WireOperationAttemptRef & {operation: 'cancel'}>; cancelRef: Readonly<CancellationReference>;
+  hint: string;
+  next: Readonly<{operation: 'lookupCancellation'; cancelRef: Readonly<CancellationReference>}>;
 }>);
 /** Read-only advice from cancel or an exact lookup; the original operation
- * reference and recorded outcome certify neither physical stop nor release. */
+ * reference and recorded outcome certify neither physical stop nor release.
+ * Refused certifies only this invocation's uncommitted/unconsumed outcome. */
 export declare function explainCancellation(result: unknown, options?: OperationExplanationOptions): CancellationExplanation | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,

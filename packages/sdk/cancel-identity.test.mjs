@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {ClientError, explainCancellation} from './index.mjs';
+import {ClientError, explainCancellation, formatCancellation} from './index.mjs';
 import {connectInProcess} from './host-port.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -97,6 +97,62 @@ test('typed revision Conflict preserves the original cancellation reference', as
   assert(Object.isFrozen(answer.attemptRef));
   assert.equal(f.calls.filter(call => call.operation === 'cancel').length, 1);
 });
+
+for (const [kind, reason, summary, localized] of [
+  ['refused', 'authorization',
+    'The Host refused this cancellation invocation under current authorization. This invocation committed no cancellation and consumed no operation identity.',
+    'Hostは現在の認可により今回の取消し呼出しを拒否しました。今回の呼出しは取消しをcommitせず、操作identityも消費していません。'],
+  ['refused', 'admission_capacity',
+    'The Host refused this cancellation invocation because admission capacity was unavailable. This invocation committed no cancellation and consumed no operation identity.',
+    'Hostは受付容量が不足しているため今回の取消し呼出しを拒否しました。今回の呼出しは取消しをcommitせず、操作identityも消費していません。'],
+  ['conflict', 'intent',
+    'The Host reports a conflicting intent for this original cancellation identity.',
+    'Hostは元の取消しidentityに対する意図の競合を報告しています。'],
+  ['conflict', 'control_revision',
+    'The Host reports a conflict with the submitted control revision for this cancellation invocation.',
+    'Hostは今回の取消し呼出しで提出したcontrol revisionとの競合を報告しています。'],
+]) {
+  test(`typed cancellation ${kind}/${reason} explains only its original invocation`, async t => {
+    const attemptRef = {operation: 'cancel', attemptId: 'explained-invocation'};
+    const reply = {kind, reason, attemptRef,
+      ...(kind === 'refused' ? {guarantee: 'attempt_uncommitted_unconsumed'} : {cancelRef})};
+    const f = await fixture(t, () => reply);
+    const answer = await f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19,
+      attemptId: 'explained-invocation'});
+    const expected = {observation: kind, reason,
+      attemptRef: {operation: 'cancel', attemptId: 'explained-invocation'}, cancelRef,
+      ...(kind === 'refused' ? {guarantee: 'attempt_uncommitted_unconsumed'} : {}),
+      summary,
+      hint: 'Keep the original cancellation reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s outcome, grant permission to resend, or confirm physical stop, external Effects or resource release.',
+      next: {operation: 'lookupCancellation', cancelRef}};
+    assert.deepEqual(explainCancellation(answer), expected, '[check-mutation:cancel-attempt-explanation]');
+    const explanation = explainCancellation(answer);
+    assert(Object.isFrozen(explanation));
+    assert(Object.isFrozen(explanation.attemptRef));
+    assert(Object.isFrozen(explanation.cancelRef));
+    assert(Object.isFrozen(explanation.next.cancelRef));
+    assert.equal(Object.hasOwn(explanation, 'revision'), false);
+    for (const copied of [{...answer}, structuredClone(answer), JSON.parse(JSON.stringify(answer))]) {
+      assert.equal(explainCancellation(copied), undefined, '[check-mutation:cancel-attempt-custody]');
+      assert.equal(formatCancellation(copied), undefined);
+    }
+    reply.kind = 'accepted';
+    reply.reason = 'private-reason';
+    attemptRef.attemptId = 'other-invocation';
+    assert.deepEqual(explainCancellation(answer), expected);
+    assert.deepEqual(explainCancellation(answer, {locale: 'ja'}), {...expected,
+      summary: localized,
+      hint: '元の取消し参照を保持し、現在の認可で照会してください。今回の呼出し結果は別の呼出しの結果を確定せず、再送信を許可せず、物理停止・外部Effect・資源解放を確認しません。'});
+    for (const format of ['text', 'html', 'json']) {
+      const rendered = formatCancellation(answer, {format});
+      assert.ok(rendered);
+      assert.doesNotMatch(rendered, /private-reason|other-invocation/);
+      if (format === 'json') assert.deepEqual(JSON.parse(rendered).explanation, expected);
+    }
+    assert.deepEqual(f.calls.map(call => call.operation), ['connect', 'attach', 'cancel'],
+      '[check-mutation:cancel-attempt-passive]');
+  });
+}
 
 for (const change of ['attempt', 'operation', 'guarantee', 'target']) {
   test(`a borrowed or contradictory typed refusal (${change}) remains unknown`, async t => {
