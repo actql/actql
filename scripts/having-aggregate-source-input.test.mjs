@@ -62,8 +62,20 @@ test('HAVING aggregate cases join the ordinary packed corpus and a focused selec
 test('hidden property order distinguishes HAVING aliases from selected input slots', () => {
   const cases = new Map(havingAggregateSuccesses.map(item => [item.name, item]));
   const alias = cases.get('having-aggregate-property-alias-input-collision');
+  const qualified = cases.get('having-aggregate-property-qualified-input-control');
   assert.deepEqual(alias.expected, [{n: 5, payload: {score: 5}, original: 'b|b|a|c'}]);
-  assert.deepEqual(cases.get('having-aggregate-property-qualified-input-control').expected, []);
+  assert.deepEqual(qualified.expected, []);
+  const checkedColumns = [
+    {name: 'n', contract: {type: 'number', nullable: false}},
+    {name: 'payload', contract: {type: 'object', nullable: false,
+      additional_properties: false, fields: {score: {type: 'number', nullable: false}}}},
+    {name: 'original', contract: {type: 'string', nullable: true}},
+  ];
+  assert.deepEqual(alias.columns, checkedColumns);
+  assert.deepEqual(qualified.columns, checkedColumns);
+  assert.deepEqual(alias.parameterDeclarations.o1,
+    {type: 'object', nullable: false, fields: {score: {type: 'number', nullable: false}}});
+  assert.deepEqual(havingPropertyOrderProgram.params.o1, alias.parameterDeclarations.o1);
   assert.deepEqual(alias.parameters.o1, {score: 5});
   assert.equal(alias.parameters.p3, null);
   assert.equal(alias.parameters.p4.score, null);
