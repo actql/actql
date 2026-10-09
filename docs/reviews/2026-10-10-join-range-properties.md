@@ -1,8 +1,9 @@
 # JOIN parenthesized range-property connection
 
 Base: `040eed2b1a11a3d1f7bae81b68d956d1017fac05` (main).
-Status: focused compiler/checker and fixture checks pass; fresh packed
-Local/HTTPS execution and submitted-HEAD CI are not established at this commit.
+Status: focused compiler/checker and fixture checks plus clean-source normal
+five-package Local/HTTPS acceptance pass. Submitted-HEAD CI and content review
+are not established; retain Draft status.
 
 ## Counterexample and existing contract
 
@@ -100,7 +101,7 @@ node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
 - An initial Option API spelling failed compilation, executing no tests
   (`run-7NbQC9`, `focused-test-94PpTb`); it is not counted as a pass.
 
-## Remaining verification
+## Packed diagnostics and final acceptance
 
 The first normal five-package attempt used clean source
 `80b4fe5900928e5ddd8a773d194fb87abd71d045` and original receipt
@@ -149,13 +150,51 @@ The remaining refusals and HTTPS were not reached in this failed attempt.
 The precise diagnostic assertions pass JS 9/9 (`run-rOqRhu`,
 `focused-test-PmnADf`) and Node 4/4 (`run-1hxqcP`,
 `focused-test-MRJLcC`). Product sources remain unchanged from the 35/35 caller
-selection. The final public repeat must still complete both transports.
+selection. The repeat below completes both transports.
 
 Use the normal five-package producer and existing `--join-property-only`
 consumer at a clean source SHA. Compare Named Result rows and describe
 contracts/column order, hidden-slot absence, and same-request resend/reattach
 without another evaluation. Source-free fixtures expect zero Source reads;
 they do not prove external Source acquisition/share semantics.
+
+The final clean packed source is
+`eccc900e0b765b060e7538c6ce710f287ec9afc8`, with normal producer manifest at
+`/private/tmp/actql-b-join-range-properties-eccc900e0-pack` and original receipt
+`worktrees/.codex-scratch/public-query-evidence-C9ftOh`.
+The existing serialized heavy guard (`run-UVnFg1`, 1200 seconds) ran:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-join-range-properties-eccc900e0-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-join-range-properties-eccc900e0-pack \
+  node scripts/test-packed-public-query.mjs --join-property-only
+```
+
+Embedded Local and HTTPS each pass **27 positives and 13 refusals**, including
+five exact public-code refusals and eight existing input-category assertions.
+The unchanged consumer checks complete Named Result rows and describe contracts,
+column order, private-field absence, same-Run resend/attach/reread/lookup without
+extra evaluation, and zero Run admission/Source I/O on refusals. The new cases
+remain registered in normal packed acceptance, not just the narrow selection.
+
+All ten receipt commands finish with status 0, complete output and no evidence
+errors. Source is clean and its revision matches the normal manifest. Each
+tarball digest was independently recalculated and matches both records. The
+temporary installation was removed and its path is absent. Failed receipts
+above remain original evidence; they are not relabeled as successful runs.
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54` |
+| local-node | `60cdbfda9310ac77fa0357a18bf5292622be1c73a2f160f8fb9d2cbfb0268e2c` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+The final documentation commit records this evidence; public execution is
+attributed to the packed source above, not an unexecuted documentation HEAD.
+
+## Remaining verification
 
 Full Core, full packed campaigns, other execution targets and required CI
 are unverified for this unit. This repair does not claim the whole frontend
