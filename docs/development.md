@@ -320,6 +320,16 @@ authorization callbacks. Original materials can reconstruct the same caller,
 Run and Source dispatch. Hosts still own persistence-before-send, current
 permission, start claims, approval and physical execution.
 
+`effectTaskKeys`, `effectResultDefinitions`, `effectResultSchema` and
+`effectSourceEvidenceFacts` expose the original checked Effect computation's
+dispatch coordinates, declared Result contracts, schema and Catalog facts.
+They require the matching opaque preparation and compilation, including after
+original Run-material reconstruction. A Host need not parse the Compiled Plan
+or prepare the Program again as Effect-free to obtain this inventory. Effect
+members are not public Result declarations. Catalog evidence grants neither
+Source read permission nor Effect approval, and an inventory is not proof of
+execution, publication, a waiting Run transition or cleanup.
+
 ### Installed Connector distribution inputs
 
 The standard Local package resolves provider runtimes, installation adapter

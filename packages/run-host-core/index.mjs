@@ -211,6 +211,73 @@ export function effectExecutionShape(prepared, compilation) {
     effectCount: counts[2]});
 }
 
+/** Original checked dispatch coordinates, not execution or approval permits. */
+export function effectTaskKeys(prepared, compilation) {
+  const keys = checked(owner.clientValuesHostEffectTaskKeys(
+    effectCompilationFor(prepared, compilation)), 'RunHostTaskKeysRejected');
+  if (!Array.isArray(keys) || keys.some(key => typeof key !== 'string') ||
+      new Set(keys).size !== keys.length) throw new Error('InvalidRunHostTaskKeyProjection');
+  return Object.freeze([...keys]);
+}
+
+/** Result inventory owned by the original Effect computation. */
+export function effectResultDefinitions(prepared, compilation) {
+  const value = effectCompilationFor(prepared, compilation);
+  const fields = checked(owner.clientValuesHostEffectResultDefinitions(value),
+    'RunHostResultInventoryRejected');
+  const names = owner.clientValuesHostEffectResultNames(value);
+  if (!Array.isArray(fields) || fields.length !== names.length * 3 ||
+      !fields.every(field => typeof field === 'string')) {
+    throw new Error('InvalidRunHostResultInventory');
+  }
+  return Object.freeze(names.map((name, index) => {
+    if (fields[index * 3] !== name) throw new Error('InvalidRunHostResultInventory');
+    return Object.freeze({name, cid: fields[index * 3 + 1], wire: fields[index * 3 + 2]});
+  }));
+}
+
+export function effectResultSchema(prepared, compilation, resultName) {
+  const value = effectCompilationFor(prepared, compilation);
+  if (typeof resultName !== 'string') throw new TypeError('InvalidRunHostResultSelection');
+  const result = owner.clientValuesHostEffectResultNames(value).indexOf(resultName);
+  if (result < 0) throw new RangeError('UnknownRunHostResult');
+  const facts = checked(owner.clientValuesHostEffectResultSchema(value, result),
+    'RunHostResultSchemaRejected');
+  if (!Array.isArray(facts) || facts.length < 2 ||
+      !facts.every(field => typeof field === 'string') ||
+      !/^sha256:[0-9a-f]{64}$/u.test(facts[0])) {
+    throw new Error('InvalidRunHostResultSchema');
+  }
+  const fields = Object.freeze(facts.slice(2));
+  // JavaScript enumerates integer-like keys numerically; the Owner uses UTF-16.
+  const schemaFields = Object.keys(JSON.parse(facts[1])).sort();
+  if (schemaFields.length !== fields.length ||
+      schemaFields.some((field, index) => field !== fields[index])) {
+    throw new Error('InvalidRunHostResultSchema');
+  }
+  return Object.freeze({cid: facts[0], wire: facts[1], fields});
+}
+
+/** Exact original Catalog evidence, never a read grant or Effect approval. */
+export function effectSourceEvidenceFacts(prepared, compilation, stage, sourceIndex) {
+  const value = effectCompilationFor(prepared, compilation);
+  if (![stage, sourceIndex].every(index => Number.isSafeInteger(index) &&
+      index >= 0 && index <= 2147483647)) {
+    throw new TypeError('InvalidRunHostSourceSelection');
+  }
+  const option = owner.clientValuesHostEffectSourceEvidenceFacts(value, stage, sourceIndex);
+  if (option?.$tag === 0) return undefined;
+  if (option?.$tag !== 1) throw new Error('InvalidRunHostSourceEvidenceProjection');
+  const facts = option._0;
+  if (!Array.isArray(facts) || facts.length !== 6 ||
+      facts.some(field => typeof field !== 'string')) {
+    throw new Error('InvalidRunHostSourceEvidenceProjection');
+  }
+  return Object.freeze({sourceRef: facts[0], sourceContractCid: facts[1],
+    carrierSchemaContractCid: facts[2], sourceDataPolicyCid: facts[3],
+    dataClassification: facts[4], sourceViewContractCid: facts[5]});
+}
+
 export function privateEffectCompilationWires(compilation) {
   const {value} = requireHandle(effectCompilations, compilation);
   return Object.freeze({boundTemplate: owner.clientValuesHostEffectTemplateWire(value),
