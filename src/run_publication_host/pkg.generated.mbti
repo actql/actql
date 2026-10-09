@@ -649,6 +649,8 @@ pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanF
 
 pub fn inspect_client_remote_task_progress(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue]
 
+pub fn inspect_client_run_materials_execution_family(String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientProgramPreparationLimits) -> Result[ClientRunExecutionFamily, ClientValuesRunMaterialsIssue]
+
 pub fn install_client_retained_input_current(() -> @execution_site.ExecutionSite, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
 
 pub fn install_client_retained_input_owner_current((String, String, String) -> Bool, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
@@ -2003,6 +2005,11 @@ pub(all) enum ClientRunCompilation {
   Values(ClientValuesCompilation)
   Tasks(ClientTaskCompilation)
   Effects(ClientEffectAllowedRun)
+}
+
+pub(all) enum ClientRunExecutionFamily {
+  EffectFreeComputation
+  EffectComputation
 }
 
 pub(all) struct ClientRunMaterials {
