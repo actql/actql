@@ -970,8 +970,14 @@ test('baseline preimages and changed normative pins independently determine the 
     valuesDependencyOracle(), barrierCid, valuesProgramOracle()), beforeInner.run_preimages);
   assert.equal(beforeInner.run_preimages.run.run_definition_cid,
     'sha256:1b7df752d0877ff475733274142e95adf2e1e91f790f0932fa529b23d2d8d982');
-  assert.equal(current.run.run_definition_cid,
+  // Keep the preceding complete grammar and independently reconstructed Run.
+  const beforeExtend = JSON.parse(readFileSync('scripts/fixtures/pre-pipe-extend-window-grammar.json', 'utf8'));
+  assert.deepEqual(vector(beforeExtend.grammar.grammar_manifest_cid, cid(aoaContract),
+    valuesDependencyOracle(), barrierCid, valuesProgramOracle()), beforeExtend.run_preimages);
+  assert.equal(beforeExtend.run_preimages.run.run_definition_cid,
     'sha256:4dcc3babd5aabc3c35d8dc797702bad73e828d8f09881b89c792b394ffcfec10');
+  assert.equal(current.run.run_definition_cid,
+    'sha256:436bf4c3edf01dc70bb6b1258516807ad35c4d9f9fd5485a9876c704c2aba9ec');
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
@@ -1022,7 +1028,7 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.equal(cid(requestIntent), "sha256:8291aeda45155c650ced1f803650313d9c5741f97b70672933a57d6fcffdd32b");
   const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
     barrier.barrier_contract_manifest_cid, identity);
-  assert.equal(current.run.run_definition_cid, "sha256:4dcc3babd5aabc3c35d8dc797702bad73e828d8f09881b89c792b394ffcfec10");
+  assert.equal(current.run.run_definition_cid, "sha256:436bf4c3edf01dc70bb6b1258516807ad35c4d9f9fd5485a9876c704c2aba9ec");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
