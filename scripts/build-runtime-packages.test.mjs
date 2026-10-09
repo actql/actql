@@ -16,7 +16,7 @@ const expectedGates = {
   "check:remote-site-runtime": [
     "moon build --target js --release src/connectors_builtin_node src/connectors/github/host_node",
     "node scripts/build-runtime-packages.mjs coordinator-core",
-    "node --test packages/coordinator-core/payload.test.mjs packages/coordinator-core/cancellation.test.mjs adapters/host-common/remote-bundle-control.test.mjs adapters/host-common/remote-coordinator-abi.test.mjs adapters/host-common/remote-credential-control.test.mjs adapters/host-common/remote-dispatch-wire.test.mjs adapters/host-common/remote-transfer-control.test.mjs adapters/host-node/sqlite-coordinator-journal.test.mjs adapters/host-node/remote-site-coordinator.test.mjs adapters/host-node/outbound-site-gateway.test.mjs adapters/site-node/runtime-bundle-operations.test.mjs adapters/site-node/runtime-bundle-store.test.mjs adapters/site-node/sqlite-credential-journal.test.mjs adapters/site-node/sqlite-dispatch-journal.test.mjs adapters/site-node/sqlite-transfer-journal.test.mjs adapters/site-node/sqlite-transfer-store-journal.test.mjs adapters/site-node/https-credential-resource.test.mjs adapters/connectors/github/test/github-issue-read.test.mjs adapters/site-node/https-direct-transfer.test.mjs adapters/site-node/https-transfer-store.test.mjs adapters/site-node/remote-dispatch-runtime.test.mjs adapters/site-node/remote-standard-direct-execution.test.mjs adapters/site-node/https-agent.test.mjs adapters/site-node/https-agent-authorization.test.mjs",
+    "node --test packages/coordinator-core/payload.test.mjs packages/coordinator-core/cancellation.test.mjs packages/coordinator-core/bundle-retention.test.mjs adapters/host-common/remote-bundle-control.test.mjs adapters/host-common/remote-coordinator-abi.test.mjs adapters/host-common/remote-credential-control.test.mjs adapters/host-common/remote-dispatch-wire.test.mjs adapters/host-common/remote-transfer-control.test.mjs adapters/host-node/sqlite-coordinator-journal.test.mjs adapters/host-node/remote-site-coordinator.test.mjs adapters/host-node/outbound-site-gateway.test.mjs adapters/site-node/runtime-bundle-operations.test.mjs adapters/site-node/runtime-bundle-store.test.mjs adapters/site-node/sqlite-credential-journal.test.mjs adapters/site-node/sqlite-dispatch-journal.test.mjs adapters/site-node/sqlite-transfer-journal.test.mjs adapters/site-node/sqlite-transfer-store-journal.test.mjs adapters/site-node/https-credential-resource.test.mjs adapters/connectors/github/test/github-issue-read.test.mjs adapters/site-node/https-direct-transfer.test.mjs adapters/site-node/https-transfer-store.test.mjs adapters/site-node/remote-dispatch-runtime.test.mjs adapters/site-node/remote-standard-direct-execution.test.mjs adapters/site-node/https-agent.test.mjs adapters/site-node/https-agent-authorization.test.mjs",
     "node scripts/test-packed-coordinator-core.mjs"
   ],
   "check:transfer-core": [
@@ -37,7 +37,7 @@ const expectedGates = {
   "check:run-host-core": [
     "node scripts/build-runtime-packages.mjs run-host-core coordinator-core",
     "npm run check:run-host-types",
-    "node --test packages/run-host-core/index.test.mjs adapters/host-common/publication-action.test.mjs adapters/host-common/result-access-clock.test.mjs adapters/host-common/result-delivery.test.mjs",
+    "node --test packages/run-host-core/index.test.mjs packages/run-host-core/checkpoints.test.mjs adapters/host-common/publication-action.test.mjs adapters/host-common/result-access-clock.test.mjs adapters/host-common/result-delivery.test.mjs",
     "node scripts/test-packed-run-host-core.mjs"
   ],
   "check:local-node-assets": [
@@ -49,7 +49,7 @@ const expectedGates = {
 };
 const packages = {
   'run-host-core': {builder: 'build-run-host-core-package', args: ['--runtime-only'],
-    sources: ['client_values_host_abi'],
+    sources: ['client_values_host_abi', 'checkpoint_runtime_node'],
     destination: 'packages/run-host-core/dist/client_values_host_abi.js',
     stale: 'StaleRunHostCorePackage'},
   'coordinator-core': {builder: 'build-remote-coordinator-package', args: [],
@@ -73,7 +73,7 @@ function put(directory, path, contents) {
   writeFileSync(join(directory, path), contents);
 }
 
-function run(t, requested, {fail, wrapper, version, additionalProvider = false, temporaryParent = tmpdir()} = {}) {
+function run(t, requested, {fail, stalePayload, wrapper, version, additionalProvider = false, temporaryParent = tmpdir()} = {}) {
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
@@ -163,7 +163,7 @@ childProcess.execFileSync = (command, args, options) => {
   if (command !== process.execPath) throw new Error('Unexpected subprocess');
   if (args[0] === ${JSON.stringify(fail ? `scripts/${packages[fail].builder}.mjs` : null)} &&
       args.includes('--check')) {
-    writeFileSync(${JSON.stringify(fail ? packages[fail].destination : '')}, 'stale runtime\\n');
+    writeFileSync(${JSON.stringify(fail ? stalePayload ?? packages[fail].destination : '')}, 'stale runtime\\n');
   }
   return original(command, args, options);
 };
@@ -183,7 +183,7 @@ record({done: true});
 
 function expectedCalls(names, directory) {
   return [{command: 'moon', args: ['build', '--target', 'js', '--release',
-    ...names.flatMap(name => packages[name].sources.map(source => `src/${source}`))],
+    ...new Set(names.flatMap(name => packages[name].sources.map(source => `src/${source}`)))],
   cwd: directory + '/', stdio: 'inherit'}, ...names.flatMap(name => {
     const item = packages[name];
     return [item.args, ['--check']].map(args => ({command: 'node',
@@ -326,7 +326,20 @@ expectedGates['check:local-node-assets'].push('node scripts/test-packed-installe
   'node scripts/test-packed-external-connector.mjs', 'node scripts/test-packed-external-installed.mjs');
 
 // The epoch-bound submission chain uses the same prepared distribution gate.
-distribution[3] += ' adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/submission-epoch-public.test.mjs packages/sdk/submission-identity.test.mjs';
+distribution[3] += ' adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs';
+
+
+// Retain adopted composed-INFER, evaluation and submission-check coverage at
+// its exact registered positions, alongside every predecessor command.
+distribution[3] = distribution[3].replace(
+  'node --test ',
+  'node --test adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/evaluate.test.mjs examples/infer-evaluation/compare-source-instructions.test.mjs examples/infer-evaluation/capture-sink.test.mjs ',
+).replace(
+  'packages/client-wire/index.test.mjs ',
+  'packages/client-wire/index.test.mjs packages/client-wire/submission-check-semantics.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs ',
+);
+distribution.splice(distribution.indexOf('node scripts/check-submission-input-mutations.mjs') + 1,
+  0, 'node scripts/check-submission-check-observation-mutations.mjs');
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
@@ -388,6 +401,16 @@ for (const wrapper of ['result-access.mjs', 'result-delivery.mjs', 'publication-
     assert.equal(readFileSync(join(directory, `packages/run-host-core/${wrapper}`), 'utf8'), 'stale wrapper\n');
   });
 }
+
+test('run-host-core refuses a stale Checkpoint payload before subsequent work', t => {
+  const {result, calls, directory} = run(t, ['run-host-core', 'coordinator-core'], {
+    fail: 'run-host-core',
+    stalePayload: 'packages/run-host-core/dist/checkpoint_runtime_node.js',
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /StaleRunHostCheckpointPackage/);
+  assert.deepEqual(calls, expectedCalls(['run-host-core', 'coordinator-core'], directory).slice(0, 3));
+});
 
 for (const name of Object.keys(packages)) {
   test(`${name} still rejects a generated nonbaseline contract version`, t => {

@@ -595,7 +595,7 @@ test "bundle custody replies bind request verb scope catalog revision and exact 
     scope in [
       hold_fixture_scope(coordinator="other"),
       hold_fixture_scope(workspace="other"),
-      hold_fixture_scope(member=hold_fixture_cid_b()),
+      hold_fixture_scope(runtime_bundle_cid=hold_fixture_cid_b()),
       hold_fixture_scope(site="other"),
       hold_fixture_scope(generation=8),
       hold_fixture_scope(attempt="other"),

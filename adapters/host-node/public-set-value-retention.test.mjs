@@ -98,7 +98,7 @@ test('public retained Set compares nested values before scalar publication',
       const id = `public-set-${operation}-${duplicates}`;
       const program = retainedSetProgram(id, operation, duplicates);
       const source = JSON.stringify(program);
-      const options = {format: 'json', requestId: id};
+      const options = {format: 'json', submissionRef: client.newSubmission({nonce: id})};
       const execution = await client.startSource(source, options).catch(error => {
         assert.fail(inspect(error, {depth: 8}));
       });
@@ -164,7 +164,7 @@ test('public retained Set cancellation interrupts a confirmed nested Text scan',
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(retainedSetProgram('public-set-cancel', 'except', 'all'));
-    const options = {format: 'json', requestId: 'public-set-cancel'};
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-set-cancel'})};
     const execution = await client.startSource(source, options);
     await reached.promise;
     assert.equal(setWork, 2048n);

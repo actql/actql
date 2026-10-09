@@ -113,7 +113,7 @@ async function runVectorRecordBoundary(t, score) {
   const expected = [{id: 1, embedding: score ? vector : vector.map(() => 0.0625),
     zz_unused: unused, ...(score ? {score: 256} : {})}];
   const source = JSON.stringify(program(fixtureId, score));
-  const options = {format: 'json', requestId: fixtureId};
+  const options = {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId})};
   const execution = await client.startSource(source, options);
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
   assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
@@ -131,7 +131,7 @@ async function runVectorRecordBoundary(t, score) {
 
   cancelling = true;
   const cancel = await client.startSource(JSON.stringify(program(fixtureId + '-cancel', score)),
-    {format: 'json', requestId: fixtureId + '-cancel'});
+    {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId + '-cancel'})});
   await Promise.race([barrier.promise,
     cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
       throw new Error(`record append missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);

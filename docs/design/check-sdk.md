@@ -924,9 +924,39 @@ submitted admission contract, including constraints; supplying a value requires
 a new complete check. Other typed causes retain their less-specific registered
 public reason until their projection is implemented. Protected Source resolution
 has one generic unresolved boundary and no hidden candidate, count or location.
-There is no negative-existence authority for installed query aliases; omission
-from an audience-visible publication cannot prove absence. Provider Resource
-catalog completeness is not query-alias completeness.
+Omission from an audience-visible publication cannot prove absence. Provider
+Resource catalog completeness is not query-alias completeness.
+
+### Closed installed query namespaces
+
+The existing publication Owner can retain a Host-declared namespace with its
+name and complete participating profile paths, including an explicitly empty
+range. The Source loader retains original registration custody only when its
+admitted metadata generation remains stable through installation. Missing
+registrations, metadata failures, changed revisions, copied adapters or a
+publication omitting registered aliases do not close the namespace. The bounded
+proof includes every participating registration before audience filtering,
+the exact alias spellings and the admitted checking environment. It describes
+that installed revision, not Provider Resource existence or a guarantee about
+a later execution.
+
+A separate existing authorization decision evaluates the namespace tuple
+`(actql-source-namespace, namespace, inspect_absence)` at preparation. Ordinary
+Check and Source-read permission do not substitute for this disclosure scope.
+Its subject binds the namespace revision, current authority, original document
+revisions and the Host-keyed check context. Each inspection owns and releases a
+fresh decision scope. A deferred or failed decision remains unresolved; explicit
+`allowDeferral: false` prevents inspection from sealing a review or creating a
+Checkpoint. No Source acquisition, execution, durable diagnostic store or
+independent authorization registry is added.
+
+The original process-local completeness observation is bound to the publication
+and immutable call binding. A copied observation, another input or another
+publication cannot obtain its private facts. Namespace correctness and audience
+disclosure are checked separately. Completeness alone is not a named absence
+finding: the common name-resolution Owner must identify the exact submitted
+reference and compare it in the same namespace before a public reason can be
+issued. A bare `UnknownRelation` or filtered listing supplies no such proof.
 
 Public authoring checks select bound-input or template-only scope explicitly.
 Complete common static-scope evidence permits template verification with

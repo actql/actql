@@ -123,7 +123,8 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
     throw new Error(`ModelEffectBoundaryTimeout: ${JSON.stringify(observations.slice(-12))}`);
   };
   let session = await open();
-  let run = await session.client.start(programFor(mapping), {requestId: 'public-model-effect'});
+  const submissionRef = session.client.newSubmission({nonce: 'public-model-effect'});
+  let run = await session.client.start(programFor(mapping), {submissionRef});
   const ref = run.ref;
   const modelCheckpoint = await waitFor(async () =>
     (await session.client.checkpoints()).items.find(item => item.kind === 'model_invocation'));
@@ -150,7 +151,7 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
   assert.equal(writes().length, 0, 'A repeated Model resolution still grants no Effect authority');
   await session.close();
   session = await open();
-  run = await session.client.start(programFor(mapping), {requestId: 'public-model-effect'});
+  run = await session.client.start(programFor(mapping), {submissionRef});
   assert.deepEqual(run.ref, ref);
   assert.deepEqual(modelInputs, [100, 200], 'Effect waiting restart must not rerun Model calls');
   assert.equal(writes().length, 0);

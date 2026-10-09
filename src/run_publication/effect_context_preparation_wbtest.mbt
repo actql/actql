@@ -14,12 +14,25 @@ fn context_test_start(
   workspace? : Int = 10000,
 ) -> EffectContextPreparation {
   let authoring : RunEvidenceValue = {
-    name: "authoring_context", identity: "authoring", wire: "{\"k\":7}",
+    name: "authoring_context",
+    identity: "authoring",
+    wire: "{\"k\":7}",
     value: parse_contract_wire("{\"k\":7}", 10000, 1000, 16).unwrap(),
   }
   start_effect_context_preparation(
-    snapshots, [], [], { bodies: [], wire: "[]", }, [], authoring, [], None,
-    [], bytes, nodes, depth, workspace,
+    snapshots,
+    [],
+    [],
+    { bodies: [], wire: "[]", },
+    [],
+    authoring,
+    [],
+    None,
+    [],
+    bytes,
+    nodes,
+    depth,
+    workspace,
   ).unwrap()
 }
 
@@ -51,7 +64,9 @@ test "Effect context preparation keeps the independent preimage and quantum work
   let identity = "sha256:" + @sha.text_hex(body).unwrap()
   let expected = body.replace(
     old=",\"effect_dependency_inventory\"",
-    new=",\"effect_context_cid\":\"" + identity + "\",\"effect_dependency_inventory\"",
+    new=",\"effect_context_cid\":\"" +
+      identity +
+      "\",\"effect_dependency_inventory\"",
   )
   let mut work = None
   for quantum in [1, 7, 64] {
@@ -59,13 +74,18 @@ test "Effect context preparation keeps the independent preimage and quantum work
     assert_true(preparation.finish() is Err(CaptureIssuanceEncoding))
     let (value, used) = context_test_finish(preparation, quantum).unwrap()
     assert_eq(@json.stringify_value(value, 10000, 1000, 16), expected)
-    if work is Some(previous) { assert_eq(used, previous) }
+    if work is Some(previous) {
+      assert_eq(used, previous)
+    }
     work = Some(used)
     assert_eq(preparation.live, 0)
     assert_true(preparation.inputs is None)
     assert_true(preparation.finish() is Err(CaptureIssuanceEncoding))
     preparation.cancel()
-    assert_eq(optional_string(@json.object_field(value, "effect_context_cid")), Some(identity))
+    assert_eq(
+      optional_string(@json.object_field(value, "effect_context_cid")),
+      Some(identity),
+    )
   }
 }
 
@@ -84,7 +104,9 @@ test "Effect context preparation enforces exact writer and control workspace bou
       context_test_start(depth=1),
       context_test_start(workspace=15),
     ] {
-    assert_true(context_test_finish(preparation, 1) is Err(CaptureIssuanceEncoding))
+    assert_true(
+      context_test_finish(preparation, 1) is Err(CaptureIssuanceEncoding),
+    )
     assert_eq(preparation.live, 0)
     assert_true(preparation.inputs is None)
     assert_true(preparation.writer is None)
@@ -94,7 +116,10 @@ test "Effect context preparation enforces exact writer and control workspace bou
 ///|
 test "Effect context cancellation inside emitted Text keeps the original snapshot" {
   let wire = "[{\"s\":\"" + String::make(257, 'é') + "e\u0301\\r\\n😀\"}]"
-  let snapshot = snapshot_admission_finish(snapshot_admission_fixture(wire, ["s"], 1), 1).unwrap()
+  let snapshot = snapshot_admission_finish(
+    snapshot_admission_fixture(wire, ["s"], 1),
+    1,
+  ).unwrap()
   let snapshots = [snapshot]
   let preparation = context_test_start(snapshots~)
   let mut start = None
@@ -175,33 +200,60 @@ test "Effect context sorted IDs retain the original member plan position" {
     member_effect_plan_cids: [Some(effect_receipt_test_cid("3")), None],
   }
   let authoring : RunEvidenceValue = {
-    name: "authoring_context", identity: "authoring", wire: "{\"k\":7}",
+    name: "authoring_context",
+    identity: "authoring",
+    wire: "{\"k\":7}",
     value: parse_contract_wire("{\"k\":7}", 10000, 1000, 16).unwrap(),
   }
   let plan = parse_contract_wire("{\"k\":9}", 10000, 1000, 16).unwrap()
   let body = context_test_body()
-    .replace(old="\"effect_plan_logical_cids\":{}",
-      new="\"effect_plan_logical_cids\":{\"zeta\":\"" + effect_receipt_test_cid("3") + "\"}")
-    .replace(old="\"effect_plans\":{}",
-      new="\"effect_plans\":{\"zeta\":{\"k\":9}}")
-    .replace(old="\"effects\":{}",
-      new="\"effects\":{\"alpha\":{},\"zeta\":{}}")
+    .replace(
+      old="\"effect_plan_logical_cids\":{}",
+      new="\"effect_plan_logical_cids\":{\"zeta\":\"" +
+        effect_receipt_test_cid("3") +
+        "\"}",
+    )
+    .replace(
+      old="\"effect_plans\":{}",
+      new="\"effect_plans\":{\"zeta\":{\"k\":9}}",
+    )
+    .replace(old="\"effects\":{}", new="\"effects\":{\"alpha\":{},\"zeta\":{}}")
   let identity = "sha256:" + @sha.text_hex(body).unwrap()
-  let expected = body.replace(old=",\"effect_dependency_inventory\"",
-    new=",\"effect_context_cid\":\"" + identity + "\",\"effect_dependency_inventory\"")
+  let expected = body.replace(
+    old=",\"effect_dependency_inventory\"",
+    new=",\"effect_context_cid\":\"" +
+      identity +
+      "\",\"effect_dependency_inventory\"",
+  )
   let mut work = None
   for quantum in [1, 7, 64] {
     let preparation = start_effect_context_preparation(
-      [], [], [], { bodies: [], wire: "[]", }, [], authoring, [], Some(preview),
-      [("zeta", plan)], 10000, 1000, 16, 10000,
+      [],
+      [],
+      [],
+      { bodies: [], wire: "[]", },
+      [],
+      authoring,
+      [],
+      Some(preview),
+      [("zeta", plan)],
+      10000,
+      1000,
+      16,
+      10000,
     ).unwrap()
     let (value, used) = context_test_finish(preparation, quantum).unwrap()
     assert_eq(@json.stringify_value(value, 10000, 1000, 16), expected)
-    if work is Some(previous) { assert_eq(used, previous) }
+    if work is Some(previous) {
+      assert_eq(used, previous)
+    }
     work = Some(used)
     assert_eq(preparation.live, 0)
     assert_true(preparation.sorted is None)
   }
   assert_eq(preview.member_effect_ids, ["zeta", "alpha"])
-  assert_eq(preview.member_effect_plan_cids, [Some(effect_receipt_test_cid("3")), None])
+  assert_eq(preview.member_effect_plan_cids, [
+    Some(effect_receipt_test_cid("3")),
+    None,
+  ])
 }

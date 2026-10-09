@@ -16,10 +16,26 @@ import {subtractionScenario} from './fixtures/graph-subtraction.mjs';
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
 const packed = process.env.ACTQL_GRAPH_PACKED === '1';
-const {connect, ClientError} = await import(packed ? '@actql/sdk' : '../packages/sdk/index.mjs');
+const {connect, ClientError, getSubmissionOutcome} = await import(packed ? '@actql/sdk' : '../packages/sdk/index.mjs');
 const {connectEmbeddedLocal, openInstalledRemoteHttpHost} = await import(packed
   ? new URL('./adapters/host-node/embedded-local.mjs', import.meta.resolve('@actql/local-node'))
   : '../adapters/host-node/embedded-local.mjs');
+
+// Refusal is durable intent evidence, never an accepted Run or a missing legacy ID.
+async function assertRejectedSubmission(client, source, submissionRef, code) {
+  let outcome;
+  await assert.rejects(client.startSource(source, {format: 'json', submissionRef}), error => {
+    assert.ok(error instanceof ClientError);
+    assert.equal(error.code, 'SubmissionNotAccepted');
+    outcome = getSubmissionOutcome(error);
+    assert.equal(outcome.kind, 'not_accepted');
+    assert.deepEqual(outcome.submissionRef, submissionRef);
+    assert.equal(outcome.problem.code, code);
+    assert.equal(Object.hasOwn(outcome, 'admission'), false);
+    return true;
+  });
+  assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
+}
 
 const fixture = JSON.parse(await readFile(new URL('./fixtures/graph-parallel.program.json', import.meta.url), 'utf8'));
 const presenceFixture = JSON.parse(await readFile(new URL('./fixtures/graph-presence.program.json', import.meta.url), 'utf8'));
@@ -535,7 +551,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       ]) {
         const {document,rightSnapshot,expectedSnapshot,expectedRows,expected,fields} =
           subtractionScenario(presenceFixture,kind,projection);
-        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -558,7 +574,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       }
       for (const kind of ['shared-payload-conflict','shared-null-numeric-rejected','endpoint-conflict-before-induced-closure']) {
         const {document} = subtractionScenario(presenceFixture,kind);
-        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'failed',JSON.stringify(state));
         assert.equal(state.control.physical_stop,'confirmed');
@@ -569,10 +585,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const {document} = subtractionScenario(presenceFixture,'empty-right');
         document.stages[0].steps[6].subtract_graphs = invalid;
         const requestId = `subtraction-invalid-${mode}-${cid(invalid)}`;
+        const submissionRef = client.newSubmission({nonce: requestId});
         const before = physicalSteps.length;
-        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
       return;
@@ -581,7 +596,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const projection of ['node_rows','edge_rows']) for (const numeric of [false,true]) for (const empty of [false,true]) {
         const {document,graphSnapshots,relationSnapshots:expectedStores,fields,expected} =
           unionGraphScenario(presenceFixture,projection,{numeric,empty});
-        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         // Preserve the independently specified canonical Graph row order on
@@ -606,7 +621,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       }
       const conflict = unionEndpointConflictScenario(presenceFixture);
       const rejected = await client.startSource(canonicalText(conflict.document),{
-        format:'json',requestId:`${conflict.document.id}-${mode}`,
+        format:'json',submissionRef:client.newSubmission({nonce:`${conflict.document.id}-${mode}`}),
       });
       const failure = await rejected.wait();
       assert.equal(failure.status,'failed',JSON.stringify(failure));
@@ -618,9 +633,8 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       document.stages[0].steps[6].union_graphs.extra = true;
       const before = physicalSteps.length;
       const requestId = `union-extra-field-${mode}`;
-      await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      const submissionRef = client.newSubmission({nonce: requestId});
+      await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
       assert.deepEqual(physicalSteps.slice(before),[]);
       return;
     }
@@ -629,7 +643,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const {document,delta,target,retained,expected,fields} =
           deltaDiffScenario(presenceFixture,projection,{unchanged});
         const run = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`${document.id}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -658,10 +672,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       const {document} = deltaDiffScenario(presenceFixture,'node_rows');
       document.stages[0].steps[6].graph_diff.extra = true;
       const requestId = `delta-diff-extra-field-${mode}`;
+      const submissionRef = client.newSubmission({nonce: requestId});
       const before = physicalSteps.length;
-      await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
       assert.deepEqual(physicalSteps.slice(before),[]);
       return;
     }
@@ -683,7 +696,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           assert.deepEqual(expected,[]);
         }
         const run = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`${document.id}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -716,10 +729,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       const {document} = deltaRelationCompositionScenario(presenceFixture,'group');
       document.stages[0].steps[8].group.aggregates.m.expr = 'if(false, p, bucket)';
       const requestId = `delta-conditional-group-${mode}`;
+      const submissionRef = client.newSubmission({nonce: requestId});
       const before = physicalSteps.length;
-      await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
       assert.deepEqual(physicalSteps.slice(before),[]);
       return;
     }
@@ -727,7 +739,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const projection of ['node_rows','edge_rows']) {
         const {document,target,retained,expected,fields} = deltaApplicationScenario(projection);
         const run = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`${document.id}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -759,7 +771,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const failure of ['malformed','wrong-base','wrong-target']) {
         const {document} = deltaApplicationScenario('node_rows',failure);
         const run = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`${document.id}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'failed',JSON.stringify(state));
         assert.equal(state.control.physical_stop,'confirmed');
@@ -773,7 +785,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         [false,false,true],[true,false,true],[false,true,true]]) {
         const {document,retained,expected,full,snapshot,columns,graphTasks,relationTasks} = relationSubgraphScenario(empty,subset,external);
         const run = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`${document.id}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -797,7 +809,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const empty of [false,true]) {
         const {document,before,expected} = presenceGroupScenario(empty);
         const run = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`${document.id}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -826,10 +838,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const {document} = presenceGroupScenario(empty);
         document.stages[0].steps[5].group = group;
         const requestId = `conditional-group-${mode}-${empty}-${cid(group)}`;
+        const submissionRef = client.newSubmission({nonce: requestId});
         const before = physicalSteps.length;
-        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
       return;
@@ -840,7 +851,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const {document,before,expected} = whole
           ? presenceWholeDistinctScenario(empty) : presenceKeyedDistinctScenario(empty);
         const run = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`${document.id}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -860,10 +871,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const {document} = presenceKeyedDistinctScenario(false);
         document.stages[0].steps[5].distinct = distinct;
         const requestId = `conditional-distinct-${mode}-${String(distinct)}`;
+        const submissionRef = client.newSubmission({nonce: requestId});
         const before = physicalSteps.length;
-        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
       if (whole) for (const operation of [{select:['p']},{filter:'p IS NOT NULL'},
@@ -871,10 +881,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const {document} = presenceWholeDistinctScenario(false);
         document.stages[0].steps[6] = operation;
         const requestId = `whole-conditional-ref-${mode}-${Object.keys(operation)[0]}-${Object.values(operation)[0]}`;
+        const submissionRef = client.newSubmission({nonce: requestId});
         const before = physicalSteps.length;
-        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
       return;
@@ -888,7 +897,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const {document,retained,derived,expected,snapshot} = selector === 'fixture'
           ? minimalSelectorDeriveScenario() : selectorDeriveScenario(selector,projection,empty);
         const run = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`${document.id}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -912,11 +921,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const {document} = selectorDeriveScenario('label','node_rows',empty);
         document.stages[0].steps[6].derive.z = 'if(false, q, 0)';
         const requestId=`conditional-derive-${mode}-${empty}`;
+        const submissionRef=client.newSubmission({nonce:requestId});
         const before=physicalSteps.length;
-        await assert.rejects(client.startSource(canonicalText(document),
-          {format:'json',requestId}),
-        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
       return;
@@ -925,7 +932,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const empty of [false,true]) {
         const {document,snapshots:expectedSnapshots,expected} = presenceFilterScenario(empty, profile === 'presence-selection');
         const run = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`${document.id}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -949,6 +956,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       // acquisition I/O or dispatch. A checker-only verdict is not enough.
       for (const entry of unsupported) for (const externalInput of [false,true]) {
         const requestId = `unsupported-${entry.operation}-${mode}-${externalInput}`;
+        const submissionRef = client.newSubmission({nonce: requestId});
         const rejected = structuredClone(fixture);
         rejected.id = requestId;
         // An unavailable external binding must not turn an unsupported
@@ -960,16 +968,13 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           from:'g', [entry.operation]:true, as:'matched',
         };
         const before = physicalSteps.length;
-        await assert.rejects(client.startSource(canonicalText(rejected),
-          {format:'json',requestId}), error =>
-          error instanceof ClientError && error.code === 'ClientProgramUnsupported');
-        assert.deepEqual(await client.lookupRequest(requestId), {kind:'not_found'});
+        await assertRejectedSubmission(client, canonicalText(rejected), submissionRef, 'ClientProgramImplementationLimit');
         assert.deepEqual(physicalSteps.slice(before), [],
           `${entry.operation} reached Run admission, acquisition or dispatch`);
         assert.equal(snapshots.size, 0);
       }
       t.diagnostic(`${unsupported.length} inventory-classified unsupported consumers refused with and without external input; no Run or physical work`);
-      const run = await client.startSource(canonicalText(fixture), {format:'json',requestId:`property-match-${mode}`});
+      const run = await client.startSource(canonicalText(fixture), {format:'json',submissionRef:client.newSubmission({nonce:`property-match-${mode}`})});
       const state = await run.wait();
       assert.equal(state.status,'succeeded',JSON.stringify(state));
       const result = run.result('answer');
@@ -985,7 +990,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         {from:'g',match_nodes:{definition:'N',label:'Node',bindings:{identity:'element'},where:'true',fields:['element']},as:'seeds'},
         {from:'g',traverse:{start:{from:'seeds',id:'element'},direction:'out',min_hops:2,max_hops:2,path_mode:'trail',emit:'paths'},as:'paths'});
       trail.stages[0].results.out = {from:'paths',fields:['start_id','end_id','hop_count','node_ids','edge_ids']};
-      const paths = await client.startSource(canonicalText(trail), {format:'json',requestId:`property-trail-${mode}`});
+      const paths = await client.startSource(canonicalText(trail), {format:'json',submissionRef:client.newSubmission({nonce:`property-trail-${mode}`})});
       const pathsState = await paths.wait();
       assert.equal(pathsState.status,'succeeded',JSON.stringify(pathsState));
       const rows = await paths.result('answer').all();
@@ -1003,14 +1008,13 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const selector of ['select','filter','dead-filter']) {
         const rejected = structuredClone(presenceFixture);
         const requestId = `conditional-property-${selector}-${mode}`;
+        const submissionRef = client.newSubmission({nonce: requestId});
         rejected.stages[0].steps[5] = selector === 'select'
           ? {select:['p'],as:'projected'}
           : {filter:selector === 'dead-filter' ? 'if(false, p > 0, true)' : 'p IS NOT NULL',as:'projected'};
         rejected.stages[0].results.out.fields = selector === 'select' ? ['p'] : ['id'];
         const before = physicalSteps.length;
-        await assert.rejects(client.startSource(canonicalText(rejected),{format:'json',requestId}),
-          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
-        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        await assertRejectedSubmission(client, canonicalText(rejected), submissionRef, 'ClientProgramInvalidInput');
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
       for (const projection of ['node_rows','edge_rows']) {
@@ -1018,7 +1022,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         document.id = `property-${projection}`;
         document.stages[0].steps[4] = {from:'g',[projection]:true,as:'rows'};
         const projected = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`property-${projection}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`property-${projection}-${mode}`})});
         const projectedState = await projected.wait();
         assert.equal(projectedState.status,'succeeded',JSON.stringify(projectedState));
         const actual = await projected.result('answer').all();
@@ -1049,7 +1053,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
     if (profile === 'graph-definitions') {
       for (const projection of ['node_rows','edge_rows']) for (const [empty,alternate] of [[false,false],[true,false],[false,true]]) {
         const {document,retained,expected,snapshot,key} = definitionScenario(projection,empty,alternate);
-        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${alternate}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${alternate}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -1068,10 +1072,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const {document} = definitionScenario('node_rows',false);
         document.stages[0].steps[4].node_rows = body;
         const requestId = `invalid-definition-${JSON.stringify(body)}-${mode}`;
+        const submissionRef = client.newSubmission({nonce: requestId});
         const before = physicalSteps.length;
-        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-          error=>error instanceof ClientError && error.code==='ClientProgramRejected');
-        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
       for (const collision of ['id','person_key']) {
@@ -1079,14 +1082,13 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         for (const label of document.stages[0].steps[3].graph.nodes[0].labels)
           label.properties.columns[0].to = collision;
         const requestId = `selected-collision-${collision}-${mode}`;
+        const submissionRef = client.newSubmission({nonce: requestId});
         const before = physicalSteps.length;
-        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-          error=>error instanceof ClientError && error.code==='ClientProgramRejected');
-        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
       const minimal = await client.startSource(canonicalText(definitionFixture),
-        {format:'json',requestId:`minimal-definition-${mode}`});
+        {format:'json',submissionRef:client.newSubmission({nonce:`minimal-definition-${mode}`})});
       const minimalState = await minimal.wait();
       assert.equal(minimalState.status,'succeeded',JSON.stringify(minimalState));
       assert.deepEqual(await minimal.result('answer').all(),[{value:7},{value:null}]);
@@ -1097,7 +1099,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
     if (profile === 'graph-labels') {
       for (const projection of ['node_rows','edge_rows']) for (const empty of [false,true]) {
         const {document,retained,snapshot,expected} = labelScenario(projection,empty);
-        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -1120,10 +1122,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           const {document} = labelScenario(projection,false);
           document.stages[0].steps[4][projection] = body;
           const requestId = `invalid-label-${projection}-${JSON.stringify(body)}-${mode}`;
+          const submissionRef = client.newSubmission({nonce: requestId});
           const before = physicalSteps.length;
-          await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-            error=>error instanceof ClientError && error.code==='ClientProgramRejected');
-          assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+          await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
           assert.deepEqual(physicalSteps.slice(before),[]);
         }
         // Actual non-NULL sample data cannot prove Conditional presence. Both
@@ -1135,15 +1136,14 @@ for (const {mode,profile,name} of graphPublicHostCases) {
             ? {select:['id',field],as:'guaranteed'}
             : {filter:`${field} IS NOT NULL`,as:'guaranteed'};
           const requestId = `conditional-label-${projection}-${empty}-${reference}-${mode}`;
+          const submissionRef = client.newSubmission({nonce: requestId});
           const before = physicalSteps.length;
-          await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
-            error=>error instanceof ClientError && error.code==='ClientProgramRejected');
-          assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+          await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
           assert.deepEqual(physicalSteps.slice(before),[]);
         }
       }
       const labelMinimal = await client.startSource(canonicalText(labelFixture),
-        {format:'json',requestId:`minimal-label-${mode}`});
+        {format:'json',submissionRef:client.newSubmission({nonce:`minimal-label-${mode}`})});
       const labelMinimalState = await labelMinimal.wait();
       assert.equal(labelMinimalState.status,'succeeded',JSON.stringify(labelMinimalState));
       assert.deepEqual(await labelMinimal.result('answer').all(),[{value:9},{value:7},{value:null}]);
@@ -1170,7 +1170,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       let traversed;
       try {
         traversed = await client.startSource(canonicalText(document),
-          {format:'json',requestId:`traverse-nodes-${index}-${mode}`});
+          {format:'json',submissionRef:client.newSubmission({nonce:`traverse-nodes-${index}-${mode}`})});
       } catch (cause) {
         throw new Error(`Traversal submission failed: ${scenario.name}; ${String(cause.cause?.cause ?? cause.code)}`,{cause});
       }

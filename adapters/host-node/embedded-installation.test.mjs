@@ -168,7 +168,7 @@ test('public source-free Program uses installed retained Relation output',
       results: {rows: {from: 'ordered', fields: ['id']}}}],
       results: {rows: {from: {stage: 'source', result: 'rows'}}}};
     const execution = await client.startSource(JSON.stringify(program), {format: 'json',
-      requestId: 'public-retained-values'});
+      submissionRef: client.newSubmission({nonce: 'public-retained-values'})});
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded');
     assert.deepEqual(await execution.result('rows').all(), [{id: 1}, {id: 2}]);
@@ -219,7 +219,7 @@ test('public Events Bridge publishes managed producer and two consumer Results',
     consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
   }};
   const execution = await client.startSource(JSON.stringify(program), {format: 'json',
-    requestId: 'public-retained-events'});
+    submissionRef: client.newSubmission({nonce: 'public-retained-events'})});
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   assert.deepEqual(await execution.result('published').all(), [
@@ -282,7 +282,7 @@ test('public Vectors Bridge publishes managed producer and two consumer Results'
     consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
   }};
   const execution = await client.startSource(JSON.stringify(program), {format: 'json',
-    requestId: 'public-retained-vectors'});
+    submissionRef: client.newSubmission({nonce: 'public-retained-vectors'})});
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const expected = [{id: 1, embedding: [0.6000000238418579, 0.800000011920929]},

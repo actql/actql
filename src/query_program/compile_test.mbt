@@ -2384,7 +2384,7 @@ test "grouped SELECT rejects nongrouped field and invalid aggregate form" {
   )
   for
     text in [
-      "SELECT COUNT(DISTINCT *) AS n FROM orders", "SELECT MIN(DISTINCT amount) AS n FROM orders",
+      "SELECT COUNT(DISTINCT *) AS n FROM orders", "SELECT MIN(DISTINCT) AS n FROM orders",
       "SELECT COUNT(*) FROM orders",
     ] {
     assert_true(@query.parse_query(text, syntax_limits()) is Err(_), msg=text)

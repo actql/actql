@@ -131,7 +131,13 @@ pub fn NativeExecutorSlot::spawn_holder_with_channel(
       Ok(
         (
           child,
-          { descriptor: write_end, inspection_descriptor: read_end, child, pending_frame: None, offset: 0, },
+          {
+            descriptor: write_end,
+            inspection_descriptor: read_end,
+            child,
+            pending_frame: None,
+            offset: 0,
+          },
         ),
       )
     Err(issue) => {

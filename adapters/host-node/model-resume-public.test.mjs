@@ -17,6 +17,7 @@ import {scopedModelHolding} from '../../scripts/fixtures/model-custody-fixture.m
 const packedInputs = process.env.ACTQL_MODEL_ACCEPTANCE_INPUTS;
 const acceptance = packedInputs === undefined ? {
   runtime: {
+    root: new URL('../../', import.meta.url).href,
     client: new URL('../../packages/node/index.mjs', import.meta.url).href,
     httpHost: new URL('./embedded-local.mjs', import.meta.url).href,
     inferFixture: new URL('../../scripts/fixtures/installed-infer-fixture.mjs', import.meta.url).href,
@@ -624,10 +625,20 @@ test('public Model: immediate Allow partial crash uses the same journal and neve
   assertSends(f, ['alpha', 'bravo', 'charlie']);
 });
 
-test('public acquired Model: Source approval and frozen input remain separate from Model approval', async t => {
-  const f = await fixture(t, {acquired: true, sourceDelegate: true, transport: 'https'});
+test('public acquired Model: historical Source approval and frozen input remain separate from Model approval', async t => {
+  const f = await fixture(t, {acquired: true, sourceDelegate: true, historicalSource: true, transport: 'https'});
   const source = f.phase('wait-source');
+  const {syntheticHeldSnapshot} = await import('../../scripts/fixtures/synthetic-historical-held-values.mjs');
+  const original = f.read('historical-source.json');
+  assert.equal(source.summary.checkpointCid, original.checkpointCid);
+  assert.deepEqual(source.review, JSON.parse(original.reviewWire));
+  const held = await syntheticHeldSnapshot(join(f.root, 'host'), original);
+  assert.deepEqual(held.accepted, []);
+  assert.equal(held.intents, 0);
   assert.equal(source.summary.kind, 'read_access');
+  assert.equal(source.originalKind, 'synthetic_historical_format');
+  assert.equal(source.status, 'held');
+  assert.deepEqual(f.journal().runs, []);
   assertSends(f, []);
   assert.equal(source.source.sourceReadSessions, 0);
   assert.equal(source.source.sourceReads, 0);
@@ -646,6 +657,30 @@ test('public acquired Model: Source approval and frozen input remain separate fr
   assert.equal(completed.source.sourceReadSessions, 0,
     'Model recovery must consume fixed input rather than reacquire a changed Source');
   assert.equal(completed.source.sourceReads, 0);
+  const finished = await syntheticHeldSnapshot(join(f.root, 'host'), original);
+  assert.equal(finished.runs.length, 1);
+  assert.equal(finished.runs[0].status, 'succeeded');
+  assert.equal(finished.intents, 0, 'The original retains its historical identity');
+  assert.equal(completed.ref.authorityScopeCid, original.authorityScopeCid);
+  assert.deepEqual(finished.accepted, [{caller_request_id: original.requestId,
+    logical_request_scope_cid: original.logicalRequestScopeCid,
+    intent_fingerprint_cid: original.intentFingerprintCid,
+    program_definition_cid: original.programDefinitionCid,
+    parameter_values_cid: original.parameterValuesCid,
+    caller_input_intent_cid: original.callerInputIntentCid,
+    run_definition_cid: completed.ref.runDefinitionCid, physical_start_reserved: 1}]);
+  for (const [name, state] of Object.entries(finished.holdings)) {
+    assert.equal(state, name === 'invocation_request' ? 'held' : 'retired');
+    assert.equal(finished.physicalHoldings[name], name === 'invocation_request');
+  }
+  assert.equal(finished.pendingPhysicalDeletions, 0);
+  const replay = f.phase('resume');
+  assertSameRun(completed, replay);
+  assert.deepEqual(replay.rows, expectedRows(1, true));
+  assertSends(f, ['alpha']);
+  assert.equal(replay.source.sourceReadSessions, 0);
+  assert.equal(replay.source.sourceReads, 0);
+  assert.deepEqual(await syntheticHeldSnapshot(join(f.root, 'host'), original), finished);
 });
 
 

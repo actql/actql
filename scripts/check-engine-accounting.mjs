@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile, readdir} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {workspaceCustodyMutation} from './engine-accounting-guard.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const executionRoot = path.join(root, 'src/execution_relation');
@@ -28,7 +29,7 @@ for (const [name, source] of sources) {
   if (!name.startsWith('bounded_') && name !== 'row_workspace.mbt') {
     assert.doesNotMatch(
       source,
-      /workspace\.live\s*[-+]?=/u,
+      workspaceCustodyMutation,
       `${name} mutates workspace custody directly`,
     );
   }
@@ -57,9 +58,12 @@ for (const required of [
   'fn release_slots(',
   'fn[T] with_scoped_slots(',
   'fn charge_row(',
-  'fn charge_named(',
   'fn resolve_column(',
-  'fn charge_text_append(',
+  'fn begin_slot_scope(',
+  'fn SlotScope::close(',
+  'fn SlotScope::commit(',
+  'fn SlotScope::rollback(',
+  'fn workspace_healthy(',
 ]) {
   assert.ok(workspace.includes(required), `missing accounting primitive: ${required}`);
 }
@@ -147,17 +151,31 @@ for (const [driver, entry, rowEvaluator] of [
 const sequence = sources.get('bounded_sequence_match.mbt');
 const prepareOutput = sequence.slice(
   sequence.indexOf('PrepareOutput =>'),
-  sequence.indexOf('EmitOutputCells =>'),
+  sequence.indexOf('BuildOutputRow =>'),
 );
 assert.ok(prepareOutput.indexOf('charge_row(') >= 0);
 assert.ok(
   prepareOutput.indexOf('charge_row(') <
     prepareOutput.indexOf('state.output_row = []'),
 );
-assert.match(sequence, /state\.predicates = \[\]/u);
-assert.match(sequence, /state\.matches = \[\]/u);
-assert.match(sequence, /partial\.positions\.clear\(\)/u);
-assert.match(sequence, /match_\.positions\.clear\(\)/u);
+// Scratch is now reclaimed in bounded slices. Requiring the old eager clears
+// would reject the adopted lifetime owner and encourage unbounded cleanup.
+const cleanup = declaration(sequence, 'cleanup_bounded_sequence_state');
+assert.match(cleanup, /for _ in 0\.\.<64/u);
+assert.match(cleanup, /bounded_sequence_pop_partial\(state\)/u);
+assert.match(cleanup, /bounded_sequence_pop_match\(state\)/u);
+assert.match(cleanup, /state\.predicates\.pop\(\)/u);
+assert.match(cleanup, /cells\.pop\(\)/u);
+for (const [name, collection] of [
+  ['bounded_sequence_pop_partial', 'partials'],
+  ['bounded_sequence_pop_match', 'matches'],
+]) {
+  const pop = declaration(sequence, name);
+  assert.ok(pop.includes(`state.${collection}.pop()`));
+  assert.match(pop, /positions\.pop\(\)/u);
+}
+assert.ok(cleanup.indexOf('state.workspace.live = 0') >
+  cleanup.indexOf('state.checked_row.pop()'));
 
 const testFiles = files.filter(name => name.endsWith('_wbtest.mbt'));
 const testSources = new Map(await Promise.all(testFiles.map(async name => [
