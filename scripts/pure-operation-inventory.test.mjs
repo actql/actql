@@ -28,6 +28,9 @@ test('acceptance evidence index covers the complete operation scope exactly once
 
 test('evidence paths exist and both embedded Program schemas contain each operation', () => {
   const registry = JSON.parse(read('spec/contracts/actql-protocol-schemas.json'));
+  assert.deepEqual(Object.keys(graphClassification).filter(refused).toSorted(),
+    ['graft_graph', 'mean_graphs', 'reach', 'shortest_path'],
+    'The four unimplemented consumers must retain public refusal evidence');
   for (const [names, unit, pipeline, owner] of rows) {
     const operations = names.split(', ');
     if (operations.some(refused)) {
@@ -35,9 +38,32 @@ test('evidence paths exist and both embedded Program schemas contain each operat
       assert.equal(pipeline, 'scripts/graph-public-host.test.mjs');
       const publicRefusal = read(pipeline);
       assert.ok(publicRefusal.includes('coverage.current_graph_profile.classification[entry.operation]'));
-      assert.ok(publicRefusal.includes('ClientProgramUnsupported'));
-      assert.ok(publicRefusal.includes('not_found'));
-      assert.ok(publicRefusal.includes('physicalSteps'));
+      // The epoch-bound API retains an exact non-acceptance outcome. A
+      // missing legacy request ID cannot prove that no Run was admitted.
+      const helper = publicRefusal.match(
+        /async function assertRejectedSubmission\([^]*?\n\}/u)?.[0];
+      assert.ok(helper, 'Missing public Submission refusal helper');
+      for (const obligation of [
+        "await assert.rejects(client.startSource(source, {format: 'json', submissionRef}), error => {",
+        'assert.ok(error instanceof ClientError);',
+        "assert.equal(error.code, 'SubmissionNotAccepted');",
+        'outcome = getSubmissionOutcome(error);',
+        "assert.equal(outcome.kind, 'not_accepted');",
+        'assert.deepEqual(outcome.submissionRef, submissionRef);',
+        'assert.equal(outcome.problem.code, code);',
+        "assert.equal(Object.hasOwn(outcome, 'admission'), false);",
+        'assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);',
+      ]) assert.ok(helper.includes(obligation), obligation);
+      const refusal = publicRefusal.match(
+        /if \(profile === 'graph'\) \{([^]*?)\n      t\.diagnostic/u)?.[1];
+      assert.ok(refusal, 'Missing inventory-backed public Graph refusal cases');
+      for (const obligation of [
+        'for (const entry of unsupported) for (const externalInput of [false,true])',
+        'const submissionRef = client.newSubmission({nonce: requestId});',
+        "await assertRejectedSubmission(client, canonicalText(rejected), submissionRef, 'ClientProgramImplementationLimit');",
+        'assert.deepEqual(physicalSteps.slice(before), [],',
+        'assert.equal(snapshots.size, 0);',
+      ]) assert.ok(refusal.includes(obligation), obligation);
     }
     for (const path of [unit, pipeline]) {
       if (path === 'scripts/graph-public-host.test.mjs') {
