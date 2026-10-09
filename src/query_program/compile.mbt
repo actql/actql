@@ -3843,7 +3843,10 @@ fn compile_steps(
             append_pipe_expression(
               construction,
               expression,
-              input_scope.visible + analytic_expression_bindings,
+              private_expression_columns(
+                input_scope.visible,
+                analytic_expression_bindings,
+              ),
               input_scope.ranges,
               max_work,
             )

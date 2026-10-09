@@ -219,6 +219,53 @@ windowScalarRefusals.push({name: 'window-scalar-refuse-schema-private-slot', for
   parameterDeclarations: selectPrivateDeclarations(selectPrivateField), parameters: {items: selectPrivateRows(selectPrivateField)},
   expectedCode: 'ClientProgramInvalidInput'});
 
+// QUALIFY demands the same evaluated SELECT value that final projection uses.
+// The ordinary Program control computes that value once, then filters it.
+export const qualifyPrivateWindowProgram = field => {
+  const program = selectPrivateWindowProgram(field);
+  program.id = 'fixture.qualify_private_window';
+  program.stages[0].steps.splice(7, 0, {filter: {gt: [{field: 'pos'}, {literal: 2}]}});
+  return program;
+};
+const qualifyPrivateSql = selectPrivateSql + ' QUALIFY pos > 2 ORDER BY id DESC';
+const qualifyPrivateSuccess = (name, field = selectPrivateField, extra = {}) =>
+  selectPrivateSuccess('qualify-' + name, field, qualifyPrivateSql, {
+    expected: [{[field]: 10, id: 2, pos: 3}], ...extra});
+windowScalarSuccesses.push(
+  qualifyPrivateSuccess('json', selectPrivateField, {
+    text: JSON.stringify(qualifyPrivateWindowProgram(selectPrivateField)), format: 'json', parameterDeclarations: undefined}),
+  qualifyPrivateSuccess('upper-json', selectPrivateUpper, {
+    text: JSON.stringify(qualifyPrivateWindowProgram(selectPrivateUpper)), format: 'json', parameterDeclarations: undefined}),
+  qualifyPrivateSuccess('sql'),
+  qualifyPrivateSuccess('upper-sql', selectPrivateUpper),
+  qualifyPrivateSuccess('group-all', selectPrivateField, {
+    text: selectPrivateSql + ' GROUP BY ALL QUALIFY pos > 2 ORDER BY id DESC'}),
+  qualifyPrivateSuccess('upper-group-all', selectPrivateUpper, {
+    text: selectPrivateSql + ' GROUP BY ALL QUALIFY pos > 2 ORDER BY id DESC'}),
+  qualifyPrivateSuccess('named-quoted', selectPrivateField, {
+    text: selectPrivateSql.replace('OVER (ORDER BY id)', 'OVER w').replace('AS pos', 'AS `pos`')
+      + ' QUALIFY `pos` > 2 WINDOW w AS (ORDER BY id) ORDER BY id DESC'}),
+  qualifyPrivateSuccess('nullable', selectPrivateField, {
+    parameters: {items: [{id: 2, [selectPrivateField]: null}, {id: 1, [selectPrivateField]: 90}]},
+    expected: [{[selectPrivateField]: null, id: 2, pos: 3}]}),
+  qualifyPrivateSuccess('empty', selectPrivateField, {parameters: {items: []}, expected: []}),
+  qualifyPrivateSuccess('duplicates', selectPrivateField, {
+    text: selectPrivateSql + ' QUALIFY pos > 2 ORDER BY id DESC, pos DESC',
+    parameters: {items: [...selectPrivateRows(selectPrivateField), {id: 2, [selectPrivateField]: 10}]},
+    expected: [{[selectPrivateField]: 10, id: 2, pos: 4}, {[selectPrivateField]: 10, id: 2, pos: 3}]}),
+  qualifyPrivateSuccess('qualified-user', selectPrivateField, {
+    text: 'SELECT *, ROW_NUMBER() OVER (ORDER BY e.id) + e.aql_select_window_0 AS pos FROM UNNEST(@items) e '
+      + 'QUALIFY pos > 50 ORDER BY id DESC',
+    columns: [{name: selectPrivateField, contract: nullable}, {name: 'id', contract: number}, {name: 'pos', contract: nullable}],
+    expected: [{[selectPrivateField]: 90, id: 1, pos: 91}]}),
+);
+for (const [name, text, expectedCode] of [
+  ['private-slot', selectPrivateSql + ' QUALIFY pos > 2 ORDER BY aql_qualify_expr_4', 'ClientProgramInvalidInput'],
+  ['window-alias-input', selectPrivateSql + ' ORDER BY ROW_NUMBER() OVER (ORDER BY pos)', 'ClientProgramImplementationLimit'],
+]) windowScalarRefusals.push({name: 'window-scalar-refuse-schema-private-qualify-' + name, text, format: 'sql',
+  parameterDeclarations: selectPrivateDeclarations(selectPrivateField), parameters: {items: selectPrivateRows(selectPrivateField)},
+  expectedCode});
+
 // Pipe EXTEND preserves the current input columns and adds evaluated values.
 export const pipeExtendWindowProgram = {version: 'actql/0.1', id: 'fixture.pipe_extend_window',
   stages: [structuredClone(windowScalarProgram.stages[0]),
