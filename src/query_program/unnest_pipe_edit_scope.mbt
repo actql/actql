@@ -1,52 +1,33 @@
 ///|
-// A value table owns one column; its implicitly exposed object members are
-// expression/star names, not SET/DROP/RENAME column targets.
-fn unnest_edit_columns(
-  visible : Array[(String, String)],
-  ranges : Array[(@query.NamePart, Array[(String, String)])],
-  receivers : Array[(@query.NamePart, String)],
-) -> Array[(String, String)] {
-  let result = visible.filter(entry => {
-    !receivers.any(receiver => {
-      ranges.any(range => {
-        same_name(range.0, receiver.0) &&
-        range.1.any(field => field.1 == entry.1)
-      })
-    })
-  })
-  result.append(receivers.map(receiver => (receiver.0.value, receiver.1)))
-  result
-}
-
-///|
 // Apply edits to the public star layout, without changing original values.
 // Replacing a whole value table makes one ordinary column at its old position.
 // Dropping it removes every implicitly exposed member. Edits to other columns
 // exclude same-named implicit members, while surviving ranges retain them.
 fn unnest_edit_visible(
   visible : Array[(String, String)],
-  ranges : Array[(@query.NamePart, Array[(String, String)])],
-  receivers : Array[(@query.NamePart, String)],
+  value_columns : Array[(String, String, Array[(String, String)])],
   physical : Array[String],
   edits : Array[(String, String?)],
 ) -> Array[(String, String)] {
   let result : Array[(String, String)] = []
   let emitted : Array[String] = []
   for current in visible {
-    let owners = receivers.filter(receiver => {
-      ranges.any(range => {
-        same_name(range.0, receiver.0) &&
-        range.1.any(field => field.1 == current.1)
-      })
+    let owners = value_columns.filter(column => {
+      column.2.any(field => field.1 == current.1)
     })
     let whole = edits.filter(edit => {
-      owners.any(owner => same_name(owner.0, { value: edit.0, quoted: false, }))
+      owners.any(owner => {
+        same_name({ value: owner.0, quoted: false, }, {
+          value: edit.0,
+          quoted: false,
+        })
+      })
     })
     if !whole.is_empty() {
       for edit in whole {
         if !emitted.contains(edit.0) {
           if edit.1 is Some(slot) {
-            result.push((owners[0].0.value, slot))
+            result.push((owners[0].0, slot))
           }
           emitted.push(edit.0)
         }
@@ -69,9 +50,12 @@ fn unnest_edit_visible(
   }
   // An empty object has no star members. Locate its value slot among the
   // original physical slots so that an OFFSET/parent column stays in order.
-  for receiver in receivers {
+  for receiver in value_columns {
     let matching = edits.filter(edit => {
-      same_name(receiver.0, { value: edit.0, quoted: false, })
+      same_name({ value: receiver.0, quoted: false, }, {
+        value: edit.0,
+        quoted: false,
+      })
     })
     if matching.is_empty() || emitted.contains(matching[0].0) {
       continue
@@ -96,7 +80,7 @@ fn unnest_edit_visible(
           break
         }
       }
-      result.insert(insertion, (receiver.0.value, slot))
+      result.insert(insertion, (receiver.0, slot))
     }
   }
   result

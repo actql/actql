@@ -1,0 +1,101 @@
+{
+  "scope": "Connect the real Native Effect Source journal and live captured Source to the existing common Run Observation Set/Invocation issuer. Reuse that issued evidence in the separately admitted producer/consumer Transfer and private Result capture regression.",
+  "implementationSource": "0b4a85f9d109160c8de7c3fe8d435b817e07e4fb",
+  "parentSource": "f7923037ed404a46ac09eef1973de6f3ee5a1a25",
+  "dependency": "OSS #1170; temporary base feat/effect-transferred-capture-context; final integration target main after the parent series",
+  "evidenceDirectory": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-captured-invocation-1791564723545",
+  "verificationCommand": "MOON_HOME=/Users/t14i/workspace/20260822/.toolchains/moonbit-pinned PATH=/Users/t14i/workspace/20260822/.toolchains/moonbit-pinned/bin:/Users/t14i/.local/share/mise/installs/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin /Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node /Users/t14i/workspace/20260822/local-tools/actql-cloud-retained-delivery/verify-resident-effect-captured-invocation.mjs 0b4a85f9d109160c8de7c3fe8d435b817e07e4fb",
+  "sourceClean": true,
+  "verification": [
+    {
+      "label": "source-invocation",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect original Source producer completes*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:52:03.714Z",
+      "finishedAt": "2026-10-09T16:52:04.315Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-captured-invocation-1791564723545/source-invocation.log"
+    },
+    {
+      "label": "runtime-invocation",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect consumer holder*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:52:04.316Z",
+      "finishedAt": "2026-10-09T16:52:08.170Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-captured-invocation-1791564723545/runtime-invocation.log"
+    }
+  ],
+  "counts": {
+    "nativeOriginalSource": 1,
+    "nativeConsumerHolders": 4,
+    "total": 5
+  },
+  "nativeTestArtifact": {
+    "source": "0b4a85f9d109160c8de7c3fe8d435b817e07e4fb",
+    "artifact": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-captured-invocation-1791564723545/native-source-invocation.whitebox_test.exe",
+    "sha256": "df203322131141a870e21c4dcf6e60044eaedcf3c145a61c7f5ab37208da8317",
+    "scope": "Focused actual Native Runtime / DuckDB / physical Transfer tests, not a packaged production Site binary"
+  },
+  "borrowedInputs": {
+    "library": "/Users/t14i/workspace/20260822/actql/adapters/connectors/duckdb/node/node_modules/@duckdb/node-bindings-darwin-arm64/libduckdb.dylib",
+    "sha256": "b9027d18ef3e8d960568f77e946a83ca68009cb22d71cf7f94de842afdd094d8",
+    "scratch": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-captured-invocation-1791564723545/scratch",
+    "scope": "Actual Native Source journal to existing common Run Observation/Invocation issuer, producer retained Artifact and consumer private Result. No Provider Preview, Checkpoint, approval/write or Cloud acceptance claimed."
+  },
+  "normalCase": {
+    "sourceAcquisitions": 1,
+    "producerEntries": 1,
+    "consumerEntries": 1,
+    "receiverBorrows": 1,
+    "rows": [
+      {
+        "id": 3
+      }
+    ],
+    "schema": "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
+    "runObservationAndInvocationIssuedByExistingCommonOwner": true,
+    "intervalAndSourceEvidenceUseOriginalJournal": true,
+    "repeatedIssuancePreservesInvocationIdentity": true,
+    "runPublicationChainValidated": true,
+    "privateTaskCleanupAndReceiverReclaimReturnCapacityToZero": true
+  },
+  "refusals": {
+    "foreignJournal": "Unavailable",
+    "sourceAfterFormalRuntimeCleanup": "Unavailable",
+    "wireBoundOfOneByte": "Invocation error; no Source I/O or replacement Run"
+  },
+  "preCommitChecks": {
+    "directory": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-captured-invocation-1791564616575",
+    "nativeJsConsumingInterfaceGeneration": true,
+    "changedMoonBitFormatting": true,
+    "nativeRuntimeTests": 1,
+    "sourceClean": false
+  },
+  "fixtureBoundary": "Only normalization/rule-catalog metadata remains a fixture in the private Result chain. Provider Preview, approval and write are not fabricated. Legacy direct fixtures keep their own explicit Observation Sets; the real Runtime path now uses the common issuer.",
+  "unverified": [
+    "Actual installed Provider Preview",
+    "Full encrypted capture persistence and waiting Run commit",
+    "Physical process restart custody restoration",
+    "Current-authorized approval, write-once and unknown-outcome reconciliation",
+    "Final Effect Result publication and formal release",
+    "Cloud main adoption/package cohort/production Native binary",
+    "Hosted CI and actual Effect Preview acceptance"
+  ],
+  "hostedCi": "ci.yml is disabled_manually; no run or rerun requested",
+  "historicalRuns": "No old #88 Run or custody was changed or declared resolved."
+}

@@ -26,6 +26,11 @@ fn retained_consumer_configuration(
   Some({
     source: {
       ..source,
+      // This same profile also opens the Effect producer acquisition. Reserve
+      // the operator's engine allocation together with the acquisition scratch;
+      // using the entire execution ceiling as engine memory leaves no capacity
+      // for the existing acquisition Owner. The Site ceiling is unchanged.
+      memory_bytes: engine_bytes,
       // One reservation/holding for the bounded decoder and one for the
       // checked consumer. The operator's byte ceilings remain unchanged.
       ledger: { ..source.ledger, attempts: 2, holdings: 2, },

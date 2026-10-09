@@ -13,6 +13,9 @@ pub(all) enum ClientEffectTransferredArtifactIssue {
 /// Artifact. Native supplies the current exact destination-borrow observation;
 /// neither equal rows nor this semantic binding alone authorize execution.
 /// The acquired producer remains retained until this handoff is confirmed.
+/// Sender and receiver may separately reconstruct the original checked owner.
+/// The sender token still proves its exact live owner; this handoff preserves
+/// original semantic wires while connecting them to the checked receiver view.
 pub fn bind_transferred_client_effect_local_result_artifact(
   materials : ClientEffectRunMaterials,
   inputs : @strategy.CapturedEffectInputs,
@@ -33,6 +36,14 @@ pub fn bind_transferred_client_effect_local_result_artifact(
     return Err(ForeignInput)
   }
   let owner = materials.prepared
+  if bind_client_effect_compiled_run(
+      owner,
+      materials.allowed,
+      materials.run_definition,
+    )
+    is Err(_) {
+    return Err(ForeignInput)
+  }
   let producer = @strategy.captured_effect_result_import_producer(captured)
   let consumer = @strategy.captured_effect_result_import_consumer(captured)
   if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
@@ -52,7 +63,8 @@ pub fn bind_transferred_client_effect_local_result_artifact(
   guard artifact.custody is AcquiredUnit(sender) else {
     return Err(ForeignArtifact)
   }
-  if @strategy.captured_effect_local_unit_inputs_run_definition_cid(sender)
+  if !client_effect_producer_artifact_current(producer_artifact) ||
+    @strategy.captured_effect_local_unit_inputs_run_definition_cid(sender)
     is None {
     return Err(Unavailable)
   }
@@ -78,15 +90,22 @@ pub fn bind_transferred_client_effect_local_result_artifact(
     Ok(_) => ()
     Err(issue) => return Err(Current(issue))
   }
-  if !borrow_current() {
+  if !borrow_current() ||
+    !client_effect_producer_artifact_current(producer_artifact) ||
+    !@strategy.captured_effect_result_import_matches(
+      captured, inputs, consumer, producer,
+    ) {
     return Err(Unavailable)
   }
   guard artifact.custody is AcquiredUnit(_) &&
     artifact.source is ResultSource(_, definition) &&
-    client_effect_local_artifact_matches_computation(artifact, owner) &&
+    client_effect_local_artifact_matches_computation(
+      artifact,
+      producer_artifact.bound.computation,
+    ) &&
     client_effect_local_result_definition_matches(
       definition,
-      owner,
+      producer_artifact.bound.computation,
       0,
       @execution.managed_result_occurrence_name(
         @strategy.captured_any_result_borrow_occurrence(
@@ -99,6 +118,44 @@ pub fn bind_transferred_client_effect_local_result_artifact(
   let interface = @strategy.captured_effect_result_import_interface(captured)
   if interface.producer_unit_definition_cid != definition.unit_definition_cid ||
     interface.result_name != definition.result_name {
+    return Err(ForeignArtifact)
+  }
+  let sender_owner = producer_artifact.bound.computation
+  let sender_identity = prepared_client_effect_identity(sender_owner)
+  let receiver_identity = prepared_client_effect_identity(owner)
+  if sender_identity != receiver_identity ||
+    prepared_client_effect_computation_definition_cid(sender_owner) !=
+    prepared_client_effect_computation_definition_cid(owner) ||
+    prepared_client_effect_computation_semantics_cid(sender_owner) !=
+    prepared_client_effect_computation_semantics_cid(owner) ||
+    prepared_client_effect_computation_environment_cid(sender_owner) !=
+    prepared_client_effect_computation_environment_cid(owner) ||
+    !client_effect_local_invocation_matches(
+      artifact.invocation,
+      sender_owner,
+      0,
+    ) {
+    return Err(ForeignArtifact)
+  }
+  // Rebind only the checked context of this already-issued semantic evidence.
+  // No Source observation, Invocation, Definition, Artifact or Run is reissued.
+  let receiver_definition = if physical_equal(sender_owner, owner) {
+    definition
+  } else {
+    { ..definition, owner, }
+  }
+  let receiver_invocation = if physical_equal(sender_owner, owner) {
+    artifact.invocation
+  } else {
+    { ..artifact.invocation, owner, }
+  }
+  if !client_effect_local_result_definition_matches(
+      receiver_definition,
+      owner,
+      0,
+      interface.result_name,
+    ) ||
+    !client_effect_local_invocation_matches(receiver_invocation, owner, 0) {
     return Err(ForeignArtifact)
   }
   if !@strategy.captured_effect_local_result_export_matches_receipt(
@@ -141,15 +198,16 @@ pub fn bind_transferred_client_effect_local_result_artifact(
     !@strategy.captured_effect_result_import_matches(
       captured, inputs, consumer, producer,
     ) ||
-    !client_effect_local_artifact_matches_computation(artifact, owner) {
+    !client_effect_producer_artifact_current(producer_artifact) {
     return Err(Unavailable)
   }
   Ok({
     ..artifact,
     custody: EffectInputs(inputs),
+    invocation: receiver_invocation,
     source: ResultSource(
       @strategy.captured_effect_local_result_borrow(producer),
-      definition,
+      receiver_definition,
     ),
     export_receipt: receipt,
   })
