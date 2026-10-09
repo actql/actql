@@ -99,7 +99,9 @@ havingAggregateSuccesses.push(
 havingAggregateRefusals.push(...[
   'SELECT records.id, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id > s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id',
   'SELECT records.amount, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id',
-].map((text, index) => ({name: 'single-join-group-refuse-' + index, format: 'sql', text})));
+].map((text, index) => ({name: 'single-join-group-refuse-' + index, format: 'sql', text,
+  // Non-equijoin lowering is unsupported; an ungrouped projection is invalid.
+  ...(index === 0 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})})));
 havingAggregateExecutionFailures.push({name: 'single-join-group-authored-ceiling', format: 'sql',
   text: 'SELECT records.id, COUNT(*) AS n FROM records JOIN (SELECT 3 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 1 GROUP BY records.id ORDER BY id',
   resultNames: ['answer'], sourceReadSessionCount: 1});

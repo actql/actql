@@ -42,6 +42,17 @@ test('HAVING fixtures distinguish input multiplicity, NULL and pre-group alias v
   assert.deepEqual(control.stages[1].steps[2], {select: ['id']});
 });
 
+test('single JOIN GROUP refusals distinguish unsupported keys from invalid scope', () => {
+  assert.deepEqual(havingAggregateRefusals.filter(item =>
+    item.name.startsWith('single-join-group-refuse-')), [
+    {name: 'single-join-group-refuse-0', format: 'sql',
+      text: 'SELECT records.id, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id > s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id',
+      expectedCode: 'ClientProgramImplementationLimit'},
+    {name: 'single-join-group-refuse-1', format: 'sql',
+      text: 'SELECT records.amount, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id'},
+  ]);
+});
+
 test('HAVING aggregate cases join the ordinary packed corpus and a focused selection', async () => {
   const all = [...havingAggregateSuccesses, ...havingAggregateRefusals,
     ...havingAggregateExecutionFailures];
