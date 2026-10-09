@@ -122,3 +122,85 @@ correlatedUnnestSuccesses.push(...joinedUnnestStarSuccesses);
 correlatedUnnestRefusals.push(...joinedUnnestStarRefusals);
 correlatedUnnestSuccesses.push(...unnestJoinSuccesses);
 correlatedUnnestRefusals.push(...unnestJoinRefusals);
+
+// Retained set/CTE schemas come from the common owners, not sampled rows.
+export const retainedArrayProgram = {version: 'actql/0.1', id: 'fixture.retained_array',
+  params: parameterDeclarations, stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}, as: 'seed'},
+    {from: 'seed', derive: {input: {$param: 'parents'}}},
+    {unnest: {column: 'input', as: 'parent'}},
+    {derive: {id: {property: {value: {field: 'parent'}, name: 'id'}},
+      items: {property: {value: {field: 'parent'}, name: 'items'}}}},
+    {select: ['id', 'items'], as: 'parents'},
+    {from: 'parents', append: {with: 'parents'}, as: 'combined'},
+    {from: 'combined', derive: {children: {field: 'items'}}},
+    {unnest: {column: 'children', as: 'element', with_index: 'position'}},
+    {sort: [{field: 'id', dir: 'asc', nulls: 'first'}, {field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: ['id', 'element', 'position'], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['id', 'element', 'position']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const retainedHead = 'FROM UNNEST(@parents) p |> SELECT id, items '
+  + '|> UNION ALL (FROM UNNEST(@parents) p |> SELECT id, items)';
+const retainedTail = '|> CROSS JOIN UNNEST(items) element WITH OFFSET position '
+  + '|> SELECT * EXCEPT (items) |> ORDER BY id, position';
+const retainedRows = [
+  {id: 1, element: 1, position: 0}, {id: 1, element: 1, position: 0},
+  {id: 2, element: 2, position: 0}, {id: 2, element: 2, position: 0},
+  {id: 2, element: null, position: 1}, {id: 2, element: null, position: 1},
+  {id: 2, element: 2, position: 2}, {id: 2, element: 2, position: 2},
+];
+const retainedSuccess = (name, text, extra = {}) => success('retained-' + name, text,
+  {format: 'aql-text', expected: retainedRows, ...extra});
+export const retainedArraySuccesses = [
+  retainedSuccess('json-control', JSON.stringify(retainedArrayProgram), {
+    format: 'json', parameterDeclarations: undefined,
+  }),
+  retainedSuccess('pipe-set-star', retainedHead + ' ' + retainedTail),
+  retainedSuccess('pipe-set-filter-limit', retainedHead
+    + ' |> CROSS JOIN UNNEST(items) element WITH OFFSET position '
+    + '|> WHERE element IS NOT NULL |> SELECT * EXCEPT (items) '
+    + '|> ORDER BY id, position |> LIMIT 3', {expected: retainedRows.slice(0, 3)}),
+  retainedSuccess('data-set-star', 'DATA expanded = ' + retainedHead + ' ' + retainedTail
+    + '; FROM expanded |> RESULT answer'),
+  retainedSuccess('empty-set-star', retainedHead + ' ' + retainedTail,
+    {parameters: {parents: []}, expected: []}),
+  retainedSuccess('cte-array-alias', 'WITH chosen AS (SELECT p.id, p.items AS children '
+    + 'FROM UNNEST(@parents) p) SELECT * EXCEPT (children) FROM chosen '
+    + 'CROSS JOIN UNNEST(children) element WITH OFFSET position ORDER BY id, position',
+    {format: 'sql', expected}),
+  retainedSuccess('cte-array-chain', 'WITH first AS (SELECT p.id, p.items FROM UNNEST(@parents) p), '
+    + 'chosen AS (SELECT id, items AS children FROM first) FROM chosen '
+    + '|> CROSS JOIN UNNEST(children) element WITH OFFSET position '
+    + '|> SELECT * EXCEPT (children) |> ORDER BY id, position', {expected}),
+  retainedSuccess('cte-current-array', 'WITH chosen AS (SELECT p.id, [9] AS items '
+    + 'FROM UNNEST(@parents) p) FROM chosen '
+    + '|> CROSS JOIN UNNEST(items) element WITH OFFSET position '
+    + '|> SELECT * EXCEPT (items) |> ORDER BY id, position', {
+    columns: [columns[0], {name: 'element', contract: number}, columns[2]],
+    expected: [{id: 1, element: 9, position: 0}, {id: 2, element: 9, position: 0},
+      {id: 3, element: 9, position: 0}, {id: 4, element: 9, position: 0}],
+  }),
+  retainedSuccess('cte-object-star', 'WITH chosen AS (SELECT element AS payload, position '
+    + 'FROM UNNEST(@items) element WITH OFFSET position) '
+    + 'SELECT payload.*, position FROM chosen ORDER BY position', {
+    format: 'sql',
+    parameterDeclarations: {items: {type: 'array', nullable: true, max_items: 3,
+      items: {type: 'object', nullable: true, fields: {
+        id: number, label: {type: 'string', nullable: true},
+      }}}},
+    parameters: {items: [{id: 2, label: null}, null, {id: 1, label: 'a'}]},
+    columns: [{name: 'id', contract: element},
+      {name: 'label', contract: {type: 'string', nullable: true}}, columns[2]],
+    expected: [{id: 2, label: null, position: 0}, {id: null, label: null, position: 1},
+      {id: 1, label: 'a', position: 2}],
+  }),
+];
+export const retainedArrayRefusals = [
+  refusal('retained-dropped-column', 'WITH chosen AS (SELECT p.id FROM UNNEST(@parents) p) '
+    + 'FROM chosen |> CROSS JOIN UNNEST(items) element |> SELECT *', {format: 'aql-text'}),
+  refusal('retained-dropped-range', 'WITH chosen AS (SELECT p.id, p.items FROM UNNEST(@parents) p) '
+    + 'FROM chosen c |> SELECT id, items |> CROSS JOIN UNNEST(c.items) element |> SELECT *',
+    {format: 'aql-text'}),
+];
+correlatedUnnestSuccesses.push(...retainedArraySuccesses);
+correlatedUnnestRefusals.push(...retainedArrayRefusals);

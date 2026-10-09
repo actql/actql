@@ -781,8 +781,11 @@ ordinary JOINs and successive CROSS expansions. A subsequent ordinary Relation
 JOIN consumes the expanded row in both SQL and Pipe. Its explicit bound, parent
 ranges, object value-table receivers and OFFSET are retained through private
 producer references; expansion is not moved after the JOIN. An authored SELECT
-or AS still replaces scope. INNER/LEFT correlation, implicit comma expansion and
-correlated expansion following a Pipe set expression remain unsupported. These
+or AS still replaces scope. Correlated expansion after a Pipe set expression
+consumes the retained set output; ARRAY/object stars use its common checked
+schema, including CTE column aliases and nullable object fields. The set's
+multiplicity, declared ARRAY bounds and subsequent predicates remain unchanged.
+INNER/LEFT correlation and implicit comma expansion remain unsupported. These
 are coverage gaps, not GoogleSQL language restrictions. CROSS expansion
 does not accept MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common
 Host capacity policy without raising either limit.

@@ -5535,8 +5535,16 @@ fn compile_cte_query(
           },
         )
       } else {
+        let scoped = cte_schema_scope(
+          cte.query,
+          construction,
+          stages,
+          known,
+          context,
+          limits,
+        )
         let (stage, binding) = compile_cte_stage(
-          construction, cte, known, context, limits, stage_name, body_start,
+          construction, cte, known, scoped, limits, stage_name, body_start,
         )
         (
           match stage {
@@ -5562,6 +5570,9 @@ fn compile_cte_query(
       known.push(binding)
       cte_inputs.push(binding)
     }
+    let context = cte_schema_scope(
+      query, construction, stages, known, context, limits,
+    )
     if @query.set_part_count(query) > 0 {
       let (nodes, _) = compile_set_stages(
         construction,
@@ -5654,6 +5665,8 @@ fn compile_cte_query(
           false,
           "aql_gen_0",
           retained=Some(retained),
+          parameter_declarations=context.parameter_declarations,
+          prefix_context=Some(context),
         )
         let from = if steps.is_empty() { cte_input.name } else { "aql_gen_0" }
         (steps, fields, [(cte_input.name, cte_ref)], from)
