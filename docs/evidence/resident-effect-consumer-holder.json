@@ -1,0 +1,289 @@
+{
+  "version": "actql-resident-effect-consumer-holder-evidence/0.1",
+  "verifiedImplementationSha": "8e6b8474561a702675d4715e6b0ad0fd36957a02",
+  "parentPr": 1157,
+  "parentSha": "d574149baf864ba392c3f89a54f9b363cf010dd8",
+  "finalMergeTarget": "main",
+  "mainAncestor": "607c0480ba8afa429bce96eb7fb601c8365dc6f1",
+  "scope": "Actual original Effect producer Runtime and Source acquisition feed the existing retained Transfer, committed receiver and live resident consumer holder. The typed Effect family shares journal, exclusive-start and formal Runtime cleanup; its receiver and producer remain independently owned.",
+  "nativeCases": [
+    {
+      "name": "Effect consumer holder owns one borrow and separate receiver cleanup",
+      "assertions": [
+        "actual Source acquisition one, original producer entry one, original consumer entry one",
+        "non-authorizing checked edge route names original producer dispatch",
+        "one holder and one borrow for original saved consumer envelope; repeated execution returns same completion",
+        "consumer Source path unavailable; independent [{id:3}] and schema match",
+        "actual completed output file custody survives journal read-back",
+        "live reader delays cleanup, preserving output file and receiver reservation",
+        "consumer formal CleanupReleased returns borrow without reclaiming receiver holding",
+        "existing Transfer reclamation confirms receiver capacity zero exactly once",
+        "original producer remains held until its separate Runtime cleanup",
+        "private computation has no Named Result definition; ordinary public Output admission refuses EffectNotSupported"
+      ]
+    },
+    {
+      "name": "Effect consumer holder cancellation before start retains independent cleanup",
+      "assertions": [
+        "consumer executor entry zero and borrow zero",
+        "cancellation persisted in original journal; capacity retained before explicit cleanup",
+        "holder close and receiver cleanup do not retire original producer Source responsibility",
+        "no fabricated terminal from cancellation request alone"
+      ]
+    },
+    {
+      "name": "Effect consumer holder cancellation after borrow prevents exclusive start",
+      "assertions": [
+        "actual borrow one, consumer entry zero, no start claimant",
+        "same holder returns borrow only through cleanup",
+        "receiver remains separate and reserved until its owner reclaims it",
+        "repeat execution after close cannot borrow or execute again"
+      ]
+    },
+    {
+      "name": "Effect consumer holder output failure does not acquire input or execute twice",
+      "assertions": [
+        "original consumer entry one",
+        "same holder caches primary failure and pending Runtime where cleanup remains unconfirmed",
+        "second call cannot enter Compute again",
+        "receiver capacity remains until independent confirmed cleanup"
+      ]
+    }
+  ],
+  "additionalRefusals": [
+    "original Run lifetime expired at preparation",
+    "trusted Source differs from original checked Source",
+    "another consumer attempt cannot replace existing holder",
+    "foreign consumer input port refused by existing envelope issuer"
+  ],
+  "testCounts": {
+    "nativeEffectHolder": 4,
+    "nativeOrdinaryProducerConsumer": 1,
+    "nativeOrdinaryHolders": 4,
+    "nativeOrdinaryThreeStageChain": 2,
+    "nativeOrdinaryConsumerDeadline": 1,
+    "jsEffectFragment": 1,
+    "jsEffectSourceAdmission": 10
+  },
+  "expectedRows": [
+    {
+      "id": 3
+    }
+  ],
+  "expectedSchemaCid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+  "artifact": {
+    "source": "8e6b8474561a702675d4715e6b0ad0fd36957a02",
+    "scope": "Native whitebox fixture, not production Site binary",
+    "artifact": "_build/resident-effect-consumer-holder-1791556737747/consumer-holder.whitebox_test.exe",
+    "sha256": "762719bc1edcfe0432a55cda90e8d5aa6ec08caea31f077ee3547330299041be"
+  },
+  "nativeDuckdbLibrarySha256": "b9027d18ef3e8d960568f77e946a83ca68009cb22d71cf7f94de842afdd094d8",
+  "command": "MOON_HOME=.toolchains/moonbit-pinned node local-tools/actql-cloud-retained-delivery/verify-resident-effect-consumer-holder.mjs 8e6b8474561a702675d4715e6b0ad0fd36957a02",
+  "wrapperLocation": "workspace-local helper; exact bounded subprocess receipts follow",
+  "checks": [
+    {
+      "label": "format",
+      "command": "moon",
+      "args": [
+        "fmt",
+        "src/platform_native/remote_resident_host/retained_consumer_holder.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/acquisition_transfer_runtime_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/retained_consumer_holder_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-09T14:38:57.889Z",
+      "finishedAt": "2026-10-09T14:38:58.002Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/format.log"
+    },
+    {
+      "label": "tests",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect consumer holder*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T14:38:58.003Z",
+      "finishedAt": "2026-10-09T14:39:01.170Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/tests.log"
+    },
+    {
+      "label": "ordinary-runtime",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*ordinary resident producer bytes*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:39:01.171Z",
+      "finishedAt": "2026-10-09T14:39:02.000Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/ordinary-runtime.log"
+    },
+    {
+      "label": "ordinary-holders",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*producer holder*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:39:02.000Z",
+      "finishedAt": "2026-10-09T14:39:04.705Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/ordinary-holders.log"
+    },
+    {
+      "label": "ordinary-chain",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/retained_chain_wbtest.mbt\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:39:04.705Z",
+      "finishedAt": "2026-10-09T14:39:09.567Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/ordinary-chain.log"
+    },
+    {
+      "label": "ordinary-expiry",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*resident consumer expiry*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:39:09.568Z",
+      "finishedAt": "2026-10-09T14:39:10.174Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/ordinary-expiry.log"
+    },
+    {
+      "label": "effect-fragment",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect checked task fragment*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:39:10.174Z",
+      "finishedAt": "2026-10-09T14:39:10.767Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/effect-fragment.log"
+    },
+    {
+      "label": "source-admission",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect Source dispatch*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:39:10.767Z",
+      "finishedAt": "2026-10-09T14:39:11.691Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/source-admission.log"
+    },
+    {
+      "label": "interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "native",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T14:39:11.692Z",
+      "finishedAt": "2026-10-09T14:39:11.850Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/interface.log"
+    },
+    {
+      "label": "portable-interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "js",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T14:39:11.850Z",
+      "finishedAt": "2026-10-09T14:39:11.941Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/portable-interface.log"
+    },
+    {
+      "label": "history",
+      "command": "node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T14:39:12.041Z",
+      "finishedAt": "2026-10-09T14:40:56.652Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-consumer-holder-1791556737747/history.log"
+    }
+  ],
+  "preparatoryEvidence": [
+    {
+      "path": "_build/resident-effect-consumer-holder-1791556261514",
+      "result": "initial four Effect, six ordinary and eleven JS cases passed before adding typed producer routing"
+    },
+    {
+      "path": "_build/resident-effect-consumer-holder-1791556518199",
+      "result": "routing and related callers passed before strengthening exact public Output refusal and single-borrow assertion"
+    },
+    {
+      "path": "_build/resident-effect-consumer-holder-1791556641802",
+      "result": "strengthened holder assertions passed on dirty preparation before clean commit and two existing chain cases"
+    }
+  ],
+  "limitations": [
+    "Signed component and executable are Native whitebox fixtures, not production Site binary or formal distribution cohort.",
+    "The real journal directly retains/accepts envelopes in these tests; ResidentRetainedConsumer.accept HTTP exchange and parent-process poll family selection are not executed or connected by this unit.",
+    "Transfer and output journal read-back are tested; full Host/Coordinator physical restart inventory and reservation reconstruction remain incomplete.",
+    "Checkpoint waiting commit, current-authorized approval, physical Effect write and saved-response/unknown reconciliation remain incomplete.",
+    "Cloud formal package/Native adoption and public SDK/Preview Effect acceptance not executed.",
+    "Hosted CI stopped by instruction; no manual start/rerun, full Core/all-packed campaign or deployment.",
+    "Historical #88 custody and recovery retained separately, no past Run modified or closed."
+  ]
+}

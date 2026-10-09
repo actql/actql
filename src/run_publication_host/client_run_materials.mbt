@@ -62,3 +62,39 @@ pub fn admit_client_run_materials(
     })
   }
 }
+
+///|
+/// Syntactic owner selection, not Run admission or execution authority. Both
+/// families use the existing bounded materials codec and ordinary parser.
+/// The selected owner must subsequently admit the exact original Run CID,
+/// invocation and authorization. Never retry semantic rejection in another
+/// family or reinterpret an Effect computation as an Effect-free Program.
+pub(all) enum ClientRunExecutionFamily {
+  EffectFreeComputation
+  EffectComputation
+}
+
+///|
+pub fn inspect_client_run_materials_execution_family(
+  materials : String,
+  expressions : @context.ExpressionProfiles,
+  operations : @context.PureOperationProfiles,
+  limits : ClientProgramPreparationLimits,
+) -> Result[ClientRunExecutionFamily, ClientValuesRunMaterialsIssue] {
+  let body = match
+    read_client_run_materials_body(materials, expressions, operations) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let parsed = match
+    @syntax.parse(body.program, limits.checking.input, format=Json) {
+    Ok(value) => value
+    Err(issue) => return Err(MaterialsProgram(Syntax(issue)))
+  }
+  for stage in @syntax.stages(parsed) {
+    if !@syntax.effect_names(stage).is_empty() {
+      return Ok(EffectComputation)
+    }
+  }
+  Ok(EffectFreeComputation)
+}

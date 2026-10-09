@@ -1,6 +1,7 @@
 supported_targets = "native"
 
 import {
+  "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/remote_resident_host" @resident,
   "actql/actql/run_publication_host" @host,
   "actql/actql/platform_native/remote_standard_host" @output,
