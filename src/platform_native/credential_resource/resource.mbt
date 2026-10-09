@@ -384,6 +384,43 @@ pub fn call_native_credential_resource(
   use_id : String,
   scope : NativeCredentialScope,
 ) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
+  call_native_credential_resource_owned(service, grant, use_id, scope, None)
+}
+
+///|
+/// Require the checked target path to match the installed operation before
+/// authorization, durable grant consumption or physical I/O. This cannot widen
+/// the installation's allowlist or replace its current authorization checks.
+pub fn call_native_credential_resource_at_path(
+  service : NativeCredentialResourceService,
+  grant : @credential.RemoteCredentialGrant,
+  use_id : String,
+  scope : NativeCredentialScope,
+  expected_path : String,
+) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
+  call_native_credential_resource_owned(
+    service,
+    grant,
+    use_id,
+    scope,
+    Some(expected_path),
+  )
+}
+
+///|
+fn call_native_credential_resource_owned(
+  service : NativeCredentialResourceService,
+  grant : @credential.RemoteCredentialGrant,
+  use_id : String,
+  scope : NativeCredentialScope,
+  expected_path : String?,
+) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
+  if expected_path is Some(path) {
+    guard operation_for(service, scope) is Some(operation) &&
+      path == operation.path else {
+      return Err(AccessDenied)
+    }
+  }
   let trusted_now_ms = match observe_trusted_clock(service) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -469,16 +506,34 @@ pub fn call_native_credential_resource(
       Err(issue) => return Err(issue)
     }
   }
-  let authorized = (service.authorize)({
-      stage: "send",
-      grant_cid,
-      use_cid: Some(use_cid),
-      scope,
-    }) &&
+  let authorized_by_host = (service.authorize)({
+    stage: "send",
+    grant_cid,
+    use_cid: Some(use_cid),
+    scope,
+  })
+  // The authorization callback may revoke a grant or take time. Re-read the
+  // durable revocation and trusted lifetime after it, immediately before I/O.
+  let send_revoked = match native_credential_grant_revoked(service, grant_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let current_send_time = match observe_trusted_clock(service) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if send_revoked || current_send_time >= expires_at {
+    match persist_outcome(service, grant_cid, use_id, "failed", None) {
+      Ok(_) => return Err(Credential(@credential.CredentialGrantInactive))
+      Err(Journal(issue)) => return Err(TerminalRecordFailed("failed", issue))
+      Err(issue) => return Err(issue)
+    }
+  }
+  let authorized = authorized_by_host &&
     @credential.authorize_credential_use(
       credential_use,
-      send_time,
-      revoked,
+      current_send_time,
+      send_revoked,
       scope.principal,
       scope.namespace_id,
       scope.environment,

@@ -1,6 +1,14 @@
 supported_targets = "native"
 
 import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "actql/actql/canonical_json" @canonical,
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/platform_native/salesforce_effect_preview" @effect_provider,
+  "actql/actql/platform_native/credential_resource" @resource,
+  "actql/actql/remote_credential" @credential,
+  "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/remote_resident_host" @resident,
   "actql/actql/run_publication_host" @host,
   "actql/actql/platform_native/remote_standard_host" @output,

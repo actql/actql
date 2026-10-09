@@ -6,6 +6,8 @@
 fn producer_dependency_observation(
   materials : @host.ClientEffectRunMaterials,
   source : @host.ClientEffectAcquiredEvidence,
+  started_at? : String = "2026-10-09T01:00:00.000Z",
+  completed_at? : String = "2026-10-09T01:00:01.000Z",
 ) -> (@publication.RunEvidenceValue, @publication.PublicationContract) {
   let template = @host.client_effect_compilation_template(materials.compilation)
   let observed = @host.client_effect_acquired_observation(source)
@@ -15,7 +17,11 @@ fn producer_dependency_observation(
     @publication.run_evidence_value_identity(template) +
     "\",\"source_evidence_cids\":[\"" +
     @publication.run_evidence_value_identity(observed) +
-    "\"],\"captured_input_artifact_cids\":[],\"consistency\":\"single_snapshot\",\"capture_started_at\":\"2026-10-09T01:00:00.000Z\",\"capture_completed_at\":\"2026-10-09T01:00:01.000Z\",\"replayability\":{\"materialized\":false,\"availability_evidence_cids\":[]},\"data_policy_cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\"}",
+    "\"],\"captured_input_artifact_cids\":[],\"consistency\":\"single_snapshot\",\"capture_started_at\":\"" +
+    started_at +
+    "\",\"capture_completed_at\":\"" +
+    completed_at +
+    "\",\"replayability\":{\"materialized\":false,\"availability_evidence_cids\":[]},\"data_policy_cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\"}",
     65536,
     4096,
     64,
