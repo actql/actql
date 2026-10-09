@@ -242,6 +242,27 @@ interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
 remain reviewed source artifacts. Regenerate wrapper changes explicitly;
 runtime preparation checks them but does not silently update them.
 
+### Effect Run Host preparation and restoration
+
+`@actql/run-host-core` exposes `prepareEffect` and `compileEffect` for the
+existing checked Effect computation Owner. These return opaque handles separate
+from an Effect-free Program. `effectExecutionShape` projects checked task,
+acquisition and Effect counts; it does not select or schedule tasks.
+
+After the Host has checked current authorization, `issueAllowedEffectRun` and
+`issueEffectRunDefinition` bind the original policy evidence and Run identity.
+`issueEffectRunMaterials` serializes the retained JSON Program, environment and
+separately supplied parameters using the existing bounded materials codec.
+`admitEffectRunMaterials` reconstructs that same Owner from the saved evidence
+and the expected Run definition CID. It does not issue fresh authorization or
+extend the saved lifetime. `effectRunStartCurrent` checks the original policy
+and Run lifetime; the Host must independently recheck current authority.
+
+These APIs perform no Source acquisition, Preview, approval or physical Effect.
+Run admission is not Effect approval. Dispatch, retained input custody,
+Checkpoint/Resolution and physical apply remain responsibilities of their
+existing Owners and consuming adapters.
+
 ### Installed Connector distribution inputs
 
 The standard Local package resolves provider runtimes, installation adapter
