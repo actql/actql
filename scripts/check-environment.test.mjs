@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './collection-mapping.test.mjs';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {canonicalText,verifyIdentity} from './check-canonical-json.mjs';
