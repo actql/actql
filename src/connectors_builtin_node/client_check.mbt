@@ -307,7 +307,7 @@ fn check_source_findings(
         WrongQueryForm => findings.push(Violation("query_syntax_invalid"))
         // Absent and inaccessible relations are both missing from the
         // audience-visible publication; neither is a proven violation.
-        QueryLowering(UnknownRelation) =>
+        QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>
           findings.push(Unresolved("source_resolution"))
         QueryLowering(TableWriteBinding(UnknownTable)) =>
           findings.push(Unresolved("source_resolution"))

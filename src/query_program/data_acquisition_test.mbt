@@ -196,14 +196,16 @@ test "DATA capture preserves published Relation names and DATA alias names" {
     assert_eq(semantic(program).split("\"carrier\":\"relation\"").length(), 2)
   }
   assert_true(
-    compile_query_script(
-      @query.parse_query_script(
-        "DATA g = PROPERTY GRAPH (NODE TABLES (orders AS Person KEY (id) LABEL Person PROPERTIES (id), `ORDERS` AS Company KEY (id) LABEL Company PROPERTIES (id))); FROM GRAPH g |> MATCH (a:Person) |> SELECT a.id",
-        syntax_limits(),
-      ).unwrap(),
-      context,
-      construction_limits(),
-    )
-    is Err(UnknownRelation),
+    exact_unresolved_relation(
+      compile_query_script(
+        @query.parse_query_script(
+          "DATA g = PROPERTY GRAPH (NODE TABLES (orders AS Person KEY (id) LABEL Person PROPERTIES (id), `ORDERS` AS Company KEY (id) LABEL Company PROPERTIES (id))); FROM GRAPH g |> MATCH (a:Person) |> SELECT a.id",
+          syntax_limits(),
+        ).unwrap(),
+        context,
+        construction_limits(),
+      ),
+      [("ORDERS", true)],
+    ),
   )
 }

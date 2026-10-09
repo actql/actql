@@ -62,10 +62,24 @@ fn QueryParser::window_expression(
       return Ok(None)
     }
     try {
+      let arguments : Array[(NamePart, AggregateCall)] = []
+      let argument_prefix = aggregate_prefix.unwrap_or(prefix)
       let (expression, aggregate) = if aggregate_head {
-        (None, Some(parser.aggregate()))
+        (
+          None,
+          Some(
+            parser.aggregate(
+              calls=Some(arguments),
+              aggregate_prefix=argument_prefix,
+            ),
+          ),
+        )
       } else {
-        (Some(parser.expression()), None)
+        let (expression, embedded) = parser.aggregate_expression(
+          argument_prefix,
+        )
+        arguments.append(embedded)
+        (Some(expression), None)
       }
       let name = parser.fresh_producer(
         if parser.has("OVER") {
@@ -75,6 +89,9 @@ fn QueryParser::window_expression(
         },
       )
       if parser.has("OVER") {
+        // Ordinary aggregate operands feed a window from GROUP outputs.
+        // Only confirmed window calls may contain these extracted arguments.
+        calls.append(arguments)
         // Ordinary aggregates in OVER are evaluated by GROUP before ANALYTIC.
         // Keep their parser-owned references in the same clause's call list.
         let window = parser.over(
@@ -91,6 +108,12 @@ fn QueryParser::window_expression(
           replacements: [],
         })
       } else if aggregate is Some(call) {
+        if !arguments.is_empty() {
+          raise QueryAbort(
+            "Ordinary aggregate cannot contain an aggregate call",
+            parser.peek().start,
+          )
+        }
         calls.push((name, call))
       } else {
         raise QueryAbort("Window call requires OVER", parser.peek().start)

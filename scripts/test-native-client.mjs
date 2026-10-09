@@ -2,13 +2,15 @@ import {submissionEpoch, originalSubmission, readySubmissionAttempt, heldSubmiss
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
-import {chmod, copyFile, mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {chmod, copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {validHeldRequest} from '../packages/client-wire/index.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
 
-const root = await mkdtemp(join(tmpdir(), 'actql-native-client-'));
+const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-client-', label: 'Native Client transport fixture'});
+const root = scratch.path;
 const openssl = (...args) => execFileSync('openssl', args,
   {cwd: root, stdio: 'ignore'});
 openssl('genrsa', '-out', 'ca.key', '2048');
@@ -243,7 +245,7 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     response.end('{}');
   }
 });
-const builtExecutable = new URL(
+const builtExecutable = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY ?? new URL(
   '../_build/native/release/build/cmd/native_client/native_client.exe',
   import.meta.url).pathname;
 const executable = join(root, 'actql-native-client');
@@ -267,7 +269,9 @@ function runProcess(command, commandArgs) {
   return new Promise((resolve, reject) => {
     // The installed binary must not rely on a repository cwd or find Node,
     // MoonBit, curl's CLI, or another build tool through PATH.
-    const child = spawn(command, commandArgs, {cwd: root,
+    const launcher = command === executable ? process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER : undefined;
+    const child = spawn(launcher ? process.execPath : command,
+      launcher ? [launcher, ...commandArgs] : commandArgs, {cwd: root,
       env: {...process.env, PATH: emptyPath}});
     let stdout = '', stderr = '';
     child.stdout.setEncoding('utf8').on('data', data => { stdout += data; });
@@ -616,3 +620,4 @@ try {
 
 // Keep the independent shared-contract corpus on the normal Native CI entry.
 await import('./test-native-client-wire.test.mjs');
+scratch.passed();
