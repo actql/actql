@@ -342,6 +342,9 @@ fn retained_effect_transferred_artifact(
   let (run_observation, invocation) = producer_dependency_observation(
     materials, source,
   )
+  retained_effect_result_capture(
+    consumer, materials, inputs, evidence, invocation, run_observation, source,
+  )
   let definition = @host.issue_client_effect_local_result_definition(
     materials.prepared,
     1,
