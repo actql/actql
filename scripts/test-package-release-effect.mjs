@@ -10,14 +10,17 @@ import {fileURLToPath} from 'node:url';
 import {tmpdir} from 'node:os';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
+import {checkoutState} from './packed-client-packages.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 assert(process.argv[2], 'usage: test-package-release-effect.mjs <fixed-RC>');
 const directory = resolve(process.argv[2]), manifest = await verifyPackageRelease(directory);
-const fixtureSourceSha = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
-const runtimeSourceDelta = execFileSync('git', ['diff', '--name-only', manifest.sourceSha, fixtureSourceSha,
-  '--', 'src', 'adapters', 'spec', 'packages', 'moon.mod', 'toolchain.json'], {cwd: repository, encoding: 'utf8'}).trim();
+const source = checkoutState(repository);
+assert(source.clean, 'Approval acceptance requires clean fixture source');
+const fixtureSourceSha = source.revision;
+const runtimeSourceDelta = execFileSync('git', ['--no-replace-objects', 'diff', '--name-only', manifest.sourceSha, fixtureSourceSha,
+  '--', 'src', 'adapters', 'spec', 'packages', 'moon.mod', 'moon.lock', 'toolchain.json', 'package-lock.json'], {cwd: repository, encoding: 'utf8'}).trim();
 assert.equal(runtimeSourceDelta, '', 'Retained RC requires unchanged installed runtime/package inputs');
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-release-effect-', label: 'Run-scoped installed approval'});
 const registry = await openReleaseTestRegistry([{directory, manifest}]);
@@ -61,6 +64,7 @@ console.log('RELEASE_RUN_APPROVAL', JSON.stringify(result));\n`);
   const result = JSON.parse(observed.stdout.match(/RELEASE_RUN_APPROVAL (.+)/u)?.[1]);
   assert.equal(result.successfulPluralRuns, 1); assert.equal(result.preparationRefusals, 2);
   assert.equal(result.cancelledWithoutSend, 1); assert.equal(result.unknownAfterRestart, 1);
+  assert.deepEqual(checkoutState(repository), source, 'Fixture source changed during acceptance');
   await writeFile(join(directory, `approval-${process.platform}-${process.arch}-${Date.now()}.json`), JSON.stringify({
     version:'actql-release-run-approval-acceptance/0.1', artifactSourceSha:manifest.sourceSha, fixtureSourceSha,
     runtimeSourceDelta:[], node:process.version, platform:process.platform, arch:process.arch,
