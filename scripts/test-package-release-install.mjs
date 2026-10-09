@@ -91,6 +91,10 @@ try {
     auditPackedPackages(consumer, names);
   }
   const local = join(root, 'node');
+  for (const filename of ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']) {
+    assert.deepEqual(await readFile(join(local, 'node_modules/@actql/local-node', filename)),
+      await readFile(join(repository, 'packages/local-node', filename)), 'Pinned Core notice bytes must survive installation');
+  }
   const localReadme = await readFile(join(local, 'node_modules/@actql/node/README.md'), 'utf8');
   const localExample = /## Short Local queries[\s\S]*?```js\n([\s\S]*?)```/u.exec(localReadme)?.[1];
   assert(localExample, 'Missing standalone Local README example');

@@ -13,6 +13,12 @@ tarballs. Every other payload byte and file mode must remain identical. There
 is no install-time compiler, downloader, daemon or implicit Connector install.
 Package version is independent of the wire and semantic contract versions.
 
+The Local runtime package preserves the pinned MoonBit Core `LICENSE` and
+`NOTICE` verbatim as `MOONBIT-CORE-LICENSE` and `MOONBIT-CORE-NOTICE`; these are
+normal prepack payload files, not a replacement for ActQL's own license. The
+lightweight SDK also retains its existing Standard Schema license. Updating
+the Core pin must update the matching upstream notice files together.
+
 Run preparation under the existing local heavy guard, with the repository's
 Node and MoonBit toolchain pins. Use a unique, absent RC destination:
 
