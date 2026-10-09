@@ -3,6 +3,7 @@ package "actql/actql/run_publication_host"
 
 import {
   "actql/actql/check_environment",
+  "actql/actql/checkpoint_runtime",
   "actql/actql/decode_core",
   "actql/actql/effect_application",
   "actql/actql/encode_core",
@@ -40,6 +41,8 @@ pub fn admit_client_effect_allowed_run(ClientEffectCompilation, @run_publication
 pub fn admit_client_effect_dependency_capture(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, String, Int, Int, Int) -> Result[ClientEffectDependencyCapture, ClientEffectDependencyCaptureIssue]
 
 pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
+
+pub fn admit_client_effect_review_checkpoint_binding(ClientEffectAllowedRun, @run_publication.PublicationContract, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientEffectCheckpointBindingIssue]
 
 pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
 
@@ -1264,6 +1267,14 @@ pub(all) enum ClientEffectCapturedRunIssue {
   Plan(@physical_strategy.CapturedEffectPlanIssue)
   Proof(@physical_strategy.CapturedEffectPlanInventoryIssue)
   Encoding
+}
+
+pub(all) enum ClientEffectCheckpointBindingIssue {
+  Run(ClientEffectCompiledRunIssue)
+  Checkpoint(@checkpoint_runtime.CheckpointIssue)
+  ForeignSubject
+  UnsupportedReview
+  OriginalLifetime
 }
 
 pub struct ClientEffectCompilation {

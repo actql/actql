@@ -343,6 +343,23 @@ export function effectRunStartCurrent(allowed, definition, at) {
   return owner.clientValuesHostEffectStartCurrent(value, requireHandle(definitions, definition), at);
 }
 
+/** Original Run/unit/window binding only. Native custody, current authority,
+ * waiting commit and Effect approval must be confirmed independently. */
+export function effectReviewCheckpointBinding(allowed, definition, wire) {
+  if (typeof wire !== 'string') throw new TypeError('InvalidRunHostCheckpointWire');
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  const fields = checked(owner.clientValuesHostEffectCheckpointBinding(value,
+    requireHandle(definitions, definition), wire), 'RunHostEffectCheckpointBindingRejected');
+  if (!Array.isArray(fields) || fields.length !== 8 ||
+      fields.some(field => typeof field !== 'string') ||
+      [0, 4, 5, 6, 7].some(index => !/^sha256:[0-9a-f]{64}$/u.test(fields[index]))) {
+    throw new Error('InvalidRunHostCheckpointBinding');
+  }
+  return Object.freeze({checkpointCid: fields[0], checkpointWire: fields[1],
+    runId: fields[2], unitId: fields[3], runDefinitionCid: fields[4],
+    previewCid: fields[5], reviewProjectionCid: fields[6], continuationCid: fields[7]});
+}
+
 /** Original Effect caller; capture is not a newly submitted input Artifact. */
 export function prepareEffectRequest(prepared, compilation, authorityScopeCid, requestId) {
   effectCompilationFor(prepared, compilation);

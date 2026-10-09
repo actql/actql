@@ -83,6 +83,13 @@ export function effectResultDefinitions(prepared: PreparedEffectProgram,
 export function effectResultSchema(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, resultName: string): Readonly<{
     cid: string; wire: string; fields: readonly string[]}>;
+/** Metadata binding to the original checked Effect Run/unit/window only.
+ * Does not confirm Native custody, current authority, waiting or approval. */
+export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
+  definition: RunDefinition, checkpointWire: string): Readonly<{
+    checkpointCid: string; checkpointWire: string; runId: string; unitId: string;
+    runDefinitionCid: string; previewCid: string; reviewProjectionCid: string;
+    continuationCid: string}>;
 /** Original Catalog evidence; current read authority remains a separate check. */
 export function effectSourceEvidenceFacts(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, stage: number, sourceIndex: number): Readonly<{

@@ -10,6 +10,7 @@ pub(all) enum ResidentEffectReviewCheckpointIssue {
   Encoding
   Keys(@effect.EffectPreviewRecoveryKeysIssue)
   Checkpoint(@checkpoint.CheckpointIssue)
+  RunBinding(@host.ClientEffectCheckpointBindingIssue)
 }
 
 ///|
@@ -259,6 +260,18 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
     ) {
     Ok(value) => value
     Err(issue) => return Err(Checkpoint(issue))
+  }
+  // The same common Run/unit binding is consumed by the Cloud adapter.
+  // Genuine capture and paired Store custody still have their own owners.
+  match
+    @host.admit_client_effect_review_checkpoint_binding(
+      materials.allowed,
+      materials.run_definition,
+      sealed_checkpoint.wire,
+      limits,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(RunBinding(issue))
   }
   if !self.resident_effect_inputs_current(inputs) {
     return Err(Unavailable)
