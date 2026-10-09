@@ -1165,6 +1165,11 @@ fn retained_compute_case(
   @execution.cancel_completed_relation_export_receipt(receipt)
   @execution.cancel_completed_output_export(source_export)
   if producer_dependency is Some((pins, _, _, dependency_receipt, _)) {
+    if provider {
+      // This observation case retains the producer pin itself instead of
+      // passing it through the complete Effect capture helper above.
+      assert_true(@strategy.release_captured_effect_local_unit_inputs(pins))
+    }
     assert_false(@strategy.release_captured_effect_local_unit_inputs(pins))
     @execution.cancel_completed_relation_export_receipt(dependency_receipt)
   }
