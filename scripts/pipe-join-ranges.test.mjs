@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {pipeJoinRangesProgram, extendRangeProgram, renameTargetProgram, pipeJoinRangesSuccesses, pipeJoinRangesRefusals}
+import {pipeJoinRangesProgram, extendRangeProgram, renameTargetProgram, editCollisionProgram, pipeJoinRangesSuccesses, pipeJoinRangesRefusals}
   from './fixtures/pipe-join-ranges.mjs';
 
 test('range obligations distinguish current values from original slots and preserve duplicates', () => {
@@ -22,7 +22,8 @@ test('range obligations distinguish current values from original slots and prese
   assert.equal(cases.get('pipe-join-ranges-shared-source').expected.length, 6);
   assert.equal(cases.get('pipe-join-ranges-shared-source').sourceReadSessionCount, 1);
   const originalRefusals = pipeJoinRangesRefusals.filter(item =>
-    !item.name.includes('refuse-extend-') && !item.name.includes('refuse-rename-'));
+    !item.name.includes('refuse-extend-') && !item.name.includes('refuse-rename-')
+    && !item.name.includes('refuse-edit-'));
   assert.equal(originalRefusals.length, 4);
   assert.ok(originalRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
 });
@@ -83,4 +84,26 @@ test('range corpus runs through ordinary packed acceptance and the same focused 
   assert.ok(driver.includes("['scripts/fixtures/pipe-join-ranges.mjs', 'pipe-join-ranges.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_PIPE_JOIN_RANGES_ONLY = '1'"));
   assert.ok(driver.includes("if (process.argv.includes('--pipe-join-ranges-only')) return;"));
+});
+
+
+test('same-name edits use replacement objects and remove hidden range access', () => {
+  const cases = new Map(pipeJoinRangesSuccesses.map(item => [item.name, item]));
+  const json = cases.get('pipe-join-ranges-edit-independent-json');
+  const source = cases.get('pipe-join-ranges-edit-object-current');
+  assert.deepEqual(JSON.parse(json.text), editCollisionProgram);
+  assert.deepEqual(editCollisionProgram.stages[1].steps[1].derive.current,
+    {property: {value: {field: 'updated'}, name: 'id'}});
+  assert.deepEqual(source.expected, [{current: 99, amount: null},
+    {current: 99, amount: 20}, {current: 99, amount: 20}]);
+  assert.deepEqual(source.expected, json.expected);
+  assert.deepEqual(source.columns, json.columns);
+  assert.deepEqual(source.columns.map(column => column.name), ['current', 'amount']);
+  assert.deepEqual(source.columns.map(column => column.contract.nullable), [false, true]);
+  assert.equal(source.sourceReadSessionCount, 1);
+  assert.ok(source.text.includes('amount = id.amount'));
+  assert.deepEqual(cases.get('pipe-join-ranges-edit-empty-typed').expected, []);
+  const refusals = pipeJoinRangesRefusals.filter(item => item.name.includes('refuse-edit-'));
+  assert.equal(refusals.length, 5);
+  assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
 });

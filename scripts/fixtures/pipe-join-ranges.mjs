@@ -145,3 +145,44 @@ pipeJoinRangesRefusals.push(...[
   ['repeated-target', 'FROM records |> RENAME id AS current, `ID` AS other |> SELECT amount'],
 ].map(([name, text]) => ({name: 'pipe-join-ranges-refuse-rename-' + name,
   format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', text})));
+
+// Same-name SET/DROP removes only that range, after sibling resolution.
+const replacement = {type: 'object', nullable: false, fields: {id: number}};
+export const editCollisionProgram = {version: 'actql/0.1', id: 'fixture.pipe_edit_collision',
+  params: {replacement},
+  stages: [structuredClone(pipeJoinRangesProgram.stages[0]),
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'records', derive: {updated: {$param: 'replacement'}}},
+        {derive: {current: {property: {value: {field: 'updated'}, name: 'id'}}}},
+        {sort: [{field: 'amount', dir: 'asc', nulls: 'first'}]},
+        {select: ['current', 'amount'], as: 'out'}],
+      results: {rows: {from: 'out', fields: ['current', 'amount']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const editColumns = [{name: 'current', contract: number}, {name: 'amount', contract: nullable}];
+const editRows = [{current: 99, amount: null}, {current: 99, amount: 20}, {current: 99, amount: 20}];
+const editSource = 'FROM records AS id |> SET id = @replacement, amount = id.amount '
+  + '|> SELECT id.id AS current, amount |> ORDER BY amount';
+pipeJoinRangesSuccesses.push(...[
+  ['edit-independent-json', JSON.stringify(editCollisionProgram), {format: 'json'}],
+  ['edit-object-current', editSource, {parameterDeclarations: {replacement}}],
+  ['edit-quoted-current', editSource.replace('AS id', 'AS `ID`')
+    .replace('SET id', 'SET `id`').replace('id.amount', '`ID`.`amount`')
+    .replace('id.id', '`ID`.`id`'), {parameterDeclarations: {replacement}}],
+  ['edit-rename-after-set', editSource.replace('|> SELECT id.id', '|> RENAME id AS updated |> SELECT updated.id'),
+    {parameterDeclarations: {replacement}}],
+  ['edit-empty-typed', editSource, {parameterDeclarations: {replacement}, sourceRows: [], expected: []}],
+].map(([name, text, extra]) => success(name, text,
+  {columns: editColumns, expected: editRows, parameters: {replacement: {id: 99}}, ...extra})));
+pipeJoinRangesSuccesses.push(success('edit-drop-current',
+  'FROM records AS id |> DROP id |> SELECT amount |> ORDER BY amount',
+  {columns: [{name: 'amount', contract: nullable}],
+    expected: [{amount: null}, {amount: 20}, {amount: 20}]}));
+pipeJoinRangesRefusals.push(...[
+  ['rename-hidden-target', 'FROM records AS id |> RENAME id AS current |> SELECT current'],
+  ['rename-quoted-hidden-target', 'FROM records AS `ID` |> RENAME `id` AS current |> SELECT current'],
+  ['drop-hidden-range', 'FROM records AS id |> DROP id |> SELECT id.amount'],
+  ['drop-quoted-hidden-range', 'FROM records AS `ID` |> DROP `id` |> SELECT `ID`.`amount`'],
+  ['set-removed-range-member', 'FROM records AS id |> SET id = @replacement |> SELECT id.amount'],
+].map(([name, text]) => ({name: 'pipe-join-ranges-refuse-edit-' + name,
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', text,
+  parameterDeclarations: {replacement}, parameters: {replacement: {id: 99}}})));

@@ -2546,6 +2546,14 @@ fn compile_steps(
         }
         entries.push(("derive", construction.object(derived)))
         pipe_visible = next
+        // Resolve every sibling against the old snapshot before removing a
+        // range hidden by a replacement current column of the same name.
+        pipe_ranges = pipe_ranges.filter(range => {
+          !assignments.any(assignment => same_name(assignment.0, range.0))
+        })
+        value_table_receivers = value_table_receivers.filter(receiver => {
+          !assignments.any(assignment => same_name(assignment.0, receiver.0))
+        })
         output = pipe_visible.map(entry => entry.0)
         pipe_changed = true
         // All assignments use the pre-SET snapshot. Private window bindings
@@ -2614,6 +2622,14 @@ fn compile_steps(
         if next.is_empty() {
           raise Abort(UnsupportedProjection)
         }
+        // DROP excludes matching range names as well as current columns.
+        // Other ranges keep their original slots, including dropped columns.
+        pipe_ranges = pipe_ranges.filter(range => {
+          !names.any(name => same_name(name, range.0))
+        })
+        value_table_receivers = value_table_receivers.filter(receiver => {
+          !names.any(name => same_name(name, receiver.0))
+        })
         if direct {
           entries.push(
             (
@@ -2647,6 +2663,14 @@ fn compile_steps(
             raise Abort(DuplicateOutput)
           }
           if matches.length() > 1 {
+            raise Abort(AmbiguousColumn)
+          }
+          // Unlike SET/DROP, RENAME requires an unambiguous scope target;
+          // a range of the same name takes precedence over the column.
+          if pipe_ranges.any(range => same_name(replacement.0, range.0)) ||
+            value_table_receivers.any(receiver => {
+              same_name(replacement.0, receiver.0)
+            }) {
             raise Abort(AmbiguousColumn)
           }
         }

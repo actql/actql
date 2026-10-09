@@ -109,7 +109,9 @@ its final order. CTE and DATA relations use their current declared columns.
 in its declared column order. The receiver is a source Reference with ordinary
 alias quotation/name resolution, not a string interpreted as a schema. SQL,
 Pipe, CTE and JOIN ranges share the same physical-slot scope. SET/DROP/RENAME
-retain the bound range's original values; Pipe AS replaces that range. SELECT
+retain a surviving range's original values. SET/DROP remove a range whose name
+matches a target column; RENAME rejects a target hidden by a range name.
+Pipe AS replaces the range scope. SELECT
 materialization ends its input range scope, while a deferred query ORDER may
 still consume the admitted SELECT input snapshot before that materialization.
 SQL GROUP ordinals count the expanded and excluded range columns, and every
@@ -405,7 +407,8 @@ the same pre-SET snapshot; replacing an earlier target does not change a later
 assignment's input. Each target must still exist exactly once and cannot be
 assigned twice. SET retains visible column order while the replacement value's
 checked type and nullability determine that column's new contract. Existing
-range variables retain original values.
+range variables retain original values unless their names match a SET target.
+Such ranges are removed after all sibling assignments have been resolved.
 
 Window calls are evaluated before the existing assignment derivation. Their
 private slots are visible only to that SET and are removed by normal final
@@ -491,8 +494,15 @@ an input receiver. Nullable keys keep their common value contract and NULLs.
 Pipe range variables bind immutable input value slots. `SET` replaces the
 current unqualified columns; every assignment sees the same pre-SET row.
 `DROP` removes current names, and `RENAME` changes current names. These three
-operations retain an existing range variable's original column names and
-values. A removed or renamed current column does not become available through
+operations retain a surviving range variable's original column names and
+values. Under the selected GoogleSQL Pipe rules, SET and DROP remove a range
+variable whose name matches an authored target under the existing identifier
+comparison. SET removes it only after every sibling expression has resolved
+against the pre-SET snapshot. A subsequent property reference with that name
+therefore uses the new current value, not the removed range. RENAME requires
+its target to be a current column unambiguously resolved in scope: a same-named
+range hides that column and causes rejection. Other range names remain bound.
+A removed or renamed current column does not become available through
 an unqualified reference simply because an older range variable retains it.
 
 Pipe `AS name` replaces all preceding range variables with that name, bound
