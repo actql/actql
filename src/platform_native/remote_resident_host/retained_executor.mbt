@@ -97,6 +97,7 @@ pub fn install_resident_effect_retained_compute_executor(
   output_limits : @output.NativeRemoteStandardTaskLimits,
   observe_failure? : (ResidentSourceComputeIssue) -> Unit,
   release_retired_input? : (() -> Bool)? = None,
+  retain_computation? : (ResidentSourceCompute) -> Unit,
 ) -> Result[
   @output.NativeRemoteStandardTaskExecutor,
   ResidentSourceComputeIssue,
@@ -127,7 +128,13 @@ pub fn install_resident_effect_retained_compute_executor(
       open_resident_effect_retained_compute(
         materials, configuration, input, material, dispatch, codec, input_limits,
         current,
-      )
+      ).map(owner => {
+        match retain_computation {
+          Some(retain) => retain(owner)
+          None => ()
+        }
+        owner
+      })
     },
     observe_failure,
   )

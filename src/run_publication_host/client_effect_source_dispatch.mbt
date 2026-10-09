@@ -231,3 +231,12 @@ pub fn bind_client_effect_source_dispatch(
   }
   Ok({ ..bound, source_dispatch: Some(request), })
 }
+
+///|
+/// The exact producer request admitted before physical Source acquisition.
+/// This projection grants no start, capture, transfer or approval authority.
+pub fn prepared_client_effect_run_source_dispatch(
+  bound : PreparedClientEffectRun,
+) -> @remote.DispatchRequest? {
+  bound.source_dispatch
+}

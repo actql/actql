@@ -7,7 +7,7 @@ import {encode} from '../bounded-session/action-inputs.mjs';
 import {gitTree, hash} from '../ci-evidence/inputs.mjs';
 import {checkPlan} from '../ci-evidence/check.mjs';
 import {mutationNamesByPart, planDigest} from './proof-parts.mjs';
-import {inspectMutationPart, mutationReportPath} from './mutation-parts.mjs';
+import {inspectMutationPart, inspectArchivedMutationPart, mutationReportPath} from './mutation-parts.mjs';
 import {executionCommand, fixturePath} from './fixture.mjs';
 
 const parts = Object.keys(mutationNamesByPart);
@@ -36,11 +36,14 @@ export const mutationActionVersion = 'actql-pipeline-mutation-actions/0.1';
 // Required coverage comes from the reviewed partition and current classifier,
 // never from the available reports, executions or observations.
 export function mutationActions(decision) {
-  return parts.flatMap(part => modes(decision).flatMap(mode => targets.flatMap(target => phases.map(phase => ({
+  return mutationActionScope(decision, planDigest, mutationNamesByPart);
+}
+function mutationActionScope(decision, requiredPlanDigest, assignments) {
+  return Object.keys(assignments).flatMap(part => modes(decision).flatMap(mode => targets.flatMap(target => phases.map(phase => ({
     id: `pipeline-${part.toLowerCase()}-${mode}-${target}-${phase}`,
     part, mode, target, phase, kind: 'tested-refinement', command: executionCommand(target),
-    minimumUnits: mutationNamesByPart[part].length,
-    profile: {planDigest, variants: [...mutationNamesByPart[part]], mode, phase,
+    minimumUnits: assignments[part].length,
+    profile: {planDigest: requiredPlanDigest, variants: [...assignments[part]], mode, phase,
       explorationTarget: mode === 'explore' ? 'js' : null, seed: mode === 'explore' ? 105106 : null},
     premises: ['existing-full-scientific-audit', 'exact-original-source-and-receipts',
       'independent-pristine-and-new-owner-restoration', 'finite-typed-relation-domain'],
@@ -101,6 +104,22 @@ export function mutationActionObservation(report, action) {
   assert.equal(report.part.id, action.part, 'Foreign action part');
   assert.equal(report.mode, action.mode, 'Foreign action mode');
   inspectMutationPart(report);
+  return projectMutationActionObservation(report, action);
+}
+// A read-only projection of one immutable original, explicitly separate from
+// current action admission, runtime replay and authenticated Actions evidence.
+export function archivedMutationActionObservations(bytes) {
+  assert.equal(hash(bytes), '5ce6b98807105317e43a3496e08045ff403afad2081d9e8dfeca61ea146d9e22',
+    'Changed immutable historical mutation bytes');
+  const report = JSON.parse(bytes);
+  inspectArchivedMutationPart(report);
+  const actions = mutationActionScope(report.decision, report.part.planDigest,
+    { [report.part.id]: report.part.variants }).filter(action => action.mode === 'fixed');
+  return { authority: 'immutable-historical-projection', revision: report.revision,
+    planDigest: report.part.planDigest,
+    observations: actions.map(action => ({ action, ...projectMutationActionObservation(report, action) })) };
+}
+function projectMutationActionObservation(report, action) {
   const selected = report.results.map(result => {
     const list = action.phase === 'mutated' ? result.executions : action.phase === 'pristine'
       ? result.healthyExecutions : result.postRestore.executions;

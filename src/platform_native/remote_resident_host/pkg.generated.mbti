@@ -38,6 +38,8 @@ import {
 // Values
 pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 
+pub fn accept_resident_effect_source_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_site_protocol.RemotePollDispatch, String, String, String, String) -> Result[ResidentAcceptance, ResidentEffectProducerExecutionIssue]
+
 pub fn admit_resident_effect_source_dispatch(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest, String, @remote_site_protocol.RemoteInputBinding, String, String, String, String) -> Result[@run_publication_host.PreparedClientEffectRun, ResidentEffectSourceDispatchIssue]
 
 pub fn begin_resident_output_release(@remote_journal.Journal, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest) -> Result[Unit, ResidentOutputIssue]
@@ -48,21 +50,21 @@ pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String
 
 pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, () -> String, ((String) -> Bool)?, source_observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentExecuted, ResidentExecutionFailure]
 
-pub fn execute_resident_effect_retained_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, (@run_publication_host.ClientEffectRunMaterials, @remote_site_protocol.RemoteInputBinding) -> Result[@remote_standard_host.NativeRemoteRetainedTaskInput, @remote_standard_host.NativeRemoteRetainedTaskInputIssue], @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, String, String, () -> String, ((String) -> Bool)?) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
+pub fn execute_resident_effect_retained_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, (@run_publication_host.ClientEffectRunMaterials, @remote_site_protocol.RemoteInputBinding) -> Result[@remote_standard_host.NativeRemoteRetainedTaskInput, @remote_standard_host.NativeRemoteRetainedTaskInputIssue], @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, String, String, () -> String, ((String) -> Bool)?, retain_computation? : (ResidentSourceCompute) -> Unit) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
 
-pub fn execute_resident_effect_source_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, () -> @remote_resident_site.ResidentSiteDelegation, String, String, () -> String, ((String) -> Bool)?, source_observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentEffectProducerExecuted, ResidentEffectProducerExecutionFailure]
+pub fn execute_resident_effect_source_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, () -> @remote_resident_site.ResidentSiteDelegation, String, String, () -> String, ((String) -> Bool)?, source_observe? : (ResidentSourceComputeEvent) -> Bool, acquisition_limits? : @host.NativeHostLimits) -> Result[ResidentEffectProducerExecuted, ResidentEffectProducerExecutionFailure]
 
 pub fn execute_resident_retained_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, ResidentSourceComputeConfiguration, (@run_publication_host.ClientRunMaterials, @remote_site_protocol.RemoteInputBinding) -> Result[@remote_standard_host.NativeRemoteRetainedTaskInput, @remote_standard_host.NativeRemoteRetainedTaskInputIssue], @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, String, String, () -> String, ((String) -> Bool)?, release_retired_input? : (() -> Bool)?) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
 
 pub fn install_resident_acquisition_task_executor(@run_publication_host.ClientRunMaterials, @run_publication_host.ClientTaskCompilation, @remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRequest, ResidentExecution, ResidentSourceConfiguration, () -> String, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[@remote_standard_host.NativeRemoteStandardTaskExecutor, ResidentSourceIssue]
 
-pub fn install_resident_effect_retained_compute_executor(@run_publication_host.ClientEffectRunMaterials, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, @remote_standard_host.NativeRemoteStandardTaskLimits, observe_failure? : (ResidentSourceComputeIssue) -> Unit, release_retired_input? : (() -> Bool)?) -> Result[@remote_standard_host.NativeRemoteStandardTaskExecutor, ResidentSourceComputeIssue]
+pub fn install_resident_effect_retained_compute_executor(@run_publication_host.ClientEffectRunMaterials, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, @remote_standard_host.NativeRemoteStandardTaskLimits, observe_failure? : (ResidentSourceComputeIssue) -> Unit, release_retired_input? : (() -> Bool)?, retain_computation? : (ResidentSourceCompute) -> Unit) -> Result[@remote_standard_host.NativeRemoteStandardTaskExecutor, ResidentSourceComputeIssue]
 
 pub fn install_resident_retained_compute_executor(@run_publication_host.ClientRunMaterials, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, @remote_standard_host.NativeRemoteStandardTaskLimits, observe_failure? : (ResidentSourceComputeIssue) -> Unit, release_retired_input? : (() -> Bool)?) -> Result[@remote_standard_host.NativeRemoteStandardTaskExecutor, ResidentSourceComputeIssue]
 
 pub fn open_resident_effect_retained_compute(@run_publication_host.ClientEffectRunMaterials, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
-pub fn open_resident_effect_source_compute(@run_publication_host.PreparedClientEffectRun, ResidentSourceComputeConfiguration, String, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
+pub fn open_resident_effect_source_compute(@run_publication_host.PreparedClientEffectRun, ResidentSourceComputeConfiguration, String, observe? : (ResidentSourceComputeEvent) -> Bool, acquisition_limits? : @host.NativeHostLimits) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
 pub fn open_resident_retained_compute(@run_publication_host.PreparedClientProgram, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
@@ -75,6 +77,10 @@ pub fn plan_resident_retained_input_transfer(@remote_runtime.NativeRemoteRuntime
 pub fn prepare_resident_cancelled_receiver_cleanup(@remote_journal.Journal, @execution_site.ExecutionSite, @remote_resident_site.ResidentSiteDelegation, @run_publication_host.ClientRecordedSourceCleanup, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteRetainedInputIntent, @remote_site_protocol.RemoteRetainedInputPlan, @remote_transfer_journal.Journal, @filesystem.Root, @remote_standard_host.NativeRemoteStandardTransferBindingLimits, () -> Bool) -> Result[() -> Result[Unit, ResidentStoppedRetainedCleanupIssue], ResidentStoppedRetainedCleanupIssue]
 
 pub fn prepare_resident_completed_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, String, () -> String, () -> Bool, retained_cleanup? : (@remote_transfer_journal.Journal, @filesystem.Root?, Int64)?) -> Result[ResidentCompletedAttempt, ResidentExecutionFailure]
+
+pub fn prepare_resident_effect_retained_consumer(ResidentRetainedTransfer, @remote_journal.Journal, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, @remote_site_protocol.RemotePollDispatch, String, @remote_standard_host.NativeRemoteStandardTransferBindingLimits) -> Result[ResidentRetainedConsumer, ResidentRetainedExecutionFailure]
+
+pub fn prepare_resident_effect_retained_producer_context(@remote_journal.Journal, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.RemoteRetainedInputIntent, String, String, String, String) -> Result[ResidentRetainedProducerContext, ResidentEffectProducerExecutionIssue]
 
 pub fn prepare_resident_effect_source_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String, String) -> Result[@query_planning.QueryRequirement, ResidentSourceIssue]
 
@@ -107,6 +113,10 @@ pub fn reclaim_stopped_resident_source_output(@remote_journal.Journal, ResidentR
 pub fn resident_completed_consumer_producer_identity(@remote_journal.Journal, ResidentRunAdmission, @remote_site_protocol.DispatchRequest, String) -> Result[String, ResidentHostIssue]
 
 pub fn resident_completed_holder_claimant(@remote_journal.Journal, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, Int, String, String) -> Result[String?, ResidentHostIssue]
+
+pub fn resident_dispatch_execution_family(ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch) -> Result[@run_publication_host.ClientRunExecutionFamily, ResidentHostIssue]
+
+pub fn resident_effect_retained_consumer_producer_identity(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, @remote_site_protocol.RemotePollDispatch, String) -> Result[String, ResidentRetainedExecutionIssue]
 
 pub fn resident_holder_process_hold_identity(@remote_journal.Journal, ResidentRunAdmission, String, String, recorded_source? : @run_publication.RecordedRunPublication?) -> Result[String, ResidentHostIssue]
 
@@ -195,7 +205,10 @@ pub(all) enum ResidentEffectPreviewPlanIssue {
 pub(all) struct ResidentEffectProducerExecuted {
   executed : ResidentExecuted
   source : ResidentSourceCompute
+  // private fields
 }
+pub fn ResidentEffectProducerExecuted::materials_for_capture(Self, @remote_journal.Journal) -> @run_publication_host.ClientEffectRunMaterials?
+pub fn ResidentEffectProducerExecuted::source_for_capture(Self, @remote_journal.Journal) -> ResidentSourceCompute?
 
 pub(all) struct ResidentEffectProducerExecutionFailure {
   issue : ResidentEffectProducerExecutionIssue
@@ -350,15 +363,19 @@ pub struct ResidentRetainedConsumer {
   current : @remote_standard_host.NativeRemoteRetainedInputCurrent
   binding_limits : @remote_standard_host.NativeRemoteStandardTransferBindingLimits
   codec : @remote_standard_host.NativeRemoteStandardRowCodec
+  effect_limits : @run_publication_host.ClientEffectComputationLimits?
+  effect_configuration : ResidentSourceComputeConfiguration?
   mut material : @remote_transfer_client.NativeRemoteDestinationMaterialUse?
   mut executed : ResidentExecuted?
   mut pending_runtime : @remote_runtime.NativeRemoteRuntime?
+  mut effect_computation : ResidentSourceCompute?
   mut failure : ResidentRetainedExecutionIssue?
   mut closing : Bool
   mut closed : Bool
 }
 pub fn ResidentRetainedConsumer::accept(Self, @remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 pub fn ResidentRetainedConsumer::close(Self) -> Bool
+pub fn ResidentRetainedConsumer::effect_computation(Self, @remote_journal.Journal) -> ResidentSourceCompute?
 pub fn ResidentRetainedConsumer::execute(Self, @remote_journal.Journal, ResidentExecution, ResidentRunAdmission, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, String, () -> String, ((String) -> Bool)?, borrow_observe? : () -> Unit) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
 
 pub(all) struct ResidentRetainedExecutionFailure {
@@ -377,7 +394,7 @@ pub(all) enum ResidentRetainedExecutionIssue {
 
 pub struct ResidentRetainedProducerContext {
   intent : @remote_site_protocol.RemoteRetainedInputIntent
-  materials : @run_publication_host.ClientRunMaterials
+  run_current : (String) -> Bool
   producer : @run_publication_host.ClientRetainedInputProducer
   journal : @remote_journal.Journal
 }
@@ -450,6 +467,7 @@ pub fn ResidentSourceCompute::capture_effect_dependency(Self, @run_publication_h
 pub fn ResidentSourceCompute::capture_effect_result(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientEffectImportedEvidence, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[ResidentEffectResultCapture, ResidentEffectResultCaptureIssue]
 pub fn ResidentSourceCompute::capture_effect_run(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ResidentEffectResultCapture, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], @run_publication.CapturedEffectDependencyInventory, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int) -> Result[@run_publication.PublicationContract, ResidentEffectRunCaptureIssue]
 pub fn ResidentSourceCompute::close(Self) -> Bool
+pub fn ResidentSourceCompute::effect_materials_for_capture(Self) -> @run_publication_host.ClientEffectRunMaterials?
 pub fn ResidentSourceCompute::effect_run(Self) -> @physical_strategy.CapturedEffectRunDAG?
 pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::issue_effect_source_artifact(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientEffectSourceArtifactIssue]
