@@ -1,6 +1,6 @@
 {
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-09.1",
+  "revision": "2026-10-09.3",
   "reason_schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
@@ -674,6 +674,37 @@
               },
               "stage": {
                 "const": "checking"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "namespace",
+              "connector",
+              "resource"
+            ],
+            "properties": {
+              "namespace": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "connector": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536
+              },
+              "resource": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536
+              },
+              "view": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536
               }
             }
           },
@@ -1670,6 +1701,68 @@
         "if": {
           "properties": {
             "code": {
+              "const": "source_selector_unregistered"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "facts"
+          ],
+          "properties": {
+            "facts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "namespace",
+                "connector",
+                "resource"
+              ],
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "connector": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 65536
+                },
+                "resource": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 65536
+                },
+                "view": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 65536
+                }
+              }
+            },
+            "location": {
+              "properties": {
+                "kind": {
+                  "const": "structured"
+                },
+                "document_id": {
+                  "const": "program"
+                }
+              }
+            }
+          },
+          "not": {
+            "required": [
+              "fixes"
+            ]
+          }
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "code": {
               "const": "query_alias_absent"
             }
           }
@@ -1758,6 +1851,7 @@
                   "host_capacity_policy_required",
                   "numeric_reduction_profile_required",
                   "program_structure_invalid",
+                  "source_selector_unregistered",
                   "query_alias_absent"
                 ]
               }
@@ -2902,6 +2996,33 @@
         {
           "file": "adapters/host-node/client-check.test.mjs",
           "scenario": "authored syntax locations retain exact UTF-8 input revisions"
+        }
+      ]
+    },
+    {
+      "code": "source_selector_unregistered",
+      "condition": "The existing selector resolver proves no installed registration matches this authored selector in a complete unfiltered namespace at the inspected configuration revision. This does not establish Provider Resource absence.",
+      "facts_schema": "#/reason_schema",
+      "disclosure": "Emit only after original installed registration custody, complete common Catalog admission, actual resolver witness and fresh namespace-specific absence disclosure. Hidden registered selectors remain protected; no private candidates or Provider existence information is disclosed.",
+      "locations": [
+        "Original structured Program selector or its existing parent; no text span or automatic edit."
+      ],
+      "default_severity": "error",
+      "family": "input",
+      "presentation": {
+        "default": {
+          "key": "reason.source_selector_unregistered",
+          "english": [
+            "The submitted Source selector has no matching installed registration in the inspected namespace.",
+            "Check the selector and the Host registration configuration, then recheck the original input. This does not prove that a Provider Resource is absent or authorize execution."
+          ]
+        },
+        "variants": []
+      },
+      "examples": [
+        {
+          "file": "adapters/host-node/source-selector-check.test.mjs",
+          "scenario": "complete registration namespace discloses only the original unregistered selector"
         }
       ]
     },

@@ -9,7 +9,7 @@ priv struct JoinChainScope {
 }
 
 ///|
-// RIGHT/FULL JOIN, GROUP, star and DISTINCT need the shared joined-row scope.
+// RIGHT/FULL JOIN, GROUP, star, DISTINCT and RENAME need the shared row scope.
 // DISTINCT ORDER expressions resolve after materialization, using evaluated
 // output aliases rather than the projection-only specialization's input scope.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
@@ -22,7 +22,7 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
   }
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index)
-      is Some(Group(_, _, _) | Qualify(_, _) | UnnestSource(_, _, _)) {
+      is Some(Group(_, _, _) | Qualify(_, _) | UnnestSource(_, _, _) | Rename(_)) {
       return true
     }
     if @query.operation_at(query, index) is Some(Select(projections, distinct)) &&

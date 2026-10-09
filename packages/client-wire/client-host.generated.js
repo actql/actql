@@ -8453,7 +8453,8 @@ const schemas = {
                           "type": "object",
                           "required": [
                             "namespace",
-                            "reference"
+                            "connector",
+                            "resource"
                           ],
                           "additionalProperties": false,
                           "properties": {
@@ -8462,1781 +8463,20 @@ const schemas = {
                               "minLength": 1,
                               "maxLength": 256
                             },
-                            "reference": {
-                              "type": "array",
-                              "minItems": 1,
-                              "maxItems": 8192,
-                              "items": {
-                                "type": "object",
-                                "required": [
-                                  "value",
-                                  "quoted"
-                                ],
-                                "additionalProperties": false,
-                                "properties": {
-                                  "value": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "maxLength": 65536
-                                  },
-                                  "quoted": {
-                                    "type": "boolean"
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "allOf": [
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "program_structure_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "issue"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "issue": {
-                                "enum": [
-                                  "missing_field",
-                                  "wrong_type",
-                                  "unexpected_null",
-                                  "invalid_structure"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "const": "program"
-                              }
-                            }
-                          }
-                        },
-                        "not": {
-                          "required": [
-                            "fixes"
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "numeric_reduction_profile_required"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "profile_cid",
-                              "supplier",
-                              "stage"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "profile_cid": {
-                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
-                              },
-                              "supplier": {
-                                "const": "checking_context_owner"
-                              },
-                              "stage": {
-                                "const": "checking"
-                              }
-                            }
-                          }
-                        },
-                        "allOf": [
-                          {
-                            "not": {
-                              "required": [
-                                "location"
-                              ]
-                            }
-                          },
-                          {
-                            "not": {
-                              "required": [
-                                "fixes"
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "not": {
-                              "const": "numeric_reduction_profile_required"
-                            }
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "facts": {
-                            "not": {
-                              "required": [
-                                "profile_cid"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "host_capacity_policy_required"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "contract_cid",
-                              "schema_cid",
-                              "schema_pointer",
-                              "supplier",
-                              "stage"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
-                              },
-                              "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
-                              },
-                              "schema_pointer": {
-                                "const": "/schema"
-                              },
-                              "supplier": {
-                                "const": "checking_context_owner"
-                              },
-                              "stage": {
-                                "const": "checking"
-                              }
-                            }
-                          }
-                        },
-                        "allOf": [
-                          {
-                            "not": {
-                              "required": [
-                                "location"
-                              ]
-                            }
-                          },
-                          {
-                            "not": {
-                              "required": [
-                                "fixes"
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "not": {
-                              "const": "host_capacity_policy_required"
-                            }
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "facts": {
-                            "not": {
-                              "required": [
-                                "schema_pointer"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "implementation_limit"
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "issue"
-                            ],
-                            "properties": {
-                              "issue": {
-                                "const": "function_lowering_unresolved"
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "not": {
-                              "const": "parameter_value_required"
-                            }
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "facts": {
-                            "not": {
-                              "required": [
-                                "admission"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "required": [
-                          "fixes"
-                        ]
-                      },
-                      "then": {
-                        "required": [
-                          "facts",
-                          "location"
-                        ],
-                        "properties": {
-                          "code": {
-                            "const": "query_lexical_invalid"
-                          },
-                          "facts": {
-                            "properties": {
-                              "issue": {
-                                "const": "unterminated_comment"
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "text"
-                              },
-                              "precision": {
-                                "const": "exact"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "enum": [
-                              "query_syntax_invalid",
-                              "parameter_undeclared"
-                            ]
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "text"
-                              },
-                              "document_id": {
-                                "const": "source"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "enum": [
-                              "supplied_value_type_mismatch",
-                              "supplied_value_constraint_violation",
-                              "supplied_value_invalid",
-                              "supplied_parameters_invalid"
-                            ]
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "const": "parameters"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "enum": [
-                              "parameter_declarations_invalid",
-                              "parameter_value_required"
-                            ]
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "parameter_declarations",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "supplied_value_type_mismatch"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "actual_type"
-                            ]
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "parameter_default_type_mismatch"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "actual_type"
-                            ]
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "parameter_declarations",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "parameter_undeclared"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "parameter"
-                            ],
-                            "allOf": [
-                              {
-                                "not": {
-                                  "required": [
-                                    "expected_type"
-                                  ]
-                                }
-                              },
-                              {
-                                "not": {
-                                  "required": [
-                                    "constraint"
-                                  ]
-                                }
-                              },
-                              {
-                                "not": {
-                                  "required": [
-                                    "domain"
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "parameter_value_required"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "parameter",
-                              "expected_type"
-                            ],
-                            "not": {
-                              "required": [
-                                "actual_type"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "parameter_unused"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "parameter"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "parameter": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "parameter_declarations",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "supplied_value_constraint_violation"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "constraint"
-                            ]
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "expression_type_mismatch"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "expected_type"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "expected_type": {
-                                "enum": [
-                                  "number",
-                                  "boolean",
-                                  "string"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "operation_parameter_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "domain"
-                            ]
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "parameters",
-                                  "parameter_declarations"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "binding_json_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "document",
-                              "issue"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "document": {
-                                "enum": [
-                                  "parameters",
-                                  "parameter_declarations"
-                                ]
-                              },
-                              "issue": {
-                                "enum": [
-                                  "invalid_unicode",
-                                  "unexpected_end",
-                                  "unexpected_token",
-                                  "invalid_string",
-                                  "invalid_escape",
-                                  "invalid_number",
-                                  "number_out_of_range",
-                                  "negative_zero",
-                                  "expected_colon",
-                                  "expected_array_separator",
-                                  "expected_object_separator",
-                                  "duplicate_key",
-                                  "trailing_content"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              }
-                            }
-                          }
-                        },
-                        "allOf": [
-                          {
-                            "if": {
-                              "properties": {
-                                "facts": {
-                                  "properties": {
-                                    "document": {
-                                      "const": "parameters"
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            "then": {
-                              "properties": {
-                                "location": {
-                                  "properties": {
-                                    "document_id": {
-                                      "const": "parameters"
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          {
-                            "if": {
-                              "properties": {
-                                "facts": {
-                                  "properties": {
-                                    "document": {
-                                      "const": "parameter_declarations"
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            "then": {
-                              "properties": {
-                                "location": {
-                                  "properties": {
-                                    "document_id": {
-                                      "const": "parameter_declarations"
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "query_lexical_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "issue"
-                            ],
-                            "properties": {
-                              "issue": {
-                                "enum": [
-                                  "unexpected_end",
-                                  "unexpected_token",
-                                  "invalid_escape",
-                                  "invalid_scalar",
-                                  "empty_identifier",
-                                  "unterminated_comment",
-                                  "invalid_number",
-                                  "invalid_parameter"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "text"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "query_expression_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "issue"
-                            ],
-                            "properties": {
-                              "issue": {
-                                "enum": [
-                                  "unknown_reference",
-                                  "invalid_arguments",
-                                  "invalid_number",
-                                  "expected_boolean"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "query_frame_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "issue"
-                            ],
-                            "properties": {
-                              "issue": {
-                                "enum": [
-                                  "invalid_bounds"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "graph_operation_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "operation",
-                              "issue"
-                            ],
-                            "properties": {
-                              "operation": {
-                                "enum": [
-                                  "components",
-                                  "subgraph"
-                                ]
-                              },
-                              "issue": {
-                                "enum": [
-                                  "invalid_kind",
-                                  "invalid_output_rows",
-                                  "invalid_node_selector"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "query_alias_absent"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "namespace",
-                              "reference"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "namespace": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256
-                              },
-                              "reference": {
-                                "type": "array",
-                                "minItems": 1,
-                                "maxItems": 8192,
-                                "items": {
-                                  "type": "object",
-                                  "required": [
-                                    "value",
-                                    "quoted"
-                                  ],
-                                  "additionalProperties": false,
-                                  "properties": {
-                                    "value": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 65536
-                                    },
-                                    "quoted": {
-                                      "type": "boolean"
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "text"
-                              },
-                              "document_id": {
-                                "const": "source"
-                              }
-                            }
-                          }
-                        },
-                        "not": {
-                          "required": [
-                            "fixes"
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "not": {
-                              "enum": [
-                                "supplied_value_type_mismatch",
-                                "parameter_default_type_mismatch",
-                                "parameter_value_required",
-                                "parameter_undeclared",
-                                "parameter_unused",
-                                "supplied_value_constraint_violation",
-                                "binding_json_invalid",
-                                "query_lexical_invalid",
-                                "query_expression_invalid",
-                                "query_frame_invalid",
-                                "graph_operation_invalid",
-                                "operation_parameter_invalid",
-                                "expression_type_mismatch",
-                                "implementation_limit",
-                                "host_capacity_policy_required",
-                                "numeric_reduction_profile_required",
-                                "program_structure_invalid",
-                                "query_alias_absent"
-                              ]
-                            }
-                          }
-                        }
-                      },
-                      "then": {
-                        "not": {
-                          "required": [
-                            "facts"
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "not": {
-                        "properties": {
-                          "code": {
-                            "enum": [
-                              "parameter_value_required",
-                              "host_capacity_policy_required",
-                              "numeric_reduction_profile_required"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              "requirements": {
-                "type": "array",
-                "maxItems": 1024,
-                "items": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "facts"
-                  ],
-                  "additionalProperties": false,
-                  "properties": {
-                    "code": {
-                      "enum": [
-                        "parameter_value_required",
-                        "host_capacity_policy_required",
-                        "numeric_reduction_profile_required"
-                      ]
-                    },
-                    "location": {
-                      "oneOf": [
-                        {
-                          "type": "object",
-                          "required": [
-                            "kind",
-                            "document_id",
-                            "revision",
-                            "start_byte",
-                            "end_byte",
-                            "precision"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "text"
-                            },
-                            "document_id": {
-                              "const": "source"
-                            },
-                            "revision": {
-                              "type": "string",
-                              "pattern": "^rev:[0-9a-f]{64}$"
-                            },
-                            "start_byte": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "maximum": 1048576
-                            },
-                            "end_byte": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "maximum": 1048576
-                            },
-                            "precision": {
-                              "enum": [
-                                "exact",
-                                "approximate"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "kind",
-                            "document_id",
-                            "revision",
-                            "pointer"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "structured"
-                            },
-                            "document_id": {
-                              "enum": [
-                                "program",
-                                "parameter_declarations",
-                                "parameters"
-                              ]
-                            },
-                            "revision": {
-                              "type": "string",
-                              "pattern": "^rev:[0-9a-f]{64}$"
-                            },
-                            "pointer": {
-                              "type": "string",
-                              "pattern": "^(?:/(?:[^~]|~[01])*)*$",
-                              "maxLength": 4096
-                            }
-                          }
-                        }
-                      ]
-                    },
-                    "fixes": {
-                      "type": "array",
-                      "minItems": 1,
-                      "maxItems": 1,
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "code",
-                          "applicability",
-                          "risk",
-                          "target",
-                          "edits"
-                        ],
-                        "additionalProperties": false,
-                        "properties": {
-                          "code": {
-                            "const": "close_block_comment"
-                          },
-                          "applicability": {
-                            "const": "requires_review"
-                          },
-                          "risk": {
-                            "const": "syntax_structure"
-                          },
-                          "target": {
-                            "type": "object",
-                            "required": [
-                              "document_id",
-                              "revision"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "document_id": {
-                                "const": "source"
-                              },
-                              "revision": {
-                                "type": "string",
-                                "pattern": "^rev:[0-9a-f]{64}$"
-                              }
-                            }
-                          },
-                          "edits": {
-                            "type": "array",
-                            "minItems": 1,
-                            "maxItems": 1,
-                            "items": {
-                              "type": "object",
-                              "required": [
-                                "start_byte",
-                                "end_byte",
-                                "replacement"
-                              ],
-                              "additionalProperties": false,
-                              "properties": {
-                                "start_byte": {
-                                  "type": "integer",
-                                  "minimum": 0,
-                                  "maximum": 1048576
-                                },
-                                "end_byte": {
-                                  "type": "integer",
-                                  "minimum": 0,
-                                  "maximum": 1048576
-                                },
-                                "replacement": {
-                                  "const": "*/"
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "facts": {
-                      "oneOf": [
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
+                            "connector": {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 256
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter",
-                            "expected_type",
-                            "actual_type"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
+                              "maxLength": 65536
+                            },
+                            "resource": {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 256
+                              "maxLength": 65536
                             },
-                            "expected_type": {
-                              "enum": [
-                                "null",
-                                "boolean",
-                                "number",
-                                "string",
-                                "array",
-                                "object",
-                                "date",
-                                "timestamp",
-                                "decimal",
-                                "json",
-                                "vector",
-                                "resource_ref",
-                                "artifact_ref"
-                              ]
-                            },
-                            "actual_type": {
-                              "enum": [
-                                "null",
-                                "boolean",
-                                "number",
-                                "string",
-                                "array",
-                                "object",
-                                "date",
-                                "timestamp",
-                                "decimal",
-                                "json",
-                                "vector",
-                                "resource_ref",
-                                "artifact_ref"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter",
-                            "expected_type"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
+                            "view": {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 256
-                            },
-                            "expected_type": {
-                              "enum": [
-                                "null",
-                                "boolean",
-                                "number",
-                                "string",
-                                "array",
-                                "object",
-                                "date",
-                                "timestamp",
-                                "decimal",
-                                "json",
-                                "vector",
-                                "resource_ref",
-                                "artifact_ref"
-                              ]
-                            },
-                            "admission": {
-                              "type": "object",
-                              "required": [
-                                "kind",
-                                "contract_schema_cid",
-                                "contract",
-                                "constraints",
-                                "supplier"
-                              ],
-                              "additionalProperties": false,
-                              "properties": {
-                                "contract_schema_cid": {
-                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
-                                },
-                                "kind": {
-                                  "const": "parameter_declaration"
-                                },
-                                "contract": {
-                                  "$ref": "value_contract"
-                                },
-                                "supplier": {
-                                  "const": "caller"
-                                },
-                                "constraints": {
-                                  "type": "array",
-                                  "maxItems": 8192,
-                                  "items": {
-                                    "oneOf": [
-                                      {
-                                        "type": "object",
-                                        "required": [
-                                          "kind",
-                                          "path",
-                                          "integer"
-                                        ],
-                                        "additionalProperties": false,
-                                        "properties": {
-                                          "kind": {
-                                            "const": "numeric"
-                                          },
-                                          "path": {
-                                            "type": "array",
-                                            "maxItems": 64,
-                                            "items": {
-                                              "oneOf": [
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind",
-                                                    "name"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "field"
-                                                    },
-                                                    "name": {
-                                                      "type": "string",
-                                                      "minLength": 1,
-                                                      "maxLength": 65536
-                                                    }
-                                                  }
-                                                },
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "items"
-                                                    }
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          },
-                                          "integer": {
-                                            "type": "boolean"
-                                          },
-                                          "minimum": {
-                                            "type": "number"
-                                          },
-                                          "maximum": {
-                                            "type": "number"
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "type": "object",
-                                        "required": [
-                                          "kind",
-                                          "path"
-                                        ],
-                                        "additionalProperties": false,
-                                        "properties": {
-                                          "kind": {
-                                            "const": "duration"
-                                          },
-                                          "path": {
-                                            "type": "array",
-                                            "maxItems": 64,
-                                            "items": {
-                                              "oneOf": [
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind",
-                                                    "name"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "field"
-                                                    },
-                                                    "name": {
-                                                      "type": "string",
-                                                      "minLength": 1,
-                                                      "maxLength": 65536
-                                                    }
-                                                  }
-                                                },
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "items"
-                                                    }
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "type": "object",
-                                        "required": [
-                                          "kind",
-                                          "path",
-                                          "length"
-                                        ],
-                                        "additionalProperties": false,
-                                        "properties": {
-                                          "kind": {
-                                            "const": "array_length"
-                                          },
-                                          "path": {
-                                            "type": "array",
-                                            "maxItems": 64,
-                                            "items": {
-                                              "oneOf": [
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind",
-                                                    "name"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "field"
-                                                    },
-                                                    "name": {
-                                                      "type": "string",
-                                                      "minLength": 1,
-                                                      "maxLength": 65536
-                                                    }
-                                                  }
-                                                },
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "items"
-                                                    }
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          },
-                                          "length": {
-                                            "type": "integer",
-                                            "minimum": 1,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      }
-                                    ]
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter",
-                            "constraint"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 256
-                            },
-                            "constraint": {
-                              "enum": [
-                                "numeric",
-                                "duration",
-                                "array_length",
-                                "array_size"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "expected_type"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "expected_type": {
-                              "enum": [
-                                "number",
-                                "boolean",
-                                "string"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter",
-                            "domain"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 256
-                            },
-                            "domain": {
-                              "enum": [
-                                "positive_safe_integer",
-                                "nonnegative_safe_integer",
-                                "unit_fraction",
-                                "finite_number",
-                                "duration",
-                                "positive_milliseconds",
-                                "signed_milliseconds",
-                                "timestamp"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "operation",
-                            "issue"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "operation": {
-                              "const": "components"
-                            },
-                            "issue": {
-                              "enum": [
-                                "invalid_kind",
-                                "invalid_output_rows"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "operation",
-                            "issue"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "operation": {
-                              "const": "subgraph"
-                            },
-                            "issue": {
-                              "enum": [
-                                "invalid_node_selector"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "document",
-                            "issue"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "document": {
-                              "enum": [
-                                "parameters",
-                                "parameter_declarations"
-                              ]
-                            },
-                            "issue": {
-                              "enum": [
-                                "invalid_unicode",
-                                "unexpected_end",
-                                "unexpected_token",
-                                "invalid_string",
-                                "invalid_escape",
-                                "invalid_number",
-                                "number_out_of_range",
-                                "negative_zero",
-                                "expected_colon",
-                                "expected_array_separator",
-                                "expected_object_separator",
-                                "duplicate_key",
-                                "trailing_content"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "issue"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "issue": {
-                              "enum": [
-                                "unexpected_end",
-                                "unexpected_token",
-                                "invalid_escape",
-                                "invalid_scalar",
-                                "empty_identifier",
-                                "unterminated_comment",
-                                "invalid_number",
-                                "invalid_parameter",
-                                "unknown_reference",
-                                "invalid_arguments",
-                                "expected_boolean",
-                                "invalid_bounds",
-                                "function_lowering_unresolved",
-                                "missing_field",
-                                "wrong_type",
-                                "unexpected_null",
-                                "invalid_structure"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "contract_cid",
-                            "schema_cid",
-                            "schema_pointer",
-                            "supplier",
-                            "stage"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "contract_cid": {
-                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
-                            },
-                            "schema_cid": {
-                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
-                            },
-                            "schema_pointer": {
-                              "const": "/schema"
-                            },
-                            "supplier": {
-                              "const": "checking_context_owner"
-                            },
-                            "stage": {
-                              "const": "checking"
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "profile_cid",
-                            "supplier",
-                            "stage"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "profile_cid": {
-                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
-                            },
-                            "supplier": {
-                              "const": "checking_context_owner"
-                            },
-                            "stage": {
-                              "const": "checking"
+                              "maxLength": 65536
                             }
                           }
                         },
@@ -11233,6 +9473,68 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "source_selector_unregistered"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "query_alias_absent"
                           }
                         }
@@ -11321,6 +9623,1892 @@ const schemas = {
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
                                 "program_structure_invalid",
+                                "source_selector_unregistered",
+                                "query_alias_absent"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "not": {
+                          "required": [
+                            "facts"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_value_required",
+                              "host_capacity_policy_required",
+                              "numeric_reduction_profile_required"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "requirements": {
+                "type": "array",
+                "maxItems": 1024,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "facts"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "parameter_value_required",
+                        "host_capacity_policy_required",
+                        "numeric_reduction_profile_required"
+                      ]
+                    },
+                    "location": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "kind",
+                            "document_id",
+                            "revision",
+                            "start_byte",
+                            "end_byte",
+                            "precision"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "text"
+                            },
+                            "document_id": {
+                              "const": "source"
+                            },
+                            "revision": {
+                              "type": "string",
+                              "pattern": "^rev:[0-9a-f]{64}$"
+                            },
+                            "start_byte": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1048576
+                            },
+                            "end_byte": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1048576
+                            },
+                            "precision": {
+                              "enum": [
+                                "exact",
+                                "approximate"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "kind",
+                            "document_id",
+                            "revision",
+                            "pointer"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "structured"
+                            },
+                            "document_id": {
+                              "enum": [
+                                "program",
+                                "parameter_declarations",
+                                "parameters"
+                              ]
+                            },
+                            "revision": {
+                              "type": "string",
+                              "pattern": "^rev:[0-9a-f]{64}$"
+                            },
+                            "pointer": {
+                              "type": "string",
+                              "pattern": "^(?:/(?:[^~]|~[01])*)*$",
+                              "maxLength": 4096
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "fixes": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code",
+                          "applicability",
+                          "risk",
+                          "target",
+                          "edits"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "code": {
+                            "const": "close_block_comment"
+                          },
+                          "applicability": {
+                            "const": "requires_review"
+                          },
+                          "risk": {
+                            "const": "syntax_structure"
+                          },
+                          "target": {
+                            "type": "object",
+                            "required": [
+                              "document_id",
+                              "revision"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "edits": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 1,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "start_byte",
+                                "end_byte",
+                                "replacement"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "start_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "end_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "replacement": {
+                                  "const": "*/"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "facts": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "expected_type",
+                            "actual_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "expected_type": {
+                              "enum": [
+                                "null",
+                                "boolean",
+                                "number",
+                                "string",
+                                "array",
+                                "object",
+                                "date",
+                                "timestamp",
+                                "decimal",
+                                "json",
+                                "vector",
+                                "resource_ref",
+                                "artifact_ref"
+                              ]
+                            },
+                            "actual_type": {
+                              "enum": [
+                                "null",
+                                "boolean",
+                                "number",
+                                "string",
+                                "array",
+                                "object",
+                                "date",
+                                "timestamp",
+                                "decimal",
+                                "json",
+                                "vector",
+                                "resource_ref",
+                                "artifact_ref"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "expected_type": {
+                              "enum": [
+                                "null",
+                                "boolean",
+                                "number",
+                                "string",
+                                "array",
+                                "object",
+                                "date",
+                                "timestamp",
+                                "decimal",
+                                "json",
+                                "vector",
+                                "resource_ref",
+                                "artifact_ref"
+                              ]
+                            },
+                            "admission": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "contract_schema_cid",
+                                "contract",
+                                "constraints",
+                                "supplier"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "contract_schema_cid": {
+                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                },
+                                "kind": {
+                                  "const": "parameter_declaration"
+                                },
+                                "contract": {
+                                  "$ref": "value_contract"
+                                },
+                                "supplier": {
+                                  "const": "caller"
+                                },
+                                "constraints": {
+                                  "type": "array",
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "integer"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "numeric"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "integer": {
+                                            "type": "boolean"
+                                          },
+                                          "minimum": {
+                                            "type": "number"
+                                          },
+                                          "maximum": {
+                                            "type": "number"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "duration"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "length"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "array_length"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "length": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 9007199254740991
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "constraint"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "constraint": {
+                              "enum": [
+                                "numeric",
+                                "duration",
+                                "array_length",
+                                "array_size"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "domain": {
+                              "enum": [
+                                "positive_safe_integer",
+                                "nonnegative_safe_integer",
+                                "unit_fraction",
+                                "finite_number",
+                                "duration",
+                                "positive_milliseconds",
+                                "signed_milliseconds",
+                                "timestamp"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "operation",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "operation": {
+                              "const": "components"
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_kind",
+                                "invalid_output_rows"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "operation",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "operation": {
+                              "const": "subgraph"
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_node_selector"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "document",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "document": {
+                              "enum": [
+                                "parameters",
+                                "parameter_declarations"
+                              ]
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_unicode",
+                                "unexpected_end",
+                                "unexpected_token",
+                                "invalid_string",
+                                "invalid_escape",
+                                "invalid_number",
+                                "number_out_of_range",
+                                "negative_zero",
+                                "expected_colon",
+                                "expected_array_separator",
+                                "expected_object_separator",
+                                "duplicate_key",
+                                "trailing_content"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "issue": {
+                              "enum": [
+                                "unexpected_end",
+                                "unexpected_token",
+                                "invalid_escape",
+                                "invalid_scalar",
+                                "empty_identifier",
+                                "unterminated_comment",
+                                "invalid_number",
+                                "invalid_parameter",
+                                "unknown_reference",
+                                "invalid_arguments",
+                                "expected_boolean",
+                                "invalid_bounds",
+                                "function_lowering_unresolved",
+                                "missing_field",
+                                "wrong_type",
+                                "unexpected_null",
+                                "invalid_structure"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "contract_cid",
+                            "schema_cid",
+                            "schema_pointer",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "contract_cid": {
+                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                            },
+                            "schema_cid": {
+                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                            },
+                            "schema_pointer": {
+                              "const": "/schema"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "connector",
+                            "resource"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "connector": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "resource": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "view": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "reference"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "reference": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 8192,
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "value",
+                                  "quoted"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 65536
+                                  },
+                                  "quoted": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "program_structure_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "host_capacity_policy_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "contract_cid",
+                              "schema_cid",
+                              "schema_pointer",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "contract_cid": {
+                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              },
+                              "schema_cid": {
+                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              },
+                              "schema_pointer": {
+                                "const": "/schema"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "host_capacity_policy_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "schema_pointer"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "implementation_limit"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "const": "function_lowering_unresolved"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "admission"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "required": [
+                          "fixes"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "facts",
+                          "location"
+                        ],
+                        "properties": {
+                          "code": {
+                            "const": "query_lexical_invalid"
+                          },
+                          "facts": {
+                            "properties": {
+                              "issue": {
+                                "const": "unterminated_comment"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "precision": {
+                                "const": "exact"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "supplied_value_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "actual_type"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_default_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "actual_type"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_undeclared"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "parameter"
+                            ],
+                            "allOf": [
+                              {
+                                "not": {
+                                  "required": [
+                                    "expected_type"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "constraint"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "domain"
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_value_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "parameter",
+                              "expected_type"
+                            ],
+                            "not": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_unused"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "parameter"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "supplied_value_constraint_violation"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "constraint"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "operation_parameter_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "domain"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "binding_json_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "document",
+                              "issue"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "document": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_unicode",
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_string",
+                                  "invalid_escape",
+                                  "invalid_number",
+                                  "number_out_of_range",
+                                  "negative_zero",
+                                  "expected_colon",
+                                  "expected_array_separator",
+                                  "expected_object_separator",
+                                  "duplicate_key",
+                                  "trailing_content"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "facts": {
+                                  "properties": {
+                                    "document": {
+                                      "const": "parameters"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "location": {
+                                  "properties": {
+                                    "document_id": {
+                                      "const": "parameters"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "facts": {
+                                  "properties": {
+                                    "document": {
+                                      "const": "parameter_declarations"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "location": {
+                                  "properties": {
+                                    "document_id": {
+                                      "const": "parameter_declarations"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_lexical_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_expression_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "invalid_number",
+                                  "expected_boolean"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "graph_operation_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "enum": [
+                                  "components",
+                                  "subgraph"
+                                ]
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows",
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "source_selector_unregistered"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_alias_absent"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "parameter_default_type_mismatch",
+                                "parameter_value_required",
+                                "parameter_undeclared",
+                                "parameter_unused",
+                                "supplied_value_constraint_violation",
+                                "binding_json_invalid",
+                                "query_lexical_invalid",
+                                "query_expression_invalid",
+                                "query_frame_invalid",
+                                "graph_operation_invalid",
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch",
+                                "implementation_limit",
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required",
+                                "program_structure_invalid",
+                                "source_selector_unregistered",
                                 "query_alias_absent"
                               ]
                             }
@@ -11508,7 +11696,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
+            "const": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -12439,7 +12627,8 @@ const schemas = {
                           "type": "object",
                           "required": [
                             "namespace",
-                            "reference"
+                            "connector",
+                            "resource"
                           ],
                           "additionalProperties": false,
                           "properties": {
@@ -12448,1781 +12637,20 @@ const schemas = {
                               "minLength": 1,
                               "maxLength": 256
                             },
-                            "reference": {
-                              "type": "array",
-                              "minItems": 1,
-                              "maxItems": 8192,
-                              "items": {
-                                "type": "object",
-                                "required": [
-                                  "value",
-                                  "quoted"
-                                ],
-                                "additionalProperties": false,
-                                "properties": {
-                                  "value": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "maxLength": 65536
-                                  },
-                                  "quoted": {
-                                    "type": "boolean"
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "allOf": [
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "program_structure_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "issue"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "issue": {
-                                "enum": [
-                                  "missing_field",
-                                  "wrong_type",
-                                  "unexpected_null",
-                                  "invalid_structure"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "const": "program"
-                              }
-                            }
-                          }
-                        },
-                        "not": {
-                          "required": [
-                            "fixes"
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "numeric_reduction_profile_required"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "profile_cid",
-                              "supplier",
-                              "stage"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "profile_cid": {
-                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
-                              },
-                              "supplier": {
-                                "const": "checking_context_owner"
-                              },
-                              "stage": {
-                                "const": "checking"
-                              }
-                            }
-                          }
-                        },
-                        "allOf": [
-                          {
-                            "not": {
-                              "required": [
-                                "location"
-                              ]
-                            }
-                          },
-                          {
-                            "not": {
-                              "required": [
-                                "fixes"
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "not": {
-                              "const": "numeric_reduction_profile_required"
-                            }
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "facts": {
-                            "not": {
-                              "required": [
-                                "profile_cid"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "host_capacity_policy_required"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "contract_cid",
-                              "schema_cid",
-                              "schema_pointer",
-                              "supplier",
-                              "stage"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
-                              },
-                              "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
-                              },
-                              "schema_pointer": {
-                                "const": "/schema"
-                              },
-                              "supplier": {
-                                "const": "checking_context_owner"
-                              },
-                              "stage": {
-                                "const": "checking"
-                              }
-                            }
-                          }
-                        },
-                        "allOf": [
-                          {
-                            "not": {
-                              "required": [
-                                "location"
-                              ]
-                            }
-                          },
-                          {
-                            "not": {
-                              "required": [
-                                "fixes"
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "not": {
-                              "const": "host_capacity_policy_required"
-                            }
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "facts": {
-                            "not": {
-                              "required": [
-                                "schema_pointer"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "implementation_limit"
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "issue"
-                            ],
-                            "properties": {
-                              "issue": {
-                                "const": "function_lowering_unresolved"
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "not": {
-                              "const": "parameter_value_required"
-                            }
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "facts": {
-                            "not": {
-                              "required": [
-                                "admission"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "required": [
-                          "fixes"
-                        ]
-                      },
-                      "then": {
-                        "required": [
-                          "facts",
-                          "location"
-                        ],
-                        "properties": {
-                          "code": {
-                            "const": "query_lexical_invalid"
-                          },
-                          "facts": {
-                            "properties": {
-                              "issue": {
-                                "const": "unterminated_comment"
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "text"
-                              },
-                              "precision": {
-                                "const": "exact"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "enum": [
-                              "query_syntax_invalid",
-                              "parameter_undeclared"
-                            ]
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "text"
-                              },
-                              "document_id": {
-                                "const": "source"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "enum": [
-                              "supplied_value_type_mismatch",
-                              "supplied_value_constraint_violation",
-                              "supplied_value_invalid",
-                              "supplied_parameters_invalid"
-                            ]
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "const": "parameters"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "enum": [
-                              "parameter_declarations_invalid",
-                              "parameter_value_required"
-                            ]
-                          }
-                        }
-                      },
-                      "then": {
-                        "properties": {
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "parameter_declarations",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "supplied_value_type_mismatch"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "actual_type"
-                            ]
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "parameter_default_type_mismatch"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "actual_type"
-                            ]
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "parameter_declarations",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "parameter_undeclared"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "parameter"
-                            ],
-                            "allOf": [
-                              {
-                                "not": {
-                                  "required": [
-                                    "expected_type"
-                                  ]
-                                }
-                              },
-                              {
-                                "not": {
-                                  "required": [
-                                    "constraint"
-                                  ]
-                                }
-                              },
-                              {
-                                "not": {
-                                  "required": [
-                                    "domain"
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "parameter_value_required"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "parameter",
-                              "expected_type"
-                            ],
-                            "not": {
-                              "required": [
-                                "actual_type"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "parameter_unused"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "parameter"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "parameter": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "parameter_declarations",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "supplied_value_constraint_violation"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "constraint"
-                            ]
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "expression_type_mismatch"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "expected_type"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "expected_type": {
-                                "enum": [
-                                  "number",
-                                  "boolean",
-                                  "string"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "operation_parameter_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "domain"
-                            ]
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "parameters",
-                                  "parameter_declarations"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "binding_json_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "document",
-                              "issue"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "document": {
-                                "enum": [
-                                  "parameters",
-                                  "parameter_declarations"
-                                ]
-                              },
-                              "issue": {
-                                "enum": [
-                                  "invalid_unicode",
-                                  "unexpected_end",
-                                  "unexpected_token",
-                                  "invalid_string",
-                                  "invalid_escape",
-                                  "invalid_number",
-                                  "number_out_of_range",
-                                  "negative_zero",
-                                  "expected_colon",
-                                  "expected_array_separator",
-                                  "expected_object_separator",
-                                  "duplicate_key",
-                                  "trailing_content"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "structured"
-                              }
-                            }
-                          }
-                        },
-                        "allOf": [
-                          {
-                            "if": {
-                              "properties": {
-                                "facts": {
-                                  "properties": {
-                                    "document": {
-                                      "const": "parameters"
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            "then": {
-                              "properties": {
-                                "location": {
-                                  "properties": {
-                                    "document_id": {
-                                      "const": "parameters"
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          {
-                            "if": {
-                              "properties": {
-                                "facts": {
-                                  "properties": {
-                                    "document": {
-                                      "const": "parameter_declarations"
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            "then": {
-                              "properties": {
-                                "location": {
-                                  "properties": {
-                                    "document_id": {
-                                      "const": "parameter_declarations"
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "query_lexical_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "issue"
-                            ],
-                            "properties": {
-                              "issue": {
-                                "enum": [
-                                  "unexpected_end",
-                                  "unexpected_token",
-                                  "invalid_escape",
-                                  "invalid_scalar",
-                                  "empty_identifier",
-                                  "unterminated_comment",
-                                  "invalid_number",
-                                  "invalid_parameter"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "text"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "query_expression_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "issue"
-                            ],
-                            "properties": {
-                              "issue": {
-                                "enum": [
-                                  "unknown_reference",
-                                  "invalid_arguments",
-                                  "invalid_number",
-                                  "expected_boolean"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "query_frame_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "issue"
-                            ],
-                            "properties": {
-                              "issue": {
-                                "enum": [
-                                  "invalid_bounds"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "graph_operation_invalid"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "required": [
-                              "operation",
-                              "issue"
-                            ],
-                            "properties": {
-                              "operation": {
-                                "enum": [
-                                  "components",
-                                  "subgraph"
-                                ]
-                              },
-                              "issue": {
-                                "enum": [
-                                  "invalid_kind",
-                                  "invalid_output_rows",
-                                  "invalid_node_selector"
-                                ]
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "enum": [
-                                  "text",
-                                  "structured"
-                                ]
-                              },
-                              "document_id": {
-                                "enum": [
-                                  "source",
-                                  "program"
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "const": "query_alias_absent"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "facts"
-                        ],
-                        "properties": {
-                          "facts": {
-                            "type": "object",
-                            "required": [
-                              "namespace",
-                              "reference"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "namespace": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 256
-                              },
-                              "reference": {
-                                "type": "array",
-                                "minItems": 1,
-                                "maxItems": 8192,
-                                "items": {
-                                  "type": "object",
-                                  "required": [
-                                    "value",
-                                    "quoted"
-                                  ],
-                                  "additionalProperties": false,
-                                  "properties": {
-                                    "value": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 65536
-                                    },
-                                    "quoted": {
-                                      "type": "boolean"
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "location": {
-                            "properties": {
-                              "kind": {
-                                "const": "text"
-                              },
-                              "document_id": {
-                                "const": "source"
-                              }
-                            }
-                          }
-                        },
-                        "not": {
-                          "required": [
-                            "fixes"
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "code": {
-                            "not": {
-                              "enum": [
-                                "supplied_value_type_mismatch",
-                                "parameter_default_type_mismatch",
-                                "parameter_value_required",
-                                "parameter_undeclared",
-                                "parameter_unused",
-                                "supplied_value_constraint_violation",
-                                "binding_json_invalid",
-                                "query_lexical_invalid",
-                                "query_expression_invalid",
-                                "query_frame_invalid",
-                                "graph_operation_invalid",
-                                "operation_parameter_invalid",
-                                "expression_type_mismatch",
-                                "implementation_limit",
-                                "host_capacity_policy_required",
-                                "numeric_reduction_profile_required",
-                                "program_structure_invalid",
-                                "query_alias_absent"
-                              ]
-                            }
-                          }
-                        }
-                      },
-                      "then": {
-                        "not": {
-                          "required": [
-                            "facts"
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "not": {
-                        "properties": {
-                          "code": {
-                            "enum": [
-                              "parameter_value_required",
-                              "host_capacity_policy_required",
-                              "numeric_reduction_profile_required"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              "requirements": {
-                "type": "array",
-                "maxItems": 1024,
-                "items": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "facts"
-                  ],
-                  "additionalProperties": false,
-                  "properties": {
-                    "code": {
-                      "enum": [
-                        "parameter_value_required",
-                        "host_capacity_policy_required",
-                        "numeric_reduction_profile_required"
-                      ]
-                    },
-                    "location": {
-                      "oneOf": [
-                        {
-                          "type": "object",
-                          "required": [
-                            "kind",
-                            "document_id",
-                            "revision",
-                            "start_byte",
-                            "end_byte",
-                            "precision"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "text"
-                            },
-                            "document_id": {
-                              "const": "source"
-                            },
-                            "revision": {
-                              "type": "string",
-                              "pattern": "^rev:[0-9a-f]{64}$"
-                            },
-                            "start_byte": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "maximum": 1048576
-                            },
-                            "end_byte": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "maximum": 1048576
-                            },
-                            "precision": {
-                              "enum": [
-                                "exact",
-                                "approximate"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "kind",
-                            "document_id",
-                            "revision",
-                            "pointer"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "structured"
-                            },
-                            "document_id": {
-                              "enum": [
-                                "program",
-                                "parameter_declarations",
-                                "parameters"
-                              ]
-                            },
-                            "revision": {
-                              "type": "string",
-                              "pattern": "^rev:[0-9a-f]{64}$"
-                            },
-                            "pointer": {
-                              "type": "string",
-                              "pattern": "^(?:/(?:[^~]|~[01])*)*$",
-                              "maxLength": 4096
-                            }
-                          }
-                        }
-                      ]
-                    },
-                    "fixes": {
-                      "type": "array",
-                      "minItems": 1,
-                      "maxItems": 1,
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "code",
-                          "applicability",
-                          "risk",
-                          "target",
-                          "edits"
-                        ],
-                        "additionalProperties": false,
-                        "properties": {
-                          "code": {
-                            "const": "close_block_comment"
-                          },
-                          "applicability": {
-                            "const": "requires_review"
-                          },
-                          "risk": {
-                            "const": "syntax_structure"
-                          },
-                          "target": {
-                            "type": "object",
-                            "required": [
-                              "document_id",
-                              "revision"
-                            ],
-                            "additionalProperties": false,
-                            "properties": {
-                              "document_id": {
-                                "const": "source"
-                              },
-                              "revision": {
-                                "type": "string",
-                                "pattern": "^rev:[0-9a-f]{64}$"
-                              }
-                            }
-                          },
-                          "edits": {
-                            "type": "array",
-                            "minItems": 1,
-                            "maxItems": 1,
-                            "items": {
-                              "type": "object",
-                              "required": [
-                                "start_byte",
-                                "end_byte",
-                                "replacement"
-                              ],
-                              "additionalProperties": false,
-                              "properties": {
-                                "start_byte": {
-                                  "type": "integer",
-                                  "minimum": 0,
-                                  "maximum": 1048576
-                                },
-                                "end_byte": {
-                                  "type": "integer",
-                                  "minimum": 0,
-                                  "maximum": 1048576
-                                },
-                                "replacement": {
-                                  "const": "*/"
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "facts": {
-                      "oneOf": [
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
+                            "connector": {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 256
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter",
-                            "expected_type",
-                            "actual_type"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
+                              "maxLength": 65536
+                            },
+                            "resource": {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 256
+                              "maxLength": 65536
                             },
-                            "expected_type": {
-                              "enum": [
-                                "null",
-                                "boolean",
-                                "number",
-                                "string",
-                                "array",
-                                "object",
-                                "date",
-                                "timestamp",
-                                "decimal",
-                                "json",
-                                "vector",
-                                "resource_ref",
-                                "artifact_ref"
-                              ]
-                            },
-                            "actual_type": {
-                              "enum": [
-                                "null",
-                                "boolean",
-                                "number",
-                                "string",
-                                "array",
-                                "object",
-                                "date",
-                                "timestamp",
-                                "decimal",
-                                "json",
-                                "vector",
-                                "resource_ref",
-                                "artifact_ref"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter",
-                            "expected_type"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
+                            "view": {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 256
-                            },
-                            "expected_type": {
-                              "enum": [
-                                "null",
-                                "boolean",
-                                "number",
-                                "string",
-                                "array",
-                                "object",
-                                "date",
-                                "timestamp",
-                                "decimal",
-                                "json",
-                                "vector",
-                                "resource_ref",
-                                "artifact_ref"
-                              ]
-                            },
-                            "admission": {
-                              "type": "object",
-                              "required": [
-                                "kind",
-                                "contract_schema_cid",
-                                "contract",
-                                "constraints",
-                                "supplier"
-                              ],
-                              "additionalProperties": false,
-                              "properties": {
-                                "contract_schema_cid": {
-                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
-                                },
-                                "kind": {
-                                  "const": "parameter_declaration"
-                                },
-                                "contract": {
-                                  "$ref": "value_contract"
-                                },
-                                "supplier": {
-                                  "const": "caller"
-                                },
-                                "constraints": {
-                                  "type": "array",
-                                  "maxItems": 8192,
-                                  "items": {
-                                    "oneOf": [
-                                      {
-                                        "type": "object",
-                                        "required": [
-                                          "kind",
-                                          "path",
-                                          "integer"
-                                        ],
-                                        "additionalProperties": false,
-                                        "properties": {
-                                          "kind": {
-                                            "const": "numeric"
-                                          },
-                                          "path": {
-                                            "type": "array",
-                                            "maxItems": 64,
-                                            "items": {
-                                              "oneOf": [
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind",
-                                                    "name"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "field"
-                                                    },
-                                                    "name": {
-                                                      "type": "string",
-                                                      "minLength": 1,
-                                                      "maxLength": 65536
-                                                    }
-                                                  }
-                                                },
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "items"
-                                                    }
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          },
-                                          "integer": {
-                                            "type": "boolean"
-                                          },
-                                          "minimum": {
-                                            "type": "number"
-                                          },
-                                          "maximum": {
-                                            "type": "number"
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "type": "object",
-                                        "required": [
-                                          "kind",
-                                          "path"
-                                        ],
-                                        "additionalProperties": false,
-                                        "properties": {
-                                          "kind": {
-                                            "const": "duration"
-                                          },
-                                          "path": {
-                                            "type": "array",
-                                            "maxItems": 64,
-                                            "items": {
-                                              "oneOf": [
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind",
-                                                    "name"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "field"
-                                                    },
-                                                    "name": {
-                                                      "type": "string",
-                                                      "minLength": 1,
-                                                      "maxLength": 65536
-                                                    }
-                                                  }
-                                                },
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "items"
-                                                    }
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "type": "object",
-                                        "required": [
-                                          "kind",
-                                          "path",
-                                          "length"
-                                        ],
-                                        "additionalProperties": false,
-                                        "properties": {
-                                          "kind": {
-                                            "const": "array_length"
-                                          },
-                                          "path": {
-                                            "type": "array",
-                                            "maxItems": 64,
-                                            "items": {
-                                              "oneOf": [
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind",
-                                                    "name"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "field"
-                                                    },
-                                                    "name": {
-                                                      "type": "string",
-                                                      "minLength": 1,
-                                                      "maxLength": 65536
-                                                    }
-                                                  }
-                                                },
-                                                {
-                                                  "type": "object",
-                                                  "required": [
-                                                    "kind"
-                                                  ],
-                                                  "additionalProperties": false,
-                                                  "properties": {
-                                                    "kind": {
-                                                      "const": "items"
-                                                    }
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          },
-                                          "length": {
-                                            "type": "integer",
-                                            "minimum": 1,
-                                            "maximum": 9007199254740991
-                                          }
-                                        }
-                                      }
-                                    ]
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter",
-                            "constraint"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 256
-                            },
-                            "constraint": {
-                              "enum": [
-                                "numeric",
-                                "duration",
-                                "array_length",
-                                "array_size"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "expected_type"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "expected_type": {
-                              "enum": [
-                                "number",
-                                "boolean",
-                                "string"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "parameter",
-                            "domain"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "parameter": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 256
-                            },
-                            "domain": {
-                              "enum": [
-                                "positive_safe_integer",
-                                "nonnegative_safe_integer",
-                                "unit_fraction",
-                                "finite_number",
-                                "duration",
-                                "positive_milliseconds",
-                                "signed_milliseconds",
-                                "timestamp"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "operation",
-                            "issue"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "operation": {
-                              "const": "components"
-                            },
-                            "issue": {
-                              "enum": [
-                                "invalid_kind",
-                                "invalid_output_rows"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "operation",
-                            "issue"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "operation": {
-                              "const": "subgraph"
-                            },
-                            "issue": {
-                              "enum": [
-                                "invalid_node_selector"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "document",
-                            "issue"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "document": {
-                              "enum": [
-                                "parameters",
-                                "parameter_declarations"
-                              ]
-                            },
-                            "issue": {
-                              "enum": [
-                                "invalid_unicode",
-                                "unexpected_end",
-                                "unexpected_token",
-                                "invalid_string",
-                                "invalid_escape",
-                                "invalid_number",
-                                "number_out_of_range",
-                                "negative_zero",
-                                "expected_colon",
-                                "expected_array_separator",
-                                "expected_object_separator",
-                                "duplicate_key",
-                                "trailing_content"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "issue"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "issue": {
-                              "enum": [
-                                "unexpected_end",
-                                "unexpected_token",
-                                "invalid_escape",
-                                "invalid_scalar",
-                                "empty_identifier",
-                                "unterminated_comment",
-                                "invalid_number",
-                                "invalid_parameter",
-                                "unknown_reference",
-                                "invalid_arguments",
-                                "expected_boolean",
-                                "invalid_bounds",
-                                "function_lowering_unresolved",
-                                "missing_field",
-                                "wrong_type",
-                                "unexpected_null",
-                                "invalid_structure"
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "contract_cid",
-                            "schema_cid",
-                            "schema_pointer",
-                            "supplier",
-                            "stage"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "contract_cid": {
-                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
-                            },
-                            "schema_cid": {
-                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
-                            },
-                            "schema_pointer": {
-                              "const": "/schema"
-                            },
-                            "supplier": {
-                              "const": "checking_context_owner"
-                            },
-                            "stage": {
-                              "const": "checking"
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "profile_cid",
-                            "supplier",
-                            "stage"
-                          ],
-                          "additionalProperties": false,
-                          "properties": {
-                            "profile_cid": {
-                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
-                            },
-                            "supplier": {
-                              "const": "checking_context_owner"
-                            },
-                            "stage": {
-                              "const": "checking"
+                              "maxLength": 65536
                             }
                           }
                         },
@@ -15219,6 +13647,68 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "source_selector_unregistered"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "query_alias_absent"
                           }
                         }
@@ -15307,6 +13797,1892 @@ const schemas = {
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
                                 "program_structure_invalid",
+                                "source_selector_unregistered",
+                                "query_alias_absent"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "not": {
+                          "required": [
+                            "facts"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_value_required",
+                              "host_capacity_policy_required",
+                              "numeric_reduction_profile_required"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "requirements": {
+                "type": "array",
+                "maxItems": 1024,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "facts"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "parameter_value_required",
+                        "host_capacity_policy_required",
+                        "numeric_reduction_profile_required"
+                      ]
+                    },
+                    "location": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "kind",
+                            "document_id",
+                            "revision",
+                            "start_byte",
+                            "end_byte",
+                            "precision"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "text"
+                            },
+                            "document_id": {
+                              "const": "source"
+                            },
+                            "revision": {
+                              "type": "string",
+                              "pattern": "^rev:[0-9a-f]{64}$"
+                            },
+                            "start_byte": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1048576
+                            },
+                            "end_byte": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1048576
+                            },
+                            "precision": {
+                              "enum": [
+                                "exact",
+                                "approximate"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "kind",
+                            "document_id",
+                            "revision",
+                            "pointer"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "structured"
+                            },
+                            "document_id": {
+                              "enum": [
+                                "program",
+                                "parameter_declarations",
+                                "parameters"
+                              ]
+                            },
+                            "revision": {
+                              "type": "string",
+                              "pattern": "^rev:[0-9a-f]{64}$"
+                            },
+                            "pointer": {
+                              "type": "string",
+                              "pattern": "^(?:/(?:[^~]|~[01])*)*$",
+                              "maxLength": 4096
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "fixes": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code",
+                          "applicability",
+                          "risk",
+                          "target",
+                          "edits"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "code": {
+                            "const": "close_block_comment"
+                          },
+                          "applicability": {
+                            "const": "requires_review"
+                          },
+                          "risk": {
+                            "const": "syntax_structure"
+                          },
+                          "target": {
+                            "type": "object",
+                            "required": [
+                              "document_id",
+                              "revision"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "edits": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 1,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "start_byte",
+                                "end_byte",
+                                "replacement"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "start_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "end_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "replacement": {
+                                  "const": "*/"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "facts": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "expected_type",
+                            "actual_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "expected_type": {
+                              "enum": [
+                                "null",
+                                "boolean",
+                                "number",
+                                "string",
+                                "array",
+                                "object",
+                                "date",
+                                "timestamp",
+                                "decimal",
+                                "json",
+                                "vector",
+                                "resource_ref",
+                                "artifact_ref"
+                              ]
+                            },
+                            "actual_type": {
+                              "enum": [
+                                "null",
+                                "boolean",
+                                "number",
+                                "string",
+                                "array",
+                                "object",
+                                "date",
+                                "timestamp",
+                                "decimal",
+                                "json",
+                                "vector",
+                                "resource_ref",
+                                "artifact_ref"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "expected_type": {
+                              "enum": [
+                                "null",
+                                "boolean",
+                                "number",
+                                "string",
+                                "array",
+                                "object",
+                                "date",
+                                "timestamp",
+                                "decimal",
+                                "json",
+                                "vector",
+                                "resource_ref",
+                                "artifact_ref"
+                              ]
+                            },
+                            "admission": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "contract_schema_cid",
+                                "contract",
+                                "constraints",
+                                "supplier"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "contract_schema_cid": {
+                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                },
+                                "kind": {
+                                  "const": "parameter_declaration"
+                                },
+                                "contract": {
+                                  "$ref": "value_contract"
+                                },
+                                "supplier": {
+                                  "const": "caller"
+                                },
+                                "constraints": {
+                                  "type": "array",
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "integer"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "numeric"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "integer": {
+                                            "type": "boolean"
+                                          },
+                                          "minimum": {
+                                            "type": "number"
+                                          },
+                                          "maximum": {
+                                            "type": "number"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "duration"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "length"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "array_length"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "length": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 9007199254740991
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "constraint"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "constraint": {
+                              "enum": [
+                                "numeric",
+                                "duration",
+                                "array_length",
+                                "array_size"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "domain": {
+                              "enum": [
+                                "positive_safe_integer",
+                                "nonnegative_safe_integer",
+                                "unit_fraction",
+                                "finite_number",
+                                "duration",
+                                "positive_milliseconds",
+                                "signed_milliseconds",
+                                "timestamp"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "operation",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "operation": {
+                              "const": "components"
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_kind",
+                                "invalid_output_rows"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "operation",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "operation": {
+                              "const": "subgraph"
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_node_selector"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "document",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "document": {
+                              "enum": [
+                                "parameters",
+                                "parameter_declarations"
+                              ]
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_unicode",
+                                "unexpected_end",
+                                "unexpected_token",
+                                "invalid_string",
+                                "invalid_escape",
+                                "invalid_number",
+                                "number_out_of_range",
+                                "negative_zero",
+                                "expected_colon",
+                                "expected_array_separator",
+                                "expected_object_separator",
+                                "duplicate_key",
+                                "trailing_content"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "issue": {
+                              "enum": [
+                                "unexpected_end",
+                                "unexpected_token",
+                                "invalid_escape",
+                                "invalid_scalar",
+                                "empty_identifier",
+                                "unterminated_comment",
+                                "invalid_number",
+                                "invalid_parameter",
+                                "unknown_reference",
+                                "invalid_arguments",
+                                "expected_boolean",
+                                "invalid_bounds",
+                                "function_lowering_unresolved",
+                                "missing_field",
+                                "wrong_type",
+                                "unexpected_null",
+                                "invalid_structure"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "contract_cid",
+                            "schema_cid",
+                            "schema_pointer",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "contract_cid": {
+                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                            },
+                            "schema_cid": {
+                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                            },
+                            "schema_pointer": {
+                              "const": "/schema"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "connector",
+                            "resource"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "connector": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "resource": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "view": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "reference"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "reference": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 8192,
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "value",
+                                  "quoted"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 65536
+                                  },
+                                  "quoted": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "program_structure_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "missing_field",
+                                  "wrong_type",
+                                  "unexpected_null",
+                                  "invalid_structure"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "host_capacity_policy_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "contract_cid",
+                              "schema_cid",
+                              "schema_pointer",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "contract_cid": {
+                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              },
+                              "schema_cid": {
+                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              },
+                              "schema_pointer": {
+                                "const": "/schema"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "host_capacity_policy_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "schema_pointer"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "implementation_limit"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "const": "function_lowering_unresolved"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "admission"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "required": [
+                          "fixes"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "facts",
+                          "location"
+                        ],
+                        "properties": {
+                          "code": {
+                            "const": "query_lexical_invalid"
+                          },
+                          "facts": {
+                            "properties": {
+                              "issue": {
+                                "const": "unterminated_comment"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "precision": {
+                                "const": "exact"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "supplied_value_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "actual_type"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_default_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "actual_type"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_undeclared"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "parameter"
+                            ],
+                            "allOf": [
+                              {
+                                "not": {
+                                  "required": [
+                                    "expected_type"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "constraint"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "domain"
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_value_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "parameter",
+                              "expected_type"
+                            ],
+                            "not": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "parameter_unused"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "parameter"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "supplied_value_constraint_violation"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "constraint"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "operation_parameter_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "domain"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "binding_json_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "document",
+                              "issue"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "document": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_unicode",
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_string",
+                                  "invalid_escape",
+                                  "invalid_number",
+                                  "number_out_of_range",
+                                  "negative_zero",
+                                  "expected_colon",
+                                  "expected_array_separator",
+                                  "expected_object_separator",
+                                  "duplicate_key",
+                                  "trailing_content"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "facts": {
+                                  "properties": {
+                                    "document": {
+                                      "const": "parameters"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "location": {
+                                  "properties": {
+                                    "document_id": {
+                                      "const": "parameters"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "facts": {
+                                  "properties": {
+                                    "document": {
+                                      "const": "parameter_declarations"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "location": {
+                                  "properties": {
+                                    "document_id": {
+                                      "const": "parameter_declarations"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_lexical_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_expression_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "invalid_number",
+                                  "expected_boolean"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "graph_operation_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "enum": [
+                                  "components",
+                                  "subgraph"
+                                ]
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows",
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "source_selector_unregistered"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_alias_absent"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "parameter_default_type_mismatch",
+                                "parameter_value_required",
+                                "parameter_undeclared",
+                                "parameter_unused",
+                                "supplied_value_constraint_violation",
+                                "binding_json_invalid",
+                                "query_lexical_invalid",
+                                "query_expression_invalid",
+                                "query_frame_invalid",
+                                "graph_operation_invalid",
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch",
+                                "implementation_limit",
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required",
+                                "program_structure_invalid",
+                                "source_selector_unregistered",
                                 "query_alias_absent"
                               ]
                             }
@@ -15512,7 +15888,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
+            "const": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -15558,7 +15934,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
+            "const": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -16639,8 +17015,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6";
-export const checkOutcomeSchemaCid = "sha256:b1062306669a530f532faa3b7fc5d24e34bd72aeae712c177cee7557216ea464";
+export const checkReasonSchemaCid = "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac";
+export const checkOutcomeSchemaCid = "sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {

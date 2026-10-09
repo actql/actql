@@ -20,6 +20,7 @@ export type EmbeddedHostInstallation = Readonly<{
   sourceProfilePath?: string;
   sourceProfilePaths?: SourceProfilePaths;
   sourceNamespace?: HostInstallation['sourceNamespace'];
+  sourceSelectorNamespace?: HostInstallation['sourceSelectorNamespace'];
   resolveSourceSecret?: (...args: any[]) => any;
   effectProfilePath?: string;
   effectProfilePaths?: EffectProfilePaths;
