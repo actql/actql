@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {qualifyProgram, qualifySuccesses, qualifyRefusals, qualifyExecutionFailures}
+import {qualifyProgram, groupedQualifyProgram, nullableGroupedQualifyProgram,
+  groupedOrderWindowProgram, qualifySuccesses, qualifyRefusals, qualifyExecutionFailures}
   from './fixtures/qualify-source-input.mjs';
 
 test('QUALIFY oracles distinguish aliases inputs NULLs duplicates and output demand', () => {
@@ -18,6 +19,40 @@ test('QUALIFY oracles distinguish aliases inputs NULLs duplicates and output dem
     [{ratio: 1, n: 2}, {ratio: 0.5, n: 3}, {ratio: 0.5, n: 4}]);
   const all = [...qualifySuccesses, ...qualifyRefusals, ...qualifyExecutionFailures];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
+});
+
+test('grouped later-clause oracles separate COUNT aliases from retained input keys', () => {
+  const cases = new Map(qualifySuccesses.map(item => [item.name, item]));
+  for (const [name, control] of [['grouped-alias-json', groupedQualifyProgram],
+    ['grouped-nullable-json', nullableGroupedQualifyProgram],
+    ['grouped-order-window-json', groupedOrderWindowProgram]]) {
+    assert.deepEqual(JSON.parse(cases.get('qualify-' + name).text), control);
+  }
+  assert.deepEqual(groupedQualifyProgram.stages[1].steps[2],
+    {filter: {gt: [{field: 'counted'}, {literal: 1}]}});
+  assert.deepEqual(cases.get('qualify-grouped-alias-collision').expected,
+    [{original: 3, id: 2, rn: 3}]);
+  assert.deepEqual(cases.get('qualify-grouped-qualified-input').expected,
+    [{original: 2, id: 1, rn: 2}, {original: 3, id: 2, rn: 3}]);
+  assert.deepEqual(cases.get('qualify-grouped-nullable-collision').columns,
+    [{name: 'original', contract: {type: 'number', nullable: true}},
+      {name: 'amount', contract: {type: 'number', nullable: false}},
+      {name: 'rn', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(cases.get('qualify-grouped-count-is-not-null').expected, []);
+  assert.deepEqual(cases.get('qualify-grouped-typed-empty').columns,
+    cases.get('qualify-grouped-alias-collision').columns);
+  assert.deepEqual(cases.get('qualify-grouped-order-window-alias').expected,
+    [{original: 3, id: 2}, {original: 1, id: 1}, {original: 2, id: 1}]);
+  assert.deepEqual(cases.get('qualify-grouped-order-window-qualified-input').expected,
+    [{original: 3, id: 2}, {original: 2, id: 1}, {original: 1, id: 1}]);
+  for (const item of qualifySuccesses.filter(item => item.name.startsWith('qualify-grouped-'))) {
+    assert.equal(item.sourceReadSessionCount, 1);
+    assert.deepEqual(Object.keys(item.expected[0] ?? Object.fromEntries(item.columns.map(c => [c.name, null]))),
+      item.columns.map(c => c.name));
+  }
+  for (const name of ['qualify-grouped-discarded-input', 'qualify-grouped-order-discarded-input']) {
+    assert.equal(qualifyRefusals.find(item => item.name === name).expectedCode, 'ClientProgramInvalidInput');
+  }
 });
 
 test('QUALIFY runs in both the ordinary and narrow packed public corpora', async () => {

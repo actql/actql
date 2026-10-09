@@ -318,7 +318,7 @@ pub fn mapping_shape_for(MappingContractShapes, String) -> MappingContractShape?
 
 pub fn mapping_shape_member(MappingContractShape) -> Member
 
-pub fn mapping_shape_primary_identity(MappingContractShape) -> String
+pub fn mapping_shape_primary_identity(MappingContractShape) -> String?
 
 pub fn mapping_shape_reference(MappingContractShape) -> String
 
@@ -925,7 +925,7 @@ pub struct MappingContractShape {
   target_ref : String
   cid : String
   target_schema : @relation_schema.Schema
-  primary_identity : String
+  primary_identity : String?
   writable_fields : Array[String]
   required_fields : Array[String]
 }

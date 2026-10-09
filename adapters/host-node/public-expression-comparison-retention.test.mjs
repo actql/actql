@@ -103,7 +103,7 @@ test('public retained expression comparison publishes and stops inside its Text 
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(program('public-expression-comparison'));
-    const options = {format: 'json', requestId: 'public-expression-comparison'};
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-expression-comparison'})};
     const execution = await client.startSource(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
@@ -120,7 +120,7 @@ test('public retained expression comparison publishes and stops inside its Text 
 
     cancelling = true;
     const cancelSource = JSON.stringify(program('public-expression-comparison-cancel'));
-    const cancelOptions = {format: 'json', requestId: 'public-expression-comparison-cancel'};
+    const cancelOptions = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-expression-comparison-cancel'})};
     const cancel = await client.startSource(cancelSource, cancelOptions);
     await barrier.promise;
     const advancedAtBarrier = advances;

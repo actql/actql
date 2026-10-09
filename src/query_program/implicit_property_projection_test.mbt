@@ -123,7 +123,7 @@ test "implicit property projection preserves missing and ambiguous receiver diag
       implicit_property_context(),
       construction_limits(),
     ) {
-    Err(UnknownColumn) => ()
+    Err(Expression({ issue: @expression.UnknownReference, origin: Some(_), })) => ()
     _ => fail("a leaf name does not make an unknown receiver visible")
   }
   let context = implicit_property_context()

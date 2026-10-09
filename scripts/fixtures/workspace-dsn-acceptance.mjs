@@ -79,9 +79,12 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
     assert.equal(b.profile.workspaceId, 'workspace-B');
     // Legacy Local profile scopeRef can name the principal; do not invent
     // a Workspace-to-scope conversion. Actual Run refs retain owner scopes.
+    const submissionA = a.newSubmission({nonce: 'same-business-id'});
+    const submissionB = b.newSubmission({nonce: 'same-business-id'});
+    const rejectedSubmission = rotating.newSubmission({nonce: 'must-not-start'});
     const [runA, runB] = await Promise.all([
-      a.start(program, {requestId: 'same-business-id'}),
-      b.start(program, {requestId: 'same-business-id'}),
+      a.start(program, {submissionRef: submissionA}),
+      b.start(program, {submissionRef: submissionB}),
     ]);
     assert.equal((await runA.wait()).status, 'succeeded');
     assert.equal((await runB.wait()).status, 'succeeded');
@@ -93,22 +96,28 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
     const original = sdk.getSubmissionInput(runA);
     assert.equal(original.lookupContext.endpoint, endpoint);
     assert.equal(original.connection.workspaceId, 'workspace-A');
+    assert.deepEqual(original.submissionRef, submissionA);
     assert.equal(JSON.stringify(original).includes('fixture-A'), false);
-    assert.deepEqual((await rotating.lookupRequest('same-business-id')).ref, runA.ref);
+    assert.deepEqual((await rotating.lookupSubmission(submissionA)).admission.ref, runA.ref);
     assert.deepEqual((await rotating.attach(runA.ref)).ref, runA.ref);
     // A refreshed credential for the same authenticated principal but another
     // Workspace cannot retarget a new submit, request lookup or saved Run.
     refreshed = 'fixture-B';
+    await assert.rejects(rotating.start(program, {submissionRef: rejectedSubmission}), error => {
+      assert.equal(error.code, 'SubmissionUnknown');
+      assert.equal(error.cause?.code, 'ClientConnectionDenied');
+      assert.deepEqual(sdk.getSubmissionInput(error).submissionRef, rejectedSubmission);
+      return true;
+    });
     for (const operation of [
-      () => rotating.start(program, {requestId: 'must-not-start'}),
-      () => rotating.lookupRequest('same-business-id'),
+      () => rotating.lookupSubmission(submissionA),
       () => rotating.attach(runB.ref),
     ]) await assert.rejects(operation(), {code: 'ClientConnectionDenied'});
     assert.deepEqual(counts, {A: 1, B: 1});
     refreshed = 'fixture-A-refreshed';
     const restored = await rotating.attach(runA.ref);
     assert.deepEqual(await restored.result('answer').all(), [{id: 1}, {id: 2}]);
-    const replay = await rotating.start(program, {requestId: 'same-business-id'});
+    const replay = await rotating.start(program, {submissionRef: submissionA});
     assert.deepEqual(replay.ref, runA.ref);
     assert.deepEqual(counts, {A: 1, B: 1});
     await assert.rejects(sdk.connect(uri('B'), {token: 'fixture-A-refreshed'}),

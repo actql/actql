@@ -417,7 +417,10 @@ export const sourceFreeRefusals = [
     'SELECT "a""b" AS s', 'SELECT "a" b"b" AS s',
     'SELECT rb"bytes" AS s', 'SELECT """bad\\\nline""" AS s'].map((text, index) => ({
     name: `quoted-input-refusal-${index}`, format: 'sql', text})),
-  {name: 'source-free-star', format: 'sql', text: 'SELECT *'},
+  // The selected source-free profile cannot expand star without a relation.
+  // The existing check owner reports an implementation limit, not bad input.
+  {name: 'source-free-star', format: 'sql', text: 'SELECT *',
+    expectedCode: 'ClientProgramImplementationLimit'},
   {name: 'source-free-private-column', format: 'sql', text: 'SELECT aql_source_free_unit AS x'},
   {name: 'source-free-private-range', format: 'sql', text: 'SELECT aql_source_free.aql_source_free_unit AS x'},
   {name: 'source-free-sibling', format: 'sql', text: 'SELECT 1 AS x, x AS y'},
@@ -594,7 +597,7 @@ export async function exercisePublicQueryInput(connect, options,
         assert.equal(outcome.kind, 'not_accepted');
         assert.deepEqual(outcome.submissionRef, submissionRef);
         if (expectedCode === undefined) {
-          assert.ok(inputCodes.has(outcome.problem.code), String(outcome.problem.code));
+          assert.ok(inputCodes.has(outcome.problem.code), JSON.stringify({name, code: outcome.problem.code}));
         } else {
           assert.equal(outcome.problem.code, expectedCode);
         }

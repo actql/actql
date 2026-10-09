@@ -27,7 +27,9 @@ if (explanation?.outcome === 'completed') {
   const verdict: 'invalid' | 'undetermined' | 'verified' = explanation.report.verdict;
   const completeness: 'complete' = explanation.report.completeness;
   const context: string = explanation.report.contextRef;
-  const scope: 'bound_input' = explanation.report.scope.kind;
+  const scope: 'template_only' | 'bound_input' = explanation.report.scope.kind;
+  if (scope === 'bound_input') { const bound: 'bound_input' = scope; void bound; }
+  if (scope === 'template_only') { const template: 'template_only' = scope; void template; }
   void verdict; void completeness; void context; void scope;
   // @ts-expect-error A presentation object does not execute the checked input.
   explanation.execute();

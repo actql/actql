@@ -1,0 +1,205 @@
+///|
+test "Effect run materials preserve original evidence and reject replaced identity" {
+  let (document, environment, effect_limits) = client_composed_effect_base_fixture()
+  let prepared = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    effect_limits,
+  ).unwrap()
+  let limits = run_materials_limits()
+  let manifests = run_materials_manifests()
+  let compilation = issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    limits.sequence,
+    limits.max_sequence_steps,
+    limits.max_sequence_work,
+    limits.max_evidence_bytes,
+    limits.max_evidence_nodes,
+    limits.max_evidence_depth,
+  ).unwrap()
+  let allowed = issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "original-scope", "original-effect-run", "2026-10-09T00:00:00.000Z",
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let environment_writer = @encode.writer(65536, 4096, 64)
+  @environment.emit(
+    @checked.checking_environment_wire(environment),
+    environment_writer,
+  )
+  let environment_wire = @encode.finish(environment_writer)
+  let wire = issue_client_effect_run_materials(
+    allowed,
+    definition,
+    environment,
+    environment_wire,
+    document,
+    None,
+    effect_limits,
+  ).unwrap()
+  let definition_cid = @publication.publication_contract_identity(definition)
+  let restored = admit_client_effect_run_materials(
+    wire,
+    definition_cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    manifests,
+    limits,
+    effect_limits,
+  ).unwrap()
+  assert_eq(
+    @publication.publication_contract_json(restored.run_definition),
+    @publication.publication_contract_json(definition),
+  )
+  assert_eq(
+    @publication.run_evidence_value_json(
+      client_effect_allowed_run_prepared(restored.allowed),
+    ),
+    @publication.run_evidence_value_json(
+      client_effect_allowed_run_prepared(allowed),
+    ),
+  )
+  assert_eq(
+    @publication.run_evidence_value_json(
+      client_effect_allowed_run_authorization(restored.allowed),
+    ),
+    @publication.run_evidence_value_json(
+      client_effect_allowed_run_authorization(allowed),
+    ),
+  )
+  assert_eq(
+    prepared_client_effect_identity(restored.prepared),
+    prepared_client_effect_identity(prepared),
+  )
+  assert_true(
+    bind_client_effect_compiled_run(
+      restored.prepared,
+      restored.allowed,
+      restored.run_definition,
+    )
+    is Ok(_),
+  )
+  // The receiving Owner is reconstructed, not the process-local sender handle.
+  assert_false(physical_equal(restored.prepared, prepared))
+  let changed = wire.replace(old="original-effect-run", new="other-effect-run")
+  assert_true(
+    admit_client_effect_run_materials(
+      changed,
+      definition_cid,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      manifests,
+      limits,
+      effect_limits,
+    )
+    is Err(RunMismatch),
+  )
+  let changed_program = document.replace(old="\"save\":", new="\"other\":")
+  assert_true(
+    issue_client_effect_run_materials(
+      allowed,
+      definition,
+      environment,
+      environment_wire,
+      changed_program,
+      None,
+      effect_limits,
+    )
+    is Err(RunMismatch),
+  )
+  assert_true(
+    admit_client_effect_run_materials(
+      "{}",
+      definition_cid,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      manifests,
+      limits,
+      effect_limits,
+    )
+    is Err(Input(MaterialsMalformed)),
+  )
+}
+
+///|
+test "acquired Effect run materials retain the original two-task graph" {
+  let document =
+    #|{"version":"actql/0.1","id":"acquired-effect-materials","stages":[{"id":"source","inputs":{"table":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"source","result":"rows"}}},"steps":[{"derive":{"value":{"literal":1}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"answer":{"from":{"stage":"apply","result":"out"}}}}
+  let environment = admit_client_check_environment(
+    client_composed_acquired_effect_environment,
+    "sha256:cd4aeacdc39164df2cf7e7cb74faf349a157677a5927d9e84379d0d8df2d91e7",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let (_, _, base_limits) = client_composed_effect_base_fixture()
+  let effect_limits = {
+    ..base_limits,
+    program: client_standard_program_preparation_limits(),
+  }
+  let limits = run_materials_limits()
+  let manifests = run_materials_manifests()
+  let prepared = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    effect_limits,
+  ).unwrap()
+  let compilation = issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    limits.sequence,
+    limits.max_sequence_steps,
+    limits.max_sequence_work,
+    limits.max_evidence_bytes,
+    limits.max_evidence_nodes,
+    limits.max_evidence_depth,
+  ).unwrap()
+  let allowed = issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "original-scope", "original-acquired-effect-run", "2026-10-09T00:00:00.000Z",
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let wire = issue_client_effect_run_materials(
+    allowed,
+    definition,
+    environment,
+    client_composed_acquired_effect_environment,
+    document,
+    None,
+    effect_limits,
+  ).unwrap()
+  let restored = admit_client_effect_run_materials(
+    wire,
+    @publication.publication_contract_identity(definition),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    manifests,
+    limits,
+    effect_limits,
+  ).unwrap()
+  let graph = @strategy.checked_effect_computation_graph(
+    prepared_client_effect_computation_graph(restored.prepared),
+  )
+  assert_eq(@strategy.graph_task_count(graph), 2)
+  assert_eq(@strategy.graph_captured_prefix(graph), 1)
+  assert_eq(
+    prepared_client_effect_identity(restored.prepared),
+    prepared_client_effect_identity(prepared),
+  )
+}

@@ -12,6 +12,7 @@ import {createManagedExampleHost} from '../examples/managed-host.mjs';
 import {prepareExampleText} from '../examples/physical-strategy.mjs';
 import {runCapturedStrategy} from '../../../../host-node/entry.mjs';
 import {inspect} from 'node:util';
+import {closeManagedFixtureExecution} from './managed-fixture-cleanup.mjs';
 
 test('explicit data profiles select resident reuse with independent retained output', async () => {
   const root = new URL('../../../../../', import.meta.url);
@@ -51,7 +52,16 @@ test('explicit data profiles select resident reuse with independent retained out
         try {
           execution = await runCapturedStrategy(opened.setup, opened.configurations);
           assert.equal(execution.status, 'host-tasks-completed', inspect(execution.failure, {depth: 12}));
-        } finally { await execution?.close(); await opened.close(); }
+        } finally {
+          try {
+            if (execution) await closeManagedFixtureExecution(execution, fixture.limits.cleanupTimeoutMs);
+          } finally { await opened.close(); }
+          if (execution) {
+            assert.equal(execution.cleanupPending(), false);
+            assert.equal(execution.usage().heldBytes, 0n);
+            assert.equal(execution.usage().reservedExecutionBytes, 0n);
+          }
+        }
       }
       let result;
       try {

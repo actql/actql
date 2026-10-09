@@ -591,6 +591,8 @@ pub fn kernel_is_dedupe(PreparedKernel) -> Bool
 
 pub fn kernel_is_distinct(PreparedKernel) -> Bool
 
+pub fn kernel_is_filter(PreparedKernel) -> Bool
+
 pub fn kernel_is_partitioned_top_k(PreparedKernel) -> Bool
 
 pub fn kernel_is_projection(PreparedKernel) -> Bool
@@ -1447,6 +1449,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Between
 } derive(Eq, @debug.Debug)
 
 pub(all) enum NestIssue {

@@ -36,6 +36,42 @@ fn effect_static_candidate_catalogs(
 }
 
 ///|
+test "collection-only Mapping reaches the checked static Effect owner" {
+  let mappings = effect_mapping_shape_fixture_with_body(
+    "[{\"effect_kind\":\"create\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]}]",
+    "[]",
+    "amount",
+    primary_identity="null",
+  )
+  let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7}}}}"
+  let (checked, headers) = effect_binding_inputs(effects)
+  let candidate = prepare_effect_static_candidate(
+    headers,
+    checked,
+    @environment.mapping_shape_environment(mappings),
+    mappings,
+    effect_static_candidate_catalogs(mappings),
+    effect_static_candidate_limits(),
+  ).unwrap()
+  assert_eq(
+    effect_mapping_rule_count(effect_static_candidate_mapping_rules(candidate)),
+    2,
+  )
+  assert_eq(
+    effect_mapping_literal_count(
+      effect_static_candidate_mapping_literals(candidate),
+    ),
+    2,
+  )
+  assert_eq(
+    @environment.mapping_shape_primary_identity(
+      @environment.mapping_shape_at(mappings, 0).unwrap(),
+    ),
+    None,
+  )
+}
+
+///|
 test "Effect-only static candidate validates Mapping without a public Result" {
   let effects = ",\"effects\":{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7}}}}"
   let input_operations = prepared("unused", effects~, effect_only=true)

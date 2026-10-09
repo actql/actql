@@ -121,8 +121,11 @@ async function submitHeld(context, ids) {
   const client = await host.as('owner-token');
   const program = kindProgram(context.kind, context.installation.mappingRef,
     ids);
-  const execution = await client.startSource(program, {format: 'json',
-    requestId: 'cross-version-update'});
+  const submissionRef = client.newSubmission({nonce: 'cross-version-update'});
+  // Archive the caller's original epoch and input beside the durable Host state.
+  await writeFile(join(context.installation.directory, '..', 'original-submission.json'),
+    JSON.stringify({program, format: 'json', submissionRef}), {flag: 'wx'});
+  const execution = await client.startSource(program, {format: 'json', submissionRef});
   await waitFor(async () => (await execution.status()).status ===
     'waiting_checkpoint');
   await host.close();

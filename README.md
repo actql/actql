@@ -298,7 +298,7 @@ safe to repeat. An intentional resend uses a new logical request identity.
 The CLI workflow below illustrates the intended approval experience. Its
 `@smoothhq/actql` example and commands are not provided by the source-built
 `@actql/*` packages above. For their current executable Checkpoint API, see
-the [Client package](packages/sdk/README.md#held-requests-and-checkpoints). The CLI example adds
+the [Client package](packages/sdk/README.md#historical-held-requests-and-run-checkpoints). The CLI example adds
 one Effect without a provider account and sets up a local approval key:
 
 ```bash

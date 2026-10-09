@@ -118,7 +118,7 @@ for (const family of ['node', 'edge']) {
   test(`${family} expectations preserve typed Graph keys, nullable guaranteed property and replay counts`, () => {
     const expected = graphCompositionExpectations(family);
     assert.equal(graphDefinitionCid,
-      'sha256:e10869cfed10b18fbe00f13ddd456f4a4b5241199d16a3f31a08b4a53c026437');
+      'sha256:c9367bcbcf2cc701a7eaca6ba3ee2d9e82bce5ce3f3d71b461a6d9659b8760e1');
     assert.deepEqual(expected.classified.map(row => [row.id, row.note, row.risk]),
       [[1, 7, 'low'], [2, null, 'high']]);
     for (const row of expected.classified) {

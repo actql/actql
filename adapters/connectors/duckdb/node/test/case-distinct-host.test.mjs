@@ -108,7 +108,10 @@ test('case-distinct names preserve group order and exclude lossy resident storag
           if (placement === 'resident') {
             assert(JSON.stringify(execution.explain()).includes('unsupported_resident_output_names'));
           }
-        } finally { execution?.close(); capture.close(); }
+        } finally {
+          try { await execution?.close(); }
+          finally { capture.close(); }
+        }
         assert.equal(execution.usage().heldBytes, 0n);
         assert.equal(execution.usage().reservedExecutionBytes, 0n);
         assert.equal(execution.cleanupPending(), false);

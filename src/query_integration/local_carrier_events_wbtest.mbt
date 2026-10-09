@@ -1889,6 +1889,10 @@ test "registered sequence provider consumes exact Events Carrier" {
   let material = material.unwrap()
   let owner = carrier_events_sequence_owner(events_owner)
   let generated = task_test_generated(owner)
+  // sequence_0 contributes three ten-unit ID scans. The six canonical
+  // output names contain 64 scalars, six pushes and four phase ends.
+  // This finite preparation allowance does not change logical work 0/1.
+  let completion_preparation = 3 * 10 + 64 + 6 + 4
   for work in [0, 1] {
     let view = @carrier_runtime.material_prepare_view(
       material, owner, 0, events_owner,
@@ -1905,7 +1909,7 @@ test "registered sequence provider consumes exact Events Carrier" {
       1000,
     ).unwrap()
     let mut failed = false
-    for _ in 0..<100 {
+    for _ in 0..<(completion_preparation + 100) {
       if !failed {
         match @execution.advance_bounded_sequence_match(execution, 1).unwrap() {
           @execution.BoundedSequenceMatchContinue(..) => ()

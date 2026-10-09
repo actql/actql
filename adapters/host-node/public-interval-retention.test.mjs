@@ -86,7 +86,7 @@ test('public retained interval join compares long Text keys and excludes NULL',
       installation: {directory, retainedRelationOutput: true, authorization}});
     t.after(() => client.close());
     const source = JSON.stringify(program);
-    const options = {format: 'json', requestId: 'public-interval'};
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-interval'})};
     const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });

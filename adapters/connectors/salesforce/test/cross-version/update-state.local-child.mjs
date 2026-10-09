@@ -21,8 +21,11 @@ const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     resolveEffectSecret: secret,
     authorization: hostAuthorization(orgId, keys, {local: true})}});
 if (step === 'submit') {
-  const execution = await client.startSource(program, {format: 'json',
-    requestId: 'cross-version-update'});
+  const submissionRef = client.newSubmission({nonce: 'cross-version-update'});
+  // Retain the complete caller reference before sending, alongside the Run ref.
+  writeFileSync(`${refPath}.submission.json`,
+    JSON.stringify({program, format: 'json', submissionRef}), {flag: 'wx'});
+  const execution = await client.startSource(program, {format: 'json', submissionRef});
   await waitFor(async () => (await execution.status()).status ===
     'waiting_checkpoint');
   writeFileSync(refPath, JSON.stringify(execution.ref));

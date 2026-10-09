@@ -17,6 +17,12 @@ export function tasksDependencyOracle({legacy=false}={}) {
   const units = [];
   const gates = [];
   const imports = [];
+  const stages = [];
+  const parameterReferences = [];
+  const expressionContractCid = legacy
+    ? read('scripts/fixtures/pre-typed-json-values-contracts.json')
+      .contract_cids['spec/contracts/actql-expressions.json#']
+    : hash(read('spec/contracts/actql-expressions.json'));
   for (const [index,stage] of program.stages.entries()) {
     const acquired = index === 0;
     const declarations = acquired ? {minimum:program.params.minimum} : {};
@@ -29,12 +35,15 @@ export function tasksDependencyOracle({legacy=false}={}) {
     const local = {version:'actql-stage-semantics/0.1',binding_references:[],bindings:{},
       parameter_references:acquired ? [{name:'minimum',path:'/steps/0/filter/gt/1',
         type:declarations.minimum}] : [],parameters:declarations,
-      expression_contract_cid:legacy
-        ? read('scripts/fixtures/pre-typed-json-values-contracts.json')
-          .contract_cids['spec/contracts/actql-expressions.json#']
-        : hash(read('spec/contracts/actql-expressions.json')),
+      expression_contract_cid:expressionContractCid,
       local_body:{effects:{},inputs:stage.inputs,results:stage.results,
         steps:[{...stage.steps[0],filter:expression},stage.steps[1]]}};
+    // The enclosing Program binds ordered Stage semantics and explicit imports,
+    // not Unit identities or the captured parameter value.
+    stages.push({id:stage.id,stage_semantics_cid:hash(local),
+      after:acquired ? 'initial' : 'completed',imports:acquired ? {} : stage.inputs});
+    parameterReferences.push(...local.parameter_references.map(reference=>({
+      ...reference,path:`/stages/${index}${reference.path}`})));
     const contracts = relationFixtureContracts({legacy,acquired});
     const gateCids = [];
     const importCids = [];
@@ -70,5 +79,13 @@ export function tasksDependencyOracle({legacy=false}={}) {
       result_name:name,unit_definition_cid:units[index],unit_result_name:'r',unit_result_ordinal:0,
       typed_output_port:{carrier:'relation',name:'r',row_contract_cid:rowContract}})];
   }));
-  return {units,gates,imports,resultPlans};
+  const semantics = {version:'actql-program-semantics/0.1',actql_version:'actql/0.1',
+    expression_contract_cid:expressionContractCid,parameters:program.params,
+    parameter_references:parameterReferences,bindings:{},binding_references:[],
+    program_template:{stages,exports:program.results}};
+  const semanticsCid = hash(semantics);
+  const definition = {version:'actql-program-definition/0.1',id:program.id,
+    program_semantics_cid:semanticsCid};
+  return {units,gates,imports,resultPlans,semantics,semanticsCid,definition,
+    programCid:hash(definition)};
 }

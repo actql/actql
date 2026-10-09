@@ -1,5 +1,5 @@
-// The same source-free Values document as the packed Remote HTTP acceptance,
-// exercised through a repository-external, MoonBit-free Embedded Local install.
+// Synthetic historical-format Values originals recovered by a repository-external,
+// MoonBit-free current Embedded Local install. Historical public production is not tested.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
@@ -50,10 +50,10 @@ run('npm', ['install', '--ignore-scripts', '--no-save', ...[
 const document = await readFile(join(repository,
   'packages/sdk/fixtures/values.json'), 'utf8');
 await writeFile(join(root, 'values.json'), document);
-await writeFile(join(root, 'expected.json'), JSON.stringify(
-  JSON.parse(document).stages[0].steps[0].values.rows));
 await writeFile(join(root, 'embedded-client.mjs'), await readFile(join(
   repository, 'scripts/fixtures/packed-embedded-checkpoint.mjs')));
+await writeFile(join(root, 'synthetic-historical-held-values.mjs'), await readFile(join(
+  repository, 'scripts/fixtures/synthetic-historical-held-values.mjs')));
 
 const reviewer = generateKeyPairSync('ed25519');
 const host = generateKeyPairSync('ed25519');
@@ -82,18 +82,30 @@ await writeFile(join(root, 'authorization.json'), JSON.stringify({
 // Deliberately remove MoonBit and the checkout from the child's lookup path.
 const childEnvironment = {...environment,
   PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
+let historicalOriginal;
 for (const [step, expected] of [['hold', 'held'],
   ['approve', 'approved'], ['resume', 'published'],
   ['recheck', 'published']]) {
   assert.equal(run(process.execPath, ['embedded-client.mjs', step], root,
     childEnvironment).trim(), expected);
+  const original = JSON.parse(await readFile(join(root, 'original.json'), 'utf8'));
+  if (step === 'hold') historicalOriginal = original;
+  assert.deepEqual(original, historicalOriginal,
+    'every process retains the synthetic historical original identity and evidence hashes');
+  if (step === 'hold' || step === 'approve') {
+    const events = (await readFile(join(root, 'embedded-events.log'), 'utf8')).split('\n');
+    assert.equal(events.filter(event => event === 'computed').length, 0);
+    assert.equal(events.filter(event => event === 'physical_start_reserved').length, 0);
+  }
 }
+assert.equal(run(process.execPath, ['embedded-client.mjs', 'unsupported'], root,
+  childEnvironment).trim(), 'unsupported');
 const events = (await readFile(join(root, 'embedded-events.log'), 'utf8'))
   .split('\n').filter(Boolean);
 assert.equal(events.filter(event => event === 'computed').length, 1);
 assert.equal(events.filter(event => event === 'physical_start_reserved').length,
   1);
-console.log('packed Embedded Local Checkpoint approval, restart and ' +
-  'Named Result passed');
+console.log('packed synthetic historical Checkpoint recovery, approval, restart, cleanup and ' +
+  'separate epoch-bound preparation refusal passed');
 // Every child ran to completion through spawnSync.
 scratch.passed();

@@ -1170,6 +1170,24 @@ export async function recoverCompletedEffectfulComputation(options) {
     preview, connectorRecovery: Object.freeze(connectorRecovery)});
 }
 
+// Recognize only the existing owner's exact post-publication cleanup error.
+// A provider's pending flag is not evidence that publication completed, and
+// another computation's cleanup cannot change this Run's completion path.
+export function isCompletedEffectfulPublicationCleanupFailure({
+  execution, store, storedResults, control, computation, preview,
+}, error) {
+  const issued = completedEffectfulOwners.get(computation);
+  const owner = completedResultOwners.get(storedResults);
+  return issued !== undefined && owner !== undefined &&
+    issued.execution === execution && issued.store === store &&
+    issued.storedResults === storedResults && issued.control === control &&
+    issued.preview === preview && owner.execution === execution &&
+    owner.store === store && owner.control === control &&
+    owner.capturePublished === true && owner.retainCapture === false &&
+    owner.releaseComplete === false && owner.cleanupFailure !== undefined &&
+    owner.cleanupFailure === error;
+}
+
 // Derive the only final-chain inventory from the same completed Compute and
 // Effect-source owners used at capture. This is not apply or publication.
 export function prepareCompletedEffectfulPublication(options) {
