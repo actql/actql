@@ -90,8 +90,51 @@ Program equality provides the missing connection evidence for that specializatio
 The published machine Program then verifies the same common execution contract.
 No test modifies a generated Program to evade the intended guard.
 
-Fresh clean-SHA Local/HTTPS receipt and original package digests remain pending at
-this commit. Focused compilation and independent fixture tests alone are not public
-execution success. Full Core, full packed/performance, other runtime targets and
-live Google differential validation remain unverified. No manual CI retry or merge
-is requested. The overall Frontend goal remains active.
+## Fresh package and public execution evidence
+
+Tested clean product/fixture SHA: `fae3870f890a30118f05c737629341765747ab46`.
+The subsequent submission commit only adds this evidence record. Normal production
+of all five packages and verification of their original digests/revision passed
+under the existing bounded shared-heavy wrapper (`run-OmdPzJ`). No package overlay,
+revision relabeling or producer prepack bypass was used.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-values-join-ceiling-fae3870f8-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-values-join-ceiling-fae3870f8-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --join-star-only
+```
+
+The pinned environment used Node 22.22.0 and MoonBit 0.10.12+1634b282e. The
+wrapper is `/private/tmp/actql-b-values-join-ceiling-fae3870f8-packed.mjs`.
+The complete receipt is
+`worktrees/.codex-scratch/public-query-evidence-WnAlE9` (relative to the workspace
+root, outside this checkout). Its summary records passed/complete, exact clean
+source revision, ten commands exiting zero, complete output streams, no signal,
+error or evidence error, and artifactsRemoved=true. Successful temporary package
+installation and Host Store were removed after the logs and receipt were saved.
+
+Local and HTTPS each complete **21 positive cases, 16 exact-code input refusals,
+and two expected execution failures**. The prior 19 positive/16 refusal cases are
+retained; no known failure is excluded. The new independent machine Program and
+complete CTE source both publish the two expected rows under guard 5. Guard 1
+controls fail without publishing either rows or describe metadata. Existing
+assertions retain type/nullability/column order, multiplicity, private-field
+absence, zero Source read sessions for Values controls, same-Run resend/attach and
+no extra admission or execution on repeated access. The public failure assertions
+establish failed/unpublished state, not an exact internal JOIN owner refusal code.
+Every input refusal retains ClientProgramInvalidInput with zero Run admission and
+Source I/O. README Local/HTTPS and deliberate missing-generated-asset checks pass.
+
+| Original package | SHA-256 |
+|---|---|
+| client-wire | `6786efeb781da6eb8b8781b09cf1f236a2de590bc8916c5b01eca7429494cddf` |
+| sdk | `efe3db19ccb0f9a49216a15bd0db236124760e3c4d6e56ee0e70c6e8ac683813` |
+| run-host-core | `013f20a6e6c63f57781b6c9c931aec19bfad8a9958670ad2b2a45f16d9917b9e` |
+| local-node | `53472cc1b6604391bc8442449ee90df1419b999c94f5170e49315be14b393da0` |
+| node | `029a16952028cf162eeb31a9ef2ee9074c337389569e23e8e4a7750d5adf5487` |
+
+Submitted-HEAD CI must be recorded separately from this clean-product local
+evidence. Full Core, full packed/performance, other runtime targets and live Google
+differential validation remain unverified. No manual CI retry, Ready transition
+or merge is performed. The overall Frontend goal remains active.
