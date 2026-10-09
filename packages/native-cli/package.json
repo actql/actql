@@ -1,0 +1,16 @@
+{
+  "name": "actql",
+  "version": "0.0.2",
+  "description": "Native Remote CLI for the ActQL Client–Host protocol",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {"node": ">=22.22.0"},
+  "bin": {"actql": "bin/actql.mjs"},
+  "files": ["bin", "platforms.json", "README.md", "LICENSE"],
+  "optionalDependencies": {
+    "@actql/cli-darwin-arm64": "0.0.2",
+    "@actql/cli-linux-x64-gnu": "0.0.2"
+  },
+  "repository": {"type": "git", "url": "git+https://github.com/actql/actql.git", "directory": "packages/native-cli"},
+  "publishConfig": {"registry": "https://registry.npmjs.org/", "access": "public"}
+}
