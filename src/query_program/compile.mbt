@@ -3562,6 +3562,7 @@ fn compile_steps(
           },
           "aql_qualify_expr_",
           false,
+          aggregate_outputs=sql_group_aggregate_slots,
         )
         if !derives.is_empty() {
           let fields : Array[(String, @builder.Node)] = []
@@ -3751,6 +3752,7 @@ fn compile_steps(
             },
             "aql_order_alias_",
             true,
+            aggregate_outputs=sql_group_aggregate_slots,
           )
         } else {
           []
