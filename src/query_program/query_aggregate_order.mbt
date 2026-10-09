@@ -59,7 +59,9 @@ fn aggregate_order_matches_argument(
       }
       true
     }
-    _ => same_expression(argument, order)
+    // Resolve every receiver inside computed trees, not only a root column.
+    // Spelling equality cannot establish input identity after Pipe rebinding.
+    _ => same_group_expression_in_scopes(argument, order, resolve, resolve)
   }
 }
 
@@ -130,7 +132,7 @@ fn aggregate_order_fields(
     let mut reused : String? = None
     for (previous, field) in evaluated {
       // Every comparison uses this same immutable GROUP input resolver.
-      if same_expression(expression, previous) {
+      if same_group_expression_in_scopes(expression, previous, resolve, resolve) {
         reused = Some(field)
         break
       }
