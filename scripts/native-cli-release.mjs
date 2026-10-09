@@ -17,7 +17,7 @@ const exact = (v, keys) => assert.deepEqual(Object.keys(v).sort(), [...keys].sor
 
 export async function admitNativeArtifact(directory, sourceSha) {
   const record = JSON.parse(await readFile(join(directory, 'artifact.json'), 'utf8'));
-  exact(record, ['version', 'sourceSha', 'platform', 'binarySha256', 'binaryBytes', 'generatedCSha256', 'toolchainPinSha256', 'toolchain', 'abi', 'testedHost', 'generation']);
+  exact(record, ['version', 'sourceSha', 'platform', 'binarySha256', 'binaryBytes', 'generatedCSha256', 'toolchainPinSha256', 'notices', 'toolchain', 'abi', 'testedHost', 'generation']);
   assert.equal(record.version, 'actql-native-cli-artifact/0.1'); assert.equal(record.sourceSha, sourceSha);
   assert(platforms[record.platform]);
   for (const key of ['binarySha256', 'generatedCSha256', 'toolchainPinSha256']) assert.match(record[key], /^[a-f0-9]{64}$/u);
@@ -50,6 +50,12 @@ export async function prepareNativeCliRelease(destination, artifacts) {
   assert(records.length > 0 && records.length <= 2); assert.equal(new Set(records.map(v => v.platform)).size, records.length);
   const pinDigest = hash(await readFile(join(repository, 'toolchain.json')));
   for (const record of records) assert.equal(record.toolchainPinSha256, pinDigest);
+  for (const record of records) {
+    exact(record.notices, ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']);
+    for (const [filename, digest] of Object.entries(record.notices)) {
+      assert.equal(digest, hash(await readFile(join(repository, 'packages/local-node', filename))));
+    }
+  }
   const cli = JSON.parse(await readFile(join(repository, 'packages/native-cli/package.json'), 'utf8'));
   assert.equal(cli.name, 'actql'); assert.notEqual(cli.version, '0.0.1');
   assert.match(cli.version, /^\d+\.\d+\.\d+$/u); assert.equal(cli.scripts, undefined);
@@ -62,13 +68,14 @@ export async function prepareNativeCliRelease(destination, artifacts) {
       const target = platforms[record.platform];
       const metadata = {name, version: cli.version, description: 'ActQL Native Remote transport executable',
         license: 'Apache-2.0', os: [target.os], cpu: [target.cpu], ...(target.libc ? {libc: [target.libc]} : {}),
-        files: ['bin', 'artifact.json', 'LICENSE'],
+        files: ['bin', 'artifact.json', 'LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE'],
         repository: {type: 'git', url: 'git+https://github.com/actql/actql.git'}, publishConfig: cli.publishConfig};
       await writeFile(join(directory, 'package.json'), `${JSON.stringify(metadata, null, 2)}\n`);
       await writeFile(join(directory, 'artifact.json'), `${JSON.stringify(record, null, 2)}\n`);
       await copyFile(join(resolve(artifacts[index]), 'actql-native-client'), join(directory, 'bin/actql-native-client'));
       await chmod(join(directory, 'bin/actql-native-client'), 0o755);
       await copyFile(join(repository, 'LICENSE'), join(directory, 'LICENSE'));
+      for (const filename of Object.keys(record.notices)) await copyFile(join(repository, 'packages/local-node', filename), join(directory, filename));
       packages.push(await pack(directory, destination));
       mapping[record.platform] = {package: name, sourceSha: record.sourceSha, binarySha256: record.binarySha256, binaryBytes: record.binaryBytes};
     }
@@ -125,6 +132,8 @@ export async function verifyNativeCliRelease(directory) {
         // The artifact validator expects the binary at the producer path.
         await copyFile(join(payload, 'bin/actql-native-client'), join(payload, 'actql-native-client'));
         await admitNativeArtifact(payload, manifest.sourceSha);
+        exact(record.notices, ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']);
+        for (const [filename, digest] of Object.entries(record.notices)) assert.equal(digest, hash(await readFile(join(payload, filename))));
         assert.deepEqual(manifest.platforms[key], {package: item.name, sourceSha: record.sourceSha,
           binarySha256: record.binarySha256, binaryBytes: record.binaryBytes});
       }
