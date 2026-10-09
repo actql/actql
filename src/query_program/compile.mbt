@@ -1866,6 +1866,11 @@ fn compile_steps(
   let mut pipe_visible = initial_scope
     .map(scope => scope.visible.copy())
     .unwrap_or(fields.map(field => (field, field)))
+  // Column ordinals count value-table columns once, independently of the
+  // implicit fields exposed to expressions and star. Keep evaluated slots.
+  let mut pipe_columns = initial_scope
+    .map(scope => scope.columns.copy())
+    .unwrap_or(pipe_visible.copy())
   let initial_range = query_range_name(query)
   let mut pipe_ranges = if initial_scope is Some(scope) {
     scope.ranges.copy()
@@ -1880,6 +1885,7 @@ fn compile_steps(
   let mut selected_input_scope : JoinChainScope = {
     visible: pipe_visible.copy(),
     ranges: pipe_ranges.copy(),
+    columns: pipe_columns.copy(),
     receivers: [],
     scalar_ranges: scalar_value_table_ranges.copy(),
   }
@@ -2130,6 +2136,7 @@ fn compile_steps(
         if !correlated {
           // The source-free witness is private, not a parent Relation.
           pipe_visible = []
+          pipe_columns = []
           pipe_ranges = []
           scalar_value_table_ranges = []
           active_fields = []
@@ -2138,6 +2145,7 @@ fn compile_steps(
         if index_slot is Some(slot) {
           active_fields.push(slot)
         }
+        pipe_columns.push((element.value, element_slot))
         if element_contract is Some({ shape: @contract.Object(fields), .. }) {
           step_entries.push(entries.copy())
           entries.clear()
@@ -2192,6 +2200,7 @@ fn compile_steps(
         }
         if offset is Some(name) && index_slot is Some(slot) {
           pipe_visible.push((name.value, slot))
+          pipe_columns.push((name.value, slot))
           // WITH OFFSET is a scalar value-table column and range, just like
           // the array alias. Ordinary projection or whole-column edits end
           // that range through the existing scope transitions.
@@ -2325,6 +2334,7 @@ fn compile_steps(
         output = fields
         value_table_receivers = []
         pipe_visible = active_fields.map(field => (field, field))
+        pipe_columns = pipe_visible.copy()
         pipe_ranges = []
         scalar_value_table_ranges = []
         pipe_rebound = true
@@ -2353,6 +2363,7 @@ fn compile_steps(
         output = fields
         value_table_receivers = []
         pipe_visible = active_fields.map(field => (field, field))
+        pipe_columns = pipe_visible.copy()
         pipe_ranges = []
         scalar_value_table_ranges = []
         pipe_rebound = true
@@ -2452,6 +2463,7 @@ fn compile_steps(
             slot
           }
           next.push((name.value, slot))
+          pipe_columns.push((name.value, slot))
         }
         if derived.is_empty() {
           deferred = true
@@ -2488,6 +2500,7 @@ fn compile_steps(
             ),
           )
           next.push((name.value, physical))
+          pipe_columns.push((name.value, physical))
         }
         entries.push(("derive", construction.object(derived)))
         pipe_visible = next
@@ -2524,6 +2537,7 @@ fn compile_steps(
           active_fields.push(name)
           output.push(name)
           pipe_visible.push((name, name))
+          pipe_columns.push((name, name))
         }
         // EXTEND adds current columns, not members of an existing immutable
         // range. Later expressions resolve the saved range and current row.
@@ -2588,6 +2602,19 @@ fn compile_steps(
         )
         entries.push(("derive", construction.object(derived)))
         pipe_visible = next
+        pipe_columns = pipe_columns.map(column => {
+          let matching = replacements.filter(replacement => {
+            same_name({ value: column.0, quoted: false, }, {
+              value: replacement.0,
+              quoted: false,
+            })
+          })
+          if matching.is_empty() {
+            column
+          } else {
+            (column.0, matching[0].1)
+          }
+        })
         // Resolve every sibling against the old snapshot before removing a
         // range hidden by a replacement current column of the same name.
         pipe_ranges = pipe_ranges.filter(range => {
@@ -2668,6 +2695,11 @@ fn compile_steps(
           names.map(name => (name.value, None)),
         )
         pipe_visible = next
+        pipe_columns = pipe_columns.filter(column => {
+          !names.any(name => {
+            same_name(name, { value: column.0, quoted: false, })
+          })
+        })
         output = next.map(entry => entry.0)
         if next.is_empty() {
           raise Abort(UnsupportedProjection)
@@ -2742,6 +2774,16 @@ fn compile_steps(
           next.push((name, current.1))
         }
         pipe_visible = next
+        pipe_columns = pipe_columns.map(column => {
+          let matching = names.filter(replacement => {
+            same_name(replacement.0, { value: column.0, quoted: false, })
+          })
+          if matching.is_empty() {
+            column
+          } else {
+            (matching[0].1.value, column.1)
+          }
+        })
         output = next.map(entry => entry.0)
         pipe_changed = true
         deferred = true
@@ -2799,6 +2841,7 @@ fn compile_steps(
               input_visible, value_table_receivers, scalar_value_table_ranges,
             ),
             ranges: input_ranges.copy(),
+            columns: pipe_columns.copy(),
             receivers: [],
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
@@ -3051,6 +3094,7 @@ fn compile_steps(
             ranges: input_ranges.map(range => {
               (range.0, range.1.filter(entry => key_names.contains(entry.1)))
             }),
+            columns: pipe_columns.copy(),
             receivers: [],
             scalar_ranges: scalar_value_table_ranges.filter(receiver => {
               key_names.contains(receiver.1)
@@ -3551,6 +3595,7 @@ fn compile_steps(
         } else {
           pipe_visible = result_fields.map(name => (name, name))
         }
+        pipe_columns = pipe_visible.copy()
         value_table_receivers = []
         scalar_value_table_ranges = scalar_value_table_ranges.filter(receiver => {
           key_names.contains(receiver.1)
@@ -3572,6 +3617,7 @@ fn compile_steps(
               pipe_visible, value_table_receivers, scalar_value_table_ranges,
             ),
             ranges: pipe_ranges,
+            columns: pipe_columns.copy(),
             receivers: [],
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
@@ -3752,6 +3798,7 @@ fn compile_steps(
           analytic_input_scope.unwrap_or({
             visible: pipe_visible.copy(),
             ranges: pipe_ranges.copy(),
+            columns: pipe_columns.copy(),
             receivers: [],
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
@@ -3890,6 +3937,7 @@ fn compile_steps(
               analytic_visible, value_table_receivers, scalar_value_table_ranges,
             ).copy(),
             ranges: pipe_ranges.copy(),
+            columns: pipe_columns.copy(),
             receivers: [],
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
@@ -3913,6 +3961,7 @@ fn compile_steps(
               analytic_visible, value_table_receivers, scalar_value_table_ranges,
             ),
             ranges: pipe_ranges.copy(),
+            columns: pipe_columns.copy(),
             receivers: [],
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
@@ -4191,6 +4240,7 @@ fn compile_steps(
             ) +
             analytic_expression_bindings,
             ranges: pipe_ranges,
+            columns: pipe_columns.copy(),
             receivers: [],
             scalar_ranges: scalar_value_table_ranges.copy(),
           }
@@ -4436,10 +4486,12 @@ fn compile_steps(
             pipe_visible, value_table_receivers, scalar_value_table_ranges,
           ).copy(),
           ranges: pipe_ranges.copy(),
+          columns: pipe_columns.copy(),
           receivers: [],
           scalar_ranges: scalar_value_table_ranges.copy(),
         }
         selected_output_slots = bindings.copy()
+        pipe_columns = bindings.copy()
         if !distinct && @query.operation_at(query, i + 1) is Some(Order(_)) {
           if entries.length() == 2 && entries[0].0 == "from" {
             ignore(entries.remove(0))
@@ -4451,6 +4503,7 @@ fn compile_steps(
         } else {
           active_fields = names.copy()
           pipe_visible = names.map(name => (name, name))
+          pipe_columns = pipe_visible.copy()
           pipe_changed = false
         }
         pipe_selected = true
@@ -4485,6 +4538,7 @@ fn compile_steps(
             pipe_visible, value_table_receivers, scalar_value_table_ranges,
           ).copy(),
           ranges: pipe_ranges.copy(),
+          columns: pipe_columns.copy(),
           receivers: [],
           scalar_ranges: scalar_value_table_ranges.copy(),
         }
@@ -4720,6 +4774,7 @@ fn compile_steps(
         entries.push(("select", construction.array(selected)))
         output = names
         pipe_visible = names.map(name => (name, name))
+        pipe_columns = pipe_visible.copy()
         selected_expressions = expressions
         selected_output_slots = bindings.copy()
         add_distinct = distinct
@@ -4863,10 +4918,12 @@ fn compile_steps(
           }
           let ordinal = order_ordinal_column(
             expression,
-            pipe_visible.map(pair => pair.0),
+            pipe_columns.map(pair => pair.1),
           )
-          let direct = if ordinal is Some(name) {
-            resolve([{ value: name, quoted: false, }])
+          let direct = if ordinal is Some(slot) {
+            // Positions address actual columns, not a same-named range or
+            // an implicit field. A deferred SELECT supplies evaluated slots.
+            Some(slot)
           } else {
             match
               @query.expression_node(
@@ -5236,6 +5293,7 @@ fn compile_steps(
           scalar_value_table_ranges = []
           active_fields = output.copy()
           pipe_visible = output.map(name => (name, name))
+          pipe_columns = pipe_visible.copy()
           pipe_changed = false
         }
         None => ()
@@ -5248,6 +5306,7 @@ fn compile_steps(
     scopes.push({
       visible: pipe_visible.copy(),
       ranges: pipe_ranges.copy(),
+      columns: pipe_columns.copy(),
       receivers: value_table_receivers.copy(),
       scalar_ranges: scalar_value_table_ranges.copy(),
     })

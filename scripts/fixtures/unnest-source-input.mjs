@@ -226,6 +226,72 @@ unnestRefusals.push(...unnestParameterPathRefusals);
 unnestSuccesses.push(...unnestCheckedArraySuccesses);
 unnestRefusals.push(...unnestCheckedArrayRefusals);
 
+// ORDER positions count actual value-table columns, not implicit object fields.
+// The label order deliberately opposes the offset order. These expectations and
+// ordinary JSON ports are authored independently of the frontend's private slots.
+const ordinalParameters = {items: [{id: 2, label: 'z'}, null, {id: 1, label: 'a'}]};
+const ordinalRows = [{id: 2, label: 'z', position: 0},
+  {id: null, label: null, position: 1}, {id: 1, label: 'a', position: 2}];
+const ordinalControl = {version: 'actql/0.1', id: 'fixture.unnest.ordinal', params: structDeclarations,
+  stages: [{id: 'main', inputs: {}, steps: [
+    {as: 'seed', values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}},
+    {from: 'seed', derive: {array: {$param: 'items'}}},
+    {unnest: {column: 'array', as: 'whole', with_index: 'position'}},
+    {derive: {id: {property: {value: {field: 'whole'}, name: 'id'}},
+      label: {property: {value: {field: 'whole'}, name: 'label'}}}},
+    {sort: [{field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: ['id', 'label', 'position'], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['id', 'label', 'position']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const ordinalHead = 'FROM UNNEST(@items) element WITH OFFSET position';
+const ordinalSuccess = (name, text, extra = {}) => structSuccess('ordinal-' + name, text,
+  extra.expected ?? ordinalRows, extra.columns ?? structColumns,
+  {format: 'aql-text', parameters: ordinalParameters, ...extra});
+unnestSuccesses.push(
+  ordinalSuccess('json-control', JSON.stringify(ordinalControl),
+    {format: 'json', parameterDeclarations: undefined}),
+  ordinalSuccess('offset-before-select', `${ordinalHead} |> ORDER BY 2 |> SELECT element.*, position`),
+  ordinalSuccess('signed-quoted',
+    'FROM UNNEST(@items) `element` WITH OFFSET `position` |> ORDER BY (+2) |> SELECT `element`.*, `position`'),
+  ordinalSuccess('projected-members', `${ordinalHead} |> SELECT element.*, position |> ORDER BY 2`,
+    {expected: [{id: null, label: null, position: 1}, {id: 1, label: 'a', position: 2},
+      {id: 2, label: 'z', position: 0}]}),
+  ordinalSuccess('reordered-projection', `${ordinalHead} |> SELECT position, element.* |> ORDER BY 1`,
+    {expected: [{position: 0, id: 2, label: 'z'}, {position: 1, id: null, label: null},
+      {position: 2, id: 1, label: 'a'}], columns: [column('position'), ...structColumns.slice(0, 2)]}),
+  ordinalSuccess('same-named-offset',
+    'FROM UNNEST(@items) element WITH OFFSET id |> ORDER BY 2 |> SELECT element.id AS original, id AS position',
+    {expected: [{original: 2, position: 0}, {original: null, position: 1}, {original: 1, position: 2}],
+      columns: [column('original', true), column('position')]}),
+  ordinalSuccess('drop-value', `${ordinalHead} |> DROP element |> ORDER BY 1 |> SELECT position`,
+    {expected: [{position: 0}, {position: 1}, {position: 2}], columns: [column('position')]}),
+  ordinalSuccess('extend-column',
+    `${ordinalHead} |> EXTEND 10 - position AS extra |> ORDER BY 3 |> SELECT element.*, position, extra`,
+    {expected: [{id: 1, label: 'a', position: 2, extra: 8},
+      {id: null, label: null, position: 1, extra: 9}, {id: 2, label: 'z', position: 0, extra: 10}],
+      columns: [...structColumns, column('extra')]}),
+  ordinalSuccess('set-offset',
+    `${ordinalHead} |> SET position = 10 - position |> ORDER BY 2 |> SELECT element.*, position`,
+    {expected: [{id: 1, label: 'a', position: 8}, {id: null, label: null, position: 9},
+      {id: 2, label: 'z', position: 10}]}),
+  ordinalSuccess('join-remapping',
+    `${ordinalHead} |> JOIN (SELECT 2 AS key UNION ALL SELECT 1 AS key) k ON element.id = k.key MAX_OUTPUT_ROWS 3 |> ORDER BY 2 |> SELECT element.*, position`,
+    {expected: [{id: 2, label: 'z', position: 0}, {id: 1, label: 'a', position: 2}]}),
+  ordinalSuccess('empty-objects', `${ordinalHead} |> ORDER BY 2 DESC |> SELECT position`,
+    {parameterDeclarations: {items: {type: 'array', nullable: true, max_items: 3,
+      items: {type: 'object', nullable: true, fields: {}}}},
+      parameters: {items: [{}, null]}, expected: [{position: 1}, {position: 0}], columns: [column('position')]}),
+  ordinalSuccess('null-array', `${ordinalHead} |> ORDER BY 2 |> SELECT element.*, position`,
+    {parameters: {items: null}, expected: []}),
+);
+for (const [name, text] of [
+  ['outside-actual-columns', `${ordinalHead} |> ORDER BY 3 |> SELECT element.*, position`],
+  ['without-offset', 'FROM UNNEST(@items) element |> ORDER BY 2 |> SELECT element.*'],
+  ['after-drop', `${ordinalHead} |> DROP element |> ORDER BY 2 |> SELECT position`],
+]) unnestRefusals.push(refusal('ordinal-' + name, text,
+  {format: 'aql-text', parameterDeclarations: structDeclarations, parameters: ordinalParameters,
+    expectedCode: 'ClientProgramInvalidInput'}));
+
 // Independent range/field collision obligations. A value-table range denotes
 // its original object even when the object exposes a same-named scalar field.
 const receiverItem = {type: 'object', nullable: true, fields: {
