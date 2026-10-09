@@ -62,6 +62,7 @@ struct ResidentSourceCompute {
   mut stopping : Bool
   source_closed : Ref[Bool]
   mut released : Bool
+  effect_captures : Map[String, ResidentEffectCaptureCustody]
   effect_payloads : Map[String, ResidentEffectSourceCustody]
   observe : ((ResidentSourceComputeEvent) -> Bool)?
 }
@@ -712,6 +713,7 @@ fn open_resident_captured_compute(
     source_closed,
     released: false,
     effect_payloads: {},
+    effect_captures: {},
     observe,
   }
   Ok(owner)

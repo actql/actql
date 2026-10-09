@@ -144,3 +144,44 @@ pub fn Library::verify_ed25519(
     _ => Err(Verification(library_message(self)))
   }
 }
+
+///|
+#borrow(library, key, aad, input)
+extern "C" fn private_cipher_ffi(
+  library : Library,
+  key : Bytes,
+  key_length : Int,
+  aad : Bytes,
+  aad_length : Int,
+  input : Bytes,
+  input_length : Int,
+  encrypt : Int,
+) -> Bytes = "actql_native_private_evidence_cipher"
+
+///|
+fn Library::private_cipher(
+  self : Library,
+  key : Bytes,
+  aad : Bytes,
+  input : Bytes,
+  encrypt : Bool,
+) -> Result[Bytes, NativePrivateEvidenceIssue] {
+  let result = private_cipher_ffi(
+    self,
+    key,
+    key.length(),
+    aad,
+    aad.length(),
+    input,
+    input.length(),
+    if encrypt {
+      1
+    } else {
+      0
+    },
+  )
+  if result.length() < 2 || result[0] != 0 {
+    return Err(CipherRejected)
+  }
+  Ok(result[1:].to_owned())
+}
