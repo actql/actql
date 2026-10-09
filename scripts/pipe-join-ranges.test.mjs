@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {pipeJoinRangesProgram, extendRangeProgram, pipeJoinRangesSuccesses, pipeJoinRangesRefusals}
+import {pipeJoinRangesProgram, extendRangeProgram, renameTargetProgram, pipeJoinRangesSuccesses, pipeJoinRangesRefusals}
   from './fixtures/pipe-join-ranges.mjs';
 
 test('range obligations distinguish current values from original slots and preserve duplicates', () => {
@@ -21,9 +21,31 @@ test('range obligations distinguish current values from original slots and prese
   assert.deepEqual(cases.get('pipe-join-ranges-parameter-slot').parameters, {increment: 10});
   assert.equal(cases.get('pipe-join-ranges-shared-source').expected.length, 6);
   assert.equal(cases.get('pipe-join-ranges-shared-source').sourceReadSessionCount, 1);
-  const originalRefusals = pipeJoinRangesRefusals.filter(item => !item.name.includes('refuse-extend-'));
+  const originalRefusals = pipeJoinRangesRefusals.filter(item =>
+    !item.name.includes('refuse-extend-') && !item.name.includes('refuse-rename-'));
   assert.equal(originalRefusals.length, 4);
   assert.ok(originalRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('RENAME targets only one current column and preserves independent JOIN values', () => {
+  const cases = new Map(pipeJoinRangesSuccesses.map(item => [item.name, item]));
+  const json = cases.get('pipe-join-ranges-rename-independent-json');
+  assert.deepEqual(JSON.parse(json.text), renameTargetProgram);
+  assert.deepEqual(renameTargetProgram.stages[1].steps[1].join,
+    {with: 'rights', kind: 'inner', on: [{left: 'id', right: 'id'}], max_output_rows: 10,
+      select: {current: 'left.amount', original: 'left.id', matched: 'right.id'}});
+  const source = cases.get('pipe-join-ranges-rename-unrelated-duplicates');
+  assert.deepEqual(source.expected, [{current: 20, original: 2, matched: 2},
+    {current: 20, original: 2, matched: 2}]);
+  assert.deepEqual(source.columns.map(column => column.name), ['current', 'original', 'matched']);
+  assert.deepEqual(source.columns.map(column => column.contract.nullable), [true, false, false]);
+  assert.equal(source.sourceReadSessionCount, 1);
+  assert.ok(cases.get('pipe-join-ranges-rename-new-ambiguity').text.includes('SELECT l.amount AS current'));
+  assert.equal(cases.get('pipe-join-ranges-rename-nullable').expected[0].current, null);
+  assert.deepEqual(cases.get('pipe-join-ranges-rename-empty-typed').expected, []);
+  const refusals = pipeJoinRangesRefusals.filter(item => item.name.includes('refuse-rename-'));
+  assert.equal(refusals.length, 6);
+  assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
 });
 
 test('first EXTEND preserves original range membership and explicit fresh AS binding', () => {
