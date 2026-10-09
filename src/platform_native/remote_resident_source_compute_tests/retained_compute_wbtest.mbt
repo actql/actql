@@ -157,9 +157,103 @@ fn retained_compute_input_limits() -> @output.NativeRemoteStandardTransferSource
 }
 
 ///|
+fn retained_compute_effect_materials() -> (
+  @host.ClientEffectRunMaterials,
+  @host.ClientRequestIdentity,
+) {
+  let prepared = resident_native_effect_prepared()
+  let manifests = @host.admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  let compilation = @host.issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    @host.client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let allowed = @host.issue_client_effect_allowed_run(
+    compilation,
+    retained_compute_cid("a"),
+    retained_compute_cid("b"),
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @host.issue_client_effect_run_definition(
+    allowed, "retained-effect", "original-effect-run", "2026-10-09T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let environment = @host.admit_client_check_environment(
+    resident_effect_source_environment,
+    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let limits : @host.ClientEffectComputationLimits = {
+    program: @host.client_standard_program_preparation_limits(),
+    max_members: 1,
+    max_header_work: 1000,
+    mapping: {
+      max_bytes: 20000,
+      max_nodes: 2000,
+      max_depth: 100,
+      max_members: 100,
+    },
+    max_mapping_work: 1000,
+    effects: {
+      max_members: 1,
+      max_work: 1000,
+      max_admission_nodes: 100,
+      max_admission_depth: 10,
+      max_admission_text_bytes: 1000,
+    },
+  }
+  let wire = @host.issue_client_effect_run_materials(
+    allowed,
+    definition,
+    environment,
+    resident_effect_source_environment,
+    resident_native_effect_document,
+    None,
+    limits,
+  ).unwrap()
+  let materials = @host.admit_client_effect_run_materials(
+    wire,
+    @publication.publication_contract_identity(definition),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    manifests,
+    {
+      preparation: @host.client_standard_program_preparation_limits(),
+      sequence: @host.client_standard_values_sequence_limits(),
+      max_sequence_steps: 1000,
+      max_sequence_work: 1000,
+      max_evidence_bytes: 1000000,
+      max_evidence_nodes: 100000,
+      max_evidence_depth: 100,
+    },
+    limits,
+  ).unwrap()
+  let caller = @host.prepare_client_effect_request_identity(
+    materials.prepared,
+    retained_compute_cid("c"),
+    "original-effect-caller",
+    @host.source_free_caller_input_intent_cid(),
+  ).unwrap()
+  (materials, caller)
+}
+
+///|
 fn retained_compute_case(
   cancel_before_start : Bool,
   through_runtime? : Bool = false,
+  effect? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -186,17 +280,42 @@ fn retained_compute_case(
       },
     },
   }
+  let effect_materials = if effect {
+    Some(retained_compute_effect_materials())
+  } else {
+    None
+  }
   let acquisitions = Ref(0)
   let producer_captures = Ref(0)
-  let source_owner = match
-    @resident.open_resident_source_compute(prepared, configuration, name, observe=event => {
-      match event {
-        AcquisitionEntered => acquisitions.val += 1
-        ProducerCaptured => producer_captures.val += 1
-        _ => ()
-      }
-      true
-    }) {
+  let source_observe = event => {
+    match event {
+      @resident.AcquisitionEntered => acquisitions.val += 1
+      @resident.ProducerCaptured => producer_captures.val += 1
+      _ => ()
+    }
+    true
+  }
+  let source_open = match effect_materials {
+    Some((materials, _)) =>
+      @resident.open_resident_effect_source_compute(
+        @host.bind_client_effect_compiled_run(
+          materials.prepared,
+          materials.allowed,
+          materials.run_definition,
+        ).unwrap(),
+        configuration,
+        name,
+        observe=source_observe,
+      )
+    None =>
+      @resident.open_resident_source_compute(
+        prepared,
+        configuration,
+        name,
+        observe=source_observe,
+      )
+  }
+  let source_owner = match source_open {
     Ok(value) => value
     Err((_, failure)) => {
       @output.retry_native_remote_standard_input_failure_cleanup(failure)
@@ -224,9 +343,17 @@ fn retained_compute_case(
     prepared,
   )
   let admission = @host.client_compiled_run_admission(allowed)
-  let edge = @host.prepare_client_retained_input_edge(
-    prepared, compilation, admission, definition, 1, 0,
-  ).unwrap()
+  let edge = match effect_materials {
+    Some((materials, _)) =>
+      @host.prepare_client_effect_retained_input_edge(
+        materials.allowed,
+        materials.run_definition,
+      ).unwrap()
+    None =>
+      @host.prepare_client_retained_input_edge(
+        prepared, compilation, admission, definition, 1, 0,
+      ).unwrap()
+  }
   let bytes = chunks.fold(init=0L, (sum, chunk) => {
     sum + chunk.length().to_int64()
   })
@@ -257,16 +384,28 @@ fn retained_compute_case(
   } else {
     retained_compute_selection()
   }
-  let producer_dispatch = @host.prepare_client_task_dispatch(
-    prepared, compilation, admission, definition, caller, 0, 1, "producer", selected,
-  ).unwrap()
+  let producer_dispatch = match effect_materials {
+    Some((materials, caller)) =>
+      @host.prepare_client_effect_source_dispatch(
+        materials.allowed,
+        materials.run_definition,
+        caller,
+        1,
+        "producer",
+        selected,
+      ).unwrap()
+    None =>
+      @host.prepare_client_task_dispatch(
+        prepared, compilation, admission, definition, caller, 0, 1, "producer", selected,
+      ).unwrap()
+  }
   let (producer, site) = retained_compute_producer_fixture(
     edge, producer_dispatch, physical,
   )
   let current = @output.install_native_remote_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => 1791504000000L,
     (_, _) => true,
   )
   let request = @transfer.prepare_request(
@@ -322,16 +461,30 @@ fn retained_compute_case(
   let common_current = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => 1791504000000L,
     (_, _) => true,
   )
   let common_input = @host.prepare_client_retained_task_input(
     producer, committed, destination, "direct-destination", common_current, 262144,
   ).unwrap()
-  let dispatch = @host.prepare_client_retained_task_dispatch(
-    prepared, compilation, admission, definition, caller, 1, 1, "consumer", selected,
-    common_input, common_current,
-  ).unwrap()
+  let dispatch = match effect_materials {
+    Some((materials, caller)) =>
+      @host.prepare_client_effect_retained_task_dispatch(
+        materials.allowed,
+        materials.run_definition,
+        caller,
+        1,
+        "consumer",
+        selected,
+        common_input,
+        common_current,
+      ).unwrap()
+    None =>
+      @host.prepare_client_retained_task_dispatch(
+        prepared, compilation, admission, definition, caller, 1, 1, "consumer", selected,
+        common_input, common_current,
+      ).unwrap()
+  }
   let material = @transfer_client.pin_durable_direct_destination_material(
     journal,
     root,
@@ -395,19 +548,38 @@ fn retained_compute_case(
   let stale = @output.install_native_remote_retained_input_current(
     () => foreign_site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => 1791504000000L,
     (_, _) => true,
   )
-  let (issue, failed) = @resident.open_resident_retained_compute(
-    prepared,
-    configuration,
-    input,
-    material,
-    dispatch,
-    codec,
-    retained_compute_input_limits(),
-    stale,
-  ).unwrap_err()
+  let open_consumer = (selected_current, observe) => {
+    match effect_materials {
+      Some((materials, _)) =>
+        @resident.open_resident_effect_retained_compute(
+          materials,
+          configuration,
+          input,
+          material,
+          dispatch,
+          codec,
+          retained_compute_input_limits(),
+          selected_current,
+          observe~,
+        )
+      None =>
+        @resident.open_resident_retained_compute(
+          prepared,
+          configuration,
+          input,
+          material,
+          dispatch,
+          codec,
+          retained_compute_input_limits(),
+          selected_current,
+          observe~,
+        )
+    }
+  }
+  let (issue, failed) = open_consumer(stale, _ => true).unwrap_err()
   assert_true(
     issue is RetainedInput(@output.Input(@output.StaleSiteGeneration)),
   )
@@ -455,25 +627,15 @@ fn retained_compute_case(
   }
   let entries = Ref(0)
   let consumer = match
-    @resident.open_resident_retained_compute(
-      prepared,
-      configuration,
-      input,
-      material,
-      dispatch,
-      codec,
-      retained_compute_input_limits(),
-      current,
-      observe=event => {
-        match event {
-          AcquisitionEntered =>
-            abort("retained consumer attempted Source acquisition")
-          ConsumerEntered(1) => entries.val += 1
-          _ => ()
-        }
-        true
-      },
-    ) {
+    open_consumer(current, event => {
+      match event {
+        @resident.AcquisitionEntered =>
+          abort("retained consumer attempted Source acquisition")
+        @resident.ConsumerEntered(1) => entries.val += 1
+        _ => ()
+      }
+      true
+    }) {
     Ok(value) => value
     Err((issue, failure)) => {
       @output.retry_native_remote_standard_input_failure_cleanup(failure)
@@ -555,10 +717,44 @@ fn retained_compute_case(
     output.result_schema_wire().unwrap(),
     "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
   )
+  let effect_inputs = if effect {
+    let effect_run = consumer.effect_run().unwrap()
+    let foreign_run = resident_native_effect_bound_run()
+    let foreign_occurrence = @strategy.graph_result_occurrence(
+      @strategy.checked_effect_run_graph(
+        @host.prepared_client_effect_run_graph(foreign_run),
+      ),
+      0,
+    ).unwrap()
+    // Equal schema and rows from another checked Owner cannot borrow this
+    // receiver's input or consume one of its bounded pin slots.
+    assert_true(
+      @strategy.borrow_captured_any_result_output(
+        @strategy.captured_effect_run_dag(effect_run),
+        1,
+        foreign_occurrence,
+        4,
+      )
+      is Err(ForeignCandidate),
+    )
+    Some(@strategy.pin_captured_effect_sources(effect_run, 4).unwrap())
+  } else {
+    None
+  }
   assert_false(consumer.close())
   assert_true(consumer.usage().held_bytes > 0L)
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_bytes, bytes)
   output.cancel()
+  if effect_inputs is Some(inputs) {
+    assert_false(consumer.close())
+    assert_true(consumer.usage().held_bytes > 0L)
+    assert_eq(
+      journal.destination_capacity_usage().unwrap().reserved_bytes,
+      bytes,
+    )
+    assert_true(@strategy.release_captured_effect_inputs(inputs))
+    assert_false(@strategy.release_captured_effect_inputs(inputs))
+  }
   assert_true(consumer.close())
   assert_true(consumer.close())
   assert_eq(consumer.usage().held_bytes, 0L)
@@ -600,4 +796,14 @@ test "retained Native cancellation before consumer start returns borrow before e
 ///|
 test "retained Native consumer completes through Runtime claim evidence readers and formal cleanup" {
   retained_compute_case(false, through_runtime=true)
+}
+
+///|
+test "Effect retained consumer resumes from committed Transfer without Source IO" {
+  retained_compute_case(false, effect=true)
+}
+
+///|
+test "Effect retained consumer cancellation returns its borrow before holding cleanup" {
+  retained_compute_case(true, effect=true)
 }
