@@ -87,8 +87,9 @@ four old generic refusal-code expectations need the current diagnostic mapping,
 as recorded below. These cases run in normal packed CI and its same focused cohort;
 no new acceptance framework or post-lowering Program rewrite is added.
 
-Fresh exact-SHA normal five-package production and Local/HTTPS execution remain
-pending at this commit. Compilation and fixture success are not execution
+At the initial product commit, fresh exact-SHA normal five-package production
+and Local/HTTPS execution were pending. The completed campaign below supersedes
+that pending state; compilation and fixture success alone are not execution
 success. Full Core, full packed/performance, other targets, CI and live Google
 differential validation remain unverified. No manual retry, Ready transition or
 merge is performed. The full Frontend completion objective remains active.
@@ -116,5 +117,48 @@ Exact refusal controls and existing JOIN callers pass JS 8/8 (`run-RLIHoO`,
 pipe_join_ranges_test.mbt. The corrected public fixture/registration checks pass
 Node 3/3 (`run-YDw6rR`, `focused-test-2qaRkG`). The earlier 25/25 and 6/6 checks
 retain their own source-state scope; the new diagnostic expectation does not
-change product implementation. A new exact-SHA packed run must finish before
-public completion can be claimed.
+change product implementation. Public completion requires the new exact-SHA
+campaign recorded below.
+
+## Completed normal-package Local/HTTPS campaign
+
+Tested clean product/fixture SHA: `27e95a8e676f6e026d94ac8853e0f61ef39df3c1`.
+The later submission commit only adds this English evidence record.
+The normal five-package producer and independent revision/original-digest
+verification pass under `run-zXYfM0`. Pinned tools are Node 22.22.0 and MoonBit
+0.10.12+1634b282e; no overlay, manifest relabeling or producer bypass is used.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-extend-range-27e95a8e6-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-extend-range-27e95a8e6-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --pipe-join-ranges-only
+```
+
+The wrapper is `/private/tmp/actql-b-extend-range-27e95a8e6-packed.mjs`. Receipt
+`worktrees/.codex-scratch/public-query-evidence-slnv3X` is outside this checkout,
+relative to the workspace root. It records exact clean revision, passed/complete,
+ten zero-exit commands with complete output, no signal/error/evidence error and
+artifactsRemoved=true. Temporary successful install/Host Store are removed after
+preserving receipt and logs. README Local/HTTPS and the deliberate missing
+generated-asset check also pass.
+
+Embedded Local and HTTPS each complete **16 positive and nine exact-code refusal
+cases**. This includes all previous 11 positive/four refusal inputs and the five
+new positive/five refusal controls. No known failure is excluded. Named Results
+retain independent rows/types/nullability/declared column order, NULLs, duplicates
+and private-field absence. Source acquisition is once per admitted Source case;
+same-Run resend/attach/Result reread adds no execution or acquisition. Every refusal
+retains ClientProgramInvalidInput and zero Run admission/Source I/O.
+The earlier partial campaign remains historical evidence, not HTTPS success.
+
+| Original package | SHA-256 |
+|---|---|
+| client-wire | `9b29e7833f9c542bb966432d0889dc10b96e35a66e74b55afcafd546ca7f9e9e` |
+| sdk | `a0d29d13e2c2ccb867de88f31b923c44c7cb7224a392a2df0161bcf2a381c96a` |
+| run-host-core | `013f20a6e6c63f57781b6c9c931aec19bfad8a9958670ad2b2a45f16d9917b9e` |
+| local-node | `5a064a6f77c25dbd53a2b0e9bb77dc5beea9f314c819f81e767d5e8d270e2c2e` |
+| node | `029a16952028cf162eeb31a9ef2ee9074c337389569e23e8e4a7750d5adf5487` |
+
+Submitted-HEAD CI remains separate from this clean-product local evidence. Keep
+Draft and the unmerged parent dependency; no merge GO follows from local success.
