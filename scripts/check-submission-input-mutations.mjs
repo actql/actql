@@ -119,6 +119,10 @@ const expected = (phase, assertion = 'submission-input') => {
     name: 'in-process: reused cancellation replies preserve each original Run observation',
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
   }];
+  if (phase === 'cancellation-format') return [{
+    name: 'in-process: Run cancellation uncertainty retains read-only observation advice',
+    assertions: [{id: assertion, operator: 'strictEqual'}],
+  }];
   if (phase.startsWith('check-outcome-')) {
     const name = phase === 'check-outcome-reporting'
       ? 'check outcome explanations preserve reporting boundaries'
@@ -135,6 +139,22 @@ const expected = (phase, assertion = 'submission-input') => {
       name: `${entrance}: ${name}`,
       assertions: [{id: assertion, operator: phase === 'frontier-stalled'
         ? 'deepStrictEqual' : 'strictEqual'}],
+    }));
+  }
+  if (phase === 'cancellation-attempt-custody') {
+    return ['refused/authorization', 'refused/admission_capacity',
+      'conflict/intent', 'conflict/control_revision'].map(outcome => ({
+      name: `typed cancellation ${outcome} explains only its original invocation`,
+      assertions: [{id: assertion, operator: 'strictEqual'}],
+    }));
+  }
+  if (phase === 'cancellation-attempt-refused' || phase === 'cancellation-attempt-conflict') {
+    const name = phase === 'cancellation-attempt-refused'
+      ? 'Refused is invocation-local and does not consume cancellation custody'
+      : 'stale relevant revision returns a correlated Conflict without a write';
+    return ['in-process', 'https'].map(entrance => ({
+      name: `${entrance}: ${name}`,
+      assertions: [{id: assertion, operator: 'deepStrictEqual'}],
     }));
   }
   if (phase.startsWith('cancellation-')) {
@@ -295,6 +315,21 @@ const mutations = [
     "accepted: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.'",
     "accepted: 'The Run has stopped and all resources have been released.'",
     'cancellation-recorded', 'cancel-explanation'],
+  ['typed cancellation refusal loses its invocation explanation',
+    'return retainCancellationAttemptExplanation(received, context);',
+    'return received;', 'cancellation-attempt-refused', 'cancel-attempt-refused'],
+  ['typed cancellation refusal claims global uncommitted custody',
+    "...(result.kind === 'refused' ? {guarantee: result.guarantee} : {}),",
+    "...(result.kind === 'refused' ? {guarantee: 'cancellation_never_committed'} : {}),",
+    'cancellation-attempt-refused', 'cancel-attempt-refused'],
+  ['typed cancellation conflict substitutes another expected revision',
+    'attemptRef: context.attemptRef, cancelRef: context.cancelRef,',
+    'attemptRef: context.attemptRef, cancelRef: {...context.cancelRef, expectedRevision: context.cancelRef.expectedRevision + 1},',
+    'cancellation-attempt-conflict', 'cancel-attempt-conflict'],
+  ['typed cancellation copies acquire original explanation custody',
+    'const cancellationExplanations = new WeakMap();',
+    'const cancellationExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
+    'cancellation-attempt-custody', 'cancel-attempt-custody'],
   ['unknown cancellation is presented as confirmed acceptance',
     'cancellationExplanations.set(result, freezeInput({observation,',
     "cancellationExplanations.set(result, freezeInput({observation: observation === 'outcome_unknown' ? 'accepted' : observation,",
@@ -316,31 +351,30 @@ const mutations = [
     "          throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),\n" +
     "            cancellationContext, 'outcome_unknown');\n        }",
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
-    'cancellation-unknown', 'cancel-unknown-explanation', [
-      ["throw refusal ? error : retainCancellationExplanation(error, context, 'outcome_unknown');",
-        "throw refusal || cause?.code === 'InvalidLocalHostPortResponse' ? error\n" +
-        "            : retainCancellationExplanation(error, context, 'outcome_unknown');"],
+    'cancellation-format', 'cancel-format-uncertainty', [
+      ['          if (!dispatchedCancellations.has(context)) throw cause;',
+        "          if (!dispatchedCancellations.has(context) || cause?.code === 'InvalidLocalHostPortResponse') throw cause;"],
     ]],
   ['cancellation response reuse changes an earlier Run observation',
     'received = detachResponse(received);', 'received = response;',
     'cancellation-custody', 'cancel-custody', [
-      ["return retainCancellationExplanation(freezeInput(received), context, received.kind, received.revision);",
-        "return retainCancellationExplanation(received, context, received.kind, received.revision);"],
+      ['received = freezeInput(received);\n        return retainCancellationAttemptExplanation(received, context);',
+        'return retainCancellationAttemptExplanation(received, context);'],
     ]],
   ['cancellation clone failure leaks an unassociated error',
     "        let received;\n        try {\n          received = captureResponse(response);",
     "        let received = structuredClone(captureResponse(response));\n        try {\n          received = captureResponse(response);",
     'cancellation-clone:clone throws', 'cancel-clone-invalid'],
   ['cancellation clone erasure bypasses copy and shape validation',
-    'received = detachResponse(received);\n          if (!validCancellation(received, cancelRef))',
+    'received = detachResponse(received);\n          if (!validCancellationAttempt(received, cancelRef, attemptRef))',
     'received = structuredClone(received);\n          if (false)',
     'cancellation-clone:clone erases fields', 'cancel-clone-invalid'],
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => [
     `cancellation clone bypasses ${field} association`,
     'received = detachResponse(received);\n' +
-      "          if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');",
+      "          if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');",
     'received = structuredClone(received);\n' +
-      `          if (!validCancellation(received, {...cancelRef, ${field}: received.cancelRef.${field}})) fail('InvalidHostCancellation');`,
+      `          if (!validCancellationAttempt(received, {...cancelRef, ${field}: received.cancellation.cancelRef.${field}}, attemptRef)) fail('InvalidHostCancellation');`,
     `cancellation-clone:clone changes ${field}`, 'cancel-clone-invalid',
   ]),
   ['check reporting budget is blamed on an invalid input',
@@ -417,6 +451,9 @@ const mutations = [
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
   const file = phase === 'unresolvable-restart' ? 'adapters/host-node/client-submission-custody-public.test.mjs'
+    : phase === 'cancellation-attempt-custody' ? 'packages/sdk/cancel-identity.test.mjs'
+    : phase === 'cancellation-attempt-refused' || phase === 'cancellation-attempt-conflict'
+      ? 'adapters/host-node/client-cancellation-attempt-public.test.mjs'
     : phase === 'submission-copy' ? 'packages/sdk/submission-identity.test.mjs'
     : phase.startsWith('operation-input-') ? operationInputAcceptance
     : phase === 'request-cancel-preparation' ? preparationAcceptance

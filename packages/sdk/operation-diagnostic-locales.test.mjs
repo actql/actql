@@ -124,7 +124,7 @@ test('operation locale identity is separate from check schemas and malformed opt
   for (const [options, locale] of [[undefined, 'en'], [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'],
     [{locale: 'unknown'}, 'en'], [{get locale() {throw new Error('private-locale');}}, 'en']]) {
     const info = sdk.getOperationPresentationInfo(options);
-    assert.deepEqual(info, {locale, translationRevision: `2026-10-09.operations.${locale}.11`},
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-09.operations.${locale}.12`},
       '[check-mutation:operation-locale-identity]');
     assert.equal(Object.isFrozen(info), true);
   }

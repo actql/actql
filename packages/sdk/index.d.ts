@@ -262,9 +262,21 @@ export type CancellationExplanation = Readonly<{
   next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
 }> | Readonly<{observation: 'outcome_unknown';
   next: Readonly<{operation: 'lookupCancellation'; cancelRef: Readonly<CancellationReference>}>;
+}> | Readonly<{
+  observation: 'refused'; reason: 'authorization' | 'admission_capacity';
+  guarantee: 'attempt_uncommitted_unconsumed';
+  attemptRef: Readonly<WireOperationAttemptRef & {operation: 'cancel'}>; cancelRef: Readonly<CancellationReference>;
+  hint: string;
+  next: Readonly<{operation: 'lookupCancellation'; cancelRef: Readonly<CancellationReference>}>;
+}> | Readonly<{
+  observation: 'conflict'; reason: 'intent' | 'control_revision';
+  attemptRef: Readonly<WireOperationAttemptRef & {operation: 'cancel'}>; cancelRef: Readonly<CancellationReference>;
+  hint: string;
+  next: Readonly<{operation: 'lookupCancellation'; cancelRef: Readonly<CancellationReference>}>;
 }>);
 /** Read-only advice from cancel or an exact lookup; the original operation
- * reference and recorded outcome certify neither physical stop nor release. */
+ * reference and recorded outcome certify neither physical stop nor release.
+ * Refused certifies only this invocation's uncommitted/unconsumed outcome. */
 export declare function explainCancellation(result: unknown, options?: OperationExplanationOptions): CancellationExplanation | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
@@ -356,6 +368,8 @@ export interface RequestRecovery {
 }
 
 export type RunState = WireRunState;
+export type OwnerObservations = import('@actql/client-wire').WireOwnerObservations;
+export type OwnerCursor = import('@actql/client-wire').WireOwnerCursor;
 export type RunNextAction = WireRunState['next_action'];
 
 export type EffectUncertaintyExplanation = Readonly<{
@@ -507,6 +521,9 @@ export interface Execution {
   readonly ref: RunReference;
   readonly profile: ConfirmedProfile;
   status(options?: {signal?: AbortSignal}): Promise<RunState>;
+  /** Independent Owner-local views; cursors are not authority or control revisions. */
+  observeOwners(options?: {signal?:AbortSignal;cursors?:readonly OwnerCursor[];
+    maxEntries?:number;maxWireBytes?:number}): Promise<OwnerObservations>;
   wait(options?: {until?: string; signal?: AbortSignal}): Promise<RunState>;
   /** A new operation observes the current control revision when omitted.
    * A lost response retains cancelRef; lookup never resends the cancellation. */

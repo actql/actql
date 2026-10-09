@@ -61,6 +61,42 @@ for (const entrance of ['local', 'https']) {
       assert.equal(process.signalCode, null);
     }
     const observe = () => step('observe-effect');
+    // These processes use the same public SDK operation and existing Ledger;
+    // they neither reconcile a provider nor construct a second event stream.
+    const observedOwners=await step('observe-owners');
+    assert.equal(observedOwners.views.consistency,'non_atomic');
+    assert.equal(observedOwners.views.ordering,'owner_local');
+    assert.equal(observedOwners.views.owners[0].history.kind,'not_provided');
+    const effectViews=observedOwners.views.owners.filter(view=>view.owner==='effect');
+    assert.equal(effectViews.length,2,'two original Effect items have retained formal histories');
+    // This is the formal Ledger head, not the Run's unknown-outcome projection.
+    // The second send was durably claimed but has no saved terminal receipt.
+    // Existing member_receipt_evidence treats Dispatching and Unknown as
+    // unknown outcomes without rewriting the retained Ledger entry.
+    assert.deepEqual(effectViews.map(view=>view.snapshot.value.state).sort(),['applied','dispatching']);
+    assert.deepEqual(effectViews.map(view=>view.history.entries.map(entry=>entry.state)),[['prepared'],['prepared']]);
+    const replayedOwners=await step('replay-owners');
+    assert.notEqual(replayedOwners.pid,observedOwners.pid);
+    assert.deepEqual(replayedOwners.ref,observedOwners.ref);
+    assert.equal(replayedOwners.state.status,'needs_reconciliation');
+    assert.deepEqual(replayedOwners.views.owners.filter(view=>view.owner==='effect')
+      .map(view=>view.history.entries.map(entry=>entry.state)),[['dispatching'],['dispatching']]);
+    const cursorCases=await step('cursor-cases');
+    const stream=effectViews[0].ownerRef.streamCid;
+    for(const [kind,answer] of [['cursor_expired',cursorCases.expired],['cursor_mismatch',cursorCases.foreign],
+      ['cursor_mismatch',cursorCases.changed]]){
+      const history=answer.owners.find(view=>view.ownerRef?.streamCid===stream).history;
+      assert.deepEqual(history,{kind});
+      assert.equal(answer.owners[0].history.kind,'not_provided');
+    }
+    assert.deepEqual(cursorCases.unbound.unmatchedCursors,[{index:0,kind:'unavailable'}]);
+    const partial=await step('partial-owners');
+    assert.equal(partial.views.owners[0].snapshot.value.status,'needs_reconciliation');
+    assert.deepEqual(partial.views.owners[1],{owner:'effect',kind:'unavailable',problem:{kind:'acquisition_failed'}});
+    assert(!JSON.stringify(partial.views).includes('PRIVATE_INVENTORY_FAILURE'));
+    for(const report of [replayedOwners,cursorCases,partial])assert.deepEqual(report.ref,observedOwners.ref);
+    assert.deepEqual({writes:setup.writes().length,queries:setup.queries(),targetReads:setup.targetReads()},stoppedCounts,
+      'Owner replay cannot resend Effects, reacquire Source or move Run control');
     const first = await observe();
     assert.ok(Number.isSafeInteger(first.pid));
     assert.equal(first.transport, entrance);
@@ -174,6 +210,8 @@ test('https: stale Effect reconciliation advice does not grant current authority
     assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
     const counts = {writes: setup.writes().length,
       queries: setup.queries(), targetReads: setup.targetReads()};
+    const originalViews=await execution.observeOwners();
+    const originalCursors=originalViews.owners.flatMap(view=>view.history?.cursor ? [view.history.cursor] : []);
     const absentRef = {...execution.ref, runDefinitionCid: `sha256:${'0'.repeat(64)}`};
     assert.notEqual(absentRef.runDefinitionCid, execution.ref.runDefinitionCid);
 
@@ -183,6 +221,7 @@ test('https: stale Effect reconciliation advice does not grant current authority
       ['unrecognized-token', 'ClientAuthenticationDenied']]) {
       credential = token;
       await assert.rejects(execution.reconcile(), {code});
+      await assert.rejects(execution.observeOwners({cursors:originalCursors}),{code});
       // Denied actors cannot distinguish the retained Run from an absent one.
       await assert.rejects(client.attach(execution.ref), {code});
       await assert.rejects(client.attach(absentRef), {code});

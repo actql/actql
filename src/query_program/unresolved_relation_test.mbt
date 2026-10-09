@@ -81,3 +81,40 @@ test "unrelated lowering issues do not invent a named relation witness" {
     msg="unused CTE refusal still precedes resolving the outer relation",
   )
 }
+
+///|
+test "namespace membership reuses exact quoted relation resolution" {
+  let context = fixture_context()
+  for
+    (text, expected) in [
+      ("SELECT 1 AS n FROM orders", true),
+      ("SELECT 1 AS n FROM ORDERS", true),
+      ("SELECT 1 AS n FROM `ORDERS`", false),
+      ("SELECT 1 AS n FROM missing", false),
+      ("SELECT 1 AS n FROM catalog.orders", false),
+      ("SELECT 1 AS n FROM `é/~🧭`", false),
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let issue = match
+      compile(query, { ..context, inputs: [], }, construction_limits()) {
+      Err(issue) => issue
+      Ok(_) => fail("the empty context must retain the unresolved reference")
+    }
+    assert_eq(
+      unresolved_relation_namespace_presence(issue, context),
+      Some(expected),
+    )
+    let path = unresolved_relation_reference(issue).unwrap()
+    path.clear()
+    assert_eq(
+      unresolved_relation_namespace_presence(issue, context),
+      Some(expected),
+    )
+  }
+  assert_true(
+    unresolved_relation_namespace_presence(UnknownRelation, context) is None,
+  )
+  assert_true(
+    unresolved_relation_namespace_presence(UnknownColumn, context) is None,
+  )
+}

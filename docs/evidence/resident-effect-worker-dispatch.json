@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "scope": "Formal Worker facade for original Effect Source and retained consumer dispatch. No physical Effect, approval, public Cloud or Preview acceptance.",
+  "verifiedPackageSource": "460986f8c21d66406b3cb9e6af22f6b2ed149be3",
+  "packageSourceClean": true,
+  "verifiedIntegratedSource": "c222db0026794e747434acfa2c3c4af0d670600a",
+  "dependency": {
+    "pr": "https://github.com/actql/actql/pull/1112",
+    "head": "8a8754a2c2d63b448aabc4ec3192fd5d3dcb153d",
+    "finalTarget": "main"
+  },
+  "files": {
+    "docs/development.md": "d5a9ded5f7901c3621c8ee521b340349c1fcc90a49b1a1256ebc03ad9e6cd89f",
+    "packages/run-host-core/effect-run.test.mjs": "2162a1f999a3384bd1b41c56fee372c415a04ff7b29d3a75c2f1d4131d69870e",
+    "packages/run-host-core/effect-run.typecheck.mts": "81da471b0ad547b987f275eda1801c1b9b5f00d1ee375866b3ab2ae4accc6412",
+    "packages/run-host-core/index.d.ts": "ccae11fd7262597071ebf00120b02688386326fd27fe204e1c4f289ae6d36758",
+    "packages/run-host-core/index.mjs": "837143ba87052830658f55b8101868932cc92acbb5f52d07b44367448f01c414",
+    "packages/run-host-core/retained-input.test.mjs": "bfa017f33bc5d6a70f2b7cb46f6e7da574fbe1c50ffeefd43ac55f5369272941",
+    "src/client_values_host_abi/effect_dispatch.mbt": "ef3b42a5a89c34003b0b9811c4c25aa116212e52dd1bc5a707327d4d8ada019c",
+    "src/client_values_host_abi/pkg.generated.mbti": "4883ee59427f0c9f874c3eca3150f46b3ba9e2e379ef2e438596c406d6ffe46f"
+  },
+  "artifacts": [
+    {
+      "name": "client-wire",
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-worker-dispatch-packed-1791532370710/packs/actql-client-wire-0.0.0-development.tgz",
+      "sha256": "4105321db630741cba8d4573d9800f554af51b1b7eff46cdf17f651128ebcc9f"
+    },
+    {
+      "name": "run-host-core",
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-worker-dispatch-packed-1791532370710/packs/actql-run-host-core-0.0.0-development.tgz",
+      "sha256": "fd47e6cfb2700e18497de144c5bbe5915e5aa3d813f08c217ad2eca43f50cee7"
+    }
+  ],
+  "checks": [
+    {
+      "command": "node scripts/build-runtime-packages.mjs run-host-core coordinator-core transfer-core; bounded/nonzero effect-run and selected retained-input tests; tsc; moon info --target js src/client_values_host_abi",
+      "effectTests": 8,
+      "retainedTests": 2,
+      "result": "passed",
+      "scope": "Precommit executable inputs, prior to generation-zero validation correction and documentation",
+      "receipt": "_build/resident-effect-worker-dispatch-1791532285820/receipt.json"
+    },
+    {
+      "command": "Normal npm prepack; private offline tarball install; bounded/nonzero unchanged effect-run tests; installed positive/negative TypeScript and Worker bundle checks",
+      "source": "460986f8c21d66406b3cb9e6af22f6b2ed149be3",
+      "effectTests": 8,
+      "result": "passed",
+      "receipt": "_build/resident-effect-worker-dispatch-packed-1791532370710/receipt.json",
+      "supervisorResult": "Failed only in later history check; package and type steps passed"
+    },
+    {
+      "command": "Bounded/nonzero Effect retained dispatch and ordinary committed receiver dispatch tests; node proofs/relation-pipeline/history.mjs --write",
+      "source": "c222db0026794e747434acfa2c3c4af0d670600a",
+      "retainedTests": 2,
+      "result": "passed",
+      "receipt": "_build/resident-effect-worker-dispatch-1791532912501/receipt.json"
+    }
+  ],
+  "initialFailures": [
+    {
+      "receipt": "_build/resident-effect-worker-dispatch-1791532220251/effect-tests.log",
+      "reason": "Negative fixture expected identical admitted Program/Run semantics to be foreign; corrected fixture independently changes the Program without weakening Owner checks"
+    },
+    {
+      "receipt": "_build/resident-effect-worker-dispatch-packed-1791532370710/history.log",
+      "reason": "Own parent main merge fd139749 lacked its package.json declaration; parent PR now has append-only exact-source declaration, independently passed history"
+    }
+  ],
+  "limitations": [
+    "Producer and Transfer completion evidence in protocol tests are explicit fixtures, not physical Site execution receipts",
+    "Candidate tarballs are not formally adopted Cloud dependencies; only merged OSS main can be formally adopted",
+    "No approval, physical Preview, polled Effect holder/exclusive claim, Cloud Run waiting/resolution commit or public Cloud acceptance",
+    "Hosted CI remains stopped by user instruction",
+    "Old failed Run custody obligations remain separate"
+  ]
+}
