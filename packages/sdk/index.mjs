@@ -12,7 +12,8 @@ import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOp
   validClientBody, validResourceInspection,
   validSubmissionRef, validSubmissionAttempt, validSubmissionLookup, validSubmissionRestart,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
+  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol,
+  validOwnerObservations, ownerObservationLimits} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, bytesCid, canonicalJson, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
@@ -1993,6 +1994,28 @@ async function connectSelected(selected, port) {
     };
     const handle = Object.freeze({
       ref, profile: runProfile, result,
+      observeOwners: async ({signal,cursors=[],maxEntries=100,maxWireBytes=ownerObservationLimits.maxWireBytes} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref,cursors,maxEntries,maxWireBytes}));
+        if (!validClientBody('owner-observations',{connection:selected.wire,...input})) {
+          fail('InvalidOwnerObservationRequest');
+        }
+        const response = await runRequest('owner-observations',input,signal);
+        let answer;
+        try {answer=captureResponse(await responseValue(response));}
+        catch {fail('InvalidHostOwnerObservations');}
+        if (!validOwnerObservations(answer,ref,input)) fail('InvalidHostOwnerObservations');
+        for (const vector of answer.revisionVector) {
+          if (vector.snapshotCid === undefined) continue;
+          const view=answer.owners.find(value=>value.kind==='observed' &&
+            value.ownerRef.kind===vector.owner.kind && value.ownerRef.scopeCid===vector.owner.scopeCid &&
+            value.ownerRef.streamCid===vector.owner.streamCid);
+          if (await bytesCid(new TextEncoder().encode(canonicalJson({version:'actql-owner-snapshot/0.1',ref,
+            owner:vector.owner,snapshot:view.snapshot},{dataKeys:true}))) !== vector.snapshotCid) {
+            fail('InvalidHostOwnerObservations');
+          }
+        }
+        return freezeInput(answer);
+      },
       status: async ({signal} = {}) => {
         return readRunObservation('status', {}, signal);
       },

@@ -11,6 +11,7 @@ import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireRunStateShape, WireSubmitPreparationErrorShape, WireCheckOutcomeShape,
   WireResultDescriptionShape, WireValueContractShape} from
   './client-host.generated.js';
+import type {WireOwnerRefShape, WireOwnerCursorShape, WireOwnerObservationsShape} from './client-host.generated.js';
 export type {ClientHostOperation} from './client-host.generated.js';
 export {checkOutcomeProtocol, runStateProtocol} from './client-host.generated.js';
 
@@ -53,6 +54,14 @@ export declare function validSubmissionOutcome(value: unknown, selected: WireCon
 export declare function validSubmissionLookup(value: unknown, selected: WireConnection,
   expected: WireSubmissionRef): value is WireSubmissionLookup;
 export type WireRunRef = WireRunRefShape;
+export type WireOwnerRef = WireOwnerRefShape;
+export type WireOwnerCursor = WireOwnerCursorShape;
+export type WireOwnerObservations = WireOwnerObservationsShape;
+export declare const ownerObservationLimits: Readonly<{maxEntries:number;maxWireBytes:number}>;
+export declare function validOwnerRef(value:unknown): value is WireOwnerRef;
+export declare function validOwnerCursor(value:unknown): value is WireOwnerCursor;
+export declare function validOwnerObservations(value:unknown, ref:WireRunRef,
+  limits?: typeof ownerObservationLimits & Readonly<{cursors?:readonly WireOwnerCursor[]}>): value is WireOwnerObservations;
 export type WireResultDescription = WireResultDescriptionShape;
 export type WireValueContract = WireValueContractShape;
 export declare const resultDescriptionLimits: Readonly<{
@@ -105,6 +114,8 @@ export type WireClientBodyByOperation = Readonly<{
   attach: WireRefBody;
   'lookup-request': WireBodyBase & Readonly<{requestId: string}>;
   status: WireRefBody;
+  'owner-observations': WireRefBody & Readonly<{
+    cursors:readonly WireOwnerCursor[];maxEntries:number;maxWireBytes:number}>;
   wait: WireRefBody & Readonly<{until: string | null}>;
   cancel: WireRefBody & Readonly<{cancelId: string; expectedRevision: number; attemptRef: WireOperationAttemptRef}>;
   'lookup-cancellation': WireRefBody & Readonly<{cancelId: string; expectedRevision: number}>;
