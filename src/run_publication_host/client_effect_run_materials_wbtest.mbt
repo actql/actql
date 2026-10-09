@@ -46,6 +46,16 @@ test "Effect run materials preserve original evidence and reject replaced identi
     None,
     effect_limits,
   ).unwrap()
+  // Selection is syntactic, before semantic admission by the chosen Owner.
+  assert_true(
+    inspect_client_run_materials_execution_family(
+      wire,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      limits.preparation,
+    )
+    is Ok(EffectComputation),
+  )
   let definition_cid = @publication.publication_contract_identity(definition)
   let restored = admit_client_effect_run_materials(
     wire,
@@ -91,6 +101,17 @@ test "Effect run materials preserve original evidence and reject replaced identi
   // The receiving Owner is reconstructed, not the process-local sender handle.
   assert_false(physical_equal(restored.prepared, prepared))
   let changed = wire.replace(old="original-effect-run", new="other-effect-run")
+  // Family selection does not turn a changed Run into an admitted Run.
+  assert_true(
+    inspect_client_run_materials_execution_family(
+      changed,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      limits.preparation,
+    )
+    is Ok(EffectComputation),
+  )
+
   assert_true(
     admit_client_effect_run_materials(
       changed,

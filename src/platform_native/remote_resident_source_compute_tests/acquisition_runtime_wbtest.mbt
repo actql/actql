@@ -6,6 +6,7 @@
 fn acquisition_runtime_case(
   through_consumer : Bool,
   effect? : Bool = false,
+  parent_ack_failure? : Bool = false,
   revoke_effect_at_start? : Bool = false,
   expire_effect_at_start? : Bool = false,
   expire_effect_before_start? : Bool = false,
@@ -188,8 +189,10 @@ fn acquisition_runtime_case(
   let envelope = @remote.remote_poll_dispatch_materials_json(
     dispatch, binding, wire,
   ).unwrap()
-  journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
-  journal.accept(dispatch).unwrap() |> ignore
+  if !parent_ack_failure {
+    journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
+    journal.accept(dispatch).unwrap() |> ignore
+  }
   let admission : @resident.ResidentRunAdmission = {
     source: Some((source.source_ref, source.source_contract_cid)),
     expressions: { text_time: false, veca: false, },
@@ -232,6 +235,74 @@ fn acquisition_runtime_case(
       grant_cid: selected.grant_cid,
       evidence_issuer_capability_cid: selected.evidence_issuer_capability_cid,
       budget_cids: [selected.budget_cid],
+    }
+    if parent_ack_failure {
+      let http = @http.load_library(
+        retained_runtime_required_env("ACTQL_TEST_NATIVE_HTTP_LIBRARY"),
+      ).unwrap()
+      // A real closed client deterministically refuses the HTTP ACK after
+      // the existing SQLite journal has accepted the original envelope.
+      let client = http
+        .create_authenticated_client(
+          root_path + "/unused-ca",
+          @http.Bearer(root_path + "/unused-bearer"),
+          4096L,
+          100,
+          100,
+        )
+        .unwrap()
+      assert_true(client.close())
+      let queue = @resident_protocol.ResidentAcceptedQueue::new(1).unwrap()
+      let polled = @remote.admit_remote_poll_dispatch_json(envelope).unwrap()
+      assert_true(
+        @resident.resident_dispatch_execution_family(admission, polled)
+        is Ok(@host.EffectComputation),
+      )
+      let offer = fn(generation : Int) {
+        @resident.accept_resident_effect_source_dispatch(
+          journal,
+          client,
+          "https://localhost/observations",
+          delegation,
+          generation,
+          queue,
+          admission,
+          retained_compute_effect_limits(),
+          polled,
+          "2026-10-09T00:00:00.000Z",
+          configuration.registry_body,
+          configuration.values_body,
+          configuration.source.fragment_contract_body,
+        )
+      }
+      assert_true(offer(2) is Ok(@resident.Refused(_)))
+      let attempt = @remote.dispatch_request_attempt_identity(dispatch).unwrap()
+      assert_eq(journal.dispatch_envelope(attempt).unwrap(), None)
+      assert_false(queue.contains(attempt))
+      assert_true(
+        offer(1) is Err(@resident.Host(@resident.Client(Http(@http.Closed)))),
+      )
+      let saved = journal.require(dispatch).unwrap()
+      assert_true(@remote.dispatch_record_state(saved).0 is @remote.Accepted)
+      assert_eq(journal.start_claimant(dispatch).unwrap(), None)
+      assert_eq(journal.dispatch_envelope(attempt).unwrap(), Some(envelope))
+      assert_false(queue.contains(attempt))
+      assert_true(offer(1) is Err(_))
+      assert_eq(
+        @remote.dispatch_record_durable_json(journal.require(dispatch).unwrap()).unwrap(),
+        @remote.dispatch_record_durable_json(saved).unwrap(),
+      )
+      assert_false(queue.contains(attempt))
+      assert_eq(entries.val, 0)
+      assert_eq(acquisitions.val, 0)
+      assert_true(
+        bundles
+        .release(@bundle.native_active_runtime_process_hold_id(active))
+        .unwrap(),
+      )
+      assert_true(journal.close())
+      assert_true(bundles.close().unwrap())
+      return
     }
     let outcome = @resident.execute_resident_effect_source_attempt(
       journal,
@@ -788,4 +859,9 @@ test "Effect consumer holder output failure does not acquire input or execute tw
     through_consumer_holder=true,
     consumer_output_unavailable=true,
   )
+}
+
+///|
+test "Effect poll admission keeps durable original intent after ACK failure without queuing execution" {
+  acquisition_runtime_case(false, effect=true, parent_ack_failure=true)
 }

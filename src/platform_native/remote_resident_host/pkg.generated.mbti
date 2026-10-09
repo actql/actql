@@ -38,6 +38,8 @@ import {
 // Values
 pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 
+pub fn accept_resident_effect_source_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_site_protocol.RemotePollDispatch, String, String, String, String) -> Result[ResidentAcceptance, ResidentEffectProducerExecutionIssue]
+
 pub fn admit_resident_effect_source_dispatch(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest, String, @remote_site_protocol.RemoteInputBinding, String, String, String, String) -> Result[@run_publication_host.PreparedClientEffectRun, ResidentEffectSourceDispatchIssue]
 
 pub fn begin_resident_output_release(@remote_journal.Journal, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest) -> Result[Unit, ResidentOutputIssue]
@@ -111,6 +113,8 @@ pub fn reclaim_stopped_resident_source_output(@remote_journal.Journal, ResidentR
 pub fn resident_completed_consumer_producer_identity(@remote_journal.Journal, ResidentRunAdmission, @remote_site_protocol.DispatchRequest, String) -> Result[String, ResidentHostIssue]
 
 pub fn resident_completed_holder_claimant(@remote_journal.Journal, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, Int, String, String) -> Result[String?, ResidentHostIssue]
+
+pub fn resident_dispatch_execution_family(ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch) -> Result[@run_publication_host.ClientRunExecutionFamily, ResidentHostIssue]
 
 pub fn resident_effect_retained_consumer_producer_identity(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, @remote_site_protocol.RemotePollDispatch, String) -> Result[String, ResidentRetainedExecutionIssue]
 
