@@ -142,7 +142,7 @@ try {
     scope: residentEffectCapture
       ? 'Actual retained Native computation, dependency capture and encrypted Store custody; protocol target metadata only; no approval, apply or Cloud'
       : residentProposals
-      ? 'Actual retained Native consumer -> physical HTTPS target observation -> original Artifact and checked Preview plan; no Store commit, approval, apply or Cloud'
+      ? 'Actual retained Native consumer -> physical HTTPS target observation -> checked Preview plan -> computation capture and encrypted Store custody; live Ledger retained; no waiting, approval, apply or Cloud'
       : 'Native HTTPS target observation and durable scoped credential use; no Source capture, whole Preview, approval or apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
   assert.equal(writes, 0);
