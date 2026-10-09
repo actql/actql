@@ -45,7 +45,7 @@ const environment = moon.clientProgramCheckEnvironment(canonicalText(wire),
   wire.evidence_bundle_cid, false, false, true, true, false, false, false);
 
 async function publicCheck(t, entrance, {program = false, environmentWire = wire,
-  visibility, contextKey, afterCheck, transformOwnerOutcome} = {}) {
+  visibility, contextKey, principalId = 'reader', afterCheck, transformOwnerOutcome} = {}) {
   const selected = environmentWire === wire ? environment
     : moon.clientProgramCheckEnvironment(canonicalText(environmentWire),
       environmentWire.evidence_bundle_cid, false, false, true, true, false, false, false);
@@ -59,7 +59,7 @@ async function publicCheck(t, entrance, {program = false, environmentWire = wire
       account_id: 'authoring-source', entries: [{entry_id: 'source-read',
         outcome: visibility === 'denied' ? 'deny' : 'allow', principal: {all: true},
         connection: {all: true}, resource: {all: true}, operation: {any_of: ['read']}, exclusions: []}]}),
-    context: {principal: 'reader', contextCid: `sha256:${'3'.repeat(64)}`}}) : undefined;
+    context: {principal: principalId, contextCid: `sha256:${'3'.repeat(64)}`}}) : undefined;
   if (authorization) t.after(() => authorization.close());
   if (visibility === 'unpublished') authorization.close();
   const check = installNodeClientCheck({moon: {...moon,
@@ -79,7 +79,7 @@ async function publicCheck(t, entrance, {program = false, environmentWire = wire
       resource: '/records.duckdb', sourceRef}] : []});
   const connection = {mode: entrance === 'local' ? 'local' : 'remote',
     owner: entrance === 'local' ? 'local' : 'remote', runners: [], consentRefs: []};
-  const configuration = {authenticate: () => 'reader',
+  const configuration = {authenticate: () => principalId,
     authorizeConnection: ({operation}) => {
       if (operation === 'check') counts.authorization++;
       return true;
@@ -173,6 +173,93 @@ const authoringProgram = () => ({version: 'actql/0.1', id: 'scoped-authoring',
     {derive: {n: 'id + $x'}}, {select: ['n'], as: 'output'}],
   results: {out: {from: 'output', fields: ['n']}}}],
   results: {out: {from: {stage: 'first', result: 'out'}}}});
+
+for (const entrance of ['local', 'http']) for (const visibility of ['allow', 'absent', 'denied', 'unpublished']) {
+  for (const suppliedViolation of [false, true]) {
+  test(`${entrance}: richer audience reports retain ${visibility} custody with ${suppliedViolation ? 'a supplied violation' : 'no violation'}`, async t => {
+    const directory = await mkdtemp(join(scratch, 'audience-binding-'));
+    t.after(async () => {
+      if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+        console.error(`Audience-binding evidence retained: ${directory}`);
+      } else await rm(directory, {recursive: true, force: true});
+    });
+    // The same private key and exact bytes deliberately produce equal input
+    // revisions: only the authoritative audience/disclosure context differs.
+    const contextKey = Buffer.alloc(32, 0x31);
+    let richRaw;
+    const rich = await publicCheck(t, entrance, {visibility: 'allow', contextKey,
+      transformOwnerOutcome(raw) {richRaw = raw; return raw;}});
+    for (const format of ['sql', 'aql-text']) {
+      const input = suppliedViolation ? 'SELECT missing, @x AS n FROM records'
+        : 'SELECT missing FROM records';
+      const options = {kind: 'text', scope: 'bound_input', format,
+        ...(suppliedViolation ? {parameterDeclarations: {x: {type: 'number'}},
+          parameters: {x: 'caller-private-wrong-value'}} : {})};
+      const original = await rich.client.check(input, options);
+      const originalRaw = richRaw;
+      assert.equal(original.report.verdict, 'invalid');
+      assert.ok(original.report.reasons.some(reason => reason.code === 'query_expression_invalid'));
+      assert.deepEqual(original.report.coverage, {limits: [], unresolved: []});
+      {
+        const emitted = [];
+        let substitute = false;
+        const restricted = await publicCheck(t, entrance, {visibility, contextKey,
+          principalId: 'other-reader', transformOwnerOutcome(raw) {
+            emitted.push(JSON.parse(raw));
+            // Substitute the actual richer Owner outcome before public
+            // validation; no facts, contexts or document metadata are forged.
+            return substitute ? originalRaw : raw;
+          }});
+        const fresh = await restricted.client.check(input, options);
+        assert.deepEqual(fresh.report.inputs, original.report.inputs);
+        assert.deepEqual(fresh.report.scope, original.report.scope);
+        assert.notEqual(fresh.report.context_ref, original.report.context_ref);
+        if (visibility === 'allow') {
+          assert.deepEqual(fresh.report.reasons, original.report.reasons);
+          assert.deepEqual(fresh.report.coverage, original.report.coverage);
+        } else {
+          const parameters = getCheckInput(fresh, 'parameters');
+          assert.deepEqual({verdict: fresh.report.verdict, reasons: fresh.report.reasons,
+            requirements: fresh.report.requirements, coverage: fresh.report.coverage},
+          {verdict: suppliedViolation ? 'invalid' : 'undetermined',
+            reasons: suppliedViolation ? [{code: 'supplied_value_type_mismatch',
+              facts: {parameter: 'x', expected_type: 'number', actual_type: 'string'},
+              location: {document_id: 'parameters', revision: parameters.revision,
+                kind: 'structured', pointer: '/x'}}] : [], requirements: [],
+            coverage: {limits: [], unresolved: [{boundary: 'source_resolution',
+              reason: 'unresolved_protected'}]}});
+        }
+        substitute = true;
+        const replayed = await restricted.client.check(input, options);
+        substitute = false;
+        await writeFile(join(directory, `${format}-${visibility}-${suppliedViolation}.json`),
+          JSON.stringify({entrance, format, visibility, suppliedViolation, input,
+            original, fresh, freshOwnerOutcome: emitted.at(-1), replayed,
+            originalInput: getCheckInput(original, 'source'),
+            replayedInput: getCheckInput(replayed, 'source'),
+            richCounts: rich.counts, restrictedCounts: restricted.counts}), {mode: 0o600});
+        assert.deepEqual({outcome: replayed.outcome, problem: replayed.problem,
+          report: replayed.report ?? null, partialReport: replayed.partial_report ?? null,
+          input: getCheckInput(replayed, 'source') ?? null,
+          parameters: getCheckInput(replayed, 'parameters') ?? null},
+        {outcome: 'failed', problem: {code: 'check_internal'}, report: null,
+          partialReport: null, input: null, parameters: null},
+        '[check-mutation:owner-audience-binding]');
+        const restored = await restricted.client.check(input, options);
+        assert.deepEqual(restored, fresh);
+        assert.equal(getCheckInput(restored, 'source').text, input);
+        assert.equal(getCheckInput(original, 'source').text, input);
+        assert.equal(getCheckInput(structuredClone(original), 'source'), undefined);
+        assert.equal(getCheckInput(structuredClone(restored), 'source'), undefined);
+        if (visibility !== 'allow') assert.doesNotMatch(JSON.stringify(restored),
+          /query_expression_invalid|caller-private-wrong-value|crm\/main/);
+        assert.deepEqual(restricted.counts, {exchanges: 3, authorization: 3, analysis: 3});
+      }
+    }
+    assert.deepEqual(rich.counts, {exchanges: 2, authorization: 2, analysis: 2});
+  });
+  }
+}
 
 for (const entrance of ['local', 'http']) for (const kind of ['text', 'program']) {
   for (const fault of ['replay', 'context', 'documents', 'scope']) {

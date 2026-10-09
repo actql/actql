@@ -15,6 +15,19 @@ const bindingCases = binding => ['text', 'program'].flatMap(kind => [
     [{id: `owner-${binding}-binding`, operator: 'deepStrictEqual'}])),
 ]);
 const mutations = [
+  {name: 'nested missing obligations disappear beside supplied violations',
+    path: 'src/connectors_builtin_node/client_check.mbt',
+    file: 'adapters/host-node/client-check.test.mjs',
+    from: '    check_missing_value_findings(findings, declared, supplied, scope)',
+    to: '    // Deliberate fault: omit the independent missing-value frontier.',
+    targets: cases('nested supplied type facts follow the submitted contract and path',
+      [{id: 'nested-missing-coverage', operator: 'deepStrictEqual'}])},
+  {name: 'Owner binding reuses a richer audience report', path: 'adapters/host-node/client-check.mjs',
+    from: 'report.context_ref === context &&', to: 'true &&',
+    targets: ['allow', 'absent', 'denied', 'unpublished'].flatMap(visibility =>
+      [false, true].flatMap(suppliedViolation => cases(
+        `richer audience reports retain ${visibility} custody with ${suppliedViolation ? 'a supplied violation' : 'no violation'}`,
+        [{id: 'owner-audience-binding', operator: 'deepStrictEqual'}])))},
   {name: 'Owner binding accepts an earlier context', path: 'adapters/host-node/client-check.mjs',
     from: 'report.context_ref === context &&', to: 'true &&', targets: bindingCases('context')},
   {name: 'Owner binding accepts different original documents', path: 'adapters/host-node/client-check.mjs',
@@ -62,12 +75,13 @@ const build = () => execFileSync(process.execPath, ['scripts/local-checks.mjs',
   'build', 'moon', '--timeout-seconds', '120', '--', '--target', 'js', '--release',
   'src/connectors_builtin_node'], {stdio: 'inherit', timeout: 130000});
 const run = item => {
+  const acceptance = item.file ?? file;
   const escape = text => text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs',
     'test', 'node', '--timeout-seconds', '120', '--', '--test-name-pattern',
-    `^(?:${item.targets.map(value => escape(value.name)).join('|')})$`, file],
+    `^(?:${item.targets.map(value => escape(value.name)).join('|')})$`, acceptance],
   {encoding: 'utf8', timeout: 130000, maxBuffer: 16 * 1024 * 1024});
-  return mutationAcceptance(result, item.targets, file);
+  return mutationAcceptance(result, item.targets, acceptance);
 };
 const results = [];
 for (const item of selected) {
