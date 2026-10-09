@@ -70,7 +70,7 @@ Source-predicate, assert and Effect implementation is not edited.
   ClientProgramInvalidInput, zero admission and zero Source I/O.
 - The existing public JOIN-property corpus is preserved. It now has 27
   positives and 13 refusals per Local/HTTPS, including twelve new positives
-  (one independent JSON order Program). Nine older refusals use the established
+  (one independent JSON order Program). Eight older refusals use the established
   input-error category checks; do not describe those as exact-code coverage.
 
 ## Executed focused checks
@@ -129,6 +129,27 @@ The adjusted public control's four Node fixture assertions pass:
 `run-NDa2Rv` / `focused-test-r6M7fc`.
 The first diagnostic attempted to display the private Issue type and failed
 compilation, executing no tests (`run-9wu6TK`, `focused-test-86ml4p`).
+
+The next clean source `d6118162aff9f46c66280978c87aeb606eead07d`
+passed all 27 Local positives, then stopped at the existing
+`join-property-invalid-4` refusal. Receipt:
+`worktrees/.codex-scratch/public-query-evidence-SvB4Pm`; guard `run-k4u2A0`.
+The generic input-code set omitted the existing implementation-limit code.
+No product failure or diagnostic change is established here: the exact
+lowerer refusal remains `UnsupportedOrdering`, pinned now for query and script
+lowering. `client_source_preparation.mbt` maps it to `source_unsupported`;
+the existing public Check Owner supplies an implementation-limit fact, and
+`client-program-preparation.mjs` discloses that admitted fact as
+`ClientProgramImplementationLimit`. This is the same classification documented
+in `2026-10-09-order-property-receiver-reuse.md`; do not broaden the generic
+code set or change the diagnostic Owner to pass this fixture. This one old
+refusal now requires that exact code, while preserving admission and I/O zero.
+The remaining refusals and HTTPS were not reached in this failed attempt.
+
+The precise diagnostic assertions pass JS 9/9 (`run-rOqRhu`,
+`focused-test-PmnADf`) and Node 4/4 (`run-1hxqcP`,
+`focused-test-MRJLcC`). Product sources remain unchanged from the 35/35 caller
+selection. The final public repeat must still complete both transports.
 
 Use the normal five-package producer and existing `--join-property-only`
 consumer at a clean source SHA. Compare Named Result rows and describe

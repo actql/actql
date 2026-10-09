@@ -54,4 +54,7 @@ test('missing members and displaced range fixtures retain exact pre-admission co
   assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.match(refusals[3].text, /AS current \|> ORDER BY \(\(l\)\)\.payload\.score/u);
   assert.equal(joinPropertyRefusals.length, 13);
+  const removed = joinPropertyRefusals.find(item => item.name === 'join-property-invalid-4');
+  assert.match(removed.text, /SELECT DISTINCT l\.id .* ORDER BY payload\.score/u);
+  assert.equal(removed.expectedCode, 'ClientProgramImplementationLimit');
 });

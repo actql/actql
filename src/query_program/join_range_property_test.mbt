@@ -94,6 +94,22 @@ test "JOIN range-name collision keeps an explicit value receiver distinct" {
 
 ///|
 test "JOIN range properties retain precise unknown-range and work refusals" {
+  let removed = @query.parse_query(
+    "SELECT DISTINCT l.id FROM objects AS l JOIN others AS r ON l.id = r.id MAX_OUTPUT_ROWS 12 ORDER BY payload.score",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(removed, join_property_context(), construction_limits())
+    is Err(UnsupportedOrdering),
+  )
+  assert_true(
+    compile_query_script(
+      @query.single_query_script(removed),
+      join_property_context(),
+      construction_limits(),
+    )
+    is Err(UnsupportedOrdering),
+  )
   let query = @query.parse_query(
     "SELECT ((l)).missing AS value FROM objects AS l JOIN others AS r ON l.id = r.id",
     syntax_limits(),

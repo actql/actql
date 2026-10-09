@@ -215,7 +215,10 @@ export const joinPropertyRefusals = [
   `SELECT l.id.score ${join}`,
   `SELECT DISTINCT l.id ${join} ORDER BY payload.score`,
 ].map((tail, index) => ({name: 'join-property-invalid-' + index,
-  format: 'aql-text', text: data + tail, parameterDeclarations, parameters})).concat([
+  format: 'aql-text', text: data + tail, parameterDeclarations, parameters,
+  // DISTINCT removes this receiver. The existing lowerer reports
+  // UnsupportedOrdering; admitted public checking discloses that limit.
+  ...(index === 4 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})})).concat([
   `SELECT (l.payload).score, (l.payload).score ${join}`,
   `SELECT (missing).score ${join}`,
   `SELECT (l.payload).missing ${join}`,
