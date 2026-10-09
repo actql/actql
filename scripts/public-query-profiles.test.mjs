@@ -171,3 +171,6 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}'));
   assert.ok(fixture.includes('directory: remoteDirectory, sourceProfilePath, hostCapacityPolicy,'));
 });
+
+// This independent Carrier refusal policy runs in ordinary packed preflight.
+import './graph-invalid-carrier-source-input.test.mjs';

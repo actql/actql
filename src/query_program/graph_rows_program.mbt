@@ -50,7 +50,7 @@ fn script_graph_row_columns(
           })
         }
       })
-      guard !selected.is_empty() else { raise Abort(UnsupportedGraph) }
+      guard !selected.is_empty() else { raise Abort(InvalidQuery) }
       selected
     }
   }
@@ -107,12 +107,12 @@ fn script_graph_row_selection(
   if call.arguments.is_empty() {
     return None
   }
-  guard call.arguments.length() == 1 else { raise Abort(UnsupportedGraph) }
+  guard call.arguments.length() == 1 else { raise Abort(InvalidQuery) }
   let (kind, argument) = call.arguments[0]
   guard kind == "definition" || kind == "label" else {
-    raise Abort(UnsupportedGraph)
+    raise Abort(InvalidQuery)
   }
-  guard argument is TextValue(name) else { raise Abort(UnsupportedGraph) }
+  guard argument is TextValue(name) else { raise Abort(InvalidQuery) }
   Some((kind, name))
 }
 
@@ -144,7 +144,8 @@ fn lower_script_graph_rows(
       break
     }
     if row_input is Some(_) {
-      raise Abort(UnsupportedGraph)
+      // The preceding operation already established an ordinary Relation.
+      raise Abort(InvalidQuery)
     }
     if call.operation == "union_graphs" || call.operation == "subtract_graphs" {
       current = lower_script_graph_composition(
@@ -200,6 +201,11 @@ fn lower_script_graph_rows(
       current = row_input.unwrap().name
       continue
     }
+    if call.operation != "normalize_graph" &&
+      call.operation != "node_rows" &&
+      call.operation != "edge_rows" {
+      raise Abort(UnsupportedGraph)
+    }
     let selection = if call.operation == "normalize_graph" {
       guard call.arguments.is_empty() else { raise Abort(UnsupportedGraph) }
       None
@@ -210,11 +216,6 @@ fn lower_script_graph_rows(
       None => construction.add(Bool(true))
       Some((kind, name)) =>
         construction.object([(kind, construction.text(name))])
-    }
-    if call.operation != "normalize_graph" &&
-      call.operation != "node_rows" &&
-      call.operation != "edge_rows" {
-      raise Abort(UnsupportedGraph)
     }
     let name = pipe_physical_name(reserved, "aql_sga_")
     reserved.push(name)

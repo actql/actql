@@ -178,7 +178,7 @@ test "Graph diagnostic transition rejects Graph columns and another Graph call" 
       assert_eq(span.start_byte, start)
       assert_eq(span.end_byte, end)
     } else {
-      assert_true(actual is Err(UnsupportedGraph), msg=suffix)
+      assert_true(actual is Err(InvalidQuery), msg=suffix)
     }
   }
 }

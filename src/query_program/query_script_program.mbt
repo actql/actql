@@ -332,6 +332,12 @@ pub fn compile_query_script(
             })
             continue
           }
+          if script_has_graph_rows(query) &&
+            known.any(input => {
+              input_relation_matches(@query.relation(query), input)
+            }) {
+            raise Abort(InvalidQuery)
+          }
           let bound = lower_script_relation(
             construction, query, known, context, sources, limits, steps, reserved,
             output,
@@ -386,10 +392,22 @@ pub fn compile_query_script(
             same_name(input.relation[0], declaration.name))
           })
         }
-        NamedGraphCall(_) =>
+        NamedGraphCall(call) => {
+          // The common mean body requires all four members. A missing member
+          // is invalid independently of the still-unconnected consumer below.
+          if call.operation == "mean_graphs" {
+            let required = ["with", "weights", "support", "properties"]
+            if call.arguments.any(argument => !required.contains(argument.0)) ||
+              required.any(name => {
+                !call.arguments.any(argument => argument.0 == name)
+              }) {
+              raise Abort(InvalidQuery)
+            }
+          }
           // Explicit Graph-list construction has no adapted output contract
           // yet. Never add the current Graph or reinterpret it as a Relation.
           raise Abort(UnsupportedGraph)
+        }
       }
     }
     let mut query = @query.script_query(script)
@@ -411,6 +429,11 @@ pub fn compile_query_script(
       let retained : Array[RetainedResult] = []
       let result = if script_has_graph_rows(current) {
         guard script_graph_input(current, graphs) is Some(graph) else {
+          if stage_known.any(input => {
+              input_relation_matches(@query.relation(current), input)
+            }) {
+            raise Abort(InvalidQuery)
+          }
           raise Abort(UnsupportedGraph)
         }
         lower_script_graph_rows(

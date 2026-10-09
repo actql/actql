@@ -127,7 +127,7 @@ test "RESULT inside a CTE or derived query cannot publish a statement Result" {
         pair_context(),
         construction_limits(),
       )
-      is Err(UnsupportedResult),
+      is Err(InvalidQuery),
       msg=text,
     )
   }

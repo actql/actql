@@ -100,7 +100,7 @@ test "ORDER ordinal rejects invalid positions and noninteger literals" {
           context,
           construction_limits(),
         )
-        is Err(UnsupportedOrdering),
+        is Err(InvalidQuery),
         msg=source,
       )
     }

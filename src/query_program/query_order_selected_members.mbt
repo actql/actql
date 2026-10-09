@@ -31,7 +31,7 @@ fn append_distinct_order_member_expression(
   ) catch {
     Abort(issue) => {
       if issue is Expression({ issue: @expression.UnknownReference, .. }) {
-        raise Abort(UnsupportedOrdering)
+        raise Abort(InvalidQuery)
       }
       raise Abort(issue)
     }
