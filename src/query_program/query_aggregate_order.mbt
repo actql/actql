@@ -182,6 +182,7 @@ fn aggregate_order_total_conditional(expression : @query.Expression) -> Bool {
       | Reference(_)
       | ParameterReference(_) => true
       Parenthesized(child) | Property(child, _) => total[child]
+      ArrayConstructor(items, _) => items.all(child => total[child])
       Unary("+" | "-" | "NOT", child) => total[child]
       Binary(
         "="
@@ -204,7 +205,15 @@ fn aggregate_order_total_conditional(expression : @query.Expression) -> Bool {
         | "IS FALSE"
         | "IS NOT FALSE"
         | "IS UNKNOWN"
-        | "IS NOT UNKNOWN",
+        | "IS NOT UNKNOWN"
+        | "BETWEEN"
+        | "NOT BETWEEN"
+        | "IS DISTINCT FROM"
+        | "IS NOT DISTINCT FROM"
+        | "IN"
+        | "NOT IN"
+        | "IN UNNEST"
+        | "NOT IN UNNEST",
         args
       ) => args.all(child => total[child])
       Call(path, args) =>
