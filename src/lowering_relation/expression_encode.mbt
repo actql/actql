@@ -206,6 +206,7 @@ fn emit_frames(
                   Concat => "concat"
                   ConcatStrict => "concat_strict"
                   Replace => "replace"
+                  Between => "between"
                 },
               ),
             )

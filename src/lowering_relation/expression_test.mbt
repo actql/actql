@@ -367,7 +367,7 @@ test "derive array references retain the exact prior slot rather than re-resolvi
 }
 
 ///|
-test "expression budget and unsupported handlers are explicit implementation failures" {
+test "expression budgets remain enforced and between preserves three operands" {
   let p = expression_pipeline(
     ",{\"derive\":{\"v\":{\"add\":[{\"literal\":1},{\"literal\":2}]}}}",
   )
@@ -386,11 +386,17 @@ test "expression budget and unsupported handlers are explicit implementation fai
   let extra = expression_pipeline(
     ",{\"derive\":{\"v\":{\"between\":[{\"literal\":1},{\"literal\":0},{\"literal\":2}]}}}",
   )
-  guard @lowering_relation.lower_expression(extra, 1, 0, expression_limits())
-    is Err(issue) else {
-    fail("between handler not implemented yet")
-  }
-  assert_eq(issue.kind, @lowering_relation.ExpressionNotImplemented("between"))
+  let lowered = @lowering_relation.lower_expression(
+    extra,
+    1,
+    0,
+    expression_limits(),
+  ).unwrap()
+  assert_true(
+    @lowering_relation.expression_body(lowered)
+    is @lowering_relation.Many(@lowering_relation.Between, args) &&
+    args.length() == 3,
+  )
 }
 
 ///|
