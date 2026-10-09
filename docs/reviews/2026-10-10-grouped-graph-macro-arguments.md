@@ -85,3 +85,17 @@ Local/HTTPS result are recorded in the PR after the source commit. They are
 pending at this document's source commit. No all-Core, Wasm/native, full packed,
 performance or hosted CI success is claimed here. Quoted *function names* are
 the separate #1207 change, not a dependency or a claim of this unit.
+
+The first packed attempt at `c2b4cf40d3eed856b0c192f81309fa7b9d16723a`
+passed all 22 Local normal cases, then stopped on the refusal fixture's generic
+input-code whitelist. `NODE_ID((a.payload))` resolves an ordinary property,
+then fails as an unsupported function rather than an unknown reference. The
+existing public check owner maps `UnsupportedFunction` to an implementation
+limit. The fixture now explicitly expects `ClientProgramImplementationLimit`;
+no product diagnostics or expected normal rows were changed. Typed lowerer
+refusals are also asserted directly. That failed attempt is retained separately
+as `run-Pazrm6` / `public-query-evidence-xkupzX`; it is not HTTPS evidence.
+After adding the explicit refusal code and typed refusal cases, the changed
+Program test file passed 2/2 (`run-GHoJKK`, `focused-test-H6vbhz`) and the Node
+fixture checks passed 5/5 (`run-4ndRRl`, `focused-test-Ut7EBA`). The product
+lowerer is unchanged from the earlier 24/24 JS check.

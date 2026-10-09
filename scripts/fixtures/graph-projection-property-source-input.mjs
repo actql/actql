@@ -133,4 +133,6 @@ export const graphProjectionPropertyRefusals = [
   ['grouped-macro-removed-binding', 'SELECT a.id AS id |> WHERE NODE_ID((a)) IS NOT NULL'],
   ['same-select-alias', 'SELECT a.payload AS kept, kept.score AS score'],
 ].map(([name, tail]) => ({name: 'graph-projection-property-invalid-' + name,
-  format: 'aql-text', text: head + tail, parameterDeclarations: declarations, parameters}));
+  format: 'aql-text', text: head + tail, parameterDeclarations: declarations, parameters,
+  ...(name === 'grouped-macro-property'
+    ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));

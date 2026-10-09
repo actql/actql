@@ -76,4 +76,6 @@ test('grouped Graph binding refusals preserve closed roles and post-projection s
   for (const suffix of ['property', 'expression', 'wrong-role', 'wrong-arity', 'removed-binding']) {
     assert.ok(refusals.some(item => item.name.endsWith('grouped-macro-' + suffix)), suffix);
   }
+  assert.equal(refusals.find(item => item.name.endsWith('grouped-macro-property')).expectedCode,
+    'ClientProgramImplementationLimit');
 });
