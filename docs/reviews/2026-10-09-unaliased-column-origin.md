@@ -134,7 +134,60 @@ alongside the retained Result references and passes it to both reopen calls.
 No policy value, Host conflict check, Result row/schema expectation, owner or
 recovery mechanism is changed. The failure is preserved separately from the
 successful public diagnostic/Named Result checks; the full selected campaign
-still requires a rerun.
+still required a rerun at that point.
+
+### Completed exact-source campaign
+
+The final source/fixture revision
+`bff980342d0991f4488e4cd8b02d6e8f9cb9005c` completed the selected campaign.
+The normal producer packed all five packages with prepack enabled from a clean
+checkout. An independent SHA-256 pass matched every manifest entry before the
+existing consumer installed outside the repository. It had no MoonBit runtime,
+repository imports, adapter overlays or mocked checks.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-unaliased-origin-complete-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-unaliased-origin-complete-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-unaliased-origin-npm-cache \
+  node scripts/test-packed-public-query.mjs --source-free-only
+```
+
+The commands ran sequentially in one existing `runLocalCheck` heavy slot,
+with a 1200-second budget and five-second termination grace; launcher
+`/private/tmp/actql-b-unaliased-origin-complete-packed.mjs`. Evidence:
+`local-checks/attempts/run-89Gj9r` and
+`../.codex-scratch/public-query-evidence-xJ0E27` (relative to this worktree).
+The latter receipt has the exact source revision, `dirty: false`,
+`status: passed` and `complete: true`. Command `010` is the public application,
+and `011` is its fresh-process Result read; both exited zero.
+
+- Local and actual trusted HTTPS each passed the 16 authored-location checks
+  (eight examples in each format) and four protected-Source checks. The same
+  fixture remains connected to the normal unfiltered consumer. Run/provider
+  observations did not change during these checks.
+- Each entrance also completed all existing 23 source-free positive and 27
+  refusal cases. Positive cases compared independently authored Named Result
+  rows, columns/types/order and stream completion, including NULL, duplicate,
+  parameter and CTE cases. Refusals admitted no Run or source I/O.
+- Fresh Local and HTTPS Host processes re-read the published exact String
+  Result rows and descriptions without submitting a new Run.
+- The driver's 14 profile-registration tests, README Local/HTTPS example and
+  deliberate missing-generated-asset refusal also passed. They are incidental
+  driver checks, not a claim of full feature coverage.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `332a770a589f74f697fca8427c364da9b89dfc23c3fea9a1bd7c59c5d0e0401d` |
+| local-node | `b0dd878cde8efc0af140b5dc94da5fb2b5a1bccc85d408b83cb5a194fe90305a` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+The following evidence-only commit changes this review record, not compiled
+source, fixtures or package inputs. The campaign remains evidence for the
+explicit tested revision, not a new-SHA pack or GitHub CI success. Full Core,
+Wasm/native, proof, performance and the complete unfiltered packed corpus were
+not run. This unit has no dependency on the separate common BETWEEN blocker.
 
 E can continue using the existing `source_frontend::unknown_column_origin`
 accessor and public report location contract. The B change supplies the missing
