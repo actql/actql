@@ -17,6 +17,7 @@ fn materialize_clause_aliases(
   lower_expression : (@query.Expression) -> @builder.Node raise Abort,
   slot_prefix : String,
   reject_window_aliases : Bool,
+  aggregate_outputs? : Array[(String, String)] = [],
 ) -> Array[(@query.NamePart, String)] raise Abort {
   let aliases : Array[(@query.NamePart, String)] = []
   for projection in projections {
@@ -60,7 +61,16 @@ fn materialize_clause_aliases(
       continue
     }
     if projection.aggregate is Some(_) {
-      aliases.push((name, name.value))
+      // GROUP may retain an input key with the same authored name. Reuse
+      // the already evaluated aggregate slot, never the colliding key.
+      let mut slot = name.value
+      for (logical, physical) in aggregate_outputs {
+        if same_name(name, {value: logical, quoted: false}) {
+          slot = physical
+          break
+        }
+      }
+      aliases.push((name, slot))
       continue
     }
     let expression = projection.expression.unwrap()
