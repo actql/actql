@@ -142,3 +142,65 @@ test "retained CTE schema does not restore a dropped column or range" {
     )
   }
 }
+
+///|
+test "public parameter-backed set ARRAY star retains its declared input" {
+  let declarations = @parameters.read_declarations(
+    Some(
+      unnest_value_cursor(
+        (
+          #|{"parents":{"type":"array","max_items":4,"items":{"type":"object","fields":{"id":{"type":"number","nullable":false},"items":{"type":"array","nullable":true,"max_items":3,"items":{"type":"number","nullable":true}}}}}}
+        ),
+      ),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  let text = "FROM UNNEST(@parents) p |> SELECT id, items |> UNION ALL (FROM UNNEST(@parents) p |> SELECT id, items) |> CROSS JOIN UNNEST(items) element WITH OFFSET position |> SELECT * EXCEPT (items) |> ORDER BY id, position"
+  let actual = match
+    compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      {
+        ..fixture_context(),
+        inputs: [],
+        parameter_declarations: Some(declarations),
+      },
+      construction_limits(),
+    ) {
+    Ok(program) => program
+    Err(Expression(error)) =>
+      fail("parameter-backed set: expression " + @debug.to_string(error.issue))
+    Err(UnsupportedProjection) => fail("parameter-backed set: projection")
+    Err(UnknownColumn) => fail("parameter-backed set: unknown column")
+    Err(ExpressionTyping(error)) =>
+      fail("parameter-backed set: typing " + @debug.to_string(error.kind))
+    Err(DuplicateOutput) => fail("parameter-backed set: duplicate output")
+    Err(AmbiguousColumn) => fail("parameter-backed set: ambiguous column")
+    Err(InvalidContext) => fail("parameter-backed set: invalid context")
+    Err(UnsupportedCte) => fail("parameter-backed set: CTE")
+    Err(UnsupportedSet) => fail("parameter-backed set: set")
+    Err(Admission(_)) => fail("parameter-backed set: admission")
+    Err(_) => fail("parameter-backed set: other lowering failure")
+  }
+  match
+    @check.check_parsed(
+      actual,
+      check_environment(),
+      Some(
+        unnest_value_cursor(
+          (
+            #|{"parents":[{"id":2,"items":[2,null,2]},{"id":1,"items":[1]},{"id":3,"items":[]},{"id":4,"items":null}]}
+          ),
+        ),
+      ),
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("public parameter set must be closed")
+  }
+}

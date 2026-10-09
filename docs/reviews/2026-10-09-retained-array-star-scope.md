@@ -2,8 +2,7 @@
 
 ## Scope and reproduced defect
 
-The adopted main is `4ab43f593` (record its complete revision in the final
-acceptance section). This unit carries the actual common Result schema into
+The adopted main is `4ab43f593453425fe4fb43214565af227ea3bef8`. This unit carries the actual common Result schema into
 CTE consumers that need correlated ARRAY or object star expansion. It changes
 no language grammar, public type contract, capacity policy or execution owner.
 
@@ -71,10 +70,37 @@ that correction). No product refusal was weakened.
 
 ## Public acceptance status
 
-Pending: normal clean-source five-package production and the existing selected
-correlated-UNNEST Embedded Local / real HTTPS cohort. The new cases are also
+The first normal clean-source five-package run used
+`70ccbdb7dcca5549f746d0c6c353a620c23265d4`. Its manifest/digest checks and the
+independent JSON control passed; the parameter-backed Pipe UNION ALL query was
+rejected before admission. HTTPS was not reached. Evidence:
+`_build/local-checks/attempts/run-jpqcc1` and external receipt
+`worktrees/.codex-scratch/public-query-evidence-VlG2sb`.
+
+The exact public source/declaration regression identified
+`ExpressionTyping(UnknownParameter("parents"))` (`run-CrvuNs`, 5/6). Set terms
+were not receiving Context's existing parameter declarations in `compile_steps`.
+The repair passes those declarations and schema context without changing the
+Program's parameter contract or values. A diagnostic-test compilation mistake
+in `run-ajHonR` is not verification evidence.
+
+Pending: updated normal clean-source five-package production and the existing
+selected correlated-UNNEST Embedded Local / real HTTPS cohort. The new cases are also
 registered in normal packed acceptance through its existing corpus connection.
 A parser or checker pass alone is not public execution acceptance.
 
 Full Core, Wasm/native execution, full packed, Cloud, performance and required
 CI are not claimed. No CI was manually triggered or rerun. No PR merge is made.
+
+## Verification after the parameter handoff repair
+
+- Selected JS MoonBit tests: 38/38, `run-FD08KA` / `focused-test-d9rG5o`.
+  This adds the exact public parameter-backed reproduction and the existing
+  `parameter_reference_case_test.mbt` to the earlier selection.
+- Selected Node fixture/import checks: 13/13, `run-Hz4CeW` /
+  `focused-test-Maem80`. Both new public refusals pin
+  `ClientProgramInvalidInput`, alongside the existing zero-admission/I/O checks.
+- Two attempted extra test filenames did not exist (`run-BxXt8V`,
+  `run-SWXJng`); neither invocation executed tests or establishes a pass.
+- `UNION ALL` is the verified set shape in this unit; the document does not
+  claim correlated ARRAY star support for every INTERSECT/EXCEPT combination.

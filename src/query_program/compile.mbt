@@ -6642,6 +6642,8 @@ fn compile_set_stages(
       },
       input.source is Captured(_),
       term_name,
+      parameter_declarations=context.parameter_declarations,
+      prefix_context=Some(context),
     )
     let term_steps : Array[@builder.Node] = []
     for step in body {

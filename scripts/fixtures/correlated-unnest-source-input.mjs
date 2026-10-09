@@ -197,10 +197,11 @@ export const retainedArraySuccesses = [
 ];
 export const retainedArrayRefusals = [
   refusal('retained-dropped-column', 'WITH chosen AS (SELECT p.id FROM UNNEST(@parents) p) '
-    + 'FROM chosen |> CROSS JOIN UNNEST(items) element |> SELECT *', {format: 'aql-text'}),
+    + 'FROM chosen |> CROSS JOIN UNNEST(items) element |> SELECT *',
+    {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'}),
   refusal('retained-dropped-range', 'WITH chosen AS (SELECT p.id, p.items FROM UNNEST(@parents) p) '
     + 'FROM chosen c |> SELECT id, items |> CROSS JOIN UNNEST(c.items) element |> SELECT *',
-    {format: 'aql-text'}),
+    {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'}),
 ];
 correlatedUnnestSuccesses.push(...retainedArraySuccesses);
 correlatedUnnestRefusals.push(...retainedArrayRefusals);

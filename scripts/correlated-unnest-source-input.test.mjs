@@ -92,5 +92,8 @@ test('retained schemas keep set multiplicity, CTE column order and nullable obje
     assert.equal(item.sourceReadCount, 0);
     assert.equal(item.sourceReadSessionCount, 0);
   }
-  for (const item of retainedArrayRefusals) assert.ok(correlatedUnnestRefusals.includes(item));
+  for (const item of retainedArrayRefusals) {
+    assert.ok(correlatedUnnestRefusals.includes(item));
+    assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+  }
 });

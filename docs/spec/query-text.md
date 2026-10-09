@@ -781,7 +781,7 @@ ordinary JOINs and successive CROSS expansions. A subsequent ordinary Relation
 JOIN consumes the expanded row in both SQL and Pipe. Its explicit bound, parent
 ranges, object value-table receivers and OFFSET are retained through private
 producer references; expansion is not moved after the JOIN. An authored SELECT
-or AS still replaces scope. Correlated expansion after a Pipe set expression
+or AS still replaces scope. Correlated expansion after Pipe UNION ALL
 consumes the retained set output; ARRAY/object stars use its common checked
 schema, including CTE column aliases and nullable object fields. The set's
 multiplicity, declared ARRAY bounds and subsequent predicates remain unchanged.
