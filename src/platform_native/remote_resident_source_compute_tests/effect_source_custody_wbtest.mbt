@@ -162,6 +162,8 @@ fn retained_effect_source_store(
     )
     .unwrap()
   assert_true(physical_equal(saved, custody))
+  // A zero export budget would reject a fresh Native read below. A sealed
+  // retry must verify the original payload without another output traversal.
   let duplicate = consumer
     .persist_effect_source_payload(
       store,
@@ -172,7 +174,7 @@ fn retained_effect_source_store(
       source,
       first_request,
       local_result,
-      resident_compute_limits(),
+      { ..resident_compute_limits(), max_rows: 0, },
     )
     .unwrap()
   assert_true(physical_equal(duplicate, custody))

@@ -191,9 +191,9 @@ pub fn ResidentSourceCompute::persist_effect_source_payload(
   }
   // Once sealing starts, a persistence failure can have a physical sealed
   // outcome. Keep the same writer/custody; do not erase it or re-export.
-  let sealed = writer.seal()
+  let seal_outcome = writer.seal()
   close_export()
-  match sealed {
+  match seal_outcome {
     Ok(_) => ()
     Err(issue) =>
       return Err({
