@@ -1,5 +1,5 @@
 {
-  "verified_source_sha": "f3a7bcdc14eb0b854f7b677b7c27b617ab05867e",
+  "verified_source_sha": "999608c787159d91309670b3508f8d94a3629a67",
   "adopted_main_sha": "aa083f961917a3822c359a4c01d544ffef4af548",
   "merged_prerequisites": [
     1137,
@@ -21,7 +21,7 @@
       "exit_code": 0,
       "timed_out": false,
       "owned_group_absent": true,
-      "log": "_build/resident-effect-result-capture-1791545765131/format.log"
+      "log": "_build/resident-effect-result-capture-1791546161852/format.log"
     },
     {
       "label": "tests",
@@ -34,7 +34,7 @@
       "exit_code": 0,
       "timed_out": false,
       "owned_group_absent": true,
-      "log": "_build/resident-effect-result-capture-1791545765131/tests.log"
+      "log": "_build/resident-effect-result-capture-1791546161852/tests.log"
     },
     {
       "label": "effect-artifact",
@@ -47,7 +47,7 @@
       "exit_code": 0,
       "timed_out": false,
       "owned_group_absent": true,
-      "log": "_build/resident-effect-result-capture-1791545765131/effect-artifact.log"
+      "log": "_build/resident-effect-result-capture-1791546161852/effect-artifact.log"
     },
     {
       "label": "interface",
@@ -64,7 +64,7 @@
       "exit_code": 0,
       "timed_out": false,
       "owned_group_absent": true,
-      "log": "_build/resident-effect-result-capture-1791545765131/interface.log"
+      "log": "_build/resident-effect-result-capture-1791546161852/interface.log"
     },
     {
       "label": "portable-interface",
@@ -79,7 +79,7 @@
       "exit_code": 0,
       "timed_out": false,
       "owned_group_absent": true,
-      "log": "_build/resident-effect-result-capture-1791545765131/portable-interface.log"
+      "log": "_build/resident-effect-result-capture-1791546161852/portable-interface.log"
     },
     {
       "label": "history",
@@ -91,7 +91,7 @@
       "exit_code": 0,
       "timed_out": false,
       "owned_group_absent": true,
-      "log": "_build/resident-effect-result-capture-1791545765131/history.log"
+      "log": "_build/resident-effect-result-capture-1791546161852/history.log"
     }
   ],
   "test_results": {
@@ -106,10 +106,10 @@
     }
   },
   "native_artifact": {
-    "path": "_build/resident-effect-result-capture-1791545765131/retained-compute.whitebox_test.exe",
-    "sha256": "e8faaef7f9907449e6bb9042eb14e714a7927aba4e4a6bd33a3e61ea77bef066",
+    "path": "_build/resident-effect-result-capture-1791546161852/retained-compute.whitebox_test.exe",
+    "sha256": "a3c184e120958ae1ec97480cc49216420927c52a7bdbb241f668fbbb8665c17e",
     "scope": "Native whitebox fixture, not a production Site binary",
-    "source_sha": "f3a7bcdc14eb0b854f7b677b7c27b617ab05867e"
+    "source_sha": "999608c787159d91309670b3508f8d94a3629a67"
   },
   "assertions": [
     "Independent public rows [{id:3}], id non-null number schema and normal replay termination",
@@ -118,7 +118,8 @@
     "Foreign Run/Invocation refuse before a zero-row Native output read",
     "Missing Source evidence refuses; subsequent correct preparation succeeds with the original retained inputs",
     "Existing HoldingLimit refuses concurrent probe/capture; completed probe is retired through its Owner, without raising the ceiling",
-    "Actual Source acquisition and consumer entry stay one; original custody cleanup regressions remain active"
+    "Actual Source acquisition and consumer entry stay one; original custody cleanup regressions remain active",
+    "A valid refreshed observation/Invocation of the same admitted Template is refused before Native output I/O because it differs from the transferred producer Artifact original Invocation"
   ],
   "initial_failures": [
     {
@@ -129,6 +130,10 @@
     {
       "log": "_build/resident-effect-result-capture-preparation-1791545623772/tests.log",
       "result": "Native public Result borrow refusal isolated; final test asserts HoldingLimit and retires the completed probe before capture"
+    },
+    {
+      "log": "_build/resident-effect-result-capture-preparation-1791546023048/tests.log",
+      "result": "SIGABRT in counterexample fixture construction: its original observation_set_cid had not been removed before the existing sealer. Corrected fixture construction passes independently admitted Run context before asserting exact producer Invocation refusal."
     }
   ],
   "unverified": [
@@ -143,5 +148,6 @@
     "Normalization journal metadata",
     "Provider Preview/target version/capability evidence in the surrounding Native fixture"
   ],
-  "ownership": "The returned existing PublicationOutputExport retains its own Result borrow until caller cancellation after persistence. Failed capture cancels only new export/snapshot work; original private input/payload custody stays with its existing owners."
+  "ownership": "The returned existing PublicationOutputExport retains its own Result borrow until caller cancellation after persistence. Failed capture cancels only new export/snapshot work; original private input/payload custody stays with its existing owners.",
+  "preceding_verified_source_sha": "f3a7bcdc14eb0b854f7b677b7c27b617ab05867e"
 }
