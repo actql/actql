@@ -29,6 +29,8 @@ test('schema-only private-name columns retain independent window values and publ
   assert.deepEqual(get('duplicates').expected.map(row => row.pos), [4, 3, 2]);
   assert.deepEqual(get('authored-over-key').expected.map(row => row.pos), [2, 3]);
   assert.deepEqual(get('qualified-user-value').expected.map(row => row.pos), [12, 91]);
+  assert.equal(get('qualified-user-value').columns[2].contract.nullable, true,
+    'adding a nullable user column retains its declared nullability');
   assert.equal(windowScalarRefusals.find(item => item.name.endsWith('schema-private-slot')).expectedCode,
     'ClientProgramInvalidInput');
 });

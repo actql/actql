@@ -210,7 +210,9 @@ windowScalarSuccesses.push(
     {format: 'aql-text', expected: [{[selectPrivateField]: 10, id: 2, pos: 2}, {[selectPrivateField]: 90, id: 1, pos: 3}]}),
   selectPrivateSuccess('qualified-user-value', selectPrivateField,
     selectPrivatePipe.replace('+ 1 AS pos', '+ r.aql_select_window_0 AS pos') + ' |> ORDER BY id DESC',
-    {format: 'aql-text', expected: [{[selectPrivateField]: 10, id: 2, pos: 12}, {[selectPrivateField]: 90, id: 1, pos: 91}]}),
+    {format: 'aql-text', columns: [{name: selectPrivateField, contract: nullable},
+      {name: 'id', contract: number}, {name: 'pos', contract: nullable}],
+      expected: [{[selectPrivateField]: 10, id: 2, pos: 12}, {[selectPrivateField]: 90, id: 1, pos: 91}]}),
 );
 windowScalarRefusals.push({name: 'window-scalar-refuse-schema-private-slot', format: 'aql-text',
   text: selectPrivatePipe + ' |> SELECT id, aql_analytic_output_3 AS leaked',
