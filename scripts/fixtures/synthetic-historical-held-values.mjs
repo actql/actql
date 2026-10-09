@@ -29,7 +29,8 @@ export const heldValuesExpected = Object.freeze([{id: 1}, {id: 2}]);
 
 export async function writeSyntheticHistoricalHeldValues({directory, document,
   requestId, authorization, runtimeRootUrl, now = Date.now(), mode = 'local', append = false,
-  effectEnvironmentWire}) {
+  effectEnvironmentWire, expressionContractUrl = new URL(
+    'spec/contracts/actql-expressions.json', runtimeRootUrl)}) {
   const program = JSON.parse(document);
   const originalStage = program.stages?.[0];
   const {effects, ...valuesStage} = originalStage ?? {};
@@ -58,10 +59,9 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
   const logicalRequestScopeCid = cid({authority_scope_cid: authorityScopeCid,
     caller_request_id: requestId, version: 'actql-logical-request/0.1'});
   // Independently authored finite semantic preimages for this Values input.
-  // Contract pins come from the selected package's normative source, never
-  // its compiler output. A changed spec closure changes these originals too.
-  const expressionCid = cid(JSON.parse(await readFile(new URL(
-    'spec/contracts/actql-expressions.json', runtimeRootUrl), 'utf8')));
+  // Contract pins come from the selected source's normative input, never
+  // compiler output. Packed callers carry its exact bytes with the fixture.
+  const expressionCid = cid(JSON.parse(await readFile(new URL(expressionContractUrl), 'utf8')));
   const stage = program.stages[0];
   const stageSemantics = {version: 'actql-stage-semantics/0.1',
     binding_references: [], bindings: {}, parameter_references: [], parameters: {},
