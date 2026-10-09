@@ -252,6 +252,7 @@ pub(all) enum ClientEffectRunIssue {
 struct PreparedClientEffectRun {
   computation : PreparedClientEffectComputation
   checked : @strategy.CheckedEffectRunDAG
+  source_dispatch : @remote.DispatchRequest?
 }
 
 ///|
@@ -274,7 +275,7 @@ pub fn bind_prepared_client_effect_run(
     Ok(value) => value
     Err(issue) => return Err(Binding(issue))
   }
-  Ok({ computation, checked, })
+  Ok({ computation, checked, source_dispatch: None, })
 }
 
 ///|

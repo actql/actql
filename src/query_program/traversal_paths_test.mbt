@@ -77,20 +77,29 @@ test "Graph traversal path DATA preserves declared arguments and current column 
 
 ///|
 test "Graph traversal path fields cannot be confused with node emission fields" {
-  for field in ["depth", "node_id"] {
+  // Literal UTF-8 ranges belong to the final SELECT, not an earlier Graph field.
+  for (field, end) in [("depth", 350), ("node_id", 352)] {
     let source = traversal_paths_source().replace(
       old="SELECT start_id, end_id, hop_count, node_ids, edge_ids",
       new="SELECT " + field,
     )
-    assert_true(
-      compile_query_script(
-        @query.parse_query_script(source, syntax_limits()).unwrap(),
-        { ..fixture_context(), inputs: [], },
-        construction_limits(),
-      )
-      is Err(UnknownColumn),
-      msg=field,
+    let result = compile_query_script(
+      @query.parse_query_script(source, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
     )
+    guard result
+      is Err(
+        Expression(
+          { issue: @expression.UnknownReference, origin: Some(origin), }
+        )
+      ) else {
+      fail("path output must reject node-only field: " + field)
+    }
+    assert_eq(@origin.kind(origin), @origin.Authored)
+    let span = @origin.span(origin)
+    assert_eq(span.start_byte, 345)
+    assert_eq(span.end_byte, end)
   }
 }
 

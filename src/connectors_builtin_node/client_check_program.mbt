@@ -13,6 +13,7 @@ pub fn client_program_check_program(
   parameters_revision : String?,
   correlation_ref : String,
   scope : String,
+  selector_namespace : ClientCheckSourceSelectorNamespace?,
 ) -> String {
   let scope = match check_scope(scope) {
     Some(scope) => scope
@@ -20,6 +21,14 @@ pub fn client_program_check_program(
   }
   if scope == TemplateOnly && parameters is Some(_) {
     return check_failed_json("check_request_invalid", correlation_ref)
+  }
+  if selector_namespace is Some(proof) &&
+    (
+      !physical_equal(proof.range.environment, environment) ||
+      proof.context_ref != context_ref ||
+      proof.program_revision != program_revision
+    ) {
+    return check_failed_json("check_context_invalid", correlation_ref)
   }
   let findings : Array[CheckFinding] = []
   let mut pointer = None
@@ -31,6 +40,7 @@ pub fn client_program_check_program(
     parameters,
     value => pointer = value,
     scope,
+    selector_namespace,
   )
   check_outcome_json(findings, stop, context_ref, correlation_ref, {
     scope,
@@ -56,6 +66,7 @@ fn check_program_findings(
   parameters : String?,
   locate : (String?) -> Unit,
   scope : @program_check.CheckScope,
+  selector_namespace : ClientCheckSourceSelectorNamespace?,
 ) -> CheckStop {
   let limits = client_program_standard_limits().checking
   let supplied = match client_program_input("json", parameters) {
@@ -200,6 +211,45 @@ fn check_program_findings(
     @decode.elements(aliases_node) is Ok(aliases) else {
     return Failed("check_context_invalid")
   }
+  // Absence concerns installed selector registration, never Provider Resource
+  // existence. Only the actual resolver's failure witness under the complete
+  // unfiltered Catalog may close this obligation for the original declaration.
+  let mut unregistered : @sourceview_input.Declaration? = None
+  if selector_namespace is Some(proof) {
+    match
+      @acquisition.resolve(inputs, proof.range.catalog, {
+        max_work: 1000000,
+        max_inputs: 1024,
+        max_views: 1024,
+      }) {
+      Ok(_) => ()
+      Err(issue) => {
+        if issue.kind is (WorkLimit | InputLimit | ViewLimit) {
+          findings.push(Limit("analysis_budget_exhausted"))
+          return Report
+        }
+        if @acquisition.unresolved_selector_declaration(
+            issue,
+            inputs,
+            proof.range.catalog,
+          )
+          is Some(declaration) &&
+          issue.source is Some(cursor) {
+          unregistered = Some(declaration)
+          findings.push(
+            SourceSelectorUnregistered(
+              proof.name,
+              declaration,
+              check_program_original_pointer(
+                document,
+                @decode.cursor_path(cursor),
+              ),
+            ),
+          )
+        }
+      }
+    }
+  }
   let mut has_hidden_dependency = false
   for index in 0..<@sourceview_input.count(inputs) {
     let input = @sourceview_input.at(inputs, index).unwrap()
@@ -210,7 +260,8 @@ fn check_program_findings(
           "connector://" + input.connector + "/" + input.resource + "#" + view,
         )
       })
-    if !visible {
+    if !visible &&
+      !(unregistered is Some(declaration) && physical_equal(declaration, input)) {
       has_hidden_dependency = true
     }
   }
@@ -243,7 +294,7 @@ fn check_program_findings(
     findings.push(Unresolved("source_resolution"))
     return Report
   }
-  if binding_invalid {
+  if binding_invalid || unregistered is Some(_) {
     return Report
   }
   let outcome : CheckProjection = match scope {
@@ -327,6 +378,17 @@ fn check_program_diagnostic(
               _ => "invalid_structure"
             },
           )
+        Source(Registration(Declarations(Decode(issue)))) =>
+          Some(
+            match issue.kind {
+              MissingField => "missing_field"
+              WrongType => "wrong_type"
+              UnexpectedNull => "unexpected_null"
+              _ => "invalid_structure"
+            },
+          )
+        Source(Registration(Declarations(InvalidValue(_) | InvalidMetadata(_)))) =>
+          Some("invalid_structure")
         Program(_) => Some("invalid_structure")
         _ => None
       }

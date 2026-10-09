@@ -23,7 +23,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     emitted.set(key, name);
     const lines = [];
     if (schema.$ref !== undefined) {
-      if (!['check_outcome', 'value_contract'].includes(schema.$ref) || Object.keys(schema).length !== 1 ||
+      if (!['check_outcome', 'value_contract', 'run_state'].includes(schema.$ref) || Object.keys(schema).length !== 1 ||
           schemas[schema.$ref] === undefined) throw new Error('UnsupportedNativeWireReference');
       let referred;
       checkDepth++;
@@ -42,7 +42,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     for (const key of Object.keys(schema)) if (!['type','required','properties',
       'additionalProperties','items','uniqueItems','const','enum','pattern',
       'minLength','maxLength','minimum','maximum','minItems','maxItems',
-      'allOf','oneOf','not','if','then','propertyNames','minProperties'].includes(key)) throw new Error(`UnsupportedNativeWireRule:${key}`);
+      'allOf','oneOf','not','if','then','propertyNames','minProperties','maxProperties'].includes(key)) throw new Error(`UnsupportedNativeWireRule:${key}`);
     if (Object.hasOwn(schema, 'const') && Object.hasOwn(schema, 'enum')) {
       throw new Error('UnsupportedNativeWireConstAndEnum');
     }
@@ -120,6 +120,17 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
         'let mut nonblank = false',
         'for character in text { let code = character.to_int(); if !(code == 9 || code == 10 || code == 11 || code == 12 || code == 13 || code == 32 || code == 160 || code == 5760 || (code >= 8192 && code <= 8202) || code == 8232 || code == 8233 || code == 8239 || code == 8287 || code == 12288 || code == 65279) { nonblank = true } }',
         'if !nonblank { return false }');
+      else if (schema.pattern === '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$') lines.push(
+        'if text.length() != 24 { return false }',
+        'let mut index = 0',
+        'for character in text {',
+        '  let separator = match index { 4 | 7 => Some(\'-\'); 10 => Some(\'T\'); 13 | 16 => Some(\':\'); 19 => Some(\'.\'); 23 => Some(\'Z\'); _ => None }',
+        '  match separator { Some(expected) => if character != expected { return false }; None => if character < \'0\' || character > \'9\' { return false } }',
+        '  index = index + 1',
+        '}');
+      else if (schema.pattern === '^ACTQL_E_[A-Z0-9_]+$') lines.push(
+        'if text.length() < 9 || !text.has_prefix("ACTQL_E_") { return false }',
+        'for character in text[8:] { if !((character >= \'A\' && character <= \'Z\') || (character >= \'0\' && character <= \'9\') || character == \'_\') { return false } }');
       else if (schema.pattern !== undefined) throw new Error(`UnsupportedNativeWirePattern:${schema.pattern}`);
     } else if (schema.type === 'boolean') {
       lines.push('if !(value is True || value is False) { return false }');
@@ -148,6 +159,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       }
       else if (schema.additionalProperties !== undefined) throw new Error('UnsupportedNativeWireAdditionalProperties');
       if (schema.minProperties !== undefined) lines.push(`if fields.size() < ${schema.minProperties} { return false }`);
+      if (schema.maxProperties !== undefined) lines.push(`if fields.size() > ${schema.maxProperties} { return false }`);
       if (schema.propertyNames) lines.push(`for key, _ in fields { if !${emit(schema.propertyNames)}(Json::string(key)) { return false } }`);
       for (const key of schema.required ?? []) lines.push(`if !fields.contains(${quote(key)}) { return false }`);
       for (const [key, rule] of Object.entries(schema.properties ?? {})) lines.push(`if fields.get(${quote(key)}) is Some(item) { if !${emit(rule)}(item) { return false } }`);
@@ -155,10 +167,11 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     functions.push(`///|\nfn ${name}(${lines.length ? 'value' : '_value'} : Json) -> Bool {\n  ${lines.join('\n  ')}\n  true\n}\n`);
     return name;
   }
-  for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup','submission_restart',
+  for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup','submission_restart','submission_attempt',
     'connection','profile','admission','run_ref',
     'lookup_found','lookup_not_found','lookup_unknown','held',
-    'cancellation_ref','cancellation','cancellation_lookup','operation_attempt_ref','cancellation_attempt']) emit(schemas[name], `wire_${name}_shape`);
+    'cancellation_ref','cancellation','cancellation_lookup','operation_attempt_ref','cancellation_attempt',
+    'owner_ref','owner_cursor','owner_observations']) emit(schemas[name], `wire_${name}_shape`);
   functions.push('///|\nenum WireResponseIssue {\n  InvalidShape\n  ConnectionMismatch\n  RequestedValueUnavailable\n}\n');
   for (const [name, rule] of Object.entries(rules)) {
     const lines = [`if !wire_connection_shape(selected) || !wire_${name}_shape(value) { return Some(InvalidShape) }`,

@@ -12,9 +12,9 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
-  validResourcePeek, validRunState, validResultDescription,
+  validResourcePeek, validRunState, validResultDescription, validOwnerObservations,
   validCheckOutcome,
-  validSubmissionOutcome, validSubmissionLookup} from
+  validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -42,6 +42,7 @@ async function boundedJson(request, maxBytes) {
 
 function responseCode(error) {
   if (error?.code === 'RunStateAccessDenied' ||
+      error?.code === 'RunObservationAccessDenied' ||
       error?.code === 'ResultAccessDenied' ||
       error?.code === 'ResultDeliveryDenied' ||
       error?.code === 'ClientAuthenticationDenied' ||
@@ -74,6 +75,7 @@ function responseCode(error) {
   if (error?.code === 'ResultDescriptionUnavailable') return 410;
   if (error?.code === 'ResultDescriptionTooLarge') return 413;
   if (error?.code === 'ClientRequestTooLarge' ||
+      error?.code === 'ClientOwnerObservationLimit' ||
       error?.code === 'ClientParametersTooLarge') return 413;
   if (error?.code === 'InvalidClientRequest' ||
       error?.code === 'ClientSubmissionReferenceRequired' ||
@@ -158,7 +160,7 @@ function observationAttempt(response) {
 
 export function createClientHttpHandler({
   authenticate, authorizeConnection, workspaceForPrincipal, stateService, resultService,
-  negotiate, submit, submitIntent, lookupSubmission, attach, lookupRequest, observeRun, wait, cancel, lookupCancellation,
+  negotiate, submit, submitIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
   check, maxRequestBytes = 65536, observe, loopbackHttp = false,
@@ -264,7 +266,7 @@ export function createClientHttpHandler({
         const submitting = operation !== 'lookup-submission';
         const answer = await invoke(submitting ? submitIntent : lookupSubmission);
         const valid = submitting
-          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid, body.unresolvedHistory)
+          ? validSubmissionAttempt(answer, connection, body.submissionRef, body.intentCid, body.attemptRef, body.unresolvedHistory)
           : validSubmissionLookup(answer, connection, body.submissionRef);
         if (!valid) invalid('InvalidClientHostSubmissionOutcome');
         sendJson(answer);
@@ -308,6 +310,10 @@ export function createClientHttpHandler({
           invalid('InvalidClientHostRunState');
         }
         sendJson(state);
+      } else if (operation === 'owner-observations') {
+        const views = await invoke(observeOwners);
+        if (!validOwnerObservations(views,ref,body)) invalid('InvalidClientHostOwnerObservations');
+        sendJson(views);
       } else if (operation === 'wait') {
         const observer = observationAttempt(response);
         try {

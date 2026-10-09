@@ -12,11 +12,23 @@ import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {connect as connectRemote, getSubmissionInput, getSubmissionOutcome,
-  explainSubmission, formatSubmission} from '../../packages/sdk/index.mjs';
+  getSubmissionAttempt, explainSubmission, formatSubmission} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+
+const invocationHint = 'Keep the original submission reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s acceptance, grant permission to resubmit, or authorize changed input or a new restart decision.';
+const storedAdmissionCounts = root => {
+  const database = new DatabaseSync(join(root, 'host/requests/client-requests.sqlite3'),
+    {readOnly: true});
+  try {
+    return {...database.prepare(`SELECT
+      (SELECT COUNT(*) FROM client_submitted_intents) AS intents,
+      (SELECT issued_count FROM client_submitted_intent_custody WHERE singleton = 1) AS issued,
+      (SELECT COUNT(*) FROM client_requests) AS requests`).get()};
+  } finally {database.close();}
+};
 
 async function installedFixture(t, entrance, {loseSubmissionReply = false, outcome = 'allow', epochClock} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-d-submission-public-'));
@@ -80,6 +92,111 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
     get root() {return root;}, get certificates() {return certificates;},
     get endpoint() {return server && `https://127.0.0.1:${server.address().port}/`;},
     loseNextReply() {loseReply = true;}, close, open};
+}
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: preparation authorization denial retains the accepted original submission`, async t => {
+    const f = await installedFixture(t, entrance, {outcome: 'deny'});
+    const submissionRef = f.client.newSubmission({nonce: 'denied-invocation'});
+    const before = storedAdmissionCounts(f.root);
+    assert.deepEqual(before, {intents: 0, issued: 0, requests: 0});
+    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef,
+      attemptId: 'authorization-invocation'}), error => {
+      assert.equal(error.code, 'SubmissionPreparationFailed');
+      assert.equal(getSubmissionAttempt(error).kind, 'recorded');
+      assert.equal(getSubmissionOutcome(error).kind, 'preparation_failed');
+      assert.equal(explainSubmission(error).observation, 'preparation_failed');
+      assert.deepEqual(explainSubmission(error).next.submissionRef, submissionRef);
+      assert.equal(Object.hasOwn(explainSubmission(error), 'guarantee'), false);
+      assert.equal(explainSubmission({...error}), undefined);
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, explainSubmission(error));
+      return true;
+    });
+    assert.deepEqual(storedAdmissionCounts(f.root), {intents: 1, issued: 1, requests: 0});
+    assert.equal(f.computes, 0);
+  });
+
+  test(`${entrance}: typed Submission Conflict and AlreadySatisfied preserve the installed original Run`, async t => {
+    const f = await installedFixture(t, entrance);
+    const submissionRef = f.client.newSubmission({nonce: 'typed-original'});
+    const original = await f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef,
+      attemptId: 'typed-first-invocation'});
+    assert.equal(getSubmissionAttempt(original).kind, 'recorded');
+    assert.equal((await original.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
+    assert.deepEqual(await original.result('answer').all(), [{n: 1}]);
+    const before = storedAdmissionCounts(f.root);
+    await assert.rejects(f.client.startSource('SELECT 2 AS n', {format: 'sql', submissionRef,
+      attemptId: 'typed-changed-invocation'}), error => {
+      assert.equal(error.code, 'SubmissionConflict');
+      assert.equal(getSubmissionAttempt(error).reason, 'intent');
+      assert.deepEqual(getSubmissionAttempt(error).attemptRef,
+        {operation: 'submit', attemptId: 'typed-changed-invocation'});
+      assert.deepEqual(getSubmissionAttempt(error).submissionRef, submissionRef);
+      assert.equal(getSubmissionOutcome(error), undefined);
+      const expected = {observation: 'conflict', reason: 'intent',
+        attemptRef: {operation: 'submit', attemptId: 'typed-changed-invocation'}, submissionRef,
+        summary: 'The Host reports a conflicting intent for this original submission identity.',
+        hint: invocationHint, next: {operation: 'lookupSubmission', submissionRef,
+          lookupContext: getSubmissionInput(error).lookupContext}};
+      assert.deepEqual(explainSubmission(error), expected, '[check-mutation:submit-attempt-conflict]');
+      assert.equal(Object.hasOwn(explainSubmission(error), 'guarantee'), false);
+      assert.equal(explainSubmission({...error}), undefined);
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, expected);
+      assert.deepEqual(storedAdmissionCounts(f.root), before);
+      return true;
+    });
+    assert.equal(f.computes, 1);
+    const replay = await f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef,
+      attemptId: 'typed-original-replay'});
+    assert.equal(getSubmissionAttempt(replay).kind, 'already_satisfied');
+    assert.deepEqual(replay.ref, original.ref);
+    assert.deepEqual(await replay.result('answer').all(), [{n: 1}]);
+    assert.equal(f.computes, 1);
+    await f.close(); await f.open();
+    const restored = await f.client.lookupSubmission(submissionRef);
+    assert.equal(restored.kind, 'ready');
+    assert.deepEqual(restored.admission.ref, original.ref);
+    assert.equal(f.computes, 1, 'lookup never dispatches a new Compute');
+  });
+
+  test(`${entrance}: typed fresh-epoch refusal is distinct from the durable original acceptance`, async t => {
+    let now = 1_800_000_000_000;
+    const f = await installedFixture(t, entrance, {epochClock: () => now});
+    const submissionRef = f.client.newSubmission({nonce: 'accepted-before-expiry'});
+    const original = await f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef,
+      attemptId: 'accepted-invocation'});
+    assert.equal((await original.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
+    now += 1000;
+    const fresh = f.client.newSubmission({nonce: 'fresh-after-expiry'});
+    const before = storedAdmissionCounts(f.root);
+    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef: fresh,
+      attemptId: 'expired-invocation'}), error => {
+      assert.equal(error.code, 'SubmissionRefused');
+      assert.equal(getSubmissionAttempt(error).reason, 'epoch_expired');
+      assert.equal(getSubmissionAttempt(error).guarantee, 'attempt_uncommitted_unconsumed');
+      assert.deepEqual(getSubmissionAttempt(error).submissionRef, fresh);
+      assert.deepEqual(getSubmissionAttempt(error).attemptRef,
+        {operation: 'submit', attemptId: 'expired-invocation'});
+      assert.equal(getSubmissionOutcome(error), undefined);
+      const expected = {observation: 'refused', reason: 'epoch_expired',
+        guarantee: 'attempt_uncommitted_unconsumed',
+        attemptRef: {operation: 'submit', attemptId: 'expired-invocation'}, submissionRef: fresh,
+        summary: 'The Host refused this submission invocation because its submitted epoch has expired. This does not establish the original submission outcome.',
+        hint: invocationHint, next: {operation: 'lookupSubmission', submissionRef: fresh,
+          lookupContext: getSubmissionInput(error).lookupContext}};
+      assert.deepEqual(explainSubmission(error), expected, '[check-mutation:submit-attempt-refused]');
+      assert.equal(explainSubmission({...error}), undefined);
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, expected);
+      assert.deepEqual(storedAdmissionCounts(f.root), before);
+      return true;
+    });
+    assert.equal(f.computes, 1);
+    const retained = await f.client.lookupSubmission(submissionRef);
+    assert.equal(retained.kind, 'ready');
+    assert.deepEqual(retained.admission.ref, original.ref);
+    assert.deepEqual(await original.result('answer').all(), [{n: 1}]);
+    assert.equal(f.computes, 1);
+  });
 }
 
 for (const [entrance, loseSubmissionReply, defaultSubmission] of [
@@ -448,7 +565,10 @@ for (const entrance of ['local', 'https']) {
       returned = await f.client.startSource('SELECT 1 AS n',
         {format: 'sql', submissionRef: originalRef});
     } catch (cause) {
-      if (cause?.code !== 'SubmissionUnknown') throw cause;
+      if (cause?.code !== 'SubmissionRefused') throw cause;
+      assert.equal(getSubmissionAttempt(cause).reason, 'epoch_expired');
+      assert.equal(getSubmissionAttempt(cause).guarantee, 'attempt_uncommitted_unconsumed');
+      assert.deepEqual(getSubmissionAttempt(cause).submissionRef, originalRef);
       errorCode = cause.code;
     }
     const observed = counts();
@@ -467,7 +587,12 @@ for (const entrance of ['local', 'https']) {
     await f.close(); now = originalRef.epoch.notBefore;
     await f.open();
     await assert.rejects(f.client.startSource('SELECT 1 AS n',
-      {format: 'sql', submissionRef: originalRef}), {code: 'SubmissionUnknown'});
+      {format: 'sql', submissionRef: originalRef}), error => {
+      assert.equal(error.code, 'SubmissionRefused');
+      assert.equal(getSubmissionAttempt(error).reason, 'epoch_expired');
+      assert.deepEqual(getSubmissionAttempt(error).submissionRef, originalRef);
+      return true;
+    });
     assert.deepEqual(await f.client.lookupSubmission(originalRef), expectedLookup);
     assert.deepEqual(counts(), expectedCounts);
     assert.equal(f.computes, 0);
@@ -501,10 +626,15 @@ for (const entrance of ['local', 'https']) {
       assert.deepEqual(getSubmissionOutcome(error), outcome);
       return true;
     });
-    // An exchange exception carries no validated admission outcome. Keep the
-    // SDK's uncertainty rule and look up the immutable original fact instead.
-    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef}), error => {
-      assert.equal(error.code, 'SubmissionUnknown');
+    // This initial Owner decision certifies the changed invocation's conflict,
+    // without replacing the original durable input rejection or its custody.
+    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef,
+      attemptId: 'known-input-changed-invocation'}), error => {
+      assert.equal(error.code, 'SubmissionConflict');
+      assert.equal(getSubmissionAttempt(error).reason, 'intent');
+      assert.deepEqual(getSubmissionAttempt(error).attemptRef,
+        {operation: 'submit', attemptId: 'known-input-changed-invocation'});
+      assert.equal(getSubmissionOutcome(error), undefined);
       assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
       return true;
     });
@@ -533,7 +663,7 @@ if (process.env.ACTQL_NATIVE_SUBMISSION_CLIENT) {
         '--ca', join(f.root, 'ca.pem'), '--cert', join(f.root, 'cert.pem'), '--key', join(f.root, 'key.pem'), ...args],
       {cwd: f.root, env: {...process.env, PATH: ''}, timeout: 20000});
     await assert.rejects(run('aql', '--program-file', 'query.sql', '--format', 'sql',
-      '--submission-ref-file', 'original.json'), error => /SubmissionUnknown submission-ref-file=original.json/u.test(error.stderr));
+      '--submission-ref-file', 'original.json', '--operation-attempt-id', 'native-original-invocation'), error => /SubmissionUnknown submission-ref-file=original.json/u.test(error.stderr));
     const lookedUp = JSON.parse((await run('lookup-submission', '--submission-ref-file', 'original.json')).stdout);
     assert.equal(lookedUp.kind, 'ready');
     assert.deepEqual(lookedUp.submissionRef, original);

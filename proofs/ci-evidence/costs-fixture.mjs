@@ -5,6 +5,14 @@ import {readCatalog} from './actions.mjs';
 import {sealReceipt, canonicalReceipt, mutationIds} from './receipts.mjs';
 
 const bytes = value => Buffer.from(`${encode(value)}\n`);
+// Authored from the independent Events bridge cases; this controlled fixture
+// does not claim a physical execution or derive coverage from validator output.
+const bridgeObservation = [
+  'ACTQL_EVENTS_BRIDGE:{"case":"empty-number","clock":"number","rows":0}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"nullable-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"duplicate-payload-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"timestamp-original-text","clock":"timestamp","rows":1}',
+].join('\n') + '\n';
 export function costFixture(reused = false, fullCatalog = false) {
   // Hand-authored timing/receipt fixture, not an isolated mutation execution.
   const catalog = readCatalog();
@@ -32,6 +40,7 @@ export function costFixture(reused = false, fullCatalog = false) {
     return sealReceipt({origin: {...from}, action: structuredClone(action), inputs: actionInputs({tree, revision: from.testedRevision, action, runtime}),
       output: action.kind === 'formal-model' ? `Checked ${action.minimumUnits} theorems, expected claim types and axiom dependencies\n` :
         action.id === 'mutations-js' ? mutationIds.map(id => `${id}: detected by replacement tests`).join('\n') :
+          (action.id.startsWith('events-connection-') ? bridgeObservation : '') +
           `Total tests: ${action.minimumUnits}, passed: ${action.minimumUnits}, failed: 0.\n`,
       status: 0, milliseconds: action.kind === 'formal-model' ? 11 : 17});
   });

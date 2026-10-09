@@ -49,6 +49,11 @@ export type HostInstallation = Readonly<{
   connectorTable?: InstalledConnectorTable;
   sourceProfilePath?: string;
   sourceProfilePaths?: SourceProfilePaths;
+  /** Trusted closed query-alias namespace over this Host's complete installed Source range.
+   * Negative membership requires its own current inspect_absence authorization. */
+  sourceNamespace?: string;
+  /** Complete installed selector-registration namespace; absence needs a separate current grant. */
+  sourceSelectorNamespace?: string;
   effectProfilePath?: string;
   effectProfilePaths?: EffectProfilePaths;
   hostCapacityPolicy?: HostCapacityPolicy;

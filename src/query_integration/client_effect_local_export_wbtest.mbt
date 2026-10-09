@@ -444,6 +444,9 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
     2,
     max_dependency_depth=0,
   ).unwrap()
+  assert_true(@strategy.captured_effect_inputs_match_run(inputs, effect_run))
+  let (_, _, _, equal_run) = local_effect_open_run(prepared)
+  assert_false(@strategy.captured_effect_inputs_match_run(inputs, equal_run))
   assert_eq(@strategy.captured_effect_local_result_count(inputs), 2)
   let local_result = @strategy.captured_effect_local_result_at(inputs, 0).unwrap()
   assert_eq(@strategy.captured_effect_local_result_stage(local_result), 0)

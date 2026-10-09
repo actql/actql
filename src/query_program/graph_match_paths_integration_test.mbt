@@ -57,12 +57,19 @@ test "combined match and path source preserves independent refusal boundaries" {
     old="SELECT start_id, end_id, hop_count, node_ids, edge_ids",
     new="SELECT depth",
   )
-  assert_true(
-    compile_query_script(
-      @query.parse_query_script(node_only_field, syntax_limits()).unwrap(),
-      { ..fixture_context(), inputs: [], },
-      construction_limits(),
-    )
-    is Err(UnknownColumn),
+  let result = compile_query_script(
+    @query.parse_query_script(node_only_field, syntax_limits()).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
   )
+  guard result
+    is Err(
+      Expression({ issue: @expression.UnknownReference, origin: Some(origin), })
+    ) else {
+    fail("matched path output must reject the node-only depth field")
+  }
+  assert_eq(@origin.kind(origin), @origin.Authored)
+  let span = @origin.span(origin)
+  assert_eq(span.start_byte, 430)
+  assert_eq(span.end_byte, 435)
 }

@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmissionAttempt, heldSubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {spawnSync} from 'node:child_process';
@@ -29,7 +29,7 @@ async function fixture(t, overrides = {}, token = 'token') {
     calls.push({operation, body});
     if (overrides[operation]) return overrides[operation](body, init);
     if (operation === 'connect') return Response.json(profile);
-    if (operation === 'submit-intent') return Response.json(readySubmission(body, {ref, durability: 'durable', revision: 1}));
+    if (operation === 'submit-intent') return Response.json(readySubmissionAttempt(body, {ref, durability: 'durable', revision: 1}));
     if (operation === 'attach') {
       return Response.json({ref, durability: 'durable', revision: 1});
     }
@@ -120,7 +120,7 @@ test('a held query preserves the pre-Run observation without a fake Execution', 
     lookupExpiresAt: '2026-10-08T00:00:00.000Z',
     checkpoint: {checkpointId: 'checkpoint', checkpointCid: cid('c'),
       kind: 'run_scope', expiresAt: '2026-10-08T00:00:00.000Z'}};
-  const f = await fixture(t, {'submit-intent': body => Response.json({kind: 'held', submissionRef: body.submissionRef, intentCid: body.intentCid, held})});
+  const f = await fixture(t, {'submit-intent': body => Response.json(heldSubmissionAttempt(body, held))});
   const query = f.client.aql('SELECT 1 AS id', undefined, {submissionRef: originalSubmission('held')});
   let original;
   await assert.rejects(query, error => {

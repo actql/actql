@@ -6,8 +6,8 @@ const declarationRevision = 'rev:' + '6'.repeat(64);
 const location = {kind: 'text', document_id: 'source', revision,
   start_byte: 6, end_byte: 6, precision: 'exact'};
 const observation = {version: 'actql-check-outcome/0.1',
-  reason_schema_cid: 'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a',
-  outcome_schema_cid: 'sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9',
+  reason_schema_cid: 'sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac',
+  outcome_schema_cid: 'sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f',
   outcome: 'completed', report: {context_ref: 'ctx:independent', scope: {kind: 'bound_input'},
     verdict: 'invalid', inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 6}],
     reasons: [{code: 'query_syntax_invalid', location}], requirements: [],
@@ -44,7 +44,44 @@ const limit = report => {
   report.coverage.limits = [{code: 'implementation_limit',
     facts: {issue: 'function_lowering_unresolved'}, location: {...location}}];
 };
+const aliasSource = 'SELECT 1 AS n FROM `e\u0301/~🧭`';
+const aliasOptions = {source: aliasSource};
+const aliasAbsence = report => {
+  // Independently fixed UTF-8 length of the original SQL above.
+  report.inputs[0].byte_length = 30;
+  report.reasons = [{code: 'query_alias_absent', facts: {namespace: 'queries',
+    reference: [{value: 'e\u0301/~🧭', quoted: true}]}}];
+};
 export const submissionCheckWireCorpus = [
+  fixed('authorized query alias absence', true, aliasAbsence, aliasOptions),
+  fixed('query alias absence requires owned facts', false, report => {
+    aliasAbsence(report); delete report.reasons[0].facts;
+  }, aliasOptions),
+  fixed('query alias absence cannot expose private revision', false, report => {
+    aliasAbsence(report); report.reasons[0].facts.configuration_revision = 'private';
+  }, aliasOptions),
+  fixed('query alias absence cannot invent an empty reference', false, report => {
+    aliasAbsence(report); report.reasons[0].facts.reference = [];
+  }, aliasOptions),
+  fixed('query alias absence preserves typed quoting', false, report => {
+    aliasAbsence(report); report.reasons[0].facts.reference[0].quoted = 'true';
+  }, aliasOptions),
+  fixed('query alias absence cannot borrow a structured location', false, report => {
+    aliasAbsence(report); report.reasons[0].location = {kind: 'structured',
+      document_id: 'source', revision, pointer: '/missing'};
+  }, aliasOptions),
+  fixed('query alias absence grants no edit', false, report => {
+    aliasAbsence(report); report.reasons[0].fixes = [{code: 'close_block_comment',
+      applicability: 'requires_review', risk: 'syntax_structure',
+      target: {document_id: 'source', revision},
+      edits: [{start_byte: 30, end_byte: 30, replacement: '*/'}]}];
+  }, aliasOptions),
+  fixed('previous reason schema is explicitly rejected', false, (_, checked) => {
+    checked.reason_schema_cid = 'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a';
+  }),
+  fixed('previous outcome schema is explicitly rejected', false, (_, checked) => {
+    checked.outcome_schema_cid = 'sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9';
+  }),
   fixed('exact syntax EOF', true),
   fixed('accepted preparation failure retains checking', true, () => {}, {phase: 'preparation_failed'}),
   fixed('submission cannot borrow template scope', false, report => {report.scope.kind = 'template_only';}),
@@ -78,16 +115,48 @@ export const submissionCheckWireCorpus = [
 // Program cases are fixed independently of either checker or response producer.
 const programFixed = (name, expected, change = () => {}, options = {}) => {
   const checked = structuredClone(observation);
-  checked.report.inputs = [{document_id: 'program', kind: 'structured', revision, byte_length: 32}];
+  const program = options.program ?? {version: 'actql/0.1', id: 'p'};
+  checked.report.inputs = [{document_id: 'program', kind: 'structured', revision,
+    byte_length: Buffer.byteLength(JSON.stringify(program), 'utf8')}];
   checked.report.reasons = [{code: 'program_structure_invalid', facts: {issue: 'missing_field'},
     location: {kind: 'structured', document_id: 'program', revision, pointer: ''}}];
   change(checked.report, checked);
   return {name: `submission Program check: ${name}`, expected, kind: 'submission', operation: 'start',
-    failureCode: 'SubmissionUnknown', program: {version: 'actql/0.1', id: 'p'},
+    failureCode: 'SubmissionUnknown', program,
     value: {kind: options.phase ?? 'not_accepted', problem:
       {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, checkObservation: checked}};
 };
+const selectorProgram = {version: 'actql/0.1', id: 'p', inputs: {
+  'e\u0301/~': {kind: 'Source', connector: 'fixture', resource: 'absent', view: 'records'}}};
+const unregisteredSelector = report => {
+  report.reasons = [{code: 'source_selector_unregistered',
+    facts: {namespace: 'test', connector: 'fixture', resource: 'absent', view: 'records'},
+    location: {kind: 'structured', document_id: 'program', revision,
+      pointer: '/inputs/e\u0301~1~0/view'}}];
+};
 export const submissionProgramCheckWireCorpus = [
+  programFixed('unregistered selector original Unicode pointer', true, unregisteredSelector,
+    {program: selectorProgram}),
+  programFixed('unregistered selector omitted view uses parent', true, report => {
+    unregisteredSelector(report); delete report.reasons[0].facts.view;
+    report.reasons[0].location.pointer = '/inputs/e\u0301~1~0';
+  }, {program: {version: 'actql/0.1', id: 'p', inputs: {
+    'e\u0301/~': {kind: 'Source', connector: 'fixture', resource: 'absent'}}}}),
+  programFixed('unregistered selector cannot borrow text location', false, report => {
+    unregisteredSelector(report); report.reasons[0].location = {...location};
+  }, {program: selectorProgram}),
+  programFixed('unregistered selector cannot expose private metadata', false, report => {
+    unregisteredSelector(report); report.reasons[0].facts.registration_revision = 'private';
+  }, {program: selectorProgram}),
+  programFixed('unregistered selector cannot borrow another revision', false, report => {
+    unregisteredSelector(report); report.reasons[0].location.revision = otherRevision;
+  }, {program: selectorProgram}),
+  programFixed('unregistered selector cannot authorize a fix', false, report => {
+    unregisteredSelector(report); report.reasons[0].fixes = [{code: 'close_block_comment',
+      applicability: 'requires_review', risk: 'syntax_structure',
+      target: {document_id: 'program', revision},
+      edits: [{start_byte: 0, end_byte: 0, replacement: '*/'}]}];
+  }, {program: selectorProgram}),
   programFixed('missing field uses original parent', true),
   programFixed('preparation failure retains original parent', true, () => {}, {phase: 'preparation_failed'}),
   programFixed('Program must be structured', false, report => {report.inputs[0].kind = 'text';}),

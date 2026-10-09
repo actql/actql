@@ -39,7 +39,26 @@ const physicalExchange = `    const response = await receive({
       signal,
       maxResponseBytes,
     });`;
+const ownerObservationCase = (name, id) => [{name, assertions: [{id, operator: 'strictEqual'}]}];
+const ownerObservationUnit = 'packages/sdk/owner-observations.test.mjs';
 const mutations = [
+  ['SDK Owner observation explains independent views as atomic',
+    "...answer, owners, observation: 'owner_views',",
+    "...answer, owners, consistency: 'atomic', observation: 'owner_views',", ownerObservationUnit,
+    ownerObservationCase('SDK explains retention_expired from the original Owner facts without I/O', 'owner-consistency')],
+  ['SDK Owner observation turns retained history gaps into current-only views',
+    'history: advice(view.history, ownerHistoryAdvice[view.history.kind])',
+    "history: advice({...view.history, kind: 'not_provided'}, ownerHistoryAdvice[view.history.kind])", ownerObservationUnit,
+    ownerObservationCase('SDK explains retention_expired from the original Owner facts without I/O', 'owner-history-kind')],
+  ['SDK Owner observation grants copied responses explanation custody',
+    "ownerObservationExplanations.get(result), 'ownerObservations', options",
+    "ownerObservationExplanations.get(result) ?? result, 'ownerObservations', options", ownerObservationUnit,
+    ownerObservationCase('SDK explains retention_expired from the original Owner facts without I/O', 'owner-copy')],
+  ['SDK Owner observation fabricates a protected stream identity',
+    "if (view.kind === 'unavailable') return advice(view, view.problem === undefined ? [",
+    "if (view.kind === 'unavailable') return advice({...view, ownerRef: {kind: view.owner, scopeCid: 'private', streamCid: 'private'}}, view.problem === undefined ? [", ownerObservationUnit,
+    [{name: 'SDK keeps snapshot acquisition, protected streams and unmatched cursors separate',
+      assertions: [{id: 'owner-protected', operator: 'deepStrictEqual'}]}]],
   ['a lost Effect reply automatically resends the authorized physical write',
     physicalExchange,
     `    const physicalOptions = { ...operation, secret, ca, cert, key, signal, maxResponseBytes };
@@ -91,7 +110,7 @@ if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
   throw new Error('Usage: check-effect-uncertainty-mutations.mjs [--match name-substring]');
 }
 const selected = mutations.filter(([name]) => !args.length || name.includes(args[1]));
-if (!selected.length) throw new Error('No Effect uncertainty mutations selected');
+if (!selected.length) throw new Error('No operation observation mutations selected');
 // Refuse stale anchors before starting any actual acceptance processes.
 for (const [name, from, , , , , mutationPath = path] of mutations) {
   const original = originals.get(mutationPath);

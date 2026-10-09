@@ -61,6 +61,16 @@ pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
     Source(Declarations(@stages.Declarations(@parameters.InvalidLimits)))
     | Source(SourceView(Binding(Binding(@parameters.InvalidLimits)))) =>
       Some(CheckConfiguration)
+    Source(Registration(Declarations(Decode(issue)))) =>
+      Some(
+        if issue.kind == @decode.InvalidLimits {
+          CheckConfiguration
+        } else {
+          ProgramDocument
+        },
+      )
+    Source(Registration(Declarations(InvalidValue(_) | InvalidMetadata(_)))) =>
+      Some(ProgramDocument)
     Source(Declarations(@stages.Declarations(_))) => Some(ProgramDocument)
     Source(SourceView(Binding(Binding(@parameters.BindingInput(origin, _))))) =>
       Some(
@@ -116,6 +126,15 @@ pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {
         Some(position) => position
         None => return None
       }
+    Source(Registration(Declarations(Decode(issue)))) => {
+      if issue.kind == @decode.InvalidLimits {
+        return None
+      }
+      Located(issue.path, issue.span)
+    }
+    Source(
+      Registration(Declarations(InvalidValue(cursor) | InvalidMetadata(cursor)))
+    ) => Cursor(cursor)
     Source(Declarations(@stages.Declarations(issue))) =>
       match parameter_issue_position(issue) {
         Some(position) => position

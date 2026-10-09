@@ -9,8 +9,8 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
-  validRunState, validResultDescription, validCheckOutcome,
-  validSubmissionOutcome, validSubmissionLookup} from
+  validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,
+  validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
@@ -59,7 +59,7 @@ function publicResultRows(response) {
 
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit, submitIntent, lookupSubmission,
-  attach, lookupRequest, stateService, resultService, observeRun, wait,
+  attach, lookupRequest, stateService, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, maxRowBytes, observe,
 }) {
@@ -139,7 +139,7 @@ export function createNodeInProcessClientHost({
         const submitting = operation !== 'lookup-submission';
         const answer = await invoke(submitting ? submitIntent : lookupSubmission);
         const valid = submitting
-          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid, body.unresolvedHistory)
+          ? validSubmissionAttempt(answer, connection, body.submissionRef, body.intentCid, body.attemptRef, body.unresolvedHistory)
           : validSubmissionLookup(answer, connection, body.submissionRef);
         if (!valid) fail('InvalidClientHostSubmissionOutcome');
         return answer;
@@ -168,6 +168,11 @@ export function createNodeInProcessClientHost({
           }) : await invoke(operation === 'status' ? observeRun : wait);
         if (!validRunState(state)) fail('InvalidClientHostRunState');
         return state;
+      }
+      if (operation === 'owner-observations') {
+        const views = await invoke(observeOwners);
+        if (!validOwnerObservations(views,ref,body)) fail('InvalidClientHostOwnerObservations');
+        return views;
       }
       if (operation === 'checkpoints') {
         const page = await invoke(checkpoints);

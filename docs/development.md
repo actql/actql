@@ -242,6 +242,84 @@ interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
 remain reviewed source artifacts. Regenerate wrapper changes explicitly;
 runtime preparation checks them but does not silently update them.
 
+### Checkpoint Resolution and Effect continuation
+
+`@actql/run-host-core/checkpoints` supplies the existing portable Checkpoint
+Owner without a physical Store or Node execution runtime. The Host seals and
+persists a Checkpoint before committing its waiting Run projection.
+
+For a Resolution, obtain `resolutionProofPreimage` and authenticate it using
+Host-trusted reviewer keys and current authority. Pass those authenticated
+facts to `resolutionAdmit`, sign its attestation preimage, then use
+`resolutionDecide` with the closure read inside the durable transaction.
+Commit the Resolution, Checkpoint closure, unique resume intent and same Run
+transition atomically. Admission alone does not authorize continuation: check
+`checkpointExpiredAt` again at commit time after asynchronous authentication
+or signing, and check `resumedApprovalAt` for the approval's own lifetime.
+
+`effectResumeClaimDecide` selects continuation or settlement using the current
+authorization/environment binding. Persist its generation, then use
+`resumeFenceDecide` before a protected operation or intent mutation. Settlement
+does not authorize unknown Effect replay. Run lifecycle projections and allowed
+transitions do not prove execution, physical cleanup or reservation release.
+
+### Effect Run Host preparation and restoration
+
+`@actql/run-host-core` exposes `prepareEffect` and `compileEffect` for the
+existing checked Effect computation Owner. These return opaque handles separate
+from an Effect-free Program. `effectExecutionShape` projects checked task,
+acquisition and Effect counts; it does not select or schedule tasks.
+
+After the Host has checked current authorization, `issueAllowedEffectRun` and
+`issueEffectRunDefinition` bind the original policy evidence and Run identity.
+`issueEffectRunMaterials` serializes the retained JSON Program, environment and
+separately supplied parameters using the existing bounded materials codec.
+`admitEffectRunMaterials` reconstructs that same Owner from the saved evidence
+and the expected Run definition CID. It does not issue fresh authorization or
+extend the saved lifetime. `effectRunStartCurrent` checks the original policy
+and Run lifetime; the Host must independently recheck current authority.
+
+These APIs perform no Source acquisition, Preview, approval or physical Effect.
+Run admission is not Effect approval. Dispatch, retained input custody,
+Checkpoint/Resolution and physical apply remain responsibilities of their
+existing Owners and consuming adapters.
+
+The MoonBit `prepare_client_effect_source_dispatch` projects the initial
+Source task from the original retained Effect compilation. Its initial scope
+is one acquisition, two checked computation tasks and one Named Result on the
+consumer. `bind_client_effect_source_dispatch` checks the received Run/task and
+logical Source input against reconstructed Effect materials; it never treats
+the Program as Effect-free. Native
+`admit_resident_effect_source_dispatch` additionally checks trusted delegation,
+the current Site generation, original lifetime and configured Source identity
+before acquisition. Admission does not grant a journal start claim or Effect
+approval. The existing runtime must recheck current authority and lifetime at
+physical start. The polled holder/Checkpoint/approval connection remains a
+separate integration boundary.
+
+For the initial acquired Effect composition,
+`prepare_client_effect_retained_input_edge` and
+`prepare_client_effect_retained_task_dispatch` use the original Effect Run
+and the existing independently committed Transfer destination. Native
+`open_resident_effect_retained_compute` consumes that receiver holding through
+the same decoder, borrow and cleanup Owners as the ordinary consumer. Its
+typed Effect projection preserves both original task coordinates and Effect
+dependency pins. An Effect pin retains the consumer allocation after ordinary
+Result export closes. Returning that pin does not reclaim the destination
+holding or producer capture; their own cleanup remains necessary. These are
+physical custody APIs, not a journal start claim, approval or public Cloud
+integration.
+
+The formal `@actql/run-host-core` facade also supplies `prepareEffectRequest`,
+`effectSourceInputBinding`, `issueEffectSourceDispatch`,
+`prepareEffectRetainedTaskInputEdge` and `issueEffectRetainedTaskDispatch`.
+Their Effect handles remain opaque and cannot enter the Effect-free facade.
+The retained edge feeds the existing producer/Transfer/current-input APIs;
+consumer issuance re-admits the durable destination before and after current
+authorization callbacks. Original materials can reconstruct the same caller,
+Run and Source dispatch. Hosts still own persistence-before-send, current
+permission, start claims, approval and physical execution.
+
 ### Installed Connector distribution inputs
 
 The standard Local package resolves provider runtimes, installation adapter

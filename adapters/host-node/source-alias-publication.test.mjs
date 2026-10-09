@@ -9,6 +9,7 @@ import {createInstalledConnectorTable} from './installed-connectors.mjs';
 const {loadInstalledSource, installedSourceIdentity, installedSourcePublicationFacts} = await import(
   process.env.ACTQL_TEST_NAMESPACE_INSTALLED_SOURCE_MODULE ?? new URL('./installed-source.mjs', import.meta.url));
 const {observeSourceAliasNamespace, sourceAliasNamespaceObservationFacts,
+  observeSourceSelectorNamespace, sourceSelectorNamespaceObservationFacts,
   sourceAliasPublication} = await import(process.env.ACTQL_TEST_NAMESPACE_PUBLICATION_MODULE ??
     new URL('./source-alias-publication.mjs', import.meta.url));
 
@@ -41,7 +42,7 @@ async function authorization(t, {name = 'queries', operation = 'inspect_absence'
 }
 
 async function installed(t, {names = ['records'], generation = 1, changeDuringLoad, changeAliasesDuringLoad,
-  identityFailure = false} = {}) {
+  identityFailure = false, environmentWire} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-namespace-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const path = join(directory, 'source.json');
@@ -63,6 +64,7 @@ async function installed(t, {names = ['records'], generation = 1, changeDuringLo
         if (changeAliasesDuringLoad) await writeFile(path,
           JSON.stringify({...profile, queryAliases: changeAliasesDuringLoad.map(alias)}));
         return Object.freeze({connectorRegistration: 'namespace_fixture', connectorRevision: 'namespace_fixture/0.1',
+          ...(environmentWire === undefined ? {} : {environmentWire}),
           open() { counts.source++; assert.fail('Checking must not acquire a Source'); },
           close() {}});
       },
@@ -238,6 +240,7 @@ test('namespace declarations remain bounded and cannot accept a completeness boo
     {name: 'queries', profilePaths: Array(129).fill('/source')},
     {name: 'queries', profilePaths: ['/source', '/source']},
     {name: 'queries', profilePaths: ['relative']},
+    {name: '\ud800', profilePaths: []},
     {name: 'x'.repeat(257), profilePaths: []}]) {
     assert.throws(() => sourceAliasPublication(moon, environment, [], [], {namespace}),
       {message: 'InvalidSourceNamespaceDeclaration'});
@@ -291,4 +294,120 @@ test('empty namespace revisions match independent fixed preimages', async t => {
     const observation = await observeSourceAliasNamespace(selected, gate, original);
     assert.equal(sourceAliasNamespaceObservationFacts(selected, observation, original)?.revision, expected);
   }
+});
+
+
+const programBinding = (digit = '1', principalId = 'reader') => Object.freeze({principalId,
+  contextCid: `sha256:${digit.repeat(64)}`,
+  inputs: Object.freeze([Object.freeze({document_id: 'program', kind: 'structured',
+    revision: `rev:${digit.repeat(64)}`, byte_length: 3})])});
+const emptyWire = JSON.parse(await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+const emptyEnvironment = moon.clientProgramCheckEnvironment(canonicalText(emptyWire),
+  emptyWire.evidence_bundle_cid, false, false, true, true, false, false, false);
+function selectorPublication(selected, sources, paths, name = 'registrations') {
+  return sourceAliasPublication(moon, selected, [], [], {
+    selectorNamespace: {name, profilePaths: paths}, installedSources: sources});
+}
+
+test('selector registration completeness uses the entire admitted unfiltered Catalog', async t => {
+  const gate = await authorization(t, {name: 'registrations'}), original = programBinding();
+  const {source, path, counts} = await installed(t, {names: ['hidden'], environmentWire: canonicalText(wire)});
+  const selected = selectorPublication(environment, [source], [path]);
+  const observation = await observeSourceSelectorNamespace(selected, gate, original);
+  assert.equal(observation.state, 'complete');
+  const facts = sourceSelectorNamespaceObservationFacts(selected, observation, original);
+  assert.equal(facts.namespace, 'registrations');
+  assert.ok(facts.range);
+  assert.equal(sourceAliasNamespaceObservationFacts(selected, observation, original), undefined);
+  // No positive alias is published, but the private registered selector remains
+  // in the complete Catalog. Alias omission does not prove selector absence.
+  assert.deepEqual(selected.aliases, []);
+  assert.equal(JSON.stringify(selected).includes('registrations'), false);
+  for (const incomplete of [selectorPublication(environment, [], []),
+    selectorPublication(emptyEnvironment, [source], [path]),
+    selectorPublication(environment, [], [path]),
+    selectorPublication(environment, [{...source}], [path])]) {
+    assert.deepEqual(await observeSourceSelectorNamespace(incomplete, gate, original), {state: 'unresolved'},
+      '[check-mutation:selector-catalog-completeness]');
+  }
+  assert.deepEqual(counts, {loads: 1, source: 0, model: 0, effect: 0, credential: 0});
+});
+
+test('complete empty selector registration namespace is distinct from positive publication', async t => {
+  const gate = await authorization(t, {name: 'registrations'}), original = programBinding();
+  const selected = selectorPublication(emptyEnvironment, [], []);
+  const observation = await observeSourceSelectorNamespace(selected, gate, original);
+  assert.equal(observation.state, 'complete');
+  assert.ok(sourceSelectorNamespaceObservationFacts(selected, observation, original));
+  const open = sourceAliasPublication(moon, emptyEnvironment);
+  assert.deepEqual(await observeSourceSelectorNamespace(open, gate, original), {state: 'unresolved'});
+  assert.equal(JSON.stringify(selected), JSON.stringify(open));
+  const prior = gate.counters().evaluations;
+  assert.deepEqual(await observeSourceSelectorNamespace(selected, gate, binding()), {state: 'unresolved'});
+  assert.equal(gate.counters().evaluations, prior, 'Text inputs cannot borrow selector registration disclosure');
+});
+
+test('missing unstable or malformed selector registration evidence cannot close a namespace', async t => {
+  const gate = await authorization(t, {name: 'registrations'}), original = programBinding();
+  for (const options of [{}, {environmentWire: '{'},
+    {environmentWire: canonicalText(wire), changeDuringLoad: true},
+    {environmentWire: canonicalText(wire), identityFailure: true}]) {
+    const {source, path, counts} = await installed(t, options);
+    const selected = selectorPublication(environment, [source], [path]);
+    assert.deepEqual(await observeSourceSelectorNamespace(selected, gate, original), {state: 'unresolved'});
+    assert.equal(counts.source, 0);
+    assert.equal(counts.credential, 0);
+  }
+  assert.equal(moon.clientProgramCheckSourceSelectorRange(emptyEnvironment,
+    Array(129).fill(emptyEnvironment)), undefined);
+});
+
+test('selector registration observations reject foreign domains copies revisions and inputs', async t => {
+  const gate = await authorization(t, {name: 'registrations'}), original = programBinding();
+  const selected = selectorPublication(emptyEnvironment, [], []);
+  const observation = await observeSourceSelectorNamespace(selected, gate, original);
+  assert.ok(sourceSelectorNamespaceObservationFacts(selected, observation, original));
+  for (const [owner, result, input] of [[{...selected}, observation, original],
+    [selected, {...observation}, original], [selected, observation, {...original}],
+    [selected, observation, programBinding('2')],
+    [selectorPublication(emptyEnvironment, [], [], 'other'), observation, original],
+    [selectorPublication(environment, [], []), observation, original]]) {
+    assert.equal(sourceSelectorNamespaceObservationFacts(owner, result, input), undefined,
+      '[check-mutation:selector-observation-custody]');
+  }
+  const aliasGate = await authorization(t), aliasInput = binding();
+  const aliasOwner = publication([], []);
+  const aliasObservation = await observeSourceAliasNamespace(aliasOwner, aliasGate, aliasInput);
+  assert.equal(sourceSelectorNamespaceObservationFacts(aliasOwner, aliasObservation, aliasInput), undefined);
+});
+
+test('selector registration disclosure requires a current namespace grant and does not defer', async t => {
+  const selected = selectorPublication(emptyEnvironment, [], []), original = programBinding();
+  for (const options of [{operation: 'read'}, {operation: 'check'}, {outcome: 'deny'},
+    {name: 'other'}, {principal: 'another'}]) {
+    const gate = await authorization(t, {...options, name: options.name ?? 'registrations'});
+    assert.deepEqual(await observeSourceSelectorNamespace(selected, gate, original), {state: 'unresolved'},
+      '[check-mutation:selector-disclosure]');
+    assert.equal(gate.resourceUsage().retainedDecisions, 0);
+  }
+  let permit = true, calls = 0, described = 0, persisted = 0;
+  const gate = await authorization(t, {name: 'registrations', outcome: 'delegate',
+    decide(view) { calls++; return permit ?
+      {decision: 'permit', subject: view.subject, authority: 'reviewer', claims: []} :
+      {decision: 'defer', subject: view.subject}; },
+    deferral: {describe() { described++; throw new Error('UnexpectedApproval'); },
+      journal: {persistCheckpoint() { persisted++; throw new Error('UnexpectedCheckpoint'); },
+        submitResolution() { assert.fail('Checking must not submit approval'); }},
+      authorities: [{reviewerId: 'reviewer'}], binding: {}},
+  });
+  const first = await observeSourceSelectorNamespace(selected, gate, original);
+  assert.equal(first.state, 'complete');
+  permit = false;
+  const next = programBinding();
+  assert.deepEqual(await observeSourceSelectorNamespace(selected, gate, next), {state: 'unresolved'});
+  assert.equal(sourceSelectorNamespaceObservationFacts(selected, first, next), undefined);
+  assert.equal(calls, 2);
+  assert.equal(described, 0);
+  assert.equal(persisted, 0);
+  assert.equal(gate.resourceUsage().retainedDecisions, 0);
 });

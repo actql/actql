@@ -9,6 +9,8 @@ import {validCheckOutcome, checkReasonSchemaCid, checkOutcomeSchemaCid} from '..
 // The common value encoding: String values stay exact (CR, LF and composed
 // or decomposed spellings differ); only object member names are canonical.
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {observeSourceSelectorNamespace, sourceSelectorNamespaceObservationFacts,
+  observeSourceAliasNamespace, sourceAliasNamespaceObservationFacts} from './source-alias-publication.mjs';
 
 const version = 'actql-check-outcome/0.1';
 // Revisions bound into every context reference. A change to what an audience
@@ -35,18 +37,22 @@ const validBoundOutcome = (outcome, context, scope, documents) => {
 };
 
 export function installNodeClientCheck({moon, environment, publication,
-  sourceAccesses = [], tableWriteAccesses = [], contextKey = randomBytes(32)}) {
+  sourceAccesses = [], tableWriteAccesses = [], namespaceAuthorizationFor,
+  contextKey = randomBytes(32)}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckSource !== 'function' ||
       typeof moon.clientProgramCheckProgram !== 'function' ||
       typeof moon.clientProgramCheckUnavailable !== 'function' ||
       typeof moon.clientProgramCheckCompilerIdentity !== 'function' ||
       typeof moon.clientProgramCheckContextIdentity !== 'function' ||
+      typeof moon.clientProgramCheckSourceNamespace !== 'function' ||
+      typeof moon.clientProgramCheckSourceSelectorNamespace !== 'function' ||
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
       environment === undefined ||
       !(contextKey instanceof Uint8Array) || contextKey.byteLength !== 32 ||
       !Array.isArray(sourceAccesses) || sourceAccesses.some(access =>
         typeof access?.authorization?.authorize !== 'function') ||
+      namespaceAuthorizationFor !== undefined && typeof namespaceAuthorizationFor !== 'function' ||
       !Array.isArray(tableWriteAccesses) || tableWriteAccesses.some(access =>
         typeof access?.authorization?.authorize !== 'function' ||
         !/^sha256:[0-9a-f]{64}$/u.test(access.capabilityCid ?? '') ||
@@ -130,12 +136,14 @@ export function installNodeClientCheck({moon, environment, publication,
   // the visible names and supplied
   // bindings. Equal requests give an equal reference here; the reference is
   // not a public hash of supplied values.
-  const contextRef = (principalId, input, parameters, visible, visibleWrites, kind, scope) => {
+  const contextRef = (principalId, input, parameters, visible, visibleWrites, kind, scope, namespace) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
       compiler, reason_schema_cid: checkReasonSchemaCid,
       outcome_schema_cid: checkOutcomeSchemaCid,
       checking_context: checkingContext, visible_aliases: visible,
+      ...(namespace === undefined ? {} : {[kind === 'program' ? 'source_selector_namespace' : 'source_namespace']: {
+        name: namespace.namespace, revision: namespace.revision, authority: namespace.authority}}),
       ...(visibleWrites.length === 0 ? {} : {visible_table_writes: visibleWrites})};
     let preimage;
     try {
@@ -175,16 +183,38 @@ export function installNodeClientCheck({moon, environment, publication,
     const visible = await visibleAliases(signal);
     const visibleWrites = await visibleTableWrites(signal);
     signal?.throwIfAborted();
-    const context = contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope);
+    let context = contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope);
     if (kind === 'program') {
       const document = JSON.stringify(input);
       const supplied = parameters == null ? undefined : JSON.stringify(parameters);
       const original = documentBinding('program', 'structured', document);
       const bindings = supplied === undefined ? undefined : documentBinding('parameters', 'structured', supplied);
+      let namespace;
+      if (namespaceAuthorizationFor !== undefined) {
+        const binding = Object.freeze({principalId, contextCid: `sha256:${context.slice(4)}`,
+          inputs: Object.freeze([original, ...(bindings ? [bindings] : [])]
+            .map(value => Object.freeze({...value})))});
+        let gate;
+        try {
+          gate = await namespaceAuthorizationFor({principalId, signal});
+          const observation = await observeSourceSelectorNamespace(publication, gate, binding, {signal});
+          const facts = sourceSelectorNamespaceObservationFacts(publication, observation, binding);
+          if (facts !== undefined) {
+            context = contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope, facts);
+            namespace = moon.clientProgramCheckSourceSelectorNamespace(facts.range,
+              facts.namespace, facts.revision, context, original.revision);
+          }
+        } catch (cause) {
+          if (signal?.aborted) throw cause;
+          // Insufficient metadata or current authorization cannot prove absence.
+        } finally {
+          gate?.close();
+        }
+      }
       const outcome = JSON.parse(moon.clientProgramCheckProgram(document, environment,
         JSON.stringify({environmentCid, aliases: visible,
           ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}), supplied,
-        context, original.revision, bindings?.revision, correlationRef, scope));
+        context, original.revision, bindings?.revision, correlationRef, scope, namespace));
       return validBoundOutcome(outcome, context, scope, [original, ...(bindings ? [bindings] : [])])
         ? outcome : failed('check_internal', correlationRef);
     }
@@ -196,12 +226,37 @@ export function installNodeClientCheck({moon, environment, publication,
     const declared = declarations === undefined ? undefined
       : documentBinding('parameter_declarations', 'structured', declarations);
     const bindings = supplied === undefined ? undefined : documentBinding('parameters', 'structured', supplied);
+    let namespace;
+    if (namespaceAuthorizationFor !== undefined) {
+      // Only original publication/observation custody can reach the common
+      // projection. Neither an SDK response nor client JSON supplies this fact.
+      const binding = Object.freeze({principalId, contextCid: `sha256:${context.slice(4)}`,
+        inputs: Object.freeze([original, ...(declared ? [declared] : []), ...(bindings ? [bindings] : [])]
+          .map(value => Object.freeze({...value})))});
+      let gate;
+      try {
+        gate = await namespaceAuthorizationFor({principalId, signal});
+        const observation = await observeSourceAliasNamespace(publication, gate, binding, {signal});
+        const facts = sourceAliasNamespaceObservationFacts(publication, observation, binding);
+        if (facts !== undefined) {
+          context = contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope, facts);
+          namespace = moon.clientProgramCheckSourceNamespace(environment,
+            JSON.stringify({environmentCid, aliases: facts.aliases}),
+            facts.namespace, facts.revision, context, original.revision);
+        }
+      } catch (cause) {
+        if (signal?.aborted) throw cause;
+        // Unavailable metadata/authority is not a proven authoring violation.
+      } finally {
+        gate?.close();
+      }
+    }
     const outcome = JSON.parse(moon.clientProgramCheckSource(input.text,
       input.format, environment,
       JSON.stringify({environmentCid, aliases: visible,
         ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}),
       declarations, supplied,
-      context, original.revision, declared?.revision, bindings?.revision, correlationRef, scope));
+      context, original.revision, declared?.revision, bindings?.revision, correlationRef, scope, namespace));
     return validBoundOutcome(outcome, context, scope,
       [original, ...(declared ? [declared] : []), ...(bindings ? [bindings] : [])])
       ? outcome : failed('check_internal', correlationRef);
