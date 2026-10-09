@@ -132,3 +132,29 @@ typed variant evidence: `run-gceo9X`; uninstrumented observation: `run-a1tIUE`.
 Diagnostic installation, probes, stores and custody are preserved at
 `/private/tmp/actql-b-qualify-diagnostic-d66bd47ef`. Diagnostic collection exits
 zero after observing failed Runs; do not count that as acceptance success.
+
+## Integration repair and remaining public failure
+
+Integration source: fcb59b93cf9d7972d31c8dbc70c8bf2eca95cd8b.
+AnalyticRows already uses bounded group cleanup, which preserves accepted
+output. The chain eligibility table omitted this kernel and therefore kept
+all completed child scratch alive. The repair admits it to the existing
+cleanup path; it does not change any capacity ceiling or output contract.
+
+Focused JS tests passed 22/22, including three new analytic lifetime tests
+for ranked output survival, cleanup false/error retry, and cancellation
+while cleanup is pending. Evidence: run-61s4ux / focused-test-4g6jTK.
+Removing only the eligibility fix makes all three new tests fail:
+run-RJTQIg / focused-test-VjyqjQ. The fix was restored before committing.
+
+Clean-source five-package generation succeeded. The unchanged public
+window-scalar cohort passed the Local QUALIFY controls, including JSON,
+GROUP BY ALL, nullable, empty, duplicate and qualified-input cases.
+However, it later failed on window-scalar-pipe-schema-private-set with
+SubmissionNotAccepted / ClientProgramInvalidInput. Its preceding independent
+JSON control passed. HTTPS was not completed. This is not a successful
+whole-cohort receipt and remains an integration blocker under investigation.
+
+Original receipt: /private/tmp/.codex-scratch/public-query-evidence-blFRci.
+Guard: run-74impe. Tarballs: /private/tmp/actql-root1182-fcb59b93-pack.
+CI was not started. No full-target or Native success is claimed.
