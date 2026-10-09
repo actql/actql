@@ -158,7 +158,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
   for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup','submission_restart',
     'connection','profile','admission','run_ref',
     'lookup_found','lookup_not_found','lookup_unknown','held',
-    'cancellation_ref','cancellation','cancellation_lookup']) emit(schemas[name], `wire_${name}_shape`);
+    'cancellation_ref','cancellation','cancellation_lookup','operation_attempt_ref','cancellation_attempt']) emit(schemas[name], `wire_${name}_shape`);
   functions.push('///|\nenum WireResponseIssue {\n  InvalidShape\n  ConnectionMismatch\n  RequestedValueUnavailable\n}\n');
   for (const [name, rule] of Object.entries(rules)) {
     const lines = [`if !wire_connection_shape(selected) || !wire_${name}_shape(value) { return Some(InvalidShape) }`,
