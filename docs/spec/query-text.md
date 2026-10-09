@@ -109,7 +109,9 @@ its final order. CTE and DATA relations use their current declared columns.
 in its declared column order. The receiver is a source Reference with ordinary
 alias quotation/name resolution, not a string interpreted as a schema. SQL,
 Pipe, CTE and JOIN ranges share the same physical-slot scope. SET/DROP/RENAME
-retain the bound range's original values; Pipe AS replaces that range. SELECT
+retain a surviving range's original values. SET/DROP remove a range whose name
+matches a target column; RENAME rejects a target hidden by a range name.
+Pipe AS replaces the range scope. SELECT
 materialization ends its input range scope, while a deferred query ORDER may
 still consume the admitted SELECT input snapshot before that materialization.
 SQL GROUP ordinals count the expanded and excluded range columns, and every
@@ -405,7 +407,8 @@ the same pre-SET snapshot; replacing an earlier target does not change a later
 assignment's input. Each target must still exist exactly once and cannot be
 assigned twice. SET retains visible column order while the replacement value's
 checked type and nullability determine that column's new contract. Existing
-range variables retain original values.
+range variables retain original values unless their names match a SET target.
+Such ranges are removed after all sibling assignments have been resolved.
 
 Window calls are evaluated before the existing assignment derivation. Their
 private slots are visible only to that SET and are removed by normal final
@@ -491,8 +494,15 @@ an input receiver. Nullable keys keep their common value contract and NULLs.
 Pipe range variables bind immutable input value slots. `SET` replaces the
 current unqualified columns; every assignment sees the same pre-SET row.
 `DROP` removes current names, and `RENAME` changes current names. These three
-operations retain an existing range variable's original column names and
-values. A removed or renamed current column does not become available through
+operations retain a surviving range variable's original column names and
+values. Under the selected GoogleSQL Pipe rules, SET and DROP remove a range
+variable whose name matches an authored target under the existing identifier
+comparison. SET removes it only after every sibling expression has resolved
+against the pre-SET snapshot. A subsequent property reference with that name
+therefore uses the new current value, not the removed range. RENAME requires
+its target to be a current column unambiguously resolved in scope: a same-named
+range hides that column and causes rejection. Other range names remain bound.
+A removed or renamed current column does not become available through
 an unqualified reference simply because an older range variable retains it.
 
 Pipe `AS name` replaces all preceding range variables with that name, bound
@@ -836,7 +846,8 @@ error, rather than a guessed or truncated output schema.
 NULL or empty arrays produce zero rows with the same declared schema. NULL
 elements produce rows whose projected properties are NULL. Duplicates remain
 rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change
-current columns while the original range retains its value slots. SELECT or AS
+current columns while a surviving original range retains its value slots, with
+the same-name target exceptions defined above. SELECT or AS
 establishes the ordinary new Relation scope and removes that original range,
 except for the existing directly following SELECT-owned ORDER boundary.
 No witness, array, element or property implementation slot is publicly exported.
@@ -860,7 +871,8 @@ based and does not by itself promise output order. Use an explicit ORDER BY
 when ordering matters. Type, key transfer and expansion bounds remain the
 common checker's responsibility; a parent key alone is not a unique child key.
 
-The original parent range survives Pipe SET/DROP/RENAME and correlation. A
+The original parent range survives Pipe SET/DROP/RENAME and correlation unless
+its name is removed by the same-name target rules above. A
 SELECT or AS replaces that scope using the existing rules above. Successive
 closed object value-table ranges retain their own receivers; adding another
 expansion does not rebind an earlier object's fields or value. Qualified parent

@@ -20,7 +20,7 @@ the declared output columns are `id, items, element, position`. The expected
 rows are the four expanded rows, ordered by parent id and zero-based offset;
 both copies of 2 and the NULL element remain. Empty and NULL arrays contribute
 no rows. These obligations follow the adopted
-[GoogleSQL UNNEST profile](../../spec/query-text.md#declared-unnest-value-tables),
+[GoogleSQL UNNEST profile](../spec/query-text.md#declared-unnest-value-tables),
 not row sampling or implementation-generated expectations.
 
 The complete independently authored Values Program passes the ordinary checker.
