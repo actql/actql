@@ -9,6 +9,7 @@ priv enum CheckFinding {
   // A disclosable proven violation of the caller's own input.
   Violation(String)
   ProgramStructureViolation(String)
+  SourceSelectorUnregistered(String, @sourceview_input.Declaration, String?)
   SyntaxViolation(Int, Int)
   LexicalViolation(String, (Int, Int)?)
   ExpressionViolation(String, (Int, Int)?)
@@ -1059,6 +1060,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | ExpressionTypeViolation(_)
       | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _)
+      | SourceSelectorUnregistered(_, _, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
       | JsonInputViolation(_, _, _)
@@ -1129,6 +1131,8 @@ fn write_check_report(
       ExpressionTypeViolation(_) => Some("expression_type_mismatch")
       OperationScalarViolation(_, _, _) => Some("operation_parameter_invalid")
       GraphViolation(_, _) => Some("graph_operation_invalid")
+      SourceSelectorUnregistered(_, _, _) =>
+        Some("source_selector_unregistered")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       DefaultTypeViolation(_, _, _, _) =>
         Some("parameter_default_type_mismatch")
@@ -1335,6 +1339,35 @@ fn write_check_report(
       @encode.key(writer, "issue")
       @encode.string_value(writer, "invalid_bounds")
       @encode.end_object(writer)
+    }
+    if code == "source_selector_unregistered" {
+      for finding in findings {
+        if finding
+          is SourceSelectorUnregistered(namespace_name, declaration, pointer) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "namespace")
+          @encode.string_value(writer, namespace_name)
+          @encode.key(writer, "connector")
+          @encode.string_value(writer, declaration.connector)
+          @encode.key(writer, "resource")
+          @encode.string_value(writer, declaration.resource)
+          if declaration.view is Some(view) {
+            @encode.key(writer, "view")
+            @encode.string_value(writer, view)
+          }
+          @encode.end_object(writer)
+          if pointer is Some(pointer) {
+            write_check_structured_location(
+              writer,
+              "program",
+              documents.source_revision,
+              pointer,
+            )
+          }
+          break
+        }
+      }
     }
     if code == "graph_operation_invalid" {
       for finding in findings {

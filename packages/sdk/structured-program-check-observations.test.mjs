@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as sdk from './index.mjs';
 import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
-import {submissionEpoch} from './submission-fixture.mjs';
+import {submissionEpoch, submissionAttempt} from './submission-fixture.mjs';
 const revision = digit => 'rev:' + digit.repeat(64);
 const program = () => ({version: 'actql/0.1', id: 'original', 'e\u0301/😀~': null});
 const pointer = '/e\u0301~1😀~0';
@@ -26,12 +26,12 @@ const rejection = (body, checked, phase = 'not_accepted') => ({kind: phase,
 async function fixture(t, perform) {
   const calls = [];
   const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
-    perform(operation, body) {
+    async perform(operation, body) {
       calls.push(operation);
       if (operation === 'connect') return profile;
       if (operation === 'close') return;
       assert.equal(operation, 'submit-intent');
-      return perform(body);
+      return submissionAttempt(body, await perform(body));
     },
   });
   t.after(() => client.close());

@@ -1,3 +1,4 @@
+import './source-selector-check.typecheck.mjs';
 import {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogEntry, type KnownCheckReasonCode} from '@actql/sdk';
 const version: 'actql-check-reason-catalog/0.1' = getCheckReasonCatalogInfo().version;

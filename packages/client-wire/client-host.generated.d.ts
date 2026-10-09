@@ -1502,6 +1502,11 @@ export type WireCheckOutcomeShape = Readonly<{
   stage: "checking";
 }> | Readonly<{
   namespace: string;
+  connector: string;
+  resource: string;
+  view?: string;
+}> | Readonly<{
+  namespace: string;
   reference: readonly Readonly<{
   value: string;
   quoted: boolean;
@@ -1612,6 +1617,11 @@ export type WireCheckOutcomeShape = Readonly<{
   stage: "checking";
 }> | Readonly<{
   namespace: string;
+  connector: string;
+  resource: string;
+  view?: string;
+}> | Readonly<{
+  namespace: string;
   reference: readonly Readonly<{
   value: string;
   quoted: boolean;
@@ -1624,7 +1634,7 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6";
+  reason_schema_cid: "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -1773,6 +1783,11 @@ export type WireCheckOutcomeShape = Readonly<{
   stage: "checking";
 }> | Readonly<{
   namespace: string;
+  connector: string;
+  resource: string;
+  view?: string;
+}> | Readonly<{
+  namespace: string;
   reference: readonly Readonly<{
   value: string;
   quoted: boolean;
@@ -1883,6 +1898,11 @@ export type WireCheckOutcomeShape = Readonly<{
   stage: "checking";
 }> | Readonly<{
   namespace: string;
+  connector: string;
+  resource: string;
+  view?: string;
+}> | Readonly<{
+  namespace: string;
   reference: readonly Readonly<{
   value: string;
   quoted: boolean;
@@ -1899,7 +1919,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6";
+  reason_schema_cid: "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -1908,7 +1928,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6";
+  reason_schema_cid: "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{
