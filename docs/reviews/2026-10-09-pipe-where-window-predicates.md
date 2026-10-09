@@ -1,7 +1,7 @@
 # Pipe WHERE: predicate-owned window inputs
 
-Date: 2026-10-09. Status: implemented Frontend connection; focused checks passed.
-Fresh packed acceptance and submitted-HEAD CI are not yet established.
+Date: 2026-10-09. Status: implemented Frontend connection; focused checks and
+fresh packed Local/HTTPS acceptance passed. Submitted-HEAD CI remains unverified.
 
 ## Boundary and counterexample
 
@@ -103,8 +103,62 @@ regenerated from compiler or runtime output.
   expression lowerer correctly returns UnknownReference. The final test now
   fixes that exact refusal rather than accepting any error.
 
-Fresh normal five-package production and focused Local/HTTPS public acceptance
-remain to be executed. Submitted-HEAD required CI, three-target runtime coverage,
+Submitted-HEAD required CI, three-target runtime coverage,
 full Core, full packed, performance and live Google differential validation are
 not claimed by the focused checks above. This unit does not establish complete
 SQL/Pipe Frontend coverage.
+
+
+## Fresh packed public execution
+
+Tested clean product/fixture SHA: `e0b4a5c4db515427658362f6ea03f6c1ed41a291`.
+The bounded shared-lock wrapper ran the normal producer, independently verified
+its revision and all original tarball digests, then ran the existing focused
+window-scalar cohort. No adapter overlay, old pack or product-output oracle was
+used. Exact commands, with the repository's pinned Node/MoonBit PATH, were:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-pipe-where-window-e0b4a5c4d-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-pipe-where-window-e0b4a5c4d-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --window-scalar-only
+```
+
+Each Embedded Local/HTTPS entrance completed 49 positives, 28 preparation
+refusals and one expected demanded-expression failure. This includes all nine
+new positives and six exact-code refusals (five ClientProgramInvalidInput and
+one ClientProgramImplementationLimit). Of the complete 28 refusals, 23 have
+exact-code log lines; the five older fixtures without expectedCode execute the
+existing input-code-set, zero-admission/I/O and submission-lookup assertions
+without an individual success log. They are not inferred from log-line count.
+
+The checked app verifies Named Result and stream completion, independent rows,
+complete Result.describe types/nullability/column order, no private output
+columns, acquisition once and the same Run on resend/attach/reread with unchanged
+counters. All preparation refusals preserve zero Run admission and Source I/O.
+README Local/HTTPS quickstarts and the deliberate missing-generated-asset
+refusal also passed. The existing budget and independent expectations were not
+changed to obtain execution success.
+
+Receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-FULJOU`.
+It is passed/complete for the tested SHA; all ten commands have complete output,
+exit 0, no signal/error and no evidence errors. Successful external installations
+were removed after evidence preservation (`artifactsRemoved:true`). The outer
+bounded wrapper completed successfully at `run-AN6Q9L`. Original pack and receipt
+remain available; no unrelated scratch or shared dependencies were removed.
+
+| Package | Original tarball SHA-256 |
+|---|---|
+| client-wire | `4105321db630741cba8d4573d9800f554af51b1b7eff46cdf17f651128ebcc9f` |
+| sdk | `e4d0fff729f53b3cd96f97997c2bd052069d2de4152e083d84d4201852b46be6` |
+| run-host-core | `b6f1e0f29247268c778e9f3ca57a7e4ec118e1a5369cca6c02c7fc53ce1701db` |
+| local-node | `0653ea3adf70fbd44facd5aeb5c462755b16b10f0fe1d4ca086b16a60536d189` |
+| node | `aa96b83e047cf3fc42b560b578fc2a32b9a38fa3f32c62dcf9f5eaff26891f4b` |
+
+The subsequent submission commit adds only this English acceptance record. Its
+HEAD is not represented as the tested product SHA or as CI success. Parent #1116
+remains unmerged; Draft preparation, full required CI and content review remain
+separate. JOIN following a nontrivial Pipe prefix is an existing parser coverage
+limit; this unit does not claim to support JOIN after a window-owned WHERE.
+The broader Frontend goal remains active.
