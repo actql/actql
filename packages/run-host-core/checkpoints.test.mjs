@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './checkpoint-resolution.test.mjs';
 import {buildSync} from 'esbuild';
 import {checkpointAdmit, checkpointWaitingState} from
   '@actql/run-host-core/checkpoints';
