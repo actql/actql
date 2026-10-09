@@ -1,0 +1,42 @@
+{
+  "version": "actql-collection-mapping-vectors/0.1",
+  "connector_manifest_entry": {
+    "connector": "fixture",
+    "connector_id": "fixture",
+    "connector_version": "fixture/0.1"
+  },
+  "collection_resource_identity": {
+    "version": "actql.collection_resource_identity/0.1",
+    "provider_namespace": "fixture",
+    "resource_kind": "collection",
+    "target_ref": "connector://fixture/entries",
+    "collection_identity": {"container": "weekly", "partition": 7},
+    "boundary_topology": "connector_connection"
+  },
+  "collection_resource_identity_cid": "sha256:54ec6a07b67ab39f3dc6b12eabab7de6193a126a6df7eee3da039f6dc51d5c3f",
+  "body": {
+    "schema": "actql.mapping_contract/0.1",
+    "mapping_ref": "mapping:fixture.entries.v1",
+    "version": "fixture/0.1",
+    "target_ref": "connector://fixture/entries",
+    "connector_manifest_cid": "sha256:597be5a7a2fb16f8e627b3b59d5ff1d31e53dd078d507fb23224fd97bd3bb602",
+    "resource_identity_cid": "sha256:54ec6a07b67ab39f3dc6b12eabab7de6193a126a6df7eee3da039f6dc51d5c3f",
+    "target_schema_identity": "sha256:a6024d9ff46caf34b34062fb7d445a690e8a5ab261d0bf1980a569bc29ff0c75",
+    "target_schema": {
+      "type": "object", "nullable": false, "additional_properties": false,
+      "fields": {"text": {"type": "string", "nullable": false}}
+    },
+    "primary_identity": null,
+    "writable_fields": ["text"],
+    "required_fields": ["text"],
+    "conversions": [],
+    "permission_rules": [{
+      "effect_kind": "create", "selector_class": "none",
+      "write_fields": ["text"], "permissions": ["fixture:append"]
+    }],
+    "required_permissions": [],
+    "minimum_approval": "required",
+    "row_mapping": {"text": {"field": "text", "null_behavior": "reject"}},
+    "mapping_contract_cid": "sha256:fb15dda7caef48734eb9d0a2c74256f7da999e92199c70ed076703801df59cb7"
+  }
+}

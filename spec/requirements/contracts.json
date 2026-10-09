@@ -1070,6 +1070,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/mapping-contracts.collection-only-permission-rules-must-create-without-selector",
+      "statement_sha256": "a2a38bf91d7d78756633930442f403d465c6804e4fab3eef0a1329fcf731b578",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "mapping-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/mapping-contracts.collection-only-common-admission-must-reject-row-addressing",
+      "statement_sha256": "d78d60aad63e0be77ac27aadfb0f852fd39f8438490a652b8bb5eb0638c8cb13",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "mapping-contracts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/mapping-contracts.the-resolved-mapping-contract-must-derive-exactly-one-non-empty-permission",
       "statement_sha256": "9b3deb9b59c89c26d698e6598b0cd2b74bcce916d153e861c87c7b93afa08805",
       "status": "pending",
@@ -2270,7 +2292,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "1735091b5644d3f9f4003af8b36122422a38756745cf9cd2ce54c5f0b672c0e7",
+      "statement_sha256": "1e04ae63a8b00ba31c3e4a0ad3d792e30d2681a2de2afbda4937723e58e5ac38",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
