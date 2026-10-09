@@ -838,6 +838,7 @@ fn resolve_query_members(
   document : @origin.Document,
   context : Context,
   limits : Limits,
+  stage_schemas? : Map[(String, String), @schema.Schema?]? = None,
 ) -> @builder.Source raise Abort {
   let resolution : MemberResolution = {
     source,
@@ -848,14 +849,16 @@ fn resolve_query_members(
     probe_refused: false,
     replacements: Map([]),
   }
-  if !resolution.has_authored_member() {
+  if stage_schemas is None && !resolution.has_authored_member() {
     return source
   }
   let root = @builder.cursor(source)
   let stages = member_lookup(root, "stages")
     .bind(cursor => member_success(@wire.elements(cursor)))
     .unwrap()
-  let results : Map[(String, String), @schema.Schema?] = Map([])
+  let results : Map[(String, String), @schema.Schema?] = stage_schemas.unwrap_or(
+    Map([]),
+  )
   let originals : Map[String, @carrier.Carrier?] = Map([])
   for (name, schema) in context.input_schemas {
     originals[name] = resolution.relation_carrier(root, Some(schema))
