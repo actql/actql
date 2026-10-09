@@ -10,7 +10,8 @@ import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
-import {columns, expectedRows, sheetsRoutes} from './sheets-api.fixture.mjs';
+import {blankGridRows, columns, errorGridRows, expectedRows, sheetsRoutes}
+  from './sheets-api.fixture.mjs';
 
 export async function registerSheetsAcceptance({connect, connectEmbeddedLocal,
   openInstalledRemoteHttpHost, publishInstalledSource, publishInstalledEffect,
@@ -398,8 +399,12 @@ test('Sheets cleanup retry keeps the same ledger owner and never repeats append'
 });
 
 test('Sheets read uses the installed public Local and HTTPS owners and retained Results', async t => {
-  for (const local of [true, false]) {
+  for (const [local, gridRows, expected] of [
+    [true, undefined, expectedRows], [false, undefined, expectedRows],
+    [true, blankGridRows, []], [false, blankGridRows, []],
+  ]) {
     const setup = await installation(t);
+    setup.state.gridRows = gridRows;
     await setup.publish(false);
     assert.equal(setup.api.seen().length, 1, 'publication checks numeric sheet identity once');
     const host = await setup.open(false, local);
@@ -418,12 +423,27 @@ test('Sheets read uses the installed public Local and HTTPS owners and retained 
       throw error;
     }
     assert.equal(done.status, 'succeeded', JSON.stringify(done));
-    assert.deepEqual(await execution.result('answer').all(), expectedRows);
-    assert.deepEqual(await execution.result('answer').all(), expectedRows);
+    assert.deepEqual(await execution.result('answer').all(), expected);
+    assert.deepEqual(await execution.result('answer').all(), expected);
     const again = await client.startSource(readProgram, {format: 'json', submissionRef});
-    assert.deepEqual(await again.result('answer').all(), expectedRows);
+    assert.deepEqual(await again.result('answer').all(), expected);
     assert.equal(setup.api.seen().filter(item => item.pathname.endsWith(':getByDataFilter')).length, 1);
   }
+});
+
+test('Sheets evaluated formula errors fail the public read without publishing NULL rows', async t => {
+  const setup = await installation(t);
+  setup.state.gridRows = errorGridRows;
+  await setup.publish(false);
+  const host = await setup.open(false);
+  const client = await host.as('owner-token');
+  const execution = await client.startSource(readProgram, {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'formula-error'})});
+  const state = await settled(execution);
+  assert.equal(state.status, 'failed', JSON.stringify(state));
+  assert.equal(state.result_available, false);
+  assert.equal(setup.api.seen().filter(item => item.pathname.endsWith(':getByDataFilter')).length, 1);
+  assert.equal(setup.state.appended.length, 0);
 });
 
 test('Sheets append keeps one common approval across restart and saves acknowledgements without row IDs', async t => {

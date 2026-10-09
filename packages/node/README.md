@@ -23,6 +23,11 @@ An explicitly installed DuckDB or Salesforce source profile also supports acquir
 read approval and restart through Checkpoints. The default Values profile
 does not install an external source. Embedded Local-owned Hybrid remains
 unavailable. See the [current implementation status](https://github.com/actql/actql/blob/main/docs/reviews/current-product-status.md).
+The standard installation also includes an explicitly configured Sheets
+profile for finite typed grid reads and approved dedicated-tab appends.
+See the [Sheets guide](https://github.com/actql/actql/blob/main/docs/connectors/sheets.md)
+for declarations, credentials, supported Program shapes and unknown outcomes.
+Fixture acceptance does not establish real Google service acceptance.
 An explicit Local endpoint can use the connected Host path. The Remote SDK
 does not depend on the Local package or DuckDB.
 
