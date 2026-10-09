@@ -24,6 +24,7 @@ fn retained_consumer_holder_case(
   chain_context? : RetainedNativeChainContext? = None,
   output_unavailable? : Bool = false,
   effect_materials? : @host.ClientEffectRunMaterials? = None,
+  effect_producer? : @resident.ResidentEffectProducerExecuted? = None,
 ) -> Unit raise {
   // Every completed resident consumer has durable file custody. Chain cases
   // additionally make the original Source path unavailable to later tasks.
@@ -498,6 +499,14 @@ fn retained_consumer_holder_case(
       ),
     )
     retained_holder_effect_capture(owner, journal, effect_materials.unwrap())
+    retained_holder_effect_transfer_capture(
+      owner,
+      journal,
+      effect_producer.unwrap(),
+      producer_journal,
+      input,
+      site,
+    )
     assert_eq(entries.val, 1)
     assert_eq(borrows.val, 1)
   } else {

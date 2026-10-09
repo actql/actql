@@ -207,6 +207,7 @@ pub(all) struct ResidentEffectProducerExecuted {
   source : ResidentSourceCompute
   // private fields
 }
+pub fn ResidentEffectProducerExecuted::acquired_evidence_for_capture(Self, @remote_journal.Journal, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectAcquiredEvidence, (String, String)), ResidentEffectSourceEvidenceIssue]
 pub fn ResidentEffectProducerExecuted::materials_for_capture(Self, @remote_journal.Journal) -> @run_publication_host.ClientEffectRunMaterials?
 pub fn ResidentEffectProducerExecuted::source_for_capture(Self, @remote_journal.Journal) -> ResidentSourceCompute?
 
