@@ -31,8 +31,8 @@ pub(all) enum Issue {
 
 ///|
 /// Original authored origin for an unresolved column expression. This projects
-/// retained lowerer provenance without resolving names again. Bare column
-/// failures without provenance and unresolved Source names have no location.
+/// retained lowerer provenance without resolving names again. Column failures
+/// without provenance and unresolved Source names have no location.
 pub fn unknown_column_origin(issue : Issue) -> @origin.Origin? {
   match issue {
     QueryLowering(

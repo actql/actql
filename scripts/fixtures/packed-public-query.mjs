@@ -92,6 +92,8 @@ import {userInfo} from 'node:os';
 import {resolve} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
+import * as publicCheckSdk from '@actql/sdk';
+import {exerciseUnaliasedColumnOrigins} from './unaliased-column-origin.mjs';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
 import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures, relationDataSuccesses, relationDataRefusals}
@@ -776,6 +778,11 @@ async function exercisePublicCheck(options) {
   const invalid = await client.check('SELECT missing AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
   assert.equal(invalid.report.verdict, 'invalid');
   assert.notEqual(invalid.report.context_ref, first.report.context_ref);
+  const directory = options.mode === 'remote' ? remoteDirectory : localDirectory;
+  const beforeColumnChecks = observe(directory)();
+  await exerciseUnaliasedColumnOrigins(client, publicCheckSdk);
+  assert.deepEqual(observe(directory)(), beforeColumnChecks,
+    'column diagnostics must not admit a Run or perform provider I/O');
   for (const pair of [['e\u0301', 'é'], ['\r', '\n']]) {
     const refs = [];
     for (const x of pair) {
@@ -896,7 +903,10 @@ try {
   DuckDBExtractedStatements.prototype.prepare = prepare;
 }
 if (retainedStrings.local && retainedStrings.remote) {
-  await writeFile('retained-string-results.json', JSON.stringify(retainedStrings));
+  // Reopening this installation must preserve its explicitly selected policy.
+  await writeFile('retained-string-results.json', JSON.stringify({
+    ...retainedStrings, hostCapacityPolicy,
+  }));
 
 }
 }

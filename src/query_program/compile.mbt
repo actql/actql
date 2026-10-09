@@ -857,8 +857,9 @@ fn output_name(
     projection.expression is Some(expression) &&
     @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind
     is Reference(path) {
-    // Keep the ordinary input diagnostic, independently of the authored
-    // leaf name. Scoped SELECT/QUALIFY use their value lowerer's resolver.
+    // Keep the ordinary resolver, including its ambiguity and prefix rules.
+    // An unaliased projection retains the same authored expression occurrence
+    // as an aliased projection; no source-text search supplies this origin.
     let mut length = path.length()
     while length > 0 {
       let prefix = path[:length].to_owned()
@@ -869,6 +870,12 @@ fn output_name(
         raise Abort(AmbiguousColumn)
       }
       length -= 1
+    }
+    if @query.expression_origin(expression, @query.expression_root(expression))
+      is Some(origin) {
+      raise Abort(
+        Expression({ issue: @expression.UnknownReference, origin: Some(origin), }),
+      )
     }
     raise Abort(UnknownColumn)
   }
