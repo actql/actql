@@ -4,6 +4,54 @@ import test from 'node:test';
 import {unnestSuccesses, unnestRefusals, unnestReceiverProgram,
   unnestReceiverSuccesses, unnestReceiverRefusals} from './fixtures/unnest-source-input.mjs';
 
+test('OFFSET keeps its range until ordinary projection or a whole-column edit', () => {
+  const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-offset-rename-json-control');
+  assert.deepEqual(JSON.parse(control.text).stages[0].steps.at(-1).select,
+    ['element', {next: 'position'}]);
+  assert.deepEqual(control.expected,
+    [{element: 2, next: 0}, {element: null, next: 1}, {element: 2, next: 2}]);
+  for (const name of ['rename-after-select', 'rename-after-as', 'default-after-select']) {
+    const actual = byName.get('unnest-offset-' + name);
+    assert.equal(actual.format, 'aql-text');
+    assert.deepEqual(actual.expected, control.expected);
+    assert.deepEqual(actual.columns, control.columns);
+  }
+  assert.deepEqual(byName.get('unnest-offset-rename-after-set').expected.map(row => row.next), [10, 11, 12]);
+  assert.deepEqual(byName.get('unnest-offset-rename-empty').expected, []);
+  assert.deepEqual(byName.get('unnest-offset-rename-empty').columns, control.columns);
+  assert.ok(byName.get('unnest-scalar-drop-removes-range').text.includes('DROP element |> SELECT position |> RENAME'));
+  for (let index = 0; index < 8; index++) {
+    const actual = unnestRefusals.find(item => item.name === 'unnest-refusal-offset-range-' + index);
+    assert.equal(actual.format, 'aql-text');
+    assert.equal(actual.expectedCode, 'ClientProgramInvalidInput');
+  }
+});
+
+test('scalar value-table RENAME distinguishes range names from projected columns', () => {
+  const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-scalar-rename-json-control');
+  assert.deepEqual(JSON.parse(control.text).stages[0].steps.at(-1).select,
+    [{next: 'element'}, 'position']);
+  for (const name of ['after-select', 'after-as']) {
+    const actual = byName.get('unnest-scalar-rename-' + name);
+    assert.equal(actual.format, 'aql-text');
+    assert.deepEqual(actual.expected, control.expected);
+    assert.deepEqual(actual.columns, control.columns);
+  }
+  assert.deepEqual(byName.get('unnest-scalar-rename-after-set').expected.map(row => row.next), [100, 100, 100]);
+  assert.deepEqual(byName.get('unnest-scalar-drop-removes-range').columns,
+    [{name: 'next', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(byName.get('unnest-scalar-distinct-keeps-values').expected,
+    [{next: 2}, {next: null}]);
+  for (const name of ['scalar-rename-range-0', 'scalar-rename-range-1',
+    'scalar-rename-range-2', 'scalar-rename-range-after-join', 'scalar-range-duplicate-unnest']) {
+    assert.equal(unnestRefusals.find(item => item.name === 'unnest-refusal-' + name).format, 'aql-text');
+    assert.equal(unnestRefusals.find(item => item.name === 'unnest-refusal-' + name).expectedCode,
+      'ClientProgramInvalidInput');
+  }
+});
+
 test('UNNEST independent fixtures preserve multiplicity, NULL and offset order on empty schemas', () => {
   const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
   assert.deepEqual(byName.get('unnest-sql-duplicates-and-null').expected,
@@ -50,7 +98,11 @@ test('range/field collision controls distinguish receiver NULLs and current star
   assert.deepEqual(byName.get('unnest-receiver-null-predicate').expected.map(row => row.position), [0, 2, 3]);
   assert.deepEqual(control.expected[0], {original: {element: null, id: 2}, field_value: null, position: 0});
   assert.deepEqual(control.expected[1], {original: null, field_value: null, position: 1});
-  assert.deepEqual(byName.get('unnest-receiver-set-retains-original').expected, control.expected);
+  assert.deepEqual(byName.get('unnest-receiver-set-retains-original').expected,
+    control.expected.map(row => ({...row, position: row.position + 10})));
+  assert.ok(byName.get('unnest-receiver-set-retains-original').text.includes('SET position = position + 10'));
+  assert.deepEqual(byName.get('unnest-receiver-set-current-star').columns.map(value => value.name),
+    ['element', 'position']);
   const star = byName.get('unnest-receiver-star');
   assert.deepEqual(star.columns.map(value => value.name), ['element', 'id', 'position']);
   assert.equal(star.columns[0].contract.type, 'number');
@@ -108,4 +160,26 @@ test('STRUCT stars use declared fields and a distinct original value receiver', 
   assert.deepEqual(byName.get('unnest-struct-immutable-range').expected[0],
     {current: 12, original: 2, position: 0});
   assert.equal(unnestRefusals.filter(value => value.name.startsWith('unnest-refusal-struct-')).length, 4);
+});
+
+
+test('value-table edits preserve one column, sibling input scope and exact refusals', () => {
+  const byName = new Map(unnestReceiverSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-receiver-set-json-control');
+  const program = JSON.parse(control.text);
+  assert.deepEqual(program.stages[0].steps[3], {derive: {replacement: {literal: 100}}});
+  assert.deepEqual(program.stages[0].results.rows.fields, ['element', 'position']);
+  assert.deepEqual(byName.get('unnest-receiver-set-current-star').expected, control.expected);
+  assert.deepEqual(byName.get('unnest-receiver-set-current-star').columns, control.columns);
+  assert.deepEqual(byName.get('unnest-receiver-set-quoted-whole').columns, control.columns);
+  assert.deepEqual(byName.get('unnest-receiver-set-siblings-original-object').expected,
+    [{element: 100, position: 1}, {element: 100, position: 1},
+      {element: 100, position: 2}, {element: 100, position: null}]);
+  assert.deepEqual(byName.get('unnest-receiver-set-empty-object-elements').expected,
+    [{element: 100, position: 0}, {element: 100, position: 1}]);
+  assert.deepEqual(byName.get('unnest-receiver-drop-whole').columns.map(column => column.name), ['position']);
+  for (const name of ['set-implicit-field', 'drop-implicit-field', 'rename-implicit-field', 'set-scalar-member']) {
+    assert.equal(unnestReceiverRefusals.find(item => item.name === 'unnest-receiver-refusal-' + name).expectedCode,
+      'ClientProgramInvalidInput');
+  }
 });
