@@ -500,3 +500,83 @@ unnestRefusals.push(...[
 ].map(([name, text]) => ({name: 'unnest-refusal-scalar-receiver-' + name, text,
   format: 'aql-text', parameterDeclarations: precedenceDeclarations, parameters: precedenceParameters,
   expectedCode: 'ClientProgramInvalidInput'})));
+
+
+// Pipe AS is a name-list operation, not a value projection. A single value
+// table stays one value table; a mixed table admits its former range as a
+// current whole column while preserving the original field-expanding star.
+const asParameters = {items: [{id: 2, label: 'z'}, null, {id: 1, label: 'a'}]};
+const asObjectContract = {...structDeclarations.items.items, additional_properties: false};
+const asWholeColumns = [{name: 'original', contract: asObjectContract}, column('position')];
+const asWholeRows = [{original: {id: 2, label: 'z'}, position: 0},
+  {original: null, position: 1}, {original: {id: 1, label: 'a'}, position: 2}];
+const asHead = 'FROM UNNEST(@items) element WITH OFFSET position |> AS current';
+// Both controls are independent common Programs, with no AS computation.
+const asScalarControl = {version: 'actql/0.1', id: 'fixture.unnest.as.scalar',
+  params: declarations, stages: [{id: 'main', inputs: {}, steps: [
+    control.stages[0].steps[0], control.stages[0].steps[1],
+    {unnest: {column: 'array', as: 'element'}},
+    {filter: {gt: [{field: 'element'}, {literal: 0}]}},
+    {sort: [{field: 'element', dir: 'asc', nulls: 'first'}]},
+    {select: [{value: 'element'}], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['value']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const asWholeControl = {...structControl, id: 'fixture.unnest.as.whole',
+  stages: [{...structControl.stages[0], steps: [
+    ...structControl.stages[0].steps.slice(0, 3),
+    {sort: [{field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: [{original: 'element'}, 'position'], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['original', 'position']}}}]};
+const asSuccess = (name, text, expected = asWholeRows, columns = asWholeColumns, extra = {}) =>
+  structSuccess('as-' + name, text, expected, columns,
+    {format: 'aql-text', parameters: asParameters, ...extra});
+unnestSuccesses.push(
+  success('as-scalar-json-control', JSON.stringify(asScalarControl), [{value: 1}, {value: 2}],
+    [column('value', true)], {format: 'json', parameterDeclarations: undefined, parameters: {items: [2, null, 1]}}),
+  success('as-scalar-repeated', 'FROM UNNEST(@items) element |> AS first |> AS `Current` '
+    + '|> WHERE `CURRENT` > 0 |> SELECT current AS value |> ORDER BY value',
+    [{value: 1}, {value: 2}], [column('value', true)], {format: 'aql-text', parameters: {items: [2, null, 1]}}),
+  asSuccess('whole-json-control', JSON.stringify(asWholeControl), asWholeRows, asWholeColumns,
+    {format: 'json', parameterDeclarations: undefined}),
+  asSuccess('single-whole', 'FROM UNNEST(@items) element |> AS current '
+    + '|> SELECT current AS original, id |> ORDER BY id NULLS LAST',
+    [{original: {id: 1, label: 'a'}, id: 1}, {original: {id: 2, label: 'z'}, id: 2}, {original: null, id: null}],
+    [{name: 'original', contract: asObjectContract}, column('id', true)]),
+  asSuccess('mixed-qualified-whole', `${asHead} |> SELECT current.element AS original, position |> ORDER BY position`),
+  asSuccess('mixed-renamed-whole', `${asHead} |> RENAME element AS next |> SELECT next AS original, position |> ORDER BY position`),
+  asSuccess('qualified-original-after-rename', `${asHead} |> RENAME element AS next |> SELECT current.element AS original, position |> ORDER BY position`),
+  asSuccess('repeated-object', `${asHead} |> AS next |> SELECT next.element AS original, position |> ORDER BY position`),
+  ...['*', 'current.*'].map((star, index) => asSuccess('star-' + index,
+    `${asHead} |> SELECT ${star} |> ORDER BY position`,
+    [{id: 2, label: 'z', position: 0}, {id: null, label: null, position: 1}, {id: 1, label: 'a', position: 2}], structColumns)),
+  asSuccess('immutable-star-after-set', `${asHead} |> SET element = 100 |> SELECT current.* |> ORDER BY position`,
+    [{id: 2, label: 'z', position: 0}, {id: null, label: null, position: 1}, {id: 1, label: 'a', position: 2}], structColumns),
+  asSuccess('set-whole-current-star', `${asHead} |> SET element = 100 |> SELECT * |> ORDER BY position`,
+    [{element: 100, position: 0}, {element: 100, position: 1}, {element: 100, position: 2}],
+    [column('element'), column('position')]),
+  asSuccess('drop-whole', `${asHead} |> DROP element |> SELECT * |> ORDER BY position`,
+    [{position: 0}, {position: 1}, {position: 2}], [column('position')]),
+  asSuccess('qualified-star-after-join', `${asHead} |> JOIN (SELECT 2 AS key) k ON current.id = k.key MAX_OUTPUT_ROWS 3 `
+    + '|> SELECT current.* |> ORDER BY position', [{id: 2, label: 'z', position: 0}], structColumns),
+  asSuccess('typed-empty', `${asHead} |> SELECT current.element AS original, position |> ORDER BY position`,
+    [], asWholeColumns, {parameters: {items: []}}),
+  asSuccess('typed-null-array', `${asHead} |> SELECT current.element AS original, position |> ORDER BY position`,
+    [], asWholeColumns, {parameters: {items: null}}),
+  asSuccess('empty-objects', `${asHead} |> SELECT current.element AS original, position |> ORDER BY position`,
+    [{original: {}, position: 0}, {original: null, position: 1}],
+    [{name: 'original', contract: {type: 'object', nullable: true, fields: {}, additional_properties: false}}, column('position')],
+    {parameterDeclarations: {items: {...structDeclarations.items, max_items: 2,
+      items: {type: 'object', nullable: true, fields: {}}}}, parameters: {items: [{}, null]}}),
+  receiverSuccess('as-whole-field-collision', 'FROM UNNEST(@items) element WITH OFFSET position |> AS current '
+    + '|> SELECT element AS original, current.element.element AS field_value, position |> ORDER BY position', {format: 'aql-text'}),
+);
+unnestRefusals.push(
+  refusal('as-single-rename-range', 'FROM UNNEST(@items) element |> AS current |> RENAME current AS next |> SELECT next',
+    {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'}),
+  refusal('as-implicit-member-edit', `${asHead} |> SET id = 100 |> SELECT position`,
+    {format: 'aql-text', parameterDeclarations: structDeclarations, parameters: asParameters,
+      expectedCode: 'ClientProgramInvalidInput'}),
+  refusal('as-select-removed-range', `${asHead} |> SELECT id |> WHERE current.element IS NOT NULL`,
+    {format: 'aql-text', parameterDeclarations: structDeclarations, parameters: asParameters,
+      expectedCode: 'ClientProgramInvalidInput'}),
+);

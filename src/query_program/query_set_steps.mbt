@@ -139,7 +139,9 @@ fn append_set_final_steps(
         let groups : Array[Array[@query.Projection]] = []
         for projection in projections {
           let name = projection.name.unwrap().value
-          let slot = if reserved.contains(name) {
+          let slot = if reserved.any(field => {
+              ascii_upper(field) == ascii_upper(name)
+            }) {
             pipe_physical_name(reserved, "aql_set_window_")
           } else {
             name
@@ -216,7 +218,19 @@ fn append_set_final_steps(
         let hidden : Array[(@query.Expression, String)] = []
         let derives : Array[(String, @builder.Node)] = []
         let reserved = left_fields + order_windows.map(pair => pair.1)
-        let visible = order_windows + left_fields.map(field => (field, field))
+        // Parser-owned window references are fresh against every authored
+        // name token, but a star can introduce a schema column absent from
+        // the source. Resolve those private references first while retaining
+        // every public field for the final projection. Window input keys
+        // continue to resolve against left_fields above, not this output scope.
+        let visible = order_windows +
+          left_fields
+          .filter(field => {
+            !order_windows.any(window => {
+              ascii_upper(window.0) == ascii_upper(field)
+            })
+          })
+          .map(field => (field, field))
         for term in terms {
           let mut root = @query.expression_node(
             term.expression,
