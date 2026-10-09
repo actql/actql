@@ -1,0 +1,159 @@
+{
+  "version": "actql-resident-effect-dependency-capture-evidence/0.1",
+  "validationSource": "13896801a8d646e0835a45c5ae6bf1393a87b329",
+  "adoptedMain": "1b0ae88c87683b94cfd96e73f96f969cb4ecf355",
+  "parentMerge": "4e6daa7f7b2d79f291dd143522e858f85efc3664",
+  "dependency": "OSS #1143; final merge target main after parent integration",
+  "scope": "Actual Native retained producer and completed consumer Result export, typed evidence bodies and checked static bodies; input/Transfer/Store custody is retained independently.",
+  "results": {
+    "native": {
+      "tests": 2,
+      "passed": 2,
+      "newOperationCases": 1
+    },
+    "relatedJs": {
+      "tests": 1,
+      "passed": 1
+    },
+    "history": "passed",
+    "generatedInterfaces": "native and JS passed",
+    "format": "unchanged"
+  },
+  "assertions": [
+    "Foreign Run and Result rejected before Native read (zero-row read budget).",
+    "Changed canonical row preimage rejected against exact original Artifact and finished receipt.",
+    "Producer relation rows are independently expected as [{id:1},{id:2},{id:3}]; consumer as [{id:3}].",
+    "Body capture stays bound to the opaque original Artifact.",
+    "One-byte capture failure retains original input; successful retry yields the same dependency identities.",
+    "Existing actual fixture retains one Source acquisition and one consumer execution."
+  ],
+  "commands": [
+    {
+      "label": "format",
+      "command": "moon",
+      "args": [
+        "fmt",
+        "src/platform_native/remote_resident_host/effect_dependency_capture.mbt",
+        "src/run_publication_host/client_effect_dependency_capture.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_dependency_capture_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_transferred_artifact_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-09T11:58:06.959Z",
+      "finishedAt": "2026-10-09T11:58:07.057Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-dependency-capture-1791547086769/format.log"
+    },
+    {
+      "label": "tests",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt\",\"--filter\",\"*Effect retained consumer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T11:58:07.089Z",
+      "finishedAt": "2026-10-09T11:58:09.462Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-dependency-capture-1791547086769/tests.log"
+    },
+    {
+      "label": "effect-artifact",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/query_integration/client_effect_local_export_wbtest.mbt\",\"--filter\",\"*shared local Artifact issuer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T11:58:09.462Z",
+      "finishedAt": "2026-10-09T11:58:17.375Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-dependency-capture-1791547086769/effect-artifact.log"
+    },
+    {
+      "label": "interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "native",
+        "src/platform_native/remote_resident_host",
+        "src/platform_native/publication_store",
+        "src/run_publication",
+        "src/run_publication_host"
+      ],
+      "startedAt": "2026-10-09T11:58:17.414Z",
+      "finishedAt": "2026-10-09T11:58:17.525Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-dependency-capture-1791547086769/interface.log"
+    },
+    {
+      "label": "portable-interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "js",
+        "src/platform_native/publication_store",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T11:58:17.525Z",
+      "finishedAt": "2026-10-09T11:58:17.615Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-dependency-capture-1791547086769/portable-interface.log"
+    },
+    {
+      "label": "history",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T11:58:17.615Z",
+      "finishedAt": "2026-10-09T11:59:52.606Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-dependency-capture-1791547086769/history.log"
+    }
+  ],
+  "artifact": {
+    "source": "13896801a8d646e0835a45c5ae6bf1393a87b329",
+    "scope": "Native whitebox fixture, not a production Site binary",
+    "artifact": "_build/resident-effect-dependency-capture-1791547086769/retained-compute.whitebox_test.exe",
+    "sha256": "383bbf2ef2e9a7e856516d2a2ad90662bf9604a2feccf99c413c5a04d27612eb"
+  },
+  "preparationEvidence": [
+    "_build/resident-effect-dependency-capture-preparation-1791546925392",
+    "_build/resident-effect-dependency-capture-preparation-1791547005807"
+  ],
+  "ci": {
+    "executed": false,
+    "reason": "Hosted CI remains stopped; do not treat local results as CI."
+  },
+  "notVerified": [
+    "Full acquired/imported dependency closure",
+    "Encrypted private Captured Run persistence",
+    "Waiting Run commit",
+    "Host/Coordinator restart",
+    "Approval and current target authority",
+    "Physical Effect target execution/reconciliation",
+    "Formal Cloud package adoption and production Native binary",
+    "Public Cloud SDK / real Preview Effect acceptance"
+  ]
+}
