@@ -7916,8 +7916,8 @@ fn compile_join_query(
   }
   try {
     let part = @query.join_part_at(query, 0).unwrap()
-    // A FULL JOIN requires stable row identity on both sides. Generated
-    // Values stages do not currently carry that proof across stage Results.
+    // FULL uses the shared row scope, which preserves input identity premises
+    // for the common checker. It cannot use this projection specialization.
     if part.kind == "full" {
       raise Abort(UnsupportedJoin)
     }

@@ -9,22 +9,15 @@ priv struct JoinChainScope {
 }
 
 ///|
-// GROUP, star and DISTINCT projections need the shared joined-row scope.
+// RIGHT/FULL JOIN, GROUP, star and DISTINCT need the shared joined-row scope.
 // DISTINCT ORDER expressions resolve after materialization, using evaluated
 // output aliases rather than the projection-only specialization's input scope.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
-  let mut has_full = false
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let kind = part.kind
-    if kind == "right" {
+    if kind == "right" || kind == "full" {
       return true
-    }
-    if kind == "full" {
-      if !part.using_columns.is_empty() {
-        return true
-      }
-      has_full = true
     }
   }
   for index in 0..<@query.operation_count(query) {
@@ -33,11 +26,7 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
       return true
     }
     if @query.operation_at(query, index) is Some(Select(projections, distinct)) &&
-      (
-        projections.any(projection => projection.star is Some(_)) ||
-        // FULL ON retains its existing projection specialization.
-        (distinct && !has_full)
-      ) {
+      (projections.any(projection => projection.star is Some(_)) || distinct) {
       return true
     }
   }

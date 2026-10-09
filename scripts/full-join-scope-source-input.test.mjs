@@ -41,6 +41,30 @@ test('FULL USING expectations distinguish coalescence qualified keys and alias o
   assert.ok(fullJoinScopeRefusals[0].text.includes('USING (id, `ID`)'));
 });
 
+test('explicit FULL fixtures preserve the JSON control and distinguish ORDER scopes', () => {
+  const cases = new Map(fullJoinScopeSuccesses.map(item => [item.name, item]));
+  const control = cases.get('full-join-scope-independent-json');
+  for (const name of ['explicit-select', 'explicit-pipe', 'explicit-cte']) {
+    const item = cases.get('full-join-scope-' + name);
+    assert.deepEqual(item.expected, control.expected);
+    assert.deepEqual(item.columns, control.columns);
+    assert.equal(item.sourceReadSessionCount, 1);
+    assert.ok(item.text.includes('MAX_OUTPUT_ROWS 10'));
+    assert.ok(!item.text.includes('SELECT l.*'));
+  }
+  assert.deepEqual(cases.get('full-join-scope-explicit-distinct').expected,
+    [{amount: 20}, {amount: null}]);
+  assert.deepEqual(cases.get('full-join-scope-explicit-alias-order').expected.map(row => row.id), [-2, -1, null]);
+  assert.deepEqual(cases.get('full-join-scope-explicit-qualified-order').expected.map(row => row.id), [-1, -2, null]);
+  assert.deepEqual(cases.get('full-join-scope-explicit-empty').expected, []);
+  assert.deepEqual(cases.get('full-join-scope-explicit-empty').columns, control.columns);
+  assert.ok(fullJoinScopeRefusals.at(-1).text.includes('SELECT id FROM lefts'));
+  assert.deepEqual(fullJoinScopeRefusals.map(item => item.expectedCode), [
+    'ClientProgramImplementationLimit', 'ClientProgramImplementationLimit',
+    'ClientProgramInvalidInput', 'ClientProgramInvalidInput',
+  ]);
+});
+
 test('FULL acceptance is included in normal packed execution', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
