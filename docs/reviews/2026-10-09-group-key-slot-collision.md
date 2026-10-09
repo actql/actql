@@ -124,10 +124,32 @@ maintained. Digests for the verified source are:
 | local-node | `84c5beb80d0524257a1776b9d541cd030b67281cf1d1163db86122f3bb8d62dd` |
 | node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
 
-The following evidence-only commit records this result; it is not itself the
-source revision used for those packages. Submitted-HEAD CI must be checked
-separately from this local campaign. Target branch is main, with no unmerged
-dependency; keep Draft pending review and required CI, and do not merge here.
+## Integrated main evidence
+
+After the campaign above, main advanced with #1080/#1082/#1083. Adopted main
+`c1650812ed1aabb9b88527adb69f581d671e5aa7` was normally merged with no conflict;
+no existing declaration or workflow was removed. The resulting clean integration
+source is `9f918b30e24448a598b66d0e396e4320ae602912`.
+
+- JS: `run-xvKVUj` / `focused-test-BxhX3o`, **23/23**, the four original
+  selected files plus `group_numeric_literal_test.mbt`.
+- Node: `run-WVhyJT` / `focused-test-ZkdlkV`, **2/2**, the fixture check above.
+- Integrated normal five-package producer and the same selected public
+  consumer: `run-pSFs2d` / `public-query-evidence-3nokEd`, **20 positives and
+  8 refusals on each of Local and HTTPS**. Named Result/describe, input
+  acquisition, same-Run resend, no extra I/O and refusal counters all passed.
+  The receipt is passed/complete with no evidence errors and temporary
+  artifacts reclaimed. The 14 driver profile tests, README and missing-asset
+  negative check also passed.
+- All five source/digest bindings were independently checked. client-wire,
+  sdk, run-host-core and node digests are unchanged from the table above. The
+  integrated local-node digest is
+  `14e4ad5615c4e1686b2740e9e20ce29781d2a9fddd02fa6211d8026d540571b7`.
+
+The following evidence-only commit records the integrated results; it is not
+itself the source revision used for those packages. Submitted-HEAD CI must be
+checked separately. Target branch is main, with no unmerged dependency; keep
+Draft pending review and required CI, and do not merge here.
 
 Full Core, Wasm/native, unfiltered packed acceptance, proof/performance and
 submitted-HEAD required CI have not been run. This unit does not claim the
