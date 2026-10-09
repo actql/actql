@@ -1,7 +1,8 @@
 # Post-JOIN current-column edits
 
-Status: localized Frontend repair and focused checks complete; clean-source
-packed execution is pending. Main base: `040eed2b1a11a3d1f7bae81b68d956d1017fac05`.
+Status: localized Frontend repair, focused checks and clean-source packed
+execution complete; submitted HEAD CI is not established.
+Main base: `040eed2b1a11a3d1f7bae81b68d956d1017fac05`.
 
 ## Adopted meaning and confirmed connection gap
 
@@ -113,6 +114,46 @@ node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
   scripts/pipe-join-ranges.test.mjs
 ```
 
-Unverified: fresh exact-source five-package Local/HTTPS execution, submitted HEAD
-CI, Wasm/native execution and broader SQL/Pipe conformance. No full Core, manual
-CI retry or merge has been run for this unit.
+## Clean-source packed acceptance
+
+Tested source: `efd62160de7a004afd1c246666094aad22f76030`. The source was clean
+before and after normal prepack. The subsequent evidence-only commit does not
+change product or test inputs; these results still identify the tested source,
+not execution of a later submitted HEAD.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-join-pipe-edits-efd62160d-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-join-pipe-edits-efd62160d-pack \
+  node scripts/test-packed-public-query.mjs --pipe-join-ranges-only
+```
+
+The existing serialized/bounded guard ran one producer and one selected consumer
+with a 1200-second total deadline: `_build/local-checks/attempts/run-HzjKZm`.
+Original public evidence is preserved at
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-9IbJ7i`.
+Its receipt reports passed/complete, clean source, ten completed exit-0 commands,
+complete stdout/stderr and no evidence errors. The temporary installation,
+Store and TLS material were removed by successful-run cleanup; the original
+receipt and logs remain.
+
+Embedded Local and HTTPS each passed all **38 positive and 24 exact-code refusal
+cases**, including all ten new positive and four new refusal cases. Both authored
+JSON controls and their text counterparts reached Named Result. Exact rows,
+duplicates, NULLs, schema/nullability, public field order, one acquisition and
+same-Run resend/read/attach without extra acquisition were checked. All refusals
+preserved zero Run admission and provider I/O. This is local acceptance, not CI.
+
+Five normal tarballs were installed outside the repository. Their manifest,
+receipt and independently recomputed SHA-256 values agree:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54` |
+| local-node | `a9a80b57be8b1e2eb447af880d7c6b03c144607c82e4923b45fd138f03881e21` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+Unverified: submitted HEAD CI, Wasm/native execution, the entire ordinary packed
+corpus and broader SQL/Pipe conformance. No full Core, manual CI retry or merge
+has been run for this unit. No unmerged dependency is required.
