@@ -248,7 +248,6 @@ test "Native Effect producer dependency is issued before consumer execution" {
   assert_eq(consumers.val, 0)
   @execution.cancel_completed_relation_export_receipt(receipt)
   @execution.cancel_completed_relation_export_receipt(foreign_receipt)
-  @execution.cancel_completed_result_relation_export_preparation(preparation)
+  @execution.cancel_completed_result_relation_export(preparation) |> ignore
   assert_eq(root.inspect_generation(name).unwrap(), None)
-  root.close()
 }
