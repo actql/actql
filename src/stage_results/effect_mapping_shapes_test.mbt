@@ -6,6 +6,7 @@ fn effect_mapping_shape_fixture_with_body(
   target_type? : String = "number",
   target_nullable? : Bool = true,
   row_mapping? : String = "",
+  primary_identity? : String = "\"Id\"",
 ) -> @environment.MappingContractShapes {
   let before = "{\"connector_manifest_cid\":\"sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1\",\"conversions\":[],"
   let target_schema = "{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"string\"},\"Name\":{\"nullable\":" +
@@ -22,7 +23,9 @@ fn effect_mapping_shape_fixture_with_body(
   let after = "\"mapping_ref\":\"mapping:crm.account.v1\",\"minimum_approval\":\"none\",\"permission_rules\":" +
     rules +
     "," +
-    "\"primary_identity\":\"Id\",\"required_fields\":" +
+    "\"primary_identity\":" +
+    primary_identity +
+    ",\"required_fields\":" +
     required_fields +
     ",\"required_permissions\":[],\"resource_identity_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"," +
     "\"row_mapping\":" +

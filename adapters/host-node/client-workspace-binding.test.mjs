@@ -21,11 +21,19 @@ const bodies = {
   submit: {requestId: 'saved-request', kind: 'program', input: {}, parameters: null},
   'submit-intent': {submissionRef, intentCid: `sha256:${'f'.repeat(64)}`,
     kind: 'program', input: {}, parameters: null},
+  'restart-intent': {submissionRef, intentCid: `sha256:${'f'.repeat(64)}`,
+    kind: 'program', input: {}, parameters: null,
+    unresolvedHistory: {acknowledgement: 'possible_prior_execution_and_effects',
+      submissionRef: {nonce: 'prior-submission', epoch: {...submissionRef.epoch,
+        epochNonce: 'c'.repeat(64), notBefore: 1_799_999_000_000,
+        expiresAt: 1_800_000_000_000}}}},
   'lookup-submission': {submissionRef},
-  check: {input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null},
+  check: {kind: 'text', scope: 'bound_input',
+    input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null},
   attach: {ref}, 'lookup-request': {requestId: 'saved-request'}, status: {ref},
   wait: {ref, until: null},
-  cancel: {ref, cancelId: 'saved-cancel', expectedRevision: 1},
+  cancel: {ref, cancelId: 'saved-cancel', expectedRevision: 1,
+    attemptRef: {operation: 'cancel', attemptId: 'workspace-cancel-invocation'}},
   'lookup-cancellation': {ref, cancelId: 'saved-cancel', expectedRevision: 1},
   reconcile: {ref},
   read: {ref, resultName: 'answer', format: 'jsonl', attemptId: 'saved-read'},
@@ -88,6 +96,38 @@ for (const transport of ['http', 'in-process']) {
       assert.equal(handlers, 0);
     });
   }
+}
+
+for (const serialized of [false, true]) {
+  test(`in-process: ${serialized ? 'toJSON' : 'normal'} check retains its original Workspace assertion`, async () => {
+    let release, serializations = 0, authentications = 0, authorizations = 0, checks = 0;
+    const authentication = new Promise(resolve => { release = resolve; });
+    const host = createNodeInProcessClientHost({
+      authenticate: async () => { authentications++; await authentication; return 'principal'; },
+      workspaceForPrincipal: () => 'workspace-B',
+      authorizeConnection: () => { authorizations++; return true; },
+      negotiate() { throw new Error('UnexpectedNegotiation'); },
+      check() { checks++; throw new Error('UnexpectedBusinessCheck'); },
+      maxRowBytes: 1024,
+    });
+    const body = {connection: {...connection}, kind: 'text', scope: 'bound_input',
+      input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null};
+    if (serialized) Object.defineProperty(body, 'toJSON', {value() {
+      serializations++;
+      const {workspaceId: _originalAssertion, ...unbound} = body.connection;
+      return {...body, connection: unbound};
+    }});
+    const pending = host.perform('check', body);
+    // Neither a serializer nor caller mutation during authentication may
+    // erase the original Workspace-A assertion and reach Workspace B.
+    delete body.connection.workspaceId;
+    release();
+    await assert.rejects(pending, {code: 'ClientConnectionDenied'});
+    assert.equal(authentications, 1);
+    assert.equal(serializations, serialized ? 1 : 0);
+    assert.equal(authorizations, 0);
+    assert.equal(checks, 0);
+  });
 }
 
 test('a matching Workspace assertion still requires ordinary current authorization', async () => {

@@ -353,10 +353,11 @@ for (const transport of ['in-process', 'https']) {
     try { await execution.status(); } catch (error) { denied = error; }
     assert.ok(denied);
     const unavailable = sdk.explainRunObservationFailure(denied);
-    assert.deepEqual({kind: unavailable?.kind, problem: unavailable?.problem,
-      next: unavailable?.next}, {kind: 'unavailable', problem: 'observation_unavailable',
-      next: {operation: 'status', ref: execution.ref}});
+    assert.deepEqual({kind: unavailable.kind, problem: unavailable.problem, operation: unavailable.operation},
+      {kind: 'unavailable', problem: 'observation_unavailable', operation: 'status'});
+    assert.deepEqual(unavailable.next, {operation: 'status', ref: execution.ref});
     assert.equal(sdk.explainRunObservationFailure({...denied}), undefined);
+    assert.equal(sdk.explainEffectUncertainty(denied), undefined);
     assert.deepEqual(setup.counts(), {cancelCalls: 0, submits: 0});
     assert.deepEqual(setup.stored(), before);
   });
@@ -433,10 +434,11 @@ for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']
     try { await f.execution.status(); } catch (error) { denied = error; }
     assert.equal(denied.code, 'ClientConnectionDenied');
     const unavailable = sdk.explainRunObservationFailure(denied);
-    assert.deepEqual({kind: unavailable?.kind, problem: unavailable?.problem,
-      next: unavailable?.next}, {kind: 'unavailable', problem: 'observation_unavailable',
-      next: {operation: 'status', ref: f.execution.ref}});
+    assert.deepEqual({kind: unavailable.kind, problem: unavailable.problem, operation: unavailable.operation},
+      {kind: 'unavailable', problem: 'observation_unavailable', operation: 'status'});
+    assert.deepEqual(unavailable.next, {operation: 'status', ref: f.execution.ref});
     assert.equal(sdk.explainRunObservationFailure({...denied}), undefined);
+    assert.equal(sdk.explainEffectUncertainty(denied), undefined);
     assert.deepEqual(f.stored(), f.before);
     assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
   });

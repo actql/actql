@@ -273,7 +273,8 @@ pub(all) struct RowViewSpec {
 pub(all) struct RowWriteSpec {
   resource : String
   resource_kind : String
-  primary_identity : String
+  primary_identity : String?
+  collection_identity : Json?
   fields : Array[RowField]
   create_fields : Array[String]
   required_fields : Array[String]

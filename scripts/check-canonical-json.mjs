@@ -126,6 +126,14 @@ function fixtures() {
     assert.equal(typeof c.expected_json, 'string', 'fixed canonical bytes');
     return { id: 'canonical ' + c.id, value: c.input, cid: c.expected_cid, text: c.expected_json };
   });
+  const collectionMapping = read('portability/corpus/collection-mapping.json');
+  assert.equal(collectionMapping.version, 'actql-collection-mapping-vectors/0.1');
+  const {mapping_contract_cid, ...collectionPreimage} = collectionMapping.body;
+  result.push({id: 'collection-only Mapping complete preimage',
+    value: collectionPreimage, cid: mapping_contract_cid});
+  result.push({id: 'collection-only Resource typed identity',
+    value: collectionMapping.collection_resource_identity,
+    cid: collectionMapping.collection_resource_identity_cid});
   const invocation = read('portability/corpus/invocation-bindings.json');
   const initialInputs = read('portability/corpus/initial-input-artifact-set.json');
   const sourceInputs = read('portability/corpus/source-input-logical.json');
@@ -263,8 +271,9 @@ function fixtures() {
   result.push({
     id: 'Program source grammar resource',
     value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
-    // Independent canonical JSON oracle over the revised source schema.
-    cid: 'sha256:005b1d81fafe78867af12e7d23e72a02fdd14dec1ef198c82d5e47a202e6b314',
+    // Independent canonical JSON oracle after restoring pivot CellValue's
+    // three whole-value alternatives (language.md, CellValue grammar).
+    cid: 'sha256:21bae76f36b9428995aba44017787ee327786a741db006ca952404253a409810',
   });
   const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
   for (const item of read('portability/corpus/incoming-gates.json').cases) {

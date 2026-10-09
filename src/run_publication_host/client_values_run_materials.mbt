@@ -77,6 +77,36 @@ pub fn issue_client_values_run_materials(
 }
 
 ///|
+fn decode_client_run_materials_parameters(
+  parameters_wire : String?,
+) -> Result[@decode.Cursor?, ClientValuesRunMaterialsIssue] {
+  match parameters_wire {
+    None => Ok(None)
+    Some(body) => {
+      let parsed = match
+        @source.parse_json_bytes(
+          @utf8.encode(body),
+          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
+          source_path="Retained Run Parameters",
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(MaterialsParameters)
+      }
+      match
+        @decode.admit(parsed, {
+          max_nodes: 8192,
+          max_depth: 64,
+          max_string_bytes: 65536,
+          max_total_string_bytes: 65536,
+        }) {
+        Ok(value) => Ok(Some(value))
+        Err(_) => return Err(MaterialsParameters)
+      }
+    }
+  }
+}
+
+///|
 // Both compilation owners project the same bounded original Run body.
 fn issue_client_run_materials_input(
   prepared : PreparedClientProgram,
@@ -98,29 +128,10 @@ fn issue_client_run_materials_input(
     is Ok(_) else {
     return Err(MaterialsEnvironment)
   }
-  let parameters = match parameters_wire {
-    None => None
-    Some(body) => {
-      let parsed = match
-        @source.parse_json_bytes(
-          @utf8.encode(body),
-          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
-          source_path="Retained Run Parameters",
-        ) {
-        Ok(value) => value
-        Err(_) => return Err(MaterialsParameters)
-      }
-      match
-        @decode.admit(parsed, {
-          max_nodes: 8192,
-          max_depth: 64,
-          max_string_bytes: 65536,
-          max_total_string_bytes: 65536,
-        }) {
-        Ok(value) => Some(value)
-        Err(_) => return Err(MaterialsParameters)
-      }
-    }
+  let parameters = match
+    decode_client_run_materials_parameters(parameters_wire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let checked_input = match
     prepare_effect_free_client_program(
@@ -137,6 +148,22 @@ fn issue_client_run_materials_input(
     prepared_client_identity(prepared) else {
     return Err(MaterialsRunMismatch)
   }
+  encode_client_run_materials_body(
+    admission, definition, environment_cid, environment_wire, program, parameters_wire,
+  )
+}
+
+///|
+// Shared encoding only. Callers must first bind their checked compilation,
+// admission and original Run, and recheck the retained Program and values.
+fn encode_client_run_materials_body(
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  environment_cid : String,
+  environment_wire : String,
+  program : String,
+  parameters_wire : String?,
+) -> Result[String, ClientValuesRunMaterialsIssue] {
   // This is a read-only projection of an already admitted definition. It does
   // not reissue it (nor extend its original lifetime).
   let parsed = match
@@ -235,12 +262,11 @@ priv struct ClientRunMaterialsInput {
 ///|
 // Parsing/checking is shared; no caller-supplied compilation or authority is
 // accepted from the materials.
-fn read_client_run_materials_input(
+fn read_client_run_materials_body(
   materials : String,
   expressions : @context.ExpressionProfiles,
   operations : @context.PureOperationProfiles,
-  limits : ClientValuesRunMaterialsLimits,
-) -> Result[ClientRunMaterialsInput, ClientValuesRunMaterialsIssue] {
+) -> Result[ClientRunMaterialsBody, ClientValuesRunMaterialsIssue] {
   let parsed = match
     @source.parse_json_bytes(
       @utf8.encode(materials),
@@ -322,12 +348,50 @@ fn read_client_run_materials_input(
     is Some(environment) else {
     return Err(MaterialsEnvironment)
   }
+  Ok({
+    program,
+    environment,
+    parameters,
+    prepared_wire,
+    authorization_wire,
+    scope_id,
+    run_id,
+    created_at,
+    valid_until,
+  })
+}
+
+///|
+priv struct ClientRunMaterialsBody {
+  program : String
+  environment : @checked.CheckEnvironment
+  parameters : @decode.Cursor?
+  prepared_wire : String
+  authorization_wire : String
+  scope_id : String
+  run_id : String
+  created_at : String
+  valid_until : String
+}
+
+///|
+fn read_client_run_materials_input(
+  materials : String,
+  expressions : @context.ExpressionProfiles,
+  operations : @context.PureOperationProfiles,
+  limits : ClientValuesRunMaterialsLimits,
+) -> Result[ClientRunMaterialsInput, ClientValuesRunMaterialsIssue] {
+  let body = match
+    read_client_run_materials_body(materials, expressions, operations) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let prepared = match
     prepare_effect_free_client_program(
-      program,
+      body.program,
       Json,
-      environment,
-      parameters,
+      body.environment,
+      body.parameters,
       limits.preparation,
     ) {
     Ok(value) => value
@@ -335,12 +399,12 @@ fn read_client_run_materials_input(
   }
   Ok({
     prepared,
-    prepared_wire,
-    authorization_wire,
-    scope_id,
-    run_id,
-    created_at,
-    valid_until,
+    prepared_wire: body.prepared_wire,
+    authorization_wire: body.authorization_wire,
+    scope_id: body.scope_id,
+    run_id: body.run_id,
+    created_at: body.created_at,
+    valid_until: body.valid_until,
   })
 }
 

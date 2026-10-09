@@ -740,8 +740,8 @@ for (const entrance of ['local', 'https']) {
       const pending = operation === 'start'
         ? f.client.start(program, {submissionRef: f.client.newSubmission({nonce: 'one-snapshot'}), parameters})
         : f.client[operation]('SELECT @x AS n', {format: 'sql',
-          ...(operation === 'check' ? {kind: 'text', scope: 'bound_input'} : {}),
-          ...(operation === 'aql' ? {submissionRef: f.client.newSubmission({nonce: 'one-snapshot'})} : {}),
+          ...(operation === 'check' ? {kind: 'text', scope: 'bound_input'} :
+            {submissionRef: f.client.newSubmission({nonce: 'one-snapshot'})}),
           parameterDeclarations: declarations, parameters});
       assert.equal(conversions, 1);
       assert.equal(serializations, 1);

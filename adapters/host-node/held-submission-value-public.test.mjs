@@ -11,6 +11,7 @@ const inputs = process.env.ACTQL_HELD_VALUE_ACCEPTANCE_INPUTS;
 const acceptance = inputs === undefined ? {runtime: {
   client: new URL('../../packages/node/index.mjs', import.meta.url).href,
   httpHost: new URL('./embedded-local.mjs', import.meta.url).href,
+  root: new URL('../../', import.meta.url).href,
 }} : JSON.parse(await readFile(inputs, 'utf8'));
 if (inputs === undefined) {
   const {prepareSourceNodeClient} = await import('./fixtures/source-node-client.mjs');
@@ -38,7 +39,7 @@ const expected = [{id: 1, label: 'e\u0301', supplied: 'e\u0301\r\n', nested},
   {id: 5, label: 'a\r\nb', supplied: 'e\u0301\r\n', nested}];
 
 for (const entrance of ['local', 'https']) {
-  test(`held ${entrance}: exact values and original request survive both process restarts`, async t => {
+  test(`synthetic historical held ${entrance}: exact values and original request survive both process restarts`, async t => {
     const scratch = await createOwnedScratch({parent: acceptance.scratch ?? tmpdir(),
       prefix: 'actql-held-values-', label: `held exact values ${entrance}`});
     t.diagnostic(`Held-value evidence: ${scratch.path}`);
@@ -61,6 +62,14 @@ for (const entrance of ['local', 'https']) {
     const first = await phase('initial');
     assert.equal(first.lookup.state, 'waiting_checkpoint');
     assert.equal(first.computes, 0);
+    assert.equal(first.starts, 0);
+    assert.deepEqual(first.snapshot.runs, []);
+    assert.deepEqual(first.snapshot.accepted, []);
+    assert.equal(first.snapshot.intents, 0);
+    assert.deepEqual(Object.values(first.snapshot.holdings), Array(5).fill('held'));
+    assert.deepEqual(Object.values(first.snapshot.physicalHoldings), Array(5).fill(true));
+    assert.equal(first.reviewWire, first.original.reviewWire);
+    assert.equal(first.checkpoint.checkpointCid, first.original.checkpointCid);
     const review = JSON.parse(first.reviewWire);
     assert.equal(review.displayed_scope.document, text);
     assert.deepEqual(review.displayed_scope.parameters, parameters);
@@ -68,16 +77,34 @@ for (const entrance of ['local', 'https']) {
     assert.equal(approved.checkpoint.checkpointCid, first.checkpoint.checkpointCid);
     assert.equal(approved.reviewWire, first.reviewWire);
     assert.equal(approved.computes, 0);
+    assert.equal(approved.starts, 0);
+    assert.deepEqual(approved.snapshot.runs, []);
+    assert.deepEqual(approved.snapshot.accepted, []);
+    assert.deepEqual(approved.original, first.original);
     assert.deepEqual(approved.resolutions.map(item => item.status), ['committed']);
     const resumed = await phase('resume');
     assert.equal(resumed.state.status, 'succeeded');
     assert.deepEqual(resumed.rows, expected);
     assert.equal(resumed.computes, 1);
+    assert.equal(resumed.starts, 1);
+    assert.deepEqual(resumed.original, first.original);
+    assert.equal(resumed.snapshot.runs.length, 1);
+    assert.equal(resumed.snapshot.intents, 0);
+    assert.deepEqual(resumed.snapshot.accepted, [{caller_request_id: first.original.requestId,
+      logical_request_scope_cid: first.original.logicalRequestScopeCid,
+      intent_fingerprint_cid: first.original.intentFingerprintCid,
+      program_definition_cid: first.original.programDefinitionCid,
+      parameter_values_cid: first.original.parameterValuesCid,
+      caller_input_intent_cid: first.original.callerInputIntentCid,
+      run_definition_cid: resumed.lookup.ref.runDefinitionCid, physical_start_reserved: 1}]);
     const restored = await phase('lookup');
     assert.deepEqual(restored.lookup.ref, resumed.lookup.ref);
     assert.equal(restored.state.run_id, resumed.state.run_id);
     assert.deepEqual(restored.rows, expected);
     assert.equal(restored.computes, 0);
+    assert.equal(restored.starts, 0);
+    assert.deepEqual(restored.original, first.original);
+    assert.deepEqual(restored.snapshot, resumed.snapshot);
     scratch.passed();
   });
 }

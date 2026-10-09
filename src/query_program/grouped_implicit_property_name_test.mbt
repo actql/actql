@@ -140,7 +140,9 @@ test "grouped implicit property names cannot restore ungrouped receivers or suff
         group_property_context(),
         construction_limits(),
       )
-      is Err(UnknownColumn),
+      is Err(
+        Expression({ issue: @expression.UnknownReference, origin: Some(_), })
+      ),
       msg=source,
     )
   }

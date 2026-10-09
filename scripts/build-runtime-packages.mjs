@@ -9,9 +9,10 @@ import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const packages = {
-  'run-host-core': {sources: ['client_values_host_abi'],
+  'run-host-core': {sources: ['client_values_host_abi', 'checkpoint_runtime_node'],
     script: 'build-run-host-core-package', args: ['--runtime-only'],
-    files: ['packages/run-host-core/dist/client_values_host_abi.js']},
+    files: ['packages/run-host-core/dist/client_values_host_abi.js',
+      'packages/run-host-core/dist/checkpoint_runtime_node.js']},
   'coordinator-core': {sources: ['remote_coordinator_abi'],
     script: 'build-remote-coordinator-package',
     files: ['packages/coordinator-core/dist/remote_coordinator_abi.js']},

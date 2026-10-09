@@ -1,0 +1,108 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.membership_probe_between",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "name": {
+                "type": "string",
+                "nullable": false
+              },
+              "score": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            "rows": [
+              {
+                "id": 1,
+                "name": "a",
+                "score": 20
+              },
+              {
+                "id": 2,
+                "name": "b",
+                "score": 10
+              },
+              {
+                "id": 3,
+                "name": "c",
+                "score": null
+              }
+            ]
+          },
+          "as": "input"
+        },
+        {
+          "from": "input",
+          "derive": {
+            "key": {
+              "between": [
+                {
+                  "field": "score"
+                },
+                {
+                  "literal": 5
+                },
+                {
+                  "literal": 15
+                }
+              ]
+            }
+          }
+        },
+        {
+          "group": {
+            "by": [],
+            "aggregates": {
+              "names": {
+                "fn": "string_agg",
+                "field": "name",
+                "max_bytes": 65536,
+                "delimiter": "|",
+                "order_by": [
+                  {
+                    "field": "key",
+                    "dir": "asc",
+                    "nulls": "last"
+                  },
+                  {
+                    "field": "id",
+                    "dir": "asc",
+                    "nulls": "first"
+                  }
+                ]
+              }
+            }
+          },
+          "as": "out"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "out",
+          "fields": [
+            "names"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

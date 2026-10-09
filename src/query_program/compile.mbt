@@ -857,8 +857,9 @@ fn output_name(
     projection.expression is Some(expression) &&
     @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind
     is Reference(path) {
-    // Keep the ordinary input diagnostic, independently of the authored
-    // leaf name. Scoped SELECT/QUALIFY use their value lowerer's resolver.
+    // Keep the ordinary resolver, including its ambiguity and prefix rules.
+    // An unaliased projection retains the same authored expression occurrence
+    // as an aliased projection; no source-text search supplies this origin.
     let mut length = path.length()
     while length > 0 {
       let prefix = path[:length].to_owned()
@@ -869,6 +870,15 @@ fn output_name(
         raise Abort(AmbiguousColumn)
       }
       length -= 1
+    }
+    if @query.expression_origin(expression, @query.expression_root(expression))
+      is Some(origin) {
+      raise Abort(
+        Expression({
+          issue: @expression.UnknownReference,
+          origin: Some(origin),
+        }),
+      )
     }
     raise Abort(UnknownColumn)
   }
@@ -1102,10 +1112,31 @@ fn order_aggregate_calls(
 ) -> Array[(@query.NamePart, @query.AggregateCall)] {
   let references : Array[Array[@query.NamePart]] = []
   for index in 0..<@query.operation_count(query) {
-    if @query.operation_at(query, index) is Some(Order(terms)) {
-      for term in terms {
-        references.append(join_reference_paths(term.expression))
+    match @query.operation_at(query, index) {
+      Some(Order(terms)) => {
+        for term in terms {
+          references.append(join_reference_paths(term.expression))
+        }
       }
+      Some(OrderAnalytic(windows, true)) => {
+        for projection in windows {
+          guard projection.analytic is Some(call) else { continue }
+          for expression in call.window.partition_by {
+            references.append(join_reference_paths(expression))
+          }
+          for term in call.window.order_by {
+            references.append(join_reference_paths(term.expression))
+          }
+          if call.expression is Some(expression) {
+            references.append(join_reference_paths(expression))
+          }
+          if call.aggregate is Some(aggregate) &&
+            aggregate.argument is Some(expression) {
+            references.append(join_reference_paths(expression))
+          }
+        }
+      }
+      _ => ()
     }
   }
   projections.filter_map(projection => {
@@ -2733,9 +2764,19 @@ fn compile_steps(
               if root.kind is Reference(path) && path.length() == 1 {
                 raise Abort(UnknownColumn)
               }
-              let name = "aql_group_key_" + index.to_string()
-              if active_fields.contains(name) || key_names.contains(name) {
-                raise Abort(UnsupportedGrouping)
+              let mut serial = index
+              let mut name = "aql_group_key_" + serial.to_string()
+              // Authored input/output names do not reserve a language prefix.
+              // Keep each computed key in a distinct private physical slot.
+              while (active_fields + key_names).any(field => {
+                      ascii_upper(field) == ascii_upper(name)
+                    }) ||
+                    projections.any(projection => {
+                      projection_alias(projection) is Some(column_name) &&
+                      ascii_upper(column_name.value) == ascii_upper(name)
+                    }) {
+                serial += 1
+                name = "aql_group_key_" + serial.to_string()
               }
               derives.push(
                 (
@@ -3545,6 +3586,7 @@ fn compile_steps(
           },
           "aql_qualify_expr_",
           false,
+          aggregate_outputs=sql_group_aggregate_slots,
         )
         if !derives.is_empty() {
           let fields : Array[(String, @builder.Node)] = []
@@ -3734,6 +3776,7 @@ fn compile_steps(
             },
             "aql_order_alias_",
             true,
+            aggregate_outputs=sql_group_aggregate_slots,
           )
         } else {
           []
@@ -3806,8 +3849,26 @@ fn compile_steps(
               return Some(slot)
             }
             if path.length() == 1 {
+              for (name, slot) in order_aggregate_slots {
+                if same_name({ value: name, quoted: false, }, path[0]) {
+                  return Some(slot)
+                }
+              }
               for (name, slot) in order_aliases {
                 if same_name(name, path[0]) {
+                  return Some(slot)
+                }
+              }
+            }
+            return pipe_slot(path, order_scope.visible, order_scope.ranges)
+          }
+          if sql_group_projection {
+            // GROUP may reuse an authored aggregate slot for a private call.
+            // Resolve SELECT window keys through retained input bindings and
+            // parser-owned aggregate references, never sibling SELECT aliases.
+            if path.length() == 1 {
+              for (name, slot) in having_aggregate_slots {
+                if same_name({ value: name, quoted: false, }, path[0]) {
                   return Some(slot)
                 }
               }
@@ -5090,6 +5151,14 @@ pub fn compile(
     // Current Graph construction and MATCH/TRAIL use the ordinary Program
     // checker; the Script frontend supplies that definition-scoped path.
     return Err(UnsupportedGraph)
+  }
+  if query_has_join_set_operand(query) {
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+      table_writes~,
+    )
   }
   if @query.join_part_count(query) > 0 &&
     (@query.join_part_count(query) > 1 || join_requires_group_scope(query)) &&

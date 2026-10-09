@@ -915,9 +915,9 @@ fn captured_keyed_count_chain_work() -> Int {
   // two snapshots, six expression transitions, two builds/checks and commit.
   let filter = 6 + 2 + 2 * (1 + 2 + 6 + 2 + 2 + 1) + 1
   let select = 6 + 2 * (1 + 1 + 1 + 1) + 1
-  let preparation = expected_ascii_completion_port_work("group_0", ["id", "n"]) +
-    expected_ascii_completion_port_work("where_1", ["id", "n"]) +
-    expected_ascii_completion_port_work("select_2", ["id"])
+  // Selected Filter and Select reuse their admitted schema metadata. COUNT
+  // retains its independent 30-poll completion cursor.
+  let preparation = expected_ascii_completion_port_work("group_0", ["id", "n"])
   count + filter + select + preparation + 2
 }
 
@@ -1076,8 +1076,13 @@ fn assert_captured_keyed_count_chain_budget(
 ///|
 test "ordinary keyed count chain admits exact work and one-short limits" {
   let exact = captured_keyed_count_chain_work()
-  assert_eq(exact, 199)
+  assert_eq(exact, 138)
   for quantum in [1, 7, 256] {
+    // Prior higher physical-scan allowances remain successful admissions.
+    assert_captured_keyed_count_chain_budget(199, "complete", quantum~)
+    assert_captured_keyed_count_chain_budget(198, "complete", quantum~)
+    assert_captured_keyed_count_chain_budget(169, "complete", quantum~)
+    assert_captured_keyed_count_chain_budget(168, "complete", quantum~)
     assert_captured_keyed_count_chain_budget(exact, "complete", quantum~)
     assert_captured_keyed_count_chain_budget(exact - 1, "work", quantum~)
   }
@@ -1088,10 +1093,10 @@ test "ordinary keyed count chain admits exact workspace and one-short limit" {
   // COUNT holds eight metadata slots plus four sort slots for two rows.
   // Filter peaks at six metadata slots, two roots, two snapshot cells,
   // two output cells and two checked cells: 14. Select stays below this peak.
-  let exact = captured_keyed_count_chain_work()
-  assert_captured_keyed_count_chain_budget(exact, "complete", max_entries=14)
-  assert_captured_keyed_count_chain_budget(exact, "workspace", max_entries=13)
-  assert_captured_keyed_count_chain_budget(exact, "workspace", max_entries=12)
+  // Retain this workspace fixture's original work allowance unchanged.
+  assert_captured_keyed_count_chain_budget(199, "complete", max_entries=14)
+  assert_captured_keyed_count_chain_budget(199, "workspace", max_entries=13)
+  assert_captured_keyed_count_chain_budget(199, "workspace", max_entries=12)
 }
 
 ///|

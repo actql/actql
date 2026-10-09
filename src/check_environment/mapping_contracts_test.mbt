@@ -42,6 +42,107 @@ fn mapping_shape_limits() -> Limits {
 }
 
 ///|
+fn collection_mapping_preimage() -> String {
+  mapping_shape_preimage().replace(
+    old="\"primary_identity\":\"Id\"",
+    new="\"primary_identity\":null",
+  )
+}
+
+///|
+test "collection Mapping has explicit absent row identity and bounded rule admission" {
+  let environment = mapping_shape_fixture(
+    mapping_shape_seal(collection_mapping_preimage()),
+  )
+  let shapes = check_mapping_contract_shapes(
+    environment,
+    mapping_shape_limits(),
+    3,
+  ).unwrap()
+  let shape = mapping_shape_at(shapes, 0).unwrap()
+  assert_eq(mapping_shape_primary_identity(shape), None)
+  assert_eq(mapping_shape_work(shapes), 3)
+  assert_eq(
+    check_mapping_contract_shapes(environment, mapping_shape_limits(), 2).unwrap_err(),
+    WorkLimit,
+  )
+  let selected = select_mapping_permissions(
+    shape,
+    "create",
+    "none",
+    ["Name"],
+    5,
+  ).unwrap()
+  assert_eq(mapping_permission_names(selected), ["scope:create"])
+  for kind in ["update", "upsert", "delete", "store"] {
+    assert_eq(
+      select_mapping_permissions(shape, kind, "none", ["Name"], 100).unwrap_err(),
+      InvalidRequest,
+    )
+  }
+  for selector in ["id", "match", "ids", "external_id", "where", "key"] {
+    assert_eq(
+      select_mapping_permissions(shape, "create", selector, ["Name"], 100).unwrap_err(),
+      InvalidRequest,
+    )
+  }
+}
+
+///|
+test "collection Mapping refuses omitted identity and non-create rules before selection" {
+  let cases = [
+    collection_mapping_preimage().replace(
+      old="\"primary_identity\":null,",
+      new="",
+    ),
+    collection_mapping_preimage().replace(
+      old="\"primary_identity\":null",
+      new="\"primary_identity\":false",
+    ),
+    collection_mapping_preimage().replace(
+      old="\"effect_kind\":\"create\"",
+      new="\"effect_kind\":\"update\"",
+    ),
+    collection_mapping_preimage().replace(
+      old="\"effect_kind\":\"create\"",
+      new="\"effect_kind\":\"upsert\"",
+    ),
+    collection_mapping_preimage().replace(
+      old="\"effect_kind\":\"create\"",
+      new="\"effect_kind\":\"delete\"",
+    ),
+    collection_mapping_preimage().replace(
+      old="\"selector_class\":\"none\"",
+      new="\"selector_class\":\"id\"",
+    ),
+  ]
+  for preimage in cases {
+    assert_eq(
+      check_mapping_contract_shapes(
+        mapping_shape_fixture(mapping_shape_seal(preimage)),
+        mapping_shape_limits(),
+        100,
+      ).unwrap_err(),
+      InvalidMapping(0),
+    )
+  }
+  // Collection evidence is part of the Mapping identity, not an interchangeable
+  // path to a same-valued row. Tampering without resealing is rejected.
+  let body = mapping_shape_seal(collection_mapping_preimage()).replace(
+    old="sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    new="sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  )
+  assert_eq(
+    check_mapping_contract_shapes(
+      mapping_shape_fixture(body),
+      mapping_shape_limits(),
+      100,
+    ).unwrap_err(),
+    IdentityMismatch(0),
+  )
+}
+
+///|
 test "resolved Mapping shape binds full target schema and exact body CID" {
   assert_eq(
     "sha256:" + @sha.hex(@utf8.encode(mapping_shape_preimage())),
@@ -64,7 +165,7 @@ test "resolved Mapping shape binds full target schema and exact body CID" {
     mapping_shape_cid(selected),
     "sha256:07267191c48e2a8492eabdd29aa77f4ffbc00ade1878980bf5c2d30d004dea2e",
   )
-  assert_eq(mapping_shape_primary_identity(selected), "Id")
+  assert_eq(mapping_shape_primary_identity(selected), Some("Id"))
   assert_eq(mapping_shape_writable_fields(selected), ["Name"])
   assert_eq(mapping_shape_required_fields(selected), [])
   assert_true(mapping_shape_for(shapes, "mapping:crm.other.v1") is None)

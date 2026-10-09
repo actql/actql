@@ -264,43 +264,22 @@ fn bounded_branched_relation_chain(
 }
 
 ///|
-/// Split a mixed sequence at checked managed read boundaries. A prefix without
-/// standalone providers remains one fused task through its Relation bridge;
-/// later row operations use their own selected tasks.
-/// -1 means that every step can be selected independently.
-fn carrier_segment_prefix_end(
-  graph : CheckedDAG,
-  stage : Int,
+priv struct CarrierSegmentShape {
+  values_source : Bool
+  carrier_construction : Bool
+  carrier_relation_consumer : Bool
+  relation_dag : Bool
+}
+
+///|
+/// Inspect the whole checked sequence before admitting analytic selection.
+/// Both the root eligibility check and a later analytic capability query use
+/// this same charged scan, including nodes and ports after that analytic.
+fn carrier_segment_shape(
+  prepared : @lower.Prepared,
   work : Ref[Int],
-) -> Int? raise CarrierWorkStop {
-  if stage < 0 || stage >= graph.owners.length() {
-    return None
-  }
-  if graph.selected_steps[stage] is Some(_) ||
-    graph.prefix_ends[stage] is Some(_) {
-    return None
-  }
-  if stage < graph.captured_prefix {
-    return None
-  }
-  let prepared = @lower.bound_preparation(graph.owners[stage])
-  let pipeline = @lower.pipeline(prepared)
-  let count = @pipeline.step_count(pipeline)
-  let mut intermediate_result = false
-  for result in graph.results {
-    carrier_work(work)
-    if result.task == stage &&
-      @ports.port_target(
-        @execution.managed_result_occurrence_port(result.occurrence),
-      )
-      is @pipeline.Step(step) &&
-      step < count - 1 {
-      intermediate_result = true
-    }
-  }
-  if stage == 0 && !graph.source_free_root {
-    return None
-  }
+) -> CarrierSegmentShape? raise CarrierWorkStop {
+  let count = @pipeline.step_count(@lower.pipeline(prepared))
   let mut values_source = false
   let mut carrier_construction = false
   let mut carrier_relation_consumer = false
@@ -358,22 +337,71 @@ fn carrier_segment_prefix_end(
   // A unary nonlinear Values suffix still retains its existing refusal.
   let relation_dag = relation_only &&
     (values_roots > 1 || (values_roots > 0 && binary_relation_consumer))
-  let selected_relation_dag = relation_dag
-  // A source-free Carrier prefix needs segmentation when a later typed
-  // Carrier-to-Relation step or an intermediate Result needs independent
-  // ownership. Carrier-only prefixes without either retain fused execution.
-  if stage == 0 &&
-    (
-      !values_source ||
-      (
-        !relation_dag &&
-        (
-          (!carrier_construction && !intermediate_result) ||
-          (!carrier_relation_consumer && !intermediate_result)
-        )
-      )
-    ) {
+  Some({
+    values_source,
+    carrier_construction,
+    carrier_relation_consumer,
+    relation_dag,
+  })
+}
+
+///|
+/// Split a mixed sequence at checked managed read boundaries. A prefix without
+/// standalone providers remains one fused task through its Relation bridge;
+/// later row operations use their own selected tasks.
+/// -1 means that every step can be selected independently.
+fn carrier_segment_prefix_end(
+  graph : CheckedDAG,
+  stage : Int,
+  work : Ref[Int],
+) -> Int? raise CarrierWorkStop {
+  if stage < 0 || stage >= graph.owners.length() {
     return None
+  }
+  if graph.selected_steps[stage] is Some(_) ||
+    graph.prefix_ends[stage] is Some(_) {
+    return None
+  }
+  if stage < graph.captured_prefix {
+    return None
+  }
+  let prepared = @lower.bound_preparation(graph.owners[stage])
+  let pipeline = @lower.pipeline(prepared)
+  let count = @pipeline.step_count(pipeline)
+  let mut intermediate_result = false
+  for result in graph.results {
+    carrier_work(work)
+    if result.task == stage &&
+      @ports.port_target(
+        @execution.managed_result_occurrence_port(result.occurrence),
+      )
+      is @pipeline.Step(step) &&
+      step < count - 1 {
+      intermediate_result = true
+    }
+  }
+  if stage == 0 && !graph.source_free_root {
+    return None
+  }
+  let mut selected_relation_dag : Bool? = None
+  if stage == 0 {
+    guard carrier_segment_shape(prepared, work) is Some(shape) else {
+      return None
+    }
+    selected_relation_dag = Some(shape.relation_dag)
+    // A source-free Carrier prefix needs segmentation when a later typed
+    // Carrier-to-Relation step or an intermediate Result needs independent
+    // ownership. Carrier-only prefixes without either retain fused execution.
+    if !shape.values_source ||
+      (
+        !shape.relation_dag &&
+        (
+          (!shape.carrier_construction && !intermediate_result) ||
+          (!shape.carrier_relation_consumer && !intermediate_result)
+        )
+      ) {
+      return None
+    }
   }
   if count < 2 {
     return None
@@ -399,10 +427,20 @@ fn carrier_segment_prefix_end(
   for step in 0..<count {
     carrier_work(work)
     guard @lower.node_at(prepared, step) is Some(node) else { return None }
+    // Later non-analytic stages do not need the root eligibility scan.
+    // Cache the complete shape once, only when an analytic asks for it;
+    // a Relation prefix alone cannot prove a Relation-only DAG.
+    if @lower.payload(node) is @lower.Analytic(_) &&
+      selected_relation_dag is None {
+      guard carrier_segment_shape(prepared, work) is Some(shape) else {
+        return None
+      }
+      selected_relation_dag = Some(shape.relation_dag)
+    }
     if !carrier_node_supports_selected_execution(
         node,
         work,
-        analytic=selected_relation_dag,
+        analytic=selected_relation_dag == Some(true),
       ) {
       all_selected = false
       break

@@ -1302,14 +1302,19 @@ for (const {name, family, publicationFault} of [
 }
 
 // Independent scalar phase model, also checked in the portable provider test:
-// Values 20 + filter true 31 + select 19 + port scans 90 + handoffs 2 = 162.
-// Values includes four-step row charging. Port scans for values_0, where_1
-// and select_2 cost 31, 28 and 31, including their lowered IDs and names.
+// Values20 + filter true31 + select19 + Values port31 + handoffs2 =103.
+// Values includes four-step row charging. Its values_0 cursor costs31;
+// selected Filter/Select reuse their existing admitted metadata. Historical
+// 162/161 and Filter-only-reuse134/133 allowances remain accepted controls.
 // Filter's three metadata entries, three roots, snapshot and two predicate
 // slots peak at nine workspace entries. These are not sampled from a run.
 for (const {name, work, workspace, failure} of [
-  {name: 'exact scalar chain budgets', work: 162, workspace: 9},
-  {name: 'one-short scalar chain work', work: 161, workspace: 9,
+  {name: 'historical scalar scan allowance', work: 162, workspace: 9},
+  {name: 'historical scalar scan one-short allowance', work: 161, workspace: 9},
+  {name: 'Filter-reuse scalar allowance', work: 134, workspace: 9},
+  {name: 'Filter-reuse scalar one-short allowance', work: 133, workspace: 9},
+  {name: 'exact scalar chain budgets', work: 103, workspace: 9},
+  {name: 'one-short scalar chain work', work: 102, workspace: 9,
     failure: 'work'},
   {name: 'one-short scalar chain workspace', work: 162, workspace: 8,
     failure: 'workspace'},
@@ -1320,7 +1325,7 @@ for (const {name, work, workspace, failure} of [
       if (!failure) {
         const owner = await run();
         assert.equal(owner.status, 'published');
-        assert.equal(observations().producerWork, 162n);
+        assert.equal(observations().producerWork, 103n);
         const inventory = owner.execution.publicationInventory.occurrences;
         assert.deepEqual(inventory.map(value => value.name).sort(),
           [...resultNames].sort());

@@ -72,6 +72,7 @@ function managedCase(factory, prefix, provider, overrides = {}) {
     output_row: () => failed(new Error('NoRow')),
     storage_bytes: 0n,
     close: () => { events.push('close'); },
+    cleanup_refresh: () => true,
     ...overrides,
   };
   const moon = {

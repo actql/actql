@@ -1093,7 +1093,13 @@ test('local credential failure retains an unsent original without marking the fo
       assert.equal(error.code, 'SubmissionNotSent');
       assert.deepEqual(getSubmissionInput(error).input, {marker});
       assert.equal(getSubmissionOutcome(error), undefined);
-      assert.equal(explainSubmission(error), undefined);
+      const view = explainSubmission(error);
+      assert.equal(view.observation, 'not_sent');
+      assert.deepEqual(view.next, {operation: 'lookupSubmission',
+        submissionRef: getSubmissionInput(error).submissionRef,
+        lookupContext: getSubmissionInput(error).lookupContext});
+      assert.equal(explainSubmission({...error}), undefined);
+      assert.match(view.summary, /not an Owner-issued rejection/);
       return true;
     });
     assert.equal(getSubmissionInput(foreign), undefined);

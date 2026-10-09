@@ -15651,7 +15651,7 @@
             "node"
           ],
           "path": "scripts/graph-public-host.test.mjs",
-          "fixture": "presence selection sort and take survives Relation Store and public Named Results through local"
+          "fixture": "Graph row projections preserve presence through Store and public local"
         }
       ],
       "path_assurance": {

@@ -279,3 +279,6 @@ export declare function validResourcePeek(value: unknown,
 export declare function snapshotClientRequest(value: unknown): unknown;
 /** Existing check entry point into the same request snapshot owner. */
 export declare function snapshotCheckRequest(value: unknown): unknown;
+/** Synchronous Host admission and snapshot; no authentication or authorization. */
+export declare function prepareClientHostRequest(operation: ClientHostOperation,
+  value: unknown): Readonly<{body: unknown; connection: WireConnection}> | undefined;

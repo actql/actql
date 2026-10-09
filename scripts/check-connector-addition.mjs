@@ -1,8 +1,9 @@
 // Prove an implementation addition in an isolated tree, not by inferring
 // extensibility from names or a successful test against an already-built core.
-import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, symlinkSync} from 'node:fs';
+import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, writeFileSync, symlinkSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
@@ -18,7 +19,7 @@ const git = args => {
   return result.stdout.trim();
 };
 const sourceHead = git(['rev-parse', 'HEAD']);
-const sourcePaths = ['src', 'adapters', 'scripts', 'packages/client-wire',
+const sourcePaths = ['src', 'adapters', 'scripts', 'packages/client-wire', 'packages/sdk',
   'moon.mod'];
 if (git(['status', '--porcelain', '--', ...sourcePaths])) {
   throw new Error('Commit product sources and assembly checks before the connector-addition check');
@@ -53,6 +54,13 @@ cpSync(join(root, 'scripts/templates'), join(isolated, 'scripts/templates'), {re
 for (const tool of ['native-cxx-link-driver.sh', 'ar']) {
   cpSync(join(root, 'scripts', tool), join(isolated, 'scripts', tool));
 }
+// The standard Host's independent Graph oracle and its canonical JSON helper.
+const nodeFixturePaths = ['scripts/fixtures/graph-delta-application.mjs',
+  'scripts/check-canonical-json.mjs'];
+for (const path of nodeFixturePaths) {
+  mkdirSync(dirname(join(isolated, path)), {recursive: true});
+  cpSync(join(root, path), join(isolated, path));
+}
 cpSync(join(root, 'adapters'), join(isolated, 'adapters'), {recursive:true,
   filter: path => !path.includes('/node_modules') && !path.includes('/reference-compute-node') && !path.includes('/connectors-builtin'),
 });
@@ -62,7 +70,23 @@ assertClientWireDependency(root);
 mkdirSync(join(isolated, 'packages'), {recursive: true});
 cpSync(join(root, 'packages/client-wire'),
   join(isolated, 'packages/client-wire'), {recursive: true});
+cpSync(join(root, 'packages/sdk'),
+  join(isolated, 'packages/sdk'), {recursive: true,
+    filter: path => !path.includes('/node_modules')});
 assertClientWireDependency(isolated);
+mkdirSync(join(isolated, 'node_modules/@actql'), {recursive: true});
+symlinkSync(join(isolated, 'packages/client-wire'),
+  join(isolated, 'node_modules/@actql/client-wire'), 'dir');
+const sdkRequire = createRequire(join(isolated, 'packages/sdk/index.mjs'));
+if (realpathSync(sdkRequire.resolve('@actql/client-wire')) !==
+    realpathSync(join(isolated, 'packages/client-wire/index.mjs'))) {
+  throw new Error('ForeignClientWireDependency');
+}
+// Host module-graph resolution imports the selected installation table before
+// regenerating it. Retain this input and then rebuild the isolated assembly.
+mkdirSync(join(isolated, 'adapters/connectors-builtin'), {recursive: true});
+cpSync(join(root, 'adapters/connectors-builtin/installations.generated.mjs'),
+  join(isolated, 'adapters/connectors-builtin/installations.generated.mjs'));
 mkdirSync(join(isolated, 'vendor/duckdb'), {recursive:true});
 cpSync(join(root, 'vendor/duckdb/1.4.3'), join(isolated, 'vendor/duckdb/1.4.3'), {
   recursive: true,
@@ -137,8 +161,9 @@ if (existsSync(join(isolated, 'src/connectors/reference_compute'))) throw new Er
 const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
   ...inventory(join(isolated, 'adapters'), 'adapters/'),
   ...inventory(join(isolated, 'packages/client-wire'), 'packages/client-wire/'),
+  ...inventory(join(isolated, 'packages/sdk'), 'packages/sdk/'),
   ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/'),
-  ...['scripts/native-cxx-link-driver.sh', 'scripts/ar'].map(path =>
+  ...['scripts/native-cxx-link-driver.sh', 'scripts/ar', ...nodeFixturePaths].map(path =>
     [path, hash(readFileSync(join(isolated, path)))]),
 ]);
 const before = snapshot();

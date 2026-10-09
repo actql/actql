@@ -120,7 +120,7 @@ test('public retained DISTINCT scans nested values, publishes and cancels withou
       installation: {directory, retainedRelationOutput: true, authorization}});
 
     const source = JSON.stringify(program('public-distinct-values'));
-    const options = {format: 'json', requestId: 'public-distinct-values'};
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-distinct-values'})};
     const execution = await client.startSource(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(45_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 5}));
@@ -140,7 +140,7 @@ test('public retained DISTINCT scans nested values, publishes and cancels withou
 
     cancelAtComparison = true;
     const cancelSource = JSON.stringify(program('public-distinct-values-cancel'));
-    const cancelOptions = {format: 'json', requestId: 'public-distinct-values-cancel'};
+    const cancelOptions = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-distinct-values-cancel'})};
     const cancelled = await client.startSource(cancelSource, cancelOptions);
     await barrier.promise;
     const before = await readdir(join(directory, 'carrier-snapshots'));

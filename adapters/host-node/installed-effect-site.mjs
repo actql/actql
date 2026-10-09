@@ -6,7 +6,7 @@ import {completeCapturedEffectRun, completeRecoveredEffectRun,
   completeInterruptedEffectRun, settleRefusedEffectRun} from
   './entry.mjs';
 import {releaseCompletedRunPreparedPayloads,
-  suspendCompletedEffectfulComputation} from
+  suspendCompletedEffectfulComputation, isCompletedEffectfulPublicationCleanupFailure} from
   '../host-common/completed-run-publication.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {ExecutionAuthorizationError} from
@@ -415,6 +415,9 @@ export function createInstalledEffectSite({environmentWire,
         let result;
         try { result = await completeCapturedEffectRun(options); }
         catch (error) {
+          // Preserve only the completed owner's exact terminal cleanup
+          // failure. Provider/apply cleanup still needs interrupted completion.
+          if (isCompletedEffectfulPublicationCleanupFailure(options.publication, error)) throw error;
           try { result = await completeInterruptedEffectRun(options, false); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoAttemptedSend') {
@@ -587,7 +590,7 @@ export function createInstalledEffectSite({environmentWire,
         catch (error) {
           // A rejected observation must not publish an old receipt as a new
           // reconciliation result. Keep uncertainty and custody for retry.
-          if (observing) throw error;
+          if (observing || isCompletedEffectfulPublicationCleanupFailure(options.publication, error)) throw error;
           try { result = await completeInterruptedEffectRun(options, true); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoAttemptedSend') {

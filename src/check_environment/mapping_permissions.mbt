@@ -165,6 +165,10 @@ pub fn select_mapping_permissions(
     !mapping_permission_valid_selector(selector_class) {
     return Err(InvalidRequest)
   }
+  if shape.primary_identity is None &&
+    (effect_kind != "create" || selector_class != "none") {
+    return Err(InvalidRequest)
+  }
   let remaining = Ref(max_work)
   try {
     mapping_permission_charge(remaining, write_fields.length())

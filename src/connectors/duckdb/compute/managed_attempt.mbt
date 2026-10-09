@@ -158,7 +158,8 @@ pub fn advance_managed_duckdb_compute_output_finish(
     return Err(InvalidState)
   }
   output.finishing = true
-  match @duckdb.advance_managed_physical_output_finish(output.receiver, quantum) {
+  match
+    @duckdb.advance_managed_physical_output_finish(output.receiver, quantum) {
     Ok(poll) => {
       if poll.receipt is Some(receipt) {
         output.receipt = Some(receipt)
