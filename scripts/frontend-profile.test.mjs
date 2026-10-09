@@ -75,10 +75,11 @@ test('machine Program vocabulary matches the current closed inventory', () => {
     ...unchangedBody} = manifest;
   const expressions = json('spec/contracts/actql-expressions.json');
   assert.equal(currentExpression, machineCid(expressions));
-  // The adopted shared membership exception changes the current contract,
-  // while the PR-0 baseline continues to identify the original law body.
-  const priorExpressions = structuredClone(expressions);
-  delete priorExpressions.laws.membership;
+  // Read the original PR-0 body. Subtracting known additions from today's
+  // schema silently contaminates this historical oracle when another law lands.
+  const priorExpressions = JSON.parse(execFileSync('git', ['show',
+    `${baseline.base_sha}:spec/contracts/actql-expressions.json`],
+  {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024}));
 
   const currentProgram = json('spec/contracts/actql-protocol-schemas.json')
     .artifact_schemas.executable_plan.properties.execution_material.properties.program;
@@ -99,9 +100,6 @@ test('machine Program vocabulary matches the current closed inventory', () => {
     }
     for (const child of Object.values(node)) removeTypedJson(child);
   };
-  delete priorExpressions.laws.typed_json_literal;
-  delete priorExpressions.laws.typed_json_wire;
-  removeTypedJson(priorExpressions);
   assert.equal(oldExpression, machineCid(priorExpressions));
   removeTypedJson(priorProgram);
   Object.assign(priorProgram.properties.steps.items.properties, baseGraphOperationSchemas());
