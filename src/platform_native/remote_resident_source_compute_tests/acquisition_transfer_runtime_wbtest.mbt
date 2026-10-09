@@ -675,6 +675,7 @@ fn acquisition_runtime_transfer_consumer(
       },
       chain_context~,
       output_unavailable=consumer_output_unavailable,
+      effect_materials=effect_pair.map(pair => pair.0),
     )
     assert_true(@host.client_retained_input_producer_available(producer))
     if chain_context is Some(_) ||

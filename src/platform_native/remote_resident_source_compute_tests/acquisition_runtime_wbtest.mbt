@@ -754,3 +754,38 @@ test "Effect actual producer cancellation withholds transfer while preserving co
     cancel_producer_before_handoff=true,
   )
 }
+
+///|
+test "Effect consumer holder owns one borrow and separate receiver cleanup" {
+  acquisition_runtime_case(true, effect=true, through_consumer_holder=true)
+}
+
+///|
+test "Effect consumer holder cancellation before start retains independent cleanup" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    through_consumer_holder=true,
+    cancel_consumer_before_start=true,
+  )
+}
+
+///|
+test "Effect consumer holder cancellation after borrow prevents exclusive start" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    through_consumer_holder=true,
+    cancel_consumer_after_borrow=true,
+  )
+}
+
+///|
+test "Effect consumer holder output failure does not acquire input or execute twice" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    through_consumer_holder=true,
+    consumer_output_unavailable=true,
+  )
+}
