@@ -8,6 +8,8 @@ import {bytesCid, contentCid} from './local-account-config.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
+import {MAX_MODEL_INPUT_BYTES} from './client-checkpoints.mjs';
+import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -34,7 +36,7 @@ const roles = ['model_call_attempt', 'model_attempt_accounting', 'model_attempt_
   'model_dispatch_authority', 'model_slot_capture', 'model_capture_bundle'];
 
 export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,
-  authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation}) {
+  authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation, inferEvidence}) {
   const runtime = await loadCheckpointRuntime();
   const custody = new Map();
   const live = new WeakMap();
@@ -117,7 +119,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       retryBinding: {owner: 'single_attempt_model_execution', maxAttempts: 1},
       slots: facts.slots.map(slot => ({...slot, maxAttempts: 1}))}));
   }
-  async function readSettled({originals, entry, attemptWire, authorityWire}, retainRecord) {
+  async function readSettled({originals, entry, attemptWire, authorityWire}, retainRecord, beforeRead) {
     const definition = control.admit('run_definition',
       JSON.parse(originals.originalRunWire).runDefinitionWire, limits);
     const bodies = {};
@@ -126,6 +128,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       const holdingCid = control.modelScopedPrivateHoldingCid(definition, storeAuthorityCid, entry, name);
       const holding = await store.inspectPhysicalHolding(holdingCid);
       if (holding === undefined) break;
+      // Optional Evidence reserves its copy envelope before private decoding.
+      // Normal execution restoration keeps its existing Store-owned limits.
+      beforeRead?.(holding.objects.reduce((sum, object) => sum + object.byte_count, 0));
       const wire = new TextDecoder('utf-8', {fatal: true}).decode(
         await store.readPrivateEvidence(name, holding.manifest_cid, holdingCid));
       if (await store.confirmPrivateEvidence({name, semanticCid: holding.manifest_cid, holdingCid, wire}) === undefined) {
@@ -227,7 +232,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     return result;
   }
   async function openOwned({operation, preparedCallSet, plan, selected, principalId,
-    declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort, sourceContinuation}, ownership) {
+    declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort,
+    sourceContinuation, retainEvidenceCopy}, ownership) {
     const cp = checkpoints();
     const facts = operation.preparedFacts(preparedCallSet);
     const run = JSON.parse(plan.runDefinition.wire);
@@ -282,15 +288,30 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         preparedInvocationWire: plan.compiled.preparedEvidence.wire, scopeWire: scope.wire,
         providerBindingWire: binding.wire, inputArtifactWire: input.wire,
         slotWires: [...facts.slotWires], expectedBoundary};
-      const snapshot = {version: 'actql-installed-model-input/0.1', scopeCid: scope.identity,
+      let snapshot = {version: 'actql-installed-model-input/0.1', scopeCid: scope.identity,
         inputArtifactCid: input.identity, originals, binding: fixedBinding,
         descriptorWire: exported.descriptorWire, rows: [...exported.rows],
         callScopeSnapshotWire: facts.callScopeSnapshotWire,
         providerOriginals: binding.originals, submission,
         ...(sourceContinuation === undefined ? {} : {sourceContinuation})};
-      const bodyWire = canonicalJson(snapshot);
-      const receipt = await cp.retainModelInput({runId: run.run_id,
-        runDefinitionCid: plan.runDefinition.identity, bodyWire});
+      let bodyWire = canonicalJson(snapshot);
+      const receipt = await withPreparedInferEvidence({configuration: inferEvidence,
+        moon, control, plan, selected, preparedCallSet, operation, authorityScopeCid,
+        retainCopy: retainEvidenceCopy,
+        consume(providerInputs) {
+          if (providerInputs !== undefined) {
+            const candidate = {...snapshot, providerInputs};
+            const candidateWire = canonicalJson(candidate);
+            // Optional preservation shares the existing custody ceiling.
+            // Missing capture remains incomplete; it cannot fail Model work.
+            if (Buffer.byteLength(candidateWire) <= MAX_MODEL_INPUT_BYTES) {
+              snapshot = candidate;
+              bodyWire = candidateWire;
+            }
+          }
+          return cp.retainModelInput({runId: run.run_id,
+            runDefinitionCid: plan.runDefinition.identity, bodyWire});
+        }});
       if (!exported.current()) fail('ModelInputOwnerChangedDuringCommit');
       const receiptWire = canonicalJson(receipt);
       originals = {...originals, fixedInputReceiptWire: receiptWire};
@@ -336,6 +357,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       });
       if (!installed) observation.noteLoss();
     }
+    const unreconciled = new Map();
     let view = existing === undefined ? undefined : cp.journal.readModelCalls(existing.inventory);
     if (view !== undefined) {
       for (const slot of view.slots) {
@@ -350,6 +372,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         owner.entries.set(slot.ordinal, entry);
         const historical = cp.journal.readModelAttemptOriginals(entry);
         if (slot.state === 'EnteredUnknown') {
+          if (selected.reconcileResponse !== undefined) unreconciled.set(slot.ordinal, {entry, historical});
           operation.restoreUnknown(preparedCallSet, slot.ordinal,
             checked(moon.strategyRunEvidenceAdmit('model_call_attempt', historical.attemptWire, 16384, 1024, 20)),
             checked(moon.strategyRunEvidenceAdmit('model_dispatch_authority', historical.authorityWire, 16384, 1024, 20)));
@@ -411,6 +434,32 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       attachImmediate: view?.checkpointCid === null,
       ...(journalPort === undefined ? {} : {journalPort})};
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
+      hasResponseReconciliation: unreconciled.size > 0,
+      evaluationInventory() {
+        if (!owner.available || !token.available) fail('ModelContinuationClosed');
+        const current = cp.journal.readModelCalls(inventory);
+        const calls = current.slots.map(slot => {
+          const entry = slot.attempts.at(-1);
+          const bundle = entry?.settlement?.evidence?.model_capture_bundle;
+          return Object.freeze({slotCid: slot.slotCid, callWire: originals.slotWires[slot.ordinal],
+            state: slot.state, outcome: slot.state === 'SavedSuccess' ? 'ok' : 'result_unknown',
+            entry, captureBundleCid: bundle?.cid});
+        });
+        return Object.freeze({count: calls.length, calls: Object.freeze(calls),
+          async readBundle(slot, beforeRead) {
+            if (!owner.available || !token.available) fail('ModelContinuationClosed');
+            const call = calls[slot];
+            if (call?.state !== 'SavedSuccess' || call.captureBundleCid === undefined) return undefined;
+            const historical = cp.journal.readModelAttemptOriginals(call.entry);
+            let stored;
+            await readSettled({originals, entry: call.entry, ...historical},
+              value => {stored = value;}, beforeRead);
+            if (!owner.available || !token.available || stored?.state !== 'SavedSuccess' ||
+                stored.evidence.model_capture_bundle.cid !== call.captureBundleCid) fail('ModelSettlementCustodyLost');
+            return Object.freeze({wire: stored.bodies.model_capture_bundle,
+              cid: call.captureBundleCid, count: 1});
+          }});
+      },
       entry: slot => owner.entries.get(slot), observe,
       async authorize() {
         if (!owner.available) fail('ModelContinuationClosed');
@@ -462,6 +511,34 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                 return false;
               } finally { owner.pending = undefined; }
             }});
+        for (const [slot, {entry, historical}] of unreconciled) {
+          if (!owner.available || !owner.currentProvider()) fail('ModelProviderBindingChanged');
+          signal?.throwIfAborted();
+          const responseCustody = operation.prepareResponseReconciliation(preparedCallSet, slot,
+            checked(moon.strategyRunEvidenceAdmit('model_call_attempt', historical.attemptWire, 16384, 1024, 20)),
+            checked(moon.strategyRunEvidenceAdmit('model_dispatch_authority', historical.authorityWire, 16384, 1024, 20)));
+          const request = moon.clientProgramInferPreparedRequest(preparedCallSet, slot);
+          if (request === undefined) fail('ModelReconciliationRequestUnavailable');
+          const reply = await selected.reconcileResponse(Object.freeze({request,
+            inputFrame: moon.clientProgramModelRequestInputFrameBounded(request, 65536),
+            entry: Object.freeze(entryIdentity(entry)), callWire: originals.slotWires[slot],
+            attemptWire: historical.attemptWire, authorityWire: historical.authorityWire,
+            providerBindingCid: inventory.providerBindingCid, signal}));
+          // Retrieval has no send callback. Recheck its original owner and
+          // current binding across the await before adopting any returned value.
+          if (!owner.available || !owner.currentProvider()) fail('ModelProviderBindingChanged');
+          signal?.throwIfAborted();
+          if (reply !== undefined) {
+            if (reply === null || Object.keys(reply).sort().join(',') !==
+                'attemptWire,callWire,providerBindingCid,response' ||
+                reply.attemptWire !== historical.attemptWire ||
+                reply.callWire !== originals.slotWires[slot] ||
+                reply.providerBindingCid !== inventory.providerBindingCid ||
+                reply.response === undefined) fail('ModelReconciliationIdentityMismatch');
+            operation.adoptReconciledResponse(responseCustody, reply.response);
+          }
+          unreconciled.delete(slot);
+        }
         return {status: 'dispatch'};
       },
       // Closing revokes use immediately; a late physical callback remains

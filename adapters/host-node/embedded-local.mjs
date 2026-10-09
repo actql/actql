@@ -511,7 +511,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
         store, storeAuthorityCid, authorityScopeCid, namespaceId, now, observe: diagnostic,
-        observation,
+        observation, inferEvidence: evidenceConfiguration,
         getCheckpoints: () => checkpoints});
     }
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
@@ -895,6 +895,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
           physicalPreflight: physical.physicalPreflight,
+          reconcileResponse: physical.reconcileResponse,
           quantityCapacity: physical.quantityCapacity});
         if (retain) inferSelections.set(preparedProgram, selection);
         return selection;
@@ -1119,6 +1120,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
+    checkpoints, prepareAcquisition,
+    sourceAccessFor: prepared => installedSourceFor(sourceProfile, prepared.checkedSource.sourceRef).sourceAccess,
     faultInjection: authorization?.faultInjection,
     computeConfigurations: {local: localSnapshotConfiguration}});
   dispatchOwner = installNodeClientDispatchOwner({moon, control,
@@ -2379,7 +2382,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                 signal.throwIfAborted();
                 return runInfer({preparedProgram: submission.preparedProgram, plan,
                   store, principalId, signal, retainExecution, beginPhysicalWork,
-                  submission: token.snapshot.submission, existingModel: record, modelClaim: claim});
+                  submission: token.snapshot.submission, existingModel: record, modelClaim: claim,
+                  assertCurrent});
               },
               observeStopped: async () => {
                 await observeNodeRestoredModelStop({ref,

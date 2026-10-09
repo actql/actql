@@ -536,7 +536,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             sourceEvidenceWire, authorityScopeCid,
             captured.checkedSource.sourceDataPolicyCid,
             captureStartedAt, captureCompletedAt));
-          acquiredInfer = {input, captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt,
+          acquiredInfer = {input, captured, preparedSource: held.preparedSource, sourceAccess,
+            sourceEvidenceWire, captureStartedAt, captureCompletedAt,
             sourceEvidence: control.admitRunEvidence(
             'source_evidence', sourceEvidenceWire,
             {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
