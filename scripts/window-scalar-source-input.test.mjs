@@ -251,3 +251,12 @@ test('SET window controls preserve sibling input, immutable ranges and current t
   assert.deepEqual(get('authored-private-name').expected.map(row => row.amount), [null, 22, 13, 24, null]);
   assert.equal(windowScalarRefusals.filter(item => item.name.includes('set-window')).length, 8);
 });
+
+test('private SET window projects ordinary columns and retains implicit-member refusal', () => {
+  for (const c of windowScalarSuccesses.filter(c => c.format === 'aql-text' && c.name.startsWith('window-scalar-pipe-schema-private-set'))) {
+    assert.ok(c.text.includes('UNNEST(@items) e |> SELECT * |> AS r |> SET'));
+  }
+  const rejected = windowScalarRefusals.find(c => c.name === 'window-scalar-refuse-implicit-member-set');
+  assert.ok(rejected.text.includes('UNNEST(@items) e |> AS r |> SET'));
+  assert.equal(rejected.expectedCode, 'ClientProgramInvalidInput');
+});
