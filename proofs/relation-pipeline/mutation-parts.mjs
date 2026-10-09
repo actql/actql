@@ -55,11 +55,28 @@ function minimumExecutions(executions, observations, minimum, pair, role, source
     assert.deepEqual(entry.observation, observations[execution.receipt.target], 'Wrong minimum replay observation');
   }
 }
-export function inspectMutationPart(report, { partId = report.part?.id, mode = report.mode, source, decision } = {}) {
+export function inspectMutationPart(report, options = {}) {
+  return inspectMutationPartAgainst(report, mutationPart(options.partId ?? report.part?.id), options);
+}
+// This one immutable record predates the 114-case final-normal plan. Its exact
+// canonical report and original source pin are required before any projection.
+export function inspectArchivedMutationPart(report) {
+  assert.equal(digest(report), '5589e86432f710b6283efa75302d5a1d2a7df517d41ca3bb7c3a28aaa5580326',
+    'Changed immutable historical mutation report');
+  assert.equal(report.revision, '7c4bcb61b8d7e7c37b4be8eb986e1811842d345b');
+  assert.equal(report.source.sources['proofs/relation-pipeline/proof-parts.mjs'],
+    '836199c57261b877a36f41851e1e2a756a7b0a43eb5b1121d920c10ded9f4209');
+  const requiredPart = { version: mutationPartSchema, id: 'L-M0',
+    planDigest: '2bf06c72bdcf5f92cc5f24517a8aaab7186aa9570f5c16512d8c103f9d6dc42c',
+    variants: ['handoff-wrong-port', 'stable-tie-reversed', 'rename-nullability-widened', 'rename-type-changed'] };
+  return inspectMutationPartAgainst(report, requiredPart, { mode: 'fixed' });
+}
+function inspectMutationPartAgainst(report, requiredPart,
+  { partId = requiredPart.id, mode = report.mode, source, decision } = {}) {
   assert.deepEqual(Object.keys(report).sort(), ['version', 'part', 'closure', 'restorationOwner', 'source', 'workspaces',
     'revision', 'toolchain', 'mode', 'decision', 'seed', 'explorationTarget', 'searchDomain', 'meaning', 'results'].sort(),
     'Unknown mutation part fields');
-  assert.deepEqual(report.part, mutationPart(partId), 'Wrong mutation part plan');
+  assert.deepEqual(report.part, requiredPart, 'Wrong mutation part plan');
   assert.equal(report.source.digest, digest(report.source.sources), 'Wrong mutation source snapshot');
   assert.equal(report.version, 'actql-relation-pipeline-mutations/0.1');
   assert(['fixed', 'explore'].includes(mode), 'Unknown mutation mode');
@@ -78,7 +95,7 @@ export function inspectMutationPart(report, { partId = report.part?.id, mode = r
   for (const previous of Object.values(report.workspaces)) {
     assert.notEqual(report.restorationOwner.id, previous.id, 'Restoration reused an old owner');
   }
-  assert.deepEqual(report.results.map(r => r.name), mutationNamesByPart[partId], 'Missing, duplicate, extra or wrong-owner mutation variant');
+  assert.deepEqual(report.results.map(r => r.name), requiredPart.variants, 'Missing, duplicate, extra or wrong-owner mutation variant');
   const refs = [], paths = new Set(), observations = new Set();
   for (const result of report.results) {
     assert.equal(result.owner, partId, 'Wrong mutation result owner');

@@ -10,7 +10,8 @@ import { hash, snapshot } from '../inventory.mjs';
 import { generate, shrink, candidates } from '../engine.mjs';
 import { fixedCorpus } from '../corpus.mjs';
 import { registrations } from '../obligations.mjs';
-import { registry } from '../registry.mjs';
+// The restricted capacity proof retains the complete six-descriptor cohort.
+import { corpusBaseline as registry } from '../registry.mjs';
 import { compareSemantics } from '../evidence.mjs';
 import { applyMutation } from '../sites.mjs';
 import { replacements, instrument, mutations, workspaceOverlay, generatedObservers,

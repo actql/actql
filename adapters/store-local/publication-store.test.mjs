@@ -1724,6 +1724,119 @@ test('delivery grant use limit is durable and concurrent attempts are CAS',
     ), code('DeliveryGrantUseLimit'));
   });
 
+test('delivery admission validates each retained attempt once per selection',
+  async t => {
+    // Synthetic adapter fixtures, not retained public publication history.
+    const {store, configuration} = await fixture(t);
+    const root = deliveryFixture(2);
+    const other = deliveryFixture(1);
+    const retained = [
+      deliveryAttempt(root, 'retained-same-grant'),
+      deliveryAttempt(other, 'retained-other-grant'),
+    ];
+    await store.createDeliveryAttempt(wire(retained[0]), wire(root.grant));
+    await store.createDeliveryAttempt(wire(retained[1]), wire(other.grant));
+    await store.close();
+
+    const admissions = new Map(retained.map(attempt =>
+      [attempt.delivery_attempt_cid, 0]));
+    const independentControl = createPublicationContractControlFixture();
+    const suppliedControl = {
+      ...independentControl,
+      admit(name, suppliedWire, suppliedLimits) {
+        const admitted = independentControl.admit(
+          name, suppliedWire, suppliedLimits,
+        );
+        if (name === 'delivery_attempt' && admissions.has(admitted.identity)) {
+          admissions.set(admitted.identity, admissions.get(admitted.identity) + 1);
+        }
+        return admitted;
+      },
+    };
+    const reopened = await openLocalPublicationStore(configuration, suppliedControl);
+    t.after(async () => { await reopened.close(); });
+    for (const identity of admissions.keys()) admissions.set(identity, 0);
+    const selected = deliveryAttempt(root, 'new-same-grant');
+    assert.deepEqual(await reopened.createDeliveryAttempt(
+      wire(selected), wire(root.grant),
+    ), {attempt: selected, created: true});
+    // The two independently authored old attempts each need one admission.
+    // Counting all Store admissions would also count the new input and write.
+    assert.deepEqual([...admissions.values()], [1, 1]);
+
+    const lookup = {
+      indexKey: {namespaceId: 'namespace-a',
+        authorityScopeCid: cids.scope, runDefinitionCid: cids.run},
+      principalId: 'principal-a', purpose: 'download',
+      resultName: 'answer', attemptId: selected.attempt_id,
+    };
+    for (const identity of admissions.keys()) admissions.set(identity, 0);
+    assert.deepEqual(await reopened.lookupDeliveryAttempt(lookup),
+      {attempt: selected, record: undefined, hostReleaseReceipt: undefined});
+    assert.deepEqual([...admissions.values()], [1, 1]);
+    assert.equal(await reopened.lookupDeliveryAttempt({...lookup,
+      principalId: 'different-principal'}), undefined);
+
+    const replayBody = {...selected, requested_at: '2026-09-18T01:00:01.000Z'};
+    delete replayBody.delivery_attempt_cid;
+    const replay = seal('delivery_attempt', replayBody);
+    admissions.set(selected.delivery_attempt_cid, 0);
+    assert.deepEqual(await reopened.createDeliveryAttempt(
+      wire(replay), wire(root.grant),
+    ), {attempt: selected, created: false});
+    // Keep the retained scan, restored canonical identity, and exact wire reread.
+    assert.equal(admissions.get(selected.delivery_attempt_cid), 3);
+    admissions.delete(selected.delivery_attempt_cid);
+    const conflicting = seal('delivery_attempt', {...replayBody,
+      serialization_contract_cid: cids.policy});
+    await assert.rejects(reopened.createDeliveryAttempt(
+      wire(conflicting), wire(root.grant),
+    ), code('DeliveryAttemptConflict'));
+
+    for (const identity of admissions.keys()) admissions.set(identity, 0);
+    await assert.rejects(reopened.createDeliveryAttempt(
+      wire(deliveryAttempt(root, 'one-too-many')), wire(root.grant),
+    ), code('DeliveryGrantUseLimit'));
+    assert.deepEqual([...admissions.values()], [1, 1]);
+  });
+
+test('delivery admission retains corruption and metadata deletion refusals',
+  async t => {
+    // Synthetic adapter corruption and retirement markers, not public history.
+    const {store, directory} = await fixture(t);
+    const root = deliveryFixture(1);
+    const other = deliveryFixture(2);
+    const retained = deliveryAttempt(root, 'valid-retained-attempt');
+    const damaged = deliveryAttempt(other, 'unrelated-damaged-attempt');
+    await store.createDeliveryAttempt(wire(retained), wire(root.grant));
+    await store.createDeliveryAttempt(wire(damaged), wire(other.grant));
+    await writeFile(join(directory, 'deliveries',
+      damaged.delivery_attempt_cid.slice(7), 'attempt.json'),
+    wire({...damaged, attempt_id: 'changed-without-updating-identity'}));
+    for (const attempt of [retained, deliveryAttempt(root, 'over-limit')]) {
+      await assert.rejects(store.createDeliveryAttempt(
+        wire(attempt), wire(root.grant),
+      ), code('InvalidDeliveryAttempt'));
+    }
+    await assert.rejects(store.lookupDeliveryAttempt({
+      indexKey: {namespaceId: 'namespace-a',
+        authorityScopeCid: cids.scope, runDefinitionCid: cids.run},
+      principalId: 'principal-a', purpose: 'download',
+      resultName: 'answer', attemptId: retained.attempt_id,
+    }), code('InvalidDeliveryAttempt'));
+
+    await writeFile(join(directory, 'metadata-deletions',
+      `${digest('synthetic retired Run').slice(7)}.json`), wire({
+      version: 'actql-local-publication-metadata-retired/0.1',
+      run_definition_cid: cids.run,
+    }));
+    for (const attempt of [retained, deliveryAttempt(root, 'after-retirement')]) {
+      await assert.rejects(store.createDeliveryAttempt(
+        wire(attempt), wire(root.grant),
+      ), code('PublicationMetadataDeleted'));
+    }
+  });
+
 test('Manifest grant use is durable idempotent and bounded across restart',
   async t => {
     const {store, configuration} = await fixture(t);
