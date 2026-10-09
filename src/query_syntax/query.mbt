@@ -1894,7 +1894,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       replacements: [],
     })
   let operations : Array[QueryOperation] = []
-  let (relation, source_alias, ctes) = if self.has("FROM") {
+  let (initial_relation, initial_alias, initial_ctes) = if self.has("FROM") {
     self.keyword("FROM")
     if self.has("UNNEST") {
       operations.push(self.unnest_source())
@@ -1905,6 +1905,9 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   } else {
     ([], None, [])
   }
+  let mut relation = initial_relation
+  let mut source_alias = initial_alias
+  let mut ctes = initial_ctes
   let joins : Array[JoinPart] = []
   while (!relation.is_empty() || !operations.is_empty()) && self.starts_join() {
     if self.starts_correlated_unnest() {
@@ -1912,10 +1915,31 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       continue
     }
     if operations.any(operation => operation is UnnestSource(_, _, _)) {
-      raise QueryAbort(
-        "Relation JOIN after correlated UNNEST is not supported in this profile",
-        self.peek().start,
+      // Bind the already expanded row, including its immutable ranges, before
+      // the next ordinary JOIN. Do not reorder expansion behind the JOIN or
+      // publish the private continuation as an authored subquery projection.
+      let expanded = self.bind_query(
+        {
+          source: self.source,
+          relation,
+          source_alias,
+          ctes,
+          graph: None,
+          joins: joins.copy(),
+          operations: operations.copy(),
+          sets: [],
+          final_operations: [],
+          effect: None,
+          table_effect: None,
+          work: self.work,
+        },
+        carry_ranges=true,
       )
+      relation = expanded.relation
+      source_alias = expanded.source_alias
+      ctes = expanded.ctes
+      joins.clear()
+      operations.clear()
     }
     let (part, join_ctes) = self.join_part()
     joins.push(part)

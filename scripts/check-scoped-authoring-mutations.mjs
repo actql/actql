@@ -22,6 +22,12 @@ const mutations = [
     to: '    // Deliberate fault: omit the independent missing-value frontier.',
     targets: cases('nested supplied type facts follow the submitted contract and path',
       [{id: 'nested-missing-coverage', operator: 'deepStrictEqual'}])},
+  {name: 'Owner binding reuses a richer audience report', path: 'adapters/host-node/client-check.mjs',
+    from: 'report.context_ref === context &&', to: 'true &&',
+    targets: ['allow', 'absent', 'denied', 'unpublished'].flatMap(visibility =>
+      [false, true].flatMap(suppliedViolation => cases(
+        `richer audience reports retain ${visibility} custody with ${suppliedViolation ? 'a supplied violation' : 'no violation'}`,
+        [{id: 'owner-audience-binding', operator: 'deepStrictEqual'}])))},
   {name: 'Owner binding accepts an earlier context', path: 'adapters/host-node/client-check.mjs',
     from: 'report.context_ref === context &&', to: 'true &&', targets: bindingCases('context')},
   {name: 'Owner binding accepts different original documents', path: 'adapters/host-node/client-check.mjs',

@@ -927,8 +927,17 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(integratedCid, cid(aoaContract), valuesDependencyOracle(),
     barrierCid, valuesProgramOracle()).run.run_definition_cid,
     'sha256:2706813ed3f0c7f86439323e3486f7be49f1377ec955ff9414bb91ead605b74a');
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the complete pre-UNNEST-JOIN grammar and Run preimages.
+  const unnestPrior = JSON.parse(readFileSync('scripts/fixtures/pre-unnest-join-grammar.json', 'utf8'));
+  const {grammar_manifest_cid: unnestPriorCid, ...unnestPriorBody} = unnestPrior.grammar;
+  assert.equal(cid(unnestPriorBody), unnestPriorCid);
+  const unnestPriorRun = vector(unnestPriorCid, cid(aoaContract), valuesDependencyOracle(),
+    barrierCid, valuesProgramOracle());
+  assert.deepEqual(unnestPriorRun, unnestPrior.run_preimages);
+  assert.equal(unnestPriorRun.run.run_definition_cid,
     'sha256:6e1a597d8e0473c402cca0fd54e582189c4d1da5064aadab98a647bb6888f645');
+  assert.equal(current.run.run_definition_cid,
+    'sha256:cf1e1ea739a4345c77648eecf9a605ff2b29d905a99b92e36b8dd923e9a2256f');
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
@@ -956,7 +965,7 @@ test('ABS contract inputs independently determine the current Values Run and con
   assert.equal(cid(requestIntent), "sha256:8291aeda45155c650ced1f803650313d9c5741f97b70672933a57d6fcffdd32b");
   const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
     barrier.barrier_contract_manifest_cid, identity);
-  assert.equal(current.run.run_definition_cid, "sha256:6e1a597d8e0473c402cca0fd54e582189c4d1da5064aadab98a647bb6888f645");
+  assert.equal(current.run.run_definition_cid, "sha256:cf1e1ea739a4345c77648eecf9a605ff2b29d905a99b92e36b8dd923e9a2256f");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
