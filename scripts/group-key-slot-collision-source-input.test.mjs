@@ -28,6 +28,10 @@ test('independent GROUP collision control preserves predicate key and public nul
   for (const item of cases) assert.equal(item.sourceReadSessionCount, 1);
   assert.ok(refusals.find(item => item.name === 'group-select-scope-private-key-ungrouped-input')
     .text.includes('HAVING colliding.aql_group_key_0 > 0'));
+  assert.equal(refusals.find(item => item.name === 'group-select-scope-private-key-ungrouped-input')
+    .expectedCode, 'ClientProgramInvalidInput');
+  assert.equal(refusals.find(item => item.name === 'group-select-scope-numeric-distinct-unselected')
+    .expectedCode, 'ClientProgramImplementationLimit');
 });
 
 test('normal public acceptance and the existing focused Group selection retain the collision fixtures', async () => {

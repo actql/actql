@@ -93,6 +93,7 @@ groupSelectScopeSuccesses.push(
 );
 groupSelectScopeRefusals.push(
   {name: 'group-select-scope-numeric-distinct-unselected', format: 'sql',
+    expectedCode: 'ClientProgramImplementationLimit',
     text: 'SELECT DISTINCT id + 1.0 AS next FROM records ORDER BY id + 2e0'},
   {name: 'group-select-scope-numeric-unsafe-integer', format: 'sql',
     text: 'SELECT id + 9007199254740992.0 AS next, COUNT(*) AS n FROM records GROUP BY id + 9007199254740992'},
@@ -138,5 +139,6 @@ groupSelectScopeSuccesses.push(
   collision('empty', collisionData + collisionSql, {sourceRows: [], expected: []}),
 );
 groupSelectScopeRefusals.push({name: 'group-select-scope-private-key-ungrouped-input',
-  format: 'aql-text', text: collisionData + 'SELECT x + 1 AS bucket, COUNT(*) AS n '
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput',
+  text: collisionData + 'SELECT x + 1 AS bucket, COUNT(*) AS n '
     + 'FROM colliding GROUP BY x + 1 HAVING colliding.aql_group_key_0 > 0'});

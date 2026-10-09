@@ -129,3 +129,18 @@ test "private GROUP collision handling does not expose an ungrouped authored inp
     is Err(Expression({ issue: @expression.UnknownReference, .. })),
   )
 }
+
+///|
+test "existing DISTINCT refusal retains the unsupported ordering cause" {
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT DISTINCT x + 1.0 AS next FROM t ORDER BY x + 2e0",
+        syntax_limits(),
+      ).unwrap(),
+      group_key_collision_context("aql_group_key_0"),
+      construction_limits(),
+    )
+    is Err(UnsupportedOrdering),
+  )
+}

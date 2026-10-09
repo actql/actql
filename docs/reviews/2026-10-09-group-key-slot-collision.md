@@ -72,13 +72,29 @@ Evidence is retained in this worktree's ignored `_build` directories.
   `node scripts/local-checks.mjs test node --timeout-seconds 120 --
   scripts/group-key-slot-collision-source-input.test.mjs`.
 - Changed MoonBit files formatted; `git diff --check` passed.
+- Refusal-specific JS: `run-YcM0No` / `focused-test-zSJbG4`, **7/7**,
+  collision tests plus `group_numeric_literal_test.mbt`. The existing
+  unselected DISTINCT sort key remains exactly `UnsupportedOrdering`; the
+  invalid numeric value remains `Expression(InvalidNumber)`.
 
 ## Public acceptance and remaining work
 
-Normal five-package exact-source packing and the existing
+The first normal five-package campaign used clean source
+`5f0338a8bc6f81cbaface39b92acb59f5dd08940`, `run-1txtNX` and
+receipt `public-query-evidence-yCbVKl`. All **20 Local positives** passed,
+including the seven new cases and the independent JSON control. It stopped in
+the existing negative cohort: the generic input-code allowlist does not include
+the actual `ClientProgramImplementationLimit` for the unselected DISTINCT sort
+key. HTTPS and subsequent refusals were not reached; this is not a full pass.
+The fixture now checks that exact public implementation-limit code rather than
+expanding the generic allowlist. The new ungrouped-field refusal separately
+requires `ClientProgramInvalidInput`. Source, row/schema expectations and
+product refusal conditions are unchanged. Logs and package digests are retained;
+the failed campaign's temporary installation was reclaimed after evidence capture.
+
+The revised normal five-package exact-source campaign using
 `scripts/test-packed-public-query.mjs --group-select-scope-only` external
-Local/HTTPS consumer are next. Public acceptance is not yet established by the
-parser/checker/fixture checks above. Preserve one Source read, Result.describe
+Local/HTTPS consumer remains pending. Preserve one Source read, Result.describe
 types and column order, no extra hidden fields, same-request Run identity and
 no additional acquisition on reread/reattach/resend; refusal must admit no Run
 and perform no provider I/O.
