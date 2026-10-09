@@ -134,7 +134,7 @@ export const analyticPartitionExpressionRefusals = [
   ['constant-arithmetic', sql('1 + 2'), 'ClientProgramImplementationLimit'],
   ['missing-reference', sql('missing > 0')],
   ['invalid-key-type', sql('amount + \'x\' > 0')],
-  ['invalid-function', sql('unknown(amount)')],
+  ['invalid-function', sql('unknown(amount)'), 'ClientProgramImplementationLimit'],
   ['sibling-alias', 'SELECT amount AS sibling, ROW_NUMBER() OVER '
     + '(PARTITION BY sibling > 25 ORDER BY id) AS pos FROM records'],
   ['removed-range', 'FROM records AS old |> AS current |> SELECT ROW_NUMBER() OVER '

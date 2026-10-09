@@ -60,9 +60,9 @@ is relabelled as the new output. There is no contract-pin change.
   receivers deliberately change ranks from `1,1,4,3,2,1` to `6,5,4,3,2,1`.
   These values are written independently of the product compiler.
 
-Three existing constant-partition refusal fixtures now require the exact
+Three existing constant-partition and one unsupported-function refusal fixtures now require the exact
 `ClientProgramImplementationLimit` code. This follows the unchanged
-`client_check.mbt` mapping of `UnsupportedAnalytic` to `implementation_limit`;
+`client_check.mbt` mapping of `UnsupportedAnalytic` / `UnsupportedFunction` to `implementation_limit`;
 the old generic unsupported expectation was stale. Inputs and rejection
 requirements are unchanged, and no default refusal allowlist is broadened.
 
@@ -92,6 +92,24 @@ Receipts remain in this worktree's `_build/local-checks/attempts/` and
 one caller selection used a nonexistent filename; neither executed tests or
 counts as a pass. Both were corrected before these recorded results.
 
-The final nullable-member fixture check and exact-source five-package
-Local/HTTPS acceptance are recorded below when complete. Focused JS success
-does not establish packed success, full Core, Wasm/native, Cloud or final CI.
+The final nullable-member fixture check passes 4/4 in `run-OIstiM`,
+`focused-test-VIwH5J`. Moonfmt and `git diff --check` pass.
+
+## Initial packed attempt
+
+The normal five-package producer and independent digest checks run at clean
+`d82a817820644660bb07f2788f7e897a080ad595` in `run-2yYBdA`. All 17 Local
+positive cases and the expected demanded-expression execution failure pass.
+After the constant refusals pass, the existing unsupported-function fixture
+fails because its generic default does not permit the unchanged exact
+`ClientProgramImplementationLimit` category. The exact fixture is corrected;
+product rejection and acceptance ceilings are not changed. HTTPS is unreached
+in this attempt. Receipt/logs:
+`worktrees/.codex-scratch/public-query-evidence-KzTyws/`.
+Its status is failed and incomplete; evidence errors are empty. Its consumer
+installation is reclaimed after preserving all logs. The failed attempt is
+not a whole-cohort acceptance success.
+
+Final exact-source Local/HTTPS acceptance is recorded below when complete.
+Focused JS success does not establish packed success, full Core, Wasm/native,
+Cloud or final CI.
