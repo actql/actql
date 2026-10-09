@@ -2639,10 +2639,12 @@ fn compile_steps(
           let matches = pipe_visible.filter(current => {
             same_name(replacement.0, { value: current.0, quoted: false, })
           })
-          if matches.is_empty() ||
-            names.filter(other => same_name(other.0, replacement.0)).length() !=
+          if matches.is_empty() {
+            raise Abort(UnknownColumn)
+          }
+          if names.filter(other => same_name(other.0, replacement.0)).length() !=
             1 {
-            raise Abort(UnsupportedProjection)
+            raise Abort(DuplicateOutput)
           }
           if matches.length() > 1 {
             raise Abort(AmbiguousColumn)

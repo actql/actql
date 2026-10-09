@@ -82,17 +82,40 @@ test "Pipe RENAME cannot publish duplicate output names or rename missing target
     is Err(DuplicateOutput),
   )
   for names in ["missing AS z", "x AS z, X AS other"] {
-    assert_true(
-      compile(
-        @query.parse_query(
-          "FROM pair |> RENAME " + names + " |> SELECT y",
-          syntax_limits(),
-        ).unwrap(),
-        pair_context(),
-        construction_limits(),
-      )
-      is Err(UnsupportedProjection),
-      msg=names,
+    let result = compile(
+      @query.parse_query(
+        "FROM pair |> RENAME " + names + " |> SELECT y",
+        syntax_limits(),
+      ).unwrap(),
+      pair_context(),
+      construction_limits(),
     )
+    if names == "missing AS z" {
+      assert_true(result is Err(UnknownColumn), msg=names)
+    } else {
+      assert_true(result is Err(DuplicateOutput), msg=names)
+    }
+  }
+}
+
+///|
+test "Pipe RENAME INNER JOIN script routing uses the shared current-row scope" {
+  let source = "FROM t AS l |> JOIN (SELECT 2 AS x) AS r ON l.x = r.x MAX_OUTPUT_ROWS 10 |> RENAME y AS current |> SELECT current, l.x AS original, r.x AS matched |> ORDER BY original"
+  let result = compile_query_script(
+    @query.parse_query_script(source, syntax_limits()).unwrap(),
+    join_order_context(),
+    construction_limits(),
+  )
+  let actual = match result {
+    Ok(program) => program
+    Err(UnsupportedJoin) => fail("projection-only JOIN cannot process RENAME")
+    Err(UnsupportedCte) =>
+      fail("specialized JOIN requires SELECT before RENAME")
+    Err(_) => fail("another script routing refusal")
+  }
+  match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("the independent INNER JOIN script has closed inputs")
   }
 }
