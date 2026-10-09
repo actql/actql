@@ -1447,6 +1447,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Between
 } derive(Eq, @debug.Debug)
 
 pub(all) enum NestIssue {
