@@ -4,6 +4,7 @@ import {correlatedUnnestStarSuccesses, correlatedUnnestStarRefusals}
   from './correlated-unnest-star-source-input.mjs';
 import {joinedUnnestStarSuccesses, joinedUnnestStarRefusals}
   from './joined-unnest-star-source-input.mjs';
+import {unnestJoinSuccesses, unnestJoinRefusals} from './unnest-join-source-input.mjs';
 const number = {type: 'number', nullable: false};
 const element = {type: 'number', nullable: true};
 const items = {type: 'array', nullable: true, max_items: 3, items: element};
@@ -96,6 +97,12 @@ export const correlatedUnnestSuccesses = [
     expected: [{id: 1, element: 2, position: 0}, {id: 1, element: null, position: 1},
       {id: 1, element: 2, position: 2}],
   }),
+  success('join-after-expansion', sql.replace('ORDER BY',
+    'CROSS JOIN records r MAX_OUTPUT_ROWS 10 ORDER BY'), {
+    sourceReadCount: 1, sourceReadSessionCount: 1,
+    sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}],
+    expected: expected.flatMap(row => [{...row}, {...row}]),
+  }),
 ];
 const refusal = (name, text, extra = {}) => ({name: 'correlated-unnest-refusal-' + name,
   format: 'sql', text, parameterDeclarations, parameters, ...extra});
@@ -108,9 +115,10 @@ export const correlatedUnnestRefusals = [
   refusal('missing-property', sql.replace('UNNEST(p.items)', 'UNNEST(p.missing)')),
   refusal('undeclared', sql, {parameterDeclarations: undefined}),
   refusal('array-bound', sql, {parameters: {parents: [{id: 1, items: [1, 2, 3, 4]}]}}),
-  refusal('join-after-expansion', sql.replace('ORDER BY', 'CROSS JOIN records r ORDER BY')),
 ];
 correlatedUnnestSuccesses.push(...correlatedUnnestStarSuccesses);
 correlatedUnnestRefusals.push(...correlatedUnnestStarRefusals);
 correlatedUnnestSuccesses.push(...joinedUnnestStarSuccesses);
 correlatedUnnestRefusals.push(...joinedUnnestStarRefusals);
+correlatedUnnestSuccesses.push(...unnestJoinSuccesses);
+correlatedUnnestRefusals.push(...unnestJoinRefusals);
