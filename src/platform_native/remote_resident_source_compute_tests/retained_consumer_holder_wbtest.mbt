@@ -484,6 +484,11 @@ fn retained_consumer_holder_case(
   )
   assert_eq(entries.val, 1)
   assert_eq(borrows.val, 1)
+  let captured_effect_owner = if effect_materials is Some(_) {
+    owner.effect_computation(journal)
+  } else {
+    None
+  }
   if effect_materials is Some(_) {
     assert_true(owner.effect_computation(producer_journal) is None)
     assert_true(
@@ -492,7 +497,7 @@ fn retained_consumer_holder_case(
         duplicate.effect_computation(journal).unwrap(),
       ),
     )
-    retained_holder_effect_capture(owner, journal)
+    retained_holder_effect_capture(owner, journal, effect_materials.unwrap())
     assert_eq(entries.val, 1)
     assert_eq(borrows.val, 1)
   } else {
@@ -839,6 +844,9 @@ fn retained_consumer_holder_case(
   assert_true(owner.close())
   assert_true(owner.close())
   assert_true(owner.effect_computation(journal) is None)
+  if captured_effect_owner is Some(computation) {
+    assert_true(computation.effect_materials_for_capture() is None)
+  }
   let file_root = @filesystem.open_root(root_path).unwrap()
   assert_false(file_root.verify_generation("output-" + occurrence, generation))
   assert_true(run() is Err(_))

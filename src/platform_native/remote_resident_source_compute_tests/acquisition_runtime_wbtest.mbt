@@ -222,6 +222,9 @@ fn acquisition_runtime_case(
   }
   let allow_effect_cleanup = Ref(!fail_effect_capture_cleanup)
   let original_effect_source : Ref[@resident.ResidentSourceCompute?] = Ref(None)
+  let original_effect_producer : Ref[@resident.ResidentEffectProducerExecuted?] = Ref(
+    None,
+  )
   let (runtime, completion) = if effect {
     let delegations = Ref(0)
     let clocks = Ref(0)
@@ -415,35 +418,51 @@ fn acquisition_runtime_case(
       return
     }
     let owned = outcome.unwrap()
+    let capture_materials = owned.materials_for_capture(journal).unwrap()
+    let captured = @strategy.pin_captured_effect_acquired_unit_results(
+      owned.source.effect_run().unwrap(),
+      0,
+      4,
+    ).unwrap()
+    assert_true(
+      @strategy.captured_effect_local_unit_inputs_match_computation(
+        captured,
+        @host.prepared_client_effect_computation_graph(
+          capture_materials.prepared,
+        ),
+      ),
+    )
+    // Equal wire reconstructed by a different owner cannot replace the exact
+    // preparation context retained by the actual acquisition Runtime.
+    assert_false(
+      @strategy.captured_effect_local_unit_inputs_match_computation(
+        captured,
+        @host.prepared_client_effect_computation_graph(
+          effect_pair.unwrap().0.prepared,
+        ),
+      ),
+    )
+    assert_eq(
+      @publication.publication_contract_identity(
+        capture_materials.run_definition,
+      ),
+      @remote.dispatch_request_task_scope(dispatch).0,
+    )
+    assert_true(@strategy.release_captured_effect_local_unit_inputs(captured))
     assert_true(
       physical_equal(owned.source_for_capture(journal).unwrap(), owned.source),
     )
-    let foreign_execution = {
-      ..owned.executed,
-      request: @remote.prepare_dispatch_request(
-        "foreign-coordinator",
-        retained_compute_cid("a"),
-        "other-task",
-        1,
-        "foreign-dispatch",
-        selected.site_key,
-        1,
-        selected.runtime_bundle_cid,
-        "local",
-        "local/1",
-        "strategy/1",
-        retained_compute_cid("a"),
-        selected.budget_cid,
-        selected.evidence_issuer_capability_cid,
-        selected.grant_cid,
-        retained_compute_cid("a"),
-      ).unwrap(),
-    }
-    assert_true(
-      { ..owned, executed: foreign_execution, }.source_for_capture(journal)
-      is None,
-    )
+    let foreign_journal = @dispatch_journal.open_journal(
+      sqlite,
+      root_path + "/" + name + ".foreign-capture.sqlite",
+      1048576L,
+      @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1").unwrap(),
+    ).unwrap()
+    assert_true(owned.source_for_capture(foreign_journal) is None)
+    assert_true(owned.materials_for_capture(foreign_journal) is None)
+    assert_true(foreign_journal.close())
     original_effect_source.val = Some(owned.source)
+    original_effect_producer.val = Some(owned)
     assert_eq(owned.executed.result_definition_cid, None)
     assert_true(owned.source.usage().held_bytes > 0L)
     let original_record = journal.require(dispatch).unwrap()
@@ -689,6 +708,9 @@ fn acquisition_runtime_case(
     assert_eq(original.usage().held_bytes, 0L)
     assert_eq(original.usage().reserved_execution_bytes, 0L)
     assert_true(original.close())
+  }
+  if original_effect_producer.val is Some(original) {
+    assert_true(original.materials_for_capture(journal) is None)
   }
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())

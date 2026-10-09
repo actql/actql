@@ -23,6 +23,23 @@ pub(all) struct ResidentEffectProducerExecutionFailure {
 pub(all) struct ResidentEffectProducerExecuted {
   executed : ResidentExecuted
   source : ResidentSourceCompute
+  priv materials : @host.ClientEffectRunMaterials
+}
+
+///|
+/// Return the exact materials admitted by this producer, without compiling a
+/// replacement graph or renewing its Run authority. Capture still requires the
+/// live acquisition and its original journal outcome.
+pub fn ResidentEffectProducerExecuted::materials_for_capture(
+  self : ResidentEffectProducerExecuted,
+  journal : @journal.Journal,
+) -> @host.ClientEffectRunMaterials? {
+  guard self.source_for_capture(journal) is Some(source) &&
+    source.effect_source is Some(original) &&
+    physical_equal(self.materials.prepared, original.owner) else {
+    return None
+  }
+  Some(self.materials)
 }
 
 ///|
@@ -329,5 +346,6 @@ pub fn execute_resident_effect_source_attempt(
   Ok({
     executed: { runtime, completion, request, result_definition_cid: None, },
     source,
+    materials,
   })
 }

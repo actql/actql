@@ -205,7 +205,9 @@ pub(all) enum ResidentEffectPreviewPlanIssue {
 pub(all) struct ResidentEffectProducerExecuted {
   executed : ResidentExecuted
   source : ResidentSourceCompute
+  // private fields
 }
+pub fn ResidentEffectProducerExecuted::materials_for_capture(Self, @remote_journal.Journal) -> @run_publication_host.ClientEffectRunMaterials?
 pub fn ResidentEffectProducerExecuted::source_for_capture(Self, @remote_journal.Journal) -> ResidentSourceCompute?
 
 pub(all) struct ResidentEffectProducerExecutionFailure {
@@ -465,6 +467,7 @@ pub fn ResidentSourceCompute::capture_effect_dependency(Self, @run_publication_h
 pub fn ResidentSourceCompute::capture_effect_result(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientEffectImportedEvidence, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[ResidentEffectResultCapture, ResidentEffectResultCaptureIssue]
 pub fn ResidentSourceCompute::capture_effect_run(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ResidentEffectResultCapture, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], @run_publication.CapturedEffectDependencyInventory, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int) -> Result[@run_publication.PublicationContract, ResidentEffectRunCaptureIssue]
 pub fn ResidentSourceCompute::close(Self) -> Bool
+pub fn ResidentSourceCompute::effect_materials_for_capture(Self) -> @run_publication_host.ClientEffectRunMaterials?
 pub fn ResidentSourceCompute::effect_run(Self) -> @physical_strategy.CapturedEffectRunDAG?
 pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::issue_effect_source_artifact(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientEffectSourceArtifactIssue]
