@@ -1,0 +1,76 @@
+///|
+pub(all) enum ResidentEffectSourceDispatchIssue {
+  Refused(@resident.ResidentDispatchRefusal)
+  Materials(@host.ClientEffectRunMaterialsIssue)
+  Dispatch(@host.ClientEffectSourceDispatchIssue)
+  Source(ResidentSourceIssue)
+}
+
+///|
+/// Rebuild the original Effect Run and admit only its initial Source dispatch.
+/// Every check is performed before physical acquisition. This does not acquire
+/// a start claim, approve an Effect or grant execution: the existing journal
+/// and runtime must do so, and recheck current authority/lifetime before I/O.
+pub fn admit_resident_effect_source_dispatch(
+  admission : ResidentRunAdmission,
+  effect_limits : @host.ClientEffectComputationLimits,
+  delegation : @resident.ResidentSiteDelegation,
+  site_generation : Int,
+  request : @remote.DispatchRequest,
+  wire : String,
+  binding : @remote.RemoteInputBinding,
+  now : String,
+  registry_body : String,
+  values_body : String,
+  fragment_contract_body : String,
+) -> Result[@host.PreparedClientEffectRun, ResidentEffectSourceDispatchIssue] {
+  match
+    @resident.check_resident_dispatch_delegation(
+      delegation, request, site_generation,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Refused(issue))
+  }
+  let materials = match
+    @host.admit_client_effect_run_materials(
+      wire,
+      @remote.dispatch_request_task_scope(request).0,
+      admission.expressions,
+      admission.operations,
+      admission.manifests,
+      admission.limits,
+      effect_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Materials(issue))
+  }
+  let bound = match
+    @host.bind_client_effect_source_dispatch(materials, request, binding) {
+    Ok(value) => value
+    Err(issue) => return Err(Dispatch(issue))
+  }
+  if !@host.client_effect_run_start_current(
+      materials.allowed,
+      materials.run_definition,
+      now,
+    ) {
+    return Err(Refused(@resident.NotCurrent))
+  }
+  guard admission.source is Some((source_ref, source_contract_cid)) else {
+    return Err(Refused(@resident.ForeignSource))
+  }
+  match
+    prepare_resident_effect_source_requirement(
+      materials.prepared,
+      0,
+      0,
+      registry_body,
+      values_body,
+      Some(fragment_contract_body),
+      source_ref,
+      source_contract_cid,
+    ) {
+    Ok(_) => Ok(bound)
+    Err(issue) => Err(Source(issue))
+  }
+}

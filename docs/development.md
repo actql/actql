@@ -263,6 +263,19 @@ Run admission is not Effect approval. Dispatch, retained input custody,
 Checkpoint/Resolution and physical apply remain responsibilities of their
 existing Owners and consuming adapters.
 
+The MoonBit `prepare_client_effect_source_dispatch` projects the initial
+Source task from the original retained Effect compilation. Its initial scope
+is one acquisition, two checked computation tasks and one Named Result on the
+consumer. `bind_client_effect_source_dispatch` checks the received Run/task and
+logical Source input against reconstructed Effect materials; it never treats
+the Program as Effect-free. Native
+`admit_resident_effect_source_dispatch` additionally checks trusted delegation,
+the current Site generation, original lifetime and configured Source identity
+before acquisition. Admission does not grant a journal start claim or Effect
+approval. The existing runtime must recheck current authority and lifetime at
+physical start. The polled holder/Checkpoint/approval connection remains a
+separate integration boundary.
+
 ### Installed Connector distribution inputs
 
 The standard Local package resolves provider runtimes, installation adapter
