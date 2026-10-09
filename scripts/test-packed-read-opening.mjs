@@ -14,8 +14,9 @@ const cancellationOnly = process.argv.slice(2).includes('--cancellation-only');
 const submissionCustodyOnly = process.argv.slice(2).includes('--submission-custody-only');
 const submissionRefusalOnly = process.argv.slice(2).includes('--submission-refusal-only');
 const effectReconciliationOnly = process.argv.slice(2).includes('--effect-reconciliation-only');
-if ([cancellationOnly, submissionCustodyOnly, submissionRefusalOnly, effectReconciliationOnly].filter(Boolean).length > 1 ||
-    process.argv.slice(2).some(option => !['--cancellation-only', '--submission-custody-only', '--submission-refusal-only', '--effect-reconciliation-only'].includes(option))) {
+const ownerObservationsOnly = process.argv.slice(2).includes('--owner-observations-only');
+if ([cancellationOnly, submissionCustodyOnly, submissionRefusalOnly, effectReconciliationOnly,ownerObservationsOnly].filter(Boolean).length > 1 ||
+    process.argv.slice(2).some(option => !['--cancellation-only', '--submission-custody-only', '--submission-refusal-only', '--effect-reconciliation-only','--owner-observations-only'].includes(option))) {
   throw new Error('Unknown public recovery acceptance selection');
 }
 const state = checkoutState(repository);
@@ -71,6 +72,7 @@ const support = [
   'adapters/host-node/client-submission-custody-public.fixture.mjs',
   'adapters/host-node/submission-epoch-public.test.mjs',
   'adapters/host-node/client-effect-uncertainty.test.mjs',
+  'adapters/host-node/client-owner-observations-public.test.mjs',
   'adapters/host-node/client-effect-cancellation-public.test.mjs',
   'adapters/connectors/salesforce/test/read-compute-effect.fixture.mjs',
   'adapters/connectors/salesforce/test/read-compute-effect.embedded-child.mjs',
@@ -98,7 +100,8 @@ for (const path of support) {
         "import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-local.mjs';",
         "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
     }
-    if (path === 'adapters/host-node/client-values-row-limit.test.mjs' ||
+    if (path === 'adapters/host-node/client-owner-observations-public.test.mjs' ||
+        path === 'adapters/host-node/client-values-row-limit.test.mjs' ||
         path === 'adapters/host-node/client-values-row-limit.fixture.mjs' ||
         path === 'adapters/host-node/client-cancellation-public.fixture.mjs' ||
         path === 'adapters/host-node/submission-epoch-public.test.mjs') {
@@ -145,12 +148,14 @@ const groups = [
   {name: 'submission-input-refusal', file: 'submission-epoch-public.test.mjs',
     pattern: 'durable known-input category|retired pre-Run history|explicit unresolved-history restart|typed Submission Conflict|typed fresh-epoch refusal', count: 11},
   {name: 'effect-reconciliation', file: 'client-effect-uncertainty.test.mjs', count: 3},
+  {name: 'owner-observations', file: 'client-owner-observations-public.test.mjs', count: 2},
 ];
 const selectedGroups = cancellationOnly
   ? groups.filter(group => ['original-cancellation', 'typed-cancellation', 'effect-cancellation'].includes(group.name))
   : submissionCustodyOnly ? groups.filter(group => group.name === 'submission-custody')
   : submissionRefusalOnly ? groups.filter(group => group.name === 'submission-input-refusal')
-  : effectReconciliationOnly ? groups.filter(group => group.name === 'effect-reconciliation') : groups;
+  : effectReconciliationOnly ? groups.filter(group => group.name === 'effect-reconciliation')
+  : ownerObservationsOnly ? groups.filter(group => ['effect-reconciliation','owner-observations'].includes(group.name)) : groups;
 const logs = [];
 let passed = 0;
 // Reuse one installation and the existing per-invocation bound. Preserve each
@@ -171,7 +176,7 @@ for (const group of selectedGroups) {
   passed += checked.counts.passed;
 }
 assert.equal(passed, cancellationOnly ? 8 : submissionCustodyOnly ? 6 : submissionRefusalOnly ? 11
-  : effectReconciliationOnly ? 3 : 45);
+  : effectReconciliationOnly ? 3 : ownerObservationsOnly ? 5 : 47);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -180,20 +185,21 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
   expected121Rows: JSON.parse(await readFile(join(root, 'adapters/host-node/fixtures/read-121.expected.json'), 'utf8')),
   selection: cancellationOnly ? 'original-cancellation' : submissionCustodyOnly
     ? 'submission-custody' : submissionRefusalOnly ? 'submission-input-refusal'
-    : effectReconciliationOnly ? 'effect-reconciliation' : 'read-cancellation-submission-and-effect',
+    : effectReconciliationOnly ? 'effect-reconciliation' : ownerObservationsOnly ? 'scoped-owner-observations' : 'read-cancellation-submission-and-effect',
   cases: cancellationOnly ? {originalCancellationRecovery: 4, typedCancellationRecovery: 2, unknownEffectCancellationRecovery: 2}
     : submissionCustodyOnly ? {submissionCustodyLoss: 2, explicitSubmissionRestartProcessRecovery: 2,
       typedSubmissionProcessRecovery: 2}
     : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
       explicitSubmissionRestart: 3, typedSubmissionConflictAndReplay: 2, typedSubmissionEpochRefusal: 2}
     : effectReconciliationOnly ? {originalEffectReconciliation: 3}
+    : ownerObservationsOnly ? {scopedOwnerSnapshots:2,originalEffectReconciliation:3}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
       installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4, typedCancellationRecovery: 2,
       unknownEffectCancellationRecovery: 2,
       submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
       explicitSubmissionRestart: 3, explicitSubmissionRestartProcessRecovery: 2,
       typedSubmissionConflictAndReplay: 2, typedSubmissionEpochRefusal: 2, typedSubmissionProcessRecovery: 2,
-      originalEffectReconciliation: 3},
+      originalEffectReconciliation: 3,scopedOwnerSnapshots:2},
   passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
 scratch.passed();

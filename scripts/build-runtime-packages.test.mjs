@@ -268,6 +268,13 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs ',
 );
 
+// Scoped Owner observations reuse the existing distribution gate. Keep its
+// independently authored command inventory and avoid a second packed producer.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-effect-uncertainty.test.mjs ',
+  'adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs ',
+);
+
 // The issued-retention original regression is part of the existing prepared
 // distribution gate. Pin its one intended addition independently of the
 // package command, retaining the exact inventory and duplicate rejection.

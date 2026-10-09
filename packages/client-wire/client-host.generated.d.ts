@@ -1,7 +1,7 @@
 // Generated from the registered Client–Host machine contract.
 export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
 export declare const runStateProtocol: Readonly<{version: "actql-run-state/0.1"; statuses: readonly ("preparing" | "running" | "waiting_checkpoint" | "resuming" | "needs_reconciliation" | "succeeded" | "failed" | "cancelled")[]}>;
-export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "restart-intent" | "lookup-submission" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
+export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "restart-intent" | "lookup-submission" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek" | "owner-observations";
 export type WireValueContractShape = Readonly<{
   type: "decimal";
   nullable: boolean;
@@ -1091,6 +1091,223 @@ export type WireResultDescriptionShape = Readonly<{
   version: "actql-json/0.1" | "actql-jsonl/0.1" | "actql-csv/0.1";
   contractCid: string;
 }>;
+}>;
+
+export type WireOwnerRefShape = Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+
+export type WireOwnerCursorShape = Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+
+export type WireOwnerObservationsShape = Readonly<{
+  ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  consistency: "non_atomic";
+  ordering: "owner_local";
+  owners: readonly (Readonly<{
+  owner: "run" | "effect" | "publication" | "delivery" | "site";
+  kind: "unavailable";
+  problem?: Readonly<{
+  kind: "acquisition_failed" | "limit_exceeded" | "history_unrecoverable" | "cursor_mismatch";
+}>;
+}> | Readonly<{
+  owner: "run";
+  ownerRef: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  kind: "observed";
+  history: Readonly<{
+  kind: "not_provided";
+}> | Readonly<{
+  kind: "retention_expired";
+}> | Readonly<{
+  kind: "history_unrecoverable";
+}> | Readonly<{
+  kind: "cursor_mismatch";
+}> | Readonly<{
+  kind: "cursor_expired";
+}> | Readonly<{
+  kind: "limit_exceeded";
+}> | Readonly<{
+  kind: "acquisition_failed";
+}> | Readonly<{
+  kind: "page";
+  entries: readonly Readonly<{
+  revision: number;
+  entryCid: string;
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>[];
+  cursor?: Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+}>;
+  snapshot: Readonly<{
+  revision?: number;
+  value: WireRunStateShape;
+}>;
+}> | Readonly<{
+  owner: "run";
+  ownerRef: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  kind: "observed";
+  history: Readonly<{
+  kind: "not_provided";
+}> | Readonly<{
+  kind: "retention_expired";
+}> | Readonly<{
+  kind: "history_unrecoverable";
+}> | Readonly<{
+  kind: "cursor_mismatch";
+}> | Readonly<{
+  kind: "cursor_expired";
+}> | Readonly<{
+  kind: "limit_exceeded";
+}> | Readonly<{
+  kind: "acquisition_failed";
+}> | Readonly<{
+  kind: "page";
+  entries: readonly Readonly<{
+  revision: number;
+  entryCid: string;
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>[];
+  cursor?: Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+}>;
+  snapshotProblem: Readonly<{
+  kind: "limit_exceeded" | "acquisition_failed";
+}>;
+}> | Readonly<{
+  owner: "effect";
+  ownerRef: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  kind: "observed";
+  history: Readonly<{
+  kind: "not_provided";
+}> | Readonly<{
+  kind: "retention_expired";
+}> | Readonly<{
+  kind: "history_unrecoverable";
+}> | Readonly<{
+  kind: "cursor_mismatch";
+}> | Readonly<{
+  kind: "cursor_expired";
+}> | Readonly<{
+  kind: "limit_exceeded";
+}> | Readonly<{
+  kind: "acquisition_failed";
+}> | Readonly<{
+  kind: "page";
+  entries: readonly Readonly<{
+  revision: number;
+  entryCid: string;
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>[];
+  cursor?: Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+}>;
+  snapshot: Readonly<{
+  revision?: number;
+  value: Readonly<{
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>;
+}>;
+}> | Readonly<{
+  owner: "effect";
+  ownerRef: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  kind: "observed";
+  history: Readonly<{
+  kind: "not_provided";
+}> | Readonly<{
+  kind: "retention_expired";
+}> | Readonly<{
+  kind: "history_unrecoverable";
+}> | Readonly<{
+  kind: "cursor_mismatch";
+}> | Readonly<{
+  kind: "cursor_expired";
+}> | Readonly<{
+  kind: "limit_exceeded";
+}> | Readonly<{
+  kind: "acquisition_failed";
+}> | Readonly<{
+  kind: "page";
+  entries: readonly Readonly<{
+  revision: number;
+  entryCid: string;
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>[];
+  cursor?: Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+}>;
+  snapshotProblem: Readonly<{
+  kind: "limit_exceeded" | "acquisition_failed";
+}>;
+}>)[];
+  revisionVector: readonly Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  snapshotCid?: string;
+  historyHead?: null | Readonly<{
+  generation: string;
+  revision: number;
+  entryCid: string;
+}>;
+}>[];
+  unmatchedCursors?: readonly Readonly<{
+  index: number;
+  kind: "unavailable";
+}>[];
 }>;
 
 export type WireRunStateShape = Readonly<{

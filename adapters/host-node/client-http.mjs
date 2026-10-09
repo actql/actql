@@ -12,7 +12,7 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
-  validResourcePeek, validRunState, validResultDescription,
+  validResourcePeek, validRunState, validResultDescription, validOwnerObservations,
   validCheckOutcome,
   validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
@@ -42,6 +42,7 @@ async function boundedJson(request, maxBytes) {
 
 function responseCode(error) {
   if (error?.code === 'RunStateAccessDenied' ||
+      error?.code === 'RunObservationAccessDenied' ||
       error?.code === 'ResultAccessDenied' ||
       error?.code === 'ResultDeliveryDenied' ||
       error?.code === 'ClientAuthenticationDenied' ||
@@ -158,7 +159,7 @@ function observationAttempt(response) {
 
 export function createClientHttpHandler({
   authenticate, authorizeConnection, workspaceForPrincipal, stateService, resultService,
-  negotiate, submit, submitIntent, lookupSubmission, attach, lookupRequest, observeRun, wait, cancel, lookupCancellation,
+  negotiate, submit, submitIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
   check, maxRequestBytes = 65536, observe, loopbackHttp = false,
@@ -308,6 +309,10 @@ export function createClientHttpHandler({
           invalid('InvalidClientHostRunState');
         }
         sendJson(state);
+      } else if (operation === 'owner-observations') {
+        const views = await invoke(observeOwners);
+        if (!validOwnerObservations(views,ref,body)) invalid('InvalidClientHostOwnerObservations');
+        sendJson(views);
       } else if (operation === 'wait') {
         const observer = observationAttempt(response);
         try {

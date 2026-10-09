@@ -79,6 +79,9 @@ import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
   '../local-node/retained-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
+import {installClientOwnerObservations} from './client-owner-observations.mjs';
+import {createClientOwnerCursorCodec} from './client-owner-cursor.mjs';
+import {installClientEffectObservations} from './client-effect-observations.mjs';
 import {assertEffectTargetReadBinding, effectTargetReadContinuation} from
   './effect-target-read-continuation.mjs';
 import {EFFECT_TARGET_CONTINUATION} from './effect-target-read-inventory.mjs';
@@ -361,6 +364,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   let diagnostic;
   let observation;
   let localSnapshotConfiguration;
+  let ownerViews;
   try {
     const delivery = createDiagnosticObserver(authorization?.observe);
     diagnostic = Object.assign((event, detail) => {
@@ -2515,6 +2519,28 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     }
     return busy;
   };
+  const ownerCursorCodec = authorization?.hostKey === undefined ? undefined :
+    createClientOwnerCursorCodec({privateKey:authorization.hostKey.privateKey,
+      publicKey:createPublicKey(authorization.hostKey.privateKey)});
+  const authorizeObservation = value => hostConnection(value) &&
+    journal.lookupRunDefinition(value.ref,moon,control) !== undefined;
+  ownerViews=installedEffect === undefined ? undefined : installClientEffectObservations({moon,
+    root:join(root,'state','effects','ledger'),authorize:authorizeObservation});
+  const observeOwners = installClientOwnerObservations({
+    authorizeRun:authorizeObservation, codec:ownerCursorCodec,maxEntries:1000,maxWireBytes:65536,
+    sourcesFor:value => {
+      const {ref,principalId:actual}=value;
+      const retained=journal.lookupRunDefinition(ref,moon,control);
+      const owned=ownerViews === undefined ? undefined : journal.lookupOwnedDefinition({
+        ...ref,requestId:retained.requestId},moon,control);
+      return [{owner:{kind:'run',scopeCid:ref.authorityScopeCid,streamCid:ref.runDefinitionCid},
+        history:'not_provided',authorize:authorizeObservation,
+        readSnapshot:async () => ({value:await observeRun({ref,principalId:actual})})},
+        ...(ownerViews === undefined ? [] : owned === undefined ? [{kind:'problem',
+          ownerKind:'effect',problem:'acquisition_failed',authorize:authorizeObservation}] :
+          ownerViews.sources(owned.requestIdentity,value))];
+    },
+  });
   const hostOperations = {
     observe: observed,
     // A service Workspace is an installed network target label. It does not
@@ -2531,7 +2557,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     submitIntent: submissionService.submitAttempt,
     lookupSubmission: submissionService.lookupSubmission,
     lookupRequest: lookupHeld,
-    stateService, resultService, observeRun, wait, reconcile, cancel, lookupCancellation, cancelRequest,
+    stateService, resultService, observeRun, observeOwners, wait, reconcile, cancel, lookupCancellation, cancelRequest,
     ...checkpointOperations,
     // Discovery of the installed source, when its adapter serves it.
     ...(sourceProfile?.discovery ?? {}),
@@ -2556,7 +2582,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       undefined, () => ingress.perform(operation, request, signal)),
   });
   return {port, store, journal, hostOperations, checkpoints, diagnostic,
-    observation,
+    observation, ownerViews,
     dispatchOwner, inspectAcquisition, sourceProfile, installedEffect,
     retireTerminalEffects};
   } catch (cause) {
@@ -2564,7 +2590,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store, checkpoints, dispatchOwner,
-        sourceProfile, installedEffect, observation});
+        sourceProfile, installedEffect, observation, ownerViews});
   }
 }
 
