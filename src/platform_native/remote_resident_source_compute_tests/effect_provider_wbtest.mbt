@@ -1,5 +1,20 @@
 // Actual retained Native proposals and a physical HTTPS Provider fixture.
-// These observations are not whole-Preview admission, approval or Effect apply.
+// The observations feed checked whole-Preview binding; approval and apply remain separate.
+
+///|
+struct ResidentProviderFacts {
+  rows : Array[
+    (
+      @catalog.SingleWriteRequest,
+      String,
+      @catalog.TargetObservation,
+      @catalog.TargetPreviewRow,
+    ),
+  ]
+  catalog : @catalog.CatalogObservation
+  runtime_bundle_cid : String
+  request : @host.ClientRequestIdentity
+}
 
 ///|
 fn provider_json(wire : String) -> Json {
@@ -177,10 +192,11 @@ fn resident_provider_observe(
   inputs : @strategy.CapturedEffectInputs,
   acquired : @host.ClientEffectAcquiredEvidence,
   dispatch : @remote.DispatchRequest,
+  request : @host.ClientRequestIdentity,
   root_path : String,
   name : String,
   deny_provider? : Bool = false,
-) -> Unit raise {
+) -> ResidentProviderFacts? raise {
   let (_, invocation) = producer_dependency_observation(materials, acquired)
   let initial = provider_binding()
   let binding = {
@@ -321,6 +337,7 @@ fn resident_provider_observe(
   assert_true(observe("target-a", 1, "another-effect") is Err(ForeignMapping))
   assert_eq(access_count.val, 0)
   let outcome = observe("target-a", 1, "save")
+  let mut facts : ResidentProviderFacts? = None
   if deny_provider {
     assert_true(outcome is Err(Provider(Credential(_))))
     assert_eq(
@@ -329,6 +346,12 @@ fn resident_provider_observe(
     )
   } else {
     let rows = outcome.unwrap()
+    facts = Some({
+      rows,
+      catalog,
+      runtime_bundle_cid: scope.runtime_bundle_cid,
+      request,
+    })
     assert_eq(rows.length(), 1)
     assert_eq(
       @catalog.target_preview_row_target_wire(rows[0].3),
@@ -366,4 +389,5 @@ fn resident_provider_observe(
   assert_true(consumer.usage().held_bytes > 0L)
   database.close_checked().unwrap()
   assert_true(client.close())
+  facts
 }
