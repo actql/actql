@@ -384,6 +384,20 @@ common contract. This connects the selected
 [GoogleSQL Pipe EXTEND](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#extend)
 without a separate window executor or a new alias scope.
 
+Pipe SELECT accepts its own optional WINDOW clause after the projection list.
+Direct window outputs, scalar window operands and star replacements resolve
+against those declarations and the SELECT's input snapshot. Names follow the
+same declaration inheritance/conflict rules as SQL WINDOW, including quoted
+case-insensitive lookup, but cannot leak into the next Pipe operator. A later
+SELECT or EXTEND can declare the same name for a different window. Projection
+and DISTINCT retain their existing scope, evaluation and hidden-slot rules.
+Unused declarations do not introduce a GROUP or evaluate aggregate keys;
+used ordinary aggregates cannot introduce implicit grouping in Pipe SELECT.
+This connects the selected
+[GoogleSQL Pipe SELECT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#select)
+to the same common analytic signatures, frames and output contracts as inline
+window specifications.
+
 QUALIFY resolves SELECT aliases to their evaluated slots before same-name
 inputs. Qualified input references retain their input meaning. A scalar alias
 needed by the condition is evaluated once against SELECT's input snapshot and
