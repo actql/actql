@@ -55,6 +55,7 @@ struct ResidentSourceCompute {
   close_source : () -> Bool
   capture : @query.CapturedInputSource?
   effect_source : ResidentEffectSourceCapture?
+  effect_retained : ResidentEffectRetainedCapture?
   run : @strategy.CapturedDAG
   effect_run : @strategy.CapturedEffectRunDAG?
   compute : @duckdb_native.NativeStandardStrategyRun
@@ -342,6 +343,7 @@ fn open_resident_source_compute_owned(
         Pure(_) => None
         Effect(bound) =>
           Some({
+            bound,
             owner: @host.prepared_client_effect_run_computation(bound),
             requirement,
             capture,
@@ -536,6 +538,7 @@ fn open_resident_captured_compute(
     Int,
   )? = None,
   effect_source? : ResidentEffectSourceCapture? = None,
+  effect_retained? : ResidentEffectRetainedCapture? = None,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -699,6 +702,7 @@ fn open_resident_captured_compute(
   let owner : ResidentSourceCompute = {
     effect_run,
     effect_source,
+    effect_retained,
     close_source,
     capture: captured,
     run,

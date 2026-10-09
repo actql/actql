@@ -198,3 +198,11 @@ pub fn captured_effect_local_unit_result_export_matches_receipt(
     EffectInputs(_) => false
   }
 }
+
+///|
+pub fn captured_effect_local_unit_inputs_match_run(
+  inputs : CapturedEffectLocalUnitInputs,
+  run : CapturedEffectRunDAG,
+) -> Bool {
+  inputs.live && !run.captured.stopped && physical_equal(inputs.run, run)
+}

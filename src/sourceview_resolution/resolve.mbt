@@ -21,6 +21,7 @@ pub(all) enum IssueKind {
 pub(all) struct Issue {
   kind : IssueKind
   source : @decode.Cursor?
+  priv unresolved_selector : UnresolvedSelector?
 }
 
 ///|
@@ -90,7 +91,7 @@ fn resource_address(
 
 ///|
 fn[T] fail(kind : IssueKind, source : @decode.Cursor?) -> T raise Stop {
-  raise Stop({ kind, source, })
+  raise Stop({ kind, source, unresolved_selector: None, })
 }
 
 ///|
@@ -177,15 +178,15 @@ pub fn resolve(
   limits : Limits,
 ) -> Result[Resolved, Issue] {
   if limits.max_work < 0 || limits.max_inputs < 0 || limits.max_views < 0 {
-    return Err({ kind: InvalidLimits, source: None, })
+    return Err({ kind: InvalidLimits, source: None, unresolved_selector: None, })
   }
   let count = @inputs.count(inputs)
   if count > limits.max_inputs {
-    return Err({ kind: InputLimit, source: None, })
+    return Err({ kind: InputLimit, source: None, unresolved_selector: None, })
   }
   let view_count = @environment.source_request_usage(catalog).2
   if view_count > limits.max_views {
-    return Err({ kind: ViewLimit, source: None, })
+    return Err({ kind: ViewLimit, source: None, unresolved_selector: None, })
   }
   let b = { work: limits.max_work, }
   let owner = { inputs, catalog, }
@@ -249,7 +250,11 @@ pub fn resolve(
               // Failure-only object indexing retains the explicit selector span.
               charge(b, @decode.object_length(declaration.source).unwrap(), at)
               let obj = @decode.open_object(declaration.source).unwrap()
-              fail(Unresolved, @decode.lookup(obj, "view"))
+              fail_unresolved_selector(
+                owner,
+                declaration,
+                @decode.lookup(obj, "view").unwrap(),
+              )
             }
           }
         }
@@ -257,7 +262,8 @@ pub fn resolve(
           let candidates = match
             groups.get((declaration.connector, declaration.resource)) {
             Some(v) => v
-            None => fail(Unresolved, at)
+            None =>
+              fail_unresolved_selector(owner, declaration, declaration.source)
           }
           if candidates.length() != 1 {
             fail(Ambiguous(candidate_names(candidates, b, at)), at)

@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "scope": "Actual Native retained local Result -> private Effect Source Artifact preserving original Run Invocation/retention -> existing Preview source admission. Semantic binding only, not durable private Store custody or write approval.",
+  "verifiedSource": "86830fc52c4148121fa5155681ea036a0e70b80d",
+  "sourceClean": true,
+  "mergedMain": "ffe46cdae6d064a60da517dec2937eeaee4a1c30",
+  "dependency": {
+    "pr": "https://github.com/actql/actql/pull/1131",
+    "head": "55080fff54eb048de3832677e469f166da4a4e9e",
+    "finalTarget": "main",
+    "integrationOrder": [
+      1112,
+      1117,
+      1120,
+      1123,
+      1129,
+      1131
+    ]
+  },
+  "files": {
+    "src/platform_native/remote_resident_host/effect_source_artifact.mbt": "281018ec4dda016756f9ce2262def61389e46887e305ee8dd239cc0bac677305",
+    "src/platform_native/remote_resident_host/pkg.generated.mbti": "fb3e59de7d4981870125b0d548ee1df565f4e949e89d3a1d7a0a877f3e31d9f7",
+    "src/platform_native/remote_resident_source_compute_tests/effect_preview_inputs_wbtest.mbt": "917af6ce8a211d0e81e0b4df4b8e3a63f81e2b599a90dc5fea9bcf0883af9500",
+    "src/run_publication_host/client_effect_acquired_evidence.mbt": "39e776ce652ec4b86749e8cbe9619e47ceb241588b54248f6bcbc2ebad9364e8",
+    "src/run_publication_host/client_effect_imported_evidence.mbt": "90382cb0a113e890b68addfec3ae2b9105665613bcddcbad3de446a5e417b8fb",
+    "src/run_publication_host/client_effect_local_result_artifact.mbt": "f48dc2bd3526ba944b9a61305e5a3b834674c8ba256f60ed5afae43a32b0e577",
+    "src/run_publication_host/client_effect_local_table_artifact.mbt": "90311717ef94920eaa85b647206cede2fca1cb2ce729d3591cab09ce20715c3e",
+    "src/run_publication_host/client_effect_source_artifact.mbt": "14330ee205e8683a8c61b5c43ddeb60bc1cc7f777f4b955de084fa9557549d22",
+    "src/run_publication_host/pkg.generated.mbti": "a1a10da939d99edb837cc5619e450ff5a5c3a8e31bf2898bc17505605c1162f2"
+  },
+  "receipt": "_build/resident-effect-private-source-1791540662488/receipt.json",
+  "sourceRecord": "_build/resident-effect-private-source-1791540662488/source.json",
+  "inputs": "_build/resident-effect-private-source-1791540662488/inputs.json",
+  "artifact": {
+    "source": "86830fc52c4148121fa5155681ea036a0e70b80d",
+    "scope": "Native whitebox fixture, not a production Site binary",
+    "artifact": "_build/resident-effect-private-source-1791540662488/retained-compute.whitebox_test.exe",
+    "sha256": "f5c0df3931d153293e169469ee2e450fe6ee5cbfe51d53dd4576a3e5d09bb33a"
+  },
+  "checks": [
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*Effect retained consumer*\"",
+      "tests": 2,
+      "passed": 2
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/effect_producer_dependency_wbtest.mbt --filter \"*Native Effect producer dependency*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*retained Direct holding*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*retained Native cancellation*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Bounded/nonzero moon test --target js src/query_integration/client_effect_local_export_wbtest.mbt --filter \"*shared local Artifact issuer*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Scoped moon fmt; moon info --target native src/platform_native/remote_resident_host src/physical_strategy src/run_publication_host; node proofs/relation-pipeline/history.mjs --write; git diff --check",
+      "result": "passed"
+    }
+  ],
+  "actualEvidence": {
+    "sourceAcquisitions": 1,
+    "consumerEntries": 1,
+    "consumerRows": [
+      {
+        "id": 3
+      }
+    ],
+    "privateSourceArtifactIssuedFromNativeExportOwner": true,
+    "originalRunInvocationPreserved": true,
+    "retentionPreserved": true,
+    "existingPreviewSourceAdmission": "admit_captured_effect_source_from_result",
+    "existingHoldingIdentity": "effect_source_artifact_holding_cid; no durable holding committed",
+    "actualNativePlanProof": {
+      "selector": 3,
+      "intendedChanges": {
+        "state": "present",
+        "value": {
+          "Name": 3
+        }
+      }
+    },
+    "sourceAndDestinationCapacityAfterCleanup": "zero",
+    "capacityBoundBytes": 536870912
+  },
+  "refusals": [
+    "Another original Run",
+    "A different admitted Run Invocation",
+    "Refreshed retention policy",
+    "Another Effect member",
+    "Wrong Store authority at Preview source admission"
+  ],
+  "initialFailure": {
+    "source": "e3e7e3d23473edcecd995a388b962f3279a5c670",
+    "log": "_build/resident-effect-private-source-1791540544517/tests.log",
+    "result": "Native fixture SIGABRT on unwrap; no passing test count",
+    "correction": "Use existing admission for complete Result Artifact; remove the retention self-CID before sealing the negative fixture with changed expiry."
+  },
+  "limitations": [
+    "Provider target version, capability, Store authority and source-binding allocation remain fixtures; source content facts come from the actual retained Native Artifact",
+    "No durable private Source holding or saved semantic body restoration",
+    "Producer completion observation is an explicit protocol fixture, not public Cloud start-claim evidence",
+    "No waiting Run commit, approval, physical Effect write or restart acceptance",
+    "Native whitebox executable is not a production Site binary or formal package cohort",
+    "Formal Cloud OSS pin remains 1376a2ec4b0cb1944971b268f7c2c637fcc37e99; formal adoption waits for merged OSS main",
+    "Hosted CI not started/rerun; no deployment or public SDK/Preview acceptance; local success is not CI success",
+    "Old failed Run custody remains unresolved separately"
+  ]
+}

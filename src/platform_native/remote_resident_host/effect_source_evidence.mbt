@@ -2,6 +2,7 @@
 /// The original acquisition Owner and its exact checked requirement remain
 /// with the producer. Transfer destination bytes cannot issue this observation.
 priv struct ResidentEffectSourceCapture {
+  bound : @host.PreparedClientEffectRun
   owner : @host.PreparedClientEffectComputation
   requirement : @planning.QueryRequirement
   capture : @duckdb_host.NativeHostSourceCapture
@@ -113,4 +114,21 @@ pub fn ResidentSourceCompute::prepare_effect_acquired_evidence(
     return Err(Unavailable)
   }
   Ok((evidence, bodies))
+}
+
+///|
+/// Bind the Artifact to this actual Source capture and its original dispatch.
+pub fn ResidentSourceCompute::bind_effect_producer_artifact(
+  self : ResidentSourceCompute,
+  artifact : @host.ClientEffectLocalResultArtifact,
+) -> Result[
+  @host.ClientEffectProducerArtifact,
+  @host.ClientEffectTransferredArtifactIssue,
+] {
+  guard !self.stopping &&
+    self.effect_run is Some(run) &&
+    self.effect_source is Some(source) else {
+    return Err(Unavailable)
+  }
+  @host.bind_client_effect_producer_artifact(source.bound, run, artifact)
 }

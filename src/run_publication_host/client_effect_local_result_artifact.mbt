@@ -93,6 +93,7 @@ struct ClientEffectLocalResultArtifact {
   custody : ClientEffectLocalArtifactCustody
   source : ClientEffectLocalRelationSource
   invocation : ClientEffectLocalInvocation
+  run_invocation : @publication.PublicationContract
   evidence : @publication.ResultOrderingEvidence
   artifact : @publication.PublicationContract
   retention : @publication.PublicationContract
@@ -209,6 +210,7 @@ pub fn issue_source_free_client_effect_local_result_artifact(
     ResultSource(@strategy.captured_effect_input_borrow(input), definition),
     invocation,
     receipt,
+    run_invocation,
     retention,
     scope_cid,
     effective_data_policy_cid,
@@ -305,6 +307,7 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(
     ResultSource(borrow, definition),
     invocation,
     receipt,
+    run_invocation,
     retention,
     @publication.publication_contract_identity(scope),
     policy,
@@ -323,6 +326,7 @@ fn build_client_effect_local_result_artifact(
   source : ClientEffectLocalRelationSource,
   invocation : ClientEffectLocalInvocation,
   receipt : @execution.CompletedRelationExportReceipt,
+  run_invocation : @publication.PublicationContract,
   retention : @publication.PublicationContract,
   scope_cid : String,
   effective_data_policy_cid : String,
@@ -392,6 +396,7 @@ fn build_client_effect_local_result_artifact(
     physical_cid,
     physical_bytes,
     export_receipt: receipt,
+    run_invocation,
   })
 }
 

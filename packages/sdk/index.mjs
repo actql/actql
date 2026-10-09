@@ -474,6 +474,29 @@ const submissionLookupExplanation = (observation, input) => freezeInput({
 const submissionObservationHint = 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.';
 const submissionTarget = context => ({operation: 'lookupSubmission',
   submissionRef: context.submissionRef, lookupContext: context.lookupContext});
+const retainSubmissionAttemptExplanation = (result, attempt, snapshot) => {
+  // This admitted invocation fact is separate from the original durable
+  // receipt. Keep only the submitted reference, never a conflicting old intent.
+  const summaries = attempt.kind === 'refused' ? {
+    authorization: 'The Host refused this submission invocation under current authorization. This invocation committed no submission and consumed no operation identity.',
+    admission_capacity: 'The Host refused this submission invocation because admission capacity was unavailable. This invocation committed no submission and consumed no operation identity.',
+    epoch_expired: 'The Host refused this submission invocation because its submitted epoch has expired. This does not establish the original submission outcome.',
+    epoch_not_yet_valid: 'The Host refused this submission invocation because its submitted epoch is not yet valid. This does not establish the original submission outcome.',
+  } : {
+    intent: 'The Host reports a conflicting intent for this original submission identity.',
+    restart_decision: 'The Host reports a conflicting restart decision for this original submission identity.',
+  };
+  requestLookupContexts.set(result, snapshot);
+  submissionExplanations.set(result, freezeInput({
+    observation: attempt.kind, reason: attempt.reason,
+    attemptRef: snapshot.attemptRef, submissionRef: snapshot.submissionRef,
+    ...(attempt.kind === 'refused' ? {guarantee: attempt.guarantee} : {}),
+    summary: summaries[attempt.reason],
+    hint: 'Keep the original submission reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s acceptance, grant permission to resubmit, or authorize changed input or a new restart decision.',
+    next: submissionTarget(snapshot),
+  }));
+  return result;
+};
 const retainSubmissionExplanation = (result, outcome, context) => {
   requestLookupContexts.set(result, context);
   // Called only after admitting the exact Owner response and its binding.
@@ -2185,6 +2208,7 @@ async function connectSelected(selected, port) {
             {...context, outcome: attempt});
           submissionInputs.set(typedRejection, snapshot);
           submissionAttempts.set(typedRejection, attempt);
+          retainSubmissionAttemptExplanation(typedRejection, attempt, snapshot);
           throw typedRejection;
         }
         if (outcome.checkObservation !== undefined) {
