@@ -11,6 +11,8 @@ fn QueryParser::window_reference(
 ///|
 fn QueryParser::window_specification(
   self : QueryParser,
+  calls? : Array[(NamePart, AggregateCall)]? = None,
+  aggregate_prefix? : String = "aql_window_aggregate_",
 ) -> AnalyticWindow raise QueryAbort {
   if self.peek().value != Symbol(40) {
     return {
@@ -34,7 +36,16 @@ fn QueryParser::window_specification(
     self.keyword("PARTITION")
     self.keyword("BY")
     while true {
-      partition_by.push(self.expression())
+      partition_by.push(
+        match calls {
+          Some(outputs) => {
+            let (expression, embedded) = self.aggregate_expression(aggregate_prefix)
+            outputs.append(embedded)
+            expression
+          }
+          None => self.expression()
+        },
+      )
       if self.peek().value != Symbol(44) {
         break
       }
@@ -44,7 +55,7 @@ fn QueryParser::window_specification(
   let order_by = if self.has("ORDER") {
     self.keyword("ORDER")
     self.keyword("BY")
-    self.order()
+    self.order(calls~, aggregate_prefix~)
   } else {
     []
   }

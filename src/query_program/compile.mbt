@@ -874,7 +874,10 @@ fn output_name(
     if @query.expression_origin(expression, @query.expression_root(expression))
       is Some(origin) {
       raise Abort(
-        Expression({ issue: @expression.UnknownReference, origin: Some(origin), }),
+        Expression({
+          issue: @expression.UnknownReference,
+          origin: Some(origin),
+        }),
       )
     }
     raise Abort(UnknownColumn)
@@ -3827,6 +3830,19 @@ fn compile_steps(
             if path.length() == 1 {
               for (name, slot) in order_aliases {
                 if same_name(name, path[0]) {
+                  return Some(slot)
+                }
+              }
+            }
+            return pipe_slot(path, order_scope.visible, order_scope.ranges)
+          }
+          if sql_group_projection {
+            // GROUP may reuse an authored aggregate slot for a private call.
+            // Resolve SELECT window keys through retained input bindings and
+            // parser-owned aggregate references, never sibling SELECT aliases.
+            if path.length() == 1 {
+              for (name, slot) in having_aggregate_slots {
+                if same_name({ value: name, quoted: false, }, path[0]) {
                   return Some(slot)
                 }
               }

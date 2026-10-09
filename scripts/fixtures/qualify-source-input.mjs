@@ -141,6 +141,56 @@ groupedOrderWindowProgram.stages[1].steps = [
   {select: [{original: 'id'}, {id: 'counted'}], as: 'summary'},
 ];
 groupedOrderWindowProgram.stages[1].results.rows.fields = ['original', 'id'];
+// Independent GROUP -> ANALYTIC control for an ordinary aggregate in OVER.
+// The shared capture still filters id > 0 once; duplicate id=3 gives count 2.
+export const aggregateWindowKeyProgram = structuredClone(qualifyProgram);
+aggregateWindowKeyProgram.id = 'fixture.aggregate_window_key';
+aggregateWindowKeyProgram.stages[1].steps = [
+  {from: 'records', group: {by: ['id'], aggregates: {counted: {fn: 'count'}}}},
+  {analytic: {partition_by: [], order_by: [{field: 'counted', dir: 'desc', nulls: 'last'},
+    {field: 'id', dir: 'asc', nulls: 'first'}], functions: {n: {fn: 'row_number'}}}},
+  {select: ['id', 'n']},
+  {sort: [{field: 'n', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+];
+const aggregateWindowHead = 'SELECT records.id, ROW_NUMBER() OVER (ORDER BY ';
+const aggregateWindowTail = ' DESC, records.id) AS n FROM records WHERE id > 0 GROUP BY records.id ORDER BY n';
+const aggregateWindowExpected = [{id: 3, n: 1}, {id: 1, n: 2}, {id: 2, n: 3}];
+qualifySuccesses.push(
+  success('aggregate-window-key-json', JSON.stringify(aggregateWindowKeyProgram), {
+    format: 'json', expected: aggregateWindowExpected,
+  }),
+  success('aggregate-window-key-count', aggregateWindowHead + 'COUNT(*)' + aggregateWindowTail, {
+    expected: aggregateWindowExpected,
+  }),
+  success('aggregate-window-key-expression', aggregateWindowHead + 'COUNT(*) + 1' + aggregateWindowTail, {
+    expected: aggregateWindowExpected,
+  }),
+  success('aggregate-window-key-nullable-count', aggregateWindowHead + 'COUNT(amount)' + aggregateWindowTail, {
+    expected: [{id: 3, n: 1}, {id: 2, n: 2}, {id: 1, n: 3}],
+  }),
+  success('aggregate-window-key-partition', 'SELECT records.id, ROW_NUMBER() OVER '
+    + '(PARTITION BY COUNT(*) ORDER BY records.id) AS n FROM records WHERE id > 0 '
+    + 'GROUP BY records.id ORDER BY records.id', {
+    expected: [{id: 1, n: 1}, {id: 2, n: 2}, {id: 3, n: 1}],
+  }),
+  success('aggregate-window-key-reuse', 'SELECT records.id, COUNT(*) AS total, ROW_NUMBER() OVER '
+    + '(ORDER BY COUNT(*) DESC, records.id) AS n FROM records WHERE id > 0 '
+    + 'GROUP BY records.id ORDER BY n', {
+    columns: [column('id'), column('total'), column('n')],
+    expected: [{id: 3, total: 2, n: 1}, {id: 1, total: 1, n: 2}, {id: 2, total: 1, n: 3}],
+  }),
+  success('aggregate-window-key-qualify', 'SELECT records.id FROM records WHERE id > 0 GROUP BY records.id '
+    + 'QUALIFY ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, records.id) = 1 ORDER BY records.id', {
+    columns: [column('id')], expected: [{id: 3}],
+  }),
+  success('aggregate-window-key-query-order', 'SELECT records.id FROM records WHERE id > 0 GROUP BY records.id '
+    + 'ORDER BY ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, records.id)', {
+    columns: [column('id')], expected: [{id: 3}, {id: 1}, {id: 2}],
+  }),
+  success('aggregate-window-key-empty', aggregateWindowHead + 'COUNT(*)' + aggregateWindowTail, {
+    sourceRows: [], expected: [],
+  }),
+);
 const groupedHead = 'SELECT records.id AS original, COUNT(*) AS id, '
   + 'ROW_NUMBER() OVER (ORDER BY records.id) AS rn FROM records WHERE id > 0 GROUP BY records.id ';
 const groupedColumns = [column('original'), column('id'), column('rn')];
@@ -209,6 +259,12 @@ export const qualifyRefusals = [
     text: groupedHead + 'QUALIFY records.amount > 0', expectedCode: 'ClientProgramInvalidInput'},
   {name: 'qualify-grouped-order-discarded-input', format: 'sql',
     text: orderHead + 'records.amount), original', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'qualify-aggregate-window-key-sibling', format: 'sql',
+    text: 'SELECT records.id AS invented, ROW_NUMBER() OVER (ORDER BY COUNT(invented), records.id) AS n '
+      + 'FROM records GROUP BY records.id', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'qualify-aggregate-window-key-nested-window', format: 'sql',
+    text: 'SELECT records.id, ROW_NUMBER() OVER (ORDER BY COUNT(*) OVER (ORDER BY records.id)) AS n '
+      + 'FROM records GROUP BY records.id', expectedCode: 'ClientProgramInvalidInput'},
 ]);
 export const qualifyExecutionFailures = [{name: 'qualify-demanded-error', format: 'aql-text',
   text: 'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records WHERE id > 0 '
