@@ -54,9 +54,11 @@ receives formatter-only reflow.
 ## Independent checks
 
 - Related JS callers: **47/47**, `run-mvFyIE` / `focused-test-7igV5Q`.
-- Final four new scalar tests: **4/4**, `run-sHBxvC` / `focused-test-WVFD0K`.
-  These overlap the earlier selection and are not summed as 51 distinct tests.
+- Final five new scalar tests, including the public single-query compiler:
+  **5/5**, `run-VnsTHq` / `focused-test-Sd91Db`. These overlap the earlier
+  selection and are not summed as 52 distinct tests.
 - Node fixture/import checks: **12/12**, `run-GYWfyK` / `focused-test-qmZXiW`.
+  Final format assertions: **7/7**, `run-p7ogRR` / `focused-test-XrMCMT`.
 - Two intermediate 48/49 runs failed on an incorrectly authored repeated
   UNNEST syntax. The adopted Pipe shape is `|> CROSS JOIN UNNEST(...)`;
   this corrected source is accepted by the parser before exact scope refusal.
@@ -81,3 +83,20 @@ ordinary RENAME/range collisions, correlated and joined stars and object-column
 stars. Full Core/all-target/all-packed/performance, retained-history validation,
 live Google conformance and submitted-HEAD CI remain unverified locally.
 The full public-text Frontend objective remains active. No merge is requested.
+
+## First public diagnostic and fixture routing correction
+
+Normal clean five-package campaign `run-HsYe2W`, SHA
+`a048ea628090bbf789b933e5352d1816f7ccb7a7`, stopped after two Local JSON
+controls. Receipt `worktrees/.codex-scratch/public-query-evidence-vNz7RV` retains
+the failed command/logs. Local text and HTTPS were not completed.
+
+The new FROM-headed Pipe controls had inherited `format: sql` instead of the
+existing `aql-text` routing. Public preparation correctly refused WrongQueryForm;
+this was a fixture format error, not a product execution failure. The five new
+positive texts and five scope refusals now explicitly select aql-text. Synthetic
+preparation diagnostics using that same unchanged packed runtime pass all five
+positives after correcting the format. This is not pristine new-SHA execution
+evidence. New Node assertions prevent a format refusal from masquerading as the
+intended scope refusal. Values, types, column order, predicates and bounds remain
+unchanged. Fresh execution follows the corrected committed fixture below.

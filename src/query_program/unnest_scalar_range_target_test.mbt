@@ -110,3 +110,37 @@ test "scalar UNNEST range replacement does not disable ordinary edits or DISTINC
     }
   }
 }
+
+///|
+test "scalar UNNEST public single-query entry checks ordinary edited columns" {
+  for
+    tail in [
+      "SELECT element, position |> RENAME element AS next |> ORDER BY position",
+      "AS row |> RENAME element AS next |> ORDER BY position", "SET element = 100 |> RENAME element AS next |> SELECT * |> ORDER BY position",
+      "DROP element |> RENAME position AS next |> SELECT * |> ORDER BY next", "DROP position |> DISTINCT |> SELECT element AS next |> ORDER BY next NULLS LAST",
+    ] {
+    let actual = compile(
+      @query.parse_query(
+        "FROM UNNEST(@items) element WITH OFFSET position |> " + tail,
+        syntax_limits(),
+      ).unwrap(),
+      {
+        ..fixture_context(),
+        inputs: [],
+        parameter_declarations: Some(unnest_parameters()),
+      },
+      construction_limits(),
+    ).unwrap()
+    match
+      @check.check_parsed(
+        actual,
+        check_environment(),
+        Some(unnest_value_cursor("{\"items\":[2,null,2]}")),
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(error) => raise @check.diagnostic_cause(error)
+      _ => fail("the public single-query input is closed")
+    }
+  }
+}

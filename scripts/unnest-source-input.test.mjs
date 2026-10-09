@@ -11,6 +11,7 @@ test('scalar value-table RENAME distinguishes range names from projected columns
     [{next: 'element'}, 'position']);
   for (const name of ['after-select', 'after-as']) {
     const actual = byName.get('unnest-scalar-rename-' + name);
+    assert.equal(actual.format, 'aql-text');
     assert.deepEqual(actual.expected, control.expected);
     assert.deepEqual(actual.columns, control.columns);
   }
@@ -21,6 +22,7 @@ test('scalar value-table RENAME distinguishes range names from projected columns
     [{next: 2}, {next: null}]);
   for (const name of ['scalar-rename-range-0', 'scalar-rename-range-1',
     'scalar-rename-range-2', 'scalar-rename-range-after-join', 'scalar-range-duplicate-unnest']) {
+    assert.equal(unnestRefusals.find(item => item.name === 'unnest-refusal-' + name).format, 'aql-text');
     assert.equal(unnestRefusals.find(item => item.name === 'unnest-refusal-' + name).expectedCode,
       'ClientProgramInvalidInput');
   }
