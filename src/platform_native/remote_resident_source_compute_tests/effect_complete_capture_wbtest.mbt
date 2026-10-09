@@ -1,5 +1,6 @@
 // Full common semantic Captured Run issuance from real Native rows and closed
-// Source/import dependencies. Provider Preview metadata remains a fixture;
+// Source/import dependencies. The numeric fixture uses protocol target metadata;
+// the Provider case uses the physical HTTPS observation and admitted Preview.
 // Encryption/reconciliation is checked by the independent Store custody helper;
 // waiting, Host restart, approval and physical writes are not claimed.
 
@@ -16,6 +17,7 @@ fn retained_effect_complete_capture(
   inventory : @publication.CapturedEffectDependencyInventory,
   authoring : @publication.RunEvidenceValue,
   result : @resident.ResidentEffectResultCapture,
+  provider? : Bool = false,
 ) -> Unit raise {
   let capture = (material, proofs, sources) => {
     consumer.capture_effect_run(
@@ -70,7 +72,14 @@ fn retained_effect_complete_capture(
   assert_true(
     wire.contains(@publication.publication_contract_identity(invocation)),
   )
-  assert_true(wire.contains("\"answer\":[{\"id\":3}]"))
+  assert_true(
+    wire.contains("\"answer\":" + retained_effect_expected_rows(provider)),
+  )
+  // Captured Run contains computation and source custody, not target Preview
+  // before/after. The independently admitted Preview is checked by its caller.
+  assert_true(
+    wire.contains(@publication.captured_effect_source_holding_cid(source)),
+  )
   assert_true(
     wire.contains(
       @publication.captured_effect_dependency_inventory_json(inventory),
@@ -93,6 +102,7 @@ fn retained_effect_complete_capture(
     preview,
     captured,
     @publication.captured_effect_source_store_authority_cid(source),
+    provider~,
   )
   println(
     "retained-effect-capture: complete original Run issued with actual public rows and checked plan",

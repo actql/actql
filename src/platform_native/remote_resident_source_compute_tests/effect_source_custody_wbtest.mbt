@@ -1,5 +1,6 @@
 // Actual Native consumer export and SQLite/filesystem custody. Publication
-// attempt/material/codec and provider target are explicit protocol fixtures.
+// attempt/material/codec are explicit protocol fixtures. The numeric case uses
+// target metadata fixtures; the Provider case observes its target over HTTPS.
 // Reopening this Store retains the live execution Ledger owner; it does not
 // establish Host restart, approval, encrypted Preview persistence or Cloud use.
 
@@ -12,6 +13,7 @@ fn retained_effect_source_store(
   source : @publication.CapturedEffectSourceArtifact,
   local_result : Int,
   stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
+  provider? : Bool = false,
 ) -> Unit raise {
   let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let root = @filesystem.open_root(root_path).unwrap()
@@ -199,7 +201,7 @@ fn retained_effect_source_store(
     }
   }
   reader.finish().unwrap()
-  assert_eq(restored.to_string(), "[{\"id\":3}]")
+  assert_eq(restored.to_string(), retained_effect_expected_rows(provider))
   // The physical Owner has reclaimed its payload, but a lost terminal metadata
   // write still keeps the execution reservation and exact cleanup responsibility.
   store.observe_allocation(step => {

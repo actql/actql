@@ -13,6 +13,7 @@ fn retained_effect_dependency_capture(
   result_index : Int,
   result_export : @strategy.CapturedEffectLocalResultExport,
   result_receipt : @execution.CompletedRelationExportReceipt,
+  provider? : Bool = false,
 ) -> Array[@host.ClientEffectDependencyCapture] raise {
   let capture = (material, artifact, index, bytes, limits) => {
     consumer.capture_effect_dependency(
@@ -109,7 +110,9 @@ fn retained_effect_dependency_capture(
   )
   assert_eq(
     @publication.captured_effect_dependency_body_json(consumer_relation[0]),
-    "{\"sort\":\"relation\",\"value\":[{\"id\":3}]}",
+    "{\"sort\":\"relation\",\"value\":" +
+    retained_effect_expected_rows(provider) +
+    "}",
   )
   // Failure retired only its child export. Original private inputs remain
   // available and a retry produces the same immutable dependency facts.
