@@ -83,8 +83,9 @@ focused-test-nSWyUD. Command:
 `node scripts/local-checks.mjs test node -- scripts/graph-merge-vocabulary.test.mjs scripts/graph-union-source-input.test.mjs scripts/graph-subtraction-source-input.test.mjs`.
 Changed-file moonfmt and git diff --check passed.
 
-Public execution is pending at this commit. Parser/lowering success is not
-public execution evidence. Wasm/native, full Core, complete packed campaigns
+The initial product commit had public execution pending. Complete corrected
+execution evidence follows below; parser/lowering success alone is not execution
+evidence. Wasm/native, full Core, complete packed campaigns
 and submitted-HEAD CI have not been established locally. No merge or manual
 CI rerun is requested.
 
@@ -112,3 +113,56 @@ private full installation was removed by the evidence wrapper.
 
 After exact existing refusal-category corrections, the same targeted Node
 command passed 8/8: guard run-aU1QNr; focused-test-7BSLST.
+
+## Complete corrected public acceptance
+
+Clean source/fixture SHA: `1c5777512065d31a0f2cb0909199542e5850d2b1`.
+One normal five-package producer and independent digest check, followed by the
+two existing narrow consumers sequentially under guard run-8m7enQ:
+`node /private/tmp/actql-b-graph-merge-vocabulary-packed.mjs`.
+Producer: `node scripts/packed-client-packages.mjs /private/tmp/actql-b-graph-merge-vocabulary-1c5777512-pack`.
+Consumers: `node scripts/test-packed-public-query.mjs --graph-union-only` and
+`node scripts/test-packed-public-query.mjs --graph-subtraction-only`, both with
+ACTQL_PACKED_CLIENT_PACKAGES set to that directory. No installed runtime overlay,
+test-side Program repair, old Graph fallback or alternative execution Owner.
+
+Local and HTTPS each completed:
+
+| Cohort | Positives | Pre-admission refusals | Expected execution failures |
+|---|---:|---:|---:|
+| Union | 16 | 14 | 2 |
+| Subtraction | 17 | 13 | 2 |
+
+All eight new source positives and eight new typed refusals completed, as did
+existing JSON controls, nonassociative union-fold order, subtraction endpoint
+closure, nullable/empty results and conflict behavior. Named Result values,
+full Result.describe column contracts and declaration order, edge-key order,
+stream completion, same-request replay and no additional acquisition remain
+checked by the existing public consumer. Refusals preserve zero new Run
+admission/Source I/O and submission lookup. Six old union and one old subtraction
+refusals still use the unchanged default input-code checks; eight corrected old
+implementation-limit cases and all eight new refusals require explicit codes.
+
+Original complete receipts:
+- Union: `/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-iqackh`.
+- Subtraction: `/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-MzU9br`.
+
+Both receipts are passed/complete, with clean exact-source binding, all ten
+commands complete/exit 0, no evidence errors and artifactsRemoved=true. The
+absence of both private installations was also checked. Original logs/receipts
+and producer tarballs remain retained; the initial failed run is separate.
+The five tarballs match the source manifest and independently recomputed SHA-256:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54 |
+| local-node | 1b90dbf0278487e529a9af9743caf613e54b0048c0be3732d74d2f523f86682f |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+A final evidence-only documentation commit does not relabel this clean SHA's
+execution as verification of another submitted HEAD. Full Core, Wasm/native,
+complete packed campaigns and exact submitted-HEAD required CI remain
+unestablished. Keep Draft for review/required checks; final merge target is main
+after #1184 lands. No merge or manual CI rerun.
