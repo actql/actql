@@ -2495,8 +2495,15 @@ fn compile_steps(
         let targets : Array[String] = []
         let replacements : Array[(String, String)] = []
         for assignment in assignments {
-          if !pipe_name_exists(snapshot, assignment.0) {
+          // SET addresses one current column, not every matching JOIN slot.
+          let matching_targets = snapshot.filter(entry => {
+            same_name(assignment.0, { value: entry.0, quoted: false, })
+          })
+          if matching_targets.is_empty() {
             raise Abort(UnknownColumn)
+          }
+          if matching_targets.length() > 1 {
+            raise Abort(AmbiguousColumn)
           }
           if targets.any(name => {
               same_name(assignment.0, { value: name, quoted: false, })
