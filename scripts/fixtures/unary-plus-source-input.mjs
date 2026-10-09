@@ -37,6 +37,48 @@ export const unaryPlusSuccesses = [
   acquired('order-qualified-input', 'SELECT id, -amount AS amount FROM records ORDER BY +records.amount NULLS LAST, id',
     [{id: 1, amount: 4}, {id: 3, amount: 0}, {id: 3, amount: 0}, {id: 2, amount: null}], {columns: [column('id'), column('amount', true)]}),
 ];
+
+// The ordinary JSON control independently fixes the capture, numeric key,
+// multiplicity, NULL group, column contracts and output order.
+const groupColumns = [column('bucket', true), column('n')];
+const groupExpected = [{bucket: -3, n: 1}, {bucket: 1, n: 2}, {bucket: null, n: 1}];
+const groupRows = [...sourceRows, {id: 0, amount: 100}];
+const groupControl = {version: 'actql/0.1', id: 'fixture.group_signed_literal', stages: [
+  {id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {gt: [{field: 'id'}, {literal: 0}]}},
+      {select: ['amount', 'id'], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['amount', 'id']}}},
+  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{from: 'records', derive: {key: {add: [{field: 'amount'}, {literal: 1}]}}},
+      {group: {by: ['key'], aggregates: {n: {fn: 'count'}}}},
+      {sort: [{field: 'key', dir: 'asc', nulls: 'last'}]},
+      {select: [{bucket: 'key'}, 'n'], as: 'ordered'}],
+    results: {rows: {from: 'ordered', fields: ['bucket', 'n']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const grouped = (name, text, extra = {}) => acquired('group-' + name, text,
+  groupExpected, {columns: groupColumns, sourceRows: groupRows, ...extra});
+export const signedLiteralSuccesses = [
+  grouped('json-control', JSON.stringify(groupControl), {format: 'json'}),
+  grouped('selected-plus', 'SELECT amount + +1 AS bucket, COUNT(*) AS n FROM records '
+    + 'WHERE id > 0 GROUP BY amount + 1 ORDER BY bucket NULLS LAST'),
+  grouped('key-plus-repeated', 'SELECT amount + 1 AS bucket, COUNT(*) AS n FROM records '
+    + 'WHERE id > 0 GROUP BY amount + +(1.0), records.amount + 1e0 ORDER BY bucket NULLS LAST'),
+  grouped('sql-pipe-tail', 'SELECT amount + +(-(-1)) AS bucket, COUNT(*) AS n FROM records '
+    + 'WHERE id > 0 GROUP BY amount + 1 |> WHERE n > 1 |> ORDER BY bucket |> LIMIT 1',
+  {expected: [{bucket: 1, n: 2}]}),
+  grouped('empty', 'SELECT amount + +1 AS bucket, COUNT(*) AS n FROM records '
+    + 'GROUP BY amount + 1 ORDER BY bucket NULLS LAST', {sourceRows: [], expected: []}),
+  acquired('distinct-signed-literal', 'SELECT DISTINCT amount + +1 AS value FROM records '
+    + 'ORDER BY records.amount + 1 NULLS LAST', [{value: -3}, {value: 1}, {value: null}],
+  {columns: [column('value', true)]}),
+  acquired('distinct-pipe-signed-literal', 'FROM records |> SELECT DISTINCT amount + 1 AS value '
+    + '|> ORDER BY records.amount + +(1.0) NULLS LAST', [{value: -3}, {value: 1}, {value: null}],
+  {format: 'aql-text', columns: [column('value', true)]}),
+  acquired('signed-literal-alias-receiver', 'SELECT DISTINCT -amount + +1 AS amount FROM records '
+    + 'ORDER BY -amount + 1 NULLS LAST', [{amount: 5}, {amount: 1}, {amount: null}],
+  {columns: [column('amount', true)]}),
+];
+unaryPlusSuccesses.push(...signedLiteralSuccesses);
 export const unaryPlusRefusals = [
   {name: 'string-literal', text: "SELECT +'secret-value' AS value"},
   {name: 'boolean-expression', text: 'SELECT +CAST(TRUE AS BOOL) AS value'},
@@ -44,6 +86,15 @@ export const unaryPlusRefusals = [
     parameterDeclarations: {n: {type: 'string'}}, parameters: {n: 'secret-value'}},
   {name: 'undeclared-parameter', text: 'SELECT +@missing AS value'},
 ].map(value => ({...value, name: 'unary-plus-' + value.name, format: 'sql'}));
+export const signedLiteralRefusals = [
+  {name: 'different-key', text: 'SELECT amount + +2 AS bucket, COUNT(*) AS n FROM records '
+    + 'GROUP BY amount + 1', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'negative-zero-key', text: 'SELECT amount + -(-0) AS bucket, COUNT(*) AS n FROM records '
+    + 'GROUP BY amount + -(-0)', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'removed-input', text: 'SELECT DISTINCT amount + +1 AS value FROM records ORDER BY id',
+    expectedCode: 'ClientProgramImplementationLimit'},
+].map(value => ({...value, name: 'unary-plus-signed-literal-' + value.name, format: 'sql'}));
+unaryPlusRefusals.push(...signedLiteralRefusals);
 export const unaryPlusExecutionFailures = [{
   name: 'unary-plus-demanded-operand', format: 'sql',
   text: 'SELECT +(1 / 0) AS value', resultNames: ['answer'], sourceReadSessionCount: 0,
