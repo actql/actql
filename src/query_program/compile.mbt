@@ -5303,8 +5303,7 @@ pub fn compile(
       table_writes~,
     )
   }
-  if @query.join_part_count(query) > 0 &&
-    context.captured_stage is Some(_) {
+  if @query.join_part_count(query) > 0 && context.captured_stage is Some(_) {
     // The Host requested a capture boundary. Reuse the script's existing
     // producer binding for raw/shared sources and derived-table CTEs, including
     // a single projected JOIN. Captured inputs cannot use the Values-only path.
@@ -6191,7 +6190,6 @@ fn compile_join_steps(
   step_bindings? : Map[String, String] = Map([]),
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
-    (@query.operation_count(query) > 4 && !has_retained_result(query)) ||
     limits.max_join_output_rows < 1L ||
     limits.max_join_output_rows > 9007199254740991L {
     raise Abort(UnsupportedCte)
@@ -6355,13 +6353,10 @@ fn compile_join_steps(
         join_step_binding(step_bindings, "aql_join_output")
       },
       next,
-      result_tail=retained.map(results => (limits, results)),
+      result_tail=join_continuation_context(query, limits, retained),
       step_bindings~,
     )
     return (steps, visible_names, final_from)
-  }
-  if @query.operation_count(query) != select_index + 1 && retained is None {
-    raise Abort(UnsupportedCte)
   }
   if predicate is Some(_) {
     raise Abort(UnsupportedCte)
@@ -6569,7 +6564,7 @@ fn compile_join_steps(
       join_step_binding(step_bindings, "aql_join_output")
     },
     select_index + 1,
-    result_tail=retained.map(results => (limits, results)),
+    result_tail=join_continuation_context(query, limits, retained),
     step_bindings~,
   )
   (steps, output, from)
@@ -7983,6 +7978,23 @@ fn join_order_projection(
 }
 
 ///|
+fn join_continuation_context(
+  query : @query.Query,
+  limits : Limits,
+  retained : Array[RetainedResult]?,
+) -> (Limits, Array[RetainedResult])? {
+  if retained is Some(results) {
+    Some((limits, results))
+  } else if !has_retained_result(query) {
+    // A pure Pipe tail needs the existing lowering limits, not a RESULT tap.
+    // A caller that cannot export retained Results keeps that refusal.
+    Some((limits, []))
+  } else {
+    None
+  }
+}
+
+///|
 fn append_join_order_steps(
   construction : Construction,
   query : @query.Query,
@@ -8064,7 +8076,7 @@ fn append_join_order_steps(
     result_from = join_step_binding(step_bindings, "aql_join_visible")
   }
   if next != @query.operation_count(query) {
-    guard result_tail is Some((limits, retained)) && has_retained_result(query) else {
+    guard result_tail is Some((limits, retained)) else {
       raise Abort(UnsupportedJoin)
     }
     // The JOIN projection is already evaluated. Continue from its actual
@@ -8117,7 +8129,6 @@ fn compile_join_query(
   }
   if @query.join_part_count(query) != 1 ||
     @query.operation_count(query) < 1 ||
-    (@query.operation_count(query) > 4 && !has_retained_result(query)) ||
     context.captured_stage is Some(_) ||
     context.program_id == "" ||
     context.stage_id == "" ||
