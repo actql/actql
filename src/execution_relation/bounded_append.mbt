@@ -139,6 +139,15 @@ fn bounded_append_step(
         guard state.port_preparation is Some(cursor) else {
           return bounded_append_failure(InvalidExecution, progress, used)
         }
+        match reuse_selected_trusted_output_metadata(cursor) {
+          Err(issue) =>
+            return bounded_append_failure(Completion(issue), progress, used + 1)
+          Ok(true) => {
+            state.phase = ChargeInput
+            continue
+          }
+          Ok(false) => ()
+        }
         match advance_trusted_output_preparation(cursor) {
           Err(issue) =>
             return bounded_append_failure(Completion(issue), progress, used + 1)
@@ -337,6 +346,26 @@ fn bounded_append_step(
       FinishOutput => {
         guard state.output is Some(output) else {
           return bounded_append_failure(InvalidExecution, progress, used)
+        }
+        if state.port is None && state.port_preparation is Some(cursor) {
+          let live = state.live
+          let rows = state.rows
+          state.port = match
+            finish_selected_trusted_output_preparation(cursor, state.names, fn(
+              _,
+            ) {
+              if live.val {
+                rows.val
+              } else {
+                None
+              }
+            }) {
+            Ok(port) => Some(port)
+            Err(issue) =>
+              return bounded_append_failure(Completion(issue), progress, used)
+          }
+          state.names = []
+          state.port_preparation = None
         }
         let rows = match finish_admitted_output(output) {
           Ok(value) => value

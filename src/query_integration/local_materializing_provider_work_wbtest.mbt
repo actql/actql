@@ -134,14 +134,13 @@ test "bounded Local provider work is the sum of its advances, counted once" {
   // One row: filter input/start/root cost 2 + 1, then begin/snapshot,
   // six binary-predicate transitions, build/check/commit, and finish = 15.
   // Select costs two input charges, four output steps and finish = 7.
-  // The existing child handoff costs one. Both exact completion ports also
-  // scan their ASCII identifiers and field; this is not execution-meter data.
+  // The existing child handoff costs one. Selected Filter and Select both
+  // reuse their admitted names/identity without separate metadata scans.
+  // This phase arithmetic does not come from execution-meter data.
   let filter_work = 2 + 1 + (1 + 1 + 6 + 1 + 1 + 1) + 1
   let select_work = 2 + 4 + 1
-  let preparation = expected_ascii_completion_port_work("where_0", ["id"]) +
-    expected_ascii_completion_port_work("select_1", ["id"])
-  assert_eq((filter_work, select_work, preparation), (15, 7, 59))
-  assert_eq(total, (filter_work + select_work + preparation + 1).to_int64())
+  assert_eq((filter_work, select_work), (15, 7))
+  assert_eq(total, (filter_work + select_work + 1).to_int64())
   // No value measurement is produced on the bounded path.
   assert_true(@local_connector.local_materializing_guard_usage(drained) is None)
   provider_work_close(run, producer, ticket)
@@ -194,9 +193,20 @@ test "bounded Local provider work is the sum of its advances, counted once" {
 
 ///|
 test "retained materializing chain preserves its independent work boundary" {
-  // Same phase derivation as above: 15 + 7 + one handoff + 28 + 31 = 82.
+  // Same independent phase derivation: Filter 15 + Select 7 + one handoff.
+  // Neither child executes the former repeated completion metadata scans.
+  let exact = 15 + 7 + 1
+  assert_eq(exact, 23)
   for quantum in [1, 7, 256] {
-    for max_work in [82, 81] {
+    for
+      (max_work, should_complete) in [
+        (82, true),
+        (81, true),
+        (54, true),
+        (53, true),
+        (exact, true),
+        (exact - 1, false),
+      ] {
       let (run, producer, ticket, attempt) = provider_work_attempt(max_work~)
       let mut terminal = false
       for _ in 0..<85 {
@@ -207,10 +217,10 @@ test "retained materializing chain preserves its independent work boundary" {
           @local_connector.advance_local_materializing_attempt(attempt, quantum) {
           Ok(step) =>
             if step.complete {
-              assert_eq(max_work, 82)
+              assert_true(should_complete)
               assert_eq(
                 @local_connector.local_materializing_cumulative_work(attempt),
-                Ok(82L),
+                Ok(exact.to_int64()),
               )
               @strategy.settle_task_execution(run, ticket, true).unwrap()
               let output = @local_connector.local_materializing_completed_output(
@@ -223,7 +233,7 @@ test "retained materializing chain preserves its independent work boundary" {
               terminal = true
             }
           Err(Candidate(Execution(InputLimit))) => {
-            assert_eq(max_work, 81)
+            assert_false(should_complete)
             assert_false(@strategy.captured_task_completed(run, 3))
             terminal = true
           }

@@ -214,7 +214,7 @@ const terminal = ['succeeded', 'failed', 'needs_reconciliation', 'cancelled'];
 async function submitted(setup, host, requestId, rows) {
   const client = await host.as('owner-token');
   const execution = await client.startSource(setup.program(rows), {format: 'json',
-    requestId});
+    submissionRef: client.newSubmission({nonce: requestId})});
   const state = await waitFor(async () => {
     const current = await execution.status();
     return current.status === 'waiting_checkpoint' ||

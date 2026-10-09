@@ -94,14 +94,14 @@ for (const initial of ['absent', 'undefined']) {
     const client = await opening;
     t.after(async () => {await client.close(); await rm(directory, {recursive: true, force: true});});
     assert.equal(client.profile.scopeRef, expectedScope(directory, undefined));
-    const run = await submit(client);
+    const run = await submit(client, client.newSubmission({nonce: 'policy-request'}));
     assert.equal(run.ref.authorityScopeCid, expectedScope(directory, undefined),
       '[host-policy:local-captured-absence]');
   });
 }
 
-async function submit(client, requestId = 'policy-request') {
-  const run = await client.startSource('SELECT 1 AS n', {format: 'sql', requestId});
+async function submit(client, submissionRef) {
+  const run = await client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef});
   assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
   assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
   return run;
@@ -139,12 +139,13 @@ test('public Embedded Local binds a pre-await policy snapshot and refuses a chan
   const client = await opening;
   t.after(() => client.close());
   assert.equal(client.profile.scopeRef, expectedScope(directory, selected));
-  const run = await submit(client);
+  const submissionRef = client.newSubmission({nonce: 'policy-request'});
+  const run = await submit(client, submissionRef);
   assert.equal(run.ref.authorityScopeCid, expectedScope(directory, selected), '[host-policy:scope-binding]');
   const equivalent = Object.fromEntries(Object.entries(selected).reverse());
   const same = await connect({mode: 'local', owner: 'local', installation: {directory, hostCapacityPolicy: equivalent}});
   t.after(() => same.close());
-  assert.deepEqual((await submit(same)).ref, run.ref);
+  assert.deepEqual((await submit(same, submissionRef)).ref, run.ref);
   await assert.rejects(connect({mode: 'local', owner: 'local',
     installation: {directory, hostCapacityPolicy: {...selected, max_effect_items: 4321}}}),
   {message: 'InstalledHostConfigurationMismatch'});
@@ -157,41 +158,49 @@ test('public HTTPS restart keeps selected request identity and separates changed
   const selected = {...policy, max_effect_items: 1234, max_graph_construction_nodes: 23};
   const supplied = {...selected};
   const first = await remote(t, directory, supplied, () => {supplied.max_effect_items = 4321;});
-  const original = await submit(first.client);
+  const submissionRef = first.client.newSubmission({nonce: 'policy-request'});
+  const original = await submit(first.client, submissionRef);
   assert.equal(original.ref.authorityScopeCid, expectedScope(directory, selected));
   await first.close();
   const resumed = await remote(t, directory, {...selected});
-  assert.deepEqual((await submit(resumed.client)).ref, original.ref,
+  assert.deepEqual((await submit(resumed.client, submissionRef)).ref, original.ref,
     '[host-policy:same-request-restart]');
   await resumed.close();
   const changed = {...selected, max_effect_items: 4321};
   const different = await remote(t, directory, changed);
-  assert.equal((await different.client.lookupRequest('policy-request')).kind, 'not_found');
+  const differentRef = different.client.newSubmission({nonce: 'policy-request'});
+  assert.equal((await different.client.lookupSubmission(differentRef)).kind, 'unresolvable');
   await assert.rejects(different.client.attach(original.ref), {code: 'ClientConnectionDenied'});
-  const next = await submit(different.client);
+  const next = await submit(different.client, differentRef);
   assert.equal(next.ref.authorityScopeCid, expectedScope(directory, changed));
   assert.notEqual(next.ref.authorityScopeCid, original.ref.authorityScopeCid);
   await different.close();
   const defaults = await remote(t, directory, undefined);
-  assert.equal((await defaults.client.lookupRequest('policy-request')).kind, 'not_found');
+  const defaultRef = defaults.client.newSubmission({nonce: 'policy-request'});
+  assert.equal((await defaults.client.lookupSubmission(defaultRef)).kind, 'unresolvable');
   assert.equal(defaults.client.profile.scopeRef, expectedScope(directory, undefined));
-  const historical = await submit(defaults.client);
+  const historical = await submit(defaults.client, defaultRef);
   assert.equal(historical.ref.authorityScopeCid, expectedScope(directory, undefined),
     '[host-policy:historical-default-scope]');
   await defaults.close();
   const explicitDefault = await remote(t, directory, {...policy});
-  const selectedDefault = await submit(explicitDefault.client);
+  const selectedDefault = await submit(explicitDefault.client, explicitDefault.client.newSubmission({nonce: 'policy-request'}));
   assert.equal(selectedDefault.ref.authorityScopeCid, expectedScope(directory, policy));
   assert.notEqual(selectedDefault.ref.authorityScopeCid, historical.ref.authorityScopeCid,
     '[host-policy:explicit-default-is-selected]');
   const journal = new DatabaseSync(join(directory, 'requests/client-requests.sqlite3'), {readOnly: true});
   try {
-    const rows = journal.prepare('SELECT authority_scope_cid, caller_request_id FROM client_requests').all();
-    assert.equal(rows.length, 4);
-    assert.deepEqual(new Set(rows.map(row => row.authority_scope_cid)), new Set([
-      expectedScope(directory, selected), expectedScope(directory, changed), expectedScope(directory, undefined),
-      expectedScope(directory, policy)]));
-    assert.ok(rows.every(row => row.caller_request_id === 'policy-request'));
+    const requests = journal.prepare('SELECT authority_scope_cid, caller_request_id FROM client_requests').all();
+    const intents = journal.prepare('SELECT authority_scope_cid, submission_id, nonce, phase FROM client_submitted_intents').all();
+    const expectedScopes = new Set([expectedScope(directory, selected), expectedScope(directory, changed),
+      expectedScope(directory, undefined), expectedScope(directory, policy)]);
+    assert.equal(requests.length, 4);
+    assert.deepEqual(new Set(requests.map(row => row.authority_scope_cid)), expectedScopes);
+    assert.equal(intents.length, 4);
+    assert.deepEqual(new Set(intents.map(row => row.authority_scope_cid)), expectedScopes);
+    assert.ok(intents.every(row => row.nonce === 'policy-request' && row.phase === 'ready'));
+    assert.deepEqual(new Set(requests.map(row => row.caller_request_id)),
+      new Set(intents.map(row => row.submission_id)));
   } finally {journal.close();}
   await explicitDefault.close();
 });
@@ -236,7 +245,7 @@ for (const entrance of ['local', 'https']) {
     const client = host?.client ?? await connect({mode: 'local', owner: 'local',
       installation: {directory, sourceProfilePath, hostCapacityPolicy: selected}});
     t.after(() => client.close());
-    const run = await client.startSource(item.text, {format: item.format, requestId: 'analytic-original-profile',
+    const run = await client.startSource(item.text, {format: item.format, submissionRef: client.newSubmission({nonce: 'analytic-original-profile'}),
       parameters: item.parameters, parameterDeclarations: item.parameterDeclarations});
     assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
     assert.deepEqual(await run.result('answer').all(), item.expected);
@@ -260,8 +269,9 @@ test('default Local connection scopes separate roots and survive the same-root r
   assert.equal(first.profile.scopeRef, expectedScope(firstRoot, undefined));
   assert.equal(second.profile.scopeRef, expectedScope(secondRoot, undefined));
   assert.notEqual(first.profile.scopeRef, second.profile.scopeRef);
-  const original = await submit(first, 'same-id');
-  const unrelated = await submit(second, 'same-id');
+  const submissionRef = first.newSubmission({nonce: 'same-id'});
+  const original = await submit(first, submissionRef);
+  const unrelated = await submit(second, second.newSubmission({nonce: 'same-id'}));
   assert.notEqual(original.ref.authorityScopeCid, unrelated.ref.authorityScopeCid);
   assert.equal(original.ref.authorityScopeCid, expectedScope(firstRoot, undefined));
   assert.equal(unrelated.ref.authorityScopeCid, expectedScope(secondRoot, undefined));
@@ -269,8 +279,9 @@ test('default Local connection scopes separate roots and survive the same-root r
   const reopened = await connect({mode: 'local', owner: 'local', installation: {directory: firstRoot}});
   t.after(() => reopened.close());
   assert.equal(reopened.profile.scopeRef, first.profile.scopeRef);
-  const lookup = await reopened.lookupRequest('same-id');
-  assert.equal(lookup.kind, 'found');
-  assert.deepEqual(lookup.ref, original.ref);
-  assert.deepEqual((await reopened.attach(lookup.ref)).ref, original.ref);
+  const lookup = await reopened.lookupSubmission(submissionRef);
+  assert.equal(lookup.kind, 'ready');
+  assert.deepEqual(lookup.submissionRef, submissionRef);
+  assert.deepEqual(lookup.admission.ref, original.ref);
+  assert.deepEqual((await reopened.attach(lookup.admission.ref)).ref, original.ref);
 });

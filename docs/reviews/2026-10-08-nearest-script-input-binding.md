@@ -42,7 +42,8 @@ Undeclared/forward candidates retain `UnknownRelation`.
 
 ## Separate CTE handoff for D
 
-`fixtures/nearest-cte-candidate-repro.aql` uses the same input and expected two
+The [saved query-text reproduction](../../scripts/fixtures/nearest-cte-candidate-repro.aql)
+uses the same input and expected two
 rows as `spec/frontend/fixtures/nearest-keep/expected-rows.json`, with the same
 column contracts and declared order. It currently returns `UnsupportedCte`.
 The parser already resolves the candidate's lexical CTE name correctly.

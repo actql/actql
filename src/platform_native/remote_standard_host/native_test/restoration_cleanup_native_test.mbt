@@ -22,7 +22,7 @@ test "native restoration cleanup retries the original root and preserves foreign
   let binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
   let budget = @remote.prepare_remote_dispatch_budget(128L, 128L).unwrap()
   let executions = Ref(0)
-  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT").unwrap()
   for replacement in [false, true] {
     let suffix = if replacement { "foreign" } else { "original" }
     let name = "restore-root-" + suffix

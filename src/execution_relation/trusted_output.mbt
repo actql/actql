@@ -292,6 +292,77 @@ fn cancel_trusted_output_preparation(cursor : TrustedOutputPreparation) -> Unit 
 }
 
 ///|
+/// A singleton generated selection already retains this exact node identity.
+/// Its generated ID is ASCII, and the immutable schema retains the original
+/// admitted UTF-8 name measurement. Reuse that evidence for the chain
+/// kernel families which already construct canonical names during their charged work.
+/// Dynamic input authority is still admitted by start and checked by the kernel.
+/// A successful constant-time check joins the kernel's original transition;
+/// it neither repeats name scanning nor discounts any reported work.
+fn reuse_selected_trusted_output_metadata(
+  cursor : TrustedOutputPreparation,
+) -> Result[Bool, TrustedOutputIssue] {
+  guard cursor.generated.selected_step is Some(step) else { return Ok(false) }
+  let supported = match @lower.sequence_step(cursor.generated.sequence, step) {
+    Some(@lower.AppendStep(_)) => true
+    Some(@lower.RowStep(kernel)) =>
+      @lower.kernel_is_filter(kernel) || @lower.kernel_is_projection(kernel)
+    _ => false
+  }
+  if !supported {
+    return Ok(false)
+  }
+  if cursor.closed || cursor.phase != 0 || cursor.offset != 0 {
+    return Err(Unverified)
+  }
+  if cursor.generated.retained_ids.length() != 1 ||
+    cursor.target != @pipeline.Step(step) ||
+    completion_preparation_terminal_step(cursor.generated) != step {
+    return Err(NotRetained)
+  }
+  if @schema.field_count(cursor.schema) > cursor.max_entries {
+    return Err(Limit)
+  }
+  // Subtraction keeps the exact two-occurrence policy without Int overflow.
+  let id_bytes = cursor.id.length()
+  let name_bytes = @schema.field_reference_name_bytes(cursor.schema)
+  if id_bytes > cursor.bytes ||
+    id_bytes > cursor.bytes - id_bytes ||
+    name_bytes > cursor.bytes - id_bytes - id_bytes {
+    return Err(Limit)
+  }
+  cursor.bytes -= id_bytes + id_bytes + name_bytes
+  // Policy admission is not a names transfer. Ordinary finish rejects phase 4.
+  cursor.phase = 4
+  Ok(true)
+}
+
+///|
+/// Only the selected kernels call this after constructing the exact schema's
+/// canonical names. Transfer that existing array; never allocate a second copy
+/// or clear it from the execution's later cleanup.
+fn[P] finish_selected_trusted_output_preparation(
+  cursor : TrustedOutputPreparation,
+  names : Array[String],
+  verify : (P) -> AdmittedOutputRows?,
+) -> Result[TrustedOutputPort[P], TrustedOutputIssue] {
+  if cursor.closed ||
+    cursor.phase != 4 ||
+    names.length() != @schema.field_count(cursor.schema) {
+    return Err(Unverified)
+  }
+  cursor.closed = true
+  Ok({
+    generated: cursor.generated,
+    target: cursor.target,
+    id: cursor.id,
+    names,
+    verify,
+    input_bindings: cursor.input_bindings,
+  })
+}
+
+///|
 /// At most one Unicode scalar or one equality unit per transition. The same
 /// byte/entry limits and exact identities apply to synchronous and resumed use.
 fn advance_trusted_output_preparation(

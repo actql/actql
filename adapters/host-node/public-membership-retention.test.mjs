@@ -73,7 +73,7 @@ test('public retained membership preserves duplicate Text matches and NULL',
     const client = await connectEmbeddedLocal(configuration);
     t.after(() => client.close());
     const source = JSON.stringify(program);
-    const options = {format: 'json', requestId: 'public-membership',
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-membership'}),
       parameters: {items: [text, text]}};
     const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));

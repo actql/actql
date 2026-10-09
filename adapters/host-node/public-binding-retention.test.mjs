@@ -108,7 +108,8 @@ test('public binding rows retain absent NULL and long Text through Store and two
     const document = bindingProgram();
     const expected = expectedBindingRows(document);
     const wire = canonicalJson(document);
-    const run = await client.startSource(wire, {format: 'json', requestId: 'binding-success'});
+    const submissionRef = client.newSubmission({nonce: 'binding-success'});
+    const run = await client.startSource(wire, {format: 'json', submissionRef});
     const state = await run.wait({signal: AbortSignal.timeout(90_000)});
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     for (const name of ['source', 'first', 'second']) {
@@ -130,7 +131,7 @@ test('public binding rows retain absent NULL and long Text through Store and two
     for (const name of ['source', 'first', 'second']) {
       assert.deepEqual(await attached.result(name).all(), expected[name]);
     }
-    const resent = await client.startSource(wire, {format: 'json', requestId: 'binding-success'});
+    const resent = await client.startSource(wire, {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, ref);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
   });
@@ -160,7 +161,8 @@ for (const task of [5, 6]) {
       t.after(() => client.close());
       const wire = canonicalJson(bindingProgram());
       const requestId = `binding-cancel-${task}`;
-      const run = await client.startSource(wire, {format: 'json', requestId});
+      const submissionRef = client.newSubmission({nonce: requestId});
+      const run = await client.startSource(wire, {format: 'json', submissionRef});
       const first = await Promise.race([
         advanced.then(detail => ({kind: 'advance', detail})),
         run.wait({signal: AbortSignal.timeout(90_000)})
@@ -170,7 +172,7 @@ for (const task of [5, 6]) {
       assert.ok(BigInt(first.detail.work) > 0n);
       assert.ok(BigInt(first.detail.progress) > 0n);
       assert.equal(computed, 0);
-      await client.cancelRequest(requestId);
+      await run.cancel();
       release();
       const state = await run.wait({signal: AbortSignal.timeout(30_000)});
       assert.equal(state.status, 'cancelled', JSON.stringify(state));
@@ -182,7 +184,7 @@ for (const task of [5, 6]) {
       assert.equal(computed, 0);
       assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
       const stoppedAdvances = advances;
-      const resent = await client.startSource(wire, {format: 'json', requestId});
+      const resent = await client.startSource(wire, {format: 'json', submissionRef});
       assert.deepEqual(resent.ref, run.ref);
       assert.equal((await resent.wait()).status, 'cancelled');
       assert.equal(advances, stoppedAdvances);
