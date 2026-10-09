@@ -29,6 +29,86 @@ fn writes(entries : Array[String]) -> String {
 let writes_json : String = writes([comment_write()])
 
 ///|
+fn collection_write(sheet_id? : Int = 7) -> String {
+  (
+    {
+      "writes": [
+        {
+          "resource": "append_rows",
+          "resource_kind": "tab",
+          "primary_identity": null,
+          "collection_identity": {
+            "spreadsheet_id": "book",
+            "sheet_id": sheet_id.to_json(),
+          },
+          "fields": [{ "name": "body", "type": "string", "nullable": false }],
+          "create": {
+            "fields": ["body"],
+            "required": ["body"],
+            "permission": "fixture:append",
+            "approval": "required",
+          },
+        },
+      ],
+    } : Json).stringify()
+}
+
+///|
+test "collection create Mapping binds the exact collection without a fabricated field" {
+  let mapping = prepare_row_mapping(
+    github_declaration(),
+    collection_write(),
+    "append_rows",
+    [{ target: "body", field: "comment", null_behavior: "reject", }],
+  ).unwrap()
+  assert_true(mapping.body.contains("\"primary_identity\":null"))
+  assert_true(!mapping.body.contains("\"id\""))
+  assert_eq(mapping.write_fields, ["body"])
+  let changed = prepare_row_mapping(
+    github_declaration(),
+    collection_write(sheet_id=8),
+    "append_rows",
+    [{ target: "body", field: "comment", null_behavior: "reject", }],
+  ).unwrap()
+  assert_true(mapping.mapping_cid != changed.mapping_cid)
+  assert_true(mapping.mapping_ref != changed.mapping_ref)
+  let body = @json.parse(mapping.body)
+  let other = @json.parse(changed.body)
+  assert_true(
+    spec_text(body, "resource_identity_cid") !=
+    spec_text(other, "resource_identity_cid"),
+  )
+}
+
+///|
+test "collection write declaration refuses missing identity missing boundary and guessed row id" {
+  let valid = collection_write()
+  for
+    text in [
+      valid.replace(old="\"primary_identity\":null,", new=""),
+      valid.replace(
+        old="\"collection_identity\":{\"spreadsheet_id\":\"book\",\"sheet_id\":7},",
+        new="",
+      ),
+      valid.replace(
+        old="\"primary_identity\":null",
+        new="\"primary_identity\":\"row_number\"",
+      ),
+      valid.replace(
+        old="\"collection_identity\":{\"spreadsheet_id\":\"book\",\"sheet_id\":7}",
+        new="\"collection_identity\":{}",
+      ),
+    ] {
+    assert_true(
+      prepare_row_mapping(github_declaration(), text, "append_rows", [
+        { target: "body", field: "comment", null_behavior: "reject", },
+      ])
+      is Err(InvalidSpecification),
+    )
+  }
+}
+
+///|
 fn github_declaration() -> RowDeclaration {
   generate_row_declaration(
     "gh-hello",

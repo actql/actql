@@ -126,6 +126,14 @@ function fixtures() {
     assert.equal(typeof c.expected_json, 'string', 'fixed canonical bytes');
     return { id: 'canonical ' + c.id, value: c.input, cid: c.expected_cid, text: c.expected_json };
   });
+  const collectionMapping = read('portability/corpus/collection-mapping.json');
+  assert.equal(collectionMapping.version, 'actql-collection-mapping-vectors/0.1');
+  const {mapping_contract_cid, ...collectionPreimage} = collectionMapping.body;
+  result.push({id: 'collection-only Mapping complete preimage',
+    value: collectionPreimage, cid: mapping_contract_cid});
+  result.push({id: 'collection-only Resource typed identity',
+    value: collectionMapping.collection_resource_identity,
+    cid: collectionMapping.collection_resource_identity_cid});
   const invocation = read('portability/corpus/invocation-bindings.json');
   const initialInputs = read('portability/corpus/initial-input-artifact-set.json');
   const sourceInputs = read('portability/corpus/source-input-logical.json');
