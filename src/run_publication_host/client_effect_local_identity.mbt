@@ -67,7 +67,7 @@ pub fn issue_source_free_client_effect_local_identity(
   max_depth : Int,
 ) -> Result[ClientEffectLocalIdentity, ClientEffectLocalIdentityIssue] {
   if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
-    !physical_equal(artifact.inputs, inputs) ||
+    !client_effect_local_artifact_matches_inputs(artifact, inputs) ||
     !client_effect_local_artifact_matches_member(artifact, inputs, member_index) {
     return Err(ForeignInput)
   }
@@ -251,7 +251,7 @@ pub fn check_source_free_client_effect_preview_identities(
     let effect_id = @syntax.effect_header_id(header)
     if by_effect_id.contains(effect_id) ||
       !physical_equal(identity.owner, owner) ||
-      !physical_equal(identity.artifact.inputs, inputs) ||
+      !client_effect_local_artifact_matches_inputs(identity.artifact, inputs) ||
       !client_effect_local_artifact_matches_member(
         identity.artifact,
         inputs,

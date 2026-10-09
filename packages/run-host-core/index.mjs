@@ -254,6 +254,75 @@ export function effectRunStartCurrent(allowed, definition, at) {
   return owner.clientValuesHostEffectStartCurrent(value, requireHandle(definitions, definition), at);
 }
 
+/** Original Effect caller; capture is not a newly submitted input Artifact. */
+export function prepareEffectRequest(prepared, compilation, authorityScopeCid, requestId) {
+  effectCompilationFor(prepared, compilation);
+  if (typeof authorityScopeCid !== 'string' || typeof requestId !== 'string') {
+    throw new TypeError('InvalidRunHostRequest');
+  }
+  const value = checked(owner.clientValuesHostEffectRequestIdentity(
+    requireHandle(effectPreparations, prepared), authorityScopeCid, requestId),
+  'RunHostRequestRejected');
+  return handle(requests, value, 'request-identity');
+}
+
+/** Logical Source binding from the original checked Effect graph, no I/O. */
+export function effectSourceInputBinding(compilation) {
+  const {value} = requireHandle(effectCompilations, compilation);
+  return checked(owner.clientValuesHostEffectSourceInputBinding(value),
+    'RunHostEffectSourceBindingRejected');
+}
+
+function effectSiteSelection(selection) {
+  if (selection === null || typeof selection !== 'object' || Array.isArray(selection) ||
+      Object.keys(selection).sort().join('\0') !== [...siteSelectionKeys].sort().join('\0')) {
+    throw new TypeError('InvalidRunHostSiteSelection');
+  }
+  // Capture once: validation and the ABI must consume exactly the same values.
+  const args = siteSelectionKeys.map(key => selection[key]);
+  const [taskAttempt, , , siteGeneration] = args;
+  if (!Number.isSafeInteger(taskAttempt) || taskAttempt <= 0 ||
+      taskAttempt > 2147483647 ||
+      !Number.isSafeInteger(siteGeneration) || siteGeneration < 0 ||
+      siteGeneration > 2147483647 ||
+      args.some((value, index) => index !== 0 && index !== 3 && typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostSiteSelection');
+  }
+  return args;
+}
+
+/** The Host saves the original envelope before the existing Coordinator sends. */
+export function issueEffectSourceDispatch(allowed, definition, request, selection) {
+  const args = effectSiteSelection(selection);
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  const dispatch = checked(owner.clientValuesHostPrepareEffectSourceDispatch(
+    value, requireHandle(definitions, definition), requireHandle(requests, request),
+    ...args), 'RunHostEffectSourceDispatchRejected');
+  return Object.freeze({cid: owner.clientValuesHostDispatchCid(dispatch),
+    wire: checked(owner.clientValuesHostDispatchWire(dispatch),
+      'RunHostEffectSourceDispatchRejected')});
+}
+
+/** Checked topology only; use existing producer/Transfer/current custody owners. */
+export function prepareEffectRetainedTaskInputEdge(allowed, definition) {
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  return handle(retainedInputEdges, checked(owner.clientValuesHostEffectRetainedInputEdge(
+    value, requireHandle(definitions, definition)), 'RunHostEffectRetainedInputEdgeRejected'),
+  'retained-input-edge');
+}
+
+/** Exact original consumer; current input and destination are read again. */
+export function issueEffectRetainedTaskDispatch(allowed, definition, request, selection, input) {
+  const args = effectSiteSelection(selection);
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  const dispatch = checked(owner.clientValuesHostPrepareEffectRetainedTaskDispatch(
+    value, requireHandle(definitions, definition), requireHandle(requests, request),
+    ...args, requireHandle(retainedTaskInputs, input)), 'RunHostEffectRetainedTaskDispatchRejected');
+  return Object.freeze({cid: owner.clientValuesHostDispatchCid(dispatch),
+    wire: checked(owner.clientValuesHostDispatchWire(dispatch),
+      'RunHostEffectRetainedTaskDispatchRejected')});
+}
+
 export function privateTaskCompilationWires(compilation) {
   const {value} = requireHandle(taskCompilations, compilation);
   return Object.freeze({

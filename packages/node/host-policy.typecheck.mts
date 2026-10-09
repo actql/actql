@@ -22,9 +22,18 @@ const policy: HostCapacityPolicy = {
 };
 void connect({mode: 'local', owner: 'local', installation: {hostCapacityPolicy: policy}});
 void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only', authenticate: () => 'owner', hostCapacityPolicy: policy});
+void connect({mode: 'local', owner: 'local', installation: {sourceNamespace: 'queries'}});
+void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only', authenticate: () => 'owner', sourceNamespace: 'queries'});
+// @ts-expect-error Completeness is established by the Host, not a caller boolean.
+void connect({mode: 'local', owner: 'local', installation: {sourceNamespace: {name: 'queries', complete: true}}});
 // @ts-expect-error A partial map is not a complete capacity policy.
 void connect({mode: 'local', owner: 'local', installation: {hostCapacityPolicy: {max_effect_items: 1}}});
 // @ts-expect-error Capacity values are numeric contract fields.
 void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only', authenticate: () => 'owner', hostCapacityPolicy: {...policy, max_effect_items: '1'}});
 // @ts-expect-error A caller cannot mutate the selected policy through its public type.
 policy.max_effect_items = 2;
+
+void connect({mode: 'local', owner: 'local', installation: {sourceSelectorNamespace: 'registrations'}});
+void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only', authenticate: () => 'owner', sourceSelectorNamespace: 'registrations'});
+// @ts-expect-error Namespace completeness is not a caller-supplied success flag.
+void connect({mode: 'local', owner: 'local', installation: {sourceSelectorNamespace: {name: 'registrations', complete: true}}});

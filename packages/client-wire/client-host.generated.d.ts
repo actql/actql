@@ -1,7 +1,7 @@
 // Generated from the registered Client–Host machine contract.
 export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
 export declare const runStateProtocol: Readonly<{version: "actql-run-state/0.1"; statuses: readonly ("preparing" | "running" | "waiting_checkpoint" | "resuming" | "needs_reconciliation" | "succeeded" | "failed" | "cancelled")[]}>;
-export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "restart-intent" | "lookup-submission" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
+export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "restart-intent" | "lookup-submission" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek" | "owner-observations";
 export type WireValueContractShape = Readonly<{
   type: "decimal";
   nullable: boolean;
@@ -1093,6 +1093,223 @@ export type WireResultDescriptionShape = Readonly<{
 }>;
 }>;
 
+export type WireOwnerRefShape = Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+
+export type WireOwnerCursorShape = Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+
+export type WireOwnerObservationsShape = Readonly<{
+  ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  consistency: "non_atomic";
+  ordering: "owner_local";
+  owners: readonly (Readonly<{
+  owner: "run" | "effect" | "publication" | "delivery" | "site";
+  kind: "unavailable";
+  problem?: Readonly<{
+  kind: "acquisition_failed" | "limit_exceeded" | "history_unrecoverable" | "cursor_mismatch";
+}>;
+}> | Readonly<{
+  owner: "run";
+  ownerRef: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  kind: "observed";
+  history: Readonly<{
+  kind: "not_provided";
+}> | Readonly<{
+  kind: "retention_expired";
+}> | Readonly<{
+  kind: "history_unrecoverable";
+}> | Readonly<{
+  kind: "cursor_mismatch";
+}> | Readonly<{
+  kind: "cursor_expired";
+}> | Readonly<{
+  kind: "limit_exceeded";
+}> | Readonly<{
+  kind: "acquisition_failed";
+}> | Readonly<{
+  kind: "page";
+  entries: readonly Readonly<{
+  revision: number;
+  entryCid: string;
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>[];
+  cursor?: Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+}>;
+  snapshot: Readonly<{
+  revision?: number;
+  value: WireRunStateShape;
+}>;
+}> | Readonly<{
+  owner: "run";
+  ownerRef: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  kind: "observed";
+  history: Readonly<{
+  kind: "not_provided";
+}> | Readonly<{
+  kind: "retention_expired";
+}> | Readonly<{
+  kind: "history_unrecoverable";
+}> | Readonly<{
+  kind: "cursor_mismatch";
+}> | Readonly<{
+  kind: "cursor_expired";
+}> | Readonly<{
+  kind: "limit_exceeded";
+}> | Readonly<{
+  kind: "acquisition_failed";
+}> | Readonly<{
+  kind: "page";
+  entries: readonly Readonly<{
+  revision: number;
+  entryCid: string;
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>[];
+  cursor?: Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+}>;
+  snapshotProblem: Readonly<{
+  kind: "limit_exceeded" | "acquisition_failed";
+}>;
+}> | Readonly<{
+  owner: "effect";
+  ownerRef: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  kind: "observed";
+  history: Readonly<{
+  kind: "not_provided";
+}> | Readonly<{
+  kind: "retention_expired";
+}> | Readonly<{
+  kind: "history_unrecoverable";
+}> | Readonly<{
+  kind: "cursor_mismatch";
+}> | Readonly<{
+  kind: "cursor_expired";
+}> | Readonly<{
+  kind: "limit_exceeded";
+}> | Readonly<{
+  kind: "acquisition_failed";
+}> | Readonly<{
+  kind: "page";
+  entries: readonly Readonly<{
+  revision: number;
+  entryCid: string;
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>[];
+  cursor?: Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+}>;
+  snapshot: Readonly<{
+  revision?: number;
+  value: Readonly<{
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>;
+}>;
+}> | Readonly<{
+  owner: "effect";
+  ownerRef: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  kind: "observed";
+  history: Readonly<{
+  kind: "not_provided";
+}> | Readonly<{
+  kind: "retention_expired";
+}> | Readonly<{
+  kind: "history_unrecoverable";
+}> | Readonly<{
+  kind: "cursor_mismatch";
+}> | Readonly<{
+  kind: "cursor_expired";
+}> | Readonly<{
+  kind: "limit_exceeded";
+}> | Readonly<{
+  kind: "acquisition_failed";
+}> | Readonly<{
+  kind: "page";
+  entries: readonly Readonly<{
+  revision: number;
+  entryCid: string;
+  state: "prepared" | "dispatching" | "applied" | "accepted" | "failed" | "unknown";
+}>[];
+  cursor?: Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  value: string;
+}>;
+}>;
+  snapshotProblem: Readonly<{
+  kind: "limit_exceeded" | "acquisition_failed";
+}>;
+}>)[];
+  revisionVector: readonly Readonly<{
+  owner: Readonly<{
+  kind: "run" | "effect" | "publication" | "delivery" | "site";
+  scopeCid: string;
+  streamCid: string;
+}>;
+  snapshotCid?: string;
+  historyHead?: null | Readonly<{
+  generation: string;
+  revision: number;
+  entryCid: string;
+}>;
+}>[];
+  unmatchedCursors?: readonly Readonly<{
+  index: number;
+  kind: "unavailable";
+}>[];
+}>;
+
 export type WireRunStateShape = Readonly<{
   version: "actql-run-state/0.1";
   run_id: string;
@@ -1283,6 +1500,17 @@ export type WireCheckOutcomeShape = Readonly<{
   profile_cid: "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df";
   supplier: "checking_context_owner";
   stage: "checking";
+}> | Readonly<{
+  namespace: string;
+  connector: string;
+  resource: string;
+  view?: string;
+}> | Readonly<{
+  namespace: string;
+  reference: readonly Readonly<{
+  value: string;
+  quoted: boolean;
+}>[];
 }>;
 }>[];
   requirements: readonly Readonly<{
@@ -1387,6 +1615,17 @@ export type WireCheckOutcomeShape = Readonly<{
   profile_cid: "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df";
   supplier: "checking_context_owner";
   stage: "checking";
+}> | Readonly<{
+  namespace: string;
+  connector: string;
+  resource: string;
+  view?: string;
+}> | Readonly<{
+  namespace: string;
+  reference: readonly Readonly<{
+  value: string;
+  quoted: boolean;
+}>[];
 }>;
 }>[];
   scope: Readonly<{
@@ -1395,7 +1634,7 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
+  reason_schema_cid: "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -1542,6 +1781,17 @@ export type WireCheckOutcomeShape = Readonly<{
   profile_cid: "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df";
   supplier: "checking_context_owner";
   stage: "checking";
+}> | Readonly<{
+  namespace: string;
+  connector: string;
+  resource: string;
+  view?: string;
+}> | Readonly<{
+  namespace: string;
+  reference: readonly Readonly<{
+  value: string;
+  quoted: boolean;
+}>[];
 }>;
 }>[];
   requirements: readonly Readonly<{
@@ -1646,6 +1896,17 @@ export type WireCheckOutcomeShape = Readonly<{
   profile_cid: "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df";
   supplier: "checking_context_owner";
   stage: "checking";
+}> | Readonly<{
+  namespace: string;
+  connector: string;
+  resource: string;
+  view?: string;
+}> | Readonly<{
+  namespace: string;
+  reference: readonly Readonly<{
+  value: string;
+  quoted: boolean;
+}>[];
 }>;
 }>[];
   scope: Readonly<{
@@ -1658,7 +1919,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
+  reason_schema_cid: "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -1667,7 +1928,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
+  reason_schema_cid: "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{

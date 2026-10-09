@@ -12,7 +12,8 @@ import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOp
   validClientBody, validResourceInspection,
   validSubmissionRef, validSubmissionAttempt, validSubmissionLookup, validSubmissionRestart,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
+  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol,
+  validOwnerObservations, ownerObservationLimits} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, bytesCid, canonicalJson, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
@@ -31,12 +32,74 @@ const checkInputs = new WeakMap();
 // call's own input. No unvalidated reply, revision or location gains custody.
 const checkFailures = new WeakMap();
 const runObservationFailures = new WeakMap();
+const ownerObservationExplanations = new WeakMap();
 
 // Only a rejected observation of this SDK's attached Run retains its lookup
 // candidate. No rejected state, effect, revision or write permission is kept.
 export function explainRunObservationFailure(error, options) {
   return localizeOperation(runObservationFailures.get(error), 'observation', options);
 }
+
+// Only an admitted original SDK result carries this call's observation custody.
+export function explainOwnerObservations(result, options) {
+  return localizeOperation(ownerObservationExplanations.get(result), 'ownerObservations', options);
+}
+
+const ownerHistoryAdvice = {
+  not_provided: ['This Owner provides a current view without transition history.',
+    'Earlier transitions are not established by the current snapshot.'],
+  retention_expired: ['The Owner reports that the requested history is outside retained history.',
+    'A current snapshot does not fill this history gap or establish earlier outcomes.'],
+  history_unrecoverable: ['The Owner could not recover the requested history.',
+    'Keep the original Run reference; missing history establishes no absent execution or Effect.'],
+  cursor_mismatch: ['The cursor does not match this Owner observation scope or stream.',
+    'Use only a cursor returned for the original Run and Owner under current authorization.'],
+  cursor_expired: ['The supplied observation cursor has expired.',
+    'Cursor expiry does not establish history retention expiry. Obtain a fresh observation explicitly.'],
+  limit_exceeded: ['The observation budget could not cover the requested history.',
+    'Review the observation limits. This partial observation does not establish complete history.'],
+  acquisition_failed: ['The requested history could not be acquired.',
+    'Keep the original Run reference. Acquisition failure establishes no earlier outcome.'],
+  page: ['The Owner returned a page of recorded transitions in Owner-local order.',
+    'The page is not a global event order or an atomic view of other Owners. A returned cursor grants no execution or retry permission.'],
+};
+const ownerUnavailableAdvice = {
+  acquisition_failed: ['The Owner observations could not be acquired.',
+    'The acquisition failure establishes no stream identity, absence or earlier outcome.'],
+  limit_exceeded: ['The observation budget could not cover this Owner.',
+    'Other available views do not establish a complete observation of this Owner.'],
+  history_unrecoverable: ['The Owner observations could not be recovered.',
+    'Missing observations establish no stream identity, absence or earlier outcome.'],
+  cursor_mismatch: ['The supplied cursor could not be matched to this Owner observation.',
+    'A mismatch establishes no stream identity, absence or earlier outcome.'],
+};
+const ownerSnapshotAdvice = {
+  acquisition_failed: ['The current Owner snapshot could not be acquired.',
+    'Available history does not substitute for a current snapshot.'],
+  limit_exceeded: ['The current Owner snapshot exceeded the observation budget.',
+    'Available history does not establish a complete current view.'],
+};
+const advice = (facts, messages) => ({...facts, summary: messages[0], hint: messages[1]});
+const retainOwnerObservations = (answer, input, lookupContext) => {
+  const owners = answer.owners.map(view => {
+    if (view.kind === 'unavailable') return advice(view, view.problem === undefined ? [
+      'This Owner observation is unavailable.',
+      'Unavailability establishes no stream identity, absence, execution or release outcome.',
+    ] : ownerUnavailableAdvice[view.problem.kind]);
+    const explained = {...view, history: advice(view.history, ownerHistoryAdvice[view.history.kind])};
+    if (view.snapshotProblem !== undefined) {
+      explained.snapshotProblem = advice(view.snapshotProblem, ownerSnapshotAdvice[view.snapshotProblem.kind]);
+    }
+    return explained;
+  });
+  ownerObservationExplanations.set(answer, freezeInput({
+    ...answer, owners, observation: 'owner_views',
+    requested: {cursors: input.cursors, maxEntries: input.maxEntries, maxWireBytes: input.maxWireBytes},
+    lookupContext,
+    summary: 'These Owner observations were acquired independently and are ordered within each Owner only.',
+    hint: 'Keep the original Run reference and distinguish snapshots from history gaps. Reobserve explicitly under current authorization; this observation grants no execution, resend, cancellation or release permission.',
+  }));
+};
 
 const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunState') => {
   const error = new ClientError(code);
@@ -421,6 +484,31 @@ export function explainCancellation(result, options) {
   return localizeOperation(cancellationExplanations.get(result), 'cancellation', options);
 }
 
+const retainCancellationAttemptExplanation = (result, context) => {
+  // The response has already been captured, detached and twice admitted against
+  // this invocation. A refusal is not a fact about another invocation's commit.
+  if (result.kind !== 'refused' && result.kind !== 'conflict') {
+    return retainCancellationExplanation(result, context,
+      result.cancellation.kind, result.cancellation.revision);
+  }
+  const summaries = result.kind === 'refused' ? {
+    authorization: 'The Host refused this cancellation invocation under current authorization. This invocation committed no cancellation and consumed no operation identity.',
+    admission_capacity: 'The Host refused this cancellation invocation because admission capacity was unavailable. This invocation committed no cancellation and consumed no operation identity.',
+  } : {
+    intent: 'The Host reports a conflicting intent for this original cancellation identity.',
+    control_revision: 'The Host reports a conflict with the submitted control revision for this cancellation invocation.',
+  };
+  cancellationExplanations.set(result, freezeInput({
+    observation: result.kind, reason: result.reason,
+    attemptRef: context.attemptRef, cancelRef: context.cancelRef,
+    ...(result.kind === 'refused' ? {guarantee: result.guarantee} : {}),
+    summary: summaries[result.reason],
+    hint: 'Keep the original cancellation reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s outcome, grant permission to resend, or confirm physical stop, external Effects or resource release.',
+    next: {operation: 'lookupCancellation', cancelRef: context.cancelRef},
+  }));
+  return result;
+};
+
 const retainCancellationExplanation = (result, context, observation, revision) => {
   if (!context) return result;
   const summaries = {
@@ -448,6 +536,29 @@ const submissionLookupExplanation = (observation, input) => freezeInput({
 const submissionObservationHint = 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.';
 const submissionTarget = context => ({operation: 'lookupSubmission',
   submissionRef: context.submissionRef, lookupContext: context.lookupContext});
+const retainSubmissionAttemptExplanation = (result, attempt, snapshot) => {
+  // This admitted invocation fact is separate from the original durable
+  // receipt. Keep only the submitted reference, never a conflicting old intent.
+  const summaries = attempt.kind === 'refused' ? {
+    authorization: 'The Host refused this submission invocation under current authorization. This invocation committed no submission and consumed no operation identity.',
+    admission_capacity: 'The Host refused this submission invocation because admission capacity was unavailable. This invocation committed no submission and consumed no operation identity.',
+    epoch_expired: 'The Host refused this submission invocation because its submitted epoch has expired. This does not establish the original submission outcome.',
+    epoch_not_yet_valid: 'The Host refused this submission invocation because its submitted epoch is not yet valid. This does not establish the original submission outcome.',
+  } : {
+    intent: 'The Host reports a conflicting intent for this original submission identity.',
+    restart_decision: 'The Host reports a conflicting restart decision for this original submission identity.',
+  };
+  requestLookupContexts.set(result, snapshot);
+  submissionExplanations.set(result, freezeInput({
+    observation: attempt.kind, reason: attempt.reason,
+    attemptRef: snapshot.attemptRef, submissionRef: snapshot.submissionRef,
+    ...(attempt.kind === 'refused' ? {guarantee: attempt.guarantee} : {}),
+    summary: summaries[attempt.reason],
+    hint: 'Keep the original submission reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s acceptance, grant permission to resubmit, or authorize changed input or a new restart decision.',
+    next: submissionTarget(snapshot),
+  }));
+  return result;
+};
 const retainSubmissionExplanation = (result, outcome, context) => {
   requestLookupContexts.set(result, context);
   // Called only after admitting the exact Owner response and its binding.
@@ -1993,6 +2104,31 @@ async function connectSelected(selected, port) {
     };
     const handle = Object.freeze({
       ref, profile: runProfile, result,
+      observeOwners: async ({signal,cursors=[],maxEntries=100,maxWireBytes=ownerObservationLimits.maxWireBytes} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref,cursors,maxEntries,maxWireBytes}));
+        if (!validClientBody('owner-observations',{connection:selected.wire,...input})) {
+          fail('InvalidOwnerObservationRequest');
+        }
+        const response = await runRequest('owner-observations',input,signal);
+        let answer;
+        try {answer=captureResponse(await responseValue(response));}
+        catch {fail('InvalidHostOwnerObservations');}
+        if (!validOwnerObservations(answer,ref,input)) fail('InvalidHostOwnerObservations');
+        for (const vector of answer.revisionVector) {
+          if (vector.snapshotCid === undefined) continue;
+          const view=answer.owners.find(value=>value.kind==='observed' &&
+            value.ownerRef.kind===vector.owner.kind && value.ownerRef.scopeCid===vector.owner.scopeCid &&
+            value.ownerRef.streamCid===vector.owner.streamCid);
+          if (await bytesCid(new TextEncoder().encode(canonicalJson({version:'actql-owner-snapshot/0.1',ref,
+            owner:vector.owner,snapshot:view.snapshot},{dataKeys:true}))) !== vector.snapshotCid) {
+            fail('InvalidHostOwnerObservations');
+          }
+        }
+        freezeInput(answer);
+        retainOwnerObservations(answer, input,
+          {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef});
+        return answer;
+      },
       status: async ({signal} = {}) => {
         return readRunObservation('status', {}, signal);
       },
@@ -2044,9 +2180,7 @@ async function connectSelected(selected, port) {
           }), context, 'outcome_unknown');
         }
         received = freezeInput(received);
-        return received.cancellation === undefined ? received :
-          retainCancellationExplanation(received, context,
-            received.cancellation.kind, received.cancellation.revision);
+        return retainCancellationAttemptExplanation(received, context);
       },
       lookupCancellation: async (reference, {signal} = {}) => {
         let cancelRef;
@@ -2139,6 +2273,7 @@ async function connectSelected(selected, port) {
             {...context, outcome: attempt});
           submissionInputs.set(typedRejection, snapshot);
           submissionAttempts.set(typedRejection, attempt);
+          retainSubmissionAttemptExplanation(typedRejection, attempt, snapshot);
           throw typedRejection;
         }
         if (outcome.checkObservation !== undefined) {
@@ -2663,4 +2798,8 @@ export function formatEffectUncertainty(result, options) {
 
 export function formatRunObservationFailure(error, options) {
   return formatOperationExplanation(explainRunObservationFailure(error), 'observation', options);
+}
+
+export function formatOwnerObservations(result, options) {
+  return formatOperationExplanation(explainOwnerObservations(result), 'ownerObservations', options);
 }

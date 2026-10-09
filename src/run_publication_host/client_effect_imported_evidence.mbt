@@ -187,10 +187,11 @@ pub fn issue_imported_client_effect_local_result_artifact(
     Err(issue) => return Err(Context(issue))
   }
   build_client_effect_local_result_artifact(
-    inputs,
+    EffectInputs(inputs),
     ResultSource(borrow, definition),
     imported.invocation,
     receipt,
+    run_invocation,
     retention,
     @publication.publication_contract_identity(imported.scope),
     policy,

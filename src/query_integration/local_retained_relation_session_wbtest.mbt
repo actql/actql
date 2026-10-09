@@ -2,6 +2,7 @@
 fn run_registered_relation_session_chain(
   quantum? : Int = 1,
   cancel_after_work? : Int64? = None,
+  cancel_after_progress? : Int64? = None,
   max_work? : Int? = None,
   output_limit? : Int64? = None,
   empty? : Bool = false,
@@ -104,16 +105,26 @@ fn run_registered_relation_session_chain(
   let mut terminal = false
   let mut cancelled = false
   let mut work = 0L
+  let mut committed_progress = 0L
   for _ in 0..<1000 {
     if !terminal {
       if !cancelled && cancel_after_work is Some(bound) && work >= bound {
         assert_true(@local_connector.cancel_managed_provider(active))
         cancelled = true
+      } else if !cancelled &&
+        cancel_after_progress is Some(bound) &&
+        committed_progress >= bound {
+        assert_eq(committed_progress, bound)
+        assert_false(@local_connector.managed_provider_stopped(active))
+        assert_true(@local_connector.cancel_managed_provider(active))
+        cancelled = true
       }
       match
         @local_connector.advance_managed_provider(active, quantum).unwrap() {
-        @local_connector.Continue(work=charged, ..) => {
+        @local_connector.Continue(progress=advanced, work=charged) => {
+          assert_true(advanced >= 0L)
           assert_true(charged <= quantum.to_int64())
+          committed_progress += advanced
           work += charged
         }
         @local_connector.Complete(value, work=charged, ..) => {
@@ -124,9 +135,14 @@ fn run_registered_relation_session_chain(
           output = Some(value)
           terminal = true
         }
-        @local_connector.Stopped(work=charged, ..) => {
+        @local_connector.Stopped(progress=advanced, work=charged) => {
           assert_true(cancelled)
           assert_true(charged <= quantum.to_int64())
+          if cancel_after_progress is Some(bound) {
+            assert_eq(committed_progress, bound)
+            assert_eq(advanced, 0L)
+            assert_true(@local_connector.managed_provider_stopped(active))
+          }
           terminal = true
         }
         @local_connector.Failed(
@@ -158,6 +174,7 @@ fn run_registered_relation_session_chain(
   }
   assert_true(terminal)
   if cancel_after_work is None &&
+    cancel_after_progress is None &&
     max_work is None &&
     (empty || output_limit != Some(0L)) {
     let output = output.unwrap()
@@ -184,10 +201,17 @@ test "registered Relation session chain preserves bounded child custody" {
 
 ///|
 test "Relation session chain retains cancellation custody across child handoffs" {
-  // Session costs 44 units and its six-field projection costs 13. The
-  // additional handoff unit precedes any work in the following filter.
+  // Preserve the early charged-work cancellation controls. Bounded admission
+  // and copying can consume these units before any row commits, so these
+  // numeric work boundaries do not identify a child handoff.
   for boundary in [1L, 44L, 57L, 58L, 59L] {
     run_registered_relation_session_chain(cancel_after_work=Some(boundary))
+  }
+  // The one source row commits in Session, its Relation projection, then the
+  // true filter. Child counters become deltas; handoffs add no progress. With
+  // quantum one, each commit yields before that child's terminal completion.
+  for milestone in [1L, 2L, 3L] {
+    run_registered_relation_session_chain(cancel_after_progress=Some(milestone))
   }
 }
 

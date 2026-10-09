@@ -58,6 +58,41 @@ test('actual bundler resolution catches a forbidden unused Connector removed fro
     /Workers(Module|Dependency)Rejected/);
 });
 
+test('task observation has an explicitly reviewed dependency-free Workers graph', async () => {
+  const result = await build({
+    absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
+    entryPoints: ['adapters/host-common/task-observation.mjs'],
+    bundle: true, platform: 'browser', format: 'esm',
+    metafile: true, write: false,
+  });
+  assert.deepEqual(Object.keys(result.metafile.inputs), [
+    'adapters/host-common/task-observation.mjs',
+  ]);
+  assert.deepEqual(result.metafile.inputs['adapters/host-common/task-observation.mjs'].imports, []);
+  for (const modules of [hostModules, conformanceModules]) {
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+  }
+});
+
+test('task observation review does not admit an unreviewed sibling or dependency', () => {
+  const sibling = 'adapters/host-common/task-observation-unreviewed.mjs';
+  for (const modules of [hostModules, conformanceModules]) {
+    assert.throws(() => checkWorkersArtifact({
+      inputs: {[sibling]: {imports: []}},
+      outputs: {'bundle.mjs': {imports: []}},
+    }, 'export {};', modules), /WorkersModuleRejected/);
+    assert.throws(() => checkWorkersArtifact({
+      inputs: {
+        'adapters/host-common/task-observation.mjs': {
+          imports: [{path: sibling, kind: 'import-statement'}],
+        },
+        [sibling]: {imports: []},
+      },
+      outputs: {'bundle.mjs': {imports: []}},
+    }, 'export {};', modules), /WorkersDependencyRejected/);
+  }
+});
+
 test('completed Local output custody is portable in both Workers profiles', async () => {
   const result = await build({
     absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
@@ -76,6 +111,7 @@ test('product Local-only Host builds separately without conformance or test Conn
   assert.ok(modules.includes('adapters/local-node/strategy-bundle.mjs'));
   assert.ok(modules.includes('adapters/local-node/carrier-snapshot.mjs'));
   assert.ok(modules.includes('adapters/host-common/local-js-host.mjs'));
+  assert.ok(modules.includes('adapters/host-common/task-observation.mjs'));
   assert.ok(modules.includes('adapters/host-common/scoped-strategy.mjs'));
   assert.ok(!modules.includes('adapters/workers/invocation.mjs'));
   assert.ok(modules.every(path => !/conformance|reference|fixture|async_bridge/.test(path)));

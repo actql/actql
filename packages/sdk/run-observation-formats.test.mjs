@@ -39,7 +39,7 @@ for (const operation of ['status', 'wait', 'reconcile']) {
       const sent = [...calls];
       const json = JSON.parse(sdk.formatRunObservationFailure(error, {format: 'json'}));
       assert.deepEqual(json, {domain: 'observation', explanation: expected,
-        presentation: {locale: 'en', translationRevision: '2026-10-09.operations.en.11'}},
+        presentation: {locale: 'en', translationRevision: '2026-10-09.operations.en.13'}},
         '[check-mutation:run-format-facts]');
       for (const format of ['text', 'html']) {
         const output = sdk.formatRunObservationFailure(error, {format});

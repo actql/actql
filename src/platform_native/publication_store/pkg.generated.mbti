@@ -22,6 +22,14 @@ pub fn ConfirmedPayloadDelivery::fail(Self) -> Result[Int64, NativePublicationSt
 pub fn ConfirmedPayloadDelivery::fail_chunk(Self, Int) -> Result[Int64, NativePublicationStoreIssue]
 pub fn ConfirmedPayloadDelivery::next(Self, Int) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue]
 
+type EffectSourceCustody
+pub fn EffectSourceCustody::begin_payload(Self) -> Result[PayloadWriter, NativePublicationStoreIssue]
+pub fn EffectSourceCustody::cleanup_complete(Self) -> Result[Bool, NativePublicationStoreIssue]
+pub fn EffectSourceCustody::confirm_payload(Self) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
+pub fn EffectSourceCustody::open_reader(Self) -> Result[PayloadReader, NativePublicationStoreIssue]
+pub fn EffectSourceCustody::retain(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn EffectSourceCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
+
 pub(all) struct NativeCommittedResult {
   public_index_entry : @run_publication.PublicationContract
   result_manifest : @run_publication.PublicationContract
@@ -163,12 +171,14 @@ pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, Nati
 pub fn Store::open_confirmed_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[PayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_reader(Self, String) -> Result[PayloadReader, NativePublicationStoreIssue]
+pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
 pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
 pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]
 pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::reconcile_payload(Self, @publication_payload.PublicationPayloadRequest) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue]
 pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]
 pub fn Store::resolve_committed_result(Self, String, String, String, String, Int, Int, Int) -> Result[NativeCommittedResult?, NativePublicationStoreIssue]
+pub fn Store::restore_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
 
 // Type aliases
 

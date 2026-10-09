@@ -79,10 +79,13 @@ import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
   '../local-node/retained-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
+import {installClientOwnerObservations} from './client-owner-observations.mjs';
+import {createClientOwnerCursorCodec} from './client-owner-cursor.mjs';
+import {installClientEffectObservations} from './client-effect-observations.mjs';
 import {assertEffectTargetReadBinding, effectTargetReadContinuation} from
   './effect-target-read-continuation.mjs';
 import {EFFECT_TARGET_CONTINUATION} from './effect-target-read-inventory.mjs';
-import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {canonicalJson, contentCid, createLocalAuthorizationGate} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
@@ -107,6 +110,8 @@ const publicKeyCid = value => bytesCid(createPublicKey(value).export({
   type: 'spki', format: 'der'}));
 
 async function embeddedInstallationIdentity(root, installation) {
+  validateSourceNamespace(installation?.sourceNamespace);
+  validateSourceNamespace(installation?.sourceSelectorNamespace);
   const connectorTable = installation?.connectorTable;
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   const sourcePaths = installedSourcePaths(installation);
@@ -136,6 +141,10 @@ async function embeddedInstallationIdentity(root, installation) {
   const identity = bytesCid(canonicalJson({
     version: 'actql-embedded-installation/0.1', root,
     source, effect, accountIdentity, ordinary,
+    ...(installation?.sourceSelectorNamespace === undefined ? {} : {
+      sourceSelectorNamespace: installation.sourceSelectorNamespace}),
+    ...(installation?.sourceNamespace === undefined ? {} : {
+      sourceNamespace: bytesCid(Buffer.from(installation.sourceNamespace, 'utf8'))}),
     ...(installation?.hostCapacityPolicy === undefined ? {} : {
       hostCapacityPolicy: installation.hostCapacityPolicy}),
     ...(installation?.modelInstallation === undefined ? {} : {
@@ -188,14 +197,22 @@ function validateValuesMaxRows(value) {
   }
 }
 
+function validateSourceNamespace(value) {
+  if (value !== undefined && (typeof value !== 'string' || !value || !value.isWellFormed() || Buffer.byteLength(value) > 256)) {
+    throw new TypeError('InvalidSourceNamespaceDeclaration');
+  }
+}
+
 async function openInstalledHost({root, mode = 'local', beforeDispatch, workspaceId,
-  authorization, connectorTable, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
+  authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   retainedRelationOutput = false, valuesMaxRows, observation: observationConnection}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   validateValuesMaxRows(valuesMaxRows);
+  validateSourceNamespace(sourceNamespace);
+  validateSourceNamespace(sourceSelectorNamespace);
   if (workspaceId !== undefined && !validClientConnection({mode, owner: mode,
     consentRefs: [], runners: [], workspaceId})) {
     throw new TypeError('InvalidInstalledWorkspaceBinding');
@@ -330,7 +347,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
         sourceProfile?.queryAliases ?? [],
-        installedEffect?.queryTableBindings ?? effectInstallation?.queryTableBindings ?? []);
+        installedEffect?.queryTableBindings ?? effectInstallation?.queryTableBindings ?? [],
+        {namespace: sourceNamespace === undefined ? undefined : {
+          name: sourceNamespace, profilePaths: selectedSourcePaths},
+          selectorNamespace: sourceSelectorNamespace === undefined ? undefined : {
+            name: sourceSelectorNamespace, profilePaths: selectedSourcePaths},
+          installedSources: sourceProfile?.sources ?? (sourceProfile === undefined ? [] : [sourceProfile])});
     }
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
@@ -361,6 +383,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   let diagnostic;
   let observation;
   let localSnapshotConfiguration;
+  let ownerViews;
   try {
     const delivery = createDiagnosticObserver(authorization?.observe);
     diagnostic = Object.assign((event, detail) => {
@@ -482,6 +505,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       ref.authorityScopeCid === authorityScopeCid});
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
+    ...(sourceNamespace === undefined && sourceSelectorNamespace === undefined ? {} : {
+      // Re-read current account configuration for every metadata inspection.
+      // This gate cannot defer or persist diagnostic approval.
+      namespaceAuthorizationFor: ({principalId: actual}) => createLocalAuthorizationGate({
+        ...authorization, principal: actual, deferral: undefined,
+      }),
+    }),
     tableWriteAccesses: installedEffect?.queryTableWriteAccesses ??
       effectInstallation?.queryTableWriteAccesses ?? [],
     sourceAccesses: (sourceProfile?.sources ??
@@ -2515,6 +2545,28 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     }
     return busy;
   };
+  const ownerCursorCodec = authorization?.hostKey === undefined ? undefined :
+    createClientOwnerCursorCodec({privateKey:authorization.hostKey.privateKey,
+      publicKey:createPublicKey(authorization.hostKey.privateKey)});
+  const authorizeObservation = value => hostConnection(value) &&
+    journal.lookupRunDefinition(value.ref,moon,control) !== undefined;
+  ownerViews=installedEffect === undefined ? undefined : installClientEffectObservations({moon,
+    root:join(root,'state','effects','ledger'),authorize:authorizeObservation});
+  const observeOwners = installClientOwnerObservations({
+    authorizeRun:authorizeObservation, codec:ownerCursorCodec,maxEntries:1000,maxWireBytes:65536,
+    sourcesFor:value => {
+      const {ref,principalId:actual}=value;
+      const retained=journal.lookupRunDefinition(ref,moon,control);
+      const owned=ownerViews === undefined ? undefined : journal.lookupOwnedDefinition({
+        ...ref,requestId:retained.requestId},moon,control);
+      return [{owner:{kind:'run',scopeCid:ref.authorityScopeCid,streamCid:ref.runDefinitionCid},
+        history:'not_provided',authorize:authorizeObservation,
+        readSnapshot:async () => ({value:await observeRun({ref,principalId:actual})})},
+        ...(ownerViews === undefined ? [] : owned === undefined ? [{kind:'problem',
+          ownerKind:'effect',problem:'acquisition_failed',authorize:authorizeObservation}] :
+          ownerViews.sources(owned.requestIdentity,value))];
+    },
+  });
   const hostOperations = {
     observe: observed,
     // A service Workspace is an installed network target label. It does not
@@ -2531,7 +2583,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     submitIntent: submissionService.submitAttempt,
     lookupSubmission: submissionService.lookupSubmission,
     lookupRequest: lookupHeld,
-    stateService, resultService, observeRun, wait, reconcile, cancel, lookupCancellation, cancelRequest,
+    stateService, resultService, observeRun, observeOwners, wait, reconcile, cancel, lookupCancellation, cancelRequest,
     ...checkpointOperations,
     // Discovery of the installed source, when its adapter serves it.
     ...(sourceProfile?.discovery ?? {}),
@@ -2556,7 +2608,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       undefined, () => ingress.perform(operation, request, signal)),
   });
   return {port, store, journal, hostOperations, checkpoints, diagnostic,
-    observation,
+    observation, ownerViews,
     dispatchOwner, inspectAcquisition, sourceProfile, installedEffect,
     retireTerminalEffects};
   } catch (cause) {
@@ -2564,7 +2616,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store, checkpoints, dispatchOwner,
-        sourceProfile, installedEffect, observation});
+        sourceProfile, installedEffect, observation, ownerViews});
   }
 }
 
@@ -2586,7 +2638,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, workspaceId, connectorTable,
-  sourceProfilePath, sourceProfilePaths,
+  sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace,
   loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
@@ -2600,7 +2652,7 @@ export async function openInstalledRemoteHttpHost({directory,
   }
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
     workspaceId,
-    beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
+    beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
     effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence,
     retainedRelationOutput, hostCapacityPolicy, valuesMaxRows, observation});
@@ -2713,6 +2765,8 @@ export async function connectEmbeddedLocal(options) {
         connectorTable: installation?.connectorTable,
         sourceProfilePath: installation?.sourceProfilePath,
         sourceProfilePaths: installation?.sourceProfilePaths,
+        sourceSelectorNamespace: installation?.sourceSelectorNamespace,
+        sourceNamespace: installation?.sourceNamespace,
         resolveSourceSecret: installation?.resolveSourceSecret,
         effectProfilePath: installation?.effectProfilePath,
         effectProfilePaths: installation?.effectProfilePaths,

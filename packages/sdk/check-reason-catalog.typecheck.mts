@@ -1,7 +1,10 @@
+import './source-selector-check.typecheck.mjs';
 import {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogEntry, type KnownCheckReasonCode} from '@actql/sdk';
 const version: 'actql-check-reason-catalog/0.1' = getCheckReasonCatalogInfo().version;
 const code: KnownCheckReasonCode = 'parameter_value_required';
+const absence: KnownCheckReasonCode = 'query_alias_absent';
+void getCheckReasonCatalogEntry(absence);
 const entry: CheckReasonCatalogEntry | undefined = getCheckReasonCatalogEntry(code);
 if (entry) {
   const severity: 'error' | 'warning' | 'info' = entry.default_severity;

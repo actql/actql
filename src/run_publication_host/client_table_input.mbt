@@ -156,6 +156,9 @@ pub fn bind_client_table_preview(
   preview : @strategy.CapturedEffectPreviewInputs,
   member_index : Int,
 ) -> Result[ClientTablePreview, ClientTableInputIssue] {
+  guard client_effect_local_artifact_inputs(input.artifact) is Some(inputs) else {
+    return Err(ForeignOwner)
+  }
   let authored_index = match input.artifact.source {
     ResultSource(_, _) => {
       guard @strategy.captured_effect_preview_input_at(preview, member_index)
@@ -163,8 +166,7 @@ pub fn bind_client_table_preview(
         return Err(Unavailable)
       }
       let index = @strategy.captured_effect_input_member_index(source)
-      guard @strategy.captured_effect_input_at(input.artifact.inputs, index)
-        is Some(expected) &&
+      guard @strategy.captured_effect_input_at(inputs, index) is Some(expected) &&
         physical_equal(source, expected) else {
         return Err(ForeignOwner)
       }
@@ -178,10 +180,7 @@ pub fn bind_client_table_preview(
         return Err(Unavailable)
       }
       let index = @strategy.captured_effect_table_input_member(source)
-      guard @strategy.captured_effect_table_input_at(
-          input.artifact.inputs,
-          index,
-        )
+      guard @strategy.captured_effect_table_input_at(inputs, index)
         is Some(expected) &&
         physical_equal(source, expected) else {
         return Err(ForeignOwner)

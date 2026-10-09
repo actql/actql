@@ -18,6 +18,18 @@ import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
+const invocationHint = 'Keep the original submission reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s acceptance, grant permission to resubmit, or authorize changed input or a new restart decision.';
+const storedAdmissionCounts = root => {
+  const database = new DatabaseSync(join(root, 'host/requests/client-requests.sqlite3'),
+    {readOnly: true});
+  try {
+    return {...database.prepare(`SELECT
+      (SELECT COUNT(*) FROM client_submitted_intents) AS intents,
+      (SELECT issued_count FROM client_submitted_intent_custody WHERE singleton = 1) AS issued,
+      (SELECT COUNT(*) FROM client_requests) AS requests`).get()};
+  } finally {database.close();}
+};
+
 async function installedFixture(t, entrance, {loseSubmissionReply = false, outcome = 'allow', epochClock} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-d-submission-public-'));
   const directory = join(root, 'host');
@@ -83,6 +95,27 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
 }
 
 for (const entrance of ['local', 'https']) {
+  test(`${entrance}: preparation authorization denial retains the accepted original submission`, async t => {
+    const f = await installedFixture(t, entrance, {outcome: 'deny'});
+    const submissionRef = f.client.newSubmission({nonce: 'denied-invocation'});
+    const before = storedAdmissionCounts(f.root);
+    assert.deepEqual(before, {intents: 0, issued: 0, requests: 0});
+    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef,
+      attemptId: 'authorization-invocation'}), error => {
+      assert.equal(error.code, 'SubmissionPreparationFailed');
+      assert.equal(getSubmissionAttempt(error).kind, 'recorded');
+      assert.equal(getSubmissionOutcome(error).kind, 'preparation_failed');
+      assert.equal(explainSubmission(error).observation, 'preparation_failed');
+      assert.deepEqual(explainSubmission(error).next.submissionRef, submissionRef);
+      assert.equal(Object.hasOwn(explainSubmission(error), 'guarantee'), false);
+      assert.equal(explainSubmission({...error}), undefined);
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, explainSubmission(error));
+      return true;
+    });
+    assert.deepEqual(storedAdmissionCounts(f.root), {intents: 1, issued: 1, requests: 0});
+    assert.equal(f.computes, 0);
+  });
+
   test(`${entrance}: typed Submission Conflict and AlreadySatisfied preserve the installed original Run`, async t => {
     const f = await installedFixture(t, entrance);
     const submissionRef = f.client.newSubmission({nonce: 'typed-original'});
@@ -91,6 +124,7 @@ for (const entrance of ['local', 'https']) {
     assert.equal(getSubmissionAttempt(original).kind, 'recorded');
     assert.equal((await original.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
     assert.deepEqual(await original.result('answer').all(), [{n: 1}]);
+    const before = storedAdmissionCounts(f.root);
     await assert.rejects(f.client.startSource('SELECT 2 AS n', {format: 'sql', submissionRef,
       attemptId: 'typed-changed-invocation'}), error => {
       assert.equal(error.code, 'SubmissionConflict');
@@ -99,6 +133,16 @@ for (const entrance of ['local', 'https']) {
         {operation: 'submit', attemptId: 'typed-changed-invocation'});
       assert.deepEqual(getSubmissionAttempt(error).submissionRef, submissionRef);
       assert.equal(getSubmissionOutcome(error), undefined);
+      const expected = {observation: 'conflict', reason: 'intent',
+        attemptRef: {operation: 'submit', attemptId: 'typed-changed-invocation'}, submissionRef,
+        summary: 'The Host reports a conflicting intent for this original submission identity.',
+        hint: invocationHint, next: {operation: 'lookupSubmission', submissionRef,
+          lookupContext: getSubmissionInput(error).lookupContext}};
+      assert.deepEqual(explainSubmission(error), expected, '[check-mutation:submit-attempt-conflict]');
+      assert.equal(Object.hasOwn(explainSubmission(error), 'guarantee'), false);
+      assert.equal(explainSubmission({...error}), undefined);
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, expected);
+      assert.deepEqual(storedAdmissionCounts(f.root), before);
       return true;
     });
     assert.equal(f.computes, 1);
@@ -124,6 +168,7 @@ for (const entrance of ['local', 'https']) {
     assert.equal((await original.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
     now += 1000;
     const fresh = f.client.newSubmission({nonce: 'fresh-after-expiry'});
+    const before = storedAdmissionCounts(f.root);
     await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef: fresh,
       attemptId: 'expired-invocation'}), error => {
       assert.equal(error.code, 'SubmissionRefused');
@@ -133,6 +178,16 @@ for (const entrance of ['local', 'https']) {
       assert.deepEqual(getSubmissionAttempt(error).attemptRef,
         {operation: 'submit', attemptId: 'expired-invocation'});
       assert.equal(getSubmissionOutcome(error), undefined);
+      const expected = {observation: 'refused', reason: 'epoch_expired',
+        guarantee: 'attempt_uncommitted_unconsumed',
+        attemptRef: {operation: 'submit', attemptId: 'expired-invocation'}, submissionRef: fresh,
+        summary: 'The Host refused this submission invocation because its submitted epoch has expired. This does not establish the original submission outcome.',
+        hint: invocationHint, next: {operation: 'lookupSubmission', submissionRef: fresh,
+          lookupContext: getSubmissionInput(error).lookupContext}};
+      assert.deepEqual(explainSubmission(error), expected, '[check-mutation:submit-attempt-refused]');
+      assert.equal(explainSubmission({...error}), undefined);
+      assert.deepEqual(JSON.parse(formatSubmission(error, {format: 'json'})).explanation, expected);
+      assert.deepEqual(storedAdmissionCounts(f.root), before);
       return true;
     });
     assert.equal(f.computes, 1);

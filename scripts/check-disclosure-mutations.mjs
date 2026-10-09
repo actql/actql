@@ -22,7 +22,9 @@ const mutations = [
   ['an operation default loses its original declaration location',
     'location = Some(("parameter_declarations", prefix + relative))', 'location = None'],
   ['a protected obligation hides the disclosable violation',
-    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
+    'QueryLowering(UnresolvedRelation(_) as reference) =>\n' +
+    '          findings.push(check_source_alias_absence(source_namespace, reference))\n' +
+    '        QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
     'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.clear()\n' +
@@ -42,7 +44,8 @@ const mutations = [
     '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
     '      | UndeclaredParameter(_, _)\n' +
-    '      | UnusedParameter(_, _))\n    }) {\n' +
+    '      | UnusedParameter(_, _)\n' +
+    '      | QueryAliasAbsent(_, _))\n    }) {\n' +
     '    "invalid"',
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
@@ -113,7 +116,9 @@ const mutations = [
     'let fallback = SuppliedViolation(pointer)',
     'let fallback = SuppliedViolation(None)'],
   ['absent declarations discard a safe violation beside a protected Source',
-    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
+    'QueryLowering(UnresolvedRelation(_) as reference) =>\n' +
+    '          findings.push(check_source_alias_absence(source_namespace, reference))\n' +
+    '        QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
     'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          if context.parameter_declarations is None { findings.clear() }\n' +
@@ -149,7 +154,9 @@ const mutations = [
     'return ExpressionViolation(code, range)',
     'return ExpressionViolation(code, None)'],
   ['an expression diagnostic fabricates a protected reference violation',
-    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
+    'QueryLowering(UnresolvedRelation(_) as reference) =>\n' +
+    '          findings.push(check_source_alias_absence(source_namespace, reference))\n' +
+    '        QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
     'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
@@ -191,7 +198,9 @@ const mutations = [
     '        QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) => {\n' +
     '          findings.clear()\n          findings.push(FunctionLimit(check_authored_range(origin)))\n        }'],
   ['an unsupported function limit is fabricated behind protected resolution',
-    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
+    'QueryLowering(UnresolvedRelation(_) as reference) =>\n' +
+    '          findings.push(check_source_alias_absence(source_namespace, reference))\n' +
+    '        QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
     'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
@@ -207,7 +216,9 @@ const mutations = [
     'return ExpressionViolation("expected_boolean", None)',
     'return ExpressionViolation("expected_boolean", Some((0, 1)))'],
   ['a non-Boolean predicate is fabricated behind protected resolution',
-    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
+    'QueryLowering(UnresolvedRelation(_) as reference) =>\n' +
+    '          findings.push(check_source_alias_absence(source_namespace, reference))\n' +
+    '        QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
     'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
@@ -234,7 +245,9 @@ const mutations = [
     'UnsupportedImplementation =>\n          findings.push(Limit("implementation_limit"))',
     'UnsupportedImplementation =>\n          findings.push(Violation("program_invalid"))'],
   ['a Subgraph selector violation is fabricated behind protected resolution',
-    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
+    'QueryLowering(UnresolvedRelation(_) as reference) =>\n' +
+    '          findings.push(check_source_alias_absence(source_namespace, reference))\n' +
+    '        QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
     'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
@@ -272,7 +285,9 @@ const mutations = [
     'findings.push(ExpressionViolation("unknown_reference", None))',
     'findings.push(ExpressionViolation("unknown_reference", Some((0, 0))))'],
   ['a bare unresolved column is inferred through protected Source resolution',
-    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
+    'QueryLowering(UnresolvedRelation(_) as reference) =>\n' +
+    '          findings.push(check_source_alias_absence(source_namespace, reference))\n' +
+    '        QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
     'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
     '          findings.push(ExpressionViolation("unknown_reference", None))'],
@@ -282,6 +297,12 @@ const mutations = [
     '  check_outcome_attempt(\n' +
     '    findings, stop, "ctx:0000000000000000000000000000000000000000000000000000000000000000", correlation_ref, documents, 0,\n' +
     '  ).unwrap()'],
+  ['a proven query alias absence is hidden as protected resolution',
+    'findings.push(check_source_alias_absence(source_namespace, reference))',
+    'findings.push(Unresolved("source_resolution"))'],
+  ['an unproven query alias omission is disclosed as absence',
+    'findings.push(check_source_alias_absence(source_namespace, reference))',
+    'findings.push(QueryAliasAbsent("queries", @query_program.unresolved_relation_reference(reference).unwrap()))'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -377,6 +398,10 @@ const targets = [
 
   ['independent reporting failure preserves protected Source equivalence',
     [strict('mixed-reporting-outcome'), deep('mixed-reporting-boundary')]],
+  ['a complete empty namespace discloses only an authorized original alias absence',
+    [strict('namespace-public-outcome'), strict('namespace-public-verdict'), deep('namespace-public-reason')]],
+  ['a different namespace grant cannot disclose negative membership',
+    [deep('namespace-other-grant')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

@@ -30,10 +30,11 @@ const validBinding = binding => Object.isFrozen(binding) &&
 // Host-owned configuration declares the whole participating registration range,
 // including an explicitly empty range. A missing or copied registration cannot
 // close it. The proof covers the unfiltered installation, never visible aliases.
-function admitNamespace(declaration, sources, aliases, environmentCid) {
+function admitRegistrationRange(declaration, sources) {
   if (declaration === null || typeof declaration !== 'object' ||
       Object.keys(declaration).sort().join('\0') !== 'name\0profilePaths' ||
       typeof declaration.name !== 'string' || !declaration.name ||
+      !declaration.name.isWellFormed() ||
       Buffer.byteLength(declaration.name) > 256 ||
       !Array.isArray(declaration.profilePaths) ||
       declaration.profilePaths.length > MAX_INSTALLED_SOURCE_AUTHORITIES ||
@@ -44,12 +45,19 @@ function admitNamespace(declaration, sources, aliases, environmentCid) {
     throw new TypeError('InvalidSourceNamespaceDeclaration');
   }
   const expected = [...declaration.profilePaths].sort();
-  const retained = sources.map(installedSourcePublicationFacts);
-  if (retained.some(value => value === undefined) ||
+  const retained = sources.map(source => ({source, facts: installedSourcePublicationFacts(source)}));
+  if (retained.some(value => value.facts === undefined) ||
       retained.length !== expected.length ||
-      retained.map(value => value.path).sort().some((path, index) => path !== expected[index])) {
+      retained.map(value => value.facts.path).sort().some((path, index) => path !== expected[index])) {
     return undefined;
   }
+  return retained.toSorted((left, right) => left.facts.path < right.facts.path ? -1 : left.facts.path > right.facts.path ? 1 : 0);
+}
+
+function admitNamespace(declaration, sources, aliases, environmentCid) {
+  const range = admitRegistrationRange(declaration, sources);
+  if (range === undefined) return undefined;
+  const retained = range.map(value => value.facts);
   const ordered = retained.toSorted((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
   let count = 0, bytes = 0;
   for (const value of ordered) {
@@ -67,6 +75,40 @@ function admitNamespace(declaration, sources, aliases, environmentCid) {
       environmentCid, registrations: ordered.map(value => ({path: value.path,
         revision: value.revision, aliases: rows(value.aliases)}))}),
     aliases: Object.freeze(allAliases)});
+}
+
+// Complete installed selector registrations are a separate domain from query
+// aliases. The common Catalog Owner checks every participating environment and
+// its exact correspondence to the Host's unfiltered SourceRequestContracts.
+function admitSelectorNamespace(declaration, sources, moon, environment, environmentCid) {
+  const range = admitRegistrationRange(declaration, sources);
+  if (range === undefined) return undefined;
+  if (typeof moon.clientProgramCheckSourceSelectorRange !== 'function') {
+    throw new TypeError('InvalidSourceSelectorNamespaceInstallation');
+  }
+  let bytes = 0;
+  const registrations = [], identities = [];
+  for (const {source, facts} of range) {
+    const wire = source.environmentWire;
+    if (typeof wire !== 'string') return undefined;
+    bytes += Buffer.byteLength(wire);
+    if (bytes > 16 * 1024 * 1024) return undefined;
+    let admitted;
+    try {
+      const evidenceCid = JSON.parse(wire).evidence_bundle_cid;
+      admitted = moon.clientProgramCheckEnvironment(wire, evidenceCid,
+        false, false, true, false, false, false, false);
+    } catch { return undefined; }
+    if (admitted === undefined) return undefined;
+    registrations.push(admitted);
+    identities.push({path: facts.path, revision: facts.revision,
+      environmentCid: moon.clientProgramCheckingEnvironmentCid(admitted)});
+  }
+  const catalogRange = moon.clientProgramCheckSourceSelectorRange(environment, registrations);
+  if (catalogRange === undefined) return undefined;
+  return Object.freeze({name: declaration.name, range: catalogRange,
+    revision: digest({version: 'actql-source-selector-namespace/0.1',
+      namespace: declaration.name, environmentCid, registrations: identities})});
 }
 
 // Installation metadata only. Client requests never supply this publication.
@@ -98,7 +140,7 @@ export function splitSourceAliasProfile(profile) {
 }
 
 export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],
-  {namespace, installedSources = []} = {}) {
+  {namespace, selectorNamespace, installedSources = []} = {}) {
   // Own even manually assembled metadata before validating or retaining it.
   aliases = splitSourceAliasProfile({queryAliases: aliases}).queryAliases;
   if (!Array.isArray(tableWrites) || tableWrites.length > 1024 ||
@@ -118,10 +160,12 @@ export function sourceAliasPublication(moon, environment, aliases = [], tableWri
         JSON.stringify(publication))) {
     throw new TypeError('InvalidPublicSourcePublication');
   }
-  if (namespace !== undefined) {
-    const proof = admitNamespace(namespace, installedSources, aliases,
-      publication.environmentCid);
-    if (proof !== undefined) namespaces.set(publication, proof);
+  const queryAlias = namespace === undefined ? undefined :
+    admitNamespace(namespace, installedSources, aliases, publication.environmentCid);
+  const sourceSelector = selectorNamespace === undefined ? undefined :
+    admitSelectorNamespace(selectorNamespace, installedSources, moon, environment, publication.environmentCid);
+  if (queryAlias !== undefined || sourceSelector !== undefined) {
+    namespaces.set(publication, Object.freeze({queryAlias, sourceSelector}));
   }
   return publication;
 }
@@ -131,10 +175,21 @@ export function sourceAliasPublication(moon, environment, aliases = [], tableWri
 // unresolved; there is no Checkpoint journal or automatic approval here.
 export async function observeSourceAliasNamespace(publication, authorization,
   binding, {signal} = {}) {
-  const proof = namespaces.get(publication);
+  return observeNamespace(publication, authorization, binding, 'queryAlias', signal);
+}
+
+export async function observeSourceSelectorNamespace(publication, authorization,
+  binding, {signal} = {}) {
+  return observeNamespace(publication, authorization, binding, 'sourceSelector', signal);
+}
+
+async function observeNamespace(publication, authorization, binding, domain, signal) {
+  const proof = namespaces.get(publication)?.[domain];
   if (proof === undefined || typeof authorization?.withContext !== 'function' ||
-      !validBinding(binding)) return unresolved();
+      !validBinding(binding) || domain === 'sourceSelector' &&
+      !binding.inputs.some(input => input.document_id === 'program')) return unresolved();
   const subjectCid = digest({version: 'actql-source-namespace-observation/0.1',
+    ...(domain === 'sourceSelector' ? {domain: 'source_selector_registration'} : {}),
     namespace: proof.name, revision: proof.revision, contextCid: binding.contextCid,
     inputs: binding.inputs});
   let scope;
@@ -156,7 +211,7 @@ export async function observeSourceAliasNamespace(publication, authorization,
         decision.tuple?.resource !== proof.name ||
         decision.tuple?.operation !== 'inspect_absence') return unresolved();
     const observation = Object.freeze({state: 'complete'});
-    observations.set(observation, Object.freeze({publication, binding, proof,
+    observations.set(observation, Object.freeze({publication, binding, proof, domain,
       authority: Object.freeze({...authority, contextCid: decision.contextCid,
         entryId: decision.entryId, answeringAuthority: decision.authority})}));
     return observation;
@@ -173,7 +228,14 @@ export async function observeSourceAliasNamespace(publication, authorization,
 // namespace or attempt. The returned private facts never go directly on wire.
 export function sourceAliasNamespaceObservationFacts(publication, observation, binding) {
   const retained = observations.get(observation);
-  return retained !== undefined && retained.publication === publication && retained.binding === binding
+  return retained?.domain === 'queryAlias' && retained.publication === publication && retained.binding === binding
     ? Object.freeze({namespace: retained.proof.name, revision: retained.proof.revision,
       aliases: retained.proof.aliases, authority: retained.authority}) : undefined;
+}
+
+export function sourceSelectorNamespaceObservationFacts(publication, observation, binding) {
+  const retained = observations.get(observation);
+  return retained?.domain === 'sourceSelector' && retained.publication === publication && retained.binding === binding
+    ? Object.freeze({namespace: retained.proof.name, revision: retained.proof.revision,
+      range: retained.proof.range, authority: retained.authority}) : undefined;
 }

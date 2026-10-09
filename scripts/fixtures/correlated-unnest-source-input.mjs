@@ -54,6 +54,39 @@ const sql = 'SELECT p.id, element, position FROM UNNEST(@parents) p '
   + 'CROSS JOIN UNNEST(p.items) element WITH OFFSET position ORDER BY p.id, position';
 const pipe = 'FROM UNNEST(@parents) p |> CROSS JOIN UNNEST(p.items) element WITH OFFSET position '
   + '|> SELECT p.id, element, position |> ORDER BY p.id, position';
+// A conditional INNER expansion is ordinary UNNEST followed by a filter.
+// These fixed input rows leave three matches; omitting ON would retain NULL.
+const innerSql = 'SELECT p.id, element, position FROM UNNEST(@parents) p '
+  + 'INNER JOIN UNNEST(p.items) element WITH OFFSET position ON element = p.id ORDER BY p.id, position';
+const innerPipe = 'FROM UNNEST(@parents) p |> JOIN UNNEST(p.items) element WITH OFFSET position '
+  + 'ON element = p.id |> SELECT p.id, element, position |> ORDER BY p.id, position';
+const innerExpected = [{id: 1, element: 1, position: 0}, {id: 2, element: 2, position: 0},
+  {id: 2, element: 2, position: 2}];
+export const innerCorrelatedUnnestProgram = {version: 'actql/0.1',
+  id: 'fixture.inner_correlated_unnest', params: parameterDeclarations,
+  stages: [{id: 'main', inputs: {}, steps: [
+    ...correlatedUnnestProgram.stages[0].steps.slice(0, 6),
+    {filter: {eq: [{field: 'element'}, {field: 'id'}]}},
+    ...correlatedUnnestProgram.stages[0].steps.slice(6),
+  ], results: {rows: {from: 'selected', fields: ['id', 'element', 'position']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+// derive adds a fresh value slot; the final projection names it id without
+// replacing the original receiver used by the predicate and ordering.
+export const innerCorrelatedUnnestImmutableProgram = {version: 'actql/0.1',
+  id: 'fixture.inner_correlated_unnest_immutable', params: parameterDeclarations,
+  stages: [{id: 'main', inputs: {}, steps: [
+    ...correlatedUnnestProgram.stages[0].steps.slice(0, 4),
+    {derive: {original_id: {field: 'id'}}},
+    {derive: {current_id: {literal: 99}}},
+    ...correlatedUnnestProgram.stages[0].steps.slice(4, 6),
+    {filter: {eq: [{field: 'element'}, {field: 'original_id'}]}},
+    {sort: [{field: 'original_id', dir: 'asc', nulls: 'first'},
+      {field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: [{id: 'current_id'}, 'element', 'position'], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['id', 'element', 'position']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const immutableInnerExpected = [{id: 99, element: 1, position: 0},
+  {id: 99, element: 2, position: 0}, {id: 99, element: 2, position: 2}];
 export const correlatedUnnestSuccesses = [
   success('json-control', JSON.stringify(correlatedUnnestProgram), {format: 'json', parameterDeclarations: undefined}),
   success('sql', sql),
@@ -103,6 +136,32 @@ export const correlatedUnnestSuccesses = [
     sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}],
     expected: expected.flatMap(row => [{...row}, {...row}]),
   }),
+  success('inner-json-control', JSON.stringify(innerCorrelatedUnnestProgram),
+    {format: 'json', parameterDeclarations: undefined, expected: innerExpected}),
+  success('inner-sql-on', innerSql, {expected: innerExpected}),
+  success('inner-pipe-on', innerPipe, {format: 'aql-text', expected: innerExpected}),
+  success('inner-no-on', sql.replace('CROSS JOIN', 'INNER JOIN')),
+  success('inner-pipe-no-on', pipe.replace('CROSS JOIN', 'JOIN'), {format: 'aql-text'}),
+  success('inner-quoted', innerSql.replaceAll('p.', '`p`.').replace(') p ', ') `p` ')
+    .replaceAll('element', '`element`'), {expected: innerExpected}),
+  success('inner-on-false', innerSql.replace('element = p.id', 'FALSE'), {expected: []}),
+  success('inner-empty', innerSql, {parameters: {parents: []}, expected: []}),
+  success('inner-immutable-json-control', JSON.stringify(innerCorrelatedUnnestImmutableProgram),
+    {format: 'json', parameterDeclarations: undefined, expected: immutableInnerExpected}),
+  success('inner-immutable-parent', innerPipe.replace('|> JOIN', '|> SET id = 99 |> JOIN')
+    .replace('SELECT p.id,', 'SELECT id,'),
+    {format: 'aql-text', expected: immutableInnerExpected}),
+  success('inner-data', 'DATA expanded = ' + innerPipe + '; FROM expanded |> RESULT answer',
+    {format: 'aql-text', expected: innerExpected}),
+  success('inner-ordinary-join-continuation', innerSql.replace('ORDER BY',
+    'JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 10 ORDER BY'),
+    {expected: innerExpected.slice(1)}),
+  success('inner-acquired-parent', 'SELECT r.id, element, position FROM records r '
+    + 'JOIN UNNEST(@items) element WITH OFFSET position ON element = r.id ORDER BY r.id, position', {
+    parameterDeclarations: {items}, parameters: {items: [2, null, 2]},
+    sourceReadCount: 1, sourceReadSessionCount: 1,
+    sourceRows: [{id: 2, amount: 20}, {id: 1, amount: null}], expected: innerExpected.slice(1),
+  }),
 ];
 const refusal = (name, text, extra = {}) => ({name: 'correlated-unnest-refusal-' + name,
   format: 'sql', text, parameterDeclarations, parameters, ...extra});
@@ -115,6 +174,13 @@ export const correlatedUnnestRefusals = [
   refusal('missing-property', sql.replace('UNNEST(p.items)', 'UNNEST(p.missing)')),
   refusal('undeclared', sql, {parameterDeclarations: undefined}),
   refusal('array-bound', sql, {parameters: {parents: [{id: 1, items: [1, 2, 3, 4]}]}}),
+  ...[
+    innerSql.replace('element = p.id', 'element = p.missing'),
+    innerPipe.replace('|> JOIN', '|> SELECT id, items |> JOIN'),
+    innerSql.replace('ON element = p.id', 'USING (id)'),
+    innerSql.replace('ON element = p.id', 'MAX_OUTPUT_ROWS 10'),
+  ].map((text, index) => refusal('inner-' + index, text,
+    {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
 ];
 correlatedUnnestSuccesses.push(...correlatedUnnestStarSuccesses);
 correlatedUnnestRefusals.push(...correlatedUnnestStarRefusals);
@@ -205,3 +271,19 @@ export const retainedArrayRefusals = [
 ];
 correlatedUnnestSuccesses.push(...retainedArraySuccesses);
 correlatedUnnestRefusals.push(...retainedArrayRefusals);
+correlatedUnnestSuccesses.push(success('inner-retained-set', retainedHead
+  + ' |> INNER JOIN UNNEST(items) element WITH OFFSET position ON element = id '
+  + '|> SELECT * EXCEPT (items) |> ORDER BY id, position', {
+  format: 'aql-text', expected: [
+    {id: 1, element: 1, position: 0}, {id: 1, element: 1, position: 0},
+    {id: 2, element: 2, position: 0}, {id: 2, element: 2, position: 0},
+    {id: 2, element: 2, position: 2}, {id: 2, element: 2, position: 2},
+  ],
+}));
+const innerObject = correlatedUnnestStarSuccesses.find(item => item.name === 'correlated-unnest-star-object-sql');
+correlatedUnnestSuccesses.push({...innerObject, name: 'correlated-unnest-inner-object-on',
+  text: innerObject.text.replace('CROSS JOIN', 'INNER JOIN')
+    .replace('ORDER BY', 'ON e.code IS NOT NULL ORDER BY'),
+  expected: [{id: 1, code: 10, label: 'a', position: 0},
+    {id: 2, code: 20, label: null, position: 0}, {id: 2, code: 20, label: null, position: 2}],
+});

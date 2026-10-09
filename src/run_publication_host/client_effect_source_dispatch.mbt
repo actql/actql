@@ -71,6 +71,27 @@ pub fn prepare_client_effect_source_dispatch(
   dispatch_id : String,
   selected : ClientValuesSiteSelection,
 ) -> Result[@remote.DispatchRequest, ClientEffectSourceDispatchIssue] {
+  let input = match
+    prepare_client_effect_source_input_binding(allowed.compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  client_effect_checked_task_dispatch(
+    allowed, definition, request, 0, task_attempt, dispatch_id, selected, input,
+  )
+}
+
+///|
+fn client_effect_checked_task_dispatch(
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  request : ClientRequestIdentity,
+  task : Int,
+  task_attempt : Int,
+  dispatch_id : String,
+  selected : ClientValuesSiteSelection,
+  input : @remote.RemoteInputBinding,
+) -> Result[@remote.DispatchRequest, ClientEffectSourceDispatchIssue] {
   let compilation = allowed.compilation
   match
     bind_client_effect_compiled_run(compilation.owner, allowed, definition) {
@@ -83,13 +104,27 @@ pub fn prepare_client_effect_source_dispatch(
     client_request_input_cid(request) != source_free_caller_input_intent_cid() {
     return Err(ForeignRequest)
   }
-  let fragment = match client_effect_source_fragment(compilation) {
+  let source_fragment = match client_effect_source_fragment(compilation) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let input = match prepare_client_effect_source_input_binding(compilation) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let fragment = if task == 0 {
+    source_fragment
+  } else if task == 1 {
+    match
+      issue_prepared_client_task_fragment(
+        compilation.compiled.owner,
+        1,
+        client_standard_values_sequence_limits(),
+        1000000,
+        100000,
+        100,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Fragment(issue))
+    }
+  } else {
+    return Err(UnsupportedGraph)
   }
   @remote.prepare_dispatch_request(
     client_request_authority_scope_cid(request),
@@ -154,5 +189,5 @@ pub fn bind_client_effect_source_dispatch(
     !@remote.remote_input_binding_matches_dispatch(input, request) {
     return Err(ForeignInput)
   }
-  Ok(bound)
+  Ok({ ..bound, source_dispatch: Some(request), })
 }
