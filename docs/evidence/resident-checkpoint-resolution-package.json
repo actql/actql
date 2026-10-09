@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "sourceBase": "42790dcce4caa13bf1755999258f8541d430f748",
+  "verifiedSource": "700559ae997c1c29c3edf420d62fcefa388c7ca8",
+  "verifiedFiles": {
+    "packages/run-host-core/checkpoints.mjs": "e467dc78271f982ac984d91ae4dcda41277316b4291bcc647e4dd918f033a5fe",
+    "packages/run-host-core/checkpoints.d.ts": "3641733274f5e240296038c41f213670f0807425e4ac5c249c7dfa8ce057b01a",
+    "packages/run-host-core/checkpoints.test.mjs": "957251b7b5726e92c1f5e5f55507b12ec661ba9cab1c50df20bc569f95be1d5f",
+    "packages/run-host-core/checkpoint-resolution.test.mjs": "7d3521c19262e81d7588fd0421f51a49f436b383839d7afd02d285df2c21d8ad",
+    "packages/run-host-core/types.negative.test.ts": "41f0fe9c617fdc015dc7e3563867a2c3ab68bfc93396662b4594d73e1be21779"
+  },
+  "artifacts": [
+    {
+      "name": "client-wire",
+      "sha256": "7b2ad28f42998039cba6b9a1d14dba5b0eff0289fcbfc1bd500199286b54c4f3"
+    },
+    {
+      "name": "run-host-core",
+      "sha256": "8ba659ef44c899277ae83964c9ebc00ba54f9fff8d9f12234f4306af8a3b54f9"
+    }
+  ],
+  "checks": [
+    {
+      "command": "node scripts/build-runtime-packages.mjs run-host-core",
+      "result": "passed",
+      "receipt": "_build/resident-checkpoint-resolution-1791528647736/receipt.json"
+    },
+    {
+      "command": "bounded/nonzero Node wrapper: packages/run-host-core/checkpoints.test.mjs",
+      "tests": 7,
+      "passed": 7,
+      "skipped": 0,
+      "receipt": "_build/resident-checkpoint-resolution-1791528647736/receipt.json"
+    },
+    {
+      "command": "tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 packages/run-host-core/types.negative.test.ts",
+      "result": "passed"
+    },
+    {
+      "command": "normal npm prepack, private offline install, unchanged Checkpoint tests and negative types against installed tarballs",
+      "tests": 7,
+      "passed": 7,
+      "skipped": 0,
+      "result": "passed",
+      "cleanSource": "700559ae997c1c29c3edf420d62fcefa388c7ca8",
+      "receipt": "_build/resident-checkpoint-resolution-packed-1791528736368/receipt.json"
+    }
+  ],
+  "limitations": [
+    "These are storage-free Owner calls; no Cloud atomic Resolution/Run/resume-intent commit, physical continuation or public Effect acceptance is claimed.",
+    "Host-trusted signatures are cryptographically verified in the tests. Production authentication and current-authority mapping remain adapter duties.",
+    "Admission checks the signed decision window; expiry must also be checked after asynchronous Host authentication/signing at the durable commit boundary.",
+    "Earlier test-authoring failures assumed admission itself enforces commit time and that successful resumed outcomes are invalid; the existing normative Owner separates those facts. No runtime or semantic change was made.",
+    "Hosted CI remains stopped by instruction.",
+    "History validation on the sibling Effect branch at the same main base failed on inherited merge 8e49ab32965ece28ffdbf7104542548aa53bc2b1: package.json. This branch changes no protected path or declaration, and that unchanged history check was not repeated."
+  ]
+}
