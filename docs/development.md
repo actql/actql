@@ -297,6 +297,19 @@ approval. The existing runtime must recheck current authority and lifetime at
 physical start. The polled holder/Checkpoint/approval connection remains a
 separate integration boundary.
 
+For the initial acquired Effect composition,
+`prepare_client_effect_retained_input_edge` and
+`prepare_client_effect_retained_task_dispatch` use the original Effect Run
+and the existing independently committed Transfer destination. Native
+`open_resident_effect_retained_compute` consumes that receiver holding through
+the same decoder, borrow and cleanup Owners as the ordinary consumer. Its
+typed Effect projection preserves both original task coordinates and Effect
+dependency pins. An Effect pin retains the consumer allocation after ordinary
+Result export closes. Returning that pin does not reclaim the destination
+holding or producer capture; their own cleanup remains necessary. These are
+physical custody APIs, not a journal start claim, approval or public Cloud
+integration.
+
 ### Installed Connector distribution inputs
 
 The standard Local package resolves provider runtimes, installation adapter
