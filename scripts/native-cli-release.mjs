@@ -1,0 +1,150 @@
+// Frozen OS binary packages use the same inventory/registry/publisher as SDK.
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {join, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {checkoutState} from './packed-client-packages.mjs';
+import {inventory, unpack, publicationPlan} from './package-release.mjs';
+import {publishPackageRelease} from './publish-package-release.mjs';
+
+const repository = fileURLToPath(new URL('../', import.meta.url));
+const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
+const platforms = Object.freeze({'darwin-arm64': {os: 'darwin', cpu: 'arm64'},
+  'linux-x64-gnu': {os: 'linux', cpu: 'x64', libc: 'glibc'}});
+const exact = (v, keys) => assert.deepEqual(Object.keys(v).sort(), [...keys].sort());
+
+export async function admitNativeArtifact(directory, sourceSha) {
+  const record = JSON.parse(await readFile(join(directory, 'artifact.json'), 'utf8'));
+  exact(record, ['version', 'sourceSha', 'platform', 'binarySha256', 'binaryBytes', 'generatedCSha256', 'toolchainPinSha256', 'toolchain', 'abi', 'testedHost', 'generation']);
+  assert.equal(record.version, 'actql-native-cli-artifact/0.1'); assert.equal(record.sourceSha, sourceSha);
+  assert(platforms[record.platform]);
+  for (const key of ['binarySha256', 'generatedCSha256', 'toolchainPinSha256']) assert.match(record[key], /^[a-f0-9]{64}$/u);
+  assert(Number.isSafeInteger(record.binaryBytes) && record.binaryBytes > 0 && record.binaryBytes <= 64 * 1024 * 1024);
+  const bytes = await readFile(join(directory, 'actql-native-client'));
+  assert.equal(bytes.length, record.binaryBytes); assert.equal(hash(bytes), record.binarySha256);
+  if (record.platform === 'darwin-arm64') {
+    assert.equal(bytes.readUInt32LE(0), 0xfeedfacf); assert.equal(bytes.readUInt32LE(4), 0x0100000c);
+    assert.equal(record.abi.format, 'Mach-O');
+  } else {
+    assert.equal(bytes.subarray(0, 4).toString('hex'), '7f454c46'); assert.equal(bytes[4], 2); assert.equal(bytes[5], 1);
+    assert.equal(bytes.readUInt16LE(18), 62); assert.equal(record.abi.format, 'ELF');
+    assert.match(record.abi.minimumGlibc, /^\d+\.\d+$/u);
+  }
+  return record;
+}
+
+async function pack(directory, output) {
+  const json = JSON.parse(execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', output,
+    '--cache', join(output, '.npm-cache')], {cwd: directory, encoding: 'utf8', timeout: 60_000}));
+  const result = Array.isArray(json) ? json : Object.values(json); assert.equal(result.length, 1);
+  const item = result[0], bytes = await readFile(join(output, item.filename));
+  return {name: item.name, version: item.version, file: item.filename, bytes: bytes.length, sha256: hash(bytes),
+    integrity: `sha512-${hash(bytes, 'sha512', 'base64')}`, files: await inventory(directory)};
+}
+
+export async function prepareNativeCliRelease(destination, artifacts) {
+  const source = checkoutState(repository); assert(source.clean, 'CLI release requires clean source HEAD');
+  const records = await Promise.all(artifacts.map(path => admitNativeArtifact(resolve(path), source.revision)));
+  assert(records.length > 0 && records.length <= 2); assert.equal(new Set(records.map(v => v.platform)).size, records.length);
+  const pinDigest = hash(await readFile(join(repository, 'toolchain.json')));
+  for (const record of records) assert.equal(record.toolchainPinSha256, pinDigest);
+  const cli = JSON.parse(await readFile(join(repository, 'packages/native-cli/package.json'), 'utf8'));
+  assert.equal(cli.name, 'actql'); assert.notEqual(cli.version, '0.0.1');
+  assert.match(cli.version, /^\d+\.\d+\.\d+$/u); assert.equal(cli.scripts, undefined);
+  destination = resolve(destination); await mkdir(destination);
+  const scratch = await mkdtemp(join(destination, '.stage-')), packages = [], mapping = {};
+  try {
+    for (const [index, record] of records.entries()) {
+      const name = `@actql/cli-${record.platform}`, directory = join(scratch, record.platform);
+      await mkdir(join(directory, 'bin'), {recursive: true});
+      const target = platforms[record.platform];
+      const metadata = {name, version: cli.version, description: 'ActQL Native Remote transport executable',
+        license: 'Apache-2.0', os: [target.os], cpu: [target.cpu], ...(target.libc ? {libc: [target.libc]} : {}),
+        files: ['bin', 'artifact.json', 'LICENSE'],
+        repository: {type: 'git', url: 'git+https://github.com/actql/actql.git'}, publishConfig: cli.publishConfig};
+      await writeFile(join(directory, 'package.json'), `${JSON.stringify(metadata, null, 2)}\n`);
+      await writeFile(join(directory, 'artifact.json'), `${JSON.stringify(record, null, 2)}\n`);
+      await copyFile(join(resolve(artifacts[index]), 'actql-native-client'), join(directory, 'bin/actql-native-client'));
+      await chmod(join(directory, 'bin/actql-native-client'), 0o755);
+      await copyFile(join(repository, 'LICENSE'), join(directory, 'LICENSE'));
+      packages.push(await pack(directory, destination));
+      mapping[record.platform] = {package: name, sourceSha: record.sourceSha, binarySha256: record.binarySha256, binaryBytes: record.binaryBytes};
+    }
+    const directory = join(scratch, 'cli'); await mkdir(join(directory, 'bin'), {recursive: true});
+    cli.optionalDependencies = Object.fromEntries(Object.values(mapping).map(v => [v.package, cli.version]));
+    for (const path of ['README.md', 'bin/actql.mjs']) await copyFile(join(repository, 'packages/native-cli', path), join(directory, path));
+    await chmod(join(directory, 'bin/actql.mjs'), 0o755);
+    await copyFile(join(repository, 'LICENSE'), join(directory, 'LICENSE'));
+    await writeFile(join(directory, 'package.json'), `${JSON.stringify(cli, null, 2)}\n`);
+    await writeFile(join(directory, 'platforms.json'), `${JSON.stringify(mapping, null, 2)}\n`);
+    packages.push(await pack(directory, destination));
+    assert.deepEqual(checkoutState(repository), source);
+    const manifest = {version: 'actql-native-cli-release/0.1', sourceSha: source.revision,
+      preparedAt: new Date().toISOString(), recipeSha256: hash(await readFile(join(repository, 'scripts/native-cli-release.mjs'))),
+      cohort: {registry: cli.publishConfig.registry, access: 'public', tag: 'latest', packageVersion: cli.version},
+      platforms: mapping, artifacts: records, packages};
+    await writeFile(join(destination, 'release.json'), `${JSON.stringify(manifest, null, 2)}\n`, {flag: 'wx'});
+    return manifest;
+  } finally {await rm(scratch, {recursive: true});}
+}
+
+export async function verifyNativeCliRelease(directory) {
+  const manifest = JSON.parse(await readFile(join(directory, 'release.json'), 'utf8'));
+  exact(manifest, ['version', 'sourceSha', 'preparedAt', 'recipeSha256', 'cohort', 'platforms', 'artifacts', 'packages']);
+  assert.equal(manifest.version, 'actql-native-cli-release/0.1'); assert.match(manifest.sourceSha, /^[a-f0-9]{40}$/u);
+  assert.equal(manifest.cohort.registry, 'https://registry.npmjs.org/'); assert.equal(manifest.cohort.access, 'public');
+  assert.equal(manifest.cohort.tag, 'latest'); assert.notEqual(manifest.cohort.packageVersion, '0.0.1');
+  const names = Object.keys(manifest.platforms); assert(names.length > 0 && names.length <= 2);
+  assert.deepEqual(manifest.packages.map(v => v.name), [...names.map(key => `@actql/cli-${key}`), 'actql']);
+  assert.deepEqual(manifest.artifacts.map(v => v.platform), names);
+  const scratch = await mkdtemp(join(directory, '.verify-'));
+  try {
+    for (const item of manifest.packages) {
+      assert.equal(item.version, manifest.cohort.packageVersion);
+      assert.equal(item.file, `${item.name.replace('@', '').replace('/', '-')}-${item.version}.tgz`);
+      const bytes = await readFile(join(directory, item.file));
+      assert.equal(bytes.length, item.bytes); assert.equal(hash(bytes), item.sha256);
+      assert.equal(`sha512-${hash(bytes, 'sha512', 'base64')}`, item.integrity);
+      const payload = await unpack(join(directory, item.file), join(scratch, item.name.replace('/', '-')));
+      assert.deepEqual(await inventory(payload), item.files);
+      const metadata = JSON.parse(await readFile(join(payload, 'package.json'), 'utf8'));
+      assert.equal(metadata.name, item.name); assert.equal(metadata.version, item.version); assert.equal(metadata.private, undefined);
+      assert.equal(metadata.scripts, undefined); assert.equal(metadata.license, 'Apache-2.0');
+      if (item.name === 'actql') {
+        assert.deepEqual(metadata.bin, {actql: 'bin/actql.mjs'});
+        assert.deepEqual(metadata.optionalDependencies, Object.fromEntries(names.map(key => [`@actql/cli-${key}`, item.version])));
+        assert.deepEqual(JSON.parse(await readFile(join(payload, 'platforms.json'), 'utf8')), manifest.platforms);
+      } else {
+        const key = item.name.slice('@actql/cli-'.length), target = platforms[key]; assert(target);
+        assert.deepEqual(metadata.os, [target.os]); assert.deepEqual(metadata.cpu, [target.cpu]);
+        assert.deepEqual(metadata.libc, target.libc ? [target.libc] : undefined);
+        const record = JSON.parse(await readFile(join(payload, 'artifact.json'), 'utf8'));
+        assert.deepEqual(record, manifest.artifacts.find(v => v.platform === key));
+        // The artifact validator expects the binary at the producer path.
+        await copyFile(join(payload, 'bin/actql-native-client'), join(payload, 'actql-native-client'));
+        await admitNativeArtifact(payload, manifest.sourceSha);
+        assert.deepEqual(manifest.platforms[key], {package: item.name, sourceSha: record.sourceSha,
+          binarySha256: record.binarySha256, binaryBytes: record.binaryBytes});
+      }
+    }
+  } finally {await rm(scratch, {recursive: true});}
+  return manifest;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const [command, input, ...artifacts] = process.argv.slice(2);
+  assert(input && ['prepare', 'verify', 'plan', '--publish'].includes(command),
+    'usage: native-cli-release.mjs prepare <new-directory> <artifact-directories...> | verify|plan <directory> | --publish <directory> after GO');
+  const directory = resolve(input);
+  const manifest = command === 'prepare' ? await prepareNativeCliRelease(directory, artifacts) : await verifyNativeCliRelease(directory);
+  if (command === '--publish') {
+    execFileSync('npm', ['whoami', '--registry', manifest.cohort.registry, '--fetch-timeout=15000', '--fetch-retries=0'], {stdio: 'inherit', timeout: 20_000});
+    console.log(JSON.stringify(await publishPackageRelease({directory, verify: verifyNativeCliRelease,
+      executePublish({file, registry, access, tag}) {execFileSync('npm', ['publish', file, '--ignore-scripts', '--registry', registry,
+        '--access', access, '--tag', tag], {stdio: 'inherit', timeout: 180_000});}}), null, 2));
+  } else console.log(JSON.stringify(command === 'plan' ? await publicationPlan(manifest) : {
+    sourceSha: manifest.sourceSha, platforms: manifest.platforms,
+    packages: manifest.packages.map(({name, version, file, sha256}) => ({name, version, file, sha256}))}, null, 2));
+}

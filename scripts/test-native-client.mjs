@@ -224,7 +224,7 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     response.end('{}');
   }
 });
-const builtExecutable = new URL(
+const builtExecutable = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY ?? new URL(
   '../_build/native/release/build/cmd/native_client/native_client.exe',
   import.meta.url).pathname;
 const executable = join(root, 'actql-native-client');
@@ -248,7 +248,9 @@ function runProcess(command, commandArgs) {
   return new Promise((resolve, reject) => {
     // The installed binary must not rely on a repository cwd or find Node,
     // MoonBit, curl's CLI, or another build tool through PATH.
-    const child = spawn(command, commandArgs, {cwd: root,
+    const launcher = command === executable ? process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER : undefined;
+    const child = spawn(launcher ? process.execPath : command,
+      launcher ? [launcher, ...commandArgs] : commandArgs, {cwd: root,
       env: {...process.env, PATH: emptyPath}});
     let stdout = '', stderr = '';
     child.stdout.setEncoding('utf8').on('data', data => { stdout += data; });

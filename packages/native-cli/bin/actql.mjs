@@ -1,0 +1,59 @@
+#!/usr/bin/env node
+// npm starts this small launcher. Every protocol operation runs in Native.
+import {createRequire} from 'node:module';
+import {readFileSync, lstatSync, realpathSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {dirname, join, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+import {constants} from 'node:os';
+
+export function platformKey({platform, arch, glibc}) {
+  if (platform === 'darwin' && arch === 'arm64') return 'darwin-arm64';
+  if (platform === 'linux' && arch === 'x64' && typeof glibc === 'string' && /^\d+\.\d+(?:\.\d+)?$/u.test(glibc)) return 'linux-x64-gnu';
+  throw Object.assign(Error(`Unsupported platform: ${platform}/${arch}; Linux requires identifiable glibc. No alternative binary is used.`), {exitCode: 64});
+}
+
+export function admitInstalledBinary({key, expected, metadata, binary, glibc}) {
+  if (!expected || metadata.version !== 'actql-native-cli-artifact/0.1' ||
+      metadata.platform !== key || metadata.sourceSha !== expected.sourceSha ||
+      metadata.binarySha256 !== expected.binarySha256 ||
+      metadata.binaryBytes !== expected.binaryBytes || binary.length !== expected.binaryBytes ||
+      createHash('sha256').update(binary).digest('hex') !== expected.binarySha256) {
+    throw Object.assign(Error('Native artifact identity mismatch; reinstall the fixed package cohort.'), {exitCode: 65});
+  }
+  if (key === 'linux-x64-gnu') {
+    const parse = value => typeof value === 'string' && /^\d+\.\d+$/u.test(value) ? value.split('.').map(Number) : null;
+    const required = parse(metadata.abi.minimumGlibc), actual = parse(glibc?.split('.').slice(0, 2).join('.'));
+    if (!required || !actual || actual[0] < required[0] || actual[0] === required[0] && actual[1] < required[1]) {
+      throw Object.assign(Error(`Unsupported glibc ${glibc}; Native executable requires at least ${metadata.abi.minimumGlibc}.`), {exitCode: 64});
+    }
+  }
+}
+
+export function launch(args) {
+  const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
+  const key = platformKey({platform: process.platform, arch: process.arch, glibc});
+  const packageRoot = fileURLToPath(new URL('../', import.meta.url));
+  const platforms = JSON.parse(readFileSync(join(packageRoot, 'platforms.json'), 'utf8'));
+  const expected = platforms[key];
+  if (!expected) throw Object.assign(Error(`Native package ${key} has not been included in this release.`), {exitCode: 69});
+  let installed;
+  try {installed = dirname(createRequire(import.meta.url).resolve(`${expected.package}/package.json`));}
+  catch {throw Object.assign(Error(`Missing ${expected.package}; install actql with optional dependencies enabled. No download or source build is attempted.`), {exitCode: 69});}
+  const executable = join(installed, 'bin/actql-native-client');
+  const stat = lstatSync(executable);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024 * 1024 || !(stat.mode & 0o111)) {
+    throw Object.assign(Error('Native executable is missing, non-regular or not executable.'), {exitCode: 65});
+  }
+  admitInstalledBinary({key, expected, metadata: JSON.parse(readFileSync(join(installed, 'artifact.json'), 'utf8')),
+    binary: readFileSync(executable), glibc});
+  const child = spawnSync(executable, args, {stdio: 'inherit'});
+  if (child.error) throw Object.assign(Error(`Native start failed: ${child.error.code}. Check the documented shared-library requirements.`), {exitCode: 69});
+  return child.status ?? 128 + (constants.signals[child.signal] ?? 1);
+}
+
+if (process.argv[1] && realpathSync(resolve(process.argv[1])) === fileURLToPath(import.meta.url)) {
+  try {process.exitCode = launch(process.argv.slice(2));}
+  catch (error) {console.error(`actql: ${error.message}`); process.exitCode = error.exitCode ?? 69;}
+}
