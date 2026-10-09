@@ -306,7 +306,7 @@ import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {connect} from '@actql/node';
-import {getSubmissionOutcome} from '@actql/sdk';
+import {getSubmissionAttempt, getSubmissionOutcome} from '@actql/sdk';
 const as = token => connect({mode: 'remote',
   endpoint: process.env.ENDPOINT, token, durability: 'durable'});
 const document = readFileSync('values.json', 'utf8');
@@ -397,21 +397,36 @@ const steps = {
     changed.stages[0].steps[0].values.rows = [{id: 999}];
     const real = globalThis.fetch;
     const responses = [];
+    let submittedAttemptRef;
     globalThis.fetch = async (url, init) => {
+      const path = new URL(url).pathname;
+      if (path === '/actql/client/0.1/submit-intent') {
+        assert.equal(submittedAttemptRef, undefined);
+        submittedAttemptRef = JSON.parse(init.body).attemptRef;
+      }
       const response = await real(url, init);
-      responses.push({path: new URL(url).pathname, status: response.status});
+      responses.push({path, status: response.status});
       return response;
     };
+    const attemptId = requestId + '-changed-intent';
     try {
-      await assert.rejects(owner.startSource(JSON.stringify(changed), {format: 'json', submissionRef}), error => {
-        assert.equal(error.code, 'SubmissionUnknown');
-        assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
-        assert.equal(error.cause?.status, undefined);
+      await assert.rejects(owner.startSource(JSON.stringify(changed), {format: 'json', submissionRef, attemptId}), error => {
+        assert.equal(error.code, 'SubmissionConflict');
+        assert.equal(error.cause, undefined);
+        const attempt = getSubmissionAttempt(error);
+        assert.equal(attempt.kind, 'conflict');
+        assert.equal(attempt.reason, 'intent');
+        assert.deepEqual(submittedAttemptRef, {operation: 'submit', attemptId});
+        assert.deepEqual(attempt.attemptRef, submittedAttemptRef);
+        assert.deepEqual(error.attemptRef, submittedAttemptRef);
+        assert.deepEqual(attempt.submissionRef, submissionRef);
+        assert.equal(getSubmissionOutcome(error), undefined);
         assert.deepEqual(error.submissionRef, submissionRef);
         return true;
       });
     } finally {globalThis.fetch = real;}
-    assert.deepEqual(responses, [{path: '/actql/client/0.1/submit-intent', status: 409}]);
+    // A validated invocation conflict is a typed reply, not a transport failure.
+    assert.deepEqual(responses, [{path: '/actql/client/0.1/submit-intent', status: 200}]);
     assert.deepEqual(await owner.lookupSubmission(submissionRef), original);
     assert.deepEqual(await (await owner.attach(first.ref)).result('answer').all(), expected);
   },
