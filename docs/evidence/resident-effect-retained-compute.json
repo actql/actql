@@ -1,0 +1,81 @@
+{
+  "scope": "Original Effect retained-input dispatch and actual Native consumer over an independent durable Transfer holding. No approval, physical Effect, polled Effect holder or public Cloud acceptance.",
+  "verifiedSource": "8d367bc8af8b5e96960c177e563c017160add8d1",
+  "sourceClean": true,
+  "mergedMain": "ffe46cdae6d064a60da517dec2937eeaee4a1c30",
+  "dependencies": {
+    "sourceDispatchPR": "https://github.com/actql/actql/pull/1109",
+    "state": "merged into the adopted main"
+  },
+  "receipt": "_build/resident-effect-retained-native-1791531716100/receipt.json",
+  "inputs": "_build/resident-effect-retained-native-1791531716100/inputs.json",
+  "sourceRecord": "_build/resident-effect-retained-native-1791531716100/source.json",
+  "native": {
+    "effectRetainedConsumer": 2,
+    "ordinaryRetainedConsumer": 1,
+    "ordinaryCancellation": 1,
+    "artifact": "_build/resident-effect-retained-native-1791531716100/retained-compute.whitebox_test.exe",
+    "sha256": "cbf86eab4a809a47c091a3fc94e41cbf9c40679c2e6080aff6cc75e5564eceed",
+    "artifactRole": "whitebox Native test executable, not a production Site binary"
+  },
+  "portable": {
+    "sourceDispatchAdmission": 10,
+    "effectProjectionAndOrdinaryRefusal": 1,
+    "capturedSourceCustodyBorrow": 1,
+    "effectLocalArtifactOwnership": 1
+  },
+  "expectedRows": [
+    {
+      "id": 3
+    }
+  ],
+  "expectedSchema": {
+    "id": {
+      "nullable": false,
+      "type": "number"
+    }
+  },
+  "physicalChecks": [
+    "Source acquisition and producer capture once; source pathname removed before consumer preparation",
+    "Filesystem Direct Transfer committed; SQLite journal reopened after commit and again after borrow",
+    "Stale Site generation refused before consumer execution; receiver reservation and material preserved",
+    "Consumer once; exact rows, schema and normal export end",
+    "Foreign checked Result Owner refused before borrowing",
+    "Effect pins include the independently held imported root and keep reservations until explicitly returned",
+    "Consumer cancellation before execution returns its borrow; receiver holding remains reserved until its own cleanup",
+    "Repeated borrow/pin return and cleanup do not return capacity twice",
+    "Source and receiver/consumer/Transfer overlap remains within the existing 512 MiB ceiling"
+  ],
+  "producerEvidenceScope": "The producer protocol completion is an explicitly labelled existing fixture; actual DuckDB acquisition and Native consumer are executed. This does not establish journal/exclusive-start-claim or Cloud execution.",
+  "initialFailures": [
+    {
+      "source": "01fd6e5015c88ef9d725d7c6e470551021665c08",
+      "receipt": "_build/resident-effect-retained-native-1791530914412/receipt.json",
+      "reason": "Fixture nested match parsing; Native tests did not execute"
+    },
+    {
+      "source": "82dbc87747b6406f880e1c5a6a8187caff9c2cb6",
+      "receipt": "_build/resident-effect-retained-native-1791530952689/receipt.json",
+      "reason": "Two consuming fixture enum matches lacked the new Effect error cases; Native tests did not execute"
+    },
+    {
+      "source": "fd4f660b3116b08a111d5d266a3f297fc8721e4d",
+      "receipt": "_build/resident-effect-retained-native-1791531413018/receipt.json",
+      "reason": "Actual consumer and Result export succeeded, but Effect pinning rejected the imported Transfer root because it required an acquisition handle"
+    },
+    {
+      "source": "36ac2dc610fbf2d40c4f906293aad7c18d7a8ee3",
+      "receipt": "_build/resident-effect-retained-native-1791531520373/receipt.json",
+      "reason": "The two Native Effect cases pass after borrowing the exact already-admitted materialized root through the existing cell owner"
+    }
+  ],
+  "unverified": [
+    "Hosted CI remains stopped by user instruction",
+    "Wasm diagnostic",
+    "Formal package and production Native adoption of these new APIs",
+    "Normal polled Effect holder/exclusive start claim",
+    "Physical Effect Preview, Checkpoint and approval/application",
+    "Public Cloud SDK and real Preview",
+    "Old failed Runs remain separate unresolved custody obligations"
+  ]
+}
