@@ -151,3 +151,66 @@ orderWindowRefusals.push({name: 'order-window-refuse-join-projected-input',
   text: 'FROM records |> JOIN ' + joinKeys
     + ' ON records.id = keys.k MAX_OUTPUT_ROWS 10 |> SELECT records.id AS id'
     + ' |> ORDER BY ROW_NUMBER() OVER (ORDER BY records.amount)'});
+
+// SELECT windows use the joined input scope without requiring QUALIFY. This
+// handwritten control keeps the predicate before numbering and sorts the
+// evaluated window output before publishing only the declared columns.
+export const joinSelectWindowProgram = {
+  version: 'actql/0.1', id: 'fixture.join_select_window',
+  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {literal: true}},
+      {select: ['amount', 'id'], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['amount', 'id']}}},
+  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{values: {schema: {k: number}, rows: [1, 2, 3, 4, 5].map(k => ({k}))}, as: 'keys'},
+      {from: 'records', join: {with: 'keys', kind: 'inner',
+        on: [{left: 'id', right: 'k'}], max_output_rows: 10,
+        select: {amount: 'left.amount', id: 'left.id', k: 'right.k'}}, as: 'joined'},
+      {filter: {gt: [{field: 'id'}, {literal: 0}]}},
+      {analytic: {partition_by: [], order_by: [
+        {field: 'amount', dir: 'desc', nulls: 'last'},
+        {field: 'id', dir: 'asc', nulls: 'first'}], functions: {pos: {fn: 'row_number'}}}},
+      {select: ['id', 'pos']},
+      {sort: [{field: 'pos', dir: 'desc', nulls: 'last'}], as: 'out'}],
+    results: {rows: {from: 'out', fields: ['id', 'pos']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const joinSelectRows = [{id: 5, pos: 5}, {id: 1, pos: 4}, {id: 3, pos: 3},
+  {id: 4, pos: 2}, {id: 2, pos: 1}];
+const joinSelectWindow = 'ROW_NUMBER() OVER (ORDER BY records.amount DESC NULLS LAST, records.id)';
+const joinSelect = 'SELECT records.id AS id, ' + joinSelectWindow + ' AS pos'
+  + joinFrom + 'ORDER BY pos DESC';
+orderWindowSuccesses.push(...[
+  ['join-select-independent-json', JSON.stringify(joinSelectWindowProgram), {format: 'json'}],
+  ['join-select-sql', joinSelect, {}],
+  ['join-select-pipe', 'FROM records |> JOIN ' + joinKeys
+    + ' ON records.id = keys.k MAX_OUTPUT_ROWS 10 |> WHERE records.id > 0'
+    + ' |> SELECT records.id AS id, ' + joinSelectWindow + ' AS pos |> ORDER BY pos DESC',
+    {format: 'aql-text'}],
+  ['join-select-scalar-parameter', joinSelect.replace(joinSelectWindow, joinSelectWindow + ' + @shift'),
+    {parameterDeclarations: {shift: number}, parameters: {shift: 7},
+      expected: [{id: 5, pos: 12}, {id: 1, pos: 11}, {id: 3, pos: 10},
+        {id: 4, pos: 9}, {id: 2, pos: 8}]}],
+  ['join-select-filter-before-numbering', joinSelect.replace('records.id > 0', 'records.id > 2'),
+    {expected: [{id: 5, pos: 3}, {id: 3, pos: 2}, {id: 4, pos: 1}]}],
+  ['join-select-left-preserved', 'SELECT records.id AS id, keys.k AS matched, '
+    + joinSelectWindow + ' AS pos FROM records LEFT JOIN '
+    + '(SELECT 2 AS k UNION ALL SELECT 4 AS k) AS keys'
+    + ' ON records.id = keys.k MAX_OUTPUT_ROWS 10 WHERE records.id > 0 ORDER BY pos DESC',
+    {columns: [col('id'), col('matched', nullable), col('pos')], expected: [
+      {id: 5, matched: null, pos: 5}, {id: 1, matched: null, pos: 4},
+      {id: 3, matched: null, pos: 3}, {id: 4, matched: 4, pos: 2}, {id: 2, matched: 2, pos: 1}]}],
+  ['join-select-typed-empty', joinSelect, {sourceRows: [], expected: []}],
+  ['join-select-duplicates', joinSelect, {sourceRows: [...sourceRows, {id: 2, amount: 20}],
+    expected: [{id: 5, pos: 6}, {id: 1, pos: 5}, {id: 3, pos: 4},
+      {id: 4, pos: 3}, {id: 2, pos: 2}, {id: 2, pos: 1}]}],
+].map(([name, text, extra]) => success(name, text,
+  {expected: joinSelectRows, columns: [col('id'), col('pos')], ...extra})));
+orderWindowRefusals.push(...[
+  ['join-select-sibling-alias', 'SELECT records.amount AS invented, '
+    + 'ROW_NUMBER() OVER (ORDER BY invented) AS pos' + joinFrom + 'ORDER BY pos'],
+  ['join-select-projected-input', 'FROM records |> JOIN ' + joinKeys
+    + ' ON records.id = keys.k MAX_OUTPUT_ROWS 10 |> SELECT records.id AS id'
+    + ' |> SELECT id, ROW_NUMBER() OVER (ORDER BY records.amount) AS pos |> ORDER BY pos'],
+].map(([name, text]) => ({name: 'order-window-refuse-' + name,
+  format: name.endsWith('projected-input') ? 'aql-text' : 'sql',
+  expectedCode: 'ClientProgramInvalidInput', text})));

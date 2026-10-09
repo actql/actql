@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {orderWindowProgram, joinOrderWindowProgram, joinOrderAliasProgram, joinOrderQualifiedProgram, orderWindowSuccesses, orderWindowRefusals} from './fixtures/order-window-source-input.mjs';
+import {orderWindowProgram, joinOrderWindowProgram, joinOrderAliasProgram, joinOrderQualifiedProgram, joinSelectWindowProgram, orderWindowSuccesses, orderWindowRefusals} from './fixtures/order-window-source-input.mjs';
 
 test('ORDER window controls distinguish alias, qualified input and pre-QUALIFY scopes', () => {
   const byName = new Map(orderWindowSuccesses.map(item => [item.name, item]));
@@ -64,7 +64,42 @@ test('JOIN ORDER windows retain authored keys ceiling predicate and operand scop
   assert.deepEqual(byName.get('order-window-join-typed-empty').expected, []);
   assert.equal(byName.get('order-window-join-duplicates').expected.length, 6);
   assert.equal(byName.get('order-window-join-left-preserved').columns[1].contract.nullable, true);
-  assert.equal(orderWindowSuccesses.length, 25);
-  assert.equal(orderWindowRefusals.length, 8);
+  assert.equal(orderWindowSuccesses.length, 33);
+  assert.equal(orderWindowRefusals.length, 10);
   assert.equal(orderWindowRefusals.at(-1).expectedCode, 'ClientProgramInvalidInput');
+});
+
+test('JOIN SELECT windows preserve input scope predicate multiplicity and result columns', () => {
+  const byName = new Map(orderWindowSuccesses.map(item => [item.name, item]));
+  const json = byName.get('order-window-join-select-independent-json');
+  assert.deepEqual(JSON.parse(json.text), joinSelectWindowProgram);
+  const steps = joinSelectWindowProgram.stages[1].steps;
+  assert.deepEqual(steps[1].join.on, [{left: 'id', right: 'k'}]);
+  assert.equal(steps[1].join.max_output_rows, 10);
+  assert.deepEqual(steps[2].filter, {gt: [{field: 'id'}, {literal: 0}]});
+  assert.deepEqual(steps[3].analytic.order_by, [
+    {field: 'amount', dir: 'desc', nulls: 'last'}, {field: 'id', dir: 'asc', nulls: 'first'}]);
+  assert.deepEqual(steps[4].select, ['id', 'pos']);
+  assert.deepEqual(steps[5].sort, [{field: 'pos', dir: 'desc', nulls: 'last'}]);
+  assert.deepEqual(json.expected, [{id: 5, pos: 5}, {id: 1, pos: 4}, {id: 3, pos: 3},
+    {id: 4, pos: 2}, {id: 2, pos: 1}]);
+  for (const name of ['sql', 'pipe']) {
+    const item = byName.get('order-window-join-select-' + name);
+    assert.deepEqual(item.expected, json.expected);
+    assert.deepEqual(item.columns, json.columns);
+    assert.equal(item.sourceReadSessionCount, 1);
+  }
+  assert.deepEqual(byName.get('order-window-join-select-filter-before-numbering').expected,
+    [{id: 5, pos: 3}, {id: 3, pos: 2}, {id: 4, pos: 1}]);
+  const duplicates = byName.get('order-window-join-select-duplicates');
+  assert.deepEqual(duplicates.expected.slice(-2), [{id: 2, pos: 2}, {id: 2, pos: 1}]);
+  assert.equal(duplicates.expected.length, 6);
+  const empty = byName.get('order-window-join-select-typed-empty');
+  assert.deepEqual(empty.expected, []);
+  assert.deepEqual(empty.columns, json.columns);
+  assert.equal(byName.get('order-window-join-select-left-preserved').columns[1].contract.nullable, true);
+  for (const name of ['sibling-alias', 'projected-input']) {
+    assert.equal(orderWindowRefusals.find(item => item.name === 'order-window-refuse-join-select-' + name).expectedCode,
+      'ClientProgramInvalidInput');
+  }
 });

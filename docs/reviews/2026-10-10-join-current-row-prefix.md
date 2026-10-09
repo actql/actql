@@ -261,3 +261,57 @@ new-SHA execution. The final evidence commit changes only this document.
 
 Full Core, full packed campaigns, Wasm/Native execution and submitted-HEAD
 required CI remain unverified for this PR; no manual CI rerun was requested.
+
+
+## Additional caller: SELECT-window over JOIN without QUALIFY
+
+The same main `040eed2b1a11a3d1f7bae81b68d956d1017fac05` rejects
+`SELECT l.x AS x, ROW_NUMBER() OVER (ORDER BY l.y) AS pos FROM t AS l
+JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 ORDER BY pos` in lowering
+with UnsupportedJoin. The equivalent Pipe script also fails lowering; that
+first probe does not identify its specific issue. An independently authored
+common JOIN/analytic/projection/sort Program passes the ordinary checker.
+The main selection is 1/3 (`run-U1dEy3`, `focused-test-TMawz2`).
+This establishes a source-lowering gap, not a publicly executed failed Run.
+
+An attempted diagnostic using generic Debug for Issue failed compilation
+(`run-GFPamD`, `focused-test-I3iT3g`, no executed tests); the public Issue
+has no Debug implementation. That attempt does not change product code or
+establish any rejection category. The existing #1163 repair passes the same
+three-case selection (`run-FqsEh0`, `focused-test-H5zG9a`) without another
+product change: Analytic before SELECT is a current-row prefix.
+
+`join_select_window_test.mbt` adds a complete, independently written lowering
+expectation in addition to the common JSON control. It keeps the JOIN key and
+ceiling, input y window order, evaluated pos sort slot and final x/pos column
+order. It also checks filter/window expression and LEFT JOIN callers, with
+exact UnknownColumn refusals for sibling SELECT aliases and projected-away
+input ranges in both query and script compilation.
+
+Final focused checks before packed execution:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js \
+  src/query_program/join_select_window_test.mbt \
+  src/query_program/join_order_window_test.mbt \
+  src/query_program/join_current_row_prefix_test.mbt \
+  src/query_program/window_scalar_projection_test.mbt
+node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
+  scripts/order-window-source-input.test.mjs
+```
+
+JS: 25/25 (`run-hte5AM`, `focused-test-velU8S`). Node: 4/4
+(`run-VIOhlw`, `focused-test-qvMoD3`). The earlier 18/18 caller selection
+also passed (`run-C3gRD3`, `focused-test-0HrNgj`).
+
+The existing order-window corpus adds eight positives and two exact-code
+refusals, for 33 positives / 10 refusals per transport. Handwritten JSON and
+SQL/Pipe counterparts expect id/pos rows `(5,5),(1,4),(3,3),(4,2),(2,1)`.
+Filter-before-numbering, a scalar parameter expression, nullable unmatched
+LEFT rows, typed empty input and repeated id=2 distinguish incorrect operator
+placement, dropped arguments, NULL changes and accidental deduplication.
+All cases are in the normal corpus as well as the existing narrow consumer.
+
+At this source commit, public execution of the expanded SELECT-window cohort
+is pending. Prior prefix and ORDER-window packed receipts above retain their
+actual source SHAs; they are not new-SHA acceptance evidence.
