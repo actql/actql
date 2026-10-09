@@ -22,6 +22,7 @@ const {canonical, cid, configuration} = await import(runtime.inferFixture);
 const {providerBindingOriginals} = await import(runtime.providerFixture);
 const {root, phase, transport = 'local', count = 1, acquired = false,
   checkpointTtlMs = 120_000, providerRevision = 'public-model-fixture-1'} = options;
+const historicalSource = acquired && options.sourceDelegate && options.historicalSource === true;
 const owner = userInfo().username;
 const path = name => join(root, name);
 mkdirSync(root, {recursive: true});
@@ -331,19 +332,56 @@ const execute = async () => { try {
   if (telemetryContext === undefined) await open();
   else await telemetryContext.context.with(telemetryContext.parent, open);
   try {
-    const lookupOnly = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss';
-    if (!existsSync(path('submission-ref.json'))) {
-      assert.equal(lookupOnly, false, 'original cancellation lookup must retain submission custody');
-      save('submission-ref.json', client.newSubmission({nonce: 'public-model-resume'}));
+    if (historicalSource) {
+      if (phase === 'wait-source') {
+        // Author only an unresolved historical-format Source original while
+        // all public Host owners are closed. This is current recovery
+        // coverage, not a claim of earlier public-Host acceptance.
+        assert.equal(existsSync(path('historical-source.json')), false);
+        await client.close(); client = undefined;
+        if (server) {
+          server.closeAllConnections();
+          await new Promise(resolve => server.close(resolve)); server = undefined;
+        }
+        await host?.close(); host = undefined;
+        assert.equal(typeof runtime.root, 'string');
+        const {writeSyntheticHistoricalHeldQuery} = await import('./synthetic-historical-held-query.mjs');
+        const original = await writeSyntheticHistoricalHeldQuery({directory: installation.directory,
+          document: JSON.stringify(program), requestId: 'historical-public-model-resume', authorization,
+          sourceProfile: JSON.parse(readFileSync(sourceProfilePath, 'utf8')),
+          runtimeRootUrl: new URL(runtime.root), mode: transport === 'https' ? 'remote' : 'local',
+          modelEnvironmentWire: modelInstallation.environmentWire});
+        save('historical-source.json', original);
+        await open();
+      }
+      const original = read('historical-source.json');
+      assert.equal(original.kind, 'synthetic_historical_format');
+      const found = await client.lookupRequest(original.requestId);
+      if (found.kind === 'found') run = await client.attach(found.ref);
+      else {
+        assert.equal(found.kind, 'held');
+        assert.ok(['wait-source', 'approve-source'].includes(phase));
+        assert.equal(found.checkpoint.checkpointCid, original.checkpointCid);
+      }
+      if (run !== undefined) {
+        if (existsSync(path('run.json'))) assert.deepEqual(run.ref, read('run.json'));
+        else save('run.json', run.ref);
+      }
+    } else {
+      const lookupOnly = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss';
+      if (!existsSync(path('submission-ref.json'))) {
+        assert.equal(lookupOnly, false, 'original cancellation lookup must retain submission custody');
+        save('submission-ref.json', client.newSubmission({nonce: 'public-model-resume'}));
+      }
+      const submissionRef = read('submission-ref.json');
+      run = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss'
+        ? await client.attach(read('run.json'))
+        : await client.start(program, {submissionRef});
+      if (existsSync(path('run.json'))) {
+        const original = read('run.json');
+        assert.deepEqual(run.ref, original);
+      } else save('run.json', run.ref);
     }
-    const submissionRef = read('submission-ref.json');
-    run = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss'
-      ? await client.attach(read('run.json'))
-      : await client.start(program, {submissionRef});
-    if (existsSync(path('run.json'))) {
-      const original = read('run.json');
-      assert.deepEqual(run.ref, original);
-    } else save('run.json', run.ref);
   } catch (error) {
     if (!(error instanceof RequestHeld)) {
       // Failure-only diagnostic through the real Core reader. Public check()
@@ -374,7 +412,11 @@ const execute = async () => { try {
   if (phase === 'wait' || phase === 'wait-source') {
     const expectedKind = phase === 'wait-source' ? 'read_access' : 'model_invocation';
     const summary = await until(async () => (await client.checkpoints()).items.find(item => item.kind === expectedKind));
-    const review = JSON.parse(new TextDecoder().decode((await client.reviewCheckpoint(summary)).bytes));
+    const reviewWire = new TextDecoder().decode((await client.reviewCheckpoint(summary)).bytes);
+    if (historicalSource && expectedKind === 'read_access') {
+      assert.equal(reviewWire, read('historical-source.json').reviewWire);
+    }
+    const review = JSON.parse(reviewWire);
     save(`${expectedKind}-summary.json`, summary);
     await assertSeparateReviewDisclosure(summary);
     assert.equal(calls().length, options.expectedPriorCalls ?? 0);
@@ -393,7 +435,8 @@ const execute = async () => { try {
     }
     const state = run === undefined ? undefined : await run.status();
     if (state !== undefined) assert.equal(state.run_id, summary.subject.runId);
-    output({summary, review, runId: state?.run_id, status: state?.status ?? 'held'});
+    output({summary, review, runId: state?.run_id, status: state?.status ?? 'held',
+      ...(historicalSource ? {originalKind: read('historical-source.json').kind} : {})});
   } else {
     let resolution;
     let cancellationRecovery;
@@ -467,10 +510,12 @@ const execute = async () => { try {
       output({runId: state.run_id, status: state.status, control: state.control, cancellationRecovery});
     } else if (phase === 'approve-source') {
       const found = await until(async () => {
-        const lookup = await client.lookupSubmission(read('submission-ref.json'));
-        return lookup.kind === 'ready' ? lookup : undefined;
+        const lookup = historicalSource
+          ? await client.lookupRequest(read('historical-source.json').requestId)
+          : await client.lookupSubmission(read('submission-ref.json'));
+        return lookup.kind === (historicalSource ? 'found' : 'ready') ? lookup : undefined;
       });
-      run = await client.attach(found.admission.ref);
+      run = await client.attach(historicalSource ? found.ref : found.admission.ref);
       save('run.json', run.ref);
       const summary = await until(async () => (await client.checkpoints()).items.find(item => item.kind === 'model_invocation'));
       save('model_invocation-summary.json', summary);

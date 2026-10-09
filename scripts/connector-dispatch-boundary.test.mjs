@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {connectorDispatchViolations, checkConnectorDispatchBoundary} from './check-connector-dispatch-boundary.mjs';
+import {mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {connectorDispatchViolations, checkConnectorDispatchBoundary, isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 
 const names = ['local', 'duckdb', 'mock', 'reference_compute'];
 test('common implementation files reject concrete dispatch identities', () => {
@@ -34,4 +37,70 @@ test('opaque lookup identity checks and transported labels are allowed', () => {
     '// DuckDB Local Native "duckdb"\ninstalled.get(id);',
     '/* case "duckdb": Local(value) */ installed.get(id);',
   ]) assert.deepEqual(connectorDispatchViolations(source, names), [], source);
+});
+
+test('measurement Host admission allows only the closed refusal checks in their owners', () => {
+  for (const [path, source] of [
+    ['src/physical_strategy/operational_conditions.mbt', `
+      if value.host != "native" || value.concurrency != 1 || value.input_rows < 1 ||
+        !["off", "metadata-only", "evidence-enabled"].contains(value.capture_mode) ||
+        !["fresh", "resident"].contains(value.realization) { raise PolicyWireStop }
+    `],
+    ['src/physical_strategy/operational_estimates.mbt', `
+      if !["off", "metadata-only", "evidence-enabled"].contains(
+        policy_wire_text(conditions, "captureMode"),
+      ) || !["fresh", "resident"].contains(
+        policy_wire_text(conditions, "realization"),
+      ) || policy_wire_text(conditions, "host") != "native" ||
+        policy_wire_int(conditions, "concurrency") != 1 ||
+        policy_wire_int(conditions, "inputRows") < 1 { raise PolicyWireStop }
+    `],
+  ]) {
+    assert.deepEqual(connectorDispatchViolations(source, names, path), []);
+    assert.equal(connectorDispatchViolations(source, names, 'src/physical_strategy/dispatch.mbt').length, 1);
+    assert.equal(connectorDispatchViolations(source.replace('raise PolicyWireStop', 'dispatch()'), names, path).length, 1);
+    assert.equal(connectorDispatchViolations(source.replace('!= "native"', '== "native"'), names, path).length, 1);
+    assert.equal(connectorDispatchViolations(source + '\nif id == "native" { dispatch() }', names, path).length, 1);
+  }
+});
+
+test('test workers are excluded but a common implementation cannot import their custody', () => {
+  assert.equal(isConnectorTestFixture('adapters/host-node/process.fixture.mjs'), true);
+  assert.equal(isConnectorTestFixture('adapters/host-node/fixtures/process.mjs'), true);
+  assert.equal(isConnectorTestFixture('adapters/host-node/finalizer-fixture.mjs'), true);
+  assert.equal(isConnectorTestFixture('adapters/host-node/fixture-owner.mjs'), false);
+  const root = mkdtempSync(join(tmpdir(), 'actql-dispatch-boundary-'));
+  try {
+    for (const directory of ['src/connectors/local', 'src/connector_sdk',
+      'src/query_planning', 'src/physical_host', 'src/physical_strategy',
+      'src/physical_resources', 'src/physical_cost', 'adapters/host-node/fixtures',
+      'adapters/host-common', 'scripts/templates']) mkdirSync(join(root, directory), {recursive: true});
+    writeFileSync(join(root, 'adapters/host-node/worker.fixture.mjs'), 'connect({mode: "local"})');
+    writeFileSync(join(root, 'adapters/host-node/fixtures/process.mjs'), 'connect({mode: "local"})');
+    const implementation = join(root, 'adapters/host-common/strategy.mjs');
+    writeFileSync(implementation, 'installed.get(registration)');
+    assert.equal(checkConnectorDispatchBoundary(root), 1);
+    for (const statement of [
+      "import {run} from '../host-node/worker.fixture.mjs';",
+      "import '../host-node/fixtures/process.mjs';",
+      "const run = await import('../host-node/worker.fixture.mjs');",
+      "import {finalizerCase} from '../host-node/finalizer-fixture.mjs';",
+    ]) {
+      writeFileSync(implementation, statement);
+      assert.throws(() => checkConnectorDispatchBoundary(root), /test fixture imported by common implementation/);
+    }
+  } finally {
+    rmSync(root, {recursive: true, force: true});
+  }
+});
+
+test('observation scope defaults cannot hide concrete dispatch in the same owner', () => {
+  const path = 'adapters/host-common/observation.mjs';
+  const defaults = `const {deliver, currentContext,
+    scope = 'local', revision = 'metadata/0.1', limits = {},
+    include = [...operations], exclude = [], correlation = true} = options;`;
+  assert.deepEqual(connectorDispatchViolations(defaults, names, path), []);
+  assert.equal(connectorDispatchViolations(defaults, names, 'adapters/host-common/strategy.mjs').length, 1);
+  assert.equal(connectorDispatchViolations(defaults + "if (scope === 'local') dispatch();", names, path).length, 1);
+  assert.equal(connectorDispatchViolations("const registration = 'local'; installed.get(registration);", names, path).length, 1);
 });

@@ -363,17 +363,37 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid({...integratedBody,
     query_text_rules_sha256: 'f04041e8cb9706ee535612f3f2e51f7b732e4fb5f9ac7f76836f82645262c749'}),
     'sha256:ad974dd510c1491960ebc6c86b0c426fecf6874895e4a0dc00ce07e714e145dc');
+  // Preserve the pre-correction manifest: only the source grammar changes
+  // when pivot.fill returns to its normative whole-value CellValue grammar.
+  const beforePivotCellBody = {...integratedBody,
+    query_text_grammar_sha256: '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db',
+    query_text_rules_sha256: '831de7808000326fdc2e0fe4d8b6224d7bc34495692455e6ff4f85aa026df10a'};
+  assert.equal(cid(beforePivotCellBody),
+    'sha256:a85a3517afd7a705e99e746f5a08332370b072ddc77868372db19b977ee87ecb');
+  assert.equal(cid({...beforePivotCellBody, source_grammar_cid:
+    'sha256:21bae76f36b9428995aba44017787ee327786a741db006ca952404253a409810'}),
+    'sha256:30e6c2f83ccbeb15f883b544eb6930c305c04f8615a5ddc9c3bf72e48e60c59e');
   const {grammar_manifest_cid: beforeJoinCid, ...beforeJoinBody} =
     read('scripts/fixtures/pre-unnest-join-grammar.json').grammar;
   assert.equal(cid(beforeJoinBody), beforeJoinCid);
-  assert.equal(beforeJoinCid, 'sha256:a85a3517afd7a705e99e746f5a08332370b072ddc77868372db19b977ee87ecb');
-  assert.equal(beforeJoinBody.query_text_rules_sha256,
-    '831de7808000326fdc2e0fe4d8b6224d7bc34495692455e6ff4f85aa026df10a');
-  const currentExpected = 'sha256:62780078db668a0488bde0f683d6de3f2e15aa04875aa8593c64d60d7c187cf0';
+  assert.deepEqual(beforeJoinBody, beforePivotCellBody);
+  const {grammar_manifest_cid: upstreamCid, ...upstreamBody} =
+    read('scripts/fixtures/pre-b408-spec-repair-values-identities.json').upstream.grammar;
+  assert.equal(cid(upstreamBody), upstreamCid);
+  assert.equal(upstreamCid, 'sha256:62780078db668a0488bde0f683d6de3f2e15aa04875aa8593c64d60d7c187cf0');
+  // Preserve the adopted manifest, then bind the actual b408 source bytes.
+  // Its later query-text clarification changed the normative rules digest.
+  assert.equal(upstreamBody.query_text_rules_sha256,
+    'ede6d8449c25ed883ac9fe9eff46670655bb5212f548a3097e230d73394304ad');
+  assert.deepEqual(currentBody, {...upstreamBody, source_grammar_cid:
+    'sha256:21bae76f36b9428995aba44017787ee327786a741db006ca952404253a409810',
+    query_text_rules_sha256:
+      'afe794150902368b6fc874ec462122400599ba4cda046899b991ab5c38f9477e'});
+  const currentExpected = 'sha256:27ebfa9f22860ffcf7d16c15199c95cd41952579720e27b16b715fa5d5b0f18c';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(currentBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
-  assert.equal(currentBody.query_text_rules_sha256, "ede6d8449c25ed883ac9fe9eff46670655bb5212f548a3097e230d73394304ad");
+  assert.equal(currentBody.query_text_rules_sha256, "afe794150902368b6fc874ec462122400599ba4cda046899b991ab5c38f9477e");
   assert.equal(cid(currentBody), currentExpected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);

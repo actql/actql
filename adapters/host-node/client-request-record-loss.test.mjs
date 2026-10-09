@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import * as sdk from '../../packages/sdk/index.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openReadOpeningFixture, connectOpeningHost, openingProgram} from './client-read-opening.fixture.mjs';
-import {loseRequestRecord} from './client-request-record-loss.fixture.mjs';
+import {loseRequestRecord, retainedRequestId} from './client-request-record-loss.fixture.mjs';
 
 for (const entrance of ['local', 'https']) {
   test(`${entrance}: missing submission record preserves uncertainty despite an already published Run`,
@@ -18,16 +18,21 @@ for (const entrance of ['local', 'https']) {
       const fixture = await openReadOpeningFixture(scratch.path);
       const host = await connectOpeningHost(fixture, entrance, scratch.path);
       try {
-        const run = await host.client.start(openingProgram, {requestId: 'original-request'});
+        const submissionRef = host.client.newSubmission({nonce: 'original-request'});
+        const run = await host.client.start(openingProgram, {submissionRef});
         const originalInput = sdk.getSubmissionInput(run);
-        const before = await host.client.lookupRequest('original-request');
+        const requestId = retainedRequestId(scratch.path, run.ref.runDefinitionCid);
+        const submitted = await host.client.lookupSubmission(submissionRef);
+        assert.equal(submitted.kind, 'ready');
+        assert.deepEqual(submitted.admission.ref, run.ref);
+        const before = await host.client.lookupRequest(requestId);
         assert.equal(before.kind, 'found');
         assert.deepEqual(before.ref, run.ref);
         assert.equal((await run.status()).status, 'succeeded');
-        const record = await loseRequestRecord(scratch.path, 'original-request');
+        const record = await loseRequestRecord(scratch.path, requestId);
         assert.equal(record.run_definition_cid, run.ref.runDefinitionCid);
-        assert.equal(record.caller_request_id, 'original-request');
-        const absent = await host.client.lookupRequest('original-request');
+        assert.equal(record.caller_request_id, requestId);
+        const absent = await host.client.lookupRequest(requestId);
         assert.deepEqual(absent, {kind: 'not_found'});
         const explanation = sdk.explainRequestLookup(absent);
         assert.equal(explanation.observation, 'lookup_unresolved', '[check-mutation:request-record-loss-kind]');
@@ -35,7 +40,7 @@ for (const entrance of ['local', 'https']) {
           observation: 'lookup_unresolved',
           summary: 'This lookup does not establish whether the submission was accepted.',
           hint: 'Keep the original request reference and use an authorized lookup. This observation grants no permission to resubmit, execute, answer a Checkpoint or release resources.',
-          next: {operation: 'lookupRequest', requestId: 'original-request',
+          next: {operation: 'lookupRequest', requestId,
             lookupContext: {endpoint: host.endpoint, scopeRef: 'principal'}},
         }, '[check-mutation:request-record-loss-advice]');
         for (const format of ['text', 'html', 'json']) {
@@ -55,9 +60,9 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(await run.result('answer').all(), [{id: 1}, {id: 2}]);
         await host.settled();
         assert.deepEqual(fixture.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});
-        assert.deepEqual(await host.client.lookupRequest('original-request'), absent);
+        assert.deepEqual(await host.client.lookupRequest(requestId), absent);
         fixture.authorize(false);
-        await assert.rejects(host.client.lookupRequest('original-request'), {code: 'ClientRequestLookupDenied'});
+        await assert.rejects(host.client.lookupRequest(requestId), {code: 'ClientRequestLookupDenied'});
         assert.deepEqual(sdk.explainRequestLookup(absent), explanation);
         assert.equal(sdk.getSubmissionInput(run), originalInput);
         assert.deepEqual(fixture.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});

@@ -169,7 +169,8 @@ pub fn advance_managed_physical_output_finish(
   }
   output.finishing = true
   output.physical.terminal = true
-  match @execution.advance_managed_output_values_finish(output.values, quantum) {
+  match
+    @execution.advance_managed_output_values_finish(output.values, quantum) {
     Ok(poll) => {
       if poll.receipt is Some(_) {
         output.open = false

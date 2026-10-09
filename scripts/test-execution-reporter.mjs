@@ -16,10 +16,12 @@ export default async function* reporter(source) {
         const {name, file, skip, todo, details} = event.data;
         const error = details?.error;
         const cause = error?.cause ?? error;
+        // Node attaches process exits to the file error, not an assertion cause.
         cases.push({name, file, passed: event.type === 'test:pass',
           skipped: Boolean(skip), todo: Boolean(todo),
-          failureType: error?.failureType, errorCode: cause?.code,
-          errorMessage: cause?.message, operator: cause?.operator});
+          failureType: error?.failureType, errorCode: cause?.code ?? error?.code,
+          errorMessage: cause?.message, operator: cause?.operator,
+          exitCode: error?.exitCode, signal: error?.signal});
       }
       yield event;
     }

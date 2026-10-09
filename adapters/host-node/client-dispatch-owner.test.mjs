@@ -328,7 +328,12 @@ test('dispatch owner retains failed cleanup and retries without Compute',
       hostConnection: () => true,
       observed: async () => {},
       planFor: () => ({runDefinition: {wire: 'definition'}}),
-      runPublished: async () => { starts++; return physical; },
+      runPublished: async (_setup, _publication, _configuration,
+        _signal, _faultInjection, retain) => {
+        starts++;
+        retain(physical);
+        return physical;
+      },
       namespaceId: 'namespace-a',
     });
     const submission = {preparedProgram: {}, principalId: 'owner',

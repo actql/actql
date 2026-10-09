@@ -12,6 +12,7 @@ import { authorizeLocalDatabase, withComputeDatabase } from '../session.mjs';
 import { runNativeHostQuery, runRetainedNativeHostQuery, runRetainedStrategyNativeHostQuery, runRetainedFixedHostCompute, runRetainedStrategyHostCompute, importRetainedComputeInput, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute, runManagedColumnStrategyHostCompute, managedColumnCodecContractCid, encodeManagedColumnFrame,
   openResidentStrategyEnvironment, importResidentStrategyInput, runResidentStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
+import {closeManagedFixtureExecution} from './managed-fixture-cleanup.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
 import { exerciseNativeFilePlan } from './native-file-plan.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
@@ -1708,6 +1709,7 @@ async function exerciseStrategyGraph(
     const leases = [];
     let permitCleanup = false;
     let cleanupFailures = 0;
+    const cleanupFailure = new Error('InjectedCarrierRetainedCleanupPending');
     const configuration = installLocalRetainedStore((key, bytes) => {
       leases.push(key);
       const lease = leases.length;
@@ -1725,7 +1727,7 @@ async function exerciseStrategyGraph(
         async cleanup() {
           if (cleanupPending && !permitCleanup) {
             cleanupFailures++;
-            throw new Error('InjectedCarrierRetainedCleanupPending');
+            throw cleanupFailure;
           }
           writer?.cancel();
           await writer?.cleanupHandle?.retry?.();
@@ -1734,7 +1736,7 @@ async function exerciseStrategyGraph(
       });
     });
     return Object.freeze({
-      configuration, leases,
+      configuration, leases, cleanupFailure,
       permitCleanup() { permitCleanup = true; },
       cleanupFailures: () => cleanupFailures,
       async close() {
@@ -1742,6 +1744,15 @@ async function exerciseStrategyGraph(
         await rm(directory, {recursive: true, force: true});
       },
     });
+  };
+  const assertCarrierRetainedCleanupFailure = (error, retained) => {
+    assert.equal(error.code, 'ManagedExecutionFailed');
+    assert.equal(error.message, 'ManagedExecutionFailed');
+    assert.equal(error.cause, retained.cleanupFailure);
+    assert.equal(error.primaryFailure, retained.cleanupFailure);
+    assert.equal(error.cleanupPending, true);
+    assert.equal(error.cleanupHandle.status().pending, true);
+    return true;
   };
   const graphProgramBase = {
     version: 'actql/0.1',
@@ -2359,7 +2370,7 @@ async function exerciseStrategyGraph(
           assert.equal(sgaRetained.leases.length, 1);
           await assert.rejects(
             async () => sgaPublicationOwner.close(),
-            /InjectedCarrierRetainedCleanupPending/,
+            error => assertCarrierRetainedCleanupFailure(error, sgaRetained),
           );
           assert.equal(sgaPublicationOwner.cleanupPending(), true);
           assert.equal(sgaRetained.cleanupFailures(), 1);
@@ -3453,7 +3464,7 @@ async function exerciseStrategyGraph(
         const entrancesAtFailure = computeEntrances;
         if (failConsumer) {
           await assert.rejects(async () => scoredFailureExecution.close(),
-            /InjectedCarrierRetainedCleanupPending/);
+            error => assertCarrierRetainedCleanupFailure(error, scoredRetained));
           assert.equal(computeEntrances, entrancesAtFailure);
           assert.equal(scoredRetained.cleanupFailures(), 1);
           assert.equal(scoredFailureExecution.cleanupPending(), true);
@@ -3757,7 +3768,7 @@ async function exerciseStrategyGraph(
   } finally {
     if (nearestFailureExecution !== undefined) {
       await assert.rejects(async () => nearestFailureExecution.close(),
-        /InjectedCarrierRetainedCleanupPending/);
+        error => assertCarrierRetainedCleanupFailure(error, nearestFailureRetained));
       assert.equal(computeEntrances, computeEntrancesAtFailure);
       assert.equal(nearestFailureExecution.cleanupPending(), true);
       assert.equal(nearestFailureRetained.cleanupFailures(), 1);
@@ -4309,7 +4320,7 @@ async function exerciseStrategyGraph(
       closeAttempted = true;
       if (!cancelling) {
         await assert.rejects(async () => execution.close(),
-          /InjectedCarrierRetainedCleanupPending/);
+          error => assertCarrierRetainedCleanupFailure(error, retained));
         assert.equal(execution.cleanupPending(), true);
         assert(execution.usage().heldBytes > 0n ||
           execution.usage().reservedExecutionBytes > 0n);
@@ -6590,26 +6601,8 @@ async function exerciseStrategyGraph(
       );
     } finally {
       cancellationCapture.close();
-      await cancellationExecution?.close();
       if (cancellationExecution) {
-        let cleaned = false;
-        for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
-          cleaned = await cancellationExecution.cleanup();
-          if (cleaned) break;
-          assert.equal(cancellationExecution.cleanupPending(), true);
-        }
-        assert.equal(
-          cleaned,
-          true,
-          JSON.stringify({
-            usage: cancellationExecution.usage(),
-            failurePending: cancellationExecution.failure?.cleanupPending,
-            failureStatus:
-              cancellationExecution.failure?.cleanupHandle?.status?.(),
-            lifecycleObservations,
-          }, (_, value) =>
-            typeof value === 'bigint' ? value.toString() : value),
-        );
+        await closeManagedFixtureExecution(cancellationExecution, 60000);
         assert.equal(
           lifecycleObservations.some(value =>
             value.name === 'execution_stopped' && value.result === true),

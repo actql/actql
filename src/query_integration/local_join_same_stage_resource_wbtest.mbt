@@ -160,9 +160,16 @@ fn run_same_stage_join_budget(
 
 ///|
 test "same-stage full join admits exact work and one-short limits" {
-  // The task-wide ceiling covers preparation and the join's observed advances
-  // (278); the join reports an exhausted control ceiling as its row limit.
-  assert_eq(run_same_stage_join_budget(302, 10000), ("complete", 278L))
+  // Logical control remains 302/301; physical resume work additionally visits
+  // immutable completion and source metadata. join_4 has six ASCII units;
+  // id/l/r contribute four scalars, three name pushes and four phase ends.
+  let completion_preparation = 3L * 6L + 4L + 3L + 4L
+  // Three id lookups add four polls each, l/r each visit two candidates
+  // and add six. Output-name cursors add id=3, l=2 and r=2 polls.
+  let metadata_continuations = 3L * 4L + 2L * 6L + 3L + 2L + 2L
+  let physical_work = 278L + completion_preparation + metadata_continuations
+  assert_eq(physical_work, 338L)
+  assert_eq(run_same_stage_join_budget(302, 10000), ("complete", physical_work))
   assert_eq(run_same_stage_join_budget(301, 10000).0, "row_limit")
 }
 

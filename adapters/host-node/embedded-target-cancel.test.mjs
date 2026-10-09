@@ -196,8 +196,10 @@ try {
       results: {rows: {from: 'selected', fields: ['id']}},
       effects,
     }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
+    const submissionRef = client.newSubmission({nonce: 'target-cancel-effect-1'});
+    writeFileSync('effect-submission.json', JSON.stringify(submissionRef));
     const execution = await client.startSource(JSON.stringify(program), {
-      format: 'json', requestId: 'target-cancel-effect-1'});
+      format: 'json', submissionRef});
     await waitFor(async () => {
       const status = await execution.status();
       if (status.status === 'failed') throw new Error('TargetCancelEffectFailed: ' + JSON.stringify(status));
@@ -207,9 +209,11 @@ try {
     console.log('held');
   } else {
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
-    const lookup = await client.lookupRequest('target-cancel-effect-1');
-    assert.equal(lookup.kind, 'found');
-    assert.deepEqual(lookup.ref, ref);
+    const submissionRef = JSON.parse(readFileSync('effect-submission.json', 'utf8'));
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, ref);
     const execution = await client.attach(ref);
     if (step === 'cancel') {
       const state = await execution.status();

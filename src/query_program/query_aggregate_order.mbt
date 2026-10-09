@@ -59,14 +59,17 @@ fn aggregate_order_matches_argument(
       }
       true
     }
-    _ => same_expression(argument, order)
+    // Resolve every receiver inside computed trees, not only a root column.
+    // Spelling equality cannot establish input identity after Pipe rebinding.
+    _ => same_group_expression_in_scopes(argument, order, resolve, resolve)
   }
 }
 
 ///|
 // Aggregate-local order keys use the input scope, never SELECT siblings.
-// Typed parameters, static properties, numeric unary signs and conditional
-// trees with total operands are total after admission. The common checker
+// Typed parameters, static properties, numeric unary signs, comparisons,
+// predicates and conditional trees with total operands are total after
+// admission. The common checker
 // validates receivers and numeric signatures;
 // the expression owner preserves NULL propagation and evaluates each operand
 // once. Do not hoist potentially failing calls or binary arithmetic out of
@@ -121,7 +124,11 @@ fn aggregate_order_fields(
         }
       }
       ParameterReference(_) => ()
-      Call(_, _) | SearchedCase(_, _) =>
+      Call(_, _)
+      | SearchedCase(_, _)
+      | Binary(_, _, _)
+      | Predicate(_, _)
+      | Unary("NOT", _) =>
         if !aggregate_order_total_conditional(expression) {
           raise Abort(UnsupportedAggregate)
         }
@@ -130,7 +137,7 @@ fn aggregate_order_fields(
     let mut reused : String? = None
     for (previous, field) in evaluated {
       // Every comparison uses this same immutable GROUP input resolver.
-      if same_expression(expression, previous) {
+      if same_group_expression_in_scopes(expression, previous, resolve, resolve) {
         reused = Some(field)
         break
       }
@@ -175,6 +182,7 @@ fn aggregate_order_total_conditional(expression : @query.Expression) -> Bool {
       | Reference(_)
       | ParameterReference(_) => true
       Parenthesized(child) | Property(child, _) => total[child]
+      ArrayConstructor(items, _) => items.all(child => total[child])
       Unary("+" | "-" | "NOT", child) => total[child]
       Binary(
         "="
@@ -197,7 +205,15 @@ fn aggregate_order_total_conditional(expression : @query.Expression) -> Bool {
         | "IS FALSE"
         | "IS NOT FALSE"
         | "IS UNKNOWN"
-        | "IS NOT UNKNOWN",
+        | "IS NOT UNKNOWN"
+        | "BETWEEN"
+        | "NOT BETWEEN"
+        | "IS DISTINCT FROM"
+        | "IS NOT DISTINCT FROM"
+        | "IN"
+        | "NOT IN"
+        | "IN UNNEST"
+        | "NOT IN UNNEST",
         args
       ) => args.all(child => total[child])
       Call(path, args) =>

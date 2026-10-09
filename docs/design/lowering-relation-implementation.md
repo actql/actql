@@ -543,8 +543,9 @@ The bounded kernel convention is uniform:
 - every terminal outcome performs its cleanup obligation even when the caller
   keeps the terminal handle.
 
-`charge_row`, `charge_named`, `resolve_column`, and `with_scoped_slots` are the
-common primitives for these rules. Ordering and expression boundaries use
+`charge_row`, `resolve_column`, and `with_scoped_slots` share the `SlotScope`
+reservation, commit and rollback owner. Name and text work follows the existing
+bounded expression cursors rather than retired eager helpers. Ordering and expression boundaries use
 shared error converters rather than reconstructing resource outcomes in each
 kernel. Resource exhaustion is the canonical `RowLimit` family; semantic errors
 such as `InvalidRows`, `InputMismatch`, and `WindowTime` must not hide a failed

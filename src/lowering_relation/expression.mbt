@@ -80,6 +80,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Between
 } derive(Eq, Debug)
 
 ///|
@@ -216,6 +217,7 @@ fn expression_tag(
     | "nullif"
     | "in"
     | "not_in"
+    | "between"
     | "and"
     | "or"
     | "coalesce"
@@ -872,6 +874,7 @@ fn lower_typed_expression_measured(
         "coalesce" => Many(Coalesce, args)
         "concat" => Many(Concat, args)
         "concat_strict" => Many(ConcatStrict, args)
+        "between" => Many(Between, args)
         "replace" => Many(Replace, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
