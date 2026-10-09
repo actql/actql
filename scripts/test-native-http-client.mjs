@@ -1192,6 +1192,9 @@ try {
     'src/query_integration',
   ]) {
     if (packagePath === 'src/query_integration') {
+      // The preceding retained consumer cases complete the real Provider read
+      // once; denied/duplicate cases neither reread nor apply an Effect.
+      assert.deepEqual(bearerServers.effectTargets(), {reads: 1, writes: 0});
       resetNativeStoreTransfer();
       nativeStandardTransferCompletions.length = 0;
       await runNativeQueryTests(moon, 'http-client', {

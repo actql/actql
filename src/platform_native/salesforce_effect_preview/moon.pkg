@@ -1,6 +1,13 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "moonbitlang/core/encoding/utf8",
+  "actql/actql/platform_native/remote_resident_host" @resident,
+  "actql/actql/run_publication_host" @host,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/canonical_json" @canonical,
+  "actql/actql/source_value" @source,
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/platform_native/credential_resource" @resource,
   "actql/actql/remote_credential" @credential,
