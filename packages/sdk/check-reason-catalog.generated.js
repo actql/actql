@@ -3,8 +3,8 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-09.2",
-  "reasonSchemaCid": "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f"
+  "revision": "2026-10-09.3",
+  "reasonSchemaCid": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {
@@ -848,6 +848,33 @@ const entries = freeze({
       {
         "file": "adapters/host-node/client-submission-input.test.mjs",
         "scenario": "structured Program rejection binds the original parent pointer"
+      }
+    ]
+  },
+  "query_alias_absent": {
+    "code": "query_alias_absent",
+    "condition": "The original relation resolver witness has no matching query alias in the complete checked namespace, and namespace negative membership is disclosable for this original call.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Requires original unfiltered installed-registration completeness and a fresh namespace inspect_absence decision bound to authority, configuration revision, input and context. A filtered omission, hidden alias or Provider Resource listing cannot issue this fact. Only the namespace and caller-authored reference are public; configuration paths, Source selectors, candidate counts and private contents are excluded.",
+    "locations": [
+      "source:text (owned original relation range only; omit when unknown)"
+    ],
+    "default_severity": "error",
+    "family": "input",
+    "presentation": {
+      "default": {
+        "key": "reason.query_alias_absent",
+        "english": [
+          "No query alias matching this reference is registered in the checked namespace.",
+          "Correct the reference or ask the Host administrator to check the namespace registrations, then check again. This does not establish Provider Resource absence or grant execution."
+        ]
+      },
+      "variants": []
+    },
+    "examples": [
+      {
+        "file": "adapters/host-node/client-check.test.mjs",
+        "scenario": "a complete empty namespace discloses only an authorized original alias absence"
       }
     ]
   },

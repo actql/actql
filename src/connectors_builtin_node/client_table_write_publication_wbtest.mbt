@@ -102,6 +102,7 @@ test "Table publication validates installed Mapping before lowering" {
     None,
     "corr:fixture",
     "bound_input",
+    None,
   )
   assert_true(report.contains("\"verdict\":\"verified\""), msg=report)
   let prepared = match

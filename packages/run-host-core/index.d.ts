@@ -93,6 +93,19 @@ export function admitEffectRunMaterials(wire: string, definitionCid: string,
 export function effectRunStartCurrent(allowed: AllowedEffectRun,
   definition: RunDefinition, at: string): boolean;
 
+/** Caller identity only; no Source permission or Effect approval. */
+export function prepareEffectRequest(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation, authorityScopeCid: string, requestId: string): RequestIdentity;
+export function effectSourceInputBinding(compilation: EffectCompilation): string;
+export function issueEffectSourceDispatch(allowed: AllowedEffectRun,
+  definition: RunDefinition, request: RequestIdentity,
+  selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}>;
+export function prepareEffectRetainedTaskInputEdge(allowed: AllowedEffectRun,
+  definition: RunDefinition): RetainedTaskInputEdge;
+export function issueEffectRetainedTaskDispatch(allowed: AllowedEffectRun,
+  definition: RunDefinition, request: RequestIdentity,
+  selection: ValuesSiteSelection, input: RetainedTaskInput): Readonly<{cid: string; wire: string}>;
+
 /** Count physical checked tasks separately from Result Plan transformations. */
 export function taskExecutionShape(prepared: PreparedProgram,
   compilation: TaskCompilation): Readonly<{taskCount: number; acquisitionCount: number}>;

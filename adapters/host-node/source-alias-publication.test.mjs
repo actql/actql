@@ -240,6 +240,7 @@ test('namespace declarations remain bounded and cannot accept a completeness boo
     {name: 'queries', profilePaths: Array(129).fill('/source')},
     {name: 'queries', profilePaths: ['/source', '/source']},
     {name: 'queries', profilePaths: ['relative']},
+    {name: '\ud800', profilePaths: []},
     {name: 'x'.repeat(257), profilePaths: []}]) {
     assert.throws(() => sourceAliasPublication(moon, environment, [], [], {namespace}),
       {message: 'InvalidSourceNamespaceDeclaration'});

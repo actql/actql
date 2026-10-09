@@ -34,6 +34,7 @@ function admitRegistrationRange(declaration, sources) {
   if (declaration === null || typeof declaration !== 'object' ||
       Object.keys(declaration).sort().join('\0') !== 'name\0profilePaths' ||
       typeof declaration.name !== 'string' || !declaration.name ||
+      !declaration.name.isWellFormed() ||
       Buffer.byteLength(declaration.name) > 256 ||
       !Array.isArray(declaration.profilePaths) ||
       declaration.profilePaths.length > MAX_INSTALLED_SOURCE_AUTHORITIES ||

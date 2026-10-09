@@ -1,7 +1,8 @@
 ///|
 /// Public check of authored source against the Host's audience-visible alias
-/// publication. Absent and inaccessible aliases are both left out of that
-/// publication by the Host, so checking never sees the difference. This is the
+/// publication. A filtered omission stays protected unless this original call
+/// also has complete unfiltered namespace custody and fresh disclosure authority.
+/// The existing resolver must retain the exact failed reference. This is the
 /// one projection that builds `actql-check-outcome/0.1`; private causes,
 /// supplied values and Host metadata never reach it.
 priv enum CheckFinding {
@@ -25,6 +26,7 @@ priv enum CheckFinding {
   ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
   UnusedParameter(String, String?)
+  QueryAliasAbsent(String, Array[@query_syntax.NamePart])
   RequiredValue(@parameter_binding.Declaration, String)
   CapacityPolicyRequired
   NumericProfileRequired
@@ -70,6 +72,7 @@ pub fn client_program_check_source(
   parameters_revision : String?,
   correlation_ref : String,
   scope : String,
+  source_namespace : ClientCheckSourceNamespace?,
 ) -> String {
   let scope = match check_scope(scope) {
     Some(scope) => scope
@@ -78,10 +81,19 @@ pub fn client_program_check_source(
   if scope == TemplateOnly && parameters is Some(_) {
     return check_failed_json("check_request_invalid", correlation_ref)
   }
+  if source_namespace is Some(complete) &&
+    (
+      complete.context_ref != context_ref ||
+      complete.source_revision != source_revision ||
+      complete.environment_cid !=
+      @program_check.checking_environment_cid(environment)
+    ) {
+    return check_failed_json("check_context_invalid", correlation_ref)
+  }
   let findings : Array[CheckFinding] = []
   let stop = check_source_findings(
     findings, document, format, environment, visible_publication, declarations, parameters,
-    scope,
+    scope, source_namespace,
   )
   check_outcome_json(findings, stop, context_ref, correlation_ref, {
     scope,
@@ -154,6 +166,7 @@ fn check_source_findings(
   declarations : String?,
   parameters : String?,
   scope : @program_check.CheckScope,
+  source_namespace : ClientCheckSourceNamespace?,
 ) -> CheckStop {
   let selected = match @source_frontend.select_format(format) {
     Ok(Text) => @source_frontend.Text
@@ -306,9 +319,11 @@ fn check_source_findings(
             findings.push(check_syntax_finding(diagnostic))
           }
         WrongQueryForm => findings.push(Violation("query_syntax_invalid"))
-        // Absent and inaccessible relations are both missing from the
-        // audience-visible publication; neither is a proven violation.
-        QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>
+        // A filtered omission alone has no negative authority. Only the exact
+        // resolver witness and this call's admitted full namespace can close it.
+        QueryLowering(UnresolvedRelation(_) as reference) =>
+          findings.push(check_source_alias_absence(source_namespace, reference))
+        QueryLowering(UnknownRelation) =>
           findings.push(Unresolved("source_resolution"))
         QueryLowering(TableWriteBinding(UnknownTable)) =>
           findings.push(Unresolved("source_resolution"))
@@ -1054,7 +1069,8 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
       | UndeclaredParameter(_, _)
-      | UnusedParameter(_, _))
+      | UnusedParameter(_, _)
+      | QueryAliasAbsent(_, _))
     }) {
     "invalid"
   } else if findings.is_empty() {
@@ -1128,6 +1144,7 @@ fn write_check_report(
         Some("supplied_value_constraint_violation")
       UndeclaredParameter(_, _) => Some("parameter_undeclared")
       UnusedParameter(_, _) => Some("parameter_unused")
+      QueryAliasAbsent(_, _) => Some("query_alias_absent")
       _ => None
     }
   })
@@ -1257,6 +1274,9 @@ fn write_check_report(
     @encode.begin_object(writer)
     @encode.key(writer, "code")
     @encode.string_value(writer, code)
+    if code == "query_alias_absent" {
+      write_check_query_alias_absence(writer, findings)
+    }
     if code == "program_structure_invalid" {
       for finding in findings {
         if finding is ProgramStructureViolation(issue) {

@@ -82,10 +82,11 @@ pub fn issue_source_free_client_effect_local_table_artifact(
     return Err(ForeignExport)
   }
   build_client_effect_local_result_artifact(
-    inputs,
+    EffectInputs(inputs),
     TableSource(@strategy.captured_effect_table_input_borrow(input), definition),
     invocation,
     receipt,
+    run_invocation,
     retention,
     scope,
     policy,

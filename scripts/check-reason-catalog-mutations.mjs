@@ -15,7 +15,7 @@ const mutations = [
       '  const observation = blameFromProse && baseObservation.report ? {...baseObservation, report: {...baseObservation.report, verdict: "invalid"}} : baseObservation;',
     targets: targets('catalog-render-verdict')},
   {name: 'catalog reports a different public facts identity', path: 'packages/sdk/check-reason-catalog.generated.js',
-    from: '"reasonSchemaCid": "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f"',
+    from: '"reasonSchemaCid": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"',
     to: '"reasonSchemaCid": "sha256:' + '0'.repeat(64) + '"', targets: targets('catalog-schema-pin')},
 ];
 const run = item => {

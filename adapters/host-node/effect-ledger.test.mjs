@@ -67,6 +67,39 @@ const open = root => openEffectLedger({moon, root, authorityScopeCid,
   callerRequestId: 'request-1', maxEntryBytes: 4096});
 const effect = runtimeCore(moon).effectApplicationControl;
 
+test('bounded formal history replay reuses admitted original transitions after restart', async t => {
+  const root = await fixture(t);
+  const first = open(root);
+  const prepared = entry();
+  const dispatching = entry({state:'dispatching', fence:2, attempt:1, prior:prepared.cid});
+  first.append(prepared.wire); first.append(dispatching.wire);
+  const page = first.historyPage(cid('5'), {after:null, maxEntries:1, maxWireBytes:4096});
+  assert.equal(page.generation, prepared.cid);
+  assert.deepEqual(page.entries.map(row => row.entryJson), [prepared.wire]);
+  first.close();
+  const reopened = open(root);
+  t.after(() => reopened.close());
+  const after = {generation:prepared.cid, revision:1, entryCid:prepared.cid};
+  const restored = reopened.historyPage(cid('5'), {after, maxEntries:1, maxWireBytes:4096});
+  assert.deepEqual(restored.entries.map(row => row.entryJson), [dispatching.wire]);
+  assert.equal(restored.previous.entryJson, prepared.wire);
+  assert.equal(reopened.current(cid('5')).revision, 2);
+});
+
+test('a formal history cursor does not authorize another logical request scope', async t => {
+  const root = await fixture(t);
+  const first = open(root);
+  t.after(() => first.close());
+  const prepared = entry(); first.append(prepared.wire);
+  const foreign = openEffectLedger({moon, root, authorityScopeCid,
+    callerRequestId:'request-2', maxEntryBytes:4096});
+  t.after(() => foreign.close());
+  for (const after of [null, {generation:cid('f'), revision:1, entryCid:cid('f')}]) {
+    assert.throws(() => foreign.historyPage(cid('5'), {after, maxEntries:1, maxWireBytes:4096}),
+      {code:'EffectLedgerScopeMismatch'});
+  }
+});
+
 test('logical request admission precedes durable Effect ledger creation',
   async t => {
     const root = await fixture(t);

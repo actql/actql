@@ -16,7 +16,7 @@ import {fullJoinScopeSuccesses, fullJoinScopeRefusals} from './full-join-scope-s
 import {characterLengthSuccesses, characterLengthRefusals} from './character-length-source-input.mjs';
 import {qualifiedStarSuccesses, qualifiedStarRefusals} from './qualified-star-source-input.mjs';
 import {rightJoinSuccesses, rightJoinRefusals} from './right-join-source-input.mjs';
-import {joinStarSuccesses, joinStarRefusals} from './join-star-source-input.mjs';
+import {joinStarSuccesses, joinStarRefusals, joinStarExecutionFailures} from './join-star-source-input.mjs';
 import {pipeJoinInputSuccesses, pipeJoinInputRefusals} from './pipe-join-input.mjs';
 import {pipeJoinRangesSuccesses, pipeJoinRangesRefusals} from './pipe-join-ranges.mjs';
 import {starReplaceSuccesses, starReplaceRefusals} from './star-replace-source-input.mjs';
@@ -311,7 +311,7 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   : fullJoinScopeOnly ? {successes: fullJoinScopeSuccesses, refusals: fullJoinScopeRefusals}
   : namedWindowOnly ? {successes: namedWindowSuccesses, refusals: namedWindowRefusals}
   : qualifyOnly ? {successes: qualifySuccesses, refusals: qualifyRefusals, executionFailures: qualifyExecutionFailures}
-  : joinStarOnly ? {successes: joinStarSuccesses, refusals: joinStarRefusals}
+  : joinStarOnly ? {successes: joinStarSuccesses, refusals: joinStarRefusals, executionFailures: joinStarExecutionFailures}
   : rightJoinOnly ? {successes: rightJoinSuccesses, refusals: rightJoinRefusals}
   : orderAggregateExpressionOnly ? {successes: orderAggregateExpressionSuccesses, refusals: orderAggregateExpressionRefusals, executionFailures: orderAggregateExpressionExecutionFailures}
   : qualifiedStarOnly ? {successes: qualifiedStarSuccesses, refusals: qualifiedStarRefusals}
@@ -440,6 +440,7 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...pipeJoinInputRefusals);
   scopeInputs.successes.push(...joinStarSuccesses);
   scopeInputs.refusals.push(...joinStarRefusals);
+  scopeInputs.executionFailures.push(...joinStarExecutionFailures);
   scopeInputs.successes.push(...rightJoinSuccesses);
   scopeInputs.refusals.push(...rightJoinRefusals);
   scopeInputs.successes.push(...starReplaceSuccesses);

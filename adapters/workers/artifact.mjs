@@ -50,6 +50,8 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // holding imported by completed-run publication has no imports and only calls
 // the Store it is given. Publication action names are a fixed, dependency-free
 // ABI translation table; they confer no publication authority.
+// Task observation has no imports; it retains an optional projection in a
+// WeakMap and freezes copied facts. It adds no task completion authority or I/O.
 // No namespace-wide permission.
 // The Carrier snapshot transport is dependency-free: it uses typed arrays,
 // text codecs and timers, and calls the supplied Store lease. It imports no
@@ -76,6 +78,7 @@ export const conformanceModules = [
   'adapters/host-common/execution-sites.mjs',
   'adapters/host-common/managed-site-transfer.mjs',
   'adapters/host-common/strategy.mjs',
+  'adapters/host-common/task-observation.mjs',
   'adapters/host-common/authorization-gate.mjs',
   'adapters/host-common/managed-failure.mjs',
   'adapters/host-common/durable-result-payload.mjs',
@@ -113,6 +116,7 @@ export const hostModules = [
   'adapters/host-common/execution-sites.mjs',
   'adapters/host-common/managed-site-transfer.mjs',
   'adapters/host-common/strategy.mjs',
+  'adapters/host-common/task-observation.mjs',
   'adapters/host-common/authorization-gate.mjs',
   'adapters/host-common/managed-failure.mjs',
   'adapters/host-common/durable-result-payload.mjs',

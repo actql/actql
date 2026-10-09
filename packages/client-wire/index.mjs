@@ -16,6 +16,7 @@ import {clientHostOperations, clientHostRequestKeys,
 import {validSubmissionEpochShape, validSubmissionRefShape,
   validSubmissionOutcomeShape, validSubmissionLookupShape, validSubmissionRestartShape} from './client-host.generated.js';
 import {validOperationAttemptRefShape, validCancellationAttemptShape, validSubmissionAttemptShape} from './client-host.generated.js';
+import {validOwnerRefShape, validOwnerCursorShape, validOwnerObservationsShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 // Legacy JSON/YAML spellings remain accepted by the transport Client. The
 // named spellings select the corresponding installed source frontend.
@@ -200,6 +201,56 @@ export function validRunState(value) {
   return validRunStateShape(value);
 }
 
+export const ownerObservationLimits = Object.freeze({maxEntries:1000,maxWireBytes:65536});
+export const validOwnerRef = validOwnerRefShape;
+export const validOwnerCursor = validOwnerCursorShape;
+const ownerIdentity = owner => JSON.stringify([owner.kind,owner.scopeCid,owner.streamCid]);
+export function validOwnerObservations(value, ref, limits = ownerObservationLimits) {
+  if (!validRunRef(ref) || !Number.isSafeInteger(limits.maxEntries) || limits.maxEntries < 1 ||
+      limits.maxEntries > ownerObservationLimits.maxEntries || !Number.isSafeInteger(limits.maxWireBytes) ||
+      limits.maxWireBytes < 1024 || limits.maxWireBytes > ownerObservationLimits.maxWireBytes ||
+      !withinResultDescriptionLimits(value,{maxWireBytes:limits.maxWireBytes,maxNodes:10000,maxDepth:64}) ||
+      !validOwnerObservationsShape(value) ||
+      !['namespaceId','authorityScopeCid','runDefinitionCid'].every(key => value.ref[key] === ref[key])) return false;
+  if(value.unmatchedCursors !== undefined &&
+      (new Set(value.unmatchedCursors.map(item=>item.index)).size !== value.unmatchedCursors.length ||
+       limits.cursors !== undefined && value.unmatchedCursors.some(item=>item.index >= limits.cursors.length)))return false;
+  const vectors = new Map();
+  for (const vector of value.revisionVector) {
+    const key = ownerIdentity(vector.owner);
+    if (vectors.has(key)) return false;
+    vectors.set(key,vector);
+  }
+  const seen = new Set();
+  for (const view of value.owners) {
+    if (view.kind === 'unavailable') continue;
+    const key = ownerIdentity(view.ownerRef), vector = vectors.get(key);
+    if (view.owner !== view.ownerRef.kind || seen.has(key) || vector === undefined ||
+        Object.hasOwn(view,'snapshot') !== Object.hasOwn(vector,'snapshotCid')) return false;
+    seen.add(key);
+    const history = view.history;
+    if (history.kind !== 'page') {
+      if (Object.hasOwn(vector,'historyHead')) return false;
+      continue;
+    }
+    if (!Object.hasOwn(vector,'historyHead') || history.entries.length > limits.maxEntries ||
+        history.cursor !== undefined && ownerIdentity(history.cursor.owner) !== key) return false;
+    const head = vector.historyHead;
+    if (head === null) {
+      if (history.entries.length || history.cursor !== undefined) return false;
+      continue;
+    }
+    if (history.cursor === undefined) return false;
+    for (let index=0;index<history.entries.length;index++) {
+      const entry = history.entries[index], previous = history.entries[index-1];
+      if (previous !== undefined && entry.revision !== previous.revision+1 ||
+          entry.revision > head.revision || entry.revision === head.revision && entry.entryCid !== head.entryCid ||
+          entry.revision === 1 && entry.entryCid !== head.generation) return false;
+    }
+  }
+  return seen.size === vectors.size;
+}
+
 // The registered contract and generated validator enforce verdict/coverage
 // consistency as well as shape, without enumerating reason codes.
 export function validCheckOutcome(value) {
@@ -268,7 +319,7 @@ export function prepareClientHostRequest(operation, original) {
   }
   // A serializer cannot remove or replace the captured Workspace assertion.
   body = {...body, connection};
-  if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
+  if (['submit-intent', 'restart-intent', 'lookup-submission', 'owner-observations'].includes(operation)) {
     try { body = snapshotClientRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
@@ -382,6 +433,11 @@ export function validClientBody(operation, body) {
         body.items.length;
   }
   if (!validRunRef(body.ref)) return false;
+  if (operation === 'owner-observations') return Array.isArray(body.cursors) && body.cursors.length <= 5 &&
+    body.cursors.every(validOwnerCursor) &&
+    new Set(body.cursors.map(cursor => ownerIdentity(cursor.owner))).size === body.cursors.length &&
+    Number.isSafeInteger(body.maxEntries) && body.maxEntries > 0 && body.maxEntries <= ownerObservationLimits.maxEntries &&
+    Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes >= 1024 && body.maxWireBytes <= ownerObservationLimits.maxWireBytes;
   if (operation === 'cancel' || operation === 'lookup-cancellation') {
     if (operation === 'cancel' && (!validOperationAttemptRef(body.attemptRef) ||
         body.attemptRef.operation !== 'cancel')) return false;
