@@ -63,6 +63,12 @@ export const graphSubtractionSourceSuccesses = [
     results: {...result('nodes', [node(14)]), ...result('edges', edges(4, 10))}, sourceReadCount: 0},
   {name: 'graph-subtraction-independent-subset-json', format: 'json', text: JSON.stringify(graphSubtractionSubsetProgram),
     results: {...result('nodes', subsetRows.nodes), ...result('edges', subsetRows.edges)}, sourceReadCount: 0},
+  ...['nodes', 'edges'].map(kind => textCase('uppercase-merge-vocabulary',
+    "SUBTRACT_GRAPHS(WITH: g, MERGE: {NODE_PROPERTIES: {p: 'number_sum'}, EDGE_PROPERTIES: {w: 'number_sum'}})",
+    kind, kind === 'nodes' ? [node(14)] : edges(4, 10))),
+  ...['nodes', 'edges'].map(kind => textCase('quoted-merge-vocabulary',
+    "subtract_graphs(with: g, merge: {`Node_Properties`: {P: 'number_sum'}, `Edge_Properties`: {W: 'number_sum'}})",
+    kind, kind === 'nodes' ? [node(14)] : edges(4, 10))),
   ...['nodes', 'edges'].map(kind => textCase('self-default-removal', 'subtract_graphs(with: g)', kind, [])),
   textCase('explicit-equality-retains-node', "subtract_graphs(with: g, merge: {node_properties: {p: 'exact_equal'}})", 'nodes', [node(7)]),
   textCase('node-policy-does-not-retain-edges', "subtract_graphs(with: g, merge: {node_properties: {p: 'exact_equal'}})", 'edges', []),
@@ -95,6 +101,13 @@ export const graphSubtractionSourceRefusals = [
   {name: 'graph-subtraction-unknown-policy', format: 'aql-text',
     text: prefix + "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'unknown'}})" + output('nodes')},
 ]);
+graphSubtractionSourceRefusals.push(...[
+  ['duplicate-node-policy', "{node_properties: {}, NODE_PROPERTIES: {}}"],
+  ['duplicate-edge-policy', "{edge_properties: {}, `Edge_Properties`: {}}"],
+  ['strategy-value-is-not-vocabulary', "{NODE_PROPERTIES: {p: 'NUMBER_SUM'}}"],
+].map(([name, policy]) => ({name: 'graph-subtraction-' + name, format: 'aql-text',
+  text: prefix + `FROM g |> subtract_graphs(with: g, merge: ${policy})` + output('nodes'),
+  expectedCode: 'ClientProgramInvalidInput'})));
 export const graphSubtractionSourceExecutionFailures = [
   {name: 'graph-subtraction-null-is-not-zero', format: 'aql-text', text: nullablePrefix +
     "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}})" + output('nodes'),
