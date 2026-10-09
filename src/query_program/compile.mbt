@@ -7329,6 +7329,7 @@ fn join_keys(
   left_fields : Array[String],
   right_fields : Array[String],
 ) -> Array[(String, String)] raise Abort {
+  validate_join_using_names(part)
   let pairs : Array[(String, String)] = []
   if part.on is Some(expression) {
     let pending = [@query.expression_root(expression)]

@@ -42,6 +42,21 @@ test('SET target controls distinguish one current column from operand range slot
   assert.ok(refusals.some(item => item.text.includes('SET id = ROW_NUMBER()')));
 });
 
+test('JOIN input refusals cannot be hidden by projection or confused with repeated ON', () => {
+  const controls = new Map(joinStarSuccesses.map(item => [item.name, item]));
+  const ordinary = controls.get('join-star-on-unique-columns');
+  const repeated = controls.get('join-star-repeated-on-kept');
+  assert.deepEqual(repeated.expected, ordinary.expected);
+  assert.deepEqual(repeated.columns, ordinary.columns);
+  assert.ok(repeated.text.includes('ON l.id = r.k AND l.id = r.k MAX_OUTPUT_ROWS 10'));
+  const hidden = joinStarRefusals.filter(item => item.name.startsWith('join-star-refuse-hidden-using-'));
+  assert.equal(hidden.length, 4);
+  assert.ok(hidden.every(item => item.text.includes('SELECT l.id AS original')
+    && item.text.includes('USING (id, `ID`) MAX_OUTPUT_ROWS 10')
+    && item.expectedCode === 'ClientProgramInvalidInput'));
+  assert.ok(joinStarRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+});
+
 test('JOIN-star cases remain in ordinary and targeted public acceptance', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');

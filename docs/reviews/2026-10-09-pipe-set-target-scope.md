@@ -179,6 +179,52 @@ cohort were not reached. The receipt records failed/incomplete campaign status,
 complete child-command streams and no evidence errors. Failed logs, command
 metadata and original pack artifacts are retained for diagnosis; the helper
 removed the external installation and temporary Store after preserving evidence
-(`artifactsRemoved: true`). The Draft remains incomplete for public acceptance.
+(`artifactsRemoved: true`). At that SHA the Draft was incomplete for public acceptance.
 The submitted commit adds only this evidence record; its CI remains separate
 from the tested SHA. No Ready transition, manual CI retry or merge was made.
+
+## JOIN input refusal correction
+
+The follow-up isolates the existing duplicate USING defect instead of weakening
+the public input-error expectation. Source inspection confirms MAX_OUTPUT_ROWS 0
+already fails the parser's existing positive safe-integer rule; no parser or bound
+change is necessary. The shared star exclusion path likewise retains UnknownColumn
+for a missing field. D's predicate/limit/CTE/assert/Effect paths remain untouched.
+
+The duplicate USING list also exposed a projection-only bypass:
+
+```aql
+SELECT l.x AS original FROM t AS l
+INNER JOIN t AS r USING (x, `X`) MAX_OUTPUT_ROWS 10
+```
+
+Baseline `run-K5DJQR` / `focused-test-XCkzKa` passes two controls and fails the
+third, printing the complete accepted Program with repeated x/x join keys.
+This is compiler acceptance evidence; a pre-fix public Run was not executed.
+Star/shared scope instead recognized the repetition but reported UnsupportedJoin.
+
+`validate_join_using_names` uses existing case-insensitive same_name and existing
+DuplicateOutput. Both ordinary join_keys and shared join_chain_keys call it
+before constructing pairs or output fields. The defensive merged-key guard
+retains that same cause. Duplicate keys therefore cannot hide behind a projected
+subset. No duplicate ON condition is deduplicated or newly forbidden. Genuine
+unsupported non-equijoin ON and FULL identity refusals remain unchanged.
+
+Direct JS callers pass 17/17 (`run-JcZeMy`, `focused-test-IikGKl`): INNER/LEFT/
+RIGHT/FULL, normal/script entry, star/scalar projection, valid quoted keys with
+authored order, repeated ON and SET target scope. Existing exact refusal tests
+now distinguish invalid USING from genuinely unsupported ON. No runtime owner,
+checker, public diagnostic owner, grammar/schema/pin or canonical vector changes
+are required. This correction is kept in its own Conventional Commit within the
+same small PR, whose public cohort it closes.
+
+The unchanged existing four refusal sources now require the exact input-error
+code, rather than an unspecified input-code set. Four scalar hidden-key refusals
+and one repeated-ON positive extend the same normal/focused cohort: 15 positives
+and 16 exact-code refusals, including the prior SET fixtures. Fresh Local/HTTPS
+execution at the combined clean SHA remains to be established.
+
+The independent Node fixture checks pass 4/4 (`run-6WVZBy`,
+`focused-test-0ES3Jk`) through `node scripts/local-checks.mjs test node
+--timeout-seconds 120 -- scripts/join-star-source-input.test.mjs`. These checks
+establish authored expectations and normal-cohort registration, not Host execution.

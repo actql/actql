@@ -41,6 +41,8 @@ const preserved = [{id: 1, amount: null}, {id: 2, amount: 20},
 export const joinStarSuccesses = [
   success('independent-json', JSON.stringify(joinStarProgram), {format: 'json'}),
   success('on-unique-columns', sql),
+  success('repeated-on-kept', sql.replace('ON l.id = r.k MAX_OUTPUT_ROWS',
+    'ON l.id = r.k AND l.id = r.k MAX_OUTPUT_ROWS')),
   success('left-on-nullability', 'SELECT * FROM records AS l LEFT JOIN (SELECT 3 AS k) AS r '
     + 'ON l.id = r.k MAX_OUTPUT_ROWS 10 ORDER BY id', {
     columns: [...sourceColumns, column('k', nullable)],
@@ -101,7 +103,14 @@ export const joinStarRefusals = [
   'SELECT * FROM records AS l JOIN records AS r USING (id, `ID`) MAX_OUTPUT_ROWS 10',
   'SELECT * FROM records AS l JOIN (SELECT 2 AS k) AS r ON l.id = r.k MAX_OUTPUT_ROWS 0',
   'SELECT * EXCEPT (missing) FROM records AS l JOIN (SELECT 2 AS k) AS r ON l.id = r.k MAX_OUTPUT_ROWS 10',
-].map((text, index) => ({name: 'join-star-refuse-' + index, format: 'sql', text}));
+].map((text, index) => ({name: 'join-star-refuse-' + index, format: 'sql', text,
+  expectedCode: 'ClientProgramInvalidInput'}));
+for (const kind of ['INNER', 'LEFT', 'RIGHT', 'FULL']) {
+  joinStarRefusals.push({name: 'join-star-refuse-hidden-using-' + kind.toLowerCase(),
+    format: 'sql', expectedCode: 'ClientProgramInvalidInput',
+    text: `SELECT l.id AS original FROM records AS l ${kind} JOIN records AS r `
+      + 'USING (id, `ID`) MAX_OUTPUT_ROWS 10'});
+}
 for (const [index, target] of ['id', 'ID', '`id`', '`ID`'].entries()) {
   for (const [kind, expression] of [['scalar', '99'], ['window', 'ROW_NUMBER() OVER (ORDER BY r.id)']]) {
     joinStarRefusals.push({name: `join-star-refuse-set-target-${kind}-${index}`, format: 'aql-text',
