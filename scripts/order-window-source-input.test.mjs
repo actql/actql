@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {orderWindowProgram, joinOrderWindowProgram, joinOrderAliasProgram, joinOrderQualifiedProgram, joinSelectWindowProgram, orderWindowSuccesses, orderWindowRefusals} from './fixtures/order-window-source-input.mjs';
+import {orderWindowProgram, setWindowPrivateProgram, joinOrderWindowProgram, joinOrderAliasProgram, joinOrderQualifiedProgram, joinSelectWindowProgram, orderWindowSuccesses, orderWindowRefusals} from './fixtures/order-window-source-input.mjs';
 
 test('ORDER window controls distinguish alias, qualified input and pre-QUALIFY scopes', () => {
   const byName = new Map(orderWindowSuccesses.map(item => [item.name, item]));
@@ -38,6 +38,38 @@ test('ordinary packed acceptance includes ORDER windows; narrow selection retain
     /process\.argv\.includes\('--order-window-only'\).*?return;/su);
 });
 
+
+test('set star preserves schema-supplied private names and authored row values', () => {
+  const byName = new Map(orderWindowSuccesses.map(item => [item.name, item]));
+  for (const [field, jsonName, sourceName] of [
+    ['aql_order_window_0', 'json-control', 'star-column'],
+    ['AQL_ORDER_WINDOW_0', 'case-json-control', 'case-star-column'],
+  ]) {
+    const control = setWindowPrivateProgram(field);
+    const json = byName.get('order-window-set-private-' + jsonName);
+    const source = byName.get('order-window-set-private-' + sourceName);
+    assert.deepEqual(JSON.parse(json.text), control);
+    assert.deepEqual(source.expected, [{[field]: 10, id: 2}, {[field]: 10, id: 2},
+      {[field]: 90, id: 1}, {[field]: 90, id: 1}]);
+    assert.deepEqual(json.expected, source.expected);
+    assert.deepEqual(source.columns.map(column => column.name), [field, 'id']);
+    assert.equal(source.columns[0].contract.nullable, true);
+    assert.equal(source.sourceReadSessionCount, 0);
+    assert.ok(!source.text.toLowerCase().includes(field.toLowerCase()),
+      'the collision comes from the checked schema, not an authored name token');
+    assert.deepEqual(control.stages[0].steps[5].append, {with: 'original'});
+    assert.deepEqual(control.stages[0].steps[6].analytic.order_by,
+      [{field: 'id', dir: 'asc', nulls: 'first'}]);
+    assert.deepEqual(control.stages[0].steps[8].select, [field, 'id']);
+  }
+  assert.deepEqual(byName.get('order-window-set-private-empty').expected, []);
+  assert.equal(byName.get('order-window-set-private-duplicates').expected.length, 6);
+  assert.equal(byName.get('order-window-set-private-nullable-column').expected.at(-1).aql_order_window_0, null);
+  assert.equal(orderWindowRefusals.at(-1).expectedCode, 'ClientProgramInvalidInput');
+  assert.equal(orderWindowSuccesses.length, 42);
+  assert.equal(orderWindowRefusals.length, 11);
+});
+
 test('JOIN ORDER windows retain authored keys ceiling predicate and operand scopes', () => {
   const byName = new Map(orderWindowSuccesses.map(item => [item.name, item]));
   for (const [name, program] of [
@@ -64,8 +96,8 @@ test('JOIN ORDER windows retain authored keys ceiling predicate and operand scop
   assert.deepEqual(byName.get('order-window-join-typed-empty').expected, []);
   assert.equal(byName.get('order-window-join-duplicates').expected.length, 6);
   assert.equal(byName.get('order-window-join-left-preserved').columns[1].contract.nullable, true);
-  assert.equal(orderWindowSuccesses.length, 33);
-  assert.equal(orderWindowRefusals.length, 10);
+  assert.equal(orderWindowSuccesses.length, 42);
+  assert.equal(orderWindowRefusals.length, 11);
   assert.equal(orderWindowRefusals.at(-1).expectedCode, 'ClientProgramInvalidInput');
 });
 
