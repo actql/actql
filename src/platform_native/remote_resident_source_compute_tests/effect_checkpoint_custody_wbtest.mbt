@@ -56,7 +56,27 @@ fn retained_effect_checkpoint_store(
   })
   let first = persist()
   guard first is Err({ issue: Store(Closed), custody: Some(custody), }) else {
-    fail("partial continuation commit must retain both custody handles")
+    if first is Err(failure) {
+      let code = match failure.issue {
+        Unavailable => "Unavailable"
+        Capture(_) => "Capture"
+        Preview(_) => "Preview"
+        Capacity(_) => "Capacity"
+        Projection(_) => "Projection"
+        Store(InvalidConfiguration) => "InvalidConfiguration"
+        Store(StateCollision) => "StateCollision"
+        Store(DigestMismatch) => "DigestMismatch"
+        Store(PrivateEvidence(_)) => "PrivateEvidence"
+        Store(Database(@sqlite.NotFound)) => "DatabaseNotFound"
+        Store(Database(@sqlite.Collision)) => "DatabaseCollision"
+        Store(Database(_)) => "DatabaseOther"
+        Store(_) => "OtherStore"
+      }
+      fail(
+        "partial continuation commit must retain both custody handles: " + code,
+      )
+    }
+    fail("partial continuation commit unexpectedly succeeded")
   }
   let reservation = consumer.usage().reserved_retention_bytes - baseline
   assert_true(reservation > 0L)
