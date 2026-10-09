@@ -92,10 +92,48 @@ The pack remains at `/private/tmp/actql-b-pipe-window-private-fea0a5eac-pack`.
 The corrected fixture selection passed 9/9 using the same Node command at
 `run-QNbepS` / `focused-test-i8fgo5`.
 
+## Completed pristine packed acceptance
+
+Clean source: `d8179efdef3623a5f18b0fd7ea00ba35ab660413`.
+Any later evidence-only commit must not relabel this as submitted-HEAD execution.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-pipe-window-private-d8179efde-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-pipe-window-private-d8179efde-pack node scripts/test-packed-public-query.mjs --window-scalar-only
+```
+
+The existing serialized bounded guard ran normal packing, independent digest
+verification and the existing public consumer. Local and HTTPS each completed
+**83 positive / 40 refusal / one deliberate execution-failure case**, including
+all thirteen new positives and three private-slot refusals. Independent expected
+rows, full Result.describe types/nullability and column order, stream completion,
+repeat reads, attach and same-request replay/no extra admission or acquisition
+were retained. The three new refusals returned `ClientProgramInvalidInput`
+with zero Run admission and Source I/O. Existing cases were not excluded.
+
+Original receipt/logs:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-ssLoQe`.
+Guard: `run-MGEvKr`. All ten commands have exit zero, complete output and zero
+verification status. The receipt is passed/complete, source is clean, revision
+matches the producer manifest and there are no evidence errors. Independent
+SHA256 calculations matched all five manifest and receipt digests. Successful
+and failed temporary installations were removed after preserving evidence;
+the successful receipt's artifacts path was independently confirmed absent.
+
+| Package | Independent SHA256 |
+|---|---|
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54` |
+| local-node | `2df8178e6d627d950cfe2dfb289cda1a31a54d5b6625c9031fd127bab438056e` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+Payload digests match the first pack because the intervening change only
+corrected the independently authored JSON control and recorded evidence.
+
 ## Remaining verification
 
-Pristine five-package Local/HTTPS acceptance for this child source revision is
-pending. Parent evidence remains evidence for the parent's source revision.
+Parent evidence remains evidence for the parent's source revision.
 Submitted-HEAD CI, Wasm/native execution, the full Core and complete frontend
 campaign have not been run locally. This does not claim that every private
 window consumer or every frontend semantic boundary has been audited.
