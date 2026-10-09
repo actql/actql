@@ -451,7 +451,7 @@ fn valid_submission_ref(value : Json) -> Bool {
 }
 
 ///|
-fn valid_submission_reply(
+fn valid_original_submission_reply(
   value : Json,
   request_wire : Bytes,
   selected : Json,
@@ -523,6 +523,40 @@ fn valid_submission_reply(
     }
     _ => true
   }
+}
+
+///|
+fn valid_submission_reply(
+  value : Json,
+  request_wire : Bytes,
+  selected : Json,
+  lookup : Bool,
+) -> Bool {
+  if lookup {
+    return valid_original_submission_reply(value, request_wire, selected, true)
+  }
+  guard wire_submission_attempt_shape(value) && value is Object(fields) else {
+    return false
+  }
+  let text = @utf8.decode(request_wire) catch { _ => return false }
+  let request = @json.parse(text) catch { _ => return false }
+  guard request is Object(request_fields) &&
+    fields.get("attemptRef") == request_fields.get("attemptRef") &&
+    fields.get("attemptRef") is Some(Object(attempt)) &&
+    json_text(attempt, "operation") == Some("submit") else {
+    return false
+  }
+  if fields.get("outcome") is Some(original) {
+    return valid_original_submission_reply(
+      original, request_wire, selected, false,
+    )
+  }
+  if json_text(fields, "kind") == Some("refused") &&
+    json_text(fields, "reason") == Some("authorization") {
+    return true
+  }
+  fields.get("submissionRef") == request_fields.get("submissionRef") &&
+  fields.get("intentCid") == request_fields.get("intentCid")
 }
 
 ///|
@@ -668,6 +702,16 @@ fn request_body(
       stop("InvalidSubmissionRef")
     }
     if operation != "lookup-submission" {
+      let attempt = Json::object(
+        Map([
+          ("operation", Json::string("submit")),
+          ("attemptId", Json::string(required(child, "operation-attempt-id"))),
+        ]),
+      )
+      if !wire_operation_attempt_ref_shape(attempt) {
+        stop("InvalidOperationAttemptReference")
+      }
+      fields["attemptRef"] = attempt
       let intent : Map[String, Json] = Map([])
       for key in ["kind", "input", "parameters"] {
         intent[key] = fields[key]
@@ -739,12 +783,14 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("format", required=true),
         @argparse.OptionArg("request-id"),
         @argparse.OptionArg("submission-ref-file", required=true),
+        @argparse.OptionArg("operation-attempt-id", required=true),
       ]),
       @argparse.Command("start", options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("request-id"),
         @argparse.OptionArg("submission-ref-file", required=true),
+        @argparse.OptionArg("operation-attempt-id", required=true),
       ]),
       @argparse.Command("lookup-submission", options=[
         @argparse.OptionArg("submission-ref-file", required=true),
@@ -989,7 +1035,12 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         required(child, "submission-ref-file"),
       )
     }
-    if route == "submit-intent" && outcome is Object(fields) {
+    if route == "submit-intent" && outcome is Object(attempt) {
+      guard attempt.get("outcome") is Some(Object(fields)) else {
+        // A typed refusal or conflict is this invocation's result, not a
+        // durable receipt or an inferred permission to resubmit.
+        return text
+      }
       match json_text(fields, "kind") {
         Some("ready") =>
           return encode_request_json(fields["admission"], response_max)

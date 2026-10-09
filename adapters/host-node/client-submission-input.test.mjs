@@ -135,7 +135,7 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
     authorizedScope: () => authorized ? scope : undefined,
     prepareSubmit: configuration.prepareSubmit, submit: configuration.submit,
     lookupRequest: configuration.lookupRequest, checkSubmissionInput: check});
-  Object.assign(configuration, {submitIntent: submission.submitIntent,
+  Object.assign(configuration, {submitIntent: submission.submitAttempt,
     lookupSubmission: submission.lookupSubmission});
   let pendingLoss = loss;
   if (entrance === 'local') {
@@ -544,7 +544,13 @@ for (const entrance of ['local', 'https']) {
     });
     assert.equal(f.activity().preparations, beforeReplay.preparations);
     await assert.rejects(f.client.start(program, {submissionRef, parameters: {n: 1}}),
-      {code: 'SubmissionUnknown'});
+      error => {
+        assert.equal(error.code, 'SubmissionConflict');
+        assert.equal(sdk.getSubmissionAttempt(error)?.reason, 'intent');
+        assert.deepEqual(sdk.getSubmissionAttempt(error).submissionRef, submissionRef);
+        assert.equal(sdk.getSubmissionOutcome(error), undefined);
+        return true;
+      });
     assert.deepEqual(await f.client.lookupSubmission(submissionRef), rejected);
     assert.deepEqual(f.counts(), {submits: 0, issues: 0});
     assert.deepEqual(f.stored(), []);

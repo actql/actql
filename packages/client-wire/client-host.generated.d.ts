@@ -480,6 +480,259 @@ export type WireSubmissionRestartShape = Readonly<{
   acknowledgement: "possible_prior_execution_and_effects";
 }>;
 
+export type WireSubmissionAttemptShape = Readonly<{
+  kind: "recorded" | "already_satisfied";
+  attemptRef: Readonly<{
+  operation: "submit";
+  attemptId: string;
+}>;
+  outcome: Readonly<{
+  kind: "ready";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  admission: Readonly<{
+  ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  durability: "volatile" | "durable";
+  revision: number;
+}>;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}> | Readonly<{
+  kind: "held";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  held: Readonly<{
+  kind: "held";
+  requestId: string;
+  prepareAttemptId: string;
+  state: "waiting_checkpoint" | "resuming" | "ended";
+  durability: "durable";
+  lookupExpiresAt: string;
+  checkpoint?: Readonly<{
+  checkpointId: string;
+  checkpointCid: string;
+  kind: "run_scope" | "read_access" | "data_egress" | "cost_scope" | "effect_set";
+  expiresAt: string;
+}>;
+  endReason?: string;
+  terminalErrorCode?: string;
+}>;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}> | Readonly<{
+  kind: "preparing";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}> | Readonly<{
+  kind: "not_accepted";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  checkObservation?: (WireCheckOutcomeShape) & (Readonly<{
+  report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+  partial_report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+}>);
+  problem: Readonly<{
+  code: string;
+  classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
+}>;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}> | Readonly<{
+  kind: "preparation_failed";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  checkObservation?: (WireCheckOutcomeShape) & (Readonly<{
+  report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+  partial_report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+}>);
+  problem: Readonly<{
+  code: string;
+  classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
+}>;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}>;
+}> | Readonly<{
+  kind: "refused";
+  attemptRef: Readonly<{
+  operation: "submit";
+  attemptId: string;
+}>;
+  guarantee: "attempt_uncommitted_unconsumed";
+  reason: "authorization";
+}> | Readonly<{
+  kind: "refused";
+  attemptRef: Readonly<{
+  operation: "submit";
+  attemptId: string;
+}>;
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  guarantee: "attempt_uncommitted_unconsumed";
+  reason: "admission_capacity" | "epoch_expired" | "epoch_not_yet_valid";
+}> | Readonly<{
+  kind: "conflict";
+  attemptRef: Readonly<{
+  operation: "submit";
+  attemptId: string;
+}>;
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  reason: "intent" | "restart_decision";
+}>;
+
 export type WireRunRefShape = Readonly<{
   namespaceId: string;
   authorityScopeCid: string;

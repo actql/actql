@@ -528,6 +528,8 @@ pub fn open_multi_captured_dag(CheckedDAG, Array[(Int, @execution_query.Captured
 
 pub fn open_multi_captured_effect_run_dag(CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
+pub fn open_retained_effect_task_dag(CheckedEffectRunDAG, RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedEffectRunDAG, RunIssue]
+
 pub fn open_retained_task_dag(RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedDAG, RunIssue]
 
 pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
@@ -601,6 +603,8 @@ pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[Resi
 pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.ResourceBinding, Int64, SharedWorkEstimate, SharedWorkEstimate, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 
 pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, (@execution_relation.ProducerStorage, Int) -> Result[@execution_relation.ProducerStorage, RunIssue]) -> Result[ResidentTable, RunIssue]
+
+pub fn prepare_retained_effect_task_projection(CheckedEffectRunDAG) -> Result[RetainedTaskProjection, RunIssue]
 
 pub fn prepare_retained_task_projection(CheckedDAG, Int) -> Result[RetainedTaskProjection, RunIssue]
 

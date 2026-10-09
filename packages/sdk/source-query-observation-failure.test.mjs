@@ -1,4 +1,4 @@
-import {submissionEpoch, readySubmission} from './submission-fixture.mjs';
+import {submissionEpoch, readySubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {inspect} from 'node:util';
@@ -28,7 +28,7 @@ async function fixture(t, reply, target = ref) {
     async perform(operation, body) {
       operations.push(operation);
       if (operation === 'connect') return profile;
-      if (operation === 'submit-intent') return readySubmission(body, {ref: target, durability: 'durable', revision: 1});
+      if (operation === 'submit-intent') return readySubmissionAttempt(body, {ref: target, durability: 'durable', revision: 1});
       if (operation === 'close') return;
       assert.deepEqual(body.ref, target);
       return reply(operation);

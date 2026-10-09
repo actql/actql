@@ -15,6 +15,7 @@ scheduler, approval system, credential owner or Ledger.
 | Connector, Resource, Mapping, Capability admission | Generated Host manifest; `client_row_source_host` declaration/Mapping; `check_environment` | Shared #1089 vectors and refusal tests; generated installation inventory tests |
 | Source schema, typed cells, finite budgets | `connectors/sheets/catalog`, pure `host_node` bridge | Independent API-shaped cells, NULL vs absent, empty formula, errors, raw Unicode, exact/one-short bounds |
 | Read authorization and credential custody | `installed-row-source`, scoped credential journal and physical HTTPS resource | Public Local/HTTPS retained Result; same submission/repeated read makes no additional acquisition |
+| Read emptiness and errors | Same public Source/capture/publication owners | All-blank Local/HTTPS reads publish `[]`; evaluated formula errors fail without a NULL row or public Result |
 | Preview and Set approval | `installed-row-effect` and common checkpoint owners | Before approval zero appends; one approval for multiple rows; restart before/after approval |
 | Pure row refusal | Common Effect projection uses its existing typed preparation result | NULL and unrepresentable Text refuse before send; shared preparation/transport-classification regressions remain |
 | Physical send and response projection | Sheets I/O adapter; common durable Effect claim, Ledger and capture | Literal Text, zero/false; exact ack without row ID; success prefix / unknown / unsent distinction |
@@ -56,6 +57,19 @@ the recorded dirty-source selections, not a pristine final-SHA campaign:
 - `run-dlLdIS` / `focused-test-1VxMes` passed a focused dirty-source regression
   rejecting grid/sheet indexes above the bridge's int32 domain before any
   provider request. This does not relax the rectangle or response limits.
+- On clean SHA `985fd9eb27068c1cf62010565b7d84ab8a5c8aef`,
+  `run-o9E3TR` / `focused-test-TgxyJP` passed 53 common installed Effect
+  contract cases, including required recovery-hook admission, exact saved
+  values, pending custody and cleanup without Compute. This is a targeted
+  driver suite, not real-provider acceptance.
+- `run-bTQeQV` / `focused-test-NK60AZ` passed two dirty-source public read
+  selections against the unchanged compiled runtime: populated and all-blank
+  Local/HTTPS reads, plus evaluated formula-error refusal without publication.
+  These selections supplement, not relabel, the prior 13-case packed receipt.
+- `run-pa29UG` / `focused-test-1mH9GM` passed the strengthened formula-error
+  selection in a nullable Number column. Substitution with NULL would be a
+  legal row, so the failure assertion cannot pass merely because a required
+  Text column rejects NULL. This remains dirty-source focused evidence.
 
 Receipts live under this worktree's `_build/local-checks/attempts` and
 `_build/focused-evidence`. They contain commands, actual source SHA and dirty

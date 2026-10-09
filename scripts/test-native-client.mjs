@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, readySubmission, heldSubmission} from '../packages/sdk/submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmissionAttempt, heldSubmissionAttempt, submissionAttempt} from '../packages/sdk/submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
@@ -153,14 +153,27 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
   if ((operation === 'submit-intent' || operation === 'lookup-request') &&
       heldReplies[requestId]) {
     response.writeHead(200, {'content-type': 'application/json'});
-    response.end(JSON.stringify(operation === 'submit-intent' ? heldSubmission(body, heldReplies[requestId]) : heldReplies[requestId]));
+    response.end(JSON.stringify(operation === 'submit-intent' ? heldSubmissionAttempt(body, heldReplies[requestId]) : heldReplies[requestId]));
     return;
   }
   if (operation === 'submit-intent' && requestId.startsWith('input-refusal-')) {
     const code = requestId.slice('input-refusal-'.length);
     response.writeHead(preparationCodes.includes(code) ? 200 : 400, {'content-type': 'application/json'});
     response.end(JSON.stringify(preparationCodes.includes(code)
-      ? {kind: 'not_accepted', submissionRef: body.submissionRef, intentCid: body.intentCid, problem: {code, classification: 'invalid_input'}} : {code}));
+      ? submissionAttempt(body, {kind: 'not_accepted', submissionRef: body.submissionRef, intentCid: body.intentCid, problem: {code, classification: 'invalid_input'}}) : {code}));
+    return;
+  }
+  if (operation === 'submit-intent' && requestId.startsWith('typed-attempt-')) {
+    const reply = requestId === 'typed-attempt-authorization'
+      ? {kind: 'refused', attemptRef: body.attemptRef, reason: 'authorization',
+        guarantee: 'attempt_uncommitted_unconsumed'}
+      : {kind: 'conflict', attemptRef: body.attemptRef, reason: 'intent',
+        submissionRef: body.submissionRef, intentCid: body.intentCid};
+    if (requestId === 'typed-attempt-foreign-invocation') {
+      reply.attemptRef = {...body.attemptRef, attemptId: 'another-invocation'};
+    }
+    response.writeHead(200, {'content-type': 'application/json'});
+    response.end(JSON.stringify(reply));
     return;
   }
   if (operation === 'submit-intent' && requestId === 'lost-ack') {
@@ -190,7 +203,7 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
       ? {...profile, durability: 'volatile'} : profile));
   else if (operation === 'submit-intent' || operation === 'attach') {
     response.end(JSON.stringify(operation === 'attach' ? {ref: attachReplyRef, durability: 'durable', revision: 1}
-      : readySubmission(body, {ref, durability: 'durable', revision: 1})));
+      : readySubmissionAttempt(body, {ref, durability: 'durable', revision: 1})));
   } else if (operation === 'lookup-request') {
     response.end(JSON.stringify(requestId === 'bad-lookup'
       ? {kind: 'found', ref: {...ref, runDefinitionCid: 'bad'},
@@ -272,7 +285,7 @@ const runWith = async (commonArgs, ...args) => {
     const nonce = args[args.indexOf('--request-id') + 1];
     const filename = `submission-${nonce}.json`;
     await writeFile(join(root, filename), JSON.stringify(originalSubmission(nonce)));
-    args.push('--submission-ref-file', filename);
+    args.push('--submission-ref-file', filename, '--operation-attempt-id', `native-submit-${nonce}`);
   }
   return runProcess(executable, [...commonArgs, ...args]);
 };
@@ -363,6 +376,28 @@ try {
       assert.ok(rejected.stderr.includes(
         'SubmissionUnknown submission-ref-file=submission-' + requestId), rejected.stderr);
     }
+  }
+  for (const [requestId, kind] of [
+    ['typed-attempt-authorization', 'refused'],
+    ['typed-attempt-conflict', 'conflict'],
+    ['typed-attempt-foreign-invocation', undefined],
+  ]) {
+    const result = await run('aql', '--program-file', 'query.sql',
+      '--format', 'sql', '--request-id', requestId);
+    if (kind === undefined) {
+      assert.notEqual(result.code, 0);
+      assert.match(result.stderr, /SubmissionUnknown/);
+    } else {
+      assert.equal(result.code, 0, result.stderr);
+      const fact = JSON.parse(result.stdout);
+      assert.equal(fact.kind, kind);
+      assert.deepEqual(fact.attemptRef,
+        {operation: 'submit', attemptId: `native-submit-${requestId}`});
+      assert.equal(fact.guarantee, kind === 'refused' ? 'attempt_uncommitted_unconsumed' : undefined);
+      assert.equal(fact.outcome, undefined);
+    }
+    assert.equal(requests.filter(item => item.operation === 'submit-intent' &&
+      item.body.submissionRef.nonce === requestId).length, 1);
   }
   for (const [requestId, reply] of Object.entries(heldReplies)) {
     const accepted = ['held-waiting', 'held-resuming', 'held-ended']

@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, heldSubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mock} from 'node:test';
@@ -23,7 +23,7 @@ async function fixture(t, reply) {
     perform(operation, body) {
       calls.push(operation);
       if (operation === 'connect') return profile;
-      if (operation === 'submit-intent') return heldSubmission(body, reply);
+      if (operation === 'submit-intent') return heldSubmissionAttempt(body, reply);
       if (operation === 'lookup-request' || operation === 'cancel-request') return reply;
       assert.fail('Unexpected operation');
     },

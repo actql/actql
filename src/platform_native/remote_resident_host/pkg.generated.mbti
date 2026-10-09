@@ -35,6 +35,8 @@ import {
 // Values
 pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 
+pub fn admit_resident_effect_source_dispatch(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest, String, @remote_site_protocol.RemoteInputBinding, String, String, String, String) -> Result[@run_publication_host.PreparedClientEffectRun, ResidentEffectSourceDispatchIssue]
+
 pub fn begin_resident_output_release(@remote_journal.Journal, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest) -> Result[Unit, ResidentOutputIssue]
 
 pub fn complete_resident_output_intent(@remote_journal.Journal, @publication_payload.PublicationPayloadRequest) -> Result[Unit, ResidentOutputIssue]
@@ -48,6 +50,8 @@ pub fn execute_resident_retained_attempt(@remote_journal.Journal, ResidentExecut
 pub fn install_resident_acquisition_task_executor(@run_publication_host.ClientRunMaterials, @run_publication_host.ClientTaskCompilation, @remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRequest, ResidentExecution, ResidentSourceConfiguration, () -> String, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[@remote_standard_host.NativeRemoteStandardTaskExecutor, ResidentSourceIssue]
 
 pub fn install_resident_retained_compute_executor(@run_publication_host.ClientRunMaterials, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, @remote_standard_host.NativeRemoteStandardTaskLimits, observe_failure? : (ResidentSourceComputeIssue) -> Unit, release_retired_input? : (() -> Bool)?) -> Result[@remote_standard_host.NativeRemoteStandardTaskExecutor, ResidentSourceComputeIssue]
+
+pub fn open_resident_effect_retained_compute(@run_publication_host.ClientEffectRunMaterials, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
 pub fn open_resident_effect_source_compute(@run_publication_host.PreparedClientEffectRun, ResidentSourceComputeConfiguration, String, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
@@ -143,6 +147,13 @@ pub(all) enum ResidentCompletedRestoration {
 pub(all) struct ResidentDelivery {
   payload : @publication_payload.PublicationPayloadRequest?
   result : Result[@remote_site_protocol.RemoteOutputResult, ResidentOutputIssue]
+}
+
+pub(all) enum ResidentEffectSourceDispatchIssue {
+  Refused(@remote_resident_site.ResidentDispatchRefusal)
+  Materials(@run_publication_host.ClientEffectRunMaterialsIssue)
+  Dispatch(@run_publication_host.ClientEffectSourceDispatchIssue)
+  Source(ResidentSourceIssue)
 }
 
 pub(all) struct ResidentExecuted {
@@ -334,6 +345,8 @@ pub(all) enum ResidentSourceComputeIssue {
   UnsupportedGraph
   Unavailable
   Source(ResidentSourceIssue)
+  EffectRun(@run_publication_host.ClientEffectCompiledRunIssue)
+  EffectInput(@run_publication_host.ClientEffectRetainedInputIssue)
   Acquisition(@host_native.NativeReadOnlySourceIssue)
   Execution(@host_native.NativeAcquisitionFailure)
   Capture

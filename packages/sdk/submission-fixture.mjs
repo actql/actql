@@ -11,3 +11,7 @@ export const readySubmission = (request, admission) => ({kind: 'ready',
   submissionRef: request.submissionRef, intentCid: request.intentCid, admission});
 export const heldSubmission = (request, held) => ({kind: 'held',
   submissionRef: request.submissionRef, intentCid: request.intentCid, held});
+export const submissionAttempt = (request, outcome, kind = 'recorded') => ({
+  kind, attemptRef: request.attemptRef, outcome});
+export const readySubmissionAttempt = (request, admission) => submissionAttempt(request, readySubmission(request, admission));
+export const heldSubmissionAttempt = (request, held) => submissionAttempt(request, heldSubmission(request, held));

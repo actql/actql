@@ -10,7 +10,7 @@ import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOp
   validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validClientBody, validResourceInspection,
-  validSubmissionRef, validSubmissionOutcome, validSubmissionLookup, validSubmissionRestart,
+  validSubmissionRef, validSubmissionAttempt, validSubmissionLookup, validSubmissionRestart,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
@@ -104,6 +104,7 @@ const checkFrontiers = new WeakMap();
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
 const submissionOutcomes = new WeakMap();
+const submissionAttempts = new WeakMap();
 const submissionCheckObservations = new WeakMap();
 const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
@@ -317,6 +318,10 @@ export function getSubmissionInput(result) {
 // Only an admitted response for this exact SDK operation supplies Owner facts.
 export function getSubmissionOutcome(result) {
   return submissionOutcomes.get(result);
+}
+
+export function getSubmissionAttempt(result) {
+  return submissionAttempts.get(result);
 }
 
 // Local observation of this SDK read only. Lookup rechecks current authority;
@@ -2092,15 +2097,17 @@ async function connectSelected(selected, port) {
     let body;
     try {
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
+        attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
         kind, input, parameters: options.parameters ?? null,
         ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
     } catch {fail('InvalidClientPayload');}
     if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
         options.requestId !== body.submissionRef.nonce) fail('InvalidSubmissionRef');
+    if (!validOperationAttemptRef(body.attemptRef)) fail('InvalidOperationAttemptRef');
     if (body.unresolvedHistory !== undefined &&
         !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) fail('InvalidSubmissionRestart');
     const requestId = body.submissionRef.nonce;
-    const context = {requestId, submissionRef: body.submissionRef,
+    const context = {requestId, submissionRef: body.submissionRef, attemptRef: body.attemptRef,
       lookupContext: Object.freeze({endpoint: selected.endpoint, scopeRef: confirmed.scopeRef})};
     const snapshot = freezeInput({...body, requestId, connection: selected.wire,
       lookupContext: context.lookupContext});
@@ -2112,13 +2119,27 @@ async function connectSelected(selected, port) {
         version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));}
       catch (cause) {throw submissionNotSent(context, cause);}
       let outcome;
+      let attempt;
+      let typedRejection;
       let checkObservation;
       try {
         const response = await exchange(body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent',
           {...body, intentCid}, options.signal, context);
-        outcome = detachResponse(captureResponse(await controlValue(response)));
-        if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid, body.unresolvedHistory)) {
+        attempt = detachResponse(captureResponse(await controlValue(response)));
+        if (!validSubmissionAttempt(attempt, selected.wire, body.submissionRef, intentCid,
+          body.attemptRef, body.unresolvedHistory)) {
           fail('InvalidHostSubmissionOutcome');
+        }
+        attempt = freezeInput(attempt);
+        outcome = attempt.outcome === undefined ? undefined : detachResponse(captureResponse(attempt.outcome));
+        if (outcome === undefined) {
+          // A typed initial refusal or conflict is not the durable original's
+          // receipt and supplies no automatic retry or new-submission grant.
+          typedRejection = new ClientError(attempt.kind === 'refused' ? 'SubmissionRefused' : 'SubmissionConflict',
+            {...context, outcome: attempt});
+          submissionInputs.set(typedRejection, snapshot);
+          submissionAttempts.set(typedRejection, attempt);
+          throw typedRejection;
         }
         if (outcome.checkObservation !== undefined) {
           checkObservation = outcome.checkObservation;
@@ -2129,6 +2150,7 @@ async function connectSelected(selected, port) {
           delete outcome.checkObservation;
         }
       } catch (cause) {
+        if (typedRejection !== undefined && cause === typedRejection) throw cause;
         if (cause?.code === 'SubmissionUnknown' || cause?.code === 'SubmissionNotSent') throw cause;
         throw dispatchedSubmissions.has(context) ? submissionUnknown(context, cause) : submissionNotSent(context, cause);
       }
@@ -2139,6 +2161,7 @@ async function connectSelected(selected, port) {
         catch (cause) {throw submissionUnknown(context, cause);}
         submissionInputs.set(run, snapshot);
         submissionOutcomes.set(run, outcome);
+        submissionAttempts.set(run, attempt);
         retainSubmissionExplanation(run, outcome, snapshot);
         return run;
       }
@@ -2149,6 +2172,7 @@ async function connectSelected(selected, port) {
         {requestId, submissionRef: body.submissionRef, outcome});
       submissionInputs.set(error, snapshot);
       submissionOutcomes.set(error, outcome);
+      submissionAttempts.set(error, attempt);
       if (checkObservation !== undefined) submissionCheckObservations.set(error, freezeInput(checkObservation));
       retainSubmissionExplanation(error, outcome, snapshot);
       throw error;
@@ -2192,6 +2216,8 @@ async function connectSelected(selected, port) {
     if (input && result !== undefined) submissionInputs.set(result, input);
     const outcome = submissionOutcomes.get(execution);
     if (outcome && result !== undefined) submissionOutcomes.set(result, outcome);
+    const attempt = submissionAttempts.get(execution);
+    if (attempt && result !== undefined) submissionAttempts.set(result, attempt);
     return input;
   };
   const retainQueryFailure = (execution, error, cause) => {

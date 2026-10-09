@@ -1,7 +1,7 @@
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireOperationAttemptRefShape, WireCancellationAttemptShape,
   WireCancellationRefShape, WireCancellationLookupShape,
-  WireSubmissionEpochShape, WireSubmissionRefShape, WireSubmissionOutcomeShape, WireSubmissionLookupShape, WireSubmissionRestartShape,
+  WireSubmissionEpochShape, WireSubmissionRefShape, WireSubmissionOutcomeShape, WireSubmissionLookupShape, WireSubmissionRestartShape, WireSubmissionAttemptShape,
   WireCheckpointReviewShape, WireCheckpointSummaryShape,
   WireConnectionShape, WireHeldShape, WireLookupFoundShape,
   WireLookupNotFoundShape, WireLookupUnknownShape, WireProfileShape,
@@ -34,6 +34,10 @@ export type WireConnection =
 export type WireSubmissionEpoch = WireSubmissionEpochShape;
 export type WireSubmissionRef = WireSubmissionRefShape;
 export type WireSubmissionOutcome = WireSubmissionOutcomeShape;
+export type WireSubmissionAttempt = WireSubmissionAttemptShape;
+export declare function validSubmissionAttempt(value: unknown, selected: WireConnection,
+  expected: WireSubmissionRef, intentCid: string, attemptRef: WireOperationAttemptRef,
+  unresolvedHistory?: WireSubmissionRestart): value is WireSubmissionAttempt;
 export type WireSubmissionLookup = WireSubmissionLookupShape;
 export type WireSubmissionRestart = WireSubmissionRestartShape;
 export declare function validSubmissionRestart(value: unknown,
