@@ -386,6 +386,15 @@ fn same_expression(
     }
     let a = @query.expression_node(left, a_index).unwrap().kind
     let b = @query.expression_node(right, b_index).unwrap().kind
+    if strict_concat_pair(a) is Some((a_left, a_right)) &&
+      strict_concat_pair(b) is Some((b_left, b_right)) {
+      // These two spellings already lower to the same ordered two-operand
+      // concat_strict node. Keep clause-aware receiver checks on each child;
+      // neither a legacy CONCAT nor a differently shaped call is equivalent.
+      pending.push((a_left, b_left))
+      pending.push((a_right, b_right))
+      continue
+    }
     match (a, b) {
       (Parenthesized(child), _) => pending.push((child, b_index))
       (_, Parenthesized(child)) => pending.push((a_index, child))
