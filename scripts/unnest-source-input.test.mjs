@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {unnestSuccesses, unnestRefusals} from './fixtures/unnest-source-input.mjs';
+import {unnestSuccesses, unnestRefusals, unnestReceiverProgram,
+  unnestReceiverSuccesses, unnestReceiverRefusals} from './fixtures/unnest-source-input.mjs';
 
 test('UNNEST independent fixtures preserve multiplicity, NULL and offset order on empty schemas', () => {
   const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
@@ -35,6 +36,35 @@ test('ordinary packed corpus and narrow consumer both execute UNNEST source case
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_UNNEST_SOURCE_ONLY = '1'"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--unnest-source-only'/u);
   assert.ok(driver.includes("process.argv.includes('--unnest-source-only')) return;"));
+});
+
+test('range/field collision controls distinguish receiver NULLs and current stars', () => {
+  const byName = new Map(unnestReceiverSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-receiver-json-control');
+  assert.deepEqual(JSON.parse(control.text), unnestReceiverProgram);
+  assert.deepEqual(unnestReceiverProgram.stages[0].steps[5].select,
+    [{original: 'receiver'}, {field_value: 'member'}, 'position']);
+  assert.equal(control.columns[0].contract.type, 'object');
+  assert.equal(control.columns[0].contract.nullable, true);
+  assert.equal(control.columns[0].contract.fields.id.nullable, false);
+  assert.deepEqual(byName.get('unnest-receiver-null-predicate').expected.map(row => row.position), [0, 2, 3]);
+  assert.deepEqual(control.expected[0], {original: {element: null, id: 2}, field_value: null, position: 0});
+  assert.deepEqual(control.expected[1], {original: null, field_value: null, position: 1});
+  assert.deepEqual(byName.get('unnest-receiver-set-retains-original').expected, control.expected);
+  const star = byName.get('unnest-receiver-star');
+  assert.deepEqual(star.columns.map(value => value.name), ['element', 'id', 'position']);
+  assert.equal(star.columns[0].contract.type, 'number');
+  assert.deepEqual(byName.get('unnest-receiver-qualified-star').expected, star.expected);
+  assert.deepEqual(byName.get('unnest-receiver-set-current-star').expected.map(row => row.element), [100, 100, 100, 100]);
+  for (const item of unnestReceiverSuccesses) {
+    assert.ok(unnestSuccesses.includes(item));
+    assert.equal(item.sourceReadCount, 0);
+    assert.equal(item.sourceReadSessionCount, 0);
+  }
+  for (const item of unnestReceiverRefusals) {
+    assert.ok(unnestRefusals.includes(item));
+    assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+  }
 });
 
 test('scalar stars have independent typed empty expectations and preserve the DATA source', () => {
