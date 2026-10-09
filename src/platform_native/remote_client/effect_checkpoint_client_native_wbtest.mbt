@@ -106,16 +106,17 @@ test "native Effect review delivery preserves original report after HTTPS and AC
   )
   journal.retain_effect_checkpoint_report(report).unwrap()
   for route in ["bare", "foreign", "lost"] {
-    assert_true(
-      acknowledge_retained_effect_checkpoint(
-        journal,
-        client,
-        origin + "/" + route,
-        request,
-        limits,
-      )
-      is Err(_),
+    let delivered = acknowledge_retained_effect_checkpoint(
+      journal,
+      client,
+      origin + "/" + route,
+      request,
+      limits,
     )
+    match route {
+      "lost" => assert_true(delivered is Err(Http(_)))
+      _ => assert_true(delivered is Err(Protocol(_)))
+    }
     assert_eq(
       journal.effect_checkpoint_report(request, limits).unwrap().1,
       None,
