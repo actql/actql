@@ -37,7 +37,7 @@ input. Save the exact admitted Run reference for subsequent operations.
 | Program/source submit | `start`; `aql` with explicit format and saved submission reference |
 | Original operation lookup | `lookup-submission`; `lookup-request`; `lookup-cancellation` |
 | Run attach/status/wait | `attach`; `status`; `wait` |
-| Cancel | `cancel` with saved operation ID and original revision |
+| Cancel | `cancel` with saved operation ID, original revision and explicit invocation attempt ID |
 | Reconcile | `reconcile` |
 | Bounded complete Result read | `read` with saved attempt ID |
 | Delivery evidence lookup | `delivery-attempt` |
