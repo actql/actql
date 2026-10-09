@@ -56,3 +56,77 @@ pub fn EffectCaptureCustody::same_binding(
 ) -> Bool {
   false
 }
+
+///|
+type EffectPreviewCustody
+
+///|
+pub fn Store::prepare_effect_preview_custody(
+  _self : Store,
+  _identity : @publication.EffectPreviewIdentity,
+  _wire : String,
+  _authoring_cid : String,
+  _store_authority : String,
+  _crypto : @signature.Library,
+  _key : Bytes,
+  _max_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+) -> Result[EffectPreviewCustody, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::restore_effect_preview_custody(
+  _self : Store,
+  _identity : @publication.EffectPreviewIdentity,
+  _wire : String,
+  _authoring_cid : String,
+  _store_authority : String,
+  _crypto : @signature.Library,
+  _key : Bytes,
+  _max_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+) -> Result[EffectPreviewCustody, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn EffectPreviewCustody::persist(
+  _self : EffectPreviewCustody,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn EffectPreviewCustody::confirm(
+  _self : EffectPreviewCustody,
+) -> Result[
+  (@publication.EffectPreviewIdentity, String),
+  NativePublicationStoreIssue,
+] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn EffectPreviewCustody::retry_cleanup(
+  _self : EffectPreviewCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn EffectPreviewCustody::reserved_bytes(
+  _self : EffectPreviewCustody,
+) -> Int64 {
+  0L
+}
+
+///|
+pub fn EffectPreviewCustody::same_binding(
+  _self : EffectPreviewCustody,
+  _other : EffectPreviewCustody,
+) -> Bool {
+  false
+}

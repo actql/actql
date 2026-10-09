@@ -105,6 +105,12 @@ fn retained_effect_provider_capture(
     prepared.authoring,
     public_capture,
     provider=true,
+    private_preview=Some(
+      (
+        prepared.wire,
+        @publication.run_evidence_value_identity(prepared.authoring),
+      ),
+    ),
   )
   public_capture.output.cancel()
   assert_true(
