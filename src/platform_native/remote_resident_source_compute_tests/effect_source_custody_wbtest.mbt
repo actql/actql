@@ -35,7 +35,7 @@ fn retained_effect_source_store(
     64,
   ).unwrap()
   let ordering = @publication.admit_publication_contract(
-    "result_ordering_evidence",
+    "ordering_evidence",
     @host.client_effect_local_result_ordering_json(artifact),
     65536,
     4096,
@@ -59,6 +59,7 @@ fn retained_effect_source_store(
       rows,
     ).unwrap()
   }
+  println("retained-effect-custody: native facts admitted")
   let mut store = open()
   let closed = Ref(false)
   let allocations = Ref(0)
@@ -122,6 +123,7 @@ fn retained_effect_source_store(
     .unwrap()
   assert_true(physical_equal(duplicate, custody))
   assert_eq(consumer.usage().reserved_retention_bytes, baseline + 64L)
+  println("retained-effect-custody: original intent reconciled")
   let writer = custody.begin_payload().unwrap()
   let exported = consumer
     .prepare_effect_result_export(
@@ -155,6 +157,7 @@ fn retained_effect_source_store(
   )
   writer.seal().unwrap() |> ignore
   custody.confirm_payload().unwrap() |> ignore
+  println("retained-effect-custody: exact payload sealed")
   @execution.cancel_completed_relation_export_receipt(receipt)
   @execution.cancel_completed_output_export(stream)
   assert_true(custody.begin_payload() is Err(Store(ExistingPayload)))
