@@ -102,10 +102,46 @@ changes the expected ranking; duplicate source rows affect COUNT, while empty
 input retains typed columns. Existing source acquisition, reread/attach/resend
 checks and pre-admission refusal counters remain unchanged.
 
-Fresh exact-source five-package Local/HTTPS acceptance is pending. Target CI,
-Wasm/Native execution, full Core, full packed suites, proof and performance
-campaigns have not been run for this change. No live Google service comparison
-is claimed.
+### Fresh packed Local/HTTPS evidence
+
+The normal five-package producer and independent digest verifier used clean
+source **`c43263ac9fdcd555e499762843bccf2adbd4e0a7`**. The external consumer ran
+`node scripts/test-packed-public-query.mjs --qualify-only` without modifying
+sources, Programs, rows, installed ceilings or Result contracts.
+
+Both Embedded Local and HTTPS completed **43 positive cases, 12 pre-admission
+refusals and one expected execution failure**. Eleven positive and two refusal
+cases are new in this unit. The two new refusal codes are
+`ClientProgramInvalidInput`; their assertions retain zero Run acceptance and
+zero provider I/O. The consumer compares Result.describe contracts and ordered
+rows, then rereads, reattaches and resends against the same Run without further
+source acquisition. It also retains the existing analytic-property control.
+
+- Bounded producer/consumer: `run-zrFh88`.
+- Receipt:
+  `/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-f5thIQ/summary.json`.
+- Receipt source: clean c43263ac9; passed, complete, all ten commands exit 0,
+  no signals or evidence errors; 2026-10-09 06:05:47.907–06:08:52.706 UTC.
+- Successful external installation and Host artifacts were removed by the
+  existing consumer after evidence persistence; original logs/receipt remain.
+- Protected five-package manifest:
+  `/private/tmp/actql-b-window-group-aggregate-c43263ac9-pack/packed-client-packages.json`.
+- Bounded command wrapper:
+  `/private/tmp/actql-b-window-group-aggregate-c43263ac9-packed.mjs`.
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `b65c18d27fd3ff64743ef6ea44b369d5325f95fb1bfb16d014912e718dd4c880` |
+| local-node | `9261592af5c7e27f96f3f3ed5f918011c51d73bca02c283fc526662dccff0d1a` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+The submitted revision adds this evidence record after the tested source; do
+not relabel the c43263ac9 distribution as a later HEAD distribution. Submitted
+HEAD CI, Wasm/Native execution, full Core, full packed suites, proof and
+performance campaigns remain unverified. No live Google service comparison is
+claimed.
 
 ## Remaining Frontend work
 
