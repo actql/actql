@@ -44,7 +44,7 @@ function fixture(t) {
 
 test('real declared providers supply runtime, adapter and static asset inventory', () => {
   const inputs = localNodePackageInputs(repository);
-  assert.deepEqual(inputs.providerBundles.map(entry => entry.name), ['github', 'salesforce']);
+  assert.deepEqual(inputs.providerBundles.map(entry => entry.name), ['github', 'salesforce', 'sheets']);
   for (const provider of inputs.providerBundles) {
     assert.ok(inputs.runtimePackages.includes(provider.package));
     assert.ok(inputs.runtimeFiles.includes(provider.file));
@@ -52,6 +52,7 @@ test('real declared providers supply runtime, adapter and static asset inventory
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/github/host/installed-github-source.mjs'));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/github/host/installed-github-effect.mjs'));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/local/host/installed-local-table.mjs'));
+  assert.ok(inputs.adapterEntries.includes('adapters/connectors/sheets/host/installed-sheets.mjs'));
   assert.ok(inputs.dataFiles.includes('adapters/connectors/local/iceberg/process_worker.py'));
   assert.ok(inputs.dataFiles.includes('spec/contracts/actql-local-table-iceberg.json'));
   assert.ok(inputs.dataFiles.includes('src/connectors/github/source-views.json'));
