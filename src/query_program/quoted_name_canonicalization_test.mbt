@@ -81,3 +81,18 @@ test "canonical identifier collisions cannot create two output aliases" {
     )
   }
 }
+
+///|
+test "canonical quoted spelling cannot restore a retired range alias" {
+  assert_true(
+    compile(
+      @query.parse_query(
+        "FROM pair AS `e\\u0301` |> AS current |> SELECT `é`.x",
+        syntax_limits(),
+      ).unwrap(),
+      pair_context(),
+      construction_limits(),
+    )
+    is Err(Expression({ issue: @expression.UnknownReference, .. })),
+  )
+}

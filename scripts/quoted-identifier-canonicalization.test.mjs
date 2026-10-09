@@ -38,6 +38,8 @@ test('normal and focused public consumers retain the name cases and exact typed 
   assert.equal(quotedIdentifierSuccesses.length, 19);
   assert.equal(quotedIdentifierRefusals.length, 12);
   assert.ok(canonicalQuotedIdentifierRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+  assert.equal(canonicalQuotedIdentifierRefusals[2].format, 'aql-text',
+    'the retired-range refusal must reach Pipe lowering, not SQL format rejection');
   const all = [...quotedIdentifierSuccesses, ...quotedIdentifierRefusals];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
   const harness = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');

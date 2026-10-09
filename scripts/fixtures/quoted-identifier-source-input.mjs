@@ -100,5 +100,5 @@ export const canonicalQuotedIdentifierRefusals = [
   'SELECT id AS `line\\nname`, amount AS `line\\rname` FROM records',
   'FROM records AS `e\\u0301` |> AS current |> SELECT `é`.id',
 ].map((text, index) => ({name: 'quoted-identifier-canonical-invalid-' + index,
-  format: 'sql', text, expectedCode: 'ClientProgramInvalidInput'}));
+  format: index === 2 ? 'aql-text' : 'sql', text, expectedCode: 'ClientProgramInvalidInput'}));
 quotedIdentifierRefusals.push(...canonicalQuotedIdentifierRefusals);

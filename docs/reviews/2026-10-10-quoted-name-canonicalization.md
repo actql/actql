@@ -80,3 +80,13 @@ these bounds; source, values, rows and names are unchanged. It does not infer
 expectations from a product serializer. Remaining cases and HTTPS were not
 reached by that attempt. Preserve its logs at
 `worktrees/.codex-scratch/public-query-evidence-rsqObX`, guard `run-03BarO`.
+
+
+A subsequent exact-SHA cohort at
+`da654fd97b0a992b534df6805c1ea490c4447d08` passed all 19 positive cases on
+Local and HTTPS (receipt `public-query-evidence-pIXT9G`). Before submission,
+inspection found that the new retired-range negative used `format: sql` for a
+FROM-headed Pipe source, so its refusal did not prove scope retirement. Its
+format is corrected to `aql-text`, and a core regression now requires the exact
+`Expression(UnknownReference)` cause. The positive cases remain unchanged;
+final public refusal evidence must come from the corrected source revision.
