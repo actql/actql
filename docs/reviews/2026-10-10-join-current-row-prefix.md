@@ -1,7 +1,8 @@
 # JOIN current-row operators before projection
 
 Base: `040eed2b1a11a3d1f7bae81b68d956d1017fac05` (main).
-Status: focused lowering checks pass; packed public execution is not yet verified.
+Status: focused lowering checks and packed Local/HTTPS acceptance pass at
+`4553f6a51f90052ca3b80d05dbde1ba678f3f5cd`; submitted-HEAD CI is not established.
 
 ## Defect and repair
 
@@ -91,9 +92,10 @@ contracts/order, verifies Source sessions, same-request resend/reattach/lookup,
 and checks no extra Source I/O. Preparation refusals retain the zero-admission,
 zero-I/O checks. No Program correction or adapter overlay is used by tests.
 
-Normal five-package production and focused Local/HTTPS execution are pending.
-Full Core, Wasm/Native execution, full packed campaigns and submitted-HEAD CI
-have not been performed for this unit. Passing one cohort does not establish
+Normal five-package production and focused Local/HTTPS execution succeeded at
+`4553f6a51f90052ca3b80d05dbde1ba678f3f5cd`. Full Core, Wasm/Native execution,
+full packed campaigns and submitted-HEAD CI have not been performed for this
+unit. Passing one cohort does not establish
 completion of the full frontend goal.
 
 ## First packed attempt: fixture parameter correction
@@ -110,7 +112,8 @@ has no LIMIT or parameter reference. The common usage checker already rejects
 unused parameter declarations (`program_check/template_declarations_test.mbt`).
 A diagnostic against the freshly built preparation bridge and the public
 harness's admitted Source environment confirmed `check_invalid_input` for the
-declared form and readiness when those unused declarations/values were absent.
+declared form and no preparation issue when those unused declarations/values
+were absent.
 This diagnostic is not an additional packed execution claim.
 
 Remove only the unused fixture declarations/values in that case and the two
@@ -124,3 +127,50 @@ particularly `010.stderr.log` and `010.stdout.log`; serialized guard
 `_build/local-checks/attempts/run-C4i8qW`. The receipt identifies the clean SHA,
 tarball digests and completed failing command. It is retained as failure
 evidence and is not counted as successful public acceptance.
+
+## Successful packed acceptance
+
+Packed source: `4553f6a51f90052ca3b80d05dbde1ba678f3f5cd`, clean HEAD.
+The product MoonBit source is unchanged from the 22/22 focused JS check;
+the fixture correction was checked again with Node, 7/7:
+`_build/local-checks/attempts/run-2u88wd` and
+`_build/focused-evidence/focused-test-0CiEX8`.
+
+One serialized 1200-second guard executed the normal producer, independent
+digest verification and existing focused consumer:
+
+```sh
+node scripts/packed-client-packages.mjs \
+  /private/tmp/actql-b-join-current-row-prefix-4553f6a51-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-join-current-row-prefix-4553f6a51-pack \
+  node scripts/test-packed-public-query.mjs --limit-parameter-only
+```
+
+Guard evidence: `_build/local-checks/attempts/run-nWMqcG`. Original public
+receipt and command logs: `../.codex-scratch/public-query-evidence-Y8ol88`.
+The receipt records the clean source SHA, all ten commands with status 0 and
+complete output, no evidence errors, and successful artifact removal. The
+temporary installation directory is absent; original receipts and logs remain.
+
+Both Embedded Local and HTTPS completed all 32 positive and 19 refusal cases
+through the ordinary public SDK/Host. Seven refusals assert exact codes (the
+three new ones use ClientProgramInvalidInput); twelve retained older fixtures
+use the existing accepted input-error categories. Neither is presented as
+coverage of a specific diagnostic it does not check. Positive cases compare
+Named Result rows, full column contracts/order and hidden-column absence;
+resend/reattach/lookup preserve the Run and add no Source I/O. Refusals check
+zero Run admission and zero Source I/O.
+
+The five receipt digests match the normal producer manifest:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54 |
+| local-node | 9b09ca1b9fcb24735922d54077dc1afb17cb5d7cf50f36332b0847403cdb72e3 |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+The subsequent evidence-recording commit changes only this document. Its
+submitted SHA and exact workflow observation belong in the PR body; this
+packed evidence remains attributed to the source SHA above.
