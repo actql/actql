@@ -195,6 +195,13 @@ access preserve the resolved receiver. A current Pipe column and an older range
 snapshot are different values after SET. The Frontend does not drop DISTINCT,
 replace the requested order or add another argument to admit a mismatched key.
 Non-DISTINCT collection calls retain their independently authored ordering.
+Aggregate-local keys also admit comparisons, Boolean AND/OR/NOT and IS
+predicates whose entire operand trees meet the existing total-expression
+profile. They lower once into private input slots and use the common Boolean
+ordering, NULL propagation, property typing and parameter contracts. They do
+not resolve sibling SELECT aliases. Per-call filters still guard aggregate
+arguments; potentially failing arithmetic/casts/calls are not hoisted from
+aggregate demand merely because they occur under a Boolean expression.
 Broader computed aggregate order expressions remain an unconnected profile;
 they are not made invalid by this rule. Machine Program aggregate contracts
 retain their existing meaning.
