@@ -14,6 +14,9 @@ const environments = new WeakMap();
 const preparations = new WeakMap();
 const compilations = new WeakMap();
 const taskCompilations = new WeakMap();
+const effectPreparations = new WeakMap();
+const effectCompilations = new WeakMap();
+const effectAllowedRuns = new WeakMap();
 const requests = new WeakMap();
 const cancellationIdentities = new WeakMap();
 const submissionEpochs = new WeakMap();
@@ -150,6 +153,174 @@ export function compileTasks(prepared) {
   const value = checked(owner.clientValuesHostCompileTasks(
     requireHandle(preparations, prepared)), 'RunHostTaskCompilationRejected');
   return handle(taskCompilations, {value, prepared}, 'task-compilation');
+}
+
+/** Static Effect closure; no acquisition, approval or physical apply. */
+export function prepareEffect(document, format, environment, parametersWire) {
+  if (typeof document !== 'string' || !['json', 'yaml'].includes(format) ||
+      parametersWire !== undefined && typeof parametersWire !== 'string') {
+    throw new TypeError('InvalidRunHostPreparation');
+  }
+  return handle(effectPreparations, checked(owner.clientValuesHostPrepareEffect(
+    document, format, requireHandle(environments, environment), parametersWire),
+  'RunHostEffectPreparationRejected'), 'prepared-effect-program');
+}
+
+export function compileEffect(prepared) {
+  const value = checked(owner.clientValuesHostCompileEffect(
+    requireHandle(effectPreparations, prepared)), 'RunHostEffectCompilationRejected');
+  return handle(effectCompilations, {value, prepared}, 'effect-compilation');
+}
+
+function effectCompilationFor(prepared, compilation) {
+  const retained = requireHandle(effectCompilations, compilation);
+  if (retained.prepared !== prepared) throw new TypeError('ForeignRunHostCompilation');
+  return retained.value;
+}
+
+/** Checked counts only; this does not select or schedule an executable task. */
+export function effectExecutionShape(prepared, compilation) {
+  const counts = owner.clientValuesHostEffectShape(effectCompilationFor(prepared, compilation));
+  if (!Array.isArray(counts) || counts.length !== 3 ||
+      counts.some(value => !Number.isSafeInteger(value) || value < 0)) {
+    throw new Error('InvalidRunHostEffectExecutionProjection');
+  }
+  return Object.freeze({taskCount: counts[0], acquisitionCount: counts[1],
+    effectCount: counts[2]});
+}
+
+export function privateEffectCompilationWires(compilation) {
+  const {value} = requireHandle(effectCompilations, compilation);
+  return Object.freeze({boundTemplate: owner.clientValuesHostEffectTemplateWire(value),
+    compiledPlan: owner.clientValuesHostEffectCompiledPlanWire(value)});
+}
+
+/** Current Host authorization precedes this call; Effect approval is separate. */
+export function issueAllowedEffectRun(prepared, compilation, {
+  executionContextCid, hostPolicyCid, expiresAt,
+}) {
+  if ([executionContextCid, hostPolicyCid, expiresAt]
+    .some(value => typeof value !== 'string')) throw new TypeError('InvalidRunHostEvidence');
+  const value = checked(owner.clientValuesHostIssueAllowedEffectRun(
+    effectCompilationFor(prepared, compilation), executionContextCid,
+    hostPolicyCid, expiresAt), 'RunHostEffectAdmissionRejected');
+  return handle(effectAllowedRuns, {value, prepared}, 'allowed-effect-run');
+}
+
+export function privateEffectRunEvidence(allowed) {
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  return Object.freeze({preparedInvocationWire: owner.clientValuesHostAllowedEffectPreparedWire(value),
+    authorizationWire: owner.clientValuesHostAllowedEffectAuthorizationWire(value)});
+}
+
+export function issueEffectRunDefinition(allowed, scopeId, runId, createdAt, validUntil) {
+  if ([scopeId, runId, createdAt, validUntil].some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostDefinition');
+  }
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  return handle(definitions, checked(owner.clientValuesHostIssueEffectRunDefinition(
+    value, scopeId, runId, createdAt, validUntil), 'RunHostEffectDefinitionRejected'), 'run-definition');
+}
+
+/** Project the original Effect materials using the existing bounded codec. */
+export function issueEffectRunMaterials(allowed, definition, retained) {
+  validateRunMaterialsInput(retained);
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  return checked(owner.clientValuesHostIssueEffectRunMaterials(value,
+    requireHandle(definitions, definition), requireHandle(environments, retained.environment),
+    retained.environmentWire, retained.document, retained.parametersWire), 'RunHostEffectRunMaterialsRejected');
+}
+
+/** Saved evidence is re-admitted, not reissued with a fresh policy or lifetime. */
+export function admitEffectRunMaterials(wire, definitionCid, profiles) {
+  if (typeof wire !== 'string' || typeof definitionCid !== 'string') {
+    throw new TypeError('InvalidRunHostRunMaterialsInput');
+  }
+  const selected = checkedProfileSelection(profiles, 'InvalidRunHostProfiles');
+  const restored = checked(owner.clientValuesHostAdmitEffectRunMaterials(wire,
+    definitionCid, selected.textTime, selected.veca, selected.rela, selected.sga,
+    selected.tea, selected.calendar, selected.textRank), 'RunHostEffectRestorationRejected');
+  const prepared = handle(effectPreparations, owner.clientValuesHostRestoredEffectPrepared(restored), 'prepared-effect-program');
+  return Object.freeze({prepared,
+    compilation: handle(effectCompilations, {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation'),
+    allowed: handle(effectAllowedRuns, {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared}, 'allowed-effect-run'),
+    definition: handle(definitions, owner.clientValuesHostRestoredEffectDefinition(restored), 'run-definition')});
+}
+
+/** Original policy/Run expiry check only; current Host authority is independent. */
+export function effectRunStartCurrent(allowed, definition, at) {
+  if (typeof at !== 'string') throw new TypeError('InvalidRunHostCurrentTime');
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  return owner.clientValuesHostEffectStartCurrent(value, requireHandle(definitions, definition), at);
+}
+
+/** Original Effect caller; capture is not a newly submitted input Artifact. */
+export function prepareEffectRequest(prepared, compilation, authorityScopeCid, requestId) {
+  effectCompilationFor(prepared, compilation);
+  if (typeof authorityScopeCid !== 'string' || typeof requestId !== 'string') {
+    throw new TypeError('InvalidRunHostRequest');
+  }
+  const value = checked(owner.clientValuesHostEffectRequestIdentity(
+    requireHandle(effectPreparations, prepared), authorityScopeCid, requestId),
+  'RunHostRequestRejected');
+  return handle(requests, value, 'request-identity');
+}
+
+/** Logical Source binding from the original checked Effect graph, no I/O. */
+export function effectSourceInputBinding(compilation) {
+  const {value} = requireHandle(effectCompilations, compilation);
+  return checked(owner.clientValuesHostEffectSourceInputBinding(value),
+    'RunHostEffectSourceBindingRejected');
+}
+
+function effectSiteSelection(selection) {
+  if (selection === null || typeof selection !== 'object' || Array.isArray(selection) ||
+      Object.keys(selection).sort().join('\0') !== [...siteSelectionKeys].sort().join('\0')) {
+    throw new TypeError('InvalidRunHostSiteSelection');
+  }
+  // Capture once: validation and the ABI must consume exactly the same values.
+  const args = siteSelectionKeys.map(key => selection[key]);
+  const [taskAttempt, , , siteGeneration] = args;
+  if (!Number.isSafeInteger(taskAttempt) || taskAttempt <= 0 ||
+      taskAttempt > 2147483647 ||
+      !Number.isSafeInteger(siteGeneration) || siteGeneration < 0 ||
+      siteGeneration > 2147483647 ||
+      args.some((value, index) => index !== 0 && index !== 3 && typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostSiteSelection');
+  }
+  return args;
+}
+
+/** The Host saves the original envelope before the existing Coordinator sends. */
+export function issueEffectSourceDispatch(allowed, definition, request, selection) {
+  const args = effectSiteSelection(selection);
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  const dispatch = checked(owner.clientValuesHostPrepareEffectSourceDispatch(
+    value, requireHandle(definitions, definition), requireHandle(requests, request),
+    ...args), 'RunHostEffectSourceDispatchRejected');
+  return Object.freeze({cid: owner.clientValuesHostDispatchCid(dispatch),
+    wire: checked(owner.clientValuesHostDispatchWire(dispatch),
+      'RunHostEffectSourceDispatchRejected')});
+}
+
+/** Checked topology only; use existing producer/Transfer/current custody owners. */
+export function prepareEffectRetainedTaskInputEdge(allowed, definition) {
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  return handle(retainedInputEdges, checked(owner.clientValuesHostEffectRetainedInputEdge(
+    value, requireHandle(definitions, definition)), 'RunHostEffectRetainedInputEdgeRejected'),
+  'retained-input-edge');
+}
+
+/** Exact original consumer; current input and destination are read again. */
+export function issueEffectRetainedTaskDispatch(allowed, definition, request, selection, input) {
+  const args = effectSiteSelection(selection);
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  const dispatch = checked(owner.clientValuesHostPrepareEffectRetainedTaskDispatch(
+    value, requireHandle(definitions, definition), requireHandle(requests, request),
+    ...args, requireHandle(retainedTaskInputs, input)), 'RunHostEffectRetainedTaskDispatchRejected');
+  return Object.freeze({cid: owner.clientValuesHostDispatchCid(dispatch),
+    wire: checked(owner.clientValuesHostDispatchWire(dispatch),
+      'RunHostEffectRetainedTaskDispatchRejected')});
 }
 
 export function privateTaskCompilationWires(compilation) {

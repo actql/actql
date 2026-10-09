@@ -39,7 +39,9 @@ fn QueryParser::window_specification(
       partition_by.push(
         match calls {
           Some(outputs) => {
-            let (expression, embedded) = self.aggregate_expression(aggregate_prefix)
+            let (expression, embedded) = self.aggregate_expression(
+              aggregate_prefix,
+            )
             outputs.append(embedded)
             expression
           }
@@ -128,6 +130,7 @@ fn QueryParser::resolve_window(
 ///|
 fn QueryParser::window_definitions(
   self : QueryParser,
+  calls : Array[(NamePart, AggregateCall)],
 ) -> Array[(NamePart, AnalyticWindow)] raise QueryAbort {
   self.keyword("WINDOW")
   let definitions : Array[(NamePart, AnalyticWindow)] = []
@@ -142,7 +145,7 @@ fn QueryParser::window_definitions(
       }
     }
     self.keyword("AS")
-    let specification = self.window_specification()
+    let specification = self.window_specification(calls=Some(calls))
     // Store an already resolved declaration. Forward references and cycles
     // cannot enter the map; no expression is expanded or evaluated here.
     definitions.push((name, self.resolve_window(specification, definitions)))
@@ -152,6 +155,58 @@ fn QueryParser::window_definitions(
     ignore(self.advance())
   }
   definitions
+}
+
+///|
+// Resolved consumers retain parser-owned references through inheritance.
+// Unused declarations must not introduce aggregation or evaluate their keys.
+fn QueryParser::used_named_window_aggregates(
+  self : QueryParser,
+  operations : Array[QueryOperation],
+  candidates : Array[(NamePart, AggregateCall)],
+) -> Array[(NamePart, AggregateCall)] raise QueryAbort {
+  let used : Array[(NamePart, AggregateCall)] = []
+  for candidate in candidates {
+    self.spend(1)
+    let mut referenced = false
+    for operation in operations {
+      self.spend(1)
+      let projections = match operation {
+        Analytic(projections) | AnalyticExpressions(projections, _) =>
+          projections
+        _ => []
+      }
+      for projection in projections {
+        self.spend(1)
+        let windows : Array[AnalyticWindow] = []
+        if projection.analytic is Some(call) {
+          windows.push(call.window)
+        }
+        for replacement in projection.replacements {
+          self.spend(1)
+          if replacement.analytic is Some(call) {
+            windows.push(call.window)
+          }
+        }
+        for window in windows {
+          let expressions = window.partition_by +
+            window.order_by.map(term => term.expression)
+          for expression in expressions {
+            for node in expression.nodes {
+              self.spend(1)
+              if node.kind is Reference([name]) && name == candidate.0 {
+                referenced = true
+              }
+            }
+          }
+        }
+      }
+    }
+    if referenced {
+      used.push(candidate)
+    }
+  }
+  used
 }
 
 ///|
@@ -209,6 +264,8 @@ fn QueryParser::resolve_window_operations(
             self.resolve_window_projections(projections, definitions),
             names,
           )
+        Extend(projections) =>
+          Extend(self.resolve_window_projections(projections, definitions))
         Select(projections, distinct) =>
           Select(
             self.resolve_window_projections(projections, definitions),

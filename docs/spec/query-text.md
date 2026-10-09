@@ -364,6 +364,59 @@ their expressions. These rules follow
 and the selected resolver's declaration flattening. Parsed operation snapshots
 copy mutable window/aggregate lists and cannot mutate the admitted syntax owner.
 
+Pipe `EXTEND expression AS name, ... [WINDOW ...]` also accepts the supported
+window calls, directly or inside ordinary scalar expressions. It adds outputs
+after all current visible columns, in authored order; nullable input columns
+retain their contracts, including on empty input. All sibling expressions and
+their OVER specifications see the same input snapshot, not aliases introduced
+by this EXTEND. Existing immutable range bindings remain distinct from columns
+changed by SET. Output-name collisions are refused.
+
+Each EXTEND's optional WINDOW declarations are local to that operator and use
+the same inheritance and conflict checks described above. They do not become
+visible in a later EXTEND. Window outputs are computed by the ordinary analytic
+operation; direct outputs reuse their evaluated slots, and scalar operands use
+private window slots. Final projection removes private columns. No additional
+acquisition, sorting or Result boundary is implied: an explicit ORDER BY is
+required when the public row order matters. Ordinary GROUP aggregation is not
+introduced by EXTEND. Supported analytic signatures and frames still follow the
+common contract. This connects the selected
+[GoogleSQL Pipe EXTEND](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#extend)
+without a separate window executor or a new alias scope.
+
+Pipe SELECT accepts its own optional WINDOW clause after the projection list.
+Direct window outputs, scalar window operands and star replacements resolve
+against those declarations and the SELECT's input snapshot. Names follow the
+same declaration inheritance/conflict rules as SQL WINDOW, including quoted
+case-insensitive lookup, but cannot leak into the next Pipe operator. A later
+SELECT or EXTEND can declare the same name for a different window. Projection
+and DISTINCT retain their existing scope, evaluation and hidden-slot rules.
+Unused declarations do not introduce a GROUP or evaluate aggregate keys;
+used ordinary aggregates cannot introduce implicit grouping in Pipe SELECT.
+This connects the selected
+[GoogleSQL Pipe SELECT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#select)
+to the same common analytic signatures, frames and output contracts as inline
+window specifications.
+
+Pipe WHERE accepts supported window calls inside its Boolean predicate. Each
+call observes the current input rows, including preceding filtering, grouping
+and projection, and uses the existing common analytic operation. Only rows
+whose predicate is TRUE survive; NULL predicates do not. Sequential WHERE
+operators evaluate their windows over the rows retained by preceding operators.
+The output is the unchanged current row, with the same visible columns and
+immutable range bindings. A generated window slot is private to that predicate:
+it is not available to later operators and is removed before Result publication.
+Authored names cannot be captured by generated slot names.
+
+Pipe WHERE does not declare WINDOW names or inherit declarations from a previous
+SELECT or EXTEND. Ordinary aggregates cannot introduce an implicit GROUP here;
+use the preceding AGGREGATE output. Existing analytic signature/frame limits,
+parameter typing, capacity and failure rules remain common-owner decisions.
+An explicit ORDER BY remains necessary when public row order matters. This
+connects [GoogleSQL Pipe WHERE](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#where)
+to the common analytic and filter operations without changing SQL WHERE's
+restriction on window calls, rewriting Source predicates or adding an executor.
+
 QUALIFY resolves SELECT aliases to their evaluated slots before same-name
 inputs. Qualified input references retain their input meaning. A scalar alias
 needed by the condition is evaluated once against SELECT's input snapshot and
@@ -804,10 +857,18 @@ or AS still replaces scope. Correlated expansion after Pipe UNION ALL
 consumes the retained set output; ARRAY/object stars use its common checked
 schema, including CTE column aliases and nullable object fields. The set's
 multiplicity, declared ARRAY bounds and subsequent predicates remain unchanged.
-INNER/LEFT correlation and implicit comma expansion remain unsupported. These
-are coverage gaps, not GoogleSQL language restrictions. CROSS expansion
-does not accept MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common
-Host capacity policy without raising either limit.
+Explicit `[INNER] JOIN UNNEST` uses the same correlated expansion in SQL and
+Pipe. An optional ON expression filters the expanded pairs at that point,
+using ordinary current-column and immutable-range resolution. A NULL or false
+predicate excludes the pair; NULL elements and duplicate elements otherwise
+remain rows. Without ON, INNER expansion is equivalent to CROSS expansion.
+Empty or NULL arrays produce no child rows. A subsequent ordinary JOIN
+consumes the filtered expansion rather than applying the predicate after that
+JOIN. This follows the selected [GoogleSQL array-flattening profile](https://docs.cloud.google.com/bigquery/docs/arrays).
+LEFT correlation and implicit comma expansion remain coverage gaps, not
+GoogleSQL language restrictions. Correlated expansion does not accept USING
+or MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common Host
+capacity policy without raising either limit.
 
 ## Named intermediate Results
 

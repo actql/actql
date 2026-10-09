@@ -52,7 +52,7 @@ function send(response, {status = 200, headers = {}, body = ''} = {}) {
 
 // Open the fixture for one test. `routes` are `{method?, pathname?, handle}`
 // tried in order; `handle(exchange)` returns `{status?, headers?, body?}`
-// (an object body is sent as JSON). `faults` are consumed `times` (default
+// or a Promise of that reply (an object body is sent as JSON). `faults` are consumed `times` (default
 // once) before the routes: `{kind: 'lose-reply'}` destroys the connection
 // after reading the request, `{kind: 'apply-then-lose-reply'}` lets the
 // route apply the request and then destroys the connection instead of
@@ -96,15 +96,17 @@ export async function openHttpsExchangeFixture(t, {routes = [],
         }
         if (fault.kind === 'apply-then-lose-reply') {
           const applied = routes.find(entry => matches(entry, exchange));
-          applied?.handle(exchange);
-          request.socket.destroy();
+          Promise.resolve().then(() => applied?.handle(exchange)).then(
+            () => request.socket.destroy(), () => request.socket.destroy());
           return;
         }
         throw new TypeError('InvalidHttpsExchangeFault');
       }
       const route = routes.find(entry => matches(entry, exchange));
-      send(response, route === undefined ? {status: 404, body: ''}
-        : route.handle(exchange));
+      Promise.resolve().then(() => route === undefined
+        ? {status: 404, body: ''} : route.handle(exchange)).then(
+        reply => { if (!response.destroyed) send(response, reply); },
+        () => request.socket.destroy());
     });
   });
   await new Promise((resolve, reject) => {

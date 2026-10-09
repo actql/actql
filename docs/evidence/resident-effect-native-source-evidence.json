@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "scope": "Actual Native acquisition observation to the existing acquired Effect dependency owner. Not full Preview, approval, write or public Cloud acceptance.",
+  "verifiedSource": "054c9fb87bd72efc924ac87524f35f5ab965be99",
+  "sourceClean": true,
+  "mergedMain": "ffe46cdae6d064a60da517dec2937eeaee4a1c30",
+  "dependency": {
+    "pr": "https://github.com/actql/actql/pull/1117",
+    "head": "cc8df94b1110c8c1e0fe48fc4eda750c6dc7bb97",
+    "parent": "https://github.com/actql/actql/pull/1112",
+    "finalTarget": "main"
+  },
+  "files": {
+    "src/platform_native/remote_resident_host/effect_source_evidence.mbt": "1c80a50262a1f933e89bb1455903b207e89b444e89b79066986bd1ee88c8436c",
+    "src/platform_native/remote_resident_host/source_compute.mbt": "ce1621710ee2be7f66540dec8e2e8cba88e31b2fb7c818be682a33aadafbe7bc",
+    "src/platform_native/remote_resident_host/pkg.generated.mbti": "6a1f2c4bd39fbe9618fffb4f24549d5e11233c05d1794e1e95273a87715a98e1",
+    "src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt": "b0d17a80b66a4c70c50a92c341c45bce981b8b7674151175c70a35db584c4051"
+  },
+  "receipt": "_build/resident-effect-source-evidence-1791535071978/receipt.json",
+  "sourceRecord": "_build/resident-effect-source-evidence-1791535071978/source.json",
+  "inputs": "_build/resident-effect-source-evidence-1791535071978/inputs.json",
+  "artifact": {
+    "source": "054c9fb87bd72efc924ac87524f35f5ab965be99",
+    "scope": "Native whitebox fixture, not a production Site binary",
+    "artifact": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-source-evidence-1791535071978/retained-compute.whitebox_test.exe",
+    "sha256": "6404dd3ba8f2d2f644fd782e28f03ba4f67cf889d53486c233db70649604c49b"
+  },
+  "checks": [
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*Effect retained consumer*\"",
+      "tests": 2,
+      "passed": 2,
+      "result": "passed"
+    },
+    {
+      "command": "Same Native file: existing retained Direct holding and retained Native cancellation filters",
+      "tests": 2,
+      "passed": 2,
+      "result": "passed"
+    },
+    {
+      "command": "moon info --target native src/platform_native/remote_resident_host; node proofs/relation-pipeline/history.mjs --write; git diff --check",
+      "result": "passed"
+    }
+  ],
+  "actualEvidence": {
+    "sourceAcquisitions": 1,
+    "producerCaptures": 1,
+    "consumerEntries": 1,
+    "acquiredRows": [
+      {
+        "id": 3
+      },
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      }
+    ],
+    "schema": {
+      "id": {
+        "nullable": false,
+        "type": "number"
+      }
+    },
+    "sourceDependencyBodies": 6,
+    "checkedCatalogBodies": "nonempty",
+    "afterSourcePathRemoval": "Same logical/schema and acquired evidence bodies; no reacquisition"
+  },
+  "refusals": [
+    "Transfer receiver Cells cannot issue the original Source observation",
+    "Ordinary Source owner cannot issue Effect acquired evidence",
+    "Source data policy mismatch is rejected by Native observation issuer",
+    "Insufficient canonical dependency-body budget is refused without cleanup or reacquisition",
+    "Stopped producer custody cannot issue acquisition evidence"
+  ],
+  "initialFailure": {
+    "source": "8570818770ac0ebf207b92dcd02201dabbdc05dc",
+    "log": "_build/resident-effect-source-evidence-1791535015118/tests.log",
+    "reason": "New expectation confused the sorted checked Result view with the independent acquired (3, 1, 2) sequence",
+    "correction": "Test-only expectation follows CREATE/INSERT fixture and preserves the distinct Source identity; product code unchanged"
+  },
+  "limitations": [
+    "Trusted Host caller supplies original read authority, data policy and acquisition observation time; this does not authorize a read or Effect",
+    "Producer protocol completion remains an explicit fixture, not polled start-claim acceptance",
+    "Live native acquisition evidence is not restoration of transferred producer semantic dependencies",
+    "Full Preview, Checkpoint, waiting commit, approval, physical write and public Cloud/Preview remain unverified",
+    "Whitebox executable is not a production Site binary or formal package cohort",
+    "Formal adoption waits for merged OSS main",
+    "Hosted CI stopped by user instruction; no manual invocation",
+    "Old failed Run custody remains unresolved separately"
+  ]
+}

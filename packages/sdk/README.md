@@ -306,6 +306,25 @@ is inferred from an HTTP error, message or missing record. `preparing` is not a
 Run admission. `SubmissionNotSent` reports a local failure before dispatch and
 has no Owner outcome; a lost response is `SubmissionUnknown`.
 
+`getSubmissionAttempt(result)` is a separate invocation-bound fact. It returns
+`recorded`, `already_satisfied`, `refused`, or `conflict` only after the reply
+matches that call's `attemptRef`. Pass `attemptId` in submission options to retain
+application correlation; otherwise the SDK creates one before dispatch. This
+attempt ID is neither submission custody nor part of the original intent CID.
+The original SDK input snapshot retains it, including on unknown responses.
+
+`SubmissionRefused` carries an Owner-issued `attempt_uncommitted_unconsumed`
+guarantee for this invocation only. `SubmissionConflict` identifies an
+incompatible original intent or restart decision. Neither negates a different
+invocation's acceptance. Initial authorization refusal does
+not disclose protected original submission fields. These failures have no
+`getSubmissionOutcome`: durable `not_accepted` and `preparation_failed` remain
+separate original outcomes. HTTP failures, coded exceptions, uncertain COMMIT,
+and lost replies cannot manufacture this guarantee. `already_satisfied` returns
+the original durable outcome and does not certify execution, physical stop, or
+resource release. Lookup remains read-only and returns the original outcome,
+without creating another invocation or sending work again.
+
 `explainSubmission` and `formatSubmission` use those admitted branches for
 both submission results and `lookupSubmission` results. They distinguish
 durable `not_accepted`, accepted `preparation_failed`, accepted `preparing`,

@@ -909,6 +909,103 @@ export function openSqliteEffectLedger(root, {
         )});
       });
     },
+    // Discover a bounded set of current streams from this existing request
+    // scope. Locator ordering is only an inventory order, never event order.
+    currentScopePage(scopeCid,{after=null,maxItems,maxWireBytes}={}) {
+      active();
+      if (!cid(scopeCid) || after !== null && !cid(after) || !count(maxItems) || maxItems < 1 ||
+          maxItems > 5 || !count(maxWireBytes) || maxWireBytes < 1) fail('InvalidEffectLedgerScopePage');
+      return transaction.run(()=>{
+        if (after !== null && readHead.get(after)?.logical_request_scope_cid !== scopeCid) {
+          return Object.freeze({kind:'cursor_mismatch'});
+        }
+        const rows=database.prepare(`SELECT h.logical_item_locator_cid,h.revision,h.entry_cid,
+          length(CAST(e.entry_json AS BLOB)) AS wire_bytes FROM effect_ledger_heads h
+          LEFT JOIN effect_ledger_entries e ON e.logical_item_locator_cid=h.logical_item_locator_cid
+            AND e.revision=h.revision
+          WHERE h.logical_request_scope_cid=? AND h.logical_item_locator_cid>?
+          ORDER BY h.logical_item_locator_cid ASC LIMIT ?`).all(scopeCid,after ?? '',maxItems+1);
+        const selected=rows.slice(0,maxItems);
+        if (selected.some(row=>!cid(row.logical_item_locator_cid) || !cid(row.entry_cid) ||
+            !count(row.revision) || row.revision < 1 || !count(row.wire_bytes) || row.wire_bytes > maxEntryBytes)) {
+          fail('EffectLedgerIntegrityFailed');
+        }
+        if (selected.reduce((total,row)=>total+row.wire_bytes,0) > maxWireBytes) {
+          return Object.freeze({kind:'limit_exceeded'});
+        }
+        const entries=selected.map(row=>{
+          const entry=materialize(readEntry.get(row.logical_item_locator_cid,row.revision),scopeCid);
+          if (entry.entryCid !== row.entry_cid) fail('EffectLedgerIntegrityFailed');
+          return entry;
+        });
+        return Object.freeze({kind:'page',entries:Object.freeze(entries),hasMore:rows.length>maxItems});
+      });
+    },
+    // Page the existing append-only chain. This is an Owner-local read
+    // transaction, not a composite snapshot or authority to resend an Effect.
+    historyPage(locatorCid, {after = null, maxEntries: pageEntries,
+      maxWireBytes} = {}) {
+      active();
+      if (!cid(locatorCid) || !count(pageEntries) || pageEntries === 0 ||
+          pageEntries > Math.min(maxEntries, 1000) || !count(maxWireBytes) || maxWireBytes === 0 ||
+          after !== null && (!after || typeof after !== 'object' ||
+            Object.keys(after).sort().join(',') !== 'entryCid,generation,revision' ||
+            !cid(after.generation) || !cid(after.entryCid) ||
+            !count(after.revision) || after.revision === 0)) {
+        fail('InvalidEffectLedgerHistoryPage');
+      }
+      return transaction.run(() => {
+        const head = readHead.get(locatorCid);
+        if (head === undefined) return Object.freeze(after === null
+          ? {kind:'page', generation:null, head:null, previous:null, entries:Object.freeze([])}
+          : {kind:'history_unrecoverable'});
+        if (!count(head.revision) || head.revision === 0 ||
+            !cid(head.entry_cid) || !cid(head.logical_request_scope_cid)) {
+          fail('EffectLedgerIntegrityFailed');
+        }
+        const metadata = revision => database.prepare(`
+          SELECT revision, entry_cid, length(CAST(entry_json AS BLOB)) AS wire_bytes
+          FROM effect_ledger_entries WHERE logical_item_locator_cid = ? AND revision = ?
+        `).get(locatorCid, revision);
+        const first = metadata(1), last = metadata(head.revision);
+        if (!first || !last || !cid(first.entry_cid) || last.entry_cid !== head.entry_cid) {
+          fail('EffectLedgerIntegrityFailed');
+        }
+        const position = after?.revision ?? 0;
+        if (after !== null && (after.generation !== first.entry_cid ||
+            position > head.revision)) return Object.freeze({kind:'cursor_mismatch'});
+        const previous = position === 0 ? null : metadata(position);
+        if (position !== 0 && !previous) fail('EffectLedgerIntegrityFailed');
+        if (previous !== null && previous.entry_cid !== after.entryCid) {
+          return Object.freeze({kind:'cursor_mismatch'});
+        }
+        // Inspect byte counts before materializing entry strings. Do not
+        // read the whole history merely to slice a small replay page.
+        const rows = database.prepare(`
+          SELECT revision, entry_cid, length(CAST(entry_json AS BLOB)) AS wire_bytes
+          FROM effect_ledger_entries WHERE logical_item_locator_cid = ? AND revision > ?
+          ORDER BY revision ASC LIMIT ?
+        `).all(locatorCid, position, pageEntries);
+        if (rows.length !== Math.min(pageEntries, head.revision - position) ||
+            rows.some((row, index) => row.revision !== position + index + 1 ||
+              !cid(row.entry_cid) || !count(row.wire_bytes) || row.wire_bytes > maxEntryBytes) ||
+            previous !== null && (!count(previous.wire_bytes) || previous.wire_bytes > maxEntryBytes)) {
+          fail('EffectLedgerIntegrityFailed');
+        }
+        const bytes = rows.reduce((total, row) => total + row.wire_bytes,
+          previous?.wire_bytes ?? 0);
+        if (bytes > maxWireBytes) return Object.freeze({kind:'limit_exceeded'});
+        const load = row => {
+          const entry = materialize(readEntry.get(locatorCid, row.revision), head.logical_request_scope_cid);
+          if (entry.entryCid !== row.entry_cid) fail('EffectLedgerIntegrityFailed');
+          return entry;
+        };
+        return Object.freeze({kind:'page', generation:first.entry_cid,
+          head:Object.freeze({revision:head.revision, entryCid:head.entry_cid}),
+          previous:previous === null ? null : load(previous),
+          entries:Object.freeze(rows.map(load))});
+      });
+    },
     history(locatorCid, maxRevisions) {
       active();
       if (!cid(locatorCid) || !count(maxRevisions) || maxRevisions === 0 ||

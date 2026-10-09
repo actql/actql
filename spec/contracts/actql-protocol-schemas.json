@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:2b780383f6d16fa05e860080472063e969c6a4033d1f705e76474fc8296fd7ef",
+  "artifact_registry_cid": "sha256:6953279ebb323e53f6570179d1d4dcb7ac3f4f24366cad6bd03daee8cdae8471",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9",
-    "check_reason": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a",
+    "check_outcome": "sha256:b1062306669a530f532faa3b7fc5d24e34bd72aeae712c177cee7557216ea464",
+    "check_reason": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -76996,6 +76996,44 @@
                                 "const": "checking"
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
                           }
                         ]
                       }
@@ -77952,6 +77990,75 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_alias_absent"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "namespace",
+                                "reference"
+                              ],
+                              "properties": {
+                                "namespace": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "reference": {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "value",
+                                      "quoted"
+                                    ],
+                                    "properties": {
+                                      "value": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 65536
+                                      },
+                                      "quoted": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -77970,7 +78077,8 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
-                                  "program_structure_invalid"
+                                  "program_structure_invalid",
+                                  "query_alias_absent"
                                 ]
                               }
                             }
@@ -78682,6 +78790,44 @@
                                 "const": "checking"
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
                           }
                         ]
                       }
@@ -79638,6 +79784,75 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_alias_absent"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "namespace",
+                                "reference"
+                              ],
+                              "properties": {
+                                "namespace": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "reference": {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "value",
+                                      "quoted"
+                                    ],
+                                    "properties": {
+                                      "value": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 65536
+                                      },
+                                      "quoted": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -79656,7 +79871,8 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
-                                  "program_structure_invalid"
+                                  "program_structure_invalid",
+                                  "query_alias_absent"
                                 ]
                               }
                             }
@@ -79702,7 +79918,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+              "const": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -80772,6 +80988,44 @@
                                 "const": "checking"
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
                           }
                         ]
                       }
@@ -81728,6 +81982,75 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_alias_absent"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "namespace",
+                                "reference"
+                              ],
+                              "properties": {
+                                "namespace": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "reference": {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "value",
+                                      "quoted"
+                                    ],
+                                    "properties": {
+                                      "value": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 65536
+                                      },
+                                      "quoted": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -81746,7 +82069,8 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
-                                  "program_structure_invalid"
+                                  "program_structure_invalid",
+                                  "query_alias_absent"
                                 ]
                               }
                             }
@@ -82458,6 +82782,44 @@
                                 "const": "checking"
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
                           }
                         ]
                       }
@@ -83414,6 +83776,75 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_alias_absent"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "namespace",
+                                "reference"
+                              ],
+                              "properties": {
+                                "namespace": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "reference": {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "value",
+                                      "quoted"
+                                    ],
+                                    "properties": {
+                                      "value": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 65536
+                                      },
+                                      "quoted": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -83432,7 +83863,8 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
-                                  "program_structure_invalid"
+                                  "program_structure_invalid",
+                                  "query_alias_absent"
                                 ]
                               }
                             }
@@ -83496,7 +83928,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+              "const": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -83542,7 +83974,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+              "const": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -84224,6 +84656,44 @@
                 },
                 "stage": {
                   "const": "checking"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "namespace",
+                "reference"
+              ],
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "reference": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 8192,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "value",
+                      "quoted"
+                    ],
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 65536
+                      },
+                      "quoted": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -85182,6 +85652,75 @@
           "if": {
             "properties": {
               "code": {
+                "const": "query_alias_absent"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "namespace",
+                  "reference"
+                ],
+                "properties": {
+                  "namespace": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "reference": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8192,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "value",
+                        "quoted"
+                      ],
+                      "properties": {
+                        "value": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 65536
+                        },
+                        "quoted": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  },
+                  "document_id": {
+                    "const": "source"
+                  }
+                }
+              }
+            },
+            "not": {
+              "required": [
+                "fixes"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
                 "not": {
                   "enum": [
                     "supplied_value_type_mismatch",
@@ -85200,7 +85739,8 @@
                     "implementation_limit",
                     "host_capacity_policy_required",
                     "numeric_reduction_profile_required",
-                    "program_structure_invalid"
+                    "program_structure_invalid",
+                    "query_alias_absent"
                   ]
                 }
               }

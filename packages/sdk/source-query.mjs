@@ -2,7 +2,7 @@ import {captureReadOptions, captureResultRead} from './result-schema.mjs';
 
 // A query composes existing admission, observation and Result owners. It never
 // resubmits, reconciles a Run, answers a Checkpoint, or retries a Result read.
-const queryOptionNames = new Set(['requestId', 'submissionRef', 'signal', 'result',
+const queryOptionNames = new Set(['requestId', 'submissionRef', 'attemptId', 'signal', 'result',
   'parameterDeclarations']);
 
 function executionError(ClientError, retainFailure, code, execution, requestId, state, cause) {
@@ -60,6 +60,7 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     // startSource captures JSON source/declarations/parameters synchronously,
     // before credentials or I/O. Do not serialize caller-owned inputs twice.
     admission = startSource(text, {format, parameters, signal,
+      ...(options.attemptId === undefined ? {} : {attemptId: options.attemptId}),
       ...(options.requestId === undefined ? {} : {requestId: options.requestId}),
       ...(options.submissionRef === undefined ? {} : {submissionRef: options.submissionRef}),
       ...(options.parameterDeclarations === undefined ? {} :

@@ -4,6 +4,9 @@ declare const environmentBrand: unique symbol;
 declare const preparedBrand: unique symbol;
 declare const compilationBrand: unique symbol;
 declare const taskCompilationBrand: unique symbol;
+declare const effectPreparationBrand: unique symbol;
+declare const effectCompilationBrand: unique symbol;
+declare const effectAllowedBrand: unique symbol;
 declare const requestBrand: unique symbol;
 declare const admissionBrand: unique symbol;
 declare const definitionBrand: unique symbol;
@@ -51,6 +54,57 @@ export interface ValuesCompilation {
 export interface TaskCompilation {
   readonly [taskCompilationBrand]: true;
 }
+
+/** Static checked Effect computation; never an approval or apply permit. */
+export interface PreparedEffectProgram {
+  readonly [effectPreparationBrand]: true;
+}
+export interface EffectCompilation {
+  readonly [effectCompilationBrand]: true;
+}
+export interface AllowedEffectRun {
+  readonly [effectAllowedBrand]: true;
+}
+export function prepareEffect(document: string, format: 'json' | 'yaml',
+  environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
+export function compileEffect(prepared: PreparedEffectProgram): EffectCompilation;
+export function effectExecutionShape(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation): Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}>;
+export function privateEffectCompilationWires(compilation: EffectCompilation):
+  Readonly<{boundTemplate: string; compiledPlan: string}>;
+/** Current Host authorization precedes issuance; Effect approval is separate. */
+export function issueAllowedEffectRun(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation, policy: Readonly<{executionContextCid: string;
+    hostPolicyCid: string; expiresAt: string}>): AllowedEffectRun;
+export function privateEffectRunEvidence(allowed: AllowedEffectRun):
+  Readonly<{preparedInvocationWire: string; authorizationWire: string}>;
+export function issueEffectRunDefinition(allowed: AllowedEffectRun,
+  scopeId: string, runId: string, createdAt: string, validUntil: string): RunDefinition;
+export function issueEffectRunMaterials(allowed: AllowedEffectRun,
+  definition: RunDefinition, retained: Readonly<{format: 'json'; document: string;
+    environment: CheckEnvironment; environmentWire: string;
+    parametersWire?: string}>): string;
+export function admitEffectRunMaterials(wire: string, definitionCid: string,
+  profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
+    sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>):
+  Readonly<{prepared: PreparedEffectProgram; compilation: EffectCompilation;
+    allowed: AllowedEffectRun; definition: RunDefinition}>;
+/** Original saved policy lifetime, not current Host authority or approval. */
+export function effectRunStartCurrent(allowed: AllowedEffectRun,
+  definition: RunDefinition, at: string): boolean;
+
+/** Caller identity only; no Source permission or Effect approval. */
+export function prepareEffectRequest(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation, authorityScopeCid: string, requestId: string): RequestIdentity;
+export function effectSourceInputBinding(compilation: EffectCompilation): string;
+export function issueEffectSourceDispatch(allowed: AllowedEffectRun,
+  definition: RunDefinition, request: RequestIdentity,
+  selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}>;
+export function prepareEffectRetainedTaskInputEdge(allowed: AllowedEffectRun,
+  definition: RunDefinition): RetainedTaskInputEdge;
+export function issueEffectRetainedTaskDispatch(allowed: AllowedEffectRun,
+  definition: RunDefinition, request: RequestIdentity,
+  selection: ValuesSiteSelection, input: RetainedTaskInput): Readonly<{cid: string; wire: string}>;
 
 /** Count physical checked tasks separately from Result Plan transformations. */
 export function taskExecutionShape(prepared: PreparedProgram,

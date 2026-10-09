@@ -10,9 +10,10 @@ import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOp
   validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validClientBody, validResourceInspection,
-  validSubmissionRef, validSubmissionOutcome, validSubmissionLookup, validSubmissionRestart,
+  validSubmissionRef, validSubmissionAttempt, validSubmissionLookup, validSubmissionRestart,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
+  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol,
+  validOwnerObservations, ownerObservationLimits} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, bytesCid, canonicalJson, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
@@ -104,6 +105,7 @@ const checkFrontiers = new WeakMap();
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
 const submissionOutcomes = new WeakMap();
+const submissionAttempts = new WeakMap();
 const submissionCheckObservations = new WeakMap();
 const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
@@ -319,6 +321,10 @@ export function getSubmissionOutcome(result) {
   return submissionOutcomes.get(result);
 }
 
+export function getSubmissionAttempt(result) {
+  return submissionAttempts.get(result);
+}
+
 // Local observation of this SDK read only. Lookup rechecks current authority;
 // this explanation proves neither publication nor execution nor resource release.
 export function explainReadFailure(result, options) {
@@ -415,6 +421,31 @@ const retainEffectUncertainty = (state, ref) => {
 export function explainCancellation(result, options) {
   return localizeOperation(cancellationExplanations.get(result), 'cancellation', options);
 }
+
+const retainCancellationAttemptExplanation = (result, context) => {
+  // The response has already been captured, detached and twice admitted against
+  // this invocation. A refusal is not a fact about another invocation's commit.
+  if (result.kind !== 'refused' && result.kind !== 'conflict') {
+    return retainCancellationExplanation(result, context,
+      result.cancellation.kind, result.cancellation.revision);
+  }
+  const summaries = result.kind === 'refused' ? {
+    authorization: 'The Host refused this cancellation invocation under current authorization. This invocation committed no cancellation and consumed no operation identity.',
+    admission_capacity: 'The Host refused this cancellation invocation because admission capacity was unavailable. This invocation committed no cancellation and consumed no operation identity.',
+  } : {
+    intent: 'The Host reports a conflicting intent for this original cancellation identity.',
+    control_revision: 'The Host reports a conflict with the submitted control revision for this cancellation invocation.',
+  };
+  cancellationExplanations.set(result, freezeInput({
+    observation: result.kind, reason: result.reason,
+    attemptRef: context.attemptRef, cancelRef: context.cancelRef,
+    ...(result.kind === 'refused' ? {guarantee: result.guarantee} : {}),
+    summary: summaries[result.reason],
+    hint: 'Keep the original cancellation reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s outcome, grant permission to resend, or confirm physical stop, external Effects or resource release.',
+    next: {operation: 'lookupCancellation', cancelRef: context.cancelRef},
+  }));
+  return result;
+};
 
 const retainCancellationExplanation = (result, context, observation, revision) => {
   if (!context) return result;
@@ -1988,6 +2019,28 @@ async function connectSelected(selected, port) {
     };
     const handle = Object.freeze({
       ref, profile: runProfile, result,
+      observeOwners: async ({signal,cursors=[],maxEntries=100,maxWireBytes=ownerObservationLimits.maxWireBytes} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref,cursors,maxEntries,maxWireBytes}));
+        if (!validClientBody('owner-observations',{connection:selected.wire,...input})) {
+          fail('InvalidOwnerObservationRequest');
+        }
+        const response = await runRequest('owner-observations',input,signal);
+        let answer;
+        try {answer=captureResponse(await responseValue(response));}
+        catch {fail('InvalidHostOwnerObservations');}
+        if (!validOwnerObservations(answer,ref,input)) fail('InvalidHostOwnerObservations');
+        for (const vector of answer.revisionVector) {
+          if (vector.snapshotCid === undefined) continue;
+          const view=answer.owners.find(value=>value.kind==='observed' &&
+            value.ownerRef.kind===vector.owner.kind && value.ownerRef.scopeCid===vector.owner.scopeCid &&
+            value.ownerRef.streamCid===vector.owner.streamCid);
+          if (await bytesCid(new TextEncoder().encode(canonicalJson({version:'actql-owner-snapshot/0.1',ref,
+            owner:vector.owner,snapshot:view.snapshot},{dataKeys:true}))) !== vector.snapshotCid) {
+            fail('InvalidHostOwnerObservations');
+          }
+        }
+        return freezeInput(answer);
+      },
       status: async ({signal} = {}) => {
         return readRunObservation('status', {}, signal);
       },
@@ -2039,9 +2092,7 @@ async function connectSelected(selected, port) {
           }), context, 'outcome_unknown');
         }
         received = freezeInput(received);
-        return received.cancellation === undefined ? received :
-          retainCancellationExplanation(received, context,
-            received.cancellation.kind, received.cancellation.revision);
+        return retainCancellationAttemptExplanation(received, context);
       },
       lookupCancellation: async (reference, {signal} = {}) => {
         let cancelRef;
@@ -2092,15 +2143,17 @@ async function connectSelected(selected, port) {
     let body;
     try {
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
+        attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
         kind, input, parameters: options.parameters ?? null,
         ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
     } catch {fail('InvalidClientPayload');}
     if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
         options.requestId !== body.submissionRef.nonce) fail('InvalidSubmissionRef');
+    if (!validOperationAttemptRef(body.attemptRef)) fail('InvalidOperationAttemptRef');
     if (body.unresolvedHistory !== undefined &&
         !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) fail('InvalidSubmissionRestart');
     const requestId = body.submissionRef.nonce;
-    const context = {requestId, submissionRef: body.submissionRef,
+    const context = {requestId, submissionRef: body.submissionRef, attemptRef: body.attemptRef,
       lookupContext: Object.freeze({endpoint: selected.endpoint, scopeRef: confirmed.scopeRef})};
     const snapshot = freezeInput({...body, requestId, connection: selected.wire,
       lookupContext: context.lookupContext});
@@ -2112,13 +2165,27 @@ async function connectSelected(selected, port) {
         version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));}
       catch (cause) {throw submissionNotSent(context, cause);}
       let outcome;
+      let attempt;
+      let typedRejection;
       let checkObservation;
       try {
         const response = await exchange(body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent',
           {...body, intentCid}, options.signal, context);
-        outcome = detachResponse(captureResponse(await controlValue(response)));
-        if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid, body.unresolvedHistory)) {
+        attempt = detachResponse(captureResponse(await controlValue(response)));
+        if (!validSubmissionAttempt(attempt, selected.wire, body.submissionRef, intentCid,
+          body.attemptRef, body.unresolvedHistory)) {
           fail('InvalidHostSubmissionOutcome');
+        }
+        attempt = freezeInput(attempt);
+        outcome = attempt.outcome === undefined ? undefined : detachResponse(captureResponse(attempt.outcome));
+        if (outcome === undefined) {
+          // A typed initial refusal or conflict is not the durable original's
+          // receipt and supplies no automatic retry or new-submission grant.
+          typedRejection = new ClientError(attempt.kind === 'refused' ? 'SubmissionRefused' : 'SubmissionConflict',
+            {...context, outcome: attempt});
+          submissionInputs.set(typedRejection, snapshot);
+          submissionAttempts.set(typedRejection, attempt);
+          throw typedRejection;
         }
         if (outcome.checkObservation !== undefined) {
           checkObservation = outcome.checkObservation;
@@ -2129,6 +2196,7 @@ async function connectSelected(selected, port) {
           delete outcome.checkObservation;
         }
       } catch (cause) {
+        if (typedRejection !== undefined && cause === typedRejection) throw cause;
         if (cause?.code === 'SubmissionUnknown' || cause?.code === 'SubmissionNotSent') throw cause;
         throw dispatchedSubmissions.has(context) ? submissionUnknown(context, cause) : submissionNotSent(context, cause);
       }
@@ -2139,6 +2207,7 @@ async function connectSelected(selected, port) {
         catch (cause) {throw submissionUnknown(context, cause);}
         submissionInputs.set(run, snapshot);
         submissionOutcomes.set(run, outcome);
+        submissionAttempts.set(run, attempt);
         retainSubmissionExplanation(run, outcome, snapshot);
         return run;
       }
@@ -2149,6 +2218,7 @@ async function connectSelected(selected, port) {
         {requestId, submissionRef: body.submissionRef, outcome});
       submissionInputs.set(error, snapshot);
       submissionOutcomes.set(error, outcome);
+      submissionAttempts.set(error, attempt);
       if (checkObservation !== undefined) submissionCheckObservations.set(error, freezeInput(checkObservation));
       retainSubmissionExplanation(error, outcome, snapshot);
       throw error;
@@ -2192,6 +2262,8 @@ async function connectSelected(selected, port) {
     if (input && result !== undefined) submissionInputs.set(result, input);
     const outcome = submissionOutcomes.get(execution);
     if (outcome && result !== undefined) submissionOutcomes.set(result, outcome);
+    const attempt = submissionAttempts.get(execution);
+    if (attempt && result !== undefined) submissionAttempts.set(result, attempt);
     return input;
   };
   const retainQueryFailure = (execution, error, cause) => {

@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {spawnSync} from 'node:child_process';
@@ -32,7 +32,7 @@ async function fixture(t, mode, overrides = {}) {
   const operate = async (operation, body, signal) => {
     calls.push({operation, body});
     if (operation === 'connect') return {...profile, mode, owner: mode};
-    if (operation === 'submit-intent') return readySubmission(body, {ref, durability: 'durable', revision: 1});
+    if (operation === 'submit-intent') return readySubmissionAttempt(body, {ref, durability: 'durable', revision: 1});
     if (operation === 'attach') {
       return {ref, durability: 'durable', revision: 1};
     }

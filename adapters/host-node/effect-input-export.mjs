@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {checkedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {releasePreparedResults, retainCompletedEffectDependencyPayloads} from
   '../host-common/completed-run-publication.mjs';
 
@@ -739,7 +740,9 @@ async function preparePinnedEffectSourcePayloadOwned({
         onCanonicalRow: async (index, row) => {
           for (const [planIndex, proposalMemberIndex] of
             proposalMembers.entries()) {
-            const projected = checked(moon.clientProgramEffectProposalRow(
+            // This pure common projection examines an already captured row.
+            // Its refusal is not an uncertain provider dispatch or Store I/O.
+            const projected = checkedEffectPreparation(moon.clientProgramEffectProposalRow(
               proposalPlans[planIndex], row, index,
               proposalBounds.maxFields, proposalBounds.maxWork,
               proposalBounds.maxBytes, proposalBounds.maxNodes,
