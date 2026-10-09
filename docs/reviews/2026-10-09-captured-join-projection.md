@@ -87,3 +87,56 @@ is distinct from the captured route repaired here. Its exact effect must be fixe
 with an independently authored small-ceiling counterexample, not by changing this
 unit's public expectations or the common Host ceiling. This record does not claim
 that a public Run has reproduced that separate issue. The broader goal remains active.
+
+## Completed integrated public acceptance
+
+The first normal five-package campaign at clean SHA
+`7de6647c4a2add0a80d506c1a5e8afb13d7e4dd9` completed Local/HTTPS 19 positives
+and 16 exact-code refusals each (`run-bevAn7`, receipt
+`public-query-evidence-dsxfCB`). That is evidence for its original main baseline,
+not for subsequent Host integration.
+
+While that campaign ran, origin/main advanced to
+`9cb1712ed8db4ae56f70e4e51b16fb154ec62778` with the #1112/#1113 retained Effect connections. After the gate was
+terminal, this branch normally merged that main without conflicts. No incoming
+Host code, owner or identity was manually rewritten. The new source-entry tests
+pass 3/3 after integration (`run-vqOdnO`, `focused-test-YSoPWL`).
+
+Final tested clean product/fixture SHA:
+`5d2686057f2d6676768b8e50c5b3e5eb1252ba49`.
+Normal producer and independent revision/five-digest verification followed by the
+same focused public campaign pass in `run-90WlKq`:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-captured-join-5d2686057-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-captured-join-5d2686057-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --join-star-only
+```
+
+Receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-wKhkGl`.
+All ten commands exit 0 with complete streams, no signal/error, passed/complete
+campaign status and no evidence errors. Embedded Local and HTTPS each complete
+19 positives and 16 exact-code refusals, including every new authored SQL/JSON
+control and all prior JOIN/SET cases. No known failure is excluded.
+Independent Named Result rows, describe type/nullability/column order, NULLs,
+multiplicity, private-field absence, one Source acquisition, same-Run resubmission
+and attach/reread counters pass. Refusals preserve zero Run admission/Source I/O.
+README Local/HTTPS and the deliberate missing-generated-asset control also pass.
+
+| Package | Original tarball SHA-256 |
+|---|---|
+| client-wire | `4105321db630741cba8d4573d9800f554af51b1b7eff46cdf17f651128ebcc9f` |
+| sdk | `e4d0fff729f53b3cd96f97997c2bd052069d2de4152e083d84d4201852b46be6` |
+| run-host-core | `013f20a6e6c63f57781b6c9c931aec19bfad8a9958670ad2b2a45f16d9917b9e` |
+| local-node | `ccd5390b45ffe855386a1ca55e88e7babec2880b2848ad9288aceb5bc5115fa5` |
+| node | `aa96b83e047cf3fc42b560b578fc2a32b9a38fa3f32c62dcf9f5eaff26891f4b` |
+
+Original packs and receipts are retained. The successful external installation and
+temporary Store were removed after preserving evidence (`artifactsRemoved: true`).
+The submission commit adds only this evidence text; its CI remains separate from
+the clean tested SHA. Parent #1128 is still an unmerged dependency. Final target
+is main. No Ready transition, manual CI retry or merge was performed. Full Core,
+other runtime targets, full packed/performance and broader Frontend completion
+are not asserted by this focused execution unit.
