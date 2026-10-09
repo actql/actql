@@ -37,6 +37,8 @@ pub fn admit_client_compiled_run_definition(ClientCompiledRun, String) -> Result
 
 pub fn admit_client_effect_allowed_run(ClientEffectCompilation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientEffectAllowedRun, ClientEffectCompiledRunIssue]
 
+pub fn admit_client_effect_dependency_capture(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, String, Int, Int, Int) -> Result[ClientEffectDependencyCapture, ClientEffectDependencyCaptureIssue]
+
 pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
 pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
@@ -229,9 +231,17 @@ pub fn client_effect_compilation_template(ClientEffectCompilation) -> @run_publi
 
 pub fn client_effect_compilation_unit_id(ClientEffectCompilation) -> String
 
+pub fn client_effect_dependency_capture_bodies(ClientEffectDependencyCapture) -> Array[@run_publication.CapturedEffectDependencyBody]
+
+pub fn client_effect_dependency_capture_matches(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int) -> Bool
+
+pub fn client_effect_dependency_capture_matches_artifact(ClientEffectDependencyCapture, ClientEffectLocalResultArtifact) -> Bool
+
 pub fn client_effect_imported_invocation(ClientEffectImportedEvidence) -> ClientEffectLocalInvocation
 
 pub fn client_effect_imported_relation_bodies(ClientEffectImportedEvidence) -> Array[String]
+
+pub fn client_effect_imported_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ClientEffectImportedEvidence, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
 
 pub fn client_effect_imported_scope_json(ClientEffectImportedEvidence) -> String
 
@@ -671,6 +681,8 @@ pub fn issue_client_effect_acquired_evidence(PreparedClientEffectComputation, @e
 
 pub fn issue_client_effect_allowed_run(ClientEffectCompilation, String, String, String) -> Result[ClientEffectAllowedRun, ClientEffectCompiledRunIssue]
 
+pub fn issue_client_effect_capture_inventory(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication.CapturedEffectSourceArtifact, ClientEffectLocalManifest, ClientEffectLocalResultArtifact, ClientEffectImportedEvidence, ClientEffectAcquiredEvidence, String, String, Array[ClientEffectDependencyCapture], Array[@run_publication.CapturedEffectDependencyBody], @run_publication.CapturedEffectDependencyLimits, Int, Int) -> Result[(@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedEffectDependencyInventory), ClientEffectCaptureInventoryIssue]
+
 pub fn issue_client_effect_captured_invocation(PreparedClientEffectComputation, ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @execution_query.CapturedInputSource, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_effect_imported_evidence(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Array[ClientEffectResultImportObservation], Int, Int, Int) -> Result[ClientEffectImportedEvidence, ClientEffectImportedEvidenceIssue]
@@ -830,6 +842,8 @@ pub fn prepare_client_cancellation_identity(String, String, String, @run_publica
 pub fn prepare_client_cancellation_operation(ClientCancellationIdentity, ClientCancellationIdentity?, @run_publication.PublicationContract, Int, Bool, Bool, Bool) -> Result[ClientCancellationOperationAction, ClientCancellationOperationIssue]
 
 pub fn prepare_client_coordinator_retained_input_producer(ClientRetainedInputEdge, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, () -> @remote_site_protocol.CoordinatorDispatchIntentRecord?) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue]
+
+pub fn prepare_client_effect_captured_run(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], @run_publication.CapturedEffectDependencyInventory, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int) -> Result[@run_publication.CapturedRunIssuancePreparation, ClientEffectCapturedRunIssue]
 
 pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
 
@@ -1222,6 +1236,20 @@ pub struct ClientEffectAllowedRun {
   admission : @run_publication.RunPublicationAdmission
 }
 
+pub(all) enum ClientEffectCaptureInventoryIssue {
+  ForeignInput
+  Source(ClientEffectAcquiredEvidenceIssue)
+  LocalSource(@run_publication.CapturedLocalEffectSourceIssue)
+  Dependency(@run_publication.CapturedEffectDependencyIssue)
+}
+
+pub(all) enum ClientEffectCapturedRunIssue {
+  ForeignInput
+  Plan(@physical_strategy.CapturedEffectPlanIssue)
+  Proof(@physical_strategy.CapturedEffectPlanInventoryIssue)
+  Encoding
+}
+
 pub struct ClientEffectCompilation {
   owner : PreparedClientEffectComputation
   compiled : ClientTaskCompilation
@@ -1267,6 +1295,15 @@ pub(all) struct ClientEffectComputationLimits {
   mapping : @check_environment.Limits
   max_mapping_work : Int
   effects : @stage_results.EffectStaticCandidateLimits
+}
+
+type ClientEffectDependencyCapture
+
+pub(all) enum ClientEffectDependencyCaptureIssue {
+  ForeignInput
+  ForeignExport
+  Dependency(@run_publication.CapturedEffectDependencyIssue)
+  Static(@program_check.LocalDependencyBodyIssue)
 }
 
 type ClientEffectImportedEvidence

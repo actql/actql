@@ -143,6 +143,7 @@ fn retained_effect_transferred_artifact(
   root_index : Int,
   result_index : Int,
   source : @host.ClientEffectAcquiredEvidence,
+  acquired_bodies : (String, String),
   foreign_invocation : @host.ClientEffectLocalInvocation,
   sender_inputs : @strategy.CapturedEffectLocalUnitInputs,
   sender : @host.ClientEffectLocalResultArtifact,
@@ -150,6 +151,7 @@ fn retained_effect_transferred_artifact(
   producer_token : @host.ClientEffectProducerArtifact,
   common_input : @host.ClientRetainedTaskInput,
   site : @site.ExecutionSite,
+  public_result : @host.PublicationOutputExport,
   stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
 ) -> Unit raise {
   println("retained-effect-evidence: receiver-export")
@@ -342,6 +344,9 @@ fn retained_effect_transferred_artifact(
   let (run_observation, invocation) = producer_dependency_observation(
     materials, source,
   )
+  let public_capture = retained_effect_result_capture(
+    consumer, materials, inputs, evidence, invocation, run_observation, source, public_result,
+  )
   let definition = @host.issue_client_effect_local_result_definition(
     materials.prepared,
     1,
@@ -366,7 +371,11 @@ fn retained_effect_transferred_artifact(
     4096,
     64,
   ).unwrap()
-  @host.issue_client_effect_local_manifest(
+  let dependencies = retained_effect_dependency_capture(
+    consumer, materials, inputs, receiver, result, root_index, result_index, result_export,
+    result_receipt,
+  )
+  let local_manifest = @host.issue_client_effect_local_manifest(
     materials.prepared,
     @host.client_effect_imported_invocation(evidence),
     [result],
@@ -374,9 +383,9 @@ fn retained_effect_transferred_artifact(
     4096,
     64,
   ).unwrap()
-  |> ignore
   retained_effect_preview_inputs(
     consumer, materials, inputs, invocation, result, result_index, stop_custodies,
+    local_manifest, evidence, source, acquired_bodies, dependencies, public_capture,
   )
   // The observation identifies the Artifact; the derived input Relation
   // preserves its exact provenance and the consumer derivation names that
