@@ -2749,17 +2749,36 @@ fn QueryParser::pipe_tail(
     } else if self.has("SET") {
       self.keyword("SET")
       let values : Array[(NamePart, Expression)] = []
+      let windows : Array[Projection] = []
       while true {
         self.node()
         let name = self.name()
         if self.advance().value != Symbol(61) {
           raise QueryAbort("SET requires an equals sign", self.peek().start)
         }
-        values.push((name, self.expression()))
+        let (expression, extracted, calls) = self.window_expression(
+          "aql_pipe_set_window_",
+        )
+        if !calls.is_empty() {
+          raise QueryAbort(
+            "Pipe SET cannot introduce ordinary aggregation",
+            self.peek().start,
+          )
+        }
+        windows.append(extracted)
+        values.push((name, expression))
         if self.peek().value != Symbol(44) {
           break
         }
         ignore(self.advance())
+      }
+      if !windows.is_empty() {
+        operations.append(
+          self.resolve_window_operations(
+            [AnalyticExpressions(windows, windows.map(p => p.name.unwrap()))],
+            [],
+          ),
+        )
       }
       operations.push(Set(values))
     } else if self.has("DROP") {

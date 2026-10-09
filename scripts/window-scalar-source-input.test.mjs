@@ -140,3 +140,22 @@ test('Pipe WHERE window controls preserve predicates current rows and private sl
   assert.deepEqual(get('authored-private-name').expected, [{id: 1, n: null}, {id: 2, n: 20}]);
   assert.equal(windowScalarRefusals.filter(value => value.name.includes('refuse-where-window-')).length, 6);
 });
+
+test('SET window controls preserve sibling input, immutable ranges and current types', async () => {
+  const {pipeSetWindowProgram} = await import('./fixtures/window-scalar-source-input.mjs');
+  const positives = new Map(windowScalarSuccesses.map(item => [item.name, item]));
+  const get = name => positives.get('window-scalar-set-window-' + name);
+  assert.deepEqual(JSON.parse(get('json').text), pipeSetWindowProgram);
+  assert.deepEqual(pipeSetWindowProgram.stages[1].steps[1], {derive: {next_amount: {field: 'position'}}});
+  assert.deepEqual(pipeSetWindowProgram.stages[1].steps[2], {select: [{amount: 'next_amount'}, 'id']});
+  assert.deepEqual(get('direct').expected.map(row => row.amount), [4, 1, 3, 2, 5]);
+  assert.deepEqual(get('parameter').parameters, {increment: 1});
+  assert.deepEqual(get('empty').columns, get('direct').columns);
+  assert.deepEqual(get('empty').expected, []);
+  assert.deepEqual(get('nullable').expected.map(row => row.amount), [null, null, 20, 10, 20]);
+  assert.deepEqual(get('sibling-input').expected.map(row => row.id), [null, 20, 10, 20, null]);
+  assert.equal(get('sibling-input').columns[1].contract.nullable, true);
+  assert.deepEqual(get('immutable-range').expected.map(row => row.original), [null, 20, 10, 20, null]);
+  assert.deepEqual(get('authored-private-name').expected.map(row => row.amount), [null, 22, 13, 24, null]);
+  assert.equal(windowScalarRefusals.filter(item => item.name.includes('set-window')).length, 8);
+});

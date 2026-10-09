@@ -300,3 +300,58 @@ windowScalarRefusals.push(...[
   format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
 {name: 'window-scalar-refuse-where-window-missing-frame', format: 'aql-text',
   text: 'FROM records |> WHERE SUM(amount) OVER (ORDER BY id) > 0', expectedCode: 'ClientProgramImplementationLimit'});
+
+// Independent SET control keeps the captured row and replaces only amount.
+export const pipeSetWindowProgram = {version: 'actql/0.1', id: 'fixture.pipe_set_window',
+  stages: [structuredClone(windowScalarProgram.stages[0]),
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'records', analytic: {partition_by: [], order_by: [
+        {field: 'amount', dir: 'desc', nulls: 'last'},
+        {field: 'id', dir: 'asc', nulls: 'first'}], functions: {position: {fn: 'row_number'}}}},
+        {derive: {next_amount: {field: 'position'}}},
+        {select: [{amount: 'next_amount'}, 'id']},
+        {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
+      results: {rows: {from: 'ordered', fields: ['amount', 'id']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const setColumns = ['amount', 'id'].map(name => ({name, contract: number}));
+const setRows = [{amount: 4, id: 1}, {amount: 1, id: 2}, {amount: 3, id: 3},
+  {amount: 2, id: 4}, {amount: 5, id: 5}];
+const setWindowHead = 'FROM records |> WHERE id > 0 |> SET amount = ';
+const setWindowDirect = setWindowHead + `ROW_NUMBER() OVER (${window}) |> ORDER BY id`;
+windowScalarSuccesses.push(
+  success('set-window-json', JSON.stringify(pipeSetWindowProgram), {format: 'json', columns: setColumns, expected: setRows}),
+  success('set-window-direct', setWindowDirect, {format: 'aql-text', columns: setColumns, expected: setRows}),
+  success('set-window-operand', setWindowHead + `ROW_NUMBER() OVER (${window}) + 1 |> ORDER BY id`,
+    {format: 'aql-text', columns: setColumns, expected: setRows.map(row => ({...row, amount: row.amount + 1}))}),
+  success('set-window-parameter', setWindowHead + `ROW_NUMBER() OVER (${window}) + @increment |> ORDER BY id`,
+    {format: 'aql-text', ...parameterInput, columns: setColumns, expected: setRows.map(row => ({...row, amount: row.amount + 1}))}),
+  success('set-window-empty', setWindowDirect, {format: 'aql-text', sourceRows: [], columns: setColumns, expected: []}),
+  success('set-window-nullable', setWindowHead + 'LAG(amount) OVER (ORDER BY id) |> ORDER BY id',
+    {format: 'aql-text', columns: whereColumns, expected: [{amount: null, id: 1}, {amount: null, id: 2},
+      {amount: 20, id: 3}, {amount: 10, id: 4}, {amount: 20, id: 5}]}),
+  success('set-window-sibling-input', 'FROM records |> WHERE id > 0 '
+    + '|> SET amount = ROW_NUMBER() OVER (ORDER BY id), id = amount |> ORDER BY amount',
+    {format: 'aql-text', columns: [{name: 'amount', contract: number}, {name: 'id', contract: nullable}],
+      expected: [{amount: 1, id: null}, {amount: 2, id: 20}, {amount: 3, id: 10}, {amount: 4, id: 20}, {amount: 5, id: null}]}),
+  success('set-window-immutable-range', 'FROM records AS before |> WHERE id > 0 '
+    + '|> SET amount = ROW_NUMBER() OVER (ORDER BY id) |> SELECT id, before.amount AS original, amount |> ORDER BY id',
+    {format: 'aql-text', columns: [{name: 'id', contract: number}, {name: 'original', contract: nullable}, {name: 'amount', contract: number}],
+      expected: [{id: 1, original: null, amount: 1}, {id: 2, original: 20, amount: 2}, {id: 3, original: 10, amount: 3},
+        {id: 4, original: 20, amount: 4}, {id: 5, original: null, amount: 5}]}),
+  success('set-window-authored-private-name', 'FROM records |> WHERE id > 0 |> EXTEND amount AS aql_pipe_set_window_0 '
+    + '|> SET amount = ROW_NUMBER() OVER (ORDER BY id) + aql_pipe_set_window_0 |> SELECT id, amount |> ORDER BY id',
+    {format: 'aql-text', columns: [{name: 'id', contract: number}, {name: 'amount', contract: nullable}],
+      expected: [{id: 1, amount: null}, {id: 2, amount: 22}, {id: 3, amount: 13}, {id: 4, amount: 24}, {id: 5, amount: null}]}),
+);
+windowScalarRefusals.push(...[
+  ['set-window-missing-target', 'FROM records |> SET missing = ROW_NUMBER() OVER (ORDER BY id)'],
+  ['set-window-duplicate-target', 'FROM records |> SET amount = ROW_NUMBER() OVER (ORDER BY id), amount = 1'],
+  ['set-window-missing-input', 'FROM records |> SET amount = LAG(missing) OVER (ORDER BY id)'],
+  ['set-window-projected-input', 'FROM records |> SELECT id |> SET id = LAG(amount) OVER (ORDER BY id)'],
+  ['set-window-dropped-range', 'FROM records AS old |> AS current |> SET amount = LAG(old.amount) OVER (ORDER BY id)'],
+  ['set-window-private-slot', 'FROM records |> SET amount = ROW_NUMBER() OVER (ORDER BY id) |> SELECT aql_pipe_set_window_0'],
+  ['set-window-declaration-leak', 'FROM records |> SELECT id, ROW_NUMBER() OVER w AS n WINDOW w AS (ORDER BY id) |> SET id = ROW_NUMBER() OVER w'],
+].map(([name, text]) => ({name: 'window-scalar-refuse-' + name, text,
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
+{name: 'window-scalar-refuse-set-window-missing-frame', format: 'aql-text',
+  text: 'FROM records |> SET amount = SUM(amount) OVER (ORDER BY id)', expectedCode: 'ClientProgramImplementationLimit'});
