@@ -4,6 +4,8 @@ pub(all) enum ResidentRetainedExecutionIssue {
   Input(@output.NativeRemoteRetainedTaskInputIssue)
   Compute(ResidentSourceComputeIssue)
   Inventory(@publication.PublicationInventoryIssue)
+  EffectMaterials(@host.ClientEffectRunMaterialsIssue)
+  EffectDispatch(@host.ClientEffectSourceDispatchIssue)
 }
 
 ///|
@@ -58,6 +60,261 @@ pub fn execute_resident_retained_attempt(
   executor_entry : ((String) -> Bool)?,
   release_retired_input? : (() -> Bool)? = None,
 ) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure] {
+  execute_resident_retained_attempt_owned(
+    journal,
+    execution,
+    material,
+    current,
+    attempt_identity,
+    claimant,
+    executor_entry,
+    (request, binding, materials) => {
+      let rebuilt = match rebuild_materials(admission, request, materials) {
+        Ok(value) => value
+        Err(refusal) =>
+          return Err(retained_execution_failed(Host(Refused(refusal))))
+      }
+      guard rebuilt.compilation is @host.Tasks(compilation) &&
+        admission.source is Some((source_ref, source_contract_cid)) &&
+        configuration.source.source_ref == source_ref &&
+        configuration.source.source_contract_cid == source_contract_cid else {
+        return Err(retained_execution_failed(Compute(Source(ForeignInput))))
+      }
+      let input = match restore_input(rebuilt, binding) {
+        Ok(value) => value
+        Err(issue) => return Err(retained_execution_failed(Input(issue)))
+      }
+      let expected = @output.native_remote_retained_task_input_binding(input)
+      if @remote.remote_input_binding_body(binding) !=
+        @remote.remote_input_binding_body(expected) ||
+        !@remote.remote_input_binding_matches_dispatch(expected, request) {
+        return Err(retained_execution_failed(Input(InvalidBinding)))
+      }
+      match
+        @output.validate_native_remote_retained_task_input_borrow(
+          input, material, current,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(retained_execution_failed(Input(issue)))
+      }
+      let compute_failure : Ref[ResidentSourceComputeIssue?] = Ref(None)
+      let executor = match
+        install_resident_retained_compute_executor(
+          rebuilt,
+          configuration,
+          input,
+          material,
+          request,
+          codec,
+          input_limits,
+          current,
+          execution.limits.output,
+          observe_failure=issue => compute_failure.val = Some(issue),
+          release_retired_input~,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(retained_execution_failed(Compute(issue)))
+      }
+      guard resident_linear_task_index(rebuilt, request) is Some(task) else {
+        return Err(
+          retained_execution_failed(Host(Refused(@resident.UnsupportedTask))),
+        )
+      }
+      let result_definition_cid = if @strategy.graph_result_task(
+          @host.prepared_client_graph(rebuilt.prepared),
+          0,
+        ) ==
+        Some(task) {
+        let inventory = match
+          @publication.prepare_checked_publication_inventory(
+            @host.prepared_client_identity(rebuilt.prepared).program_definition_cid,
+            @host.client_task_compilation_result_names(compilation),
+            [0],
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(retained_execution_failed(Inventory(issue)))
+        }
+        match
+          @publication.checked_publication_inventory_definition_cid(
+            inventory, 0,
+          ) {
+          Ok(value) => Some(value)
+          Err(issue) => return Err(retained_execution_failed(Inventory(issue)))
+        }
+      } else {
+        None
+      }
+      Ok({
+        input,
+        executor,
+        result_definition_cid,
+        compute_failure,
+        run_current: () => {
+          @resident.check_resident_materials_current(rebuilt, current_time())
+          is Ok(_)
+        },
+      })
+    },
+  )
+}
+
+///|
+/// Execute the original saved Effect consumer envelope. Rebuilding materials
+/// preserves the original Run and authorization lifetime. Input restoration
+/// must use the existing producer/receiver Owners; it creates no new dispatch,
+/// borrow or reservation. Computation completion does not publish an Effect
+/// Result or imply approval: its private output remains owned by Runtime.
+pub fn execute_resident_effect_retained_attempt(
+  journal : @journal.Journal,
+  execution : ResidentExecution,
+  admission : ResidentRunAdmission,
+  effect_limits : @host.ClientEffectComputationLimits,
+  configuration : ResidentSourceComputeConfiguration,
+  restore_input : (@host.ClientEffectRunMaterials, @remote.RemoteInputBinding) -> Result[
+    @output.NativeRemoteRetainedTaskInput,
+    @output.NativeRemoteRetainedTaskInputIssue,
+  ],
+  material : @transfer_client.NativeRemoteDestinationMaterialUse,
+  codec : @output.NativeRemoteStandardRowCodec,
+  input_limits : @output.NativeRemoteStandardTransferSourceLimits,
+  current : @output.NativeRemoteRetainedInputCurrent,
+  attempt_identity : String,
+  claimant : String,
+  current_time : () -> String,
+  executor_entry : ((String) -> Bool)?,
+) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure] {
+  execute_resident_retained_attempt_owned(
+    journal,
+    execution,
+    material,
+    current,
+    attempt_identity,
+    claimant,
+    executor_entry,
+    (request, binding, wire) => {
+      let rebuilt = match
+        @host.admit_client_effect_run_materials(
+          wire,
+          @remote.dispatch_request_task_scope(request).0,
+          admission.expressions,
+          admission.operations,
+          admission.manifests,
+          admission.limits,
+          effect_limits,
+        ) {
+        Ok(value) => value
+        Err(issue) =>
+          return Err(retained_execution_failed(EffectMaterials(issue)))
+      }
+      let fragment = match @host.issue_client_effect_task_fragment(rebuilt, 1) {
+        Ok(value) => value
+        Err(issue) =>
+          return Err(retained_execution_failed(EffectDispatch(issue)))
+      }
+      if @remote.dispatch_request_task_scope(request) !=
+        (
+          @publication.publication_contract_identity(rebuilt.run_definition),
+          @host.client_task_fragment_node_id(fragment),
+        ) {
+        return Err(retained_execution_failed(Input(InvalidBinding)))
+      }
+      guard admission.source is Some((source_ref, source_contract_cid)) &&
+        configuration.source.source_ref == source_ref &&
+        configuration.source.source_contract_cid == source_contract_cid else {
+        return Err(retained_execution_failed(Compute(Source(ForeignInput))))
+      }
+      // Resolve the original checked Source before restoring any receiver.
+      match
+        prepare_resident_effect_source_requirement(
+          rebuilt.prepared,
+          0,
+          0,
+          configuration.registry_body,
+          configuration.values_body,
+          Some(configuration.source.fragment_contract_body),
+          source_ref,
+          source_contract_cid,
+        ) {
+        Ok(_) => ()
+        Err(issue) =>
+          return Err(retained_execution_failed(Compute(Source(issue))))
+      }
+      let input = match restore_input(rebuilt, binding) {
+        Ok(value) => value
+        Err(issue) => return Err(retained_execution_failed(Input(issue)))
+      }
+      let expected = @output.native_remote_retained_task_input_binding(input)
+      if @remote.remote_input_binding_body(binding) !=
+        @remote.remote_input_binding_body(expected) ||
+        !@remote.remote_input_binding_matches_dispatch(expected, request) {
+        return Err(retained_execution_failed(Input(InvalidBinding)))
+      }
+      match
+        @output.validate_native_remote_retained_task_input_borrow(
+          input, material, current,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(retained_execution_failed(Input(issue)))
+      }
+      let compute_failure : Ref[ResidentSourceComputeIssue?] = Ref(None)
+      let executor = match
+        install_resident_effect_retained_compute_executor(
+          rebuilt,
+          configuration,
+          input,
+          material,
+          request,
+          codec,
+          input_limits,
+          current,
+          execution.limits.output,
+          observe_failure=issue => compute_failure.val = Some(issue),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(retained_execution_failed(Compute(issue)))
+      }
+      Ok({
+        input,
+        executor,
+        result_definition_cid: None,
+        compute_failure,
+        run_current: () => {
+          @host.client_effect_run_start_current(
+            rebuilt.allowed,
+            rebuilt.run_definition,
+            current_time(),
+          )
+        },
+      })
+    },
+  )
+}
+
+///|
+priv struct ResidentRetainedExecutionPlan {
+  input : @output.NativeRemoteRetainedTaskInput
+  executor : @output.NativeRemoteStandardTaskExecutor
+  result_definition_cid : String?
+  compute_failure : Ref[ResidentSourceComputeIssue?]
+  run_current : () -> Bool
+}
+
+///|
+// Material families prepare their existing checked Owner; the journal,
+// physical start, completion and cleanup boundary is shared.
+fn execute_resident_retained_attempt_owned(
+  journal : @journal.Journal,
+  execution : ResidentExecution,
+  material : @transfer_client.NativeRemoteDestinationMaterialUse,
+  current : @output.NativeRemoteRetainedInputCurrent,
+  attempt_identity : String,
+  claimant : String,
+  executor_entry : ((String) -> Bool)?,
+  prepare : (@remote.DispatchRequest, @remote.RemoteInputBinding, String) -> Result[
+    ResidentRetainedExecutionPlan,
+    ResidentRetainedExecutionFailure,
+  ],
+) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure] {
   let envelope = match journal.dispatch_envelope(attempt_identity) {
     Ok(Some(value)) => value
     Ok(None) => return Err(retained_execution_failed(Host(EnvelopeMissing)))
@@ -82,86 +339,15 @@ pub fn execute_resident_retained_attempt(
     Ok(_) => ()
     Err(issue) => return Err(retained_execution_failed(Host(Journal(issue))))
   }
-  let rebuilt = match rebuild_materials(admission, request, materials) {
+  let plan = match prepare(request, binding, materials) {
     Ok(value) => value
-    Err(refusal) =>
-      return Err(retained_execution_failed(Host(Refused(refusal))))
+    Err(issue) => return Err(issue)
   }
-  guard rebuilt.compilation is @host.Tasks(compilation) &&
-    admission.source is Some((source_ref, source_contract_cid)) &&
-    configuration.source.source_ref == source_ref &&
-    configuration.source.source_contract_cid == source_contract_cid else {
-    return Err(retained_execution_failed(Compute(Source(ForeignInput))))
-  }
-  let input = match restore_input(rebuilt, binding) {
-    Ok(value) => value
-    Err(issue) => return Err(retained_execution_failed(Input(issue)))
-  }
-  let expected = @output.native_remote_retained_task_input_binding(input)
-  if @remote.remote_input_binding_body(binding) !=
-    @remote.remote_input_binding_body(expected) ||
-    !@remote.remote_input_binding_matches_dispatch(expected, request) {
-    return Err(retained_execution_failed(Input(InvalidBinding)))
-  }
-  match
-    @output.validate_native_remote_retained_task_input_borrow(
-      input, material, current,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(retained_execution_failed(Input(issue)))
-  }
-  // The original Run lifetime and the independent live input custody are
-  // checked again at Runtime's exclusive start boundary, not from saved JSON.
-  let accepted_run_current = @resident.check_resident_materials_current(
-      rebuilt,
-      current_time(),
-    )
-    is Ok(_)
-  let compute_failure : Ref[ResidentSourceComputeIssue?] = Ref(None)
-  let executor = match
-    install_resident_retained_compute_executor(
-      rebuilt,
-      configuration,
-      input,
-      material,
-      request,
-      codec,
-      input_limits,
-      current,
-      execution.limits.output,
-      observe_failure=issue => compute_failure.val = Some(issue),
-      release_retired_input~,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(retained_execution_failed(Compute(issue)))
-  }
-  guard resident_linear_task_index(rebuilt, request) is Some(task) else {
-    return Err(
-      retained_execution_failed(Host(Refused(@resident.UnsupportedTask))),
-    )
-  }
-  let result_definition_cid = if @strategy.graph_result_task(
-      @host.prepared_client_graph(rebuilt.prepared),
-      0,
-    ) ==
-    Some(task) {
-    let inventory = match
-      @publication.prepare_checked_publication_inventory(
-        @host.prepared_client_identity(rebuilt.prepared).program_definition_cid,
-        @host.client_task_compilation_result_names(compilation),
-        [0],
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(retained_execution_failed(Inventory(issue)))
-    }
-    match
-      @publication.checked_publication_inventory_definition_cid(inventory, 0) {
-      Ok(value) => Some(value)
-      Err(issue) => return Err(retained_execution_failed(Inventory(issue)))
-    }
-  } else {
-    None
-  }
+  let input = plan.input
+  let executor = plan.executor
+  let result_definition_cid = plan.result_definition_cid
+  let compute_failure = plan.compute_failure
+  let accepted_run_current = (plan.run_current)()
   let runtime = match
     @output.open_native_remote_standard_site_runtime(
       execution.site,
@@ -180,8 +366,7 @@ pub fn execute_resident_retained_attempt(
   match
     runtime.guard_executor_start(() => {
       accepted_run_current &&
-      @resident.check_resident_materials_current(rebuilt, current_time())
-      is Ok(_) &&
+      (plan.run_current)() &&
       @output.validate_native_remote_retained_task_input_borrow(
         input, material, current,
       )

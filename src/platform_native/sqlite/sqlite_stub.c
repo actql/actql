@@ -46,6 +46,7 @@ typedef int (*actql_sqlite_column_bytes_fn)(sqlite3_stmt *, int);
 typedef int (*actql_sqlite_finalize_fn)(sqlite3_stmt *);
 typedef sqlite3_int64 (*actql_sqlite_changes64_fn)(sqlite3 *);
 typedef int (*actql_sqlite_busy_timeout_fn)(sqlite3 *, int);
+typedef int (*actql_sqlite_get_autocommit_fn)(sqlite3 *);
 
 typedef struct {
   void *dynamic_library;
@@ -68,6 +69,7 @@ typedef struct {
   actql_sqlite_finalize_fn finalize;
   actql_sqlite_changes64_fn changes64;
   actql_sqlite_busy_timeout_fn busy_timeout;
+  actql_sqlite_get_autocommit_fn get_autocommit;
 } actql_native_sqlite_library;
 
 typedef struct {
@@ -583,7 +585,8 @@ void *actql_native_sqlite_load_library(
       !ACTQL_LOAD(library, column_bytes, "sqlite3_column_bytes") ||
       !ACTQL_LOAD(library, finalize, "sqlite3_finalize") ||
       !ACTQL_LOAD(library, changes64, "sqlite3_changes64") ||
-      !ACTQL_LOAD(library, busy_timeout, "sqlite3_busy_timeout")) {
+      !ACTQL_LOAD(library, busy_timeout, "sqlite3_busy_timeout") ||
+      !ACTQL_LOAD(library, get_autocommit, "sqlite3_get_autocommit")) {
     dlclose(library->dynamic_library);
     library->dynamic_library = NULL;
     return library;
@@ -1168,7 +1171,8 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   int64_t reserved_bytes,
   int64_t reserved_objects,
   int64_t max_bytes,
-  int64_t max_objects
+  int64_t max_objects,
+  int32_t caller_transaction
 ) {
   if (database == NULL || !database->opened) return 5;
   actql_clear_result(database);
@@ -1177,7 +1181,15 @@ int32_t actql_native_sqlite_database_reserve_capacity(
       reserved_objects > max_objects) {
     return 6;
   }
-  int32_t result = actql_capacity_begin(database);
+  // An explicit caller transaction owns both the reservation and its record.
+  // Never commit or roll it back here; the caller retains any uncertain state.
+  const bool owns_transaction = caller_transaction == 0;
+  if (!owns_transaction &&
+      database->library->get_autocommit(database->database) != 0) {
+    actql_replace_error(&database->error, "capacity reservation requires an active transaction");
+    return -1;
+  }
+  int32_t result = owns_transaction ? actql_capacity_begin(database) : 0;
   if (result != 0) return result;
   int64_t existing_bytes = 0;
   int64_t existing_objects = 0;
@@ -1193,14 +1205,14 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   if (result == 0) {
     if (existing_bytes != reserved_bytes ||
         existing_objects != reserved_objects) {
-      actql_capacity_rollback(database);
+      if (owns_transaction) actql_capacity_rollback(database);
       return 2;
     }
-    result = actql_capacity_commit(database);
+    result = owns_transaction ? actql_capacity_commit(database) : 0;
     return result == 0 ? 7 : result;
   }
   if (result != 1) {
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return result;
   }
   int64_t used_bytes = 0;
@@ -1213,13 +1225,13 @@ int32_t actql_native_sqlite_database_reserve_capacity(
     &used_objects
   );
   if (result != 0) {
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return result;
   }
   if (used_bytes < 0 || used_objects < 0 || used_bytes > max_bytes ||
       used_objects > max_objects || reserved_bytes > max_bytes - used_bytes ||
       reserved_objects > max_objects - used_objects) {
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return 6;
   }
   sqlite3_stmt *statement = NULL;
@@ -1234,7 +1246,7 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare capacity reservation failed");
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return actql_operation_code(code);
   }
   result = actql_bind_key(
@@ -1270,10 +1282,10 @@ int32_t actql_native_sqlite_database_reserve_capacity(
     result = actql_operation_code(finalize_code);
   }
   if (result != 0) {
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return result;
   }
-  return actql_capacity_commit(database);
+  return owns_transaction ? actql_capacity_commit(database) : 0;
 }
 
 int32_t actql_native_sqlite_database_release_capacity(
