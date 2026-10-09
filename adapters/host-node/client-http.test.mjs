@@ -580,12 +580,14 @@ test('known status refusal and unknown faults classify equally on both ports',
         {code: 'ClientRunCancellationDenied'});
       const denied = await fetch(`${base}/actql/client/0.1/cancel`, {
         method: 'POST', headers: {'content-type': 'application/json'},
-        body: JSON.stringify({connection, ref, cancelId: 'original-cancel', expectedRevision: 6}),
+        body: JSON.stringify({connection, ref, cancelId: 'original-cancel', expectedRevision: 6,
+          attemptRef: {operation: 'cancel', attemptId: 'http-invocation'}}),
       });
       assert.equal(denied.status, 403);
       assert.deepEqual(await denied.json(),
         {code: 'ClientRunCancellationDenied'});
-      await assert.rejects(port.perform('cancel', {connection, ref, cancelId: 'original-cancel', expectedRevision: 6}),
+      await assert.rejects(port.perform('cancel', {connection, ref, cancelId: 'original-cancel', expectedRevision: 6,
+          attemptRef: {operation: 'cancel', attemptId: 'http-invocation'}}),
         {code: 'ClientRunCancellationDenied'});
     });
   });
@@ -609,7 +611,8 @@ test('cancel and reconcile classify synchronous and asynchronous Host faults',
     await withServer(createClientHttpHandler(options), async base => {
       for (const operation of ['cancel', 'reconcile']) {
         const body = {connection, ref, ...(operation === 'cancel'
-          ? {cancelId: 'original-cancel', expectedRevision: 6} : {})};
+          ? {cancelId: 'original-cancel', expectedRevision: 6,
+          attemptRef: {operation: 'cancel', attemptId: 'http-invocation'}} : {})};
         for (const ErrorType of [Error, ClientError]) {
           for (const asynchronous of [false, true]) {
             for (const [sourceCode, publicCode, status] of [

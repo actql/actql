@@ -1115,10 +1115,31 @@ fn order_aggregate_calls(
 ) -> Array[(@query.NamePart, @query.AggregateCall)] {
   let references : Array[Array[@query.NamePart]] = []
   for index in 0..<@query.operation_count(query) {
-    if @query.operation_at(query, index) is Some(Order(terms)) {
-      for term in terms {
-        references.append(join_reference_paths(term.expression))
+    match @query.operation_at(query, index) {
+      Some(Order(terms)) => {
+        for term in terms {
+          references.append(join_reference_paths(term.expression))
+        }
       }
+      Some(OrderAnalytic(windows, true)) => {
+        for projection in windows {
+          guard projection.analytic is Some(call) else { continue }
+          for expression in call.window.partition_by {
+            references.append(join_reference_paths(expression))
+          }
+          for term in call.window.order_by {
+            references.append(join_reference_paths(term.expression))
+          }
+          if call.expression is Some(expression) {
+            references.append(join_reference_paths(expression))
+          }
+          if call.aggregate is Some(aggregate) &&
+            aggregate.argument is Some(expression) {
+            references.append(join_reference_paths(expression))
+          }
+        }
+      }
+      _ => ()
     }
   }
   projections.filter_map(projection => {
@@ -3831,8 +3852,26 @@ fn compile_steps(
               return Some(slot)
             }
             if path.length() == 1 {
+              for (name, slot) in order_aggregate_slots {
+                if same_name({ value: name, quoted: false, }, path[0]) {
+                  return Some(slot)
+                }
+              }
               for (name, slot) in order_aliases {
                 if same_name(name, path[0]) {
+                  return Some(slot)
+                }
+              }
+            }
+            return pipe_slot(path, order_scope.visible, order_scope.ranges)
+          }
+          if sql_group_projection {
+            // GROUP may reuse an authored aggregate slot for a private call.
+            // Resolve SELECT window keys through retained input bindings and
+            // parser-owned aggregate references, never sibling SELECT aliases.
+            if path.length() == 1 {
+              for (name, slot) in having_aggregate_slots {
+                if same_name({ value: name, quoted: false, }, path[0]) {
                   return Some(slot)
                 }
               }

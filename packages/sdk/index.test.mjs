@@ -1192,8 +1192,10 @@ test('delivery attempt lookup binds the existing Host evidence to the request',
 
 
 test('cancel validates the response and exact requested Run', async t => {
-  const cancellation = {cancelId: 'original-cancel', expectedRevision: 4};
-  let reply = {ref, cancelRef: {...ref, ...cancellation}, kind: 'accepted', revision: 5};
+  const cancellation = {cancelId: 'original-cancel', expectedRevision: 4, attemptId: 'original-invocation'};
+  const cancelRef = {...ref, cancelId: cancellation.cancelId, expectedRevision: cancellation.expectedRevision};
+  let reply = {kind: 'accepted', attemptRef: {operation: 'cancel', attemptId: 'original-invocation'},
+    cancellation: {ref, cancelRef, kind: 'accepted', revision: 5}};
   t.mock.method(globalThis, 'fetch', async url => Response.json(
     String(url).endsWith('/connect') ? profile :
       String(url).endsWith('/attach') ? admission : reply));
@@ -1202,10 +1204,11 @@ test('cancel validates the response and exact requested Run', async t => {
   const execution = await client.attach(ref);
   assert.deepEqual(await execution.cancel(cancellation), reply);
   for (const invalid of [{}, {...reply, kind: 'stopped'},
-    {...reply, revision: -1},
+    {...reply, cancellation: {...reply.cancellation, revision: -1}},
     ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(key =>
-      ({...reply, ref: {...ref, [key]: key === 'namespaceId' ? 'foreign' :
-        `sha256:${'c'.repeat(64)}`}}))]) {
+      ({...reply, cancellation: {...reply.cancellation,
+        ref: {...ref, [key]: key === 'namespaceId' ? 'foreign' :
+          `sha256:${'c'.repeat(64)}`}}}))]) {
     reply = invalid;
     await assert.rejects(execution.cancel(cancellation), error =>
       error.code === 'CancellationUnknown' && error.cause.code === 'InvalidHostCancellation');

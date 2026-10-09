@@ -2,13 +2,15 @@ import {submissionEpoch, originalSubmission, readySubmission, heldSubmission} fr
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
-import {chmod, copyFile, mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {chmod, copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {validHeldRequest} from '../packages/client-wire/index.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
 
-const root = await mkdtemp(join(tmpdir(), 'actql-native-client-'));
+const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-client-', label: 'Native Client transport fixture'});
+const root = scratch.path;
 const openssl = (...args) => execFileSync('openssl', args,
   {cwd: root, stdio: 'ignore'});
 openssl('genrsa', '-out', 'ca.key', '2048');
@@ -131,6 +133,7 @@ let attachReplyRef = ref;
 const cancelRef = {...ref, cancelId: 'original-cancel', expectedRevision: 6};
 const originalCancellation = {ref, cancelRef, kind: 'accepted', revision: 7};
 let cancelReply = originalCancellation;
+let cancelAttemptReply;
 let loseCancelReply = false;
 let cancellationLookupReply = {kind: 'found', cancellation: originalCancellation};
 const server = createServer({key: await readFile(join(root, 'server.key')),
@@ -209,7 +212,12 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
       response.destroy();
       return;
     }
-    response.end(JSON.stringify(operation === 'cancel' ? cancelReply : cancellationLookupReply));
+    if (operation === 'cancel') {
+      assert.deepEqual(body.attemptRef, {operation: 'cancel', attemptId: 'native-invocation'});
+    }
+    response.end(JSON.stringify(operation === 'cancel'
+      ? cancelAttemptReply ?? {kind: 'accepted', attemptRef: body.attemptRef, cancellation: cancelReply}
+      : cancellationLookupReply));
   } else if (operation === 'status') {
     response.end(JSON.stringify({status: 'succeeded'}));
   } else if (operation === 'delivery-attempt') {
@@ -224,7 +232,7 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     response.end('{}');
   }
 });
-const builtExecutable = new URL(
+const builtExecutable = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY ?? new URL(
   '../_build/native/release/build/cmd/native_client/native_client.exe',
   import.meta.url).pathname;
 const executable = join(root, 'actql-native-client');
@@ -248,7 +256,9 @@ function runProcess(command, commandArgs) {
   return new Promise((resolve, reject) => {
     // The installed binary must not rely on a repository cwd or find Node,
     // MoonBit, curl's CLI, or another build tool through PATH.
-    const child = spawn(command, commandArgs, {cwd: root,
+    const launcher = command === executable ? process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER : undefined;
+    const child = spawn(launcher ? process.execPath : command,
+      launcher ? [launcher, ...commandArgs] : commandArgs, {cwd: root,
       env: {...process.env, PATH: emptyPath}});
     let stdout = '', stderr = '';
     child.stdout.setEncoding('utf8').on('data', data => { stdout += data; });
@@ -397,9 +407,35 @@ try {
   attachReplyRef = ref;
   const cancelArgs = ['--ref-file', 'ref.json', '--cancel-id', 'original-cancel',
     '--expected-revision', '6'];
-  const cancelled = await run('cancel', ...cancelArgs);
+  const invocationArgs = ['--operation-attempt-id', 'native-invocation'];
+  const cancelled = await run('cancel', ...cancelArgs, ...invocationArgs);
   assert.equal(cancelled.code, 0, cancelled.stderr);
-  assert.deepEqual(JSON.parse(cancelled.stdout), originalCancellation);
+  assert.deepEqual(JSON.parse(cancelled.stdout), {kind: 'accepted',
+    attemptRef: {operation: 'cancel', attemptId: 'native-invocation'},
+    cancellation: originalCancellation});
+  const attemptRef = {operation: 'cancel', attemptId: 'native-invocation'};
+  for (const outcome of [
+    {kind: 'refused', attemptRef, reason: 'authorization', guarantee: 'attempt_uncommitted_unconsumed'},
+    {kind: 'conflict', attemptRef, reason: 'control_revision', cancelRef},
+    {kind: 'already_satisfied', attemptRef, cancellation: {...originalCancellation, kind: 'already_requested'}},
+  ]) {
+    cancelAttemptReply = outcome;
+    const observed = await run('cancel', ...cancelArgs, ...invocationArgs);
+    assert.equal(observed.code, 0, observed.stderr);
+    assert.deepEqual(JSON.parse(observed.stdout), outcome);
+  }
+  for (const outcome of [
+    {kind: 'refused', attemptRef: {...attemptRef, attemptId: 'another-invocation'},
+      reason: 'authorization', guarantee: 'attempt_uncommitted_unconsumed'},
+    {kind: 'refused', attemptRef, reason: 'authorization', guarantee: 'operation_never_executed'},
+    {kind: 'already_satisfied', attemptRef, cancellation: originalCancellation},
+  ]) {
+    cancelAttemptReply = outcome;
+    const rejected = await run('cancel', ...cancelArgs, ...invocationArgs);
+    assert.notEqual(rejected.code, 0);
+    assert.match(rejected.stderr, /InvalidHostCancellation/);
+  }
+  cancelAttemptReply = undefined;
   const cancellation = await run('lookup-cancellation', ...cancelArgs);
   assert.equal(cancellation.code, 0, cancellation.stderr);
   assert.deepEqual(JSON.parse(cancellation.stdout), {kind: 'found', cancellation: originalCancellation});
@@ -412,7 +448,8 @@ try {
     cancelReply = bad;
     cancellationLookupReply = {kind: 'found', cancellation: bad};
     for (const operation of ['cancel', 'lookup-cancellation']) {
-      const rejected = await run(operation, ...cancelArgs);
+      const rejected = await run(operation, ...cancelArgs,
+        ...(operation === 'cancel' ? invocationArgs : []));
       assert.notEqual(rejected.code, 0);
       assert.match(rejected.stderr, /InvalidHostCancellation/);
     }
@@ -431,7 +468,7 @@ try {
     assert.match(rejected.stderr, /InvalidHostCancellation/);
   }
   loseCancelReply = true;
-  const lostCancellation = await run('cancel', ...cancelArgs);
+  const lostCancellation = await run('cancel', ...cancelArgs, ...invocationArgs);
   loseCancelReply = false;
   assert.notEqual(lostCancellation.code, 0);
   assert.match(lostCancellation.stderr, /CancellationUnknown/);
@@ -447,7 +484,7 @@ try {
   assert.equal(requests.filter(item => item.operation === 'cancel').length, writesBeforeLookup);
   for (const revision of ['-1', '2147483648']) {
     const invalid = await run('cancel', '--ref-file', 'ref.json', '--cancel-id', 'original-cancel',
-      '--expected-revision', revision);
+      '--expected-revision', revision, ...invocationArgs);
     assert.notEqual(invalid.code, 0);
     assert.equal(requests.filter(item => item.operation === 'cancel').length, writesBeforeLookup);
   }
@@ -548,3 +585,4 @@ try {
 
 // Keep the independent shared-contract corpus on the normal Native CI entry.
 await import('./test-native-client-wire.test.mjs');
+scratch.passed();

@@ -1,3 +1,4 @@
+import './effect-run.typecheck.mjs';
 import type {DeliveryContractView, PublicationContract,
   PublicationRequestContract, PublicationAttemptContract,
   PublicationRecordContract, PublicIndexEntryContract,
@@ -20,10 +21,21 @@ import {issueUnpublishedRunStateWire, issuePublicationAttempt,
   prepareRetainedInputCurrentQuery, retainedInputCurrentEnvelope,
   admitRetainedInputCurrentReply, retainedInputCurrentReplyFacts} from
   '@actql/run-host-core';
-import {checkpointAdmit, checkpointWaitingState} from '@actql/run-host-core/checkpoints';
+import {checkpointAdmit, checkpointWaitingState, resolutionAdmit, resolutionDecide,
+  effectResumeClaimDecide, resumeFenceDecide} from '@actql/run-host-core/checkpoints';
 
 checkpointAdmit('{}');
 checkpointWaitingState('{}', '{}', '2026-09-25T11:00:00.000Z', '["answer"]');
+resolutionAdmit('{}', '{}', '', '{}', '[]', 'time');
+resolutionDecide('{}', '{}', '', '{}', '[]', 'time', 'key', 'sig', 'open', '', '[]');
+effectResumeClaimDecide('{}', 'holder', 0, 1000, '{}', '{}', false);
+resumeFenceDecide('{}', 'holder', 1, 0);
+// @ts-expect-error A caller's Boolean cannot replace authenticated Owner input.
+resolutionAdmit('{}', '{}', '', true, '[]', 'time');
+// @ts-expect-error Unknown Effect identities cross the ABI as bounded JSON.
+resolutionDecide('{}', '{}', '', '{}', '[]', 'time', 'key', 'sig', 'open', '', []);
+// @ts-expect-error Resume generation and trusted clock retain numeric types.
+resumeFenceDecide('{}', 'holder', '1', 0);
 // @ts-expect-error Only canonical wire strings cross the Checkpoint ABI.
 checkpointAdmit({run_id: 'original-run'});
 // @ts-expect-error A storage observation is distinct from a successful write flag.

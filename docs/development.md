@@ -242,6 +242,48 @@ interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
 remain reviewed source artifacts. Regenerate wrapper changes explicitly;
 runtime preparation checks them but does not silently update them.
 
+### Checkpoint Resolution and Effect continuation
+
+`@actql/run-host-core/checkpoints` supplies the existing portable Checkpoint
+Owner without a physical Store or Node execution runtime. The Host seals and
+persists a Checkpoint before committing its waiting Run projection.
+
+For a Resolution, obtain `resolutionProofPreimage` and authenticate it using
+Host-trusted reviewer keys and current authority. Pass those authenticated
+facts to `resolutionAdmit`, sign its attestation preimage, then use
+`resolutionDecide` with the closure read inside the durable transaction.
+Commit the Resolution, Checkpoint closure, unique resume intent and same Run
+transition atomically. Admission alone does not authorize continuation: check
+`checkpointExpiredAt` again at commit time after asynchronous authentication
+or signing, and check `resumedApprovalAt` for the approval's own lifetime.
+
+`effectResumeClaimDecide` selects continuation or settlement using the current
+authorization/environment binding. Persist its generation, then use
+`resumeFenceDecide` before a protected operation or intent mutation. Settlement
+does not authorize unknown Effect replay. Run lifecycle projections and allowed
+transitions do not prove execution, physical cleanup or reservation release.
+
+### Effect Run Host preparation and restoration
+
+`@actql/run-host-core` exposes `prepareEffect` and `compileEffect` for the
+existing checked Effect computation Owner. These return opaque handles separate
+from an Effect-free Program. `effectExecutionShape` projects checked task,
+acquisition and Effect counts; it does not select or schedule tasks.
+
+After the Host has checked current authorization, `issueAllowedEffectRun` and
+`issueEffectRunDefinition` bind the original policy evidence and Run identity.
+`issueEffectRunMaterials` serializes the retained JSON Program, environment and
+separately supplied parameters using the existing bounded materials codec.
+`admitEffectRunMaterials` reconstructs that same Owner from the saved evidence
+and the expected Run definition CID. It does not issue fresh authorization or
+extend the saved lifetime. `effectRunStartCurrent` checks the original policy
+and Run lifetime; the Host must independently recheck current authority.
+
+These APIs perform no Source acquisition, Preview, approval or physical Effect.
+Run admission is not Effect approval. Dispatch, retained input custody,
+Checkpoint/Resolution and physical apply remain responsibilities of their
+existing Owners and consuming adapters.
+
 ### Installed Connector distribution inputs
 
 The standard Local package resolves provider runtimes, installation adapter

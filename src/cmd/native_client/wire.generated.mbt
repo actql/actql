@@ -9961,6 +9961,426 @@ fn wire_cancellation_lookup_shape(value : Json) -> Bool {
 }
 
 ///|
+fn wire_rule_872(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "submit" || text == "cancel") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_operation_attempt_ref_shape(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "operation" || key == "attemptId") {
+      return false
+    }
+  }
+  if !fields.contains("operation") {
+    return false
+  }
+  if !fields.contains("attemptId") {
+    return false
+  }
+  if fields.get("operation") is Some(item) {
+    if !wire_rule_872(item) {
+      return false
+    }
+  }
+  if fields.get("attemptId") is Some(item) {
+    if !wire_rule_7(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_875(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "accepted") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_877(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "cancel") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_876(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "operation" || key == "attemptId") {
+      return false
+    }
+  }
+  if !fields.contains("operation") {
+    return false
+  }
+  if !fields.contains("attemptId") {
+    return false
+  }
+  if fields.get("operation") is Some(item) {
+    if !wire_rule_877(item) {
+      return false
+    }
+  }
+  if fields.get("attemptId") is Some(item) {
+    if !wire_rule_7(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_879(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "ref" ||
+      key == "kind" ||
+      key == "revision" ||
+      key == "cancelRef") {
+      return false
+    }
+  }
+  if !fields.contains("ref") {
+    return false
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("revision") {
+    return false
+  }
+  if !fields.contains("cancelRef") {
+    return false
+  }
+  if fields.get("ref") is Some(item) {
+    if !wire_rule_13(item) {
+      return false
+    }
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_875(item) {
+      return false
+    }
+  }
+  if fields.get("revision") is Some(item) {
+    if !wire_rule_861(item) {
+      return false
+    }
+  }
+  if fields.get("cancelRef") is Some(item) {
+    if !wire_cancellation_ref_shape(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_874(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" || key == "attemptRef" || key == "cancellation") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("attemptRef") {
+    return false
+  }
+  if !fields.contains("cancellation") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_875(item) {
+      return false
+    }
+  }
+  if fields.get("attemptRef") is Some(item) {
+    if !wire_rule_876(item) {
+      return false
+    }
+  }
+  if fields.get("cancellation") is Some(item) {
+    if !wire_rule_879(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_885(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "already_satisfied") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_889(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "already_requested" || text == "already_terminal") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_887(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "ref" ||
+      key == "kind" ||
+      key == "revision" ||
+      key == "cancelRef") {
+      return false
+    }
+  }
+  if !fields.contains("ref") {
+    return false
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("revision") {
+    return false
+  }
+  if !fields.contains("cancelRef") {
+    return false
+  }
+  if fields.get("ref") is Some(item) {
+    if !wire_rule_13(item) {
+      return false
+    }
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_889(item) {
+      return false
+    }
+  }
+  if fields.get("revision") is Some(item) {
+    if !wire_rule_861(item) {
+      return false
+    }
+  }
+  if fields.get("cancelRef") is Some(item) {
+    if !wire_cancellation_ref_shape(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_884(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" || key == "attemptRef" || key == "cancellation") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("attemptRef") {
+    return false
+  }
+  if !fields.contains("cancellation") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_885(item) {
+      return false
+    }
+  }
+  if fields.get("attemptRef") is Some(item) {
+    if !wire_rule_876(item) {
+      return false
+    }
+  }
+  if fields.get("cancellation") is Some(item) {
+    if !wire_rule_887(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_893(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "refused") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_895(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "attempt_uncommitted_unconsumed") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_896(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "authorization" || text == "admission_capacity") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_892(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" ||
+      key == "attemptRef" ||
+      key == "guarantee" ||
+      key == "reason" ||
+      key == "cancelRef") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("attemptRef") {
+    return false
+  }
+  if !fields.contains("guarantee") {
+    return false
+  }
+  if !fields.contains("reason") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_893(item) {
+      return false
+    }
+  }
+  if fields.get("attemptRef") is Some(item) {
+    if !wire_rule_876(item) {
+      return false
+    }
+  }
+  if fields.get("guarantee") is Some(item) {
+    if !wire_rule_895(item) {
+      return false
+    }
+  }
+  if fields.get("reason") is Some(item) {
+    if !wire_rule_896(item) {
+      return false
+    }
+  }
+  if fields.get("cancelRef") is Some(item) {
+    if !wire_cancellation_ref_shape(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_899(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "conflict") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_901(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "intent" || text == "control_revision") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_898(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" ||
+      key == "attemptRef" ||
+      key == "reason" ||
+      key == "cancelRef") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("attemptRef") {
+    return false
+  }
+  if !fields.contains("reason") {
+    return false
+  }
+  if !fields.contains("cancelRef") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_899(item) {
+      return false
+    }
+  }
+  if fields.get("attemptRef") is Some(item) {
+    if !wire_rule_876(item) {
+      return false
+    }
+  }
+  if fields.get("reason") is Some(item) {
+    if !wire_rule_901(item) {
+      return false
+    }
+  }
+  if fields.get("cancelRef") is Some(item) {
+    if !wire_cancellation_ref_shape(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_cancellation_attempt_shape(value : Json) -> Bool {
+  if [
+      wire_rule_874(value),
+      wire_rule_884(value),
+      wire_rule_892(value),
+      wire_rule_898(value),
+    ]
+    .filter(fn(ok) { ok })
+    .length() !=
+    1 {
+    return false
+  }
+  true
+}
+
+///|
 enum WireResponseIssue {
   InvalidShape
   ConnectionMismatch

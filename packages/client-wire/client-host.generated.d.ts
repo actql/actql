@@ -697,6 +697,86 @@ export type WireCancellationLookupShape = Readonly<{
 }>;
 }>;
 
+export type WireOperationAttemptRefShape = Readonly<{
+  operation: "submit" | "cancel";
+  attemptId: string;
+}>;
+
+export type WireCancellationAttemptShape = Readonly<{
+  kind: "accepted";
+  attemptRef: Readonly<{
+  operation: "cancel";
+  attemptId: string;
+}>;
+  cancellation: Readonly<{
+  ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  kind: "accepted";
+  revision: number;
+  cancelRef: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+  cancelId: string;
+  expectedRevision: number;
+}>;
+}>;
+}> | Readonly<{
+  kind: "already_satisfied";
+  attemptRef: Readonly<{
+  operation: "cancel";
+  attemptId: string;
+}>;
+  cancellation: Readonly<{
+  ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  kind: "already_requested" | "already_terminal";
+  revision: number;
+  cancelRef: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+  cancelId: string;
+  expectedRevision: number;
+}>;
+}>;
+}> | Readonly<{
+  kind: "refused";
+  attemptRef: Readonly<{
+  operation: "cancel";
+  attemptId: string;
+}>;
+  guarantee: "attempt_uncommitted_unconsumed";
+  reason: "authorization" | "admission_capacity";
+  cancelRef?: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+  cancelId: string;
+  expectedRevision: number;
+}>;
+}> | Readonly<{
+  kind: "conflict";
+  attemptRef: Readonly<{
+  operation: "cancel";
+  attemptId: string;
+}>;
+  reason: "intent" | "control_revision";
+  cancelRef: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+  cancelId: string;
+  expectedRevision: number;
+}>;
+}>;
+
 export type WireRequestCancellationShape = Readonly<{
   requestId: string;
   kind: "accepted" | "already_requested" | "already_terminal";
