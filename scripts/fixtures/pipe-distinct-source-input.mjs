@@ -20,6 +20,50 @@ export const pipeDistinctProgram = {version: 'actql/0.1', id: 'fixture.pipe_dist
       {sort: [{field: 'amount', dir: 'asc', nulls: 'last'}], as: 'ordered'}],
     results: {rows: {from: 'ordered', fields: ['amount']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+// Full JOIN-row equality precedes projection. Rows with ids 2 and 4 remain
+// different here even though both later project to {amount: 20}.
+export const joinPipeDistinctProgram = {version: 'actql/0.1', id: 'fixture.join_pipe_distinct',
+  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {literal: true}},
+      {select: ['amount', 'id'], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['amount', 'id']}}},
+  {id: 'main', inputs: {left_rows: {result: {stage: 'capture', result: 'source'}},
+    right_rows: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{from: 'left_rows', join: {with: 'right_rows', kind: 'inner',
+      on: [{left: 'id', right: 'id'}], max_output_rows: 20,
+      select: {left_amount: 'left.amount', left_id: 'left.id',
+        right_amount: 'right.amount', right_id: 'right.id'}}, as: 'joined'},
+    {from: 'joined', distinct: ['left_amount', 'left_id', 'right_amount', 'right_id']},
+    {sort: [{field: 'left_amount', dir: 'asc', nulls: 'last'}]},
+    {select: [{amount: 'left_amount'}], as: 'projected'}],
+    results: {rows: {from: 'projected', fields: ['amount']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+export const crossPipeDistinctProgram = {version: 'actql/0.1', id: 'fixture.cross_pipe_distinct',
+  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {literal: true}},
+      {select: ['amount', 'id'], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['amount', 'id']}}},
+  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{values: {schema: {match_id: number},
+      rows: [{match_id: 1}, {match_id: 1}, {match_id: 2}]}, as: 'matches'},
+    {from: 'records', cross_join: {with: 'matches', max_output_rows: 15,
+      select: {amount: 'left.amount', id: 'left.id', match_id: 'right.match_id'}}, as: 'joined'},
+    {from: 'joined', distinct: ['amount', 'id', 'match_id']},
+    {sort: [{field: 'amount', dir: 'asc', nulls: 'last'},
+      {field: 'id', dir: 'asc', nulls: 'first'},
+      {field: 'match_id', dir: 'asc', nulls: 'first'}]},
+    {select: ['amount'], as: 'projected'}],
+    results: {rows: {from: 'projected', fields: ['amount']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const joinAmounts = [{amount: 20}, {amount: 20}, {amount: 30}, {amount: null}];
+const crossAmounts = [{amount: 20}, {amount: 20}, {amount: 20}, {amount: 20},
+  {amount: 30}, {amount: 30}, {amount: null}, {amount: null}];
+const joinDistinct = 'FROM records AS l |> JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 '
+  + '|> DISTINCT |> SELECT l.amount AS amount |> ORDER BY amount NULLS LAST';
+const crossDistinct = 'FROM records AS l |> CROSS JOIN '
+  + '(SELECT 1 AS match_id UNION ALL SELECT 1 AS match_id UNION ALL SELECT 2 AS match_id) '
+  + 'AS r MAX_OUTPUT_ROWS 15 |> DISTINCT |> ORDER BY l.amount NULLS LAST, l.id, r.match_id '
+  + '|> SELECT l.amount AS amount';
 const success = (name, text, extra = {}) => ({name: 'pipe-distinct-' + name,
   format: 'aql-text', text, sourceRows, expected: amounts, columns: amountColumns,
   sourceReadSessionCount: 1, ...extra});
@@ -27,6 +71,19 @@ const drop = 'FROM records AS original |> DROP id |> DISTINCT '
   + '|> SELECT original.amount AS amount |> ORDER BY amount NULLS LAST';
 export const pipeDistinctSuccesses = [
   success('independent-json', JSON.stringify(pipeDistinctProgram), {format: 'json'}),
+  success('join-independent-json', JSON.stringify(joinPipeDistinctProgram),
+    {format: 'json', expected: joinAmounts}),
+  success('join-before-projection', joinDistinct, {expected: joinAmounts}),
+  success('join-quoted-surviving-ranges', 'FROM records AS `Left` |> JOIN records AS `Right` '
+    + 'ON `LEFT`.`ID` = `RIGHT`.`ID` MAX_OUTPUT_ROWS 20 |> DISTINCT '
+    + '|> SELECT `LEFT`.`AMOUNT` AS amount |> ORDER BY amount NULLS LAST', {expected: joinAmounts}),
+  success('join-after-sql-projection', 'SELECT l.amount AS amount FROM records AS l '
+    + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 |> DISTINCT '
+    + '|> ORDER BY amount NULLS LAST', {format: 'sql'}),
+  success('join-typed-empty', joinDistinct, {sourceRows: [], expected: []}),
+  success('cross-join-independent-json', JSON.stringify(crossPipeDistinctProgram),
+    {format: 'json', expected: crossAmounts}),
+  success('cross-join-before-projection', crossDistinct, {expected: crossAmounts}),
   success('drop-preserves-surviving-range', drop),
   success('set-prunes-displaced-slot', 'FROM records AS original |> SET id = 0 |> DISTINCT '
     + '|> SELECT original.amount AS amount, id |> ORDER BY amount NULLS LAST',
@@ -59,6 +116,12 @@ export const pipeDistinctSuccesses = [
       columns: [{name: 'value', contract: nullable}], sourceReadCount: 0, sourceReadSessionCount: 0}),
 ];
 export const pipeDistinctRefusals = [
+  {name: 'join-ambiguous-column', text: 'FROM records AS l |> JOIN records AS r '
+    + 'ON l.id = r.id MAX_OUTPUT_ROWS 20 |> DISTINCT |> SELECT id',
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'join-projected-range', text: 'FROM records AS l |> JOIN records AS r '
+    + 'ON l.id = r.id MAX_OUTPUT_ROWS 20 |> SELECT l.amount AS amount |> DISTINCT |> SELECT l.id',
+    expectedCode: 'ClientProgramInvalidInput'},
   {name: 'arguments', text: 'FROM records |> DISTINCT amount'},
   {name: 'removed-by-drop', text: 'FROM records AS original |> DROP id |> DISTINCT |> SELECT original.id'},
   {name: 'displaced-by-set', text: 'FROM records AS original |> SET id = 0 |> DISTINCT |> SELECT original.id'},
