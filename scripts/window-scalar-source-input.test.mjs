@@ -3,7 +3,70 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {windowScalarProgram, windowScalarSuccesses, windowScalarRefusals,
   windowScalarExecutionFailures, groupedLagOperandProgram,
-  groupedSumOperandProgram} from './fixtures/window-scalar-source-input.mjs';
+  groupedSumOperandProgram, selectPrivateWindowProgram, pipePrivateWindowProgram} from './fixtures/window-scalar-source-input.mjs';
+
+test('Pipe private-window controls preserve predicates, assignments and immutable inputs', () => {
+  const cases = new Map(windowScalarSuccesses.map(item => [item.name, item]));
+  const get = name => cases.get('window-scalar-pipe-schema-private-' + name);
+  for (const kind of ['where', 'extend', 'set']) {
+    const control = pipePrivateWindowProgram(kind);
+    assert.deepEqual(JSON.parse(get(kind + '-json').text), control);
+    assert.deepEqual(get(kind + '-json').expected, get(kind).expected);
+    const field = get(kind).columns[0].name;
+    assert.ok(!get(kind).text.toLowerCase().includes(field.toLowerCase()),
+      'the name collision comes from the checked schema');
+    assert.equal(get(kind).columns[0].contract.nullable, true);
+    assert.equal(get(kind).sourceReadSessionCount, 0);
+    assert.equal(get(kind + '-uppercase').columns[0].name, field.toUpperCase());
+    assert.deepEqual(control.stages[0].steps[5].analytic.functions, {private_rank: {fn: 'row_number'}});
+    assert.equal(windowScalarRefusals.find(item => item.name.endsWith('pipe-schema-private-' + kind)).expectedCode,
+      'ClientProgramInvalidInput');
+  }
+  assert.deepEqual(pipePrivateWindowProgram('where').stages[0].steps[6],
+    {filter: {eq: [{field: 'private_rank'}, {literal: 1}]}});
+  assert.deepEqual(pipePrivateWindowProgram('set').stages[0].steps[6],
+    {derive: {assigned_id: {add: [{field: 'private_rank'}, {literal: 10}]}}});
+  assert.deepEqual(pipePrivateWindowProgram('set').stages[0].steps[7],
+    {select: ['aql_pipe_set_window_0', {id: 'assigned_id'}]},
+    'a derive map adds a fresh slot; SELECT performs the declared assignment');
+  assert.deepEqual(get('where').expected, [{aql_pipe_where_window_0: 90, id: 1}]);
+  assert.deepEqual(get('extend').expected.map(row => row.pos), [3, 2]);
+  assert.deepEqual(get('set').expected.map(row => row.id), [12, 11]);
+  assert.deepEqual(get('where-nullable').expected, [{aql_pipe_where_window_0: null, id: 1}]);
+  assert.deepEqual(get('set-empty').expected, []);
+  assert.deepEqual(get('set-immutable').expected.map(row => [row.original, row.id]), [[2, 12], [1, 11]]);
+  assert.deepEqual(get('extend-authored-key').expected.map(row => row.pos), [2, 3]);
+});
+
+test('schema-only private-name columns retain independent window values and public types', () => {
+  const cases = new Map(windowScalarSuccesses.map(item => [item.name, item]));
+  const get = name => cases.get('window-scalar-schema-private-' + name);
+  for (const [field, jsonName, sourceName] of [['aql_select_window_0', 'json', 'pipe'],
+    ['AQL_SELECT_WINDOW_0', 'upper-json', 'upper-pipe']]) {
+    const control = selectPrivateWindowProgram(field);
+    assert.deepEqual(JSON.parse(get(jsonName).text), control);
+    assert.deepEqual(get(sourceName).expected, [{[field]: 10, id: 2, pos: 3}, {[field]: 90, id: 1, pos: 2}]);
+    assert.deepEqual(get(jsonName).expected, get(sourceName).expected);
+    assert.deepEqual(get(sourceName).columns.map(value => [value.name, value.contract.nullable]),
+      [[field, true], ['id', false], ['pos', false]]);
+    assert.equal(get(sourceName).sourceReadSessionCount, 0);
+    assert.ok(!get(sourceName).text.toLowerCase().includes(field.toLowerCase()));
+    assert.deepEqual(control.stages[0].steps[6].derive.pos,
+      {add: [{field: 'private_rank'}, {literal: 1}]});
+    assert.deepEqual(control.stages[0].results.rows.fields, [field, 'id', 'pos']);
+  }
+  assert.deepEqual(get('group-all').expected, get('pipe').expected);
+  assert.deepEqual(get('named').expected, get('pipe').expected);
+  assert.deepEqual(get('empty').expected, []);
+  assert.equal(get('nullable').expected[0].aql_select_window_0, null);
+  assert.deepEqual(get('duplicates').expected.map(row => row.pos), [4, 3, 2]);
+  assert.deepEqual(get('authored-over-key').expected.map(row => row.pos), [2, 3]);
+  assert.deepEqual(get('qualified-user-value').expected.map(row => row.pos), [12, 91]);
+  assert.equal(get('qualified-user-value').columns[2].contract.nullable, true,
+    'adding a nullable user column retains its declared nullability');
+  assert.equal(windowScalarRefusals.find(item => item.name.endsWith('schema-private-slot')).expectedCode,
+    'ClientProgramInvalidInput');
+});
 
 test('grouped window operands have independent Programs, NULLs and opposing scope orders', () => {
   const cases = new Map(windowScalarSuccesses.map(item => [item.name, item]));

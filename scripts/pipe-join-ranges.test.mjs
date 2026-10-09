@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {pipeJoinRangesProgram, extendRangeProgram, renameTargetProgram, editCollisionProgram, pipeJoinRangesSuccesses, pipeJoinRangesRefusals}
+import {pipeJoinRangesProgram, postJoinSetProgram, postJoinDropProgram,
+  extendRangeProgram, renameTargetProgram, editCollisionProgram, pipeJoinRangesSuccesses, pipeJoinRangesRefusals}
   from './fixtures/pipe-join-ranges.mjs';
 
 test('range obligations distinguish current values from original slots and preserve duplicates', () => {
@@ -23,9 +24,41 @@ test('range obligations distinguish current values from original slots and prese
   assert.equal(cases.get('pipe-join-ranges-shared-source').sourceReadSessionCount, 1);
   const originalRefusals = pipeJoinRangesRefusals.filter(item =>
     !item.name.includes('refuse-extend-') && !item.name.includes('refuse-rename-')
-    && !item.name.includes('refuse-edit-'));
+    && !item.name.includes('refuse-edit-') && !item.name.includes('refuse-post-'));
   assert.equal(originalRefusals.length, 4);
   assert.ok(originalRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('post-JOIN edits keep old slots, current values, duplicate rows and authored limits', () => {
+  const cases = new Map(pipeJoinRangesSuccesses.map(item => [item.name, item]));
+  const set = cases.get('pipe-join-ranges-post-set-original-slot');
+  const drop = cases.get('pipe-join-ranges-post-drop-original-slot');
+  assert.deepEqual(JSON.parse(cases.get('pipe-join-ranges-post-set-independent-json').text), postJoinSetProgram);
+  assert.deepEqual(JSON.parse(cases.get('pipe-join-ranges-post-drop-independent-json').text), postJoinDropProgram);
+  assert.deepEqual(set.expected, [{current: 12, original: 2, amount: 20, matched: 2},
+    {current: 12, original: 2, amount: 20, matched: 2}]);
+  assert.deepEqual(drop.expected, [{current: 2, original: 2, amount: 20, matched: 2},
+    {current: 2, original: 2, amount: 20, matched: 2}]);
+  const steps = postJoinSetProgram.stages[1].steps;
+  assert.equal(steps[1].join.max_output_rows, 10);
+  assert.deepEqual(steps[1].join.on, [{left: 'id', right: 'k'}]);
+  assert.deepEqual(steps[2].derive, {current: {add: [{field: 'old_id'}, {literal: 10}]}});
+  assert.deepEqual(steps[4].select, ['current', {original: 'old_id'}, 'amount', 'matched']);
+  assert.ok(set.text.indexOf('JOIN') < set.text.indexOf('SET id'));
+  assert.deepEqual(cases.get('pipe-join-ranges-post-set-parameter').parameters, {increment: 10});
+  assert.deepEqual(cases.get('pipe-join-ranges-post-set-typed-empty').columns, set.columns);
+  assert.deepEqual(cases.get('pipe-join-ranges-post-set-left-nullable').expected[0],
+    {current: 11, original: 1, amount: null, matched: null});
+  assert.deepEqual(cases.get('pipe-join-ranges-post-extend-current-slot').expected, set.expected);
+  assert.deepEqual(cases.get('pipe-join-ranges-post-extend-fresh-range').expected, set.expected);
+  assert.deepEqual(set.columns.map(column => column.name), ['current', 'original', 'amount', 'matched']);
+  assert.deepEqual(set.columns.map(column => column.contract.nullable), [false, false, true, false]);
+  const refusals = pipeJoinRangesRefusals.filter(item => item.name.includes('refuse-post-'));
+  assert.equal(refusals.length, 4);
+  assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+  const successes = pipeJoinRangesSuccesses.filter(item => item.name.startsWith('pipe-join-ranges-post-'));
+  assert.equal(successes.length, 10);
+  assert.ok(successes.every(item => item.sourceReadSessionCount === 1));
 });
 
 test('RENAME targets only one current column and preserves independent JOIN values', () => {

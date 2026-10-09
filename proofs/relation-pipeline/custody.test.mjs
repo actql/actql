@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { hash, snapshot } from './inventory.mjs';
 import { generatedObservers } from './capacity/instrument.mjs';
-import { auditCustody, auditCustodyMutations, custodyInput, custodyOverlay, custodyDirectory } from './capacity/parent-control/custody.mjs';
+import { auditCustody, auditCustodyMutations, custodyInput, custodyCleanupStep, custodyOverlay, custodyDirectory } from './capacity/parent-control/custody.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 function fixture(target = 'js', mode = 'normal') {
@@ -18,10 +18,14 @@ function fixture(target = 'js', mode = 'normal') {
   const exact = Object.fromEntries(Object.keys(sources).sort().map(p => [p, sources[p]]));
   const observation = { executionCapacity: 100, before: 100, after: 100, workBefore: 6, workAfter: 6 };
   if (mode === 'success') Object.assign(observation, { heldAtCompletion: 40, unusedRetentionAtCompletion: 0 });
-  const child = '"event":"before-cleanup"\n"event":"after-cleanup"\n';
+  const cleanupStep = mode === 'success' ? 2 : 1;
+  const child = `ACTQL_CUSTODY_CLEANUP:${cleanupStep}:before\nACTQL_CUSTODY_CLEANUP:${cleanupStep}:after\n`;
+  // The eligible chain has already reclaimed intermediate DISTINCT scratch
+  // before successful finalization. It cannot stand in for final-owner cleanup.
+  const earlier = mode === 'success' ? '"event":"before-cleanup"\n"event":"after-cleanup"\n' : '';
   const stage = mode === 'success' ? 'ACTQL_CUSTODY_STAGE:after-completion-before-cleanup\n' :
     'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup\n';
-  const log = 'ACTQL_CUSTODY_CHAIN:started\n' +
+  const log = 'ACTQL_CUSTODY_CHAIN:started\n' + earlier +
     (mode === 'success' ? 'ACTQL_CUSTODY_STAGE:before-success-settlement\nACTQL_CUSTODY_RETRY:false\n' : '') +
     stage + (mode === 'normal' ? child :
     (mode === 'pending' ? 'ACTQL_CUSTODY_RETRY:false\n' : '') + 'ACTQL_CUSTODY_RETRY:error\n' + child) +
@@ -77,7 +81,7 @@ for (const [name, patch] of [['premature scratch credit', { after: 0 }],
 for (const [name, mutate] of [
   ['missing success-time pending observation', log => log.replace('ACTQL_CUSTODY_RETRY:false\n', '')],
   ['cleanup succeeded before completion while scratch remains pending', log => {
-    const child = '"event":"before-cleanup"\n"event":"after-cleanup"\n';
+    const child = 'ACTQL_CUSTODY_CLEANUP:2:before\nACTQL_CUSTODY_CLEANUP:2:after\n';
     return log.replace(child, '').replace('ACTQL_CUSTODY_RETRY:false\n', child);
   }],
   ['pending observation moved to explicit retry', log => log.replace('ACTQL_CUSTODY_RETRY:false\n', '')
@@ -91,7 +95,7 @@ for (const [name, mutate] of [
   ['unconditional byte claim', f => { f.report.completeAllocationUpper = true; }],
   ['cleanup polled during settlement', f => {
     const stage = 'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup\n';
-    const child = '"event":"before-cleanup"\n"event":"after-cleanup"\n';
+    const child = 'ACTQL_CUSTODY_CLEANUP:1:before\nACTQL_CUSTODY_CLEANUP:1:after\n';
     const log = f.read('test.log').toString().replace(stage + child, child + stage);
     f.entries.set('test.log', Buffer.from(log)); f.report.logDigest = hash(log);
   }],
@@ -149,4 +153,29 @@ for (const [name, patch] of [
 ]) test(`custody mutation audit rejects ${name}`, () => {
   const f = mutationFixture(); patch(f);
   assert.throws(() => auditCustodyMutations(f.records, f.current, f.read));
+});
+
+test('custody modes select the checked cancellation and final-completion owners', () => {
+  assert.equal(custodyCleanupStep('normal'), 1);
+  assert.equal(custodyCleanupStep('pending'), 1);
+  assert.equal(custodyCleanupStep('success'), 2);
+  const read = path => readFileSync(join(root, path));
+  const selected = 'src/connectors/local/selected_relation_provider.mbt';
+  for (const [mode, step] of [['normal', 1], ['pending', 1], ['success', 2]]) {
+    const code = custodyOverlay(read, mode).overlay[selected];
+    assert(code.includes(`if step == ${step} {`));
+    assert(code.includes(`if step == ${step} && reclaimed.val {`));
+    assert.equal(code.split('ACTQL_CUSTODY_CHAIN:started').length, 2);
+    assert.equal(code.split('custody_started_children.val += 1').length, 3);
+  }
+});
+for (const [name, change] of [
+  ['cleanup of another checked child', log => log.replaceAll('ACTQL_CUSTODY_CLEANUP:2:', 'ACTQL_CUSTODY_CLEANUP:1:')],
+  ['only intermediate DISTINCT cleanup', log => log.replaceAll(/ACTQL_CUSTODY_CLEANUP:2:(?:before|after)\n/g, '')],
+  ['duplicate selected cleanup', log => log.replace('ACTQL_CUSTODY_CLEANUP:2:before\n',
+    'ACTQL_CUSTODY_CLEANUP:2:before\nACTQL_CUSTODY_CLEANUP:2:before\n')],
+]) test(`successful custody refuses ${name} even with a consistent log digest`, () => {
+  const f = fixture('js', 'success'), log = change(f.read('test.log').toString());
+  f.entries.set('test.log', Buffer.from(log)); f.report.logDigest = hash(log);
+  assert.throws(() => auditCustody(f.report, 'js', 'success', f.current, f.read));
 });
