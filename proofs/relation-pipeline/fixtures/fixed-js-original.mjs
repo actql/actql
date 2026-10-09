@@ -1,5 +1,6 @@
 // Controlled consumer copies of real healthy originals. These are not actual
 // mutation executions, image observations, or an Actions trust witness.
+// Copies bind the current consumer fixture; archived originals stay unchanged.
 import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
@@ -9,7 +10,7 @@ import {mutationPart} from '../mutation-parts.mjs';
 import {variants} from '../mutation-registry.mjs';
 import {applyMutation} from '../sites.mjs';
 import {fixedJsAction} from '../fixed-js-scope.mjs';
-import {boundFixture, payload as executionPayload} from '../fixture.mjs';
+import {body, boundFixture, payload as executionPayload} from '../fixture.mjs';
 const revision = 'f2a191b51fd6ecd7b70486c6e8fa33204fa8964e';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const bytes = gunzipSync(readFileSync(new URL('../../../docs/reviews/evidence/2026-10-08-pipeline-pristine-normal-f2a191b51.json.gz', import.meta.url)), {maxOutputLength: 4 * 1024 * 1024});
@@ -40,7 +41,8 @@ export function controlledFixedJsOriginal() {
         }
       }
       run.boundary = {...run.boundary, workspace: owner.id, root: owner.root,
-        role: phase === 'pristine' ? 'pristine' : 'mutable', sourceDigest: phaseSource.digest};
+        role: phase === 'pristine' ? 'pristine' : 'mutable', sourceDigest: phaseSource.digest,
+        fixtureDigest: hash(body)};
       run.buildIdentity = digest(run.boundary); run.sourceDigest = phaseSource.digest; run.correspondence = correspondence;
       run.sourcePath = `.artifacts/relation-pipeline/sources/${phaseSource.digest}.json`;
       files[run.sourcePath] = `${JSON.stringify(phaseSource,null,2)}\n`;

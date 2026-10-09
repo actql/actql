@@ -8,11 +8,11 @@ import {
   "actql/actql/run_publication" @publication,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
-  "actql/actql/encode_core" @encode,
 }
 
 import {
   "actql/actql/canonical_json" @json,
+  "actql/actql/encode_core" @encode,
   "actql/actql/source_value" @source,
   "moonbitlang/core/env",
 } for "wbtest"
