@@ -330,6 +330,7 @@ fn relation_chain_reclaims_completed_scratch(
         if !selected_binding_rows_supported(kernel) &&
           !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&
           !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) &&
+          !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&
           !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {
           return false
         }

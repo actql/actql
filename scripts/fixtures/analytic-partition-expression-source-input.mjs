@@ -61,12 +61,80 @@ export const analyticPartitionExpressionSuccesses = [
         {id: 3, before: 1, current: 1}, {id: 4, before: 1, current: 3},
         {id: 5, before: 2, current: 4}, {id: 6, before: 2, current: 2}]}),
 ];
+
+// Complete independent control: one nullable Boolean key, retained repeated
+// partition occurrences, and two differently ordered windows over that key.
+export const windowKeyReceiverProgram = {version: 'actql/0.1',
+  id: 'fixture.window_key_receiver', stages: [
+    analyticPartitionExpressionProgram.stages[0],
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'records', derive: {key: {gt: [{field: 'amount'}, {literal: 25}]}}},
+        {analytic: {partition_by: ['key', 'key'], order_by: [
+          {field: 'key', dir: 'asc', nulls: 'first'}, {field: 'id', dir: 'asc', nulls: 'first'}],
+        functions: {pos: {fn: 'row_number'}}}},
+        {analytic: {partition_by: ['key'],
+          order_by: [{field: 'id', dir: 'desc', nulls: 'last'}],
+          functions: {ranking: {fn: 'rank'}}}},
+        {select: ['id', 'pos', 'ranking']},
+        {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
+      results: {rows: {from: 'ordered', fields: ['id', 'pos', 'ranking']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const receiverExpected = [{id: 1, pos: 1, ranking: 2}, {id: 2, pos: 2, ranking: 1},
+  {id: 3, pos: 1, ranking: 2}, {id: 4, pos: 1, ranking: 2},
+  {id: 5, pos: 2, ranking: 1}, {id: 6, pos: 2, ranking: 1}];
+const receiverColumns = [column('id'), column('pos'), column('ranking')];
+const receiverSelect = 'SELECT id, ROW_NUMBER() OVER (PARTITION BY amount > 25, '
+  + '(records.amount) > 25 ORDER BY records.amount > 25, id) AS pos, RANK() OVER '
+  + '(PARTITION BY (amount > 25) ORDER BY id DESC) AS ranking';
+const receiverSql = receiverSelect + ' FROM records WHERE id > 0 ORDER BY id';
+const bucket = {type: 'object', nullable: true,
+  fields: {bucket: {type: 'string', nullable: true}}};
+const objectDeclarations = {a: bucket, b: bucket, c: bucket, d: bucket, e: bucket};
+const objectParameters = {a: {bucket: 'A'}, b: {bucket: 'B'}, c: null,
+  d: {bucket: 'other'}, e: {bucket: null}};
+const objectPrefix = 'DATA objects = SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 '
+  + 'THEN @b WHEN id = 3 THEN @c ELSE @e END AS payload, @d AS other FROM records WHERE id > 0; ';
+const objectSelect = 'SELECT id, ROW_NUMBER() OVER (PARTITION BY '
+  + "COALESCE(payload.bucket, 'missing'), COALESCE((objects.payload).`BUCKET`, 'missing') "
+  + 'ORDER BY id) AS pos, RANK() OVER (PARTITION BY ';
+const objectExpected = [{id: 1, pos: 1, ranking: 1}, {id: 2, pos: 1, ranking: 1},
+  {id: 3, pos: 1, ranking: 4}, {id: 4, pos: 2, ranking: 3},
+  {id: 5, pos: 3, ranking: 2}, {id: 6, pos: 4, ranking: 1}];
+export const windowKeyReceiverSuccesses = [
+  success('receiver-reuse-json-control', JSON.stringify(windowKeyReceiverProgram), {
+    format: 'json', expected: receiverExpected, columns: receiverColumns,
+  }),
+  success('receiver-reuse-qualified-sql', receiverSql, {
+    expected: receiverExpected, columns: receiverColumns,
+  }),
+  success('receiver-reuse-qualified-pipe', 'FROM records |> WHERE id > 0 |> '
+    + receiverSelect + ' |> ORDER BY id', {
+    format: 'aql-text', expected: receiverExpected, columns: receiverColumns,
+  }),
+  success('receiver-reuse-typed-empty', receiverSql, {
+    sourceRows: [], expected: [], columns: receiverColumns,
+  }),
+  success('receiver-reuse-nullable-object', objectPrefix + objectSelect
+    + "COALESCE((payload).bucket, 'missing') ORDER BY id DESC) AS ranking FROM objects ORDER BY id", {
+    format: 'aql-text', expected: objectExpected, columns: receiverColumns,
+    parameterDeclarations: objectDeclarations, parameters: objectParameters,
+  }),
+  success('receiver-reuse-distinct-object', objectPrefix + objectSelect
+    + "COALESCE(other.bucket, 'missing') ORDER BY id DESC) AS ranking FROM objects ORDER BY id", {
+    format: 'aql-text', columns: receiverColumns,
+    parameterDeclarations: objectDeclarations, parameters: objectParameters,
+    expected: [{id: 1, pos: 1, ranking: 6}, {id: 2, pos: 1, ranking: 5},
+      {id: 3, pos: 1, ranking: 4}, {id: 4, pos: 2, ranking: 3},
+      {id: 5, pos: 3, ranking: 2}, {id: 6, pos: 4, ranking: 1}],
+  }),
+];
+analyticPartitionExpressionSuccesses.push(...windowKeyReceiverSuccesses);
 export const analyticPartitionExpressionRefusals = [
-  ['constant', sql('1'), 'ClientProgramUnsupported'],
-  ['constant-arithmetic', sql('1 + 2'), 'ClientProgramUnsupported'],
+  ['constant', sql('1'), 'ClientProgramImplementationLimit'],
+  ['constant-arithmetic', sql('1 + 2'), 'ClientProgramImplementationLimit'],
   ['missing-reference', sql('missing > 0')],
   ['invalid-key-type', sql('amount + \'x\' > 0')],
-  ['invalid-function', sql('unknown(amount)')],
+  ['invalid-function', sql('unknown(amount)'), 'ClientProgramImplementationLimit'],
   ['sibling-alias', 'SELECT amount AS sibling, ROW_NUMBER() OVER '
     + '(PARTITION BY sibling > 25 ORDER BY id) AS pos FROM records'],
   ['removed-range', 'FROM records AS old |> AS current |> SELECT ROW_NUMBER() OVER '
@@ -76,7 +144,7 @@ export const analyticPartitionExpressionRefusals = [
   {name: 'analytic-partition-expression-refuse-parameter-only', format: 'sql',
     hostProfile: 'analytic-order', text: sql('@p'),
     parameterDeclarations: {p: {type: 'boolean', nullable: false}}, parameters: {p: true},
-    expectedCode: 'ClientProgramUnsupported'},
+    expectedCode: 'ClientProgramImplementationLimit'},
 ]);
 export const analyticPartitionExpressionExecutionFailures = [{
   name: 'analytic-partition-expression-demanded-failure', format: 'sql',

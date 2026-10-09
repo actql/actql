@@ -67,6 +67,7 @@ struct ResidentSourceCompute {
   source_closed : Ref[Bool]
   mut released : Bool
   effect_captures : Map[String, ResidentEffectCaptureCustody]
+  effect_previews : Map[String, ResidentEffectPreviewCustody]
   effect_payloads : Map[String, ResidentEffectSourceCustody]
   observe : ((ResidentSourceComputeEvent) -> Bool)?
 }
@@ -758,6 +759,7 @@ fn open_resident_captured_compute(
     released: false,
     effect_payloads: {},
     effect_captures: {},
+    effect_previews: {},
     observe,
   }
   Ok(owner)

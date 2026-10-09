@@ -219,6 +219,53 @@ windowScalarRefusals.push({name: 'window-scalar-refuse-schema-private-slot', for
   parameterDeclarations: selectPrivateDeclarations(selectPrivateField), parameters: {items: selectPrivateRows(selectPrivateField)},
   expectedCode: 'ClientProgramInvalidInput'});
 
+// QUALIFY demands the same evaluated SELECT value that final projection uses.
+// The ordinary Program control computes that value once, then filters it.
+export const qualifyPrivateWindowProgram = field => {
+  const program = selectPrivateWindowProgram(field);
+  program.id = 'fixture.qualify_private_window';
+  program.stages[0].steps.splice(7, 0, {filter: {gt: [{field: 'pos'}, {literal: 2}]}});
+  return program;
+};
+const qualifyPrivateSql = selectPrivateSql + ' QUALIFY pos > 2 ORDER BY id DESC';
+const qualifyPrivateSuccess = (name, field = selectPrivateField, extra = {}) =>
+  selectPrivateSuccess('qualify-' + name, field, qualifyPrivateSql, {
+    expected: [{[field]: 10, id: 2, pos: 3}], ...extra});
+windowScalarSuccesses.push(
+  qualifyPrivateSuccess('json', selectPrivateField, {
+    text: JSON.stringify(qualifyPrivateWindowProgram(selectPrivateField)), format: 'json', parameterDeclarations: undefined}),
+  qualifyPrivateSuccess('upper-json', selectPrivateUpper, {
+    text: JSON.stringify(qualifyPrivateWindowProgram(selectPrivateUpper)), format: 'json', parameterDeclarations: undefined}),
+  qualifyPrivateSuccess('sql'),
+  qualifyPrivateSuccess('upper-sql', selectPrivateUpper),
+  qualifyPrivateSuccess('group-all', selectPrivateField, {
+    text: selectPrivateSql + ' GROUP BY ALL QUALIFY pos > 2 ORDER BY id DESC'}),
+  qualifyPrivateSuccess('upper-group-all', selectPrivateUpper, {
+    text: selectPrivateSql + ' GROUP BY ALL QUALIFY pos > 2 ORDER BY id DESC'}),
+  qualifyPrivateSuccess('named-quoted', selectPrivateField, {
+    text: selectPrivateSql.replace('OVER (ORDER BY id)', 'OVER w').replace('AS pos', 'AS `pos`')
+      + ' QUALIFY `pos` > 2 WINDOW w AS (ORDER BY id) ORDER BY id DESC'}),
+  qualifyPrivateSuccess('nullable', selectPrivateField, {
+    parameters: {items: [{id: 2, [selectPrivateField]: null}, {id: 1, [selectPrivateField]: 90}]},
+    expected: [{[selectPrivateField]: null, id: 2, pos: 3}]}),
+  qualifyPrivateSuccess('empty', selectPrivateField, {parameters: {items: []}, expected: []}),
+  qualifyPrivateSuccess('duplicates', selectPrivateField, {
+    text: selectPrivateSql + ' QUALIFY pos > 2 ORDER BY id DESC, pos DESC',
+    parameters: {items: [...selectPrivateRows(selectPrivateField), {id: 2, [selectPrivateField]: 10}]},
+    expected: [{[selectPrivateField]: 10, id: 2, pos: 4}, {[selectPrivateField]: 10, id: 2, pos: 3}]}),
+  qualifyPrivateSuccess('qualified-user', selectPrivateField, {
+    text: 'SELECT *, ROW_NUMBER() OVER (ORDER BY e.id) + e.aql_select_window_0 AS pos FROM UNNEST(@items) e '
+      + 'QUALIFY pos > 50 ORDER BY id DESC',
+    columns: [{name: selectPrivateField, contract: nullable}, {name: 'id', contract: number}, {name: 'pos', contract: nullable}],
+    expected: [{[selectPrivateField]: 90, id: 1, pos: 91}]}),
+);
+for (const [name, text, expectedCode] of [
+  ['private-slot', selectPrivateSql + ' QUALIFY pos > 2 ORDER BY aql_qualify_expr_4', 'ClientProgramInvalidInput'],
+  ['window-alias-input', selectPrivateSql + ' ORDER BY ROW_NUMBER() OVER (ORDER BY pos)', 'ClientProgramImplementationLimit'],
+]) windowScalarRefusals.push({name: 'window-scalar-refuse-schema-private-qualify-' + name, text, format: 'sql',
+  parameterDeclarations: selectPrivateDeclarations(selectPrivateField), parameters: {items: selectPrivateRows(selectPrivateField)},
+  expectedCode});
+
 // Independent controls for the three Pipe consumers. The input user value
 // must survive; only the separate evaluated rank drives filtering/updates.
 const pipePrivateFields = {where: 'aql_pipe_where_window_0', extend: 'aql_select_window_0',
@@ -247,11 +294,14 @@ const pipePrivateOperations = {
   set: 'SET id = ROW_NUMBER() OVER (ORDER BY id) + 10',
 };
 const pipePrivateHead = 'FROM UNNEST(@items) e |> AS r |> ';
+// SET edits ordinary columns, not implicit members of a value table.
+const pipePrivateSetHead = 'FROM UNNEST(@items) e |> SELECT * |> AS r |> ';
+const pipePrivateInput = kind => kind === 'set' ? pipePrivateSetHead : pipePrivateHead;
 const pipePrivateExpected = (kind, field) => kind === 'where' ? [{[field]: 90, id: 1}]
   : kind === 'extend' ? [{[field]: 10, id: 2, pos: 3}, {[field]: 90, id: 1, pos: 2}]
     : [{[field]: 10, id: 12}, {[field]: 90, id: 11}];
 const pipePrivateSuccess = (name, kind, field = pipePrivateFields[kind], extra = {}) =>
-  success('pipe-schema-private-' + name, pipePrivateHead + pipePrivateOperations[kind] + ' |> ORDER BY id DESC', {
+  success('pipe-schema-private-' + name, pipePrivateInput(kind) + pipePrivateOperations[kind] + ' |> ORDER BY id DESC', {
     format: 'aql-text', parameterDeclarations: selectPrivateDeclarations(field), parameters: {items: selectPrivateRows(field)},
     expected: pipePrivateExpected(kind, field), columns: [{name: field, contract: nullable}, {name: 'id', contract: number},
       ...(kind === 'extend' ? [{name: 'pos', contract: number}] : [])],
@@ -266,7 +316,7 @@ for (const kind of ['where', 'extend', 'set']) {
   );
   const slot = kind === 'extend' ? 'aql_analytic_output_3' : 'aql_analytic_output_2';
   windowScalarRefusals.push({name: 'window-scalar-refuse-pipe-schema-private-' + kind, format: 'aql-text',
-    text: pipePrivateHead + pipePrivateOperations[kind] + ' |> SELECT ' + slot,
+    text: pipePrivateInput(kind) + pipePrivateOperations[kind] + ' |> SELECT ' + slot,
     parameterDeclarations: selectPrivateDeclarations(field), parameters: {items: selectPrivateRows(field)},
     expectedCode: 'ClientProgramInvalidInput'});
 }
@@ -276,7 +326,7 @@ windowScalarSuccesses.push(
     expected: [{aql_pipe_where_window_0: null, id: 1}]}),
   pipePrivateSuccess('set-empty', 'set', undefined, {parameters: {items: []}, expected: []}),
   pipePrivateSuccess('set-immutable', 'set', undefined, {
-    text: pipePrivateHead + pipePrivateOperations.set + ' |> SELECT r.id AS original, * |> ORDER BY id DESC',
+    text: pipePrivateSetHead + pipePrivateOperations.set + ' |> SELECT r.id AS original, * |> ORDER BY id DESC',
     columns: [{name: 'original', contract: number}, {name: 'aql_pipe_set_window_0', contract: nullable}, {name: 'id', contract: number}],
     expected: [{original: 2, aql_pipe_set_window_0: 10, id: 12}, {original: 1, aql_pipe_set_window_0: 90, id: 11}]}),
   pipePrivateSuccess('extend-authored-key', 'extend', undefined, {
@@ -487,3 +537,9 @@ windowScalarRefusals.push(...[
   format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
 {name: 'window-scalar-refuse-set-window-missing-frame', format: 'aql-text',
   text: 'FROM records |> SET amount = SUM(amount) OVER (ORDER BY id)', expectedCode: 'ClientProgramImplementationLimit'});
+
+windowScalarRefusals.push({name: 'window-scalar-refuse-implicit-member-set', format: 'aql-text',
+  text: pipePrivateHead + pipePrivateOperations.set + ' |> ORDER BY id DESC',
+  parameterDeclarations: selectPrivateDeclarations(pipePrivateFields.set),
+  parameters: {items: selectPrivateRows(pipePrivateFields.set)},
+  expectedCode: 'ClientProgramInvalidInput'});
