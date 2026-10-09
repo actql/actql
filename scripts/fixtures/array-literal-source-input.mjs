@@ -77,18 +77,22 @@ export const arrayLiteralRefusals = [
     {name: 'unsupported-cast-' + target, text: `SELECT CAST(1 AS ${target}) AS value`},
     {name: 'unsupported-array-' + target, text: `SELECT ARRAY<${target}>[1] AS items`},
   ]),
-  {name: 'direct-nested-literal', text: 'SELECT [[1, 2]] AS items', expectedCode: 'ClientProgramUnsupported'},
+  // Source-only ARRAY profile refusals map to source_unsupported. The current
+  // audience-filtered preparation Owner retains ClientProgramRejected unless
+  // public checking supplies a disclosable fact; machine ARRAY support alone
+  // does not disclose that source-profile refusal.
+  {name: 'direct-nested-literal', text: 'SELECT [[1, 2]] AS items', expectedCode: 'ClientProgramRejected'},
   {name: 'direct-nested-parameter', text: 'SELECT [@xs] AS items',
     parameterDeclarations: {xs: {type: 'array', max_items: 2, items: scalar('number')}},
-    parameters: {xs: [1, 2]}, expectedCode: 'ClientProgramUnsupported'},
+    parameters: {xs: [1, 2]}, expectedCode: 'ClientProgramRejected'},
   {name: 'direct-nested-parameter-reference', text: 'SELECT @matrix AS items',
     parameterDeclarations: {matrix: {type: 'array', max_items: 1,
       items: {type: 'array', max_items: 2, items: scalar('number')}}},
-    parameters: {matrix: [[1, 2]]}, expectedCode: 'ClientProgramUnsupported'},
+    parameters: {matrix: [[1, 2]]}, expectedCode: 'ClientProgramRejected'},
   {name: 'direct-nested-aggregate', format: 'aql-text',
     text: 'FROM records |> ASSERT UNIQUE BY (id) |> AGGREGATE ARRAY_AGG(@xs IGNORE NULLS ORDER BY id) AS items GROUP BY id |> ORDER BY id',
     parameterDeclarations: {xs: {type: 'array', max_items: 2, items: scalar('number')}},
-    parameters: {xs: [1, 2]}, expectedCode: 'ClientProgramUnsupported'},
+    parameters: {xs: [1, 2]}, expectedCode: 'ClientProgramRejected'},
   {name: 'malformed', text: 'SELECT [1,] AS items'},
 ].map(value => ({...value, name: 'array-literal-' + value.name, format: value.format ?? 'sql'}));
 

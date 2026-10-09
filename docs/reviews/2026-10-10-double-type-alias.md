@@ -90,3 +90,29 @@ Packed Local/HTTPS execution and exact submitted-SHA CI are recorded separately
 in the PR after normal clean-HEAD packing. The focused checks alone do not claim
 public execution, Wasm/native coverage, complete ARRAY/CAST support or full
 Frontend conformance. No full Core campaign, manual CI retry or merge is run.
+
+## First packed run and source-profile refusal correction
+
+Normal five-package packing of `50bc26fafe8ef0686056c2f122a3aefe84856cce`
+reached all 21 positive cases on Embedded Local. It then stopped on a preserved
+nested-ARRAY refusal whose old fixture expected `ClientProgramUnsupported`.
+Evidence: `run-ShhvrW` and `public-query-evidence-bAyFzD` (command 010). HTTPS
+was not reached. Logs and the clean source/package receipt remain retained;
+the private installation and Store were reclaimed by the existing evidence Owner.
+
+Current `client_source_preparation_issue_code` maps both typed nested-ARRAY
+profile issues to `source_unsupported`. The current audience-filtered
+`client-program-preparation.mjs` returns `ClientProgramRejected` unless the
+public checking Owner supplies an admitted disclosable invalid-input or limit
+fact. Common machine ARRAY support is not such a source-profile fact. This
+boundary is independently covered by `client-preparation-disclosure.test.mjs`.
+The four old source-profile fixture codes are corrected to that exact current
+contract, without changing the four inputs, rejecting profile, rows, types,
+resource limits or admission/I/O assertions. Product diagnostics are unchanged.
+Final clean-HEAD packed evidence is recorded separately in the PR.
+
+The corrected ARRAY fixtures and existing disclosure boundary tests pass 28/28
+with `node scripts/local-checks.mjs test node --
+scripts/array-literal-source-input.test.mjs
+adapters/host-node/client-preparation-disclosure.test.mjs`;
+evidence: `run-mCIFYx` / `focused-test-piHu0O`.

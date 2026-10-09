@@ -19,7 +19,7 @@ test('ARRAY fixtures retain independently authored types order multiplicity and 
   assert.deepEqual(byName.get('array-literal-expand-offsets').expected,
     [{element: 2, position: 0}, {element: 1, position: 1}, {element: 2, position: 2}]);
   for (const fixture of arrayLiteralRefusals.filter(value => value.name.includes('direct-nested'))) {
-    assert.equal(fixture.expectedCode, 'ClientProgramUnsupported');
+    assert.equal(fixture.expectedCode, 'ClientProgramRejected');
   }
   const refusals = new Map(arrayLiteralRefusals.map(value => [value.name, value]));
   const reference = refusals.get('array-literal-direct-nested-parameter-reference');
