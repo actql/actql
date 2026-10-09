@@ -76,6 +76,8 @@ Evidence is retained in this worktree's ignored `_build` directories.
   collision tests plus `group_numeric_literal_test.mbt`. The existing
   unselected DISTINCT sort key remains exactly `UnsupportedOrdering`; the
   invalid numeric value remains `Expression(InvalidNumber)`.
+- Final refusal fixture Node check: `run-BYIe7L` /
+  `focused-test-0GCq88`, **2/2**, same command above.
 
 ## Public acceptance and remaining work
 
@@ -92,12 +94,40 @@ requires `ClientProgramInvalidInput`. Source, row/schema expectations and
 product refusal conditions are unchanged. Logs and package digests are retained;
 the failed campaign's temporary installation was reclaimed after evidence capture.
 
-The revised normal five-package exact-source campaign using
-`scripts/test-packed-public-query.mjs --group-select-scope-only` external
-Local/HTTPS consumer remains pending. Preserve one Source read, Result.describe
-types and column order, no extra hidden fields, same-request Run identity and
-no additional acquisition on reread/reattach/resend; refusal must admit no Run
-and perform no provider I/O.
+The revised campaign passed for clean source
+`b7b6d8a8700b8cbe66b6a947a16edc077f26465b`, `run-VBCL4t`, receipt
+`public-query-evidence-SeQcos`: **20 positives and 8 refusals on each of
+Embedded Local and HTTPS**. The existing
+`scripts/test-packed-public-query.mjs --group-select-scope-only` consumer installed
+normal tarballs outside the repository with no MoonBit toolchain at runtime,
+adapter overlay or post-lowering Program correction. Each success checks Named
+Result values, complete describe columns/types/nullability/order, no extra hidden
+fields, one Source acquisition where declared, same-request Run identity and no
+additional acquisition on reread/reattach/resend. Refusals retain zero Run
+admission and provider I/O. The same driver also passed 14 profile tests, the
+Local/HTTPS README quickstart and the missing-generated-asset negative check.
+Receipt status is passed/complete with no evidence errors; its temporary
+installation was reclaimed after logs/digests were saved.
+
+The bounded outer command runs the normal producer
+`node scripts/packed-client-packages.mjs <owned-outside-checkout-directory>`,
+independently verifies the manifest source and all five SHA-256 digests, then
+runs the selected consumer above with `ACTQL_PACKED_CLIENT_PACKAGES` pointing to
+those packages. The cooperative shared heavy slot and 1200-second budget were
+maintained. Digests for the verified source are:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `332a770a589f74f697fca8427c364da9b89dfc23c3fea9a1bd7c59c5d0e0401d` |
+| local-node | `84c5beb80d0524257a1776b9d541cd030b67281cf1d1163db86122f3bb8d62dd` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+The following evidence-only commit records this result; it is not itself the
+source revision used for those packages. Submitted-HEAD CI must be checked
+separately from this local campaign. Target branch is main, with no unmerged
+dependency; keep Draft pending review and required CI, and do not merge here.
 
 Full Core, Wasm/native, unfiltered packed acceptance, proof/performance and
 submitted-HEAD required CI have not been run. This unit does not claim the
