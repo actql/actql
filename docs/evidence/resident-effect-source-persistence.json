@@ -1,0 +1,75 @@
+{
+  "verified_source_sha": "42f3e894185c1027259d0506b65cfb8481cd26d3",
+  "parent_pr": 1137,
+  "parent_sha": "4dfcf32daa1555a683f31baa08bff05cddda0654",
+  "adopted_main_sha": "321db1b2c82f7c584e64920fa007c56204862a2c",
+  "scope": "Actual Native consumer output export into original Effect Source custody through existing Store owners. The execution Ledger remains live during Store reopen. No task, approval or Effect write is executed by the persistence operation.",
+  "commands": [
+    {
+      "command": "moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*Effect retained consumer*\"",
+      "wrapper": "scripts/test-execution.mjs runFocusedTests under existing local-checks lock",
+      "timeout_ms": 180000,
+      "tests": 2,
+      "passed": 2,
+      "log": "_build/resident-effect-source-persistence-1791544304249/tests.log"
+    },
+    {
+      "command": "moon test --target js src/query_integration/client_effect_local_export_wbtest.mbt --filter \"*shared local Artifact issuer*\"",
+      "wrapper": "scripts/test-execution.mjs runFocusedTests under existing local-checks lock",
+      "timeout_ms": 180000,
+      "tests": 1,
+      "passed": 1,
+      "log": "_build/resident-effect-source-persistence-1791544304249/effect-artifact.log"
+    },
+    {
+      "command": "moon info --target native src/platform_native/remote_resident_host src/platform_native/publication_store src/run_publication src/run_publication_host",
+      "result": "passed; inherited portable encode import warnings",
+      "log": "_build/resident-effect-source-persistence-1791544304249/interface.log"
+    },
+    {
+      "command": "moon info --target js src/platform_native/publication_store src/platform_native/remote_resident_host",
+      "result": "passed; inherited portable encode import warnings",
+      "log": "_build/resident-effect-source-persistence-1791544304249/portable-interface.log"
+    },
+    {
+      "command": "moon fmt src/platform_native/remote_resident_host/effect_source_persistence.mbt src/platform_native/remote_resident_source_compute_tests/effect_source_custody_wbtest.mbt",
+      "result": "no changes",
+      "log": "_build/resident-effect-source-persistence-1791544304249/format.log"
+    }
+  ],
+  "artifact": {
+    "kind": "Native whitebox test executable, not a production Site binary or published package",
+    "source_sha": "42f3e894185c1027259d0506b65cfb8481cd26d3",
+    "path": "_build/resident-effect-source-persistence-1791544304249/retained-compute.whitebox_test.exe",
+    "sha256": "d8d7938dc5ea1d02639074429497c410ad0fab9f64b3edcb4ccdae5e4df3fb89"
+  },
+  "executed_cases": [
+    "Reject an unrelated local Result index before payload allocation or reservation.",
+    "Validate original Run, checked member, Native opaque Artifact, logical/schema/order/row facts and exact Source custody before allocation.",
+    "Persist actual Native [{\"id\":3}] including the exporter tail; reconcile and read it from the reopened SQLite/filesystem Store.",
+    "Confirm a sealed retry with zero export row budget and no second allocation.",
+    "Keep the original writer and both reservations on a blocked seal; reject replacement persistence, retry that writer after the foreign-entry conflict is removed, and confirm the same owner.",
+    "Cancel the operation writer after a failed bounded Native export, preserve original custody/Ledger charge, then complete cleanup and return that reservation once.",
+    "Preserve the parent intent-response-loss, partial writer, ReaderBusy and cleanup-terminal-response-loss cases.",
+    "Outer Native acceptance asserts one Source acquisition and one consumer executor entry; shared Artifact caller test passes."
+  ],
+  "known_failures": [
+    {
+      "kind": "inherited main history validation failure, not rerun for this child",
+      "commit": "3e266bc18a81faaed6726551479340e0a10fde10",
+      "error": "Unlisted foundation source change 3e266bc18a81faaed6726551479340e0a10fde10: package.json",
+      "parent_evidence": "_build/resident-effect-source-custody-1791542873467/history.log"
+    },
+    {
+      "kind": "inherited portable unused encode import warnings",
+      "package": "platform_native/publication_store"
+    }
+  ],
+  "not_verified": [
+    "Failure after physical seal but before sealed-record persistence: the product retains writer/custody explicitly, but this child injects a filesystem seal conflict rather than that post-seal boundary.",
+    "Host/Coordinator process restart and reservation reconstruction.",
+    "Encrypted full Preview/capture persistence, waiting Run CAS, current-authorized approval and physical Effect execution.",
+    "Cloud/public SDK, formal five-package adoption, production Native binary, live Preview or hosted CI.",
+    "Old issue #88 Run recovery; those original custodial obligations remain separate."
+  ]
+}
