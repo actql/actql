@@ -149,7 +149,9 @@ try {
       const changed=await execution.observeOwners({...options,cursors:[{...cursor,value:cursor.value+'x'}]});
       const unbound=await execution.observeOwners({...options,cursors:[{...cursor,
         owner:{...cursor.owner,streamCid:`sha256:${'0'.repeat(64)}`}}]});
-      console.log(JSON.stringify({pid:process.pid,ref,expired,foreign,changed,unbound,state:await execution.status()}));
+      console.log(JSON.stringify({pid:process.pid,ref,expired,foreign,changed,unbound,
+        explanations:[expired,foreign,changed,unbound].map(value=>sdk.explainOwnerObservations(value)),
+        state:await execution.status()}));
     }else{
     const prepare=DatabaseSync.prototype.prepare;
     // Fault exactly the inventory read, after Host initialization and original
@@ -164,6 +166,9 @@ try {
     if(step==='observe-owners')writeFileSync(savedPath,JSON.stringify(views.owners
       .filter(view=>view.history?.cursor!==undefined).map(view=>view.history.cursor)),{mode:0o600,flag:'wx'});
     console.log(JSON.stringify({pid:process.pid,transport:server?'https':'local',httpsRequests,ref,views,
+      explanation:sdk.explainOwnerObservations(views),
+      copiedExplanation:sdk.explainOwnerObservations(structuredClone(views)),
+      formats:['text','html','json'].map(format=>sdk.formatOwnerObservations(views,{format})),
       state:await execution.status()}));
     }
   } else if (step === 'observe-effect') {

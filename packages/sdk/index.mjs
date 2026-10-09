@@ -32,12 +32,74 @@ const checkInputs = new WeakMap();
 // call's own input. No unvalidated reply, revision or location gains custody.
 const checkFailures = new WeakMap();
 const runObservationFailures = new WeakMap();
+const ownerObservationExplanations = new WeakMap();
 
 // Only a rejected observation of this SDK's attached Run retains its lookup
 // candidate. No rejected state, effect, revision or write permission is kept.
 export function explainRunObservationFailure(error, options) {
   return localizeOperation(runObservationFailures.get(error), 'observation', options);
 }
+
+// Only an admitted original SDK result carries this call's observation custody.
+export function explainOwnerObservations(result, options) {
+  return localizeOperation(ownerObservationExplanations.get(result), 'ownerObservations', options);
+}
+
+const ownerHistoryAdvice = {
+  not_provided: ['This Owner provides a current view without transition history.',
+    'Earlier transitions are not established by the current snapshot.'],
+  retention_expired: ['The Owner reports that the requested history is outside retained history.',
+    'A current snapshot does not fill this history gap or establish earlier outcomes.'],
+  history_unrecoverable: ['The Owner could not recover the requested history.',
+    'Keep the original Run reference; missing history establishes no absent execution or Effect.'],
+  cursor_mismatch: ['The cursor does not match this Owner observation scope or stream.',
+    'Use only a cursor returned for the original Run and Owner under current authorization.'],
+  cursor_expired: ['The supplied observation cursor has expired.',
+    'Cursor expiry does not establish history retention expiry. Obtain a fresh observation explicitly.'],
+  limit_exceeded: ['The observation budget could not cover the requested history.',
+    'Review the observation limits. This partial observation does not establish complete history.'],
+  acquisition_failed: ['The requested history could not be acquired.',
+    'Keep the original Run reference. Acquisition failure establishes no earlier outcome.'],
+  page: ['The Owner returned a page of recorded transitions in Owner-local order.',
+    'The page is not a global event order or an atomic view of other Owners. A returned cursor grants no execution or retry permission.'],
+};
+const ownerUnavailableAdvice = {
+  acquisition_failed: ['The Owner observations could not be acquired.',
+    'The acquisition failure establishes no stream identity, absence or earlier outcome.'],
+  limit_exceeded: ['The observation budget could not cover this Owner.',
+    'Other available views do not establish a complete observation of this Owner.'],
+  history_unrecoverable: ['The Owner observations could not be recovered.',
+    'Missing observations establish no stream identity, absence or earlier outcome.'],
+  cursor_mismatch: ['The supplied cursor could not be matched to this Owner observation.',
+    'A mismatch establishes no stream identity, absence or earlier outcome.'],
+};
+const ownerSnapshotAdvice = {
+  acquisition_failed: ['The current Owner snapshot could not be acquired.',
+    'Available history does not substitute for a current snapshot.'],
+  limit_exceeded: ['The current Owner snapshot exceeded the observation budget.',
+    'Available history does not establish a complete current view.'],
+};
+const advice = (facts, messages) => ({...facts, summary: messages[0], hint: messages[1]});
+const retainOwnerObservations = (answer, input, lookupContext) => {
+  const owners = answer.owners.map(view => {
+    if (view.kind === 'unavailable') return advice(view, view.problem === undefined ? [
+      'This Owner observation is unavailable.',
+      'Unavailability establishes no stream identity, absence, execution or release outcome.',
+    ] : ownerUnavailableAdvice[view.problem.kind]);
+    const explained = {...view, history: advice(view.history, ownerHistoryAdvice[view.history.kind])};
+    if (view.snapshotProblem !== undefined) {
+      explained.snapshotProblem = advice(view.snapshotProblem, ownerSnapshotAdvice[view.snapshotProblem.kind]);
+    }
+    return explained;
+  });
+  ownerObservationExplanations.set(answer, freezeInput({
+    ...answer, owners, observation: 'owner_views',
+    requested: {cursors: input.cursors, maxEntries: input.maxEntries, maxWireBytes: input.maxWireBytes},
+    lookupContext,
+    summary: 'These Owner observations were acquired independently and are ordered within each Owner only.',
+    hint: 'Keep the original Run reference and distinguish snapshots from history gaps. Reobserve explicitly under current authorization; this observation grants no execution, resend, cancellation or release permission.',
+  }));
+};
 
 const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunState') => {
   const error = new ClientError(code);
@@ -2062,7 +2124,10 @@ async function connectSelected(selected, port) {
             fail('InvalidHostOwnerObservations');
           }
         }
-        return freezeInput(answer);
+        freezeInput(answer);
+        retainOwnerObservations(answer, input,
+          {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef});
+        return answer;
       },
       status: async ({signal} = {}) => {
         return readRunObservation('status', {}, signal);
@@ -2733,4 +2798,8 @@ export function formatEffectUncertainty(result, options) {
 
 export function formatRunObservationFailure(error, options) {
   return formatOperationExplanation(explainRunObservationFailure(error), 'observation', options);
+}
+
+export function formatOwnerObservations(result, options) {
+  return formatOperationExplanation(explainOwnerObservations(result), 'ownerObservations', options);
 }
